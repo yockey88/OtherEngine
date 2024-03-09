@@ -1,4 +1,4 @@
-EXE_NAME = "project"
+EXE_NAME = "OtherEngine"
 PROJECT_NAME = "TestWorkspace"
 
 TOOLS_DIR = "tools"
