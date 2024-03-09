@@ -1,6 +1,7 @@
 ## Project files
 bin/
 bin_obj/
+tools/
 
 # Prerequisites
 *.d
