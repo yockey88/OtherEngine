@@ -103,6 +103,8 @@ end
 function AddDependencies()
   if #external_paths == 0 then
     return
+  else
+    print("Processing external dependencies")
   end
 
   print("[ Group ] : Externals")
@@ -120,13 +122,8 @@ function AddDependency(data)
   end
 
   if data.path ~= nil then
-    external_paths[data.name] = data.path
-    External[data.name] = {}
-    External[data.name].include_dir = data.include_dir or nil
-    External[data.name].lib_name = data.lib_name or nil
-    External[data.name].lib_dir = data.lib_dir or nil
-    External[data.name].configurations = data.configurations or nil
-  else
-    print("AddDependency: data.name is nil")
+    table.insert(external_paths, data.path)
   end
+
+  table.insert(External, data)
 end

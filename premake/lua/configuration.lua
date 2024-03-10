@@ -50,13 +50,11 @@ local function ProcessLinuxConfigurations(config)
 end
 
 local function ProcessSystemConfigurations(config)
-  if Contains(config.platforms , "Windows") then
-    print("[ Windows ]")
+  if ContainsValue(config.platforms , "Windows") then
     ProcessWindowsConfigurations(config)
   end
 
   if Contains(config.platforms , "Linux") then
-    print("[ Linux ]")
     ProcessLinuxConfigurations(config)
   end
 end
@@ -64,20 +62,20 @@ end
 local function ProcessConfigurations(config)
   print("[ Processing Configurations ]")
 
-  if Contains(config.build_configurations , "Debug") then
-    print("[ Debug ]")
+  if ContainsValue(config.build_configurations , "Debug") then
     filter "configurations:Debug"
-      if config.debug_configuration ~= nil then
-        config.debug_configuration()
-      else
-        debugdir "."
-        optimize "Off"
-        symbols "On"
-      end
+    if config.debug_configuration ~= nil then
+      config.debug_configuration()
+    else
+      debugdir "."
+      optimize "Off"
+      symbols "On"
+    end
+  else
+    print(" -- No debug configuration")
   end
 
-  if Contains(config.build_configurations , "Release") then
-    print("[ Release ]")
+  if ContainsValue(config.build_configurations , "Release") then
     filter "configurations:Release"
       if config.release_configuration ~= nil then
         config.release_configuration()

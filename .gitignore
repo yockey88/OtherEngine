@@ -6,6 +6,12 @@ tools/
 # Prerequisites
 *.d
 
+# configuration files
+*.config
+*.ini
+*.xml
+*.json
+
 # Compiled Object files
 *.slo
 *.lo
@@ -49,3 +55,15 @@ __pycache__/
 .idea/
 .vscode/
 .vs/
+
+# other
+*.log
+*.swp
+*.swo
+*.DS_Store
+*.tmp
+*.tmp.*
+*.bak
+*.backup
+*.orig
+*.rej

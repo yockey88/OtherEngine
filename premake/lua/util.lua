@@ -60,6 +60,18 @@ function Contains(table , key)
   return table[key] ~= nil or table[ToLower(key)] ~= nil
 end
 
+function ContainsValue(table, value) 
+  if table == nil then
+    return false
+  end
+
+  for _, v in pairs(table) do
+    if v == value then
+      return true
+    end
+  end
+end
+
 function DirExists(dir)
   local ok, err, code = os.rename(dir, dir)
   if not ok then

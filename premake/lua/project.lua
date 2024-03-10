@@ -1,4 +1,5 @@
-include "lua/externals.lua"
+require("externals")
+require("workspace")
 
 local function ProjectHeader(project_data)
   project (project_data.name)
@@ -19,11 +20,29 @@ local function ProjectHeader(project_data)
       staticruntime "On"
     end
 
-    targetdir (tdir)
-    objdir (odir)
+    targetdir (Tdir)
+    objdir (Odir)
 end
 
-local function ProcessProjectComponents(project)
+local function ProcessProjectComponents(project, config)
+  -- if project.components == nil then
+  --   return
+  -- end
+
+  -- for lib, comp in pairs(project.components) do
+  --   if ContainsValue(Externals , lib) then
+  --     libdirs { Externals[lib].lib_dir }
+  --     if config ~= nil and config == "Debug" and Externals[lib].debug_lib_name ~= nil then
+  --       links { Externals[lib].debug_lib_name }
+  --     else
+  --       links { Externals[lib].lib_name }
+  --     end
+
+  --     if Externals[lib].include_dir ~= nil then
+  --       externalincludedirs { Externals[lib].include_dir }
+  --     end
+  --   end
+  -- end
 end
 
 local function ProcessConfigurations(project , external)
@@ -110,6 +129,9 @@ function AddExternalProject(project)
   ProjectHeader(project)
     project.files()
     project.include_dirs()
+    if (project.externalincludedirs ~= nil) then
+      project.externalincludedirs()
+    end
 
     if project.defines ~= nil then
       project.defines()
@@ -132,12 +154,16 @@ function AddProject(project)
     project.files()
     project.include_dirs()
 
-    ProcessProjectComponents(project)
+    -- ProcessProjectComponents(project)
 
     if project.defines ~= nil then
       project.defines()
     end
 
     ProcessConfigurations(project)
-    RunPostBuildCommands()
+
+    if project.kind == "ConsoleApp" and project.post_build_commands ~= nil then
+      project.post_build_commands()
+    end
+      
 end
