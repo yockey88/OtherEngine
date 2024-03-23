@@ -8,7 +8,6 @@ namespace other {
   std::unordered_map<AssetType , Scope<AssetSerializer>> AssetLoader::asset_loaders;
 
   void AssetLoader::Initialize(const ConfigTable& config) {
-
   }
 
   void AssetLoader::Serialize(const Ref<Asset>& asset) {
