@@ -37,12 +37,12 @@ glad.lib_dir = "%{wks.location}/bin/Debug/glad"
 
 local glm = {}
 glm.name = "glm"
-glm.include_dir = "%{wks.location}/externals/glm/glm"
+glm.include_dir = "%{wks.location}/externals/glm"
 
 local imgui = {}
 imgui.name = "imgui"
 imgui.path = "./externals/imgui"
-imgui.include_dir = "%{wks.location}/externals/imgui/imgui"
+imgui.include_dir = "%{wks.location}/externals/imgui"
 imgui.lib_name = "imgui"
 imgui.lib_dir = "%{wks.location}/bin/Debug/imgui"
 
@@ -76,12 +76,12 @@ sdl2.include_dir = "%{wks.location}/externals/sdl2/SDL2"
 sdl2.lib_dir = "%{wks.location}/externals/sdl2/lib/%{cfg.buildcfg}"
 sdl2.lib_name = "SDL2"
 sdl2.debug_lib_name = "SDL2d"
-sdl2.configurations = "Debug" , "Release"
+sdl2.configurations = { "Debug" , "Release" }
 
 local spdlog = {}
 spdlog.name = "spdlog"
 spdlog.path = "./externals/spdlog"
-spdlog.include_dir = "%{wks.location}/externals/spdlog/spdlog"
+spdlog.include_dir = "%{wks.location}/externals/spdlog/include"
 spdlog.lib_name = "spdlog"
 spdlog.lib_dir = "%{wks.location}/bin/Debug/spdlog"
 

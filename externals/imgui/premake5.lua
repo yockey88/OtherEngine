@@ -22,7 +22,7 @@ end
 
 imgui.include_dirs = function() 
   includedirs {
-    "." ,
+    ".",
     "./imgui" ,
     "./imgui/backends" ,
     "./imgui/misc/cpp" ,

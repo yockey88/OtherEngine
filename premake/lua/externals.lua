@@ -58,7 +58,9 @@ function ProcessDependencies(configuration)
     local matches_config = true
 
     if configuration ~= nil and lib_data.configurations ~= nil then
-      matches_config = string.find(lib_data.configurations, configuration)
+      if Contains(lib_data.configurations, configuration) then
+        matches_config = true
+      end
     end
 
     local is_debug = configuration == "Debug"
