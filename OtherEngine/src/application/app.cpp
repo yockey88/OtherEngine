@@ -10,27 +10,30 @@
 #include "core/engine.hpp"
 #include "input/io.hpp"
 #include "rendering/renderer.hpp"
+#include "rendering/ui/ui.hpp"
+#include "layers/core_layer.hpp"
+#include "layers/debug_layer.hpp"
 
 namespace other {
 
-  void App::PushLayer(Scope<Layer>&  layer) {
-    layer_stack->PushLayer(layer);
+  void App::PushLayer(Ref<Layer>&  layer) {
     layer->OnAttach();
+    layer_stack->PushLayer(layer);
   }
 
-  void App::PushOverlay(Scope<Layer>&  overlay) {
-    layer_stack->PushOverlay(overlay);
+  void App::PushOverlay(Ref<Layer>&  overlay) {
     overlay->OnAttach();
+    layer_stack->PushOverlay(overlay);
   }
 
-  void App::PopLayer(Scope<Layer>&  layer) {
-    layer_stack->PopLayer(layer);
+  void App::PopLayer(Ref<Layer>&  layer) {
     layer->OnDetach();
+    layer_stack->PopLayer(layer);
   }
 
-  void App::PopOverlay(Scope<Layer>&  overlay) {
-    layer_stack->PopOverlay(overlay);
+  void App::PopOverlay(Ref<Layer>&  overlay) {
     overlay->OnDetach();
+    layer_stack->PopOverlay(overlay);
   }
 
   void App::ProcessEvent(Event* event) {
@@ -56,8 +59,6 @@ namespace other {
 
   App::App(Engine* engine , const ConfigTable& cfg) {
     engine_handle = engine;
-
-    layer_stack = NewScope<LayerStack>();
     config = cfg;
   }
 
@@ -68,7 +69,19 @@ namespace other {
   }
 
   void App::OnLoad() {
+    layer_stack = NewScope<LayerStack>();
     asset_handler = NewScope<AssetHandler>();
+
+    {
+      Ref<Layer> core_layer = NewRef<CoreLayer>(this);
+      PushLayer(core_layer);
+    }
+
+    auto debug = config.GetVal<bool>("APP" , "DEBUG");
+    if (debug.has_value() && debug.value()) {
+      Ref<Layer> debug_layer = NewRef<DebugLayer>(this);
+      PushOverlay(debug_layer);
+    }
 
     // PushLayer(NewScope<BaseLayer>(this));
     // if (app_data->app_config.debug_mode) {
@@ -89,6 +102,8 @@ namespace other {
     //  LogDebug(Logger::LogTarget::CONSOLE , "Loading module from path: {}" , module_path);
     //  module->LoadScriptModule({ "EngineY-ScriptCore" , { module_path } });
     // }
+    
+    OnAttach();
   }
 
   void App::Run() {
@@ -137,23 +152,24 @@ namespace other {
       //   GetEngine()->window->DrawFramebuffer();
       // }
 
-      // if (app_data->app_config.ui_enabled) {
-      //   GetEngine()->ui->BeginFrame();
-      //   // client render
-      //   RenderUI();
-      //   if (scene_context != nullptr) {
-      //     scene_context->RenderUI();
-      //   }
+      if (UI::Enabled()) {
+        UI::BeginFrame();
 
-      //   // render all layers
-      //   {
-      //     Scope<LayerStack>& layer_stack = app_data->layer_stack;
-      //     for (size_t i = 0; i < app_data->layer_stack->Size(); ++i) {
-      //       (*layer_stack)[i]->OnUIRender();
-      //     }
-      //   }
-      //   GetEngine()->ui->EndFrame();
-      // }
+        // client render
+        RenderUI();
+
+        // if (scene_context != nullptr) {
+        //   scene_context->RenderUI();
+        // }
+
+        { // render all layers
+          for (size_t i = 0; i < layer_stack->Size(); ++i) {
+            (*layer_stack)[i]->OnUIRender();
+          }
+        }
+
+        UI::EndFrame();
+      }
 
       Renderer::EndFrame();
 
@@ -165,12 +181,10 @@ namespace other {
   }
 
   void App::OnUnload() {
+    OnDetach();
+
     // LanguageModule* module = GetEngine()->script_engine->GetModule("Mono");
     // module->UnloadScriptModule("EngineY-ScriptCore");
-  }
-
-  Scope<App> CreateApp(Engine* engine , const ConfigTable& cfg) {
-    return NewScope<App>(engine , cfg);
   }
 
 } // namespace other

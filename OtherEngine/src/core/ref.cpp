@@ -6,21 +6,11 @@
 #include <unordered_set>
 
 namespace other {
-
 namespace {
 
   std::unordered_set<void*> refs;
 
 } // namespace anon
-
-  void RefCounter::Increment() {
-    count++;
-  }
-
-  void RefCounter::Decrement() {
-    count--;
-  }
-
 namespace detail {
 
   void RegisterReference(void* instance) {

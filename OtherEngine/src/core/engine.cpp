@@ -52,19 +52,23 @@ namespace other {
     }
   }
 
-  void Engine::PushEngineLayer(Scope<Layer>& layer) {
+  void Engine::PushEngineLayer(Ref<Layer>& layer) {
+    layer->OnAttach();
     layer_stack->PushLayer(layer);
   }
 
-  void Engine::PushEngineOverlay(Scope<Layer>& overlay) {
+  void Engine::PushEngineOverlay(Ref<Layer>& overlay) {
+    overlay->OnAttach();
     layer_stack->PushOverlay(overlay);
   }
 
-  void Engine::PopEngineLayer(Scope<Layer>& layer) {
+  void Engine::PopEngineLayer(Ref<Layer>& layer) {
+    layer->OnDetach();
     layer_stack->PopLayer(layer);
   }
 
-  void Engine::PopEngineOverlay(Scope<Layer>& overlay) {
+  void Engine::PopEngineOverlay(Ref<Layer>& overlay) {
+    overlay->OnDetach();
     layer_stack->PopOverlay(overlay);
   }
 

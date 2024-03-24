@@ -12,6 +12,7 @@
 #include "event/event_queue.hpp"
 #include "input/io.hpp"
 #include "rendering/renderer.hpp"
+#include "rendering/ui/ui.hpp"
 #include "parsing/cmd_line_parser.hpp"
 #include "parsing/ini_parser.hpp"
 
@@ -42,6 +43,21 @@ namespace other {
       return ExitCode::SUCCESS;
     }
 
+    auto set_cwd = cmd_line.GetArg("--cwd");
+    if (set_cwd.has_value()) {
+      if (set_cwd.value().args.size() != 1) {
+        other::println("Invalid number of arguments for --cwd");
+        return ExitCode::FAILURE;
+      }
+
+      if (!std::filesystem::exists(set_cwd.value().args[0])) {
+        other::println("Invalid path for --cwd");
+        return ExitCode::FAILURE;
+      }
+      std::filesystem::current_path(set_cwd.value().args[0]);
+    }
+
+    println("Starting Other Engine in {}" , std::filesystem::current_path().string());
     if (!LoadConfig()) {
       other::println("Failed to load configuration");
       return ExitCode::FAILURE;
@@ -81,7 +97,6 @@ namespace other {
   }
 
   void OE::CoreInit() {
-    auto log_level = current_config.Get("LOG-LEVEL");
     // open logger
     Logger::Open(current_config);
     Logger::Instance()->RegisterThread("OE-Thread");
@@ -90,24 +105,24 @@ namespace other {
   }
 
   bool OE::LoadConfig() {
-    auto cfg = cmd_line.GetArg("--ini");
+    auto cfg = cmd_line.GetArg("--project");
 
     std::string ini_file = "";
     if (cfg.has_value()) {
       if (cfg.value().args.size() != 1) {
-        other::println("Invalid number of arguments for --ini");
+        other::println("Invalid number of arguments for --project");
         return false;
       }
 
       if (!std::filesystem::exists(cfg.value().args[0])) {
-        ini_file = "";
+        other::println("Configuration file not found : {} , using default", cfg.value().args[0]);
       } else {
         ini_file = cfg.value().args[0];
       }
     } 
 
     if (ini_file.empty()) {
-      config_path = std::filesystem::current_path() / "OtherEngine" / "resources" / "default_config.other";
+      config_path = std::filesystem::current_path() / "OtherEngine-Launcher" / "launcher.other";
       if (!std::filesystem::exists(config_path)) {
         other::println("Default configuration file not found");
         return false;
@@ -125,17 +140,17 @@ namespace other {
     engine = Engine(current_config);
 
     IO::Initialize();
-    EventQueue::Initialize();
+    EventQueue::Initialize(current_config);
     Renderer::Initialize(current_config);
+    UI::Initialize(current_config , Renderer::GetWindow());
   }
 
   ExitCode OE::Run() {
-    Launch();
-
     bool should_quit = false;
     do {
+      Launch();
       {
-        auto app = CreateApp(&engine , current_config);
+        auto app = NewApp(&engine , current_config);
         engine.LoadApp(app);
       }
 
@@ -149,21 +164,35 @@ namespace other {
         case ExitCode::SUCCESS:
           should_quit = true;
           break;
+        // case ExitCode::LOAD_NEW_PROJECT:
+        break;
         case ExitCode::RELOAD_PROJECT:
-          println("RELOADING PROJECT UNIMPLEMENTED | PLEASE RESTART WITH CORRECT CONFIGURATION");
-          should_quit = true;
-          break;
+          Shutdown();
+          CoreShutdown();
+
+          if (!LoadConfig()) {
+            OE_CRITICAL("Failed to reload configuration");
+            return ExitCode::FAILURE;
+          }
+
+          CoreInit();
+
+          continue;
         default:
           break;
       }
+
+      Shutdown();
     } while (!should_quit);
 
+    return engine.exit_code.value();
+  }
 
+  void OE::Shutdown() {
+    UI::Shutdown();
     Renderer::Shutdown();
     EventQueue::Shutdown();
-
-    // force call of destructors
-    return engine.exit_code.value();
+    IO::Shutdown();
   }
 
   void OE::CoreShutdown() {

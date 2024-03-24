@@ -24,27 +24,6 @@ local function ProjectHeader(project_data)
     objdir (Odir)
 end
 
-local function ProcessProjectComponents(project, config)
-  -- if project.components == nil then
-  --   return
-  -- end
-
-  -- for lib, comp in pairs(project.components) do
-  --   if ContainsValue(Externals , lib) then
-  --     libdirs { Externals[lib].lib_dir }
-  --     if config ~= nil and config == "Debug" and Externals[lib].debug_lib_name ~= nil then
-  --       links { Externals[lib].debug_lib_name }
-  --     else
-  --       links { Externals[lib].lib_name }
-  --     end
-
-  --     if Externals[lib].include_dir ~= nil then
-  --       externalincludedirs { Externals[lib].include_dir }
-  --     end
-  --   end
-  -- end
-end
-
 local function ProcessConfigurations(project , external)
     filter "system:windows"
       if project.windows_configuration ~= nil then
@@ -154,7 +133,7 @@ function AddProject(project)
     project.files()
     project.include_dirs()
 
-    -- ProcessProjectComponents(project)
+    ProcessProjectComponents(project)
 
     if project.defines ~= nil then
       project.defines()

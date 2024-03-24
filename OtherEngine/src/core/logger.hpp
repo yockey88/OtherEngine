@@ -38,6 +38,9 @@
   } while(false)
 
 namespace other {
+  
+  constexpr static std::string_view kConsoleFmt = "%^[ OTHER ENGINE -- %l ]%$ %v";
+  constexpr static std::string_view kFileFmt = "%^[ %l ]%$ %v [%Y/%m/%d %H:%M:%S %z]";
 
   class Logger {
     public:
@@ -88,25 +91,15 @@ namespace other {
         std::string str = fmt::format(fmt::runtime(format) , std::forward<Args>(args)...);
         str = fmt::format(std::string_view{ "{} | {} [{}]" } , str , src_str , thread_name);
 
-        // if (thread_filters.empty()) {
-        //   logger->log(LevelFromLevel(l) , str);
-        // } else {
-        //   auto uc_thread = thread_name;
-        //   std::transform(uc_thread.begin() , uc_thread.end() , uc_thread.begin() , ::toupper);
-
-        //   auto thread_hash = FNV(uc_thread);
-        //   if (std::ranges::contains(thread_filters , thread_hash) ) {
         logger->log(LevelFromLevel(l) , str);
-        //   }
-        // }
       }
 
       void RegisterThread(const std::string& name); 
 
-      void SetPattern(const std::string& p);
+      void SetCorePattern(CoreTarget target , const std::string& pattern);
 
-      void SetLevel(const std::string& l);
-      void SetLevel(Level l);
+      void SetCoreLevel(CoreTarget target , const std::string& l);
+      void SetCoreLevel(CoreTarget target , Level l);
 
       bool ChangeFiles(const std::string& path);
 
@@ -131,12 +124,13 @@ namespace other {
       constexpr static std::array<std::string_view , kNumCoreTargets> kTargetStrings = {
         "console" , "file"
       }; 
-
       constexpr static std::array<uint64_t , kNumCoreTargets> kSinkHashes = {
         FNV("CONSOLE") , FNV("FILE")
       };
 
       std::vector<spdlog::sink_ptr> sinks = { nullptr , nullptr };
+      std::vector<spdlog::level::level_enum> sink_levels = { spdlog::level::info , spdlog::level::trace };
+      std::vector<std::string> sink_patterns = { kConsoleFmt.data() , kFileFmt.data() };
 
       StdRef<spdlog::logger> logger;
 

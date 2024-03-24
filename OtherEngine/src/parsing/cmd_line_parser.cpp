@@ -9,7 +9,8 @@ namespace {
 
   class CmdLineParser {
     public:
-      CmdLineParser(const std::vector<std::string>& argv) : argc(argv.size()) , argv(argv) {}
+      CmdLineParser(const std::vector<std::string>& argv) 
+        : argc(argv.size()) , argv(argv) {}
 
       std::map<uint64_t , Arg> Parse() {
         ParseArgs();
@@ -20,7 +21,7 @@ namespace {
       int argc;
       const std::vector<std::string>& argv;
 
-      size_t i = 1;
+      size_t i = 0;
       std::map<uint64_t , Arg> args;
 
       void ParseArgs() {

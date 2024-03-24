@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "core/ref.hpp"
 #include "asset/asset_types.hpp"
 #include "asset/asset.hpp"
 #include "asset/asset_registry.hpp"

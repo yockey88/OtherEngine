@@ -54,6 +54,8 @@ namespace other {
       static WindowConfig ConfigureWindow(const ConfigTable& config);
       static Result<Scope<Window>> GetWindow(const WindowConfig& config , const ConfigTable& cfg_table); 
 
+      const WindowContext& Context() const { return context; }
+
     private:
       WindowContext context;
       WindowConfig config;

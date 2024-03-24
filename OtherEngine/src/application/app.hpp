@@ -15,17 +15,6 @@ namespace other {
 
   class Engine;
 
-  struct AppData {
-    // Scope<AppLoader> app_loader = nullptr;
-    // ProjectData project_data;
-    // AppConfig app_config;
-    // AppVersion app_version;
-    std::string author;
-    std::string project_folder;
-    std::string project_file;
-    std::string project_lib;
-  };
-
   class App { 
     public:
       App(Engine* engine , const ConfigTable& cfg);
@@ -35,24 +24,21 @@ namespace other {
       void Run();
       void OnUnload();
 
-      void PushLayer(Scope<Layer>& layer);
-      void PushOverlay(Scope<Layer>& overlay);
-      void PopLayer(Scope<Layer>& layer);
-      void PopOverlay(Scope<Layer>& overlay);
+      void PushLayer(Ref<Layer>& layer);
+      void PushOverlay(Ref<Layer>& overlay);
+      void PopLayer(Ref<Layer>& layer);
+      void PopOverlay(Ref<Layer>& overlay);
     
       void ProcessEvent(Event* event);
 
-      virtual void OnEvent(Event* event) {}
-      virtual void Update(float dt) {}
-      virtual void Render() {}
-      virtual void RenderUI() {}
-    
-      inline AppData *GetAppData() { return app_data; }
-      // inline const AppConfig &GetConfig() const { return app_data->app_config; }
+      virtual void OnAttach() = 0; 
+      virtual void OnEvent(Event* event) = 0;
+      virtual void Update(float dt) = 0;
+      virtual void Render() = 0;
+      virtual void RenderUI() = 0;
+      virtual void OnDetach() = 0;
 
     protected:
-      // Scope<Scene> scene_context = nullptr;
-
       Engine* GetEngine() { return engine_handle; }
 
       void InitUIContext();
@@ -63,15 +49,12 @@ namespace other {
       virtual void Shutdown() {}
     
     private:
-      AppData *app_data = nullptr;
       Scope<LayerStack> layer_stack = nullptr;
       Scope<AssetHandler> asset_handler = nullptr;
 
       Engine* engine_handle = nullptr;
       ConfigTable config;
   };
-
-  Scope<App> CreateApp(Engine* engine , const ConfigTable& config);
 
 } // namespace other
 

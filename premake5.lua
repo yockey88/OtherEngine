@@ -13,7 +13,9 @@ configuration.build_configurations = { "Debug", "Release" }
 configuration.platforms = { "Windows" }
 
 configuration.groups = {
-    ["OtherEngine"] = { "./OtherEngine" }
+    ["OtherEngine"] = { "./OtherEngine" } ,
+    ["OtherEngine-Tools"] = { "./OtherEngine-Launcher" } ,
+    ["Development"] = { "./Testbed" }
 }
 
 if Contains(configuration.build_configurations , "Debug") then

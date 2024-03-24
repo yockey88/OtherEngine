@@ -2,7 +2,7 @@ local OtherEngine = {}
 
 OtherEngine.name = "OtherEngine"
 OtherEngine.path = "./OtherEngine"
-OtherEngine.kind = "ConsoleApp"
+OtherEngine.kind = "StaticLib"
 OtherEngine.language = "C++"
 OtherEngine.cppdialect = "C++latest"
 

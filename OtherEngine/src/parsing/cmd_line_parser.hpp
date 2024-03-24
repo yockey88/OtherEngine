@@ -30,7 +30,7 @@ namespace other {
   constexpr static std::array<RawArg, kNumArgs> kRawArgs = {
     RawArg("-h", "--help", "Prints this help message", false),
     RawArg("-v", "--version", "Prints the version of the program", false),
-    RawArg("-i", "--ini", "Specifies the configuration file to use", true , 1)
+    RawArg("-p", "--project", "Specifies the project file to use", true , 1)
   };
 
   struct Arg {

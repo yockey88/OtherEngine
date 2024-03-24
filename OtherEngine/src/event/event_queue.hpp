@@ -6,6 +6,7 @@
 
 #include "core/logger.hpp"
 #include "event/event.hpp"
+#include "core/config.hpp"
 
 namespace other {
 
@@ -14,7 +15,7 @@ namespace other {
 
   class EventQueue { 
     public:
-      static void Initialize();
+      static void Initialize(const ConfigTable& config);
 
       static void Poll(Engine* engine , App* app);
 

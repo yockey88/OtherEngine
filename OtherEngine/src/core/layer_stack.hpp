@@ -6,8 +6,8 @@
 
 #include <vector>
 
-#include "core/defines.hpp"
 #include "core/layer.hpp"
+#include "core/ref.hpp"
 
 namespace other {
 
@@ -16,23 +16,23 @@ namespace other {
       LayerStack() {}
       ~LayerStack(); 
 
-      void PushLayer(Scope<Layer>& layer);
-      void PopLayer(Scope<Layer>& layer);
-      void PushOverlay(Scope<Layer>& overlay);
-      void PopOverlay(Scope<Layer>& overlay);
+      void PushLayer(const Ref<Layer>& layer);
+      void PopLayer(const Ref<Layer>& layer);
+      void PushOverlay(const Ref<Layer>& overlay);
+      void PopOverlay(const Ref<Layer>& overlay);
 
-      Scope<Layer>& operator[](size_t index);
-      const Scope<Layer>& operator[](size_t index) const;
-      Scope<Layer>& At(size_t index);
-      const Scope<Layer>& At(size_t index) const;
+      Ref<Layer>& operator[](size_t index);
+      const Ref<Layer>& operator[](size_t index) const;
+      Ref<Layer>& At(size_t index);
+      const Ref<Layer>& At(size_t index) const;
 
       size_t Size() const;
 
-      std::vector<Scope<Layer>>::iterator begin();
-      std::vector<Scope<Layer>>::iterator end();
+      std::vector<Ref<Layer>>::iterator begin();
+      std::vector<Ref<Layer>>::iterator end();
 
     private:
-      std::vector<Scope<Layer>> layers;
+      std::vector<Ref<Layer>> layers;
       size_t layer_insert_index = 0;
 
   };

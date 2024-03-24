@@ -13,12 +13,12 @@ namespace other {
     }
   }
 
-  void LayerStack::PushLayer(Scope<Layer>& layer) {
-    layers.emplace(layers.begin() + layer_insert_index, std::move(layer));
+  void LayerStack::PushLayer(const Ref<Layer>& layer) {
+    layers.emplace(layers.begin() + layer_insert_index, layer);
     ++layer_insert_index;
   }
 
-  void LayerStack::PopLayer(Scope<Layer>& layer) {
+  void LayerStack::PopLayer(const Ref<Layer>& layer) {
     auto itr = std::find(layers.begin(), layers.end(), layer);
     if (itr != layers.end()) {
       layers.erase(itr);
@@ -28,11 +28,11 @@ namespace other {
     }
   }
 
-  void LayerStack::PushOverlay(Scope<Layer>& overlay) {
-    layers.emplace_back(std::move(overlay));
+  void LayerStack::PushOverlay(const Ref<Layer>& overlay) {
+    layers.emplace_back(overlay);
   }
 
-  void LayerStack::PopOverlay(Scope<Layer>& overlay) {
+  void LayerStack::PopOverlay(const Ref<Layer>& overlay) {
     auto itr = std::find(layers.begin(), layers.end(), overlay);
     if (itr != layers.end()) {
       layers.erase(itr);
@@ -41,22 +41,22 @@ namespace other {
     }
   }
 
-  Scope<Layer>& LayerStack::operator[](size_t index) {
+  Ref<Layer>& LayerStack::operator[](size_t index) {
     OE_ASSERT(index < layers.size() , "Attempting to access a layer that does not exist");
     return layers[index];
   }
 
-  const Scope<Layer>& LayerStack::operator[](size_t index) const {
+  const Ref<Layer>& LayerStack::operator[](size_t index) const {
     OE_ASSERT(index < layers.size() , "Attempting to access a layer that does not exist");
     return layers[index];
   }
 
-  Scope<Layer>& LayerStack::At(size_t index) {
+  Ref<Layer>& LayerStack::At(size_t index) {
     OE_ASSERT(index < layers.size() , "Attempting to access a layer that does not exist");
     return layers[index];
   }
 
-  const Scope<Layer>& LayerStack::At(size_t index) const {
+  const Ref<Layer>& LayerStack::At(size_t index) const {
     OE_ASSERT(index < layers.size() , "Attempting to access a layer that does not exist");
     return layers[index];
   }
@@ -65,11 +65,11 @@ namespace other {
     return layers.size();
   }
 
-  std::vector<Scope<Layer>>::iterator LayerStack::begin() {
+  std::vector<Ref<Layer>>::iterator LayerStack::begin() {
     return layers.begin();
   }
 
-  std::vector<Scope<Layer>>::iterator LayerStack::end() {
+  std::vector<Ref<Layer>>::iterator LayerStack::end() {
     return layers.end();
   }
 

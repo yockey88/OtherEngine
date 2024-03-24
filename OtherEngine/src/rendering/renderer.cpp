@@ -10,7 +10,7 @@
 
 namespace other {
 
-  static RenderData render_data;
+  RenderData Renderer::render_data;
 
   void Renderer::Initialize(const ConfigTable& config) {
     auto win_cfg = Window::ConfigureWindow(config);

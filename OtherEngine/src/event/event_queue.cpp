@@ -19,9 +19,16 @@ namespace other {
   uint8_t* EventQueue::cursor = nullptr;
   bool EventQueue::process_ui_events = false;
 
-  void EventQueue::Initialize() {
+  void EventQueue::Initialize(const ConfigTable& config) {
     event_buffer = new uint8_t[buffer_size];
     cursor = event_buffer;
+
+    auto ui_enabled = config.GetVal<bool>("UI" , "DISABLED");
+    if (!ui_enabled.has_value() || !ui_enabled.value()) {
+      EnableUIEvents();
+    } else {
+      DisableUIEvents();
+    }
   }
 
   void EventQueue::Poll(Engine* engine , App* app) {

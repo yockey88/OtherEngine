@@ -4,7 +4,7 @@
 #ifndef OTHER_ENGINE_ASSET_SERIALIZER_HPP
 #define OTHER_ENGINE_ASSET_SERIALIZER_HPP
 
-#include "asset/asset.hpp"
+#include "core/ref.hpp"
 #include "asset/asset_metadata.hpp"
 
 namespace other {

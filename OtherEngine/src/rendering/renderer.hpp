@@ -30,6 +30,12 @@ namespace other {
       static void HandleWindowResize(const glm::ivec2& size);
 
       static void Shutdown();
+
+      static const RenderData& GetData() { return render_data; }
+      static const Scope<Window>& GetWindow() { return render_data.window; }
+
+    private:
+      static RenderData render_data;
   };
 
 } // namespace other

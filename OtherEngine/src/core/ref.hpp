@@ -4,25 +4,9 @@
 #ifndef OTHER_ENGINE_REF_HPP
 #define OTHER_ENGINE_REF_HPP
 
-#include <atomic>
+#include "core/ref_counted.hpp"
 
 namespace other {
-
-  class RefCounter {
-    public:
-      RefCounter() 
-        : count(0) {}
-      virtual ~RefCounter() = default;
-
-      void Increment();
-      void Decrement();
-
-      uint64_t Count() const { return count; }
-    
-    private:
-      mutable std::atomic<uint64_t> count;
-  };
-
 namespace detail {
 
   void RegisterReference(void* instance);
@@ -33,7 +17,7 @@ namespace detail {
 } // namespace detail
 
   template <typename T>
-  class Ref : public RefCounter {
+  class Ref : public RefCounted {
     public:
       Ref()
           : object(nullptr) {}

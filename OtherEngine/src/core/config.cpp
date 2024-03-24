@@ -101,7 +101,7 @@ namespace other {
     return {};
   }
 
-  template <> const std::optional<bool> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
+  template <> const Opt<bool> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
     auto ret_str = Get(section , key);
     if (ret_str.empty()) {
       return std::nullopt;
@@ -122,7 +122,7 @@ namespace other {
     return std::nullopt;
   }
 
-  template <> const std::optional<uint8_t> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
+  template <> const Opt<uint8_t> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
     auto ret_str = Get(section , key);
     if (ret_str.empty()) {
       return std::nullopt;
@@ -141,7 +141,7 @@ namespace other {
     }
   }
 
-  template <> const std::optional<uint16_t> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
+  template <> const Opt<uint16_t> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
     auto ret_str = Get(section , key);
     if (ret_str.empty()) {
       return std::nullopt;
@@ -160,7 +160,7 @@ namespace other {
     }
   }
 
-  template <> const std::optional<uint32_t> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
+  template <> const Opt<uint32_t> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
     auto ret_str = Get(section , key);
     if (ret_str.empty()) {
       return std::nullopt;
@@ -179,7 +179,7 @@ namespace other {
     }
   }
 
-  template <> const std::optional<uint64_t> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
+  template <> const Opt<uint64_t> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
     auto ret_str = Get(section , key);
     if (ret_str.empty()) {
       return std::nullopt;
@@ -198,7 +198,7 @@ namespace other {
     }
   }
 
-  template <> const std::optional<int8_t> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
+  template <> const Opt<int8_t> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
     auto ret_str = Get(section , key);
     if (ret_str.empty()) {
       return std::nullopt;
@@ -217,7 +217,7 @@ namespace other {
     }
   }
 
-  template <> const std::optional<int16_t> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
+  template <> const Opt<int16_t> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
     auto ret_str = Get(section , key);
     if (ret_str.empty()) {
       return std::nullopt;
@@ -236,7 +236,7 @@ namespace other {
     }
   }
 
-  template <> const std::optional<int32_t> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
+  template <> const Opt<int32_t> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
     auto ret_str = Get(section , key);
     if (ret_str.empty()) {
       return std::nullopt;
@@ -255,7 +255,7 @@ namespace other {
     }
   }
 
-  template <> const std::optional<int64_t> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
+  template <> const Opt<int64_t> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
     auto ret_str = Get(section , key);
     if (ret_str.empty()) {
       return std::nullopt;
@@ -266,7 +266,7 @@ namespace other {
       return std::nullopt;
     }
 
-    std::optional<int64_t> ret;
+    Opt<int64_t> ret;
     try {
       ret = std::stoll(ret_str[0]);
     } catch (std::invalid_argument& e) {
@@ -280,7 +280,7 @@ namespace other {
     return ret;
   }
 
-  template <> const std::optional<float> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
+  template <> const Opt<float> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
     auto ret_str = Get(section , key);
     if (ret_str.empty()) {
       return std::nullopt;
@@ -291,7 +291,7 @@ namespace other {
       return std::nullopt;
     }
 
-    std::optional<float> ret;
+    Opt<float> ret;
     try {
       ret = std::stof(ret_str[0]);
     } catch (std::invalid_argument& e) {
@@ -305,7 +305,7 @@ namespace other {
     return ret;
   }
   
-  template <> const std::optional<double> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
+  template <> const Opt<double> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
     auto ret_str = Get(section , key);
     if (ret_str.empty()) {
       return std::nullopt;
@@ -316,7 +316,7 @@ namespace other {
       return std::nullopt;
     }
 
-    std::optional<double> ret;
+    Opt<double> ret;
     try {
       ret = std::stod(ret_str[0]);
     } catch (std::invalid_argument& e) {
@@ -328,6 +328,20 @@ namespace other {
     }
 
     return ret;
+  }
+
+  template <> const Opt<std::string> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
+    auto ret_str = Get(section , key);
+    if (ret_str.empty()) {
+      return std::nullopt;
+    }
+
+    if (ret_str.size() > 1) {
+      OE_ERROR("More than one value found for key : {}" , key);
+      return std::nullopt;
+    }
+
+    return ret_str[0];
   }
 
   std::string ConfigTable::TableString() {

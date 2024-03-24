@@ -11,6 +11,8 @@ namespace other {
   
   constexpr static uint64_t kConsoleLevelKey = FNV("CONSOLE-LEVEL");
   constexpr static uint64_t kFileLevelKey = FNV("FILE-LEVEL");
+  constexpr static uint64_t kConsoleFmtKey = FNV("CONSOLE-FMT");
+  constexpr static uint64_t kFileFmtKey = FNV("FILE-FMT");
   constexpr static uint64_t kThreadFiltersKey = FNV("THREAD-FILTERS");
   constexpr static uint64_t kLogFilePathKey = FNV("PATH");
 
@@ -28,8 +30,6 @@ namespace other {
   constexpr static uint64_t kErrorKey = FNV(kErrorStr);
   constexpr static uint64_t kCriticalKey = FNV(kCriticalStr);
 
-  constexpr static std::string_view kConsoleFmt = "%^[ OTHER ENGINE -- %l ]%$ %v";
-  constexpr static std::string_view kFileFmt = "%^[ %l ]%$ %v [%Y/%m/%d %H:%M:%S %z]";
 
   constexpr static std::string_view kLoggerName = "OTHER-ENGINE-LOG";
   /// just a default
@@ -62,10 +62,11 @@ namespace other {
     auto log_file_path = config.find(kLogFilePathKey);
     auto console_level = config.find(kConsoleLevelKey);
     auto file_level = config.find(kFileLevelKey);
-    auto filters = config.find(kThreadFiltersKey);
-
+    auto cpattern = config.find(kConsoleFmtKey);
+    auto fpattern = config.find(kFileFmtKey); 
+    
     std::string log_path = kDefaultLogFilePath.data();
-
+    
     if (log_file_path != config.end()) {
       auto real_path = log_file_path->second[0];
       std::transform(real_path.begin() , real_path.end() , real_path.begin() , ::tolower);
@@ -76,23 +77,36 @@ namespace other {
 
     ChangeFiles(log_path);
 
-
     if (console_level != config.end()) {
-      sinks[CONSOLE]->set_level(LevelFromString(console_level->second[0]));
-    }
+      if (console_level->second.size() == 1) {
+        SetCoreLevel(CONSOLE , console_level->second[0]);
+      } else {
+        logger->log(spdlog::level::warn , "Invalid number of arguments for CONSOLE-LEVEL");
+      }
+    } 
 
     if (file_level != config.end()) {
-      sinks[FILE]->set_level(LevelFromString(file_level->second[0]));
+      if (file_level->second.size() == 1) {
+        SetCoreLevel(FILE , file_level->second[0]);
+      } else {
+        logger->log(spdlog::level::warn , "Invalid number of arguments for FILE-LEVEL");
+      }
+    }
+  
+    if (cpattern != config.end()) {
+      if (cpattern->second.size() == 1) {
+        SetCorePattern(CONSOLE , cpattern->second[0]);
+      } else {
+        logger->log(spdlog::level::warn , "Invalid number of arguments for CONSOLE-FMT");
+      }
     }
 
-    if (filters != config.end()) {
-      // for (auto& f : filters->second) {
-      //   auto uc_f = f;
-      //   std::transform(uc_f.begin() , uc_f.end() , uc_f.begin() , ::toupper);
-
-      //   uint64_t filter = FNV(uc_f);
-      //   // thread_filters.push_back(filter);
-      // }
+    if (fpattern != config.end()) {
+      if (fpattern->second.size() == 1) {
+        SetCorePattern(FILE , fpattern->second[0]);
+      } else {
+        logger->log(spdlog::level::warn , "Invalid number of arguments for FILE-FMT");
+      }
     }
   }
 
@@ -105,22 +119,43 @@ namespace other {
 
     thread_names[std::this_thread::get_id()] = name;
   }
-  void Logger::SetPattern(const std::string& p) {
-    logger->set_pattern(p);
+
+  void Logger::SetCorePattern(CoreTarget target , const std::string& pattern) {
+    if (target == CoreTarget::CONSOLE) {
+      sink_patterns[CONSOLE] = pattern;
+      sinks[CONSOLE]->set_pattern(pattern);
+    } else if (target == CoreTarget::FILE) {
+      sink_patterns[FILE] = pattern;
+      sinks[FILE]->set_pattern(pattern);
+    }
   }
 
-  void Logger::SetLevel(const std::string& l) {
-    logger->set_level(LevelFromString(l));
+  void Logger::SetCoreLevel(CoreTarget target , const std::string& level) {
+    spdlog::level::level_enum spd_level = LevelFromString(level);
+    if (target == CoreTarget::CONSOLE) {
+      sink_levels[CONSOLE] = spd_level;
+      sinks[CONSOLE]->set_level(spd_level);
+    } else if (target == CoreTarget::FILE) {
+      sink_levels[FILE] = spd_level;
+      sinks[FILE]->set_level(spd_level);
+    }
   }
 
-  void Logger::SetLevel(Level l) {
-    logger->set_level(LevelFromLevel(l));
+  void Logger::SetCoreLevel(CoreTarget target , Level level) {
+    spdlog::level::level_enum spd_level = LevelFromLevel(level);
+    if (target == CoreTarget::CONSOLE) {
+      sink_levels[CONSOLE] = spd_level;
+      sinks[CONSOLE]->set_level(spd_level);
+    } else if (target == CoreTarget::FILE) {
+      sink_levels[FILE] = spd_level;
+      sinks[FILE]->set_level(spd_level);
+    }
   }
 
   bool Logger::ChangeFiles(const std::string& path) {
-    sinks[FILE] = NewStdRef<spdlog::sinks::basic_file_sink_mt>(path);
-    sinks[FILE]->set_level(spdlog::level::trace);
-    sinks[FILE]->set_pattern(kFileFmt.data());
+    sinks[FILE] = NewStdRef<spdlog::sinks::basic_file_sink_mt>(path , true);
+    sinks[FILE]->set_level(sink_levels[FILE]);
+    sinks[FILE]->set_pattern(sink_patterns[FILE]);
 
     logger->sinks() = { sinks[CONSOLE] , sinks[FILE] };
     return true;
@@ -132,10 +167,11 @@ namespace other {
     instance = nullptr;
   }
 
+  /// should never be called
   Logger::Logger() {
     sinks[CONSOLE] = NewStdRef<spdlog::sinks::stdout_color_sink_mt>();
-    sinks[CONSOLE]->set_level(spdlog::level::trace);
-    sinks[CONSOLE]->set_pattern(kConsoleFmt.data());
+    sinks[CONSOLE]->set_level(sink_levels[CONSOLE]);
+    sinks[CONSOLE]->set_pattern(sink_patterns[CONSOLE]);
 
     logger = NewStdRef<spdlog::logger>(kLoggerName.data());
     logger->set_level(spdlog::level::trace);
@@ -147,14 +183,18 @@ namespace other {
 
   Logger::Logger(const ConfigTable& config) {
     sinks[CONSOLE] = NewStdRef<spdlog::sinks::stdout_color_sink_mt>();
-    sinks[CONSOLE]->set_level(spdlog::level::trace);
-    sinks[CONSOLE]->set_pattern(kConsoleFmt.data());
+    sinks[CONSOLE]->set_level(sink_levels[CONSOLE]);
+    sinks[CONSOLE]->set_pattern(sink_patterns[CONSOLE]);
 
     logger = NewStdRef<spdlog::logger>(kLoggerName.data());
+    /// leave these as trace to defer to sink levels
     logger->set_level(spdlog::level::trace);
     logger->flush_on(spdlog::level::trace);
     logger->sinks() = { sinks[CONSOLE]  , nullptr };
 
+    spdlog::register_logger(logger);
+
+    /// have to do this last so the the console sink is set up
     Configure(config);
   }
 

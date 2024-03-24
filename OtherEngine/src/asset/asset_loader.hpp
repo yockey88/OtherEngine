@@ -5,6 +5,7 @@
 #define OTHER_ENGINE_ASSET_LOADER_HPP
 
 #include "core/config.hpp"
+#include "core/ref.hpp"
 #include "asset/asset.hpp"
 #include "asset/asset_metadata.hpp"
 #include "asset/asset_serializer.hpp"

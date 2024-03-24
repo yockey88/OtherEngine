@@ -1,0 +1,48 @@
+[log]
+console-level = "info"
+file-level = "debug"
+path = "logs/other-launcher.log"
+
+[window]
+width = 1920
+height = 1080
+
+title = "Other Engine Project Manager"
+
+clear-color = { 0.1 , 0.3 , 0.5 , 1.0 }
+
+[window.flags]
+fullscreen = false
+resizable = true
+
+[renderer.opengl]
+major-version = 4
+minor-version = 6
+double-buffer = true
+depth-size = 24
+stencil-size = 8
+accelerated-visual = true
+multisample-buffers = 1
+multisample-samples = 4
+srgb-capable = true
+vsync = true
+depth-test = true
+stencil-test = true
+cull-face = true
+blend = true
+clear-buffers = { color , depth , stencil }
+
+[ui]
+ini-path = "config/imgui.ini"
+
+[scripting]
+modules = [ "lua" , "C#" ]
+
+[scripting.lua]
+objects = [ "TestEntity" , "TestComponent" , "TestSystem"  , "TestScript" ]
+
+[scripting.C#]
+objects = [ "TestEntity" , "TestComponent" , "TestSystem"  , "TestScript" ]
+
+[resources]
+directory = "OtherEngine/resources"

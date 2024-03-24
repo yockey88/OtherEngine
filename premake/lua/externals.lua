@@ -47,6 +47,17 @@ local function AddInclude(table)
   end
 end
 
+function ProcessProjectComponents(project, config)
+  if project.components == nil then
+    return
+  end
+
+  for lib, comp in pairs(project.components) do
+    links { lib }
+    externalincludedirs { comp }
+  end
+end
+
 function ProcessDependencies(configuration)
   if #External == 0 then
     return

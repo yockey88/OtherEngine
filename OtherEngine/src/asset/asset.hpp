@@ -4,15 +4,20 @@
 #ifndef OTHER_ENGINE_ASSET_HPP
 #define OTHER_ENGINE_ASSET_HPP
 
-#include "core/ref.hpp"
+#include "core/ref_counted.hpp"
 #include "asset/asset_types.hpp"
 
 namespace other {
 
-  class Asset : public RefCounter {
+  class Asset : public RefCounted {
     public:
       Asset() {}
-      virtual ~Asset() {}
+      virtual ~Asset();
+
+      Asset(Asset&& other);
+      Asset(const Asset& other);
+      Asset& operator=(Asset&& other);
+      Asset& operator=(const Asset& other);
 
       static AssetType GetStaticType() { return AssetType::BLANK_ASSET; }  
       virtual AssetType GetAssetType() const { return AssetType::BLANK_ASSET; }

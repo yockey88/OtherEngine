@@ -25,10 +25,10 @@ namespace other {
 
       void ProcessEvent(Event* event);
 
-      void PushEngineLayer(Scope<Layer>& layer);
-      void PushEngineOverlay(Scope<Layer>& overlay);
-      void PopEngineLayer(Scope<Layer>& layer);
-      void PopEngineOverlay(Scope<Layer>& overlay);
+      void PushEngineLayer(Ref<Layer>& layer);
+      void PushEngineOverlay(Ref<Layer>& overlay);
+      void PopEngineLayer(Ref<Layer>& layer);
+      void PopEngineOverlay(Ref<Layer>& overlay);
 
     private:
       ConfigTable config;
