@@ -9,14 +9,14 @@
 #include "core/logger.hpp"
 #include "core/errors.hpp"
 #include "core/engine.hpp"
+#include "parsing/cmd_line_parser.hpp"
+#include "parsing/ini_parser.hpp"
 #include "event/event_queue.hpp"
 #include "input/io.hpp"
 #include "rendering/renderer.hpp"
 #include "rendering/ui/ui.hpp"
-#include "parsing/cmd_line_parser.hpp"
-#include "parsing/ini_parser.hpp"
-
-int rendering_main(const other::ConfigTable& config);
+#include "scripting/script_engine.hpp"
+#include "project/project.hpp"
 
 namespace other { 
 
@@ -96,22 +96,30 @@ namespace other {
     println("Other Engine v0.0.1");
   }
 
-  void OE::CoreInit() {
-    // open logger
-    Logger::Open(current_config);
-    Logger::Instance()->RegisterThread("OE-Thread");
+  std::string OE::FindConfigFile() {
+    if (Project::HasQueuedProject()) {
+      auto qpath = Project::GetQueuedProjectPath(); 
+      println("Using queued project : {}", qpath);
 
-    // init allocators
-  }
+      // do we really want to do this?
+      std::filesystem::current_path(qpath);
+      for (auto entry : std::filesystem::directory_iterator(qpath)) {
+        if (entry.path().extension() == ".other") {
+          println("Found configuration file in queued project : {}", entry.path().string());
+          return entry.path().string();
+        }
+      }
+      println("No configuration file found in queued project");
+      return "";
+    }
 
-  bool OE::LoadConfig() {
     auto cfg = cmd_line.GetArg("--project");
 
     std::string ini_file = "";
     if (cfg.has_value()) {
       if (cfg.value().args.size() != 1) {
         other::println("Invalid number of arguments for --project");
-        return false;
+        return "";
       }
 
       if (!std::filesystem::exists(cfg.value().args[0])) {
@@ -125,15 +133,58 @@ namespace other {
       config_path = std::filesystem::current_path() / "OtherEngine-Launcher" / "launcher.other";
       if (!std::filesystem::exists(config_path)) {
         other::println("Default configuration file not found");
-        return false;
+        return "";
       }
       ini_file = config_path.string();
-    } 
 
-    other::println("Using configuration : {}", ini_file);
-    other::IniFileParser parser{ ini_file };
-    current_config = parser.Parse();
+      // if not found yet search for any other .other file in current directory 
+      if (ini_file.empty()) {
+        for (const auto& entry : std::filesystem::directory_iterator(std::filesystem::current_path())) {
+          if (entry.path().extension() == ".other") {
+            ini_file = entry.path().string();
+          }
+        }
+      }
+    }
+
+    return ini_file;
+  }
+  
+  bool OE::LoadConfig() {
+    auto ini_file = FindConfigFile();
+    if (ini_file.empty()) {
+      other::println("Failed to find configuration file");
+      return false;
+    }
+
+    println("Using configuration : {}", ini_file);
+    // TODO: clean up finding config file
+    config_path = ini_file;
+
+    try {
+      IniFileParser parser{ ini_file };
+      current_config = parser.Parse();
+    } catch (IniException& e) {
+      println("Failed to parse configuration file : {}", e.what());
+      return false;
+    }
+
+    auto config_table_str = current_config.TableString();
+
+    /// Create project metadata
+
+    /// process core config parts of table
+    ///  language modules to load
+
     return true;
+  }
+
+  void OE::CoreInit() {
+    // open logger
+    Logger::Open(current_config);
+    Logger::Instance()->RegisterThread("OE-Thread");
+
+    // init allocators
   }
 
   void OE::Launch() {
@@ -143,6 +194,8 @@ namespace other {
     EventQueue::Initialize(current_config);
     Renderer::Initialize(current_config);
     UI::Initialize(current_config , Renderer::GetWindow());
+
+    ScriptEngine::Initialize(&engine , current_config);
   }
 
   ExitCode OE::Run() {
@@ -164,14 +217,14 @@ namespace other {
         case ExitCode::SUCCESS:
           should_quit = true;
           break;
-        // case ExitCode::LOAD_NEW_PROJECT:
-        break;
+        case ExitCode::LOAD_NEW_PROJECT:
         case ExitCode::RELOAD_PROJECT:
+          /// TODO: there is a better way to do this
           Shutdown();
           CoreShutdown();
 
           if (!LoadConfig()) {
-            OE_CRITICAL("Failed to reload configuration");
+            println("Failed to load configuration");
             return ExitCode::FAILURE;
           }
 
@@ -189,6 +242,8 @@ namespace other {
   }
 
   void OE::Shutdown() {
+    ScriptEngine::Shutdown();
+
     UI::Shutdown();
     Renderer::Shutdown();
     EventQueue::Shutdown();

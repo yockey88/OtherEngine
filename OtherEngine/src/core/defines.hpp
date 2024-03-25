@@ -15,11 +15,18 @@
 
 #define bit(x) (1 << x)
 
+#ifdef OE_MODULE
+  #define OE_CLIENT
+#else
+  #define OE_ENGINE
+#endif
+
 namespace other {
 
   enum ExitCode : uint8_t {
     SUCCESS = 0x00 ,
     RELOAD_PROJECT ,
+    LOAD_NEW_PROJECT ,
 
     NUM_EXIT_CODES ,
     FAILURE = NUM_EXIT_CODES ,

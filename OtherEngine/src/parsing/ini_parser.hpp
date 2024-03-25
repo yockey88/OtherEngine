@@ -29,6 +29,7 @@ namespace other {
       size_t col = 1;
 
       ConfigTable table;
+      bool in_string = false;
 
       void Trim(std::string& str);
       void TrimQuotes(std::string& str);

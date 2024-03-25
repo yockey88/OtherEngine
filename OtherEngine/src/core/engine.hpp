@@ -30,8 +30,12 @@ namespace other {
       void PopEngineLayer(Ref<Layer>& layer);
       void PopEngineOverlay(Ref<Layer>& overlay);
 
+      Logger* GetLog() const { return logger_instance; }
+
     private:
       ConfigTable config;
+
+      Logger* logger_instance = nullptr;
 
       Scope<App> active_app;
       Scope<LayerStack> layer_stack;

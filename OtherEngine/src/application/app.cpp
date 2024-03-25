@@ -62,11 +62,7 @@ namespace other {
     config = cfg;
   }
 
-  App::~App() {
-    for (auto& layer : *layer_stack) {
-      layer->OnDetach();
-    }
-  }
+  App::~App() {}
 
   void App::OnLoad() {
     layer_stack = NewScope<LayerStack>();
@@ -82,33 +78,11 @@ namespace other {
       Ref<Layer> debug_layer = NewRef<DebugLayer>(this);
       PushOverlay(debug_layer);
     }
-
-    // PushLayer(NewScope<BaseLayer>(this));
-    // if (app_data->app_config.debug_mode) {
-    //   PushOverlay(NewScope<DebugLayer>(this));
-    // }
-
-    // GetEngine()->script_engine->SetAppContext(this);
-    // LanguageModule* module = GetEngine()->script_engine->GetModule("Mono");
-    // if (module == nullptr) {
-    //   LogError(Logger::LogTarget::ALL_LOGS , "Mono module not found");
-    // } else {
-    //   LogInfo(Logger::LogTarget::ALL_LOGS , "Loading EngineY-ScriptCore module");
-#ifdef ENGINEY_DEBUG
-    // std::string module_path = "bin/Debug/EngineY-ScriptCore/EngineY-ScriptCore.dll";
-#else
-    //  std::string module_path = "bin/Release/EngineY-ScriptCore/EngineY-ScriptCore.dll";
-#endif
-    //  LogDebug(Logger::LogTarget::CONSOLE , "Loading module from path: {}" , module_path);
-    //  module->LoadScriptModule({ "EngineY-ScriptCore" , { module_path } });
-    // }
-    
-    OnAttach();
   }
 
   void App::Run() {
     OE_DEBUG("Running app, initializing...");
-    Initialize();
+    OnAttach();
 
     ///> TODO: experiment and see if we want to use delta time or frame rate enforcer
     // time::DeltaTime delta_time;
@@ -148,6 +122,9 @@ namespace other {
         (*layer_stack)[i]->OnRender();
       }
 
+      // client render
+      Render();
+
       // if (GetEngine()->window->FramebufferAttached()) {
       //   GetEngine()->window->DrawFramebuffer();
       // }
@@ -155,7 +132,7 @@ namespace other {
       if (UI::Enabled()) {
         UI::BeginFrame();
 
-        // client render
+        // client ui render
         RenderUI();
 
         // if (scene_context != nullptr) {
@@ -177,14 +154,14 @@ namespace other {
     } 
 
     OE_DEBUG("Main loop exited, shutting down...");
-    Shutdown();
+    OnDetach();
   }
 
   void App::OnUnload() {
-    OnDetach();
+    asset_handler = nullptr;
 
-    // LanguageModule* module = GetEngine()->script_engine->GetModule("Mono");
-    // module->UnloadScriptModule("EngineY-ScriptCore");
+    layer_stack->Clear(); 
+    layer_stack = nullptr;
   }
 
 } // namespace other

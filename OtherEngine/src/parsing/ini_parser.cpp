@@ -6,7 +6,6 @@
 #include <fstream>
 #include <sstream>
 
-#include "core/defines.hpp"
 #include "core/errors.hpp"
 
 namespace other {
@@ -21,7 +20,7 @@ namespace other {
       std::stringstream ss;
       ss << file.rdbuf();
       if (ss.str().empty()) {
-        throw IniException(fmtstr("{} is empty" , file_path) , IniError::FILE_EMPTY);
+        return ConfigTable();
       }
 
       file.seekg(0);
@@ -64,6 +63,7 @@ namespace other {
   void IniFileParser::TrimQuotes(std::string& str) {
     if (str[0] == '\"' && str[str.size() - 1] == '\"') {
       str = str.substr(1 , str.size() - 2);
+      in_string = true;
     }
   }
 
@@ -121,7 +121,8 @@ namespace other {
       return;
     }
 
-    table.Add(current_section.value() , current_key.value() , value);
+    table.Add(current_section.value() , current_key.value() , value , in_string);
+    in_string = false;
   }
 
   void IniFileParser::ParseValueList(const std::string& line) {
@@ -139,7 +140,8 @@ namespace other {
     while (std::getline(ss, value, ',')) {
       Trim(value);
       TrimQuotes(value);
-      table.Add(current_section.value() , current_key.value() , value);
+      table.Add(current_section.value() , current_key.value() , value , in_string);
+      in_string = false;
     }
   }
 

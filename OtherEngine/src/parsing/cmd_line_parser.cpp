@@ -45,7 +45,7 @@ namespace {
 
             args.insert({ arg.hash , arg });
           } else {
-            continue;
+            println("Unknown flag: ", argv[i]);
           }
 
           Advance();

@@ -13,6 +13,7 @@ namespace other {
       : config(config) {
     layer_stack = NewScope<LayerStack>();
     asset_handler = NewScope<AssetHandler>();
+    logger_instance = Logger::Instance();
   }
 
   void Engine::LoadApp(Scope<App>& app) {
@@ -20,6 +21,7 @@ namespace other {
 
     active_app = std::move(app);
     active_app->OnLoad();
+
   }
 
   void Engine::UnloadApp() {

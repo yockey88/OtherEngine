@@ -24,7 +24,7 @@ namespace other {
       KeyPressed* key = Cast<KeyPressed>(event);
       if (key != nullptr) {
         if (key->Key() == Keyboard::Key::KEY_ESCAPE) {
-          EventQueue::PushEvent<ShutdownEvent>(ExitCode::RELOAD_PROJECT);
+          EventQueue::PushEvent<ShutdownEvent>(ExitCode::SUCCESS);
         }
       }
     }

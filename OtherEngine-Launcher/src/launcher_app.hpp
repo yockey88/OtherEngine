@@ -13,7 +13,8 @@ namespace other {
       LauncherApp(other::Engine* engine , const other::ConfigTable& cfg) 
         : other::App(engine , cfg) {}
       virtual ~LauncherApp() override {}
-      
+
+    private:      
       virtual void OnAttach() override;
       virtual void OnEvent(other::Event* event) override;
       virtual void Update(float dt) override {}

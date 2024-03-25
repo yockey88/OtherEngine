@@ -65,6 +65,8 @@ namespace other {
       /// not typical 'get' function, this will throw if Open has not been called
       static Logger* Instance();
 
+      StdRef<spdlog::logger> GetLogger() { return logger; }
+
       void Configure(const ConfigTable& config);
       
       template <typename... Args>

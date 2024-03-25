@@ -26,17 +26,17 @@ testbed.post_build_commands = function()
   filter { "system:windows" , "configurations:Debug" }
     postbuildcommands {
       '{COPY} "%{wks.location}/externals/sdl2/lib/Debug/SDL2d.dll" "%{cfg.targetdir}"',
-      '{COPY} %{wks.location}/externals/mono/bin/mono-2.0-sgen.dll "%{cfg.targetdir}"',
-      '{COPY} %{wks.location}/externals/mono/bin/mono-2.0-sgen.pdb "%{cfg.targetdir}"',
-      '{COPY} %{wks.location}/externals/mono/bin/MonoPosixHelper.dll "%{cfg.targetdir}"',
-      '{COPY} %{wks.location}/externals/mono/bin/MonoPosixHelper.pdb "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/OtherEngine-Components/language-modules/cs/mono/bin/mono-2.0-sgen.dll "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/OtherEngine-Components/language-modules/cs/mono/bin/mono-2.0-sgen.pdb "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/OtherEngine-Components/language-modules/cs/mono/bin/MonoPosixHelper.dll "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/OtherEngine-Components/language-modules/cs/mono/bin/MonoPosixHelper.pdb "%{cfg.targetdir}"',
     }
 
   filter { "system:windows" , "configurations:Release" }
     postbuildcommands {
       '{COPY} "%{wks.location}/externals/sdl2/lib/Release/SDL2.dll" "%{cfg.targetdir}"',
-      '{COPY} %{wks.location}/externals/mono/bin/mono-2.0-sgen.dll "%{cfg.targetdir}"',
-      '{COPY} %{wks.location}/externals/mono/bin/MonoPosixHelper.dll "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/OtherEngine-Components/language-modules/cs/mono/bin/mono-2.0-sgen.dll "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/OtherEngine-Components/language-modules/cs/mono/bin/MonoPosixHelper.dll "%{cfg.targetdir}"',
     }
 end
 

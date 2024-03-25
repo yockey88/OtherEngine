@@ -65,6 +65,14 @@ namespace other {
     return layers.size();
   }
 
+  void LayerStack::Clear() {
+    for (auto& layer : layers) {
+      layer->OnDetach();
+    }
+    layers.clear();
+    layer_insert_index = 0;
+  }
+
   std::vector<Ref<Layer>>::iterator LayerStack::begin() {
     return layers.begin();
   }

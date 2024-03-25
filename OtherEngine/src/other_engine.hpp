@@ -5,7 +5,6 @@
 #define OTHER_ENGINE_HPP
 
 #include <filesystem>
-#include <functional>
 
 #include "core/engine.hpp"
 #include "parsing/cmd_line_parser.hpp"
@@ -30,8 +29,10 @@ namespace other {
       static void Help();
       static void Version();
 
-      static void CoreInit();
+      static std::string FindConfigFile();
       static bool LoadConfig();
+
+      static void CoreInit();
 
       void Launch();
       ExitCode Run();

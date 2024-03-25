@@ -8,7 +8,7 @@
 
 namespace other {
 
-  void ConfigTable::Add(const std::string& section, const std::string& key, const std::string& value) {
+  void ConfigTable::Add(const std::string& section, const std::string& key, const std::string& value , bool is_string) {
     if (section.empty()) {
       return;
     }
@@ -36,7 +36,9 @@ namespace other {
       }
 
       auto val = value;
-      std::transform(val.begin() , val.end() , val.begin() , ::toupper);
+      if (!is_string) {
+        std::transform(val.begin() , val.end() , val.begin() , ::toupper);
+      }
 
       table[sec_hash][key_hash].push_back(val);
       return;
@@ -58,7 +60,9 @@ namespace other {
     }
 
     auto val = value;
-    std::transform(val.begin() , val.end() , val.begin() , ::toupper);
+    if (!is_string) {
+      std::transform(val.begin() , val.end() , val.begin() , ::toupper);
+    }
 
     table[sec_hash][key_hash].push_back(val);
   }
@@ -89,9 +93,6 @@ namespace other {
     if (table.find(sec_hash) != table.end()) {
       if (table.at(sec_hash).find(key_hash) != table.at(sec_hash).end()) {
         std::vector<std::string> ret = table.at(sec_hash).at(key_hash);
-        std::for_each(ret.begin() , ret.end() , [](std::string& s) {
-            std::transform(s.begin() , s.end() , s.begin() , ::toupper);
-        });
         return ret;
       }
 

@@ -27,6 +27,7 @@ namespace other {
       const Ref<Layer>& At(size_t index) const;
 
       size_t Size() const;
+      void Clear();
 
       std::vector<Ref<Layer>>::iterator begin();
       std::vector<Ref<Layer>>::iterator end();

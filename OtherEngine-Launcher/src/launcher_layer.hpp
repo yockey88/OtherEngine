@@ -6,11 +6,21 @@
 
 #include "core/layer.hpp"
 #include "rendering/ui/ui_window.hpp"
+#include "scripting/script_object.hpp"
 
 namespace other {
 
+  enum ContextType {
+    CREATE_PROJECT,
+    OPEN_PROJECT,
+    SAVE_PROJECT,
+
+    INVALID_CONTEXT
+  };
+
   struct SelectionContext {
     Opt<std::string> selected_path;
+    ContextType context_type = INVALID_CONTEXT;
   };
 
   class LauncherLayer : public Layer {
@@ -23,12 +33,16 @@ namespace other {
       virtual void OnUpdate(float dt) override;
       virtual void OnRender() override;
       virtual void OnUIRender() override;
+      virtual void OnDetach() override;
 
     private:
       Ref<UIWindow> window = nullptr;
       SelectionContext selection_context;
 
       std::unordered_map<uint64_t , Ref<UIWindow>> windows;
+
+      ScriptObject* script = nullptr;
+      ScriptObject* lua_script = nullptr;
   };
 
 } // namespace other

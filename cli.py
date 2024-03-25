@@ -15,14 +15,22 @@ def RunCmnd(cmnds):
 
     return ret
 
+build_cmnds = ["buildsln" , "run"]
+
+def InBuildCmnds(cmnd):
+    for x in build_cmnds:
+        if x == cmnd:
+            return True
+    return False
+
 argc = len(sys.argv)
 i = 1
 while i < argc:
     cmnds = [sys.argv[i]]
 
     while True:
-        if i < argc - 1 and sys.argv[i + 1][0] == '-':
-            cmnds.append(sys.argv[i + 1][1:])
+        if i < argc - 1 and not InBuildCmnds(sys.argv[i + 1]):
+            cmnds.append(sys.argv[i + 1])
             i = i + 1
         else :
             break

@@ -15,6 +15,8 @@ namespace other {
        static bool FileExists(const std::string& path);
        static bool FileExists(const std::string_view path);
        static bool FileExists(const std::filesystem::path& path);
+
+       static std::vector<char> ReadFileAsChars(const std::string& path);
    };
 
 } // namespace other

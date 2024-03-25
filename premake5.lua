@@ -15,6 +15,10 @@ configuration.platforms = { "Windows" }
 configuration.groups = {
     ["OtherEngine"] = { "./OtherEngine" } ,
     ["OtherEngine-Tools"] = { "./OtherEngine-Launcher" } ,
+    [ "OtherEngine-Components" ] = {
+        "./OtherEngine-Components/language-modules/cs" ,
+        "./OtherEngine-Components/language-modules/lua" ,
+    } ,
     ["Development"] = { "./Testbed" }
 }
 
@@ -48,22 +52,9 @@ imgui.include_dir = "%{wks.location}/externals/imgui"
 imgui.lib_name = "imgui"
 imgui.lib_dir = "%{wks.location}/bin/Debug/imgui"
 
-local lua = {}
-lua.name = "lua"
-lua.path = "./externals/lua"
-lua.include_dir = "%{wks.location}/externals/lua/lua"
-lua.lib_name = "lua"
-lua.lib_dir = "%{wks.location}/bin/Debug/lua"
-
 local magic_enum = {}
 magic_enum.name = "magic_enum"
 magic_enum.include_dir = "%{wks.location}/externals/magic_enum/magic_enum"
-
-local mono = {}
-mono.name = "mono"
-mono.include_dir = "%{wks.location}/externals/mono/include"
-mono.lib_dir = "%{wks.location}/externals/mono/lib"
-mono.lib_name = "mono-2.0-sgen"
 
 local nativefiledialog = {}
 nativefiledialog.name = "nativefiledialog"
@@ -98,9 +89,7 @@ AddDependency(entt)
 AddDependency(glad)
 AddDependency(glm)
 AddDependency(imgui)
-AddDependency(lua)
 AddDependency(magic_enum)
-AddDependency(mono)
 AddDependency(nativefiledialog)
 AddDependency(sdl2)
 AddDependency(spdlog)

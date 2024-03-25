@@ -17,7 +17,7 @@ namespace other {
       ConfigTable() = default;
       ~ConfigTable() = default;
 
-      void Add(const std::string& section, const std::string& key = "", const std::string& value = "");
+      void Add(const std::string& section, const std::string& key = "", const std::string& value = "" , bool is_string = false);
 
       const std::map<uint64_t , std::vector<std::string>> Get(const std::string& section) const;
       const std::vector<std::string> Get(const std::string& section, const std::string& key) const;

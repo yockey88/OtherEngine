@@ -31,6 +31,7 @@ namespace other {
     
       void ProcessEvent(Event* event);
 
+    protected:
       virtual void OnAttach() = 0; 
       virtual void OnEvent(Event* event) = 0;
       virtual void Update(float dt) = 0;
@@ -38,15 +39,11 @@ namespace other {
       virtual void RenderUI() = 0;
       virtual void OnDetach() = 0;
 
-    protected:
       Engine* GetEngine() { return engine_handle; }
 
       void InitUIContext();
     
       void LoadScene(const std::string& scene_file);
-    
-      virtual void Initialize() {}
-      virtual void Shutdown() {}
     
     private:
       Scope<LayerStack> layer_stack = nullptr;

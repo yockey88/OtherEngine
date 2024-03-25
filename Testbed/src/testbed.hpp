@@ -16,10 +16,13 @@ namespace other {
 
       virtual void OnAttach() override;
       virtual void OnEvent(Event* event) override;
-      virtual void Update(float dt) override {}
+      virtual void Update(float dt) override; 
       virtual void Render() override {}
       virtual void RenderUI() override {}
       virtual void OnDetach() override {}
+
+    private:
+
   };
 
 } // namespace other
