@@ -15,6 +15,8 @@ namespace other {
   struct RenderData {
     Scope<Window> window;
     std::vector<RenderCommand> commands;
+
+    glm::vec4 clear_color = {0.1f, 0.1f, 0.1f, 1.0f};
   };
 
   class Renderer {
@@ -33,6 +35,15 @@ namespace other {
 
       static const RenderData& GetData() { return render_data; }
       static const Scope<Window>& GetWindow() { return render_data.window; }
+
+      static void ClearColor(const std::vector<std::string>& color) {
+        glm::vec4 c;
+        for (int i = 0; i < color.size(); i++) {
+          c[i] = std::stof(color[i]);
+        }
+        render_data.window->SetClearColor(c);
+      }
+      static void ClearColor(const glm::vec4& color) { render_data.window->SetClearColor(color); }
 
     private:
       static RenderData render_data;

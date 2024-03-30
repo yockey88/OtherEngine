@@ -7,6 +7,7 @@
 #include <map>
 #include <source_location>
 #include <thread>
+#include <filesystem>
 
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/fmt.h>
@@ -144,5 +145,12 @@ namespace other {
   };
 
 } // namespace other
+
+template <>
+struct fmt::formatter<std::filesystem::path> : fmt::formatter<std::string_view> {
+  auto format(std::filesystem::path p , fmt::format_context& ctx) {
+    return fmt::formatter<std::string_view>::format(p.string() , ctx);
+  }
+};
 
 #endif // !OTHER_ENGINE_LOGGER_HPP

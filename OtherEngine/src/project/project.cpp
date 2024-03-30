@@ -5,53 +5,25 @@
 
 namespace other {
 
-  ProjectMetadata Project::metadata;
   Opt<std::string> Project::queued_project_path = std::nullopt;
+
+   
+  Project::Project(const CmdLine& cmdline , const ConfigTable& config)
+      : cmdline(cmdline) , config(config) {
+    metadata.name = config.GetVal<std::string>("PROJECT" , "NAME").value_or("Unnamed Project");
+    auto proj_path = cmdline.GetArg("--project").value_or(Arg{});
+    if (proj_path.hash != 0) {
+      metadata.file_path = std::filesystem::path(proj_path.args[0]);
+    }
+    Increment();
+  }
 
   Project::~Project() {
     Decrement();
   }
 
-  Project::Project(Project&& other) {
-  }
-
-  Project::Project(const Project& other) {
-    Increment();
-  }
-
-  Project& Project::operator=(Project&& other) {
-    return *this;
-  }
-
-  Project& Project::operator=(const Project& other) {
-    Increment();
-    return *this;
-  }
-
-  ProjectMetadata Project::CreateMetadata(const std::string& path , const ConfigTable& cfg) {
-    ProjectMetadata data;
-    data.path = path;
-
-    auto name_opt = cfg.GetVal<std::string>("PROJECT" , "NAME");
-    if (name_opt.has_value()) {
-      data.name = name_opt.value();
-    } else {
-      data.name = "Unnamed Project";
-    }
-  
-    auto desc_opt = cfg.GetVal<std::string>("PROJECT" , "DESCRIPTION");
-    if (desc_opt.has_value()) {
-      data.description = desc_opt.value();
-    } else {
-      data.description = "No description provided";
-    }
-
-    return data;
-  }
-      
-  Ref<Project> Project::Create(ProjectMetadata data) {
-    metadata = data;
-    return NewRef<Project>();
+  Ref<Project> Project::Create(const CmdLine& cmdline , const ConfigTable& data) {
+    return NewRef<Project>(cmdline , data);
   }
 
   void Project::QueueNewProject(const std::string& path) {
@@ -65,6 +37,10 @@ namespace other {
   // this should attempt to relaunch the launcher
   std::string Project::GetQueuedProjectPath() { 
     return queued_project_path.value_or("OtherEngine-Launcher/launcher.other"); 
+  }
+
+  void Project::ClearQueuedProject() {
+    queued_project_path = std::nullopt;
   }
 
 } // namespace other

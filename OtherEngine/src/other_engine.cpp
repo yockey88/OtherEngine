@@ -9,6 +9,7 @@
 #include "core/logger.hpp"
 #include "core/errors.hpp"
 #include "core/engine.hpp"
+#include "core/config.hpp"
 #include "parsing/cmd_line_parser.hpp"
 #include "parsing/ini_parser.hpp"
 #include "event/event_queue.hpp"
@@ -101,16 +102,12 @@ namespace other {
       auto qpath = Project::GetQueuedProjectPath(); 
       println("Using queued project : {}", qpath);
 
-      // do we really want to do this?
-      std::filesystem::current_path(qpath);
-      for (auto entry : std::filesystem::directory_iterator(qpath)) {
-        if (entry.path().extension() == ".other") {
-          println("Found configuration file in queued project : {}", entry.path().string());
-          return entry.path().string();
-        }
+      if (!std::filesystem::exists(qpath)) {
+        other::println("Queued project not found : {}", qpath);
+        return "";
       }
-      println("No configuration file found in queued project");
-      return "";
+
+      return qpath;
     }
 
     auto cfg = cmd_line.GetArg("--project");
@@ -188,7 +185,7 @@ namespace other {
   }
 
   void OE::Launch() {
-    engine = Engine(current_config);
+    engine = Engine::Create(cmd_line , current_config , config_path.string());
 
     IO::Initialize();
     EventQueue::Initialize(current_config);
@@ -248,11 +245,14 @@ namespace other {
     Renderer::Shutdown();
     EventQueue::Shutdown();
     IO::Shutdown();
+
+    OE_INFO("Shutdown complete");
   }
 
   void OE::CoreShutdown() {
     // shutdown allocators
     // close logger
+    OE_INFO("Core shutdown complete");
     Logger::Shutdown();
   }
 

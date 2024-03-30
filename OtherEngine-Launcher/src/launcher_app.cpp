@@ -23,7 +23,7 @@ namespace other {
     if (event->Type() == EventType::KEY_PRESSED) {
       KeyPressed* key = Cast<KeyPressed>(event);
       if (key != nullptr) {
-        if (key->Key() == Keyboard::Key::KEY_ESCAPE) {
+        if (key->Key() == Keyboard::Key::OE_ESCAPE) {
           EventQueue::PushEvent<ShutdownEvent>(ExitCode::SUCCESS);
         }
       }

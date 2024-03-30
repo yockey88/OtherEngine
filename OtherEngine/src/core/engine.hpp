@@ -1,11 +1,11 @@
-/**
- * \file core/engine.hpp
+/** \file core/engine.hpp
  */
 #ifndef OTHER_ENGINE_ENGINE_HPP
 #define OTHER_ENGINE_ENGINE_HPP
 
 #include "core/defines.hpp"
 #include "core/layer_stack.hpp"
+#include "parsing/cmd_line_parser.hpp"
 #include "event/event_queue.hpp"
 #include "application/app.hpp"
 #include "asset/asset_handler.hpp"
@@ -17,7 +17,9 @@ namespace other {
       Opt<ExitCode> exit_code = std::nullopt;
 
       Engine() = default;
-      Engine(const ConfigTable& config);
+      Engine(const CmdLine& cmd_line , const ConfigTable& config , const std::string& config_path);
+
+      static Engine Create(const CmdLine& cmd_line , const ConfigTable& config , const std::string& config_path);
 
       void LoadApp(Scope<App>& app);
       Scope<App>& ActiveApp() { return active_app; }
@@ -26,14 +28,17 @@ namespace other {
       void ProcessEvent(Event* event);
 
       void PushEngineLayer(Ref<Layer>& layer);
-      void PushEngineOverlay(Ref<Layer>& overlay);
       void PopEngineLayer(Ref<Layer>& layer);
+      void PopEngineLayer();
+      void PushEngineOverlay(Ref<Layer>& overlay);
       void PopEngineOverlay(Ref<Layer>& overlay);
 
       Logger* GetLog() const { return logger_instance; }
 
-    private:
+      CmdLine cmd_line;
       ConfigTable config;
+    private:
+      std::string config_path;
 
       Logger* logger_instance = nullptr;
 

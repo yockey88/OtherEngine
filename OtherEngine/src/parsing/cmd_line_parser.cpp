@@ -27,6 +27,7 @@ namespace {
       void ParseArgs() {
         while (!AtEnd()) {
           const RawArg* ra = Peek();
+          println("Peek: {}" , ra->lflag);
 
           if (ra != nullptr) {
             Arg arg { 
@@ -49,6 +50,13 @@ namespace {
           }
 
           Advance();
+        }
+
+        for (const auto& [hash , arg] : args) {
+          println("Flag: {}" , arg.flag);
+          for (const auto& a : arg.args) {
+            println("  Arg: {}" , a);
+          }
         }
       }
 

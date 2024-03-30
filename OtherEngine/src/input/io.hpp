@@ -4,6 +4,7 @@
 #ifndef OTHER_ENGINE_IO_HPP
 #define OTHER_ENGINE_IO_HPP
 
+#include "core/defines.hpp"
 #include "input/mouse.hpp"
 #include "input/keyboard.hpp"
 

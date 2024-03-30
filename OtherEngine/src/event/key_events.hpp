@@ -19,7 +19,7 @@ namespace other {
     public:
       inline Keyboard::Key Key() const { return key_code; }
 
-      EVENT_CATEGORY(EventCategory::KEYBOARD_EVENT | EventCategory::INPUT_EVENT)
+      EVENT_CATEGORY(KEYBOARD_EVENT | INPUT_EVENT)
   }; 
 
   class KeyPressed : public KeyEvent {

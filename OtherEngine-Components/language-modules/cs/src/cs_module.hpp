@@ -21,8 +21,8 @@ namespace other {
         : LanguageModule(engine) {}
       virtual ~CsModule() override {}
 
-      virtual void Initialize() override;
-      virtual void Reinitialize() override;
+      virtual bool Initialize() override;
+      virtual bool Reinitialize() override;
       virtual void Shutdown() override;
       virtual ScriptModule* GetScriptModule(const std::string& name) override;
       virtual ScriptModule* GetScriptModule(const UUID& id) override;
@@ -34,14 +34,19 @@ namespace other {
 
     private:
       constexpr static std::string_view kModuleName = "C#";
-      constexpr static std::string_view kModuleVersion = "0.1";
+      constexpr static std::string_view kModuleVersion = "0.0.1";
       constexpr static std::string_view kMonoPath = "OtherEngine-Components/language-modules/cs";
       constexpr static std::string_view kMonoConfigPath = "OtherEngine-Components/language-modules/cs/mono/etc/mono/config";
       constexpr static std::string_view kRootDomainName = "OTHER";
       constexpr static std::string_view kAppDomainName = "OTHER-APP";
 
+      std::filesystem::path mono_path;
+      std::filesystem::path mono_config_path;
+
       MonoDomain* root_domain = nullptr;
       MonoDomain* app_domain = nullptr; 
+
+      bool load_success = false;
   };
 
 } // namespace other

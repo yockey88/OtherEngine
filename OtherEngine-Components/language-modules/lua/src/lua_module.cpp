@@ -3,11 +3,14 @@
  **/
 #include "lua_module.hpp"
 
+
 extern "C" {
   #include <lua/lua.h>
   #include <lua/lualib.h>
   #include <lua/lauxlib.h>
 }
+
+#include "core/filesystem.hpp"
 
 #include "lua_script.hpp"
 
@@ -20,19 +23,31 @@ namespace other {
   LuaModule::~LuaModule() {
   }
 
-  void LuaModule::Initialize() {
+  bool LuaModule::Initialize() {
     LogDebug("Initializing Lua Module");
+
+    lua_core_path = Filesystem::FindEngineCoreDir(kLuaCore);
+    if (lua_core_path.empty()) {
+      LogError("Lua core scripts not found");
+      return load_success;
+    }
 
     LoadScriptModule(ScriptModuleInfo {
       .name = "Lua-Core" ,
       .paths = {
-        "./OtherEngine-Components/language-modules/lua/core" 
+        lua_core_path.string()
       } ,
     });
+
+    load_success = true;
+    return load_success;
   }
 
-  void LuaModule::Reinitialize() {
+  bool LuaModule::Reinitialize() {
     LogDebug("Reinitializing Lua Module");
+    if (!load_success) {
+      return Initialize();
+    }
 
     for (auto& [id , module] : loaded_modules) {
       module->Shutdown();
@@ -41,16 +56,17 @@ namespace other {
     for (auto& [id , module] : loaded_modules) {
       module->Initialize();
     }
+
+    load_success = true;
+    return load_success;
   }
 
   void LuaModule::Shutdown() {
-    LogDebug("Shutting down Lua Module");
-
-    auto it = loaded_modules.begin();
-    while (it != loaded_modules.end()) {
-      it->second->Shutdown();
-      it = loaded_modules.erase(it);
+    for (auto& [id , module] : loaded_modules) {
+      module->Shutdown();
+      delete module;
     }
+    loaded_modules.clear();
 
     LogDebug("Lua Module Shutdown");
   }
@@ -83,9 +99,12 @@ namespace other {
 
     LogDebug("Loading script module {} from {}" , module_info.name , module_info.paths[0]);
 
-    loaded_modules[id] = new LuaScript(GetEngine() , module_info.paths[0]);
-    loaded_modules[id]->Initialize();
-    return loaded_modules[id];
+    for (const auto& path : module_info.paths) {
+      if (!Filesystem::FileExists(path)) {
+        LogError("Script module {} path {} does not exist" , module_info.name , path);
+        return nullptr;
+      }
+    }
   }
 
   void LuaModule::UnloadScriptModule(const std::string& name) {

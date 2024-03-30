@@ -15,7 +15,7 @@ namespace other {
     // window events
     WINDOW_CLOSE , WINDOW_MINIMIZE , WINDOW_RESIZE , WINDOW_FOCUS , WINDOW_LOST_FOCUS , WINDOW_MOVED ,
     // application events
-    APP_TICK , APP_UPDATE , APP_RENDER ,
+    APP_TICK , APP_UPDATE , APP_RENDER , APP_LAYER ,
     // input events
     KEY_PRESSED , KEY_RELEASED , KEY_TYPED , KEY_HELD ,
     MOUSE_BUTTON_PRESSED , MOUSE_BUTTON_RELEASED , MOUSE_BUTTON_HELD , MOUSE_MOVD , MOUSE_SCROLLED ,
@@ -24,7 +24,8 @@ namespace other {
     // editor events
     EDITOR_SCENE_PLAY , EDITOR_SCENE_PAUSE , EDITOR_SCENE_STOP ,
 
-    SHUTDOWN
+    // core events
+    SHUTDOWN , ENGINE_LAYER , 
   };
 
   enum EventCategory {
@@ -37,12 +38,13 @@ namespace other {
     MOUSE_BUTTON_EVENT = bit(5) ,
     SCENE_EVENT        = bit(6) ,
     EDITOR_EVENT       = bit(7) ,
-    SHUTDOWN_EVENT     = bit(8)
+    SHUTDOWN_EVENT     = bit(8) ,
+    CORE_EVENT         = bit(9)
   };
 
 #define EVENT_TYPE(type) static EventType GetStaticType() { return EventType::type; }  \
                          virtual EventType Type() const override { return GetStaticType(); } \
-                         virtual std::string Name() const override { return #type; } \
+                         virtual std::string EventName() const override { return #type; } \
                          virtual uint32_t Size() const override { return sizeof(*this); }
 
 #define EVENT_CATEGORY(category) virtual uint32_t CategoryFlags() const override { return category; }
@@ -53,11 +55,11 @@ namespace other {
       virtual ~Event() {}
 
       virtual EventType Type() const = 0;
-      virtual std::string Name() const = 0;
+      virtual std::string EventName() const = 0;
       virtual uint32_t CategoryFlags() const = 0;
       virtual uint32_t Size() const = 0;
 
-      virtual std::string ToString() const { return Name(); }
+      virtual std::string ToString() const { return EventName(); }
       inline bool InCategory(EventCategory category) const { return CategoryFlags() & category; }
 
       bool handled = false;
@@ -73,7 +75,7 @@ namespace other {
   }
 
   inline std::ostream& operator<<(std::ostream& os , const Event& e) {
-    return os << e.Name();
+    return os << e.EventName();
   }
 
   template <typename T>

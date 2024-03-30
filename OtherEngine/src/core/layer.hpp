@@ -6,24 +6,38 @@
 
 #include <string>
 
+#include "core/ref_counted.hpp"
+#include "core/uuid.hpp"
 #include "event/event.hpp"
 
 namespace other {
 
   class App;
 
-  class Layer {
-    App* parent_app = nullptr;
+  class Layer : public RefCounted {
+    public:
+      Layer(App* parent_app , const std::string& name)
+        : debug_name(name) , uuid(FNV(name)) , parent_app(parent_app)  {}
+      virtual ~Layer() {}
+
+      inline const std::string& Name() const { return debug_name; }
+      inline const UUID GetUUID() const { return uuid; }
+
+      void Attach();
+      void Update(float dt);
+      void Render();
+      void UIRender();
+      void ProcessEvent(Event* event);
+      void Detach();
 
     protected:
-      std::string debug_name;
+      const std::string debug_name;
+      const UUID uuid;
 
-      App* GetApp() const { return parent_app; }
+      App* ParentApp() const { return parent_app; }
 
-    public:
-      Layer(App* parent_app , const std::string& name = "Layer")
-        : parent_app(parent_app) , debug_name(name) {}
-      virtual ~Layer() {}
+    private:
+      App* parent_app = nullptr;
 
       virtual void OnAttach() {}
       virtual void OnDetach() {}
@@ -31,8 +45,6 @@ namespace other {
       virtual void OnRender() {}
       virtual void OnUIRender() {}
       virtual void OnEvent(Event* event) {}
-
-      inline const std::string& Name() const { return debug_name; }
   };
 
 } // namespace other

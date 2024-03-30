@@ -20,8 +20,18 @@ local function ProjectHeader(project_data)
       staticruntime "On"
     end
 
-    targetdir (Tdir)
-    objdir (Odir)
+    if project_data.tdir == nil then
+      assert(Tdir ~= nil, "Tdir is nil")
+      project_data.tdir = Tdir
+    end
+
+    if project_data.odir == nil then
+      assert(Odir ~= nil, "Odir is nil")
+      project_data.odir = Odir
+    end
+
+    targetdir (project_data.tdir)
+    objdir (project_data.odir)
 end
 
 local function ProcessConfigurations(project , external)

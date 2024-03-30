@@ -5,12 +5,13 @@
 #define OTHER_ENGINE_LAUNCHER_LAYER_HPP
 
 #include "core/layer.hpp"
-#include "rendering/ui/ui_window.hpp"
+#include "core/uuid.hpp"
+#include "core/platform.hpp"
 #include "scripting/script_object.hpp"
 
 namespace other {
 
-  enum ContextType {
+  enum SelectionContextType {
     CREATE_PROJECT,
     OPEN_PROJECT,
     SAVE_PROJECT,
@@ -20,7 +21,7 @@ namespace other {
 
   struct SelectionContext {
     Opt<std::string> selected_path;
-    ContextType context_type = INVALID_CONTEXT;
+    SelectionContextType context_type = INVALID_CONTEXT;
   };
 
   class LauncherLayer : public Layer {
@@ -33,16 +34,37 @@ namespace other {
       virtual void OnUpdate(float dt) override;
       virtual void OnRender() override;
       virtual void OnUIRender() override;
+      virtual void OnEvent(Event* event) override;
       virtual void OnDetach() override;
 
     private:
-      Ref<UIWindow> window = nullptr;
-      SelectionContext selection_context;
+      enum class RenderState {
+        MAIN = 0 ,
+        OPENING_PROJECT ,
+        CREATING_PROJECT ,
 
-      std::unordered_map<uint64_t , Ref<UIWindow>> windows;
+        NUM_RENDER_STATES ,
+        INVALID_RENDER_STATE = NUM_RENDER_STATES
+      };
+
+      RenderState render_state = RenderState::INVALID_RENDER_STATE;
+
+      UUID editor_id = 0;
+      UUID create_proj_id = 0;
+      bool rendering_open_project = true;
+
+      SelectionContext selection_context;
 
       ScriptObject* script = nullptr;
       ScriptObject* lua_script = nullptr;
+
+      void CreateProject();
+      void OpenProject();
+
+      void RenderMain();
+      void RenderOpeningProject();
+
+      void Launch(const std::filesystem::path& path , LaunchType type);
   };
 
 } // namespace other

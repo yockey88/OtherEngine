@@ -18,6 +18,8 @@ namespace other {
 
       void PushLayer(const Ref<Layer>& layer);
       void PopLayer(const Ref<Layer>& layer);
+      void PopLayer();
+
       void PushOverlay(const Ref<Layer>& overlay);
       void PopOverlay(const Ref<Layer>& overlay);
 
@@ -27,7 +29,11 @@ namespace other {
       const Ref<Layer>& At(size_t index) const;
 
       size_t Size() const;
+      bool Empty() const;
       void Clear();
+
+      Ref<Layer>& Bottom();
+      Ref<Layer>& Top();
 
       std::vector<Ref<Layer>>::iterator begin();
       std::vector<Ref<Layer>>::iterator end();

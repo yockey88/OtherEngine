@@ -21,6 +21,7 @@ namespace other {
 
       const std::map<uint64_t , std::vector<std::string>> Get(const std::string& section) const;
       const std::vector<std::string> Get(const std::string& section, const std::string& key) const;
+      const std::vector<std::string> GetKeys(const std::string& section) const;
       
       template <typename T>
       const Opt<T> GetVal(const std::string& section, const std::string& key) const;
@@ -30,6 +31,7 @@ namespace other {
     private:
       std::map<uint64_t , std::string> section_map;
       std::map<uint64_t , std::string> key_map;
+      std::map<uint64_t , std::vector<std::string>> key_names;
       std::map<uint64_t , std::map<uint64_t , std::vector<std::string>>> table;
   };
 

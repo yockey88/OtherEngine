@@ -20,8 +20,8 @@ namespace other {
       LuaModule(Engine* engine);
       virtual ~LuaModule() override;
 
-      virtual void Initialize() override;
-      virtual void Reinitialize() override;
+      virtual bool Initialize() override;
+      virtual bool Reinitialize() override;
       virtual void Shutdown() override;
 
       virtual ScriptModule* GetScriptModule(const std::string& name) override;
@@ -39,6 +39,10 @@ namespace other {
         { "base" , luaopen_base },
         { nullptr , nullptr }
       };
+
+      constexpr static std::string_view kLuaCore = "OtherEngine-Components/language-modules/lua";
+
+      std::filesystem::path lua_core_path;
   };
 
 } // namespace other

@@ -1,5 +1,5 @@
 local cs_lang_module = {}
-cs_lang_module.name = "CsLanguageModule"
+cs_lang_module.name = "CsModule"
 cs_lang_module.kind = "SharedLib"
 cs_lang_module.language = "C++"
 cs_lang_module.cppdialect = "C++latest"
@@ -55,7 +55,7 @@ AddProject(cs_lang_module)
 
 local OE_ScriptCore = {}
 
-OE_ScriptCore.name = "OtherEngine-ScriptCore"
+OE_ScriptCore.name = "OtherEngine-CsCore"
 OE_ScriptCore.kind = "SharedLib"
 OE_ScriptCore.language = "C#"
 

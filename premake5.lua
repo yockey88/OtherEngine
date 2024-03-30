@@ -19,7 +19,7 @@ configuration.groups = {
         "./OtherEngine-Components/language-modules/cs" ,
         "./OtherEngine-Components/language-modules/lua" ,
     } ,
-    ["Development"] = { "./Testbed" }
+    ["Development"] = { "C:/Yock/gamedev/Testbed" }
 }
 
 if Contains(configuration.build_configurations , "Debug") then

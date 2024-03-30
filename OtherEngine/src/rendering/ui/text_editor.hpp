@@ -52,40 +52,40 @@ namespace other {
   };
 
   class TextEditor : public UIWindow {
-    Zep::ZepBuffer* buffer = nullptr;
-    Scope<ZepWrapper> zep;
-    Zep::Msg MsgIdFromString(const std::string& msg);
-
-    std::function<void(Zep::MessagePtr)> callback 
-      = [this](Zep::MessagePtr message) {
-          zep->editor->Notify(message);
-          if (message->str == "RequestQuit" || message->str == ":wq") {
-            Close();
-          }
-        };
-
-    std::string root;
-    std::string file;
-    std::string file_path;
-    Zep::NVec2f pixel_scale;
-
-    bool file_exists = false;
-
-    void CreateEditor();
-
     public:
       TextEditor(
         const std::string& title , const std::string& root , const std::string& file ,
         const Zep::NVec2f& pixel_scale = Zep::NVec2f(1.0f , 1.0f)
-      ) : UIWindow(title) , root(root) , file(file) , file_path(root + "/" + file) , pixel_scale(pixel_scale) {}
+      ) : UIWindow(title) , root(root) , file(file) , file_path(file) , pixel_scale(pixel_scale) {}
       virtual ~TextEditor() override {}
 
       virtual void OnAttach() override;
       virtual void OnDetach() override;
       virtual void OnUpdate(float dt) override;
+      virtual void OnEvent(Event* event) override;
       virtual void Render() override;
 
       void LoadFile(const std::string& file);
+
+      std::string GetFile() const { return file_path; }
+
+    private:
+      Zep::ZepBuffer* buffer = nullptr;
+      Scope<ZepWrapper> zep;
+      Zep::Msg MsgIdFromString(const std::string& msg);
+
+      std::function<void(Zep::MessagePtr)> callback = std::bind_front(&TextEditor::HandleMessage , this); 
+
+      std::string root;
+      std::string file;
+      std::string file_path;
+      Zep::NVec2f pixel_scale;
+
+      bool has_focus = false;
+      bool file_exists = false;
+
+      void CreateEditor();
+      void HandleMessage(Zep::MessagePtr message);
   }; 
 
 } // namespace other

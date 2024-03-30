@@ -56,6 +56,8 @@ namespace other {
 
       const WindowContext& Context() const { return context; }
 
+      void SetClearColor(const glm::vec4& color) { config.color = color; }
+
     private:
       WindowContext context;
       WindowConfig config;

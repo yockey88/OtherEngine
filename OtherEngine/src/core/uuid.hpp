@@ -13,9 +13,9 @@ namespace other {
 
   struct UUID {
     public:
-      UUID() : uuid(0) {}
-      UUID(uint64_t uuid) : uuid(uuid) {}
-      UUID(const UUID& other) : uuid(other.uuid) {}
+      constexpr UUID() : uuid(0) {}
+      constexpr UUID(uint64_t uuid) : uuid(uuid) {}
+      constexpr UUID(const UUID& other) : uuid(other.uuid) {}
 
       operator uint64_t() const { return uuid; }
       operator const uint64_t() const { return uuid; }
@@ -30,9 +30,9 @@ namespace other {
 
   struct UUID32 {
     public:
-      UUID32() : uuid(0) {}
-      UUID32(uint32_t uuid) : uuid(uuid) {}
-      UUID32(const UUID32& other) : uuid(other.uuid) {}
+      constexpr UUID32() : uuid(0) {}
+      constexpr UUID32(uint32_t uuid) : uuid(uuid) {}
+      constexpr UUID32(const UUID32& other) : uuid(other.uuid) {}
 
       operator uint32_t() const { return uuid; }
       operator const uint32_t() const { return uuid; }

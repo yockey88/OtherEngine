@@ -9,7 +9,7 @@ namespace other {
 
   LayerStack::~LayerStack() {
     for (auto& layer : layers) {
-      layer->OnDetach();
+      layer->Detach();
     }
   }
 
@@ -26,6 +26,16 @@ namespace other {
     } else {
       OE_WARN("Attempting to pop a layer that does not exist");
     }
+  }
+
+  void LayerStack::PopLayer() {
+    if (layers.empty()) {
+      OE_WARN("Attempting to pop a layer from an empty layer stack");
+      return;
+    }
+
+    layers.pop_back();
+    --layer_insert_index;
   }
 
   void LayerStack::PushOverlay(const Ref<Layer>& overlay) {
@@ -65,12 +75,24 @@ namespace other {
     return layers.size();
   }
 
+  bool LayerStack::Empty() const {
+    return layers.empty();
+  }
+
   void LayerStack::Clear() {
     for (auto& layer : layers) {
-      layer->OnDetach();
+      layer->Detach();
     }
     layers.clear();
     layer_insert_index = 0;
+  }
+
+  Ref<Layer>& LayerStack::Bottom() {
+    return layers.front();
+  }
+
+  Ref<Layer>& LayerStack::Top() {
+    return layers.back();
   }
 
   std::vector<Ref<Layer>>::iterator LayerStack::begin() {

@@ -13,6 +13,19 @@ namespace other {
       DebugLayer(App* parent_app)
         : Layer(parent_app , "DebugLayer") {}
       virtual ~DebugLayer() override {}
+
+      virtual void OnAttach() override;
+      virtual void OnUpdate(float dt) override;
+      virtual void OnRender() override;
+      virtual void OnUIRender() override;
+      virtual void OnDetach() override;
+
+    private:
+      float last_frame_time = 0.0f;
+
+      constexpr static size_t kFpsSamples = 100;
+      float fps_data[kFpsSamples] = {0.0f};
+      size_t fps_data_index = 0;
   };
 
 } // namespace other

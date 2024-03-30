@@ -22,7 +22,7 @@
 #endif
 
 namespace other {
-
+  
   enum ExitCode : uint8_t {
     SUCCESS = 0x00 ,
     RELOAD_PROJECT ,

@@ -8,47 +8,73 @@
 #include "core/filesystem.hpp"
 
 namespace other {
+namespace {
+
+  enum LanguageModuleType {
+    CS_MODULE = 0 ,
+    LUA_MODULE ,
+
+    NUM_LANGUAGE_MODULES ,
+    INVALID_LANGUAGE_MODULE = NUM_LANGUAGE_MODULES
+  };
+
+  constexpr static size_t kNumDefaultModules = NUM_LANGUAGE_MODULES;
+  constexpr static std::array<std::string_view , kNumDefaultModules> kDefaultModuleNames = {
+    "C#" ,
+    "LUA" , /// to match the fact config parse use uppercase for case insensitivity
+  };
+
+  struct ModuleInfo {
+    LanguageModuleType type;
+    std::string_view name;
+    std::string_view path;
+
+    constexpr ModuleInfo(LanguageModuleType t , std::string_view n , std::string_view p) 
+      : type(t) , name(n) , path(p) {}
+  };
+
+  /// these paths should always work because they are relative to the engine core directory and 
+  /// should not be accessed outside of Filesystem::GetEngineCoreDir(...) calls
+  constexpr static std::array<ModuleInfo , kNumDefaultModules> kDefaultModules = {
+    ModuleInfo(CS_MODULE , kDefaultModuleNames[CS_MODULE] , "bin/Debug/CsModule/CsModule.dll") ,
+    ModuleInfo(LUA_MODULE , kDefaultModuleNames[LUA_MODULE] , "bin/Debug/LuaModule/LuaModule.dll") ,
+  };
+
+} // namespace <anonymous>
 
   Engine* ScriptEngine::engine_handle = nullptr;
   App* ScriptEngine::app_context = nullptr;
 
   ConfigTable ScriptEngine::config;
 
+
+  std::vector<std::string> ScriptEngine::module_paths;
   std::map<UUID , LanguageModuleMetadata> ScriptEngine::language_modules;
 
   static Scope<LanguageModule> null_module = nullptr;
 
   void ScriptEngine::Initialize(Engine* engine , const ConfigTable& cfg) {
+    OE_DEBUG("ScriptEngine::Initialize: Initializing ScriptEngine");
+
     config = cfg;
     engine_handle = engine;
+    
+    LoadDefaultModules();
 
     std::string script_engine_str = "SCRIPT-ENGINE";
     auto modules = config.Get(script_engine_str , "MODULES");
+
+    /// this loop is loading client loaded language modules so we skip any defaults that are already loaded
+    ///  if this is a core module and its not loaded then we load it
     for (auto& module : modules) {
-      auto sec_name = script_engine_str + ":" + module;
-      auto name = config.Get(sec_name , "NAME");
-      auto path = config.Get(sec_name , "PATH");
-
-      if (name.size() != 1) {
-        OE_WARN("ScriptEngine::Initialize: No name provided for language-module: {}" , module);
+      if (std::ranges::find(module_paths , module) != module_paths.end()) {
         continue;
       }
-
-      if (path.size() != 1) {
-        OE_WARN("ScriptEngine::Initialize: No path provided for language-module: {}" , module);
-        continue;
-      }
-
-      auto real_path = (std::filesystem::path(path[0]) / (name[0] + ".dll")).string();
-      OE_DEBUG("ScriptEngine::Initialize: Loading module {} from path {}" , name[0] , real_path);
-      LoadModule(name[0] , real_path);
     }
   }
 
   void ScriptEngine::Shutdown() {
     UnloadAllModules();
-
-    language_modules.clear(); 
   }
 
   void ScriptEngine::LoadModule(const std::string& name , const std::string& path) {
@@ -85,14 +111,23 @@ namespace other {
       return;
     }
 
-    /// bad 
-    metadata.module = reinterpret_cast<LanguageModule*>(plugin); // metadata.loader->Load<LanguageModule>();
-    metadata.module->Initialize();
+    metadata.module = reinterpret_cast<LanguageModule*>(plugin);
+    if (!metadata.module->Initialize()) {
+      OE_WARN("ScriptEngine::LoadModule: Failed to initialize module {}" , name);
+      metadata.loader->Unload();
+      metadata.loader = nullptr;
+      language_modules.erase(id);
+      return;
+    } else {
+      /// do other context loading here and save the module path
+      module_paths.push_back(path);
+    }
 
     OE_DEBUG("ScriptEngine::LoadModule: Loaded module {}" , name);
   }
 
   void ScriptEngine::UnloadModule(const std::string& name) {
+    OE_DEBUG("ScriptEngine::UnloadModule: Unloading module {}" , name);
     auto hash = FNV(name);
     UnloadModule(hash);
   }
@@ -114,6 +149,52 @@ namespace other {
     app_context = app;
   }
 
+  void ScriptEngine::LoadDefaultModules() {
+    OE_DEBUG("ScriptEngine::LoadDefaultModules: Loading default modules");
+
+    if (auto val = config.GetVal<bool>("SCRIPT-ENGINE" , "LOAD-CORE-MODULES"); val.has_value() && val.value()) {
+      OE_DEBUG("ScriptEngine::LoadDefaultModules: Loading all core modules");
+      for (size_t i = 0; i < kNumDefaultModules; ++i) {
+        auto& info = kDefaultModules[i];
+        std::filesystem::path engine_core = std::filesystem::absolute(kEngineCoreDir) / info.path;
+
+        LoadModule(info.name.data() , engine_core.string());
+      }
+
+      /// we loaded all core modules so we can skip the loop below 
+      return;
+    }
+
+    OE_DEBUG("ScriptEngine::LoadDefaultModules: Loading core modules from config");
+    auto modules = config.Get("SCRIPT-ENGINE" , "MODULES");
+
+    /// here we load core modules, so if its a client module we skip it
+    for (auto& module : modules) {
+      OE_DEBUG("ScriptEngine::LoadDefaultModules: Attempting to load module {}" , module);
+      if (std::ranges::find(kDefaultModuleNames , module) == kDefaultModuleNames.end()) {
+        continue;
+      }
+
+      auto mod_info = std::ranges::find_if(kDefaultModules , [&module](const ModuleInfo& info) {
+        println("Comparing {} to {}", info.name , module);
+        return info.name == module;
+      });
+      if (mod_info != kDefaultModules.end()) {
+        std::filesystem::path engine_core = std::filesystem::absolute(kEngineCoreDir) / mod_info->path;
+        println("Loading core module {} from path {}", mod_info->name , engine_core.string());
+
+        if (!Filesystem::FileExists(engine_core.string())) {
+          OE_WARN("ScriptEngine::LoadDefaultModules: Path {} for module {} does not exist" , engine_core.string() , mod_info->name);
+          continue;
+        } else {
+          OE_DEBUG("ScriptEngine::LoadDefaultModules: Loading core module {}" , mod_info->name);
+        }
+
+        LoadModule(mod_info->name.data() , engine_core.string());
+      }
+    }
+  }
+
   void ScriptEngine::ReinitializeModule(const UUID& id) {
     auto* lang_module = GetModule(id);
     if (lang_module != nullptr) {
@@ -130,16 +211,18 @@ namespace other {
   void ScriptEngine::UnloadModule(const UUID& id) {
     auto* lang_module = GetModule(id);
     if (lang_module != nullptr) {
+      OE_DEBUG("ScriptEngine::UnloadModule: Unloading module {}" , lang_module->GetModuleName());
       lang_module->Shutdown();
+      language_modules[id].loader->Unload();
       language_modules.erase(id);
     }
   }
 
   void ScriptEngine::UnloadAllModules() {
-    auto itr = language_modules.begin();
-    while (itr != language_modules.end()) {
-      itr->second.module->Shutdown();
-      itr = language_modules.erase(itr);
+    for (auto& [name , metadata] : language_modules) {
+      OE_DEBUG("ScriptEngine::UnloadAllModules: Unloading module {}" , metadata.module->GetModuleName());
+      metadata.module->Shutdown();
+      metadata.loader->Unload();
     }
     language_modules.clear();
   }

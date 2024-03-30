@@ -45,6 +45,7 @@ namespace detail {
       template <typename... Args>
       Ref(Args&&... args) {
         static_assert(std::is_constructible_v<T , Args...> , "Cannot construct a reference from given arguments");
+        static_assert(std::is_base_of_v<RefCounted , T> , "Cannot construct a reference from a non-RefCounted type");
         object = new T(std::forward<Args>(args)...);
         Increment();
       }
@@ -123,6 +124,8 @@ namespace detail {
 
       template <typename... Args>
       static Ref<T> Create(Args&&... args) {
+        static_assert(std::is_constructible_v<T , Args...> , "Cannot construct a reference from given arguments");
+        static_assert(std::is_base_of_v<RefCounted , T> , "Cannot create a reference to a non-refcounted object");
         return Ref<T>(new T(std::forward<Args>(args)...));
       }
 
@@ -143,16 +146,16 @@ namespace detail {
 
       void IncRef() const {
         if (object != nullptr) {
-          object->IncRefCount();
+          object->Increment();
           detail::RegisterReference(object); 
         }
       }
 
       void DecRef() const {
         if (object != nullptr) {
-          object->DecRefCount();
+          object->Decrement();
 
-          if (object->GetRefCount() == 0) {
+          if (object->Count() == 0) {
             detail::RemoveReference(object);
             delete object;
             object = nullptr;
@@ -166,6 +169,8 @@ namespace detail {
 
   template <typename T , typename... Args>
   Ref<T> NewRef(Args&&... args) {
+    static_assert(std::is_constructible_v<T , Args...> , "Cannot construct a reference from given arguments");
+    static_assert(std::is_base_of_v<RefCounted , T> , "Cannot create a reference to a non-refcounted object");
     return Ref<T>(std::forward<Args>(args)...);
   }
 

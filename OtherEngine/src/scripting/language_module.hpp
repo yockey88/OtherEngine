@@ -20,8 +20,8 @@ namespace other {
         : Plugin(engine) {}
       virtual ~LanguageModule() override {}
 
-      virtual void Initialize() = 0;
-      virtual void Reinitialize() = 0;
+      virtual bool Initialize() = 0;
+      virtual bool Reinitialize() = 0;
       virtual void Shutdown() = 0;
       virtual ScriptModule* GetScriptModule(const std::string& name) = 0;
       virtual ScriptModule* GetScriptModule(const UUID& id) = 0;
@@ -33,6 +33,8 @@ namespace other {
 
     protected:
       std::map<UUID , ScriptModule*> loaded_modules;
+
+      bool load_success = false;
   };
 
 } // namespace other

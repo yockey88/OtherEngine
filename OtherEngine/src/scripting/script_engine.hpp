@@ -40,12 +40,17 @@ namespace other {
 
       static void SetAppContext(App* app);
 
+      static const std::map<UUID , LanguageModuleMetadata>& GetModules() { return language_modules; }
+
     private:
       static Engine* engine_handle;
       static App* app_context;
       static ConfigTable config;
 
+      static std::vector<std::string> module_paths;
       static std::map<UUID , LanguageModuleMetadata> language_modules;
+
+      static void LoadDefaultModules();
 
       static void ReinitializeModule(const UUID& id);
       static void ReinitializeAllModules();

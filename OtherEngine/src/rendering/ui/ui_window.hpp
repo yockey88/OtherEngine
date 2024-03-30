@@ -10,12 +10,13 @@
 
 #include <imgui/imgui.h>
 
+#include "core/ref_counted.hpp"
 #include "core/ref.hpp"
 #include "event/event.hpp"
 
 namespace other {
 
-  class UIWindow {
+  class UIWindow : public RefCounted {
     public:
       UIWindow(const std::string& title , ImGuiWindowFlags flags = 0 , bool open = true , bool pinned = false) 
         : id(FNV(title)) , title(title) , window_open(open) , pinned(pinned) , flags(flags) {}
@@ -28,7 +29,7 @@ namespace other {
       virtual void OnAttach() {}
       virtual void OnDetach() {}
       virtual void OnUpdate(float dt) {}
-      virtual void OnEvent(Event& event) {}
+      virtual void OnEvent(Event* event) {}
       virtual void Render();
 
       const std::string& Title() const { return title; }

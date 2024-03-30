@@ -26,12 +26,13 @@ namespace other {
       : sflag(sflag), lflag(lflag), description(description), has_args(has_args) , num_args(num_args) {}
   };
   
-  constexpr static size_t kNumArgs = 4; 
+  constexpr static size_t kNumArgs = 5; 
   constexpr static std::array<RawArg, kNumArgs> kRawArgs = {
     RawArg("-h", "--help", "Prints this help message", false),
     RawArg("-v", "--version", "Prints the version of the program", false),
     RawArg("-p", "--project", "Specifies the project file to use", true , 1),
-    RawArg("-cd", "--cwd", "Sets the current working directory", true , 1)
+    RawArg("-cd", "--cwd", "Sets the current working directory", true , 1) ,
+    RawArg("-c", "--editor" , "Specifies the editor is to be opened and not the project", false)
   };
 
   struct Arg {

@@ -5,43 +5,45 @@
 #define OTHER_ENGINE_PROJECT_HPP
 
 #include <string>
+#include <filesystem>
 
 #include "core/defines.hpp"
 #include "core/ref_counted.hpp"
 #include "core/ref.hpp"
 #include "core/config.hpp"
+#include "parsing/cmd_line_parser.hpp"
 
 namespace other {
   
   struct ProjectMetadata {
-    std::string name;
-    std::string path;
-    std::string description;
+    std::string name = "";
+    std::filesystem::path file_path = "";
   };
   
   class Project : public RefCounted {
     public:
-      Project() {}
+      Project(const CmdLine& cmdline , const ConfigTable& config);
       virtual ~Project() override;
 
-      Project(Project&& other);
-      Project(const Project& other);
-      Project& operator=(Project&& other);
-      Project& operator=(const Project& other);
+      static Ref<Project> Create(const CmdLine& cmdline , const ConfigTable& data);
 
-      static ProjectMetadata CreateMetadata(const std::string& path , const ConfigTable& cfg);
-      static Ref<Project> Create(ProjectMetadata data);
+      ProjectMetadata GetMetadata() { return metadata; }
 
-      static ProjectMetadata GetMetadata() { return metadata; }
+      std::string GetName() { return metadata.name; }
+      std::filesystem::path GetFilePath() { return metadata.file_path; }
 
       static void QueueNewProject(const std::string& path);
       static bool HasQueuedProject();
       // this should attempt to relaunch the launcher
       static std::string GetQueuedProjectPath();
+      static void ClearQueuedProject();
 
     private:
+      const CmdLine& cmdline;
+      const ConfigTable& config;
+      ProjectMetadata metadata;
+
       static Opt<std::string> queued_project_path;
-      static ProjectMetadata metadata;
   };
 
 } // namespace other

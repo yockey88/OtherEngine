@@ -48,7 +48,7 @@ namespace other {
   namespace other { \
     Scope<App> NewApp(Engine* engine , const ConfigTable& config) { \
       static_assert(std::is_base_of_v<App , project_name> , #project_name " must derive from other::App"); \
-      return NewScope<project_name>(engine , config); \
+      return NewScope<project_name>(engine); \
     } \
   } \
   int main(int argc , char* argv[]) { \

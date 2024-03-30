@@ -15,7 +15,7 @@ end
 AddExternalProject(lua)
 
 local lua_lang_module = {}
-lua_lang_module.name = "LuaLanguageModule"
+lua_lang_module.name = "LuaModule"
 lua_lang_module.kind = "SharedLib"
 lua_lang_module.language = "C++"
 lua_lang_module.cppdialect = "C++latest"

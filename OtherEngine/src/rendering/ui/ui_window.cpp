@@ -16,6 +16,10 @@ namespace other {
   }
 
   void UIWindow::Render() {
+    if (!window_open) {
+      return;
+    }
+
     if (!ImGui::Begin(title.c_str() , &window_open , flags)) {
       ImGui::End();
       return;

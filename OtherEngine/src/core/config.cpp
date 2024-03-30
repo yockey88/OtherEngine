@@ -33,6 +33,7 @@ namespace other {
 
       if (table[sec_hash].find(key_hash) == table[sec_hash].end()) {
         key_map[key_hash] = k;
+        key_names[sec_hash].push_back(key);
       }
 
       auto val = value;
@@ -43,7 +44,7 @@ namespace other {
       table[sec_hash][key_hash].push_back(val);
       return;
     } else {
-      section_map[sec_hash] = sec;
+      section_map[sec_hash] = section;
       table[sec_hash] = std::map<uint64_t , std::vector<std::string>>();
     }
 
@@ -57,6 +58,7 @@ namespace other {
 
     if (table[sec_hash].find(key_hash) == table[sec_hash].end()) {
       key_map[key_hash] = k;
+      key_names[sec_hash].push_back(key);
     }
 
     auto val = value;
@@ -75,6 +77,19 @@ namespace other {
 
     if (table.find(sec_hash) != table.end()) {
       return table.at(sec_hash);
+    }
+
+    return {};
+  }
+
+  const std::vector<std::string> ConfigTable::GetKeys(const std::string& section) const {
+    auto sec = section;
+    std::transform(sec.begin() , sec.end() , sec.begin() , ::toupper);
+
+    auto sec_hash = FNV(sec);
+
+    if (table.find(sec_hash) != table.end()) {
+      return key_names.at(sec_hash);
     }
 
     return {};
