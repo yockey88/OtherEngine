@@ -64,6 +64,14 @@ namespace other {
     INVALID_LAUNCH_TYPE = NUM_LAUNCH_TYPES
   };
 
+  enum LaunchConfig {
+    DEBUG = 0 ,
+    RELEASE ,
+
+    NUM_LAUNCH_CONFIGS ,
+    INVALID_LAUNCH_CONFIG = NUM_LAUNCH_CONFIGS
+  };
+
   constexpr static size_t kNumLaunchTypes = LaunchType::NUM_LAUNCH_TYPES + 1;
   constexpr static std::array<std::string_view , kNumLaunchTypes> kLaunchTypeNames = {
     "Editor" ,

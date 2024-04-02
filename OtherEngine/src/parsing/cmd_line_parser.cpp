@@ -27,7 +27,6 @@ namespace {
       void ParseArgs() {
         while (!AtEnd()) {
           const RawArg* ra = Peek();
-          println("Peek: {}" , ra->lflag);
 
           if (ra != nullptr) {
             Arg arg { 
@@ -37,16 +36,20 @@ namespace {
             };
 
             if (ra->has_args) {
-              Advance();
-              while (!AtEnd() && argv[i][0] != '-') {
-                arg.args.push_back(argv[i]);
+              for (uint32_t j = 0; j < ra->num_args; ++j) {
                 Advance();
+                if (AtEnd()) {
+                  println("Expected {} arguments for flag {}" , ra->num_args , ra->lflag);
+                  break;
+                }
+
+                arg.args.push_back(PeekRaw());
               }
             }
 
             args.insert({ arg.hash , arg });
           } else {
-            println("Unknown flag: ", argv[i]);
+            println("Unknown flag: ", PeekRaw());
           }
 
           Advance();
@@ -61,6 +64,15 @@ namespace {
       }
 
       bool AtEnd() const { return i >= argc; }
+
+      const std::string PeekRaw() const {
+        if (AtEnd()) {
+          return "";
+        } else {
+          return argv[i];
+        }
+      }
+
       const RawArg* Peek() const {
         if (AtEnd()) {
           return nullptr;
@@ -76,6 +88,7 @@ namespace {
           }
         }
       }
+
       void Advance() { i++; }
   };
 

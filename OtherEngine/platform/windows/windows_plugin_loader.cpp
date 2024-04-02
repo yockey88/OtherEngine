@@ -65,6 +65,8 @@ namespace other {
 
     destroy_func(plugin);
     FreeLibrary(module);
+
+    OE_DEBUG("Unloaded plugin: {0}" , path);
   }
 
 } // namespace other

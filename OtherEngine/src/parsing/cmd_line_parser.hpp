@@ -32,7 +32,7 @@ namespace other {
     RawArg("-v", "--version", "Prints the version of the program", false),
     RawArg("-p", "--project", "Specifies the project file to use", true , 1),
     RawArg("-cd", "--cwd", "Sets the current working directory", true , 1) ,
-    RawArg("-c", "--editor" , "Specifies the editor is to be opened and not the project", false)
+    RawArg("-e", "--editor" , "Specifies the editor is to be opened and not the project", false) ,
   };
 
   struct Arg {

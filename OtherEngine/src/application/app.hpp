@@ -21,15 +21,8 @@ namespace other {
       virtual ~App();
     
       void OnLoad();
-      void Attach();
       void Run();
-
-      void DoUpdate(float dt);
-      void DoRender();
-      void DoRenderUI();
-
       void OnUnload();
-      void Detach();
 
       void PushLayer(Ref<Layer>& layer);
       void PushOverlay(Ref<Layer>& overlay);
@@ -48,6 +41,12 @@ namespace other {
       bool RemoveUIWindow(UUID id);
 
     protected:
+      
+      void Attach();
+      void DoUpdate(float dt);
+      void DoRender();
+      void DoRenderUI();
+      void Detach();
 
       virtual void OnAttach() = 0; 
       virtual void OnEvent(Event* event) = 0;
@@ -60,6 +59,7 @@ namespace other {
 
       const CmdLine& cmdline;
       const ConfigTable& config;
+
     private:
       Scope<LayerStack> layer_stack = nullptr;
       Scope<AssetHandler> asset_handler = nullptr;
@@ -67,6 +67,8 @@ namespace other {
       std::map<UUID , Ref<UIWindow>> ui_windows;
 
       Engine* engine_handle = nullptr;
+
+      friend class Editor;
   };
 
 } // namespace other

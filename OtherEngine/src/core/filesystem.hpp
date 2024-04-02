@@ -32,6 +32,12 @@ namespace other {
 
       static std::filesystem::path GetWorkingDirectory();
 
+      static std::filesystem::path GetEngineCoreDir();
+
+      static std::filesystem::path FindCoreFile(const std::string& path);
+      static std::filesystem::path FindCoreFile(const std::string_view path);
+      static std::filesystem::path FindCoreFile(const std::filesystem::path& path);
+
       static std::filesystem::path FindEngineCoreDir(const std::string& path);
       static std::filesystem::path FindEngineCoreDir(const std::string_view path);
       static std::filesystem::path FindEngineCoreDir(const std::filesystem::path& path);

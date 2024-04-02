@@ -1,0 +1,70 @@
+## Project files
+bin/
+bin_obj/
+tools/
+.cache/
+
+# Prerequisites
+*.d
+
+# configuration files
+*.config
+*.ini
+*.xml
+*.json
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Microsoft files
+*.sln
+*.vcxproj
+*.vcxproj.user
+*.vcxproj.filters
+
+## Pycache
+__pycache__/
+
+## Editor directories and files
+.idea/
+.vscode/
+.vs/
+
+# other
+*.log
+*.swp
+*.swo
+*.DS_Store
+*.tmp
+*.tmp.*
+*.bak
+*.backup
+*.orig
+*.rej

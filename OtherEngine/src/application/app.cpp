@@ -92,13 +92,12 @@ namespace other {
       Ref<Layer> debug_layer = NewRef<DebugLayer>(this);
       PushLayer(debug_layer);
     }
-
-    Attach();
   }
 
   void App::Run() {
+    Attach();
+
     ///> TODO: experiment and see if we want to use delta time or frame rate enforcer
-    OE_DEBUG("App initialized, running main loop, enforcing 60 fps");
     time::FrameRateEnforcer<60> frame_rate_enforcer;
     time::DeltaTime delta_time;
     delta_time.Start();
@@ -123,14 +122,9 @@ namespace other {
 
       Renderer::BeginFrame();
 
-      // Render(); // render all layers
       // if (scene_context != nullptr) {
       //   scene_context->Render();
       // }
-
-      for (size_t i = 0; i < layer_stack->Size(); ++i) {
-        (*layer_stack)[i]->Render();
-      }
 
       DoRender();
 
@@ -161,11 +155,11 @@ namespace other {
 
       frame_rate_enforcer.Enforce();
     } 
+
+    Detach();
   }
 
   void App::OnUnload() {
-    Detach();
-
     asset_handler = nullptr;
 
     layer_stack->Clear(); 
@@ -261,6 +255,10 @@ namespace other {
 
   void App::DoRender() {
     Render();
+    /// scene_context->Render();
+    for (size_t i = 0; i < layer_stack->Size(); ++i) {
+      (*layer_stack)[i]->Render();
+    }
   }
 
   void App::DoRenderUI() {

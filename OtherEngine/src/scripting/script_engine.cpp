@@ -27,17 +27,18 @@ namespace {
   struct ModuleInfo {
     LanguageModuleType type;
     std::string_view name;
-    std::string_view path;
+    std::string_view debug_path;
+    std::string_view release_path;
 
-    constexpr ModuleInfo(LanguageModuleType t , std::string_view n , std::string_view p) 
-      : type(t) , name(n) , path(p) {}
+    constexpr ModuleInfo(LanguageModuleType t , std::string_view n , std::string_view dp , std::string_view rp) 
+      : type(t) , name(n) , debug_path(dp) , release_path(rp) {}
   };
 
   /// these paths should always work because they are relative to the engine core directory and 
   /// should not be accessed outside of Filesystem::GetEngineCoreDir(...) calls
   constexpr static std::array<ModuleInfo , kNumDefaultModules> kDefaultModules = {
-    ModuleInfo(CS_MODULE , kDefaultModuleNames[CS_MODULE] , "bin/Debug/CsModule/CsModule.dll") ,
-    ModuleInfo(LUA_MODULE , kDefaultModuleNames[LUA_MODULE] , "bin/Debug/LuaModule/LuaModule.dll") ,
+    ModuleInfo(CS_MODULE , kDefaultModuleNames[CS_MODULE] , "bin/Debug/CsModule/CsModule.dll" , "bin/Release/CsModule/CsModule.dll") ,
+    ModuleInfo(LUA_MODULE , kDefaultModuleNames[LUA_MODULE] , "bin/Debug/LuaModule/LuaModule.dll" , "bin/Release/LuaModule/LuaModule.dll") ,
   };
 
 } // namespace <anonymous>
@@ -156,7 +157,13 @@ namespace {
       OE_DEBUG("ScriptEngine::LoadDefaultModules: Loading all core modules");
       for (size_t i = 0; i < kNumDefaultModules; ++i) {
         auto& info = kDefaultModules[i];
-        std::filesystem::path engine_core = std::filesystem::absolute(kEngineCoreDir) / info.path;
+        std::filesystem::path engine_core = std::filesystem::absolute(kEngineCoreDir);
+
+#ifdef OE_DEBUG_BUILD
+        engine_core /= info.debug_path;
+#else
+        engine_core /= info.release_path;
+#endif
 
         LoadModule(info.name.data() , engine_core.string());
       }
@@ -180,7 +187,14 @@ namespace {
         return info.name == module;
       });
       if (mod_info != kDefaultModules.end()) {
-        std::filesystem::path engine_core = std::filesystem::absolute(kEngineCoreDir) / mod_info->path;
+        std::filesystem::path engine_core = std::filesystem::absolute(kEngineCoreDir);
+
+#ifdef OE_DEBUG_BUILD
+        engine_core /= mod_info->debug_path;
+#else
+        engine_core /= mod_info->release_path;
+#endif
+
         println("Loading core module {} from path {}", mod_info->name , engine_core.string());
 
         if (!Filesystem::FileExists(engine_core.string())) {

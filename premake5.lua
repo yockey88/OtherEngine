@@ -19,20 +19,17 @@ configuration.groups = {
         "./OtherEngine-Components/language-modules/cs" ,
         "./OtherEngine-Components/language-modules/lua" ,
     } ,
-    ["Development"] = { "C:/Yock/gamedev/Testbed" }
+    ["Development"] = { "C:/Yock/gamedev/Testbed" } ,
+    ["Testing"] = { "./tests" }
 }
-
-if Contains(configuration.build_configurations , "Debug") then
-    print("[ Debug ]")
-end
 
 local choc = {}
 choc.name = "choc"
-choc.include_dir = "./externals/choc/choc"
+choc.include_dir = "%{wks.location}/externals/choc"
 
 local entt = {}
 entt.name = "entt"
-entt.include_dir = "./externals/entt/entt"
+entt.include_dir = "%{wks.location}/externals/entt"
 
 local glad = {}
 glad.name = "glad"
@@ -44,6 +41,13 @@ glad.lib_dir = "%{wks.location}/bin/Debug/glad"
 local glm = {}
 glm.name = "glm"
 glm.include_dir = "%{wks.location}/externals/glm"
+
+local gtest = {}
+gtest.name = "gtest"
+gtest.path = "./externals/gtest"
+gtest.include_dir = "%{wks.location}/externals/gtest/googletest/include/gtest"
+gtest.lib_name = "gtest"
+gtest.lib_dir = "%{wks.location}/bin/Debug/gtest"
 
 local imgui = {}
 imgui.name = "imgui"
@@ -88,6 +92,7 @@ AddDependency(choc)
 AddDependency(entt)
 AddDependency(glad)
 AddDependency(glm)
+AddDependency(gtest)
 AddDependency(imgui)
 AddDependency(magic_enum)
 AddDependency(nativefiledialog)

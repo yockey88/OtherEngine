@@ -62,6 +62,7 @@ local function ProcessConfigurations(project , external)
       end
 
     filter "configurations:Debug"
+      defines { "OE_DEBUG_BUILD" }
       if project.debug_configuration ~= nil then
         project.debug_configuration()
       else
@@ -77,6 +78,7 @@ local function ProcessConfigurations(project , external)
       end
 
     filter "configurations:Release"
+      defines { "OE_RELEASE_BUILD" }
       if project.release_configuration ~= nil then
         project.release_configuration()
       else

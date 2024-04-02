@@ -109,6 +109,12 @@ inline bool operator<(const NVec2<T>& lhs, const NVec2<T>& rhs)
     }
     return lhs.y < rhs.y;
 }
+
+#if _WIN32
+#undef min
+#undef max
+#endif
+
 template <class T>
 inline NVec2<T> Clamp(const NVec2<T>& val, const NVec2<T>& min, const NVec2<T>& max)
 {

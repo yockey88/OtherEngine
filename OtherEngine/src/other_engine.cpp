@@ -27,6 +27,9 @@ namespace other {
   std::filesystem::path OE::config_path;
 
   ExitCode OE::Main(int argc , char* argv[]) {
+#ifdef OE_DEBUG_BUILD
+    println("OtherEngine Debug Build");
+#endif 
     cmd_line = other::CmdLine(argc , argv);
 
     auto help = cmd_line.HasFlag("--help");

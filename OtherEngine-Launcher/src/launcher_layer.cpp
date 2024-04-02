@@ -274,8 +274,6 @@ namespace other {
       Launch(find_exe , LaunchType::RUNTIME);
     }
 
-
-
     ImGui::End();
   }
 
