@@ -154,7 +154,7 @@ namespace other {
           continue;
         }
 
-        std::filesystem::path dir_path = std::filesystem::current_path() / dir;
+        Path dir_path = std::filesystem::current_path() / dir;
         if (!std::filesystem::exists(dir_path)) {
           std::filesystem::create_directory(dir_path);
         }

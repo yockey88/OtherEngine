@@ -6,6 +6,7 @@
 #include "core/logger.hpp"
 #include "core/time.hpp"  
 #include "core/engine.hpp"
+#include "core/filesystem.hpp"
 #include "input/io.hpp"
 #include "event/event_queue.hpp"
 #include "event/app_events.hpp"
@@ -78,9 +79,26 @@ namespace other {
 
   App::~App() {}
 
+  void App::LoadMetadata(const Ref<Project>& metadata) {
+    project_metadata = metadata;
+  }
+
   void App::OnLoad() {
     layer_stack = NewScope<LayerStack>();
     asset_handler = NewScope<AssetHandler>();
+
+    scene_manager = NewScope<SceneManager>();
+
+    auto scenes = config.Get("PROJECT" , "SCENES");
+    std::vector<std::string> scene_paths{};
+    for (auto& s : scenes) {
+      if (!Filesystem::FileExists(s)) {
+        OE_WARN("CORRUPT CONFIG FILE: Scene does not exists - {}" , s);
+        continue;
+      }
+      scene_manager->LoadScene(s);
+    }
+
 
     {
       Ref<Layer> core_layer = NewRef<CoreLayer>(this);

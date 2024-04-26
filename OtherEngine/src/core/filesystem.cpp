@@ -11,53 +11,68 @@
 namespace other {
 
   bool Filesystem::FileExists(const std::string& path) {
-    return std::filesystem::exists(path);
+    return FileExists(Path(path));
   }
 
   bool Filesystem::FileExists(const std::string_view path) {
-    return std::filesystem::exists(path);
+    return FileExists(Path(path));
   }
 
-  bool Filesystem::FileExists(const std::filesystem::path& path) {
+  bool Filesystem::FileExists(const Path& path) {
+    return std::filesystem::exists(path) && !IsDirectory(path);
+  }
+
+  bool Filesystem::PathExists(const std::string& path) {
+    return PathExists(Path(path));
+  }
+
+  bool Filesystem::PathExists(const std::string_view path) {
+    return PathExists(Path(path));
+  }
+
+  bool Filesystem::PathExists(const Path& path) {
     return std::filesystem::exists(path);
   }
 
   bool Filesystem::IsDirectory(const std::string& path) {
-    return std::filesystem::is_directory(path);
+    return IsDirectory(Path(path));
   }
 
   bool Filesystem::IsDirectory(const std::string_view path) {
-    return std::filesystem::is_directory(path);
+    return IsDirectory(Path(path));
   }
 
-  bool Filesystem::IsDirectory(const std::filesystem::path& path) {
+  bool Filesystem::IsDirectory(const Path& path) {
     return std::filesystem::is_directory(path);
   }
 
   bool Filesystem::CreateDir(const std::string& path) {
-    return std::filesystem::create_directory(path);
+    return CreateDir(Path(path));
   }
 
   bool Filesystem::CreateDir(const std::string_view path) {
+    return CreateDir(Path(path));
+  }
+
+  bool Filesystem::CreateDir(const Path& path) {
+    if (PathExists(path)) {
+      return true;
+    }
     return std::filesystem::create_directory(path);
   }
 
-  bool Filesystem::CreateDir(const std::filesystem::path& path) {
-    return std::filesystem::create_directory(path);
+  Path Filesystem::FindExecutableIn(const std::string& path) {
+    return FindExecutableIn(Path(path));
   }
 
-  std::filesystem::path Filesystem::FindExecutableIn(const std::string& path) {
-    return FindExecutableIn(std::filesystem::path(path));
+  Path Filesystem::FindExecutableIn(const std::string_view path) {
+    return FindExecutableIn(Path(path));
   }
 
-  std::filesystem::path Filesystem::FindExecutableIn(const std::string_view path) {
-    return FindExecutableIn(std::filesystem::path(path));
-  }
-
-  std::filesystem::path Filesystem::FindExecutableIn(const std::filesystem::path& path) {
+  Path Filesystem::FindExecutableIn(const Path& path) {
     if (!std::filesystem::exists(path)) {
       OE_WARN("Path does not exist : {}", path.string());
-      return std::filesystem::path();
+      return Path();
     }
 
     if (std::filesystem::is_regular_file(path)) {
@@ -65,17 +80,17 @@ namespace other {
         return path;
       }
 
-      std::filesystem::path parent = path.parent_path();
+      Path parent = path.parent_path();
       if (parent.empty()) {
         OE_WARN("Parent path is empty : {}", path.string());
-        return std::filesystem::path();
+        return Path();
       }
 
       return FindExecutableIn(parent);
     }
 
     /// TODO: fix this so user's config is not bound to engine's config
-    std::filesystem::path bin_path = path / "bin";
+    Path bin_path = path / "bin";
 #ifdef OE_DEBUG_BUILD
     bin_path /= "Debug";
 #elif defined(OE_RELEASE_BUILD)
@@ -84,10 +99,10 @@ namespace other {
 
     if (!std::filesystem::exists(bin_path)) {
       OE_WARN("Bin path does not exist : {}", bin_path.string());
-      return std::filesystem::path();
+      return Path();
     }
 
-    std::vector<std::filesystem::path> paths;
+    std::vector<Path> paths;
     for (const auto& entry : std::filesystem::directory_iterator(bin_path)) {
       if (entry.is_regular_file() && entry.path().extension() == ".exe") {
         paths.push_back(entry.path());
@@ -102,27 +117,27 @@ namespace other {
     }
 
     OE_WARN("Could not find executable in path : {}", bin_path);
-    return std::filesystem::path();
+    return Path();
   }
 
-  std::filesystem::path Filesystem::GetWorkingDirectory() {
+  Path Filesystem::GetWorkingDirectory() {
     return std::filesystem::current_path();
   }
 
-  std::filesystem::path Filesystem::GetEngineCoreDir() {
+  Path Filesystem::GetEngineCoreDir() {
     return kEngineCoreDir;
   }
 
-  std::filesystem::path Filesystem::FindCoreFile(const std::string& path) {
-    return FindCoreFile(std::filesystem::path(path));
+  Path Filesystem::FindCoreFile(const std::string& path) {
+    return FindCoreFile(Path(path));
   }
 
-  std::filesystem::path Filesystem::FindCoreFile(const std::string_view path) {
-    return FindCoreFile(std::filesystem::path(path));
+  Path Filesystem::FindCoreFile(const std::string_view path) {
+    return FindCoreFile(Path(path));
   }
 
-  std::filesystem::path Filesystem::FindCoreFile(const std::filesystem::path& path) {
-    std::filesystem::path core_dir = kEngineCoreDir;
+  Path Filesystem::FindCoreFile(const Path& path) {
+    Path core_dir = kEngineCoreDir;
     auto p = std::filesystem::absolute(core_dir / path);
     OE_DEBUG("Looking for file : {}", p.string());
 
@@ -140,29 +155,58 @@ namespace other {
       }
     }
 
-    return std::filesystem::path();
+    return Path();
   }
 
-  std::filesystem::path Filesystem::FindEngineCoreDir(const std::string& path) {
-    return FindEngineCoreDir(std::filesystem::path(path));
+  Path Filesystem::FindEngineCoreDir(const std::string& path) {
+    return FindEngineCoreDir(Path(path));
   }
 
-  std::filesystem::path Filesystem::FindEngineCoreDir(const std::string_view path) {
-    return FindEngineCoreDir(std::filesystem::path(path));
+  Path Filesystem::FindEngineCoreDir(const std::string_view path) {
+    return FindEngineCoreDir(Path(path));
   }
 
-  std::filesystem::path Filesystem::FindEngineCoreDir(const std::filesystem::path& path) {
-    std::filesystem::path core_dir = kEngineCoreDir;
+  Path Filesystem::FindEngineCoreDir(const Path& path) {
+    Path core_dir = kEngineCoreDir;
     if (std::filesystem::exists(core_dir / path)) {
       return core_dir / path;
     } else {
       OE_WARN("Engine core does not conatin path : {}", path);
     }
 
-    return std::filesystem::path();
+    return Path();
+  }
+
+  std::vector<Path> Filesystem::GetSubPaths(const std::string& path) {
+    return GetSubPaths(Path(path));
+  }
+
+  std::vector<Path> Filesystem::GetSubPaths(const std::string_view path) {
+    return GetSubPaths(Path(path));
+  }
+
+  std::vector<Path> Filesystem::GetSubPaths(const Path& path) {
+    if (!PathExists(path)) {
+      return {};
+    }
+
+    std::vector<Path> paths;
+    for (auto& entry : std::filesystem::directory_iterator(path)) {
+      paths.push_back(entry.path());
+    }
+
+    return paths;
   }
 
   std::vector<char> Filesystem::ReadFileAsChars(const std::string& path) {
+    return ReadFileAsChars(Path(path));
+  }
+  
+  std::vector<char> Filesystem::ReadFileAsChars(const std::string_view path) {
+    return ReadFileAsChars(Path(path));
+  }
+  
+  std::vector<char> Filesystem::ReadFileAsChars(const Path& path) {
     std::ifstream file(path , std::ios::binary | std::ios::ate);
 
     if (!file.is_open()) 
@@ -180,6 +224,29 @@ namespace other {
     file.close();
 
     return buffer;
+  }
+
+  std::string Filesystem::ReadFile(const std::string &path) {
+    return ReadFile(Path(path));
+  }
+  
+  std::string Filesystem::ReadFile(const std::string_view path) {
+    return ReadFile(Path(path));
+  }
+
+  std::string Filesystem::ReadFile(const Path& path) {
+    if (!FileExists(path)) {
+      return "";
+    }
+
+    std::ifstream f(path);
+    if (!f.is_open()) {
+      return "";
+    }
+
+    std::stringstream ss;
+    ss << f.rdbuf();
+    return ss.str();
   }
 
 } // namespace other

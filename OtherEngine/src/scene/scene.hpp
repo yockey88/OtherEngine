@@ -4,23 +4,42 @@
 #ifndef OTHER_ENGINE_SCENE_HPP
 #define OTHER_ENGINE_SCENE_HPP
 
+#include <map>
+#include <filesystem>
+
 #include <entt/entt.hpp>
 
 // #include "scene/octree.hpp"
+#include "core/config.hpp"
+#include "core/ref_counted.hpp"
+#include "core/uuid.hpp"
 
 namespace other {
 
-  class Scene {
-    public:
-      Scene() {}
-      ~Scene() {}
+  class Entity;
 
-      void AddEntity(const std::string& name); 
+  class Scene : public RefCounted {
+    public:
+      Scene(const Path& scenepath);
+      ~Scene();
+
+      const std::map<UUID , Entity*>& SceneEntities() const;
 
     private:
       // Octree space_partition;
 
+      ConfigTable scene_table;
+
+      bool corrupt = true;
+
+      Path scene_path;
       entt::registry registry;
+
+      std::map<UUID , Entity*> entities{};
+
+      void LoadScene();
+      
+      void AddEntity(const std::string& name); 
   };
 
 } // namespace other

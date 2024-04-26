@@ -9,6 +9,7 @@
 #include <memory>
 #include <optional>
 #include <iostream>
+#include <filesystem>
 
 #include <spdlog/fmt/fmt.h>
 #include <glm/glm.hpp>
@@ -41,6 +42,8 @@ namespace other {
 
   template <typename T>
   using Opt = std::optional<T>;
+
+  using Path = std::filesystem::path;
 
   template <typename T , typename... Args>
   Scope<T> NewScope(Args&&... args) {

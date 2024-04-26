@@ -84,8 +84,8 @@ namespace other {
     public:
       static PlatformType CurrentPlatform();
 
-      static bool LaunchProject(const std::filesystem::path& path , LaunchType type);
-      static bool LaunchProcess(const std::filesystem::path& path , const std::filesystem::path& working_dir , 
+      static bool LaunchProject(const Path& path , LaunchType type);
+      static bool LaunchProcess(const Path& path , const Path& working_dir , 
                                 const std::string& args_str = "");
   };
 

@@ -79,7 +79,7 @@ namespace {
   }
 
   void ScriptEngine::LoadModule(const std::string& name , const std::string& path) {
-    if (!Filesystem::FileExists(path)) {
+    if (!Filesystem::PathExists(path)) {
       OE_WARN("ScriptEngine::LoadModule: Path {} for module {} does not exist" , path , name);
       return;
     }
@@ -157,7 +157,7 @@ namespace {
       OE_DEBUG("ScriptEngine::LoadDefaultModules: Loading all core modules");
       for (size_t i = 0; i < kNumDefaultModules; ++i) {
         auto& info = kDefaultModules[i];
-        std::filesystem::path engine_core = std::filesystem::absolute(kEngineCoreDir);
+        Path engine_core = std::filesystem::absolute(kEngineCoreDir);
 
 #ifdef OE_DEBUG_BUILD
         engine_core /= info.debug_path;
@@ -183,11 +183,10 @@ namespace {
       }
 
       auto mod_info = std::ranges::find_if(kDefaultModules , [&module](const ModuleInfo& info) {
-        println("Comparing {} to {}", info.name , module);
         return info.name == module;
       });
       if (mod_info != kDefaultModules.end()) {
-        std::filesystem::path engine_core = std::filesystem::absolute(kEngineCoreDir);
+        Path engine_core = std::filesystem::absolute(kEngineCoreDir);
 
 #ifdef OE_DEBUG_BUILD
         engine_core /= mod_info->debug_path;
@@ -197,7 +196,7 @@ namespace {
 
         println("Loading core module {} from path {}", mod_info->name , engine_core.string());
 
-        if (!Filesystem::FileExists(engine_core.string())) {
+        if (!Filesystem::PathExists(engine_core.string())) {
           OE_WARN("ScriptEngine::LoadDefaultModules: Path {} for module {} does not exist" , engine_core.string() , mod_info->name);
           continue;
         } else {

@@ -14,7 +14,7 @@ namespace other {
     AssetHandle handle = 0;
 		AssetType type = AssetType::BLANK_ASSET;
 
-		std::filesystem::path path = "";
+		Path path = "";
 		bool loaded = false;
 		bool memory_asset = false;
 

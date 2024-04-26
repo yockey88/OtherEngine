@@ -3,18 +3,26 @@
  **/
 #include "project/project.hpp"
 
+#include <filesystem>
+
+#include "core/logger.hpp"
+#include "core/filesystem.hpp"
+
 namespace other {
 
   Opt<std::string> Project::queued_project_path = std::nullopt;
-
    
   Project::Project(const CmdLine& cmdline , const ConfigTable& config)
       : cmdline(cmdline) , config(config) {
     metadata.name = config.GetVal<std::string>("PROJECT" , "NAME").value_or("Unnamed Project");
     auto proj_path = cmdline.GetArg("--project").value_or(Arg{});
     if (proj_path.hash != 0) {
-      metadata.file_path = std::filesystem::path(proj_path.args[0]);
+      metadata.file_path = Path(proj_path.args[0]);
+      OE_DEBUG("Project Path : {}" , metadata.file_path);
     }
+
+    metadata.project_dir_folders = Filesystem::GetSubPaths(metadata.file_path.parent_path());
+
     Increment();
   }
 

@@ -42,6 +42,8 @@ namespace other {
 
       Logger* logger_instance = nullptr;
 
+      Ref<Project> project_metadata;
+
       Scope<App> active_app;
       Scope<LayerStack> layer_stack;
       Scope<AssetHandler> asset_handler;

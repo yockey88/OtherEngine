@@ -5,6 +5,7 @@
 #include "rendering/window.hpp"
 
 #include "core/logger.hpp"
+#include <SDL_video.h>
 
 namespace other {
 
@@ -152,11 +153,25 @@ namespace {
     return size;
   }
 
+  glm::vec4 Window::ClearColor() const {
+    return config.color;
+  }
+
+  uint32_t Window::ClearFlags() const {
+    return config.clear_flags;
+  }
+
   void Window::Resize(const glm::ivec2& size) {
     if (config.flags & SDL_WINDOW_RESIZABLE) {
-      SDL_SetWindowSize(context.window , size.x , size.y);
-      glViewport(0 , 0 , size.x , size.y);
+      ForceResize(size);
     }
+  }
+      
+  void Window::ForceResize(const glm::ivec2& size) {
+    config.size = size;
+    SDL_SetWindowSize(context.window , config.size.x , config.size.y);
+    SDL_SetWindowPosition(context.window , SDL_WINDOWPOS_CENTERED , SDL_WINDOWPOS_CENTERED);
+    glViewport(0 , 0 , config.size.x , config.size.y);
   }
 
   WindowConfig Window::ConfigureWindow(const other::ConfigTable& config) {

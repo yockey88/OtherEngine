@@ -5,6 +5,9 @@
 
 #include "core/defines.hpp"
 #include "core/logger.hpp"
+#include "core/config.hpp"
+#include "core/errors.hpp"
+#include "parsing/ini_parser.hpp"
 #include "event/event.hpp"
 #include "event/core_events.hpp"
 #include "editor/editor.hpp"
@@ -26,6 +29,9 @@ namespace other {
     OE_ASSERT(app != nullptr , "Attempting to load a null application");
 
     OE_DEBUG("Loading application");
+    project_metadata = Project::Create(cmd_line , config);
+    app->LoadMetadata(project_metadata);
+
     if (cmd_line.HasFlag("--editor")) {
       OE_DEBUG("Loading editor");
 
