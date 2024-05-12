@@ -198,6 +198,54 @@ namespace other {
     return paths;
   }
 
+  std::vector<Path> Filesystem::GetSubDirs(const std::string& path) {
+    return GetSubDirs(Path(path));
+  }
+
+  std::vector<Path> Filesystem::GetSubDirs(const std::string_view path) {
+    return GetSubDirs(Path(path));
+  }
+
+  std::vector<Path> Filesystem::GetSubDirs(const Path& path) {
+    if (!PathExists(path)) {
+      return {};
+    }
+
+    std::vector<Path> paths;
+    for (auto& entry : std::filesystem::directory_iterator(path)) {
+      if (!entry.is_directory()) {
+        continue;
+      }
+      paths.push_back(entry.path());
+    }
+
+    return paths;
+  }
+
+  std::vector<Path> Filesystem::GetDirectoryFiles(const std::string& path) {
+    return GetDirectoryFiles(Path(path));
+  }
+
+  std::vector<Path> Filesystem::GetDirectoryFiles(const std::string_view path) {
+    return GetDirectoryFiles(Path(path));
+  }
+
+  std::vector<Path> Filesystem::GetDirectoryFiles(const Path& path) {
+    if (!PathExists(path)) {
+      return {};
+    }
+
+    std::vector<Path> paths;
+    for (auto& entry : std::filesystem::directory_iterator(path)) {
+      if (entry.is_directory()) {
+        continue;
+      }
+      paths.push_back(entry.path());
+    }
+
+    return paths;
+  }
+
   std::vector<char> Filesystem::ReadFileAsChars(const std::string& path) {
     return ReadFileAsChars(Path(path));
   }

@@ -37,6 +37,11 @@ namespace other {
       void Launch();
       ExitCode Run();
       void Shutdown();
+      Scope<App> active_app = nullptr;
+      Ref<Project> project_metadata;
+
+      Opt<ExitCode> exit_code = std::nullopt;
+
       static void HandleExit(ExitCode code);
 
       static void CoreShutdown();

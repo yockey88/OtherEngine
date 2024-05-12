@@ -89,17 +89,6 @@ namespace other {
 
     scene_manager = NewScope<SceneManager>();
 
-    auto scenes = config.Get("PROJECT" , "SCENES");
-    std::vector<std::string> scene_paths{};
-    for (auto& s : scenes) {
-      if (!Filesystem::FileExists(s)) {
-        OE_WARN("CORRUPT CONFIG FILE: Scene does not exists - {}" , s);
-        continue;
-      }
-      scene_manager->LoadScene(s);
-    }
-
-
     {
       Ref<Layer> core_layer = NewRef<CoreLayer>(this);
       PushLayer(core_layer);
@@ -250,6 +239,24 @@ namespace other {
     return true;
   }
 
+  void App::LoadScene(const Path& path) {
+    OE_DEBUG("Loading scene : {}" , path.string());
+    scene_manager->LoadScene(path);
+    OnSceneLoad(path);
+  }
+
+  Ref<Scene> App::ActiveScene() {
+    return scene_manager->ActiveScene();
+  }
+
+  void App::UnloadScene() {
+    if (scene_manager->ActiveScene() == nullptr) {
+      return;
+    }
+    OE_DEBUG("Unloading scene : {}" , scene_manager->ActiveScene()->GetPath());
+    scene_manager->UnloadActive();
+  }
+
   void App::Attach() {
     OnAttach();
   }
@@ -273,7 +280,11 @@ namespace other {
 
   void App::DoRender() {
     Render();
-    /// scene_context->Render();
+    
+    if (scene_manager->ActiveScene() != nullptr) {
+      //scene_manager->ActiveScene()->Render();
+    }
+
     for (size_t i = 0; i < layer_stack->Size(); ++i) {
       (*layer_stack)[i]->Render();
     }

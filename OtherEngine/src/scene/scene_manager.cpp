@@ -8,8 +8,8 @@
 
 namespace other {
 
-  void SceneManager::LoadScene(const std::string& scenepath) {
-    UUID id = FNV(scenepath);
+  void SceneManager::LoadScene(const Path& scenepath) {
+    UUID id = FNV(scenepath.string());
     if (loaded_scenes.find(id) != loaded_scenes.end()) {
       OE_WARN("Scene {} already loaded" , scenepath);
       return;
@@ -20,13 +20,36 @@ namespace other {
       .scene = Ref<Scene>::Create(scenepath)
     };
 
-    scene_paths.push_back(scenepath);
+    scene_paths.push_back(scenepath.string());
 
     active_scene = &scene_md;
   }
 
-  Ref<Scene>& SceneManager::ActiveScene() { 
-    return active_scene->scene; 
+  void SceneManager::SetAsActive(const Path& path) {
+    UUID id = FNV(path.string());
+    auto find_scene = loaded_scenes.find(id);
+    if (find_scene == loaded_scenes.end()) {
+      OE_WARN("Scene : {} does not exist! Cant not set as active" , path);
+      return;
+    }
+
+    active_scene = &loaded_scenes[id];
+  }
+
+  bool SceneManager::HasScene(const Path& path) {
+    return loaded_scenes.find(FNV(path.string())) != loaded_scenes.end();
+  }
+
+  Ref<Scene> SceneManager::ActiveScene() { 
+    if (active_scene == nullptr) {
+      return nullptr;
+    }
+    return Ref<Scene>::Clone(active_scene->scene);
+  }
+
+  void SceneManager::UnloadActive() {
+    active_scene->scene->Stop();
+    active_scene = nullptr;
   }
       
   const std::vector<std::string>& SceneManager::ScenePaths() const {

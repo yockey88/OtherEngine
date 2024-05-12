@@ -45,7 +45,9 @@ namespace other {
       bool RemoveUIWindow(const std::string& name);
       bool RemoveUIWindow(UUID id);
 
+      void LoadScene(const Path& path);
       Ref<Scene> ActiveScene();
+      void UnloadScene();
 
     protected:
       
@@ -61,6 +63,8 @@ namespace other {
       virtual void Render() = 0;
       virtual void RenderUI() = 0;
       virtual void OnDetach() = 0;
+
+      virtual void OnSceneLoad(const Path& path) {}
 
       Engine* GetEngine() { return engine_handle; }
 

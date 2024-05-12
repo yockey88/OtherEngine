@@ -12,15 +12,22 @@ namespace other {
 
   enum class EventType {
     EMPTY = 0 ,
+    
     // window events
-    WINDOW_CLOSE , WINDOW_MINIMIZE , WINDOW_RESIZE , WINDOW_FOCUS , WINDOW_LOST_FOCUS , WINDOW_MOVED ,
+    WINDOW_CLOSE , WINDOW_MINIMIZE , WINDOW_RESIZE , 
+    /// \todo these events are not implemented yet
+        WINDOW_FOCUS , WINDOW_LOST_FOCUS , WINDOW_MOVED ,
+
     // application events
     APP_TICK , APP_UPDATE , APP_RENDER , APP_LAYER ,
+    
     // input events
     KEY_PRESSED , KEY_RELEASED , KEY_TYPED , KEY_HELD ,
     MOUSE_BUTTON_PRESSED , MOUSE_BUTTON_RELEASED , MOUSE_BUTTON_HELD , MOUSE_MOVD , MOUSE_SCROLLED ,
+    
     // scene events
     SCENE_LOAD , SCENE_START , SCENE_STOP , SCENE_UNLOAD ,
+    
     // editor events
     EDITOR_SCENE_PLAY , EDITOR_SCENE_PAUSE , EDITOR_SCENE_STOP ,
 
@@ -68,7 +75,7 @@ namespace other {
   template <typename T>
   T* Cast(Event* event) {
     if (event->Type() == T::GetStaticType()) {
-      return (T*)event;
+      return static_cast<T*>(event);
     }
 
     return nullptr;

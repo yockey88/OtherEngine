@@ -30,6 +30,33 @@ namespace detail {
         Increment();
       }
 
+      Ref(const Ref<T>& other) {
+        object = other.object;
+        IncRef();
+      }
+
+      /// @note count does not change on move 
+      Ref(Ref<T>&& other) noexcept {
+        object = other.object;
+        other.object = nullptr;
+      }
+      
+      Ref& operator=(const Ref<T>& other) {
+        if (this != &other) {
+          object = other.object;
+          Increment();
+        }
+        return *this;
+      }
+
+      Ref& operator=(Ref<T>&& other) noexcept {
+        if (this != &other) {
+          object = other.object;
+          other.object = nullptr;
+        }
+        return *this;
+      }
+
       template<typename T2>
       Ref(const Ref<T2>& other) {
       	object = (T*)other.object;
@@ -55,34 +82,6 @@ namespace detail {
         if (Count() == 0) {
           delete object;
         }
-      }
-
-      Ref(const Ref& other) {
-        object = other.object;
-        Increment();
-      }
-
-      /// @note count does not change on move
-      Ref(Ref&& other) noexcept {
-        object = other.object;
-        other.object = nullptr;
-      }
-
-      Ref& operator=(const Ref& other) {
-        if (this != &other) {
-          object = other.object;
-          Increment();
-        }
-        return *this;
-      }
-
-      /// @note count does not change on move 
-      Ref& operator=(Ref&& other) noexcept {
-        if (this != &other) {
-          object = other.object;
-          other.object = nullptr;
-        }
-        return *this;
       }
 
       template<typename T2>
@@ -120,6 +119,10 @@ namespace detail {
       template <typename U>
       Ref<U> As() const {
         return Ref<U>(*this);
+      }
+
+      static Ref<T> Clone(const Ref<T>& old_ref) {
+        return Ref<T>(old_ref);
       }
 
       template <typename... Args>

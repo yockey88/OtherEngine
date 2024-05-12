@@ -54,7 +54,11 @@ namespace other {
   
   class VertexArray { 
     public:
-      VertexArray(const std::vector<float>& vertices , const std::vector<uint32_t>& indices = {} , const std::vector<uint32_t>& layout = {}) ;
+      VertexArray(
+        const std::vector<float>& vertices , 
+        const std::vector<uint32_t>& indices = {} , 
+        const std::vector<uint32_t>& layout = {}
+      );
   
       ~VertexArray();
   

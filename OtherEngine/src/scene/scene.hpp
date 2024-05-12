@@ -23,9 +23,18 @@ namespace other {
       Scene(const Path& scenepath);
       ~Scene();
 
+      void Start(); 
+      void Stop(); 
+
+      const Path& GetPath() const { return scene_path; }
       const std::map<UUID , Entity*>& SceneEntities() const;
 
+    protected:
+      virtual void OnStart() {}
+      virtual void OnStop() {}
+
     private:
+      friend class Entity;
       // Octree space_partition;
 
       ConfigTable scene_table;

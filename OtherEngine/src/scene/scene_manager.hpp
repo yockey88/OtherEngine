@@ -5,7 +5,6 @@
 #define OTHER_ENGINE_SCENE_MANAGER_HPP
 
 #include <map>
-#include <filesystem>
 
 #include "core/uuid.hpp"
 #include "core/ref.hpp"
@@ -20,10 +19,13 @@ namespace other {
 
   class SceneManager {
     public:
-      void LoadScene(const std::string& scenepath);
-      void SetAsActive(const std::string& name);
+      void LoadScene(const Path& scenepath);
+      void SetAsActive(const Path& name);
 
-      Ref<Scene>& ActiveScene();
+      bool HasScene(const Path& path);
+
+      Ref<Scene> ActiveScene();
+      void UnloadActive();
 
       const std::vector<std::string>& ScenePaths() const; 
 

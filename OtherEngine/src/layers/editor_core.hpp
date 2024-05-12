@@ -16,6 +16,9 @@ namespace other {
       EditorCore(App* parent_app)
         : Layer(parent_app , "EditorCore") {}
       ~EditorCore() = default;
+
+      virtual void OnEvent(Event* event);
+
     private:
   };
 

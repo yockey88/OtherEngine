@@ -4,7 +4,6 @@
 #include "scene/scene.hpp"
 
 #include <algorithm>
-#include <filesystem>
 
 #include "core/rand.hpp"
 #include "core/errors.hpp"
@@ -25,9 +24,18 @@ namespace other {
     }
   }
 
+  void Scene::Start() {
+    OnStart();
+  }
+
+  void Scene::Stop() {
+    OnStop();
+  }
+
   const std::map<UUID , Entity*>& Scene::SceneEntities() const {
     return entities;
   }
+
 
   void Scene::LoadScene() {
     try {
@@ -55,7 +63,7 @@ namespace other {
     auto uuid_opt = scene_table.GetVal<uint64_t>(n , "UUID");
     UUID id = UUID(uuid_opt.value_or(Random::Generate()));
 
-    entities[id] = new Entity(&registry , registry.create() , id , name);
+    entities[id] = new Entity(this , registry.create() , id , name);
   }
 
 } // namespace other

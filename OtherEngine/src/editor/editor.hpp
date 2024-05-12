@@ -13,6 +13,7 @@
 #include "rendering/framebuffer.hpp"
 #include "editor/editor_panel.hpp"
 #include "editor/scene_panel.hpp"
+#include "editor/entity_properties.hpp"
 
 #include "scene/scene.hpp"
 
@@ -22,6 +23,8 @@ namespace other {
     public:
       Editor(Engine* engine , Scope<App>& app);
       ~Editor() = default;
+
+      void LoadScene(const Path& path);
 
     private:
       const CmdLine& cmdline;
@@ -37,6 +40,9 @@ namespace other {
 
       bool scene_panel_open = true;
       Ref<ScenePanel> scene_panel;
+
+      bool entity_properties_open = false;
+      Ref<EntityProperties> entity_properties_panel;
 
       Scope<Framebuffer> viewport = nullptr;
 
@@ -57,6 +63,8 @@ namespace other {
       virtual void Render() override;
       virtual void RenderUI() override;
       virtual void OnDetach() override;
+
+      virtual void OnSceneLoad(const Path& path) override;
   };
 
 } // namespace other

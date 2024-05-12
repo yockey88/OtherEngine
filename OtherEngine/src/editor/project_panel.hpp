@@ -6,7 +6,6 @@
 
 #include <vector>
 #include <string>
-#include <stack>
 
 #include <imgui/imgui.h>
 
@@ -18,7 +17,8 @@ namespace other {
 
   class ProjectPanel : public EditorPanel {
     public:
-      ProjectPanel();
+      ProjectPanel(Editor& editor)
+        : EditorPanel(editor) {}
       virtual ~ProjectPanel() {}
 
       virtual void OnGuiRender(bool& is_open) override;
@@ -37,15 +37,15 @@ namespace other {
 
       /// null selection => root directory
       Opt<Path> selection = std::nullopt;
-      Opt<Path> last_seleciton = std::nullopt;
 
       /// Render functions
-      void RenderProjectDirectoryTable();
       void RenderProjectDirectoryStructure();
       void RenderCurrentProjectFolderContents();
       void RenderTopBar(float height);
       void RenderBottomBar(float height);
       void RenderDirectoryTree(const Path& path);
+
+      void RenderContents(const Path& path);
   };
 
 } // namespace other

@@ -12,8 +12,12 @@
 
 namespace other {
 
+  class Editor;
+
   class EditorPanel : public RefCounted {
     public:
+      EditorPanel(Editor& editor) 
+        : editor(editor) {}
       virtual ~EditorPanel() {}
 
       virtual void OnGuiRender(bool& is_open) = 0;
@@ -22,7 +26,10 @@ namespace other {
       virtual void SetSceneContext(const Ref<Scene>& scene) = 0;
 
     protected:
+      Editor& GetEditor() const { return editor; }
+
     private:
+      Editor& editor;
   };
 
 } // namespace other

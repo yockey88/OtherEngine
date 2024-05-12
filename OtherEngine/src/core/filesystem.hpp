@@ -52,6 +52,14 @@ namespace other {
       static std::vector<Path> GetSubPaths(const std::string_view path);
       static std::vector<Path> GetSubPaths(const Path& path);
 
+      static std::vector<Path> GetSubDirs(const std::string& path);
+      static std::vector<Path> GetSubDirs(const std::string_view path);
+      static std::vector<Path> GetSubDirs(const Path& path);
+
+      static std::vector<Path> GetDirectoryFiles(const std::string& path);
+      static std::vector<Path> GetDirectoryFiles(const std::string_view path);
+      static std::vector<Path> GetDirectoryFiles(const Path& path);
+
       static std::string ReadFile(const std::string& path);
       static std::string ReadFile(const std::string_view path);
       static std::string ReadFile(const Path& path);

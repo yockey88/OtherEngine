@@ -17,9 +17,9 @@
 #include "parsing/ini_parser.hpp"
 #include "rendering/renderer.hpp"
 #include "layers/debug_layer.hpp"
-
-/// panels
+#include "layers/editor_core.hpp"
 #include "editor/project_panel.hpp"
+#include "editor/selection_manager.hpp"
 
 namespace other {
   
@@ -28,6 +28,16 @@ namespace other {
         app(std::move(app)) {
     project = Project::Create(engine->cmd_line , engine->config);     
   } 
+      
+  void Editor::LoadScene(const Path& path) {
+    UnloadScene();
+    if (scene_manager->HasScene(path)) {
+      scene_manager->SetAsActive(path);
+    } else {
+      scene_manager->LoadScene(path);
+      scene_panel->SetSceneContext(scene_manager->ActiveScene());
+    }
+  }
 
   void Editor::OnAttach() {
     if (app == nullptr) {
@@ -49,24 +59,42 @@ namespace other {
     Renderer::GetWindow()->ForceResize({ 1920 , 1080 });
 
     viewport = NewScope<Framebuffer>();
-    project_panel = Ref<ProjectPanel>::Create();
-    scene_panel = Ref<ScenePanel>::Create();
 
+    /// TODO move to panel manager/generalize panel creation process
+    project_panel = Ref<ProjectPanel>::Create(*this);
+    scene_panel = Ref<ScenePanel>::Create(*this);
+    entity_properties_panel = Ref<EntityProperties>(*this);
+
+    /// tbh should get rid of OnProjectChange, engine should be focused on one project at a time
+    ///   and to reload we should either recompile or simply shut down and reload a new file
     project_panel->OnProjectChange(project);
-    
+    /// end panel manager section
+     
     Ref<Layer> debug_layer = NewRef<DebugLayer>(this);
     PushLayer(debug_layer);
 
+    Ref<Layer> editor_layer = NewRef<EditorCore>(this);
+    PushLayer(editor_layer);
+
+    /// here we want to load the application but not attach it
+    ///   i.e. we want the app to be prepared for the mock 'runtime' but not
+    ///   fully running
     app->OnLoad();
+    app->OnAttach();
+
+    if (SelectionManager::HasSelection()) {
+      OE_INFO("Why tf we have a selection???");
+    }
   }
 
   void Editor::OnEvent(Event* event) {
-
     app->OnEvent(event);
   }
 
   void Editor::Update(float dt) {
     app->Update(dt);
+
+    // entity_properties_open = SelectionManager::HasSelection();
   }
 
   void Editor::Render() {
@@ -110,6 +138,7 @@ namespace other {
 
     project_panel->OnGuiRender(project_panel_open);
     scene_panel->OnGuiRender(scene_panel_open);
+    entity_properties_panel->OnGuiRender(entity_properties_open);
 
     if (ImGui::Begin("Inspector")) {
 
@@ -120,6 +149,12 @@ namespace other {
   void Editor::OnDetach() {
     viewport = nullptr;
     app->OnUnload();
+  }
+
+  void Editor::OnSceneLoad(const Path& path) {
+    OE_DEBUG("Editor::OnSceneLoad({})" , path);
+    project_panel->SetSceneContext(scene_manager->ActiveScene());
+    scene_panel->SetSceneContext(scene_manager->ActiveScene());  
   }
 
 } // namespace other
