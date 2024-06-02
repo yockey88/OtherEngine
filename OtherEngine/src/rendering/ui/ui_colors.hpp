@@ -37,6 +37,7 @@ namespace theme {
   constexpr auto mesh_not_set = IM_COL32(250, 101, 23, 255);
 
   ImU32 ColorWithMultiplier(const ImColor& color , float multiplier);
+  ImU32 ColorWithMultipliedSaturation(const ImColor& color , float multiplier);
 
 } // namespace theme
 } // namespace ui

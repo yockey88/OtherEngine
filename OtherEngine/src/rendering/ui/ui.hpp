@@ -42,7 +42,7 @@ namespace other {
   };
 
   constexpr static uint32_t kUiThemeIndexCount = UI_THEME_INDEX_COUNT + 1;
-  constexpr static std::array<std::string_view , kUiThemeIndexCount> kThemIndexStrings = {
+  constexpr static std::array<std::string_view , kUiThemeIndexCount> kThemeIndexStrings = {
     "TEXT" , "TEXT_DISABLED" , 
     "WINDOW_BG" , "CHILD_BG" , "POPUP_BG" ,
     "BORDER" , "BORDER_SHADOW" ,

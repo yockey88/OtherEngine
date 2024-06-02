@@ -11,13 +11,12 @@ namespace detail {
 
   void RegisterReference(void* instance);
   void RemoveReference(void* instance);
-
   bool IsValidRef(void* instance);
 
 } // namespace detail
 
   template <typename T>
-  class Ref : public RefCounted {
+  class Ref {
     public:
       Ref()
           : object(nullptr) {}
@@ -27,7 +26,7 @@ namespace detail {
 
       Ref(T* p) {
         object = p;
-        Increment();
+        IncRef();
       }
 
       Ref(const Ref<T>& other) {
@@ -35,7 +34,6 @@ namespace detail {
         IncRef();
       }
 
-      /// @note count does not change on move 
       Ref(Ref<T>&& other) noexcept {
         object = other.object;
         other.object = nullptr;
@@ -44,7 +42,7 @@ namespace detail {
       Ref& operator=(const Ref<T>& other) {
         if (this != &other) {
           object = other.object;
-          Increment();
+          IncRef();
         }
         return *this;
       }
@@ -74,14 +72,11 @@ namespace detail {
         static_assert(std::is_constructible_v<T , Args...> , "Cannot construct a reference from given arguments");
         static_assert(std::is_base_of_v<RefCounted , T> , "Cannot construct a reference from a non-RefCounted type");
         object = new T(std::forward<Args>(args)...);
-        Increment();
+        IncRef();
       }
       
-      virtual ~Ref() override {
-        Decrement();
-        if (Count() == 0) {
-          delete object;
-        }
+      virtual ~Ref() {
+        DecRef();
       }
 
       template<typename T2>
@@ -112,8 +107,10 @@ namespace detail {
       const T* Raw() const { return object; }
 
       void Reset(T* object = nullptr) {
-        DecRef();
         this->object = object;
+        if (this->object == nullptr) {
+          DecRef();
+        }
       }
 
       template <typename U>

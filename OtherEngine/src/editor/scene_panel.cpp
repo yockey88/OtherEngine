@@ -64,14 +64,18 @@ namespace other {
       } else {
         /**
          * There are a few cases here to think about
-         *  1 > dragged scene file into scene view? 
+         *  1 > dragged scene file into panel to load new scene?
+         *  (Might disallow this and enforce some more explicit way of loading and
+         *    unloading scenes for simplicity)
          *      > scene already loaded?
+         *        - do nothing
+         *      > differenct scene loaded?
          *        - display pop up asking for confirmation
          *        - save and load new file
          *      > no scene loaded? 
          *        - load scene
          *      
-         *  2 > dragged asset into hierarchy view? 
+         *  2 > dragged asset into hierarchy view to attach to entity in scene panel? 
          *      > scene loaded? 
          *        (this would mean they dragged into hierarchy and not into an entity)
          *        - create new empty entity
@@ -79,6 +83,7 @@ namespace other {
          *      > no scene loaded?
          *        - open corresponding asset editor??
          **/
+        OE_INFO("LOADING SCENE : {}" , path);
         GetEditor().LoadScene(path);
       }
 

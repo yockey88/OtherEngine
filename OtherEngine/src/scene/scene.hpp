@@ -5,11 +5,10 @@
 #define OTHER_ENGINE_SCENE_HPP
 
 #include <map>
-#include <filesystem>
 
 #include <entt/entt.hpp>
 
-// #include "scene/octree.hpp"
+#include "scene/octree.hpp"
 #include "core/config.hpp"
 #include "core/ref_counted.hpp"
 #include "core/uuid.hpp"

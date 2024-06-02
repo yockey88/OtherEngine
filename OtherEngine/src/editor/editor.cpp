@@ -47,6 +47,7 @@ namespace other {
     }
 
     try {
+      /// needs to be a better way to find the editor config file
       Path p = Filesystem::FindCoreFile(std::filesystem::path("editor.other"));
       IniFileParser parser(p.string());
       editor_config = parser.Parse();
@@ -60,16 +61,22 @@ namespace other {
 
     viewport = NewScope<Framebuffer>();
 
-    /// TODO move to panel manager/generalize panel creation process
+    /// TODO: 
+    ///  - move to panel manager so that we can generalize panel creation
+    ///     and allow for user created panels
+    /// important to note panels are not layers so we have to dereference to pass an Editor& and not an
+    ///   App*
     project_panel = Ref<ProjectPanel>::Create(*this);
     scene_panel = Ref<ScenePanel>::Create(*this);
     entity_properties_panel = Ref<EntityProperties>(*this);
 
     /// tbh should get rid of OnProjectChange, engine should be focused on one project at a time
     ///   and to reload we should either recompile or simply shut down and reload a new file
+    ///   (preferably reload new file so we can keep everything at runtime)
     project_panel->OnProjectChange(project);
     /// end panel manager section
      
+    /// editor should always push debug layer to allow for debug control 
     Ref<Layer> debug_layer = NewRef<DebugLayer>(this);
     PushLayer(debug_layer);
 
@@ -80,7 +87,7 @@ namespace other {
     ///   i.e. we want the app to be prepared for the mock 'runtime' but not
     ///   fully running
     app->OnLoad();
-    app->OnAttach();
+    // app->OnAttach();
 
     if (SelectionManager::HasSelection()) {
       OE_INFO("Why tf we have a selection???");

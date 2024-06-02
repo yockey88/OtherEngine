@@ -10,6 +10,7 @@
 #include <imgui/imgui.h>
 
 #include "core/defines.hpp"
+#include "core/filesystem.hpp"
 #include "project/project.hpp"
 #include "editor/editor_panel.hpp"
 
@@ -35,17 +36,21 @@ namespace other {
         std::vector<std::string> directory_names {};
       } current_asset_path;
 
-      /// null selection => root directory
       Opt<Path> selection = std::nullopt;
 
       /// Render functions
-      void RenderProjectDirectoryStructure();
-      void RenderCurrentProjectFolderContents();
-      void RenderTopBar(float height);
-      void RenderBottomBar(float height);
+      void RenderTopBar(float height) const;
+      void RenderBottomBar(float height) const;
       void RenderDirectoryTree(const Path& path);
 
-      void RenderContents(const Path& path);
+      void RenderContents(const Path& path) const;
+
+      bool IsDirSelected(const Path& p) const;
+      bool IsDescendantSelected(const Path& dir) const;
+      bool NewSelectionAllowed() const;
+      void SetSelectionContext(const Path& path);
+      void ValidateAndRenderSelectionCtx() const;
+      void EndSelectionFrame();
   };
 
 } // namespace other
