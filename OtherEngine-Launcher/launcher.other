@@ -12,7 +12,9 @@ height = 600
 
 title = "Other Engine Project Manager"
 
-clear-color = { 0.1 , 0.3 , 0.5 , 1.0 }
+clear-color = { 
+  0.1 , 0.3 , 0.5 , 1.0 
+}
 
 [window.flags]
 fullscreen = false

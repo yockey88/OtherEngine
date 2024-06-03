@@ -24,8 +24,6 @@ namespace other {
     private:
       Ref<Scene> active_scene;
 
-      void AcceptAssetPayload();
-      void RenderSceneHierarchy(const std::map<UUID , Entity*>& entities);
       void RenderEntity(const UUID& id , Entity* entity);
   };
 

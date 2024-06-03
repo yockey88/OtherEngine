@@ -6,7 +6,6 @@
 #include "core/logger.hpp"
 #include "core/time.hpp"  
 #include "core/engine.hpp"
-#include "core/filesystem.hpp"
 #include "input/io.hpp"
 #include "event/event_queue.hpp"
 #include "event/app_events.hpp"
@@ -238,22 +237,43 @@ namespace other {
     ui_windows.erase(id);
     return true;
   }
-
+  
   void App::LoadScene(const Path& path) {
-    OE_DEBUG("Loading scene : {}" , path.string());
-    scene_manager->LoadScene(path);
-    OnSceneLoad(path);
+    if (scene_manager->HasScene(path)) {
+      scene_manager->SetAsActive(path);
+    } else {
+      if (!scene_manager->LoadScene(path)) {
+        OE_ERROR("Failed to load scene : {}" , path);
+        return;
+      }
+      UnloadScene();
+      
+      scene_manager->SetAsActive(path);
+      if (scene_manager->ActiveScene() == nullptr) {
+        OE_ERROR("Failed to load scene : {}" , path);
+        return;
+      }
+
+      /// propogate scene loading through layers
+      for (size_t i = 0; i < layer_stack->Size(); ++i) {
+        (*layer_stack)[i]->LoadScene(scene_manager->ActiveScene());
+      }
+      
+      /// alert the client app new scene is loaded 
+      OnSceneLoad(scene_manager->ActiveScene());
+    }
   }
 
   Ref<Scene> App::ActiveScene() {
-    return scene_manager->ActiveScene();
+    return scene_manager->ActiveScene()->scene;
   }
 
   void App::UnloadScene() {
     if (scene_manager->ActiveScene() == nullptr) {
       return;
     }
-    OE_DEBUG("Unloading scene : {}" , scene_manager->ActiveScene()->GetPath());
+
+    OE_DEBUG("Unloading scene : {}" , scene_manager->ActiveScene()->path);
     scene_manager->UnloadActive();
   }
 

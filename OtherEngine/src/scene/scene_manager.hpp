@@ -6,6 +6,8 @@
 
 #include <map>
 
+#include "core/defines.hpp"
+#include "core/config.hpp"
 #include "core/uuid.hpp"
 #include "core/ref.hpp"
 #include "scene/scene.hpp"
@@ -13,27 +15,32 @@
 namespace other {
 
   struct SceneMetadata {
+    std::string name;
     Path path;
+    ConfigTable scene_table;
     Ref<Scene> scene;
   };
 
   class SceneManager {
     public:
-      void LoadScene(const Path& scenepath);
+      bool LoadScene(const Path& scenepath);
       void SetAsActive(const Path& name);
 
       bool HasScene(const Path& path);
 
-      Ref<Scene> ActiveScene();
+      const SceneMetadata* ActiveScene() const;
       void UnloadActive();
 
       const std::vector<std::string>& ScenePaths() const; 
+      const std::map<UUID , SceneMetadata>& GetScenes() const;
 
     private:
       SceneMetadata* active_scene = nullptr;
 
       std::vector<std::string> scene_paths;
       std::map<UUID , SceneMetadata> loaded_scenes;
+
+      Entity* BuildEntityFromConfigTable(Ref<Scene>& ctx , const std::string& name , const ConfigTable& table) const; 
   };
 
 } // namespace other

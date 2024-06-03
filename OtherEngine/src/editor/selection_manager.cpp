@@ -10,6 +10,10 @@ namespace other {
   Entity* SelectionManager::entity_selection_context = nullptr;
 
   void SelectionManager::Select(Entity* entity) {
+    if (entity == nullptr) {
+      return;
+    }
+
     entity_selection_context = entity; 
   }
 

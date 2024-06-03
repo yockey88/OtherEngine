@@ -47,10 +47,8 @@ namespace other {
 
       bool IsDirSelected(const Path& p) const;
       bool IsDescendantSelected(const Path& dir) const;
-      bool NewSelectionAllowed() const;
       void SetSelectionContext(const Path& path);
       void ValidateAndRenderSelectionCtx() const;
-      void EndSelectionFrame();
   };
 
 } // namespace other

@@ -24,8 +24,6 @@ namespace other {
       Editor(Engine* engine , Scope<App>& app);
       ~Editor() = default;
 
-      void LoadScene(const Path& path);
-
     private:
       const CmdLine& cmdline;
       const ConfigTable& engine_config;
@@ -46,17 +44,6 @@ namespace other {
 
       Scope<Framebuffer> viewport = nullptr;
 
-      uint32_t fbo = 0;
-      uint32_t rbo = 0;
-      uint32_t framebuffer = 0;
-
-      uint32_t intermediate_fbo = 0;
-      uint32_t screen_texture = 0;
-
-      uint32_t color_attachment = 0;
-
-      bool fb_complete = false;
-
       virtual void OnAttach() override;
       virtual void OnEvent(Event* event) override;
       virtual void Update(float dt) override;
@@ -64,7 +51,7 @@ namespace other {
       virtual void RenderUI() override;
       virtual void OnDetach() override;
 
-      virtual void OnSceneLoad(const Path& path) override;
+      virtual void OnSceneLoad(const SceneMetadata* path) override;
   };
 
 } // namespace other

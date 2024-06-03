@@ -29,16 +29,6 @@ namespace other {
     project = Project::Create(engine->cmd_line , engine->config);     
   } 
       
-  void Editor::LoadScene(const Path& path) {
-    UnloadScene();
-    if (scene_manager->HasScene(path)) {
-      scene_manager->SetAsActive(path);
-    } else {
-      scene_manager->LoadScene(path);
-      scene_panel->SetSceneContext(scene_manager->ActiveScene());
-    }
-  }
-
   void Editor::OnAttach() {
     if (app == nullptr) {
       OE_ERROR("Attempting to attach a null application to the editor");
@@ -101,7 +91,7 @@ namespace other {
   void Editor::Update(float dt) {
     app->Update(dt);
 
-    // entity_properties_open = SelectionManager::HasSelection();
+    entity_properties_open = SelectionManager::HasSelection();
   }
 
   void Editor::Render() {
@@ -145,7 +135,11 @@ namespace other {
 
     project_panel->OnGuiRender(project_panel_open);
     scene_panel->OnGuiRender(scene_panel_open);
+
     entity_properties_panel->OnGuiRender(entity_properties_open);
+    if (SelectionManager::HasSelection() && !entity_properties_open) {
+      SelectionManager::ClearSelection();
+    }
 
     if (ImGui::Begin("Inspector")) {
 
@@ -158,10 +152,11 @@ namespace other {
     app->OnUnload();
   }
 
-  void Editor::OnSceneLoad(const Path& path) {
-    OE_DEBUG("Editor::OnSceneLoad({})" , path);
-    project_panel->SetSceneContext(scene_manager->ActiveScene());
-    scene_panel->SetSceneContext(scene_manager->ActiveScene());  
+  void Editor::OnSceneLoad(const SceneMetadata* metadata) {
+    OE_DEBUG("Editor::OnSceneLoad({})" , metadata->path);
+    project_panel->SetSceneContext(metadata->scene);
+    scene_panel->SetSceneContext(metadata->scene);  
+    entity_properties_panel->SetSceneContext(metadata->scene);
   }
 
 } // namespace other

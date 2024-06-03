@@ -5,6 +5,7 @@
 
 #include "core/logger.hpp"
 #include "core/errors.hpp"
+#include "core/uuid.hpp"
 
 namespace other {
 
@@ -212,6 +213,10 @@ namespace other {
       OE_ERROR("Invalid value for key : {}" , key);
       return std::nullopt;
     }
+  }
+
+  template <> const Opt<UUID> ConfigTable::GetVal(const std::string& section , const std::string& key) const {
+    return Opt<UUID>(GetVal<uint64_t>(section , key));
   }
 
   template <> const Opt<int8_t> ConfigTable::GetVal(const std::string& section, const std::string& key) const {

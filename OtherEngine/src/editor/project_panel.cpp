@@ -91,11 +91,6 @@ namespace other {
     }
 
     ImGui::End();
-
-    // we clear the selection here because things get weird if selection persists between frames
-    //   since render directory folders recursively
-
-    EndSelectionFrame();
   }
 
   void ProjectPanel::OnEvent(Event* e) {
@@ -153,7 +148,8 @@ namespace other {
       window->WorkRect.Min.x , 
       window->DC.CursorPos.y , 
       window->WorkRect.Min.y , 
-      window->DC.CursorPos.y + window->DC.CurrLineSize.y
+      window->DC.CursorPos.y + 
+        window->DC.CurrLineSize.y
     };
 
     const bool item_clicked = [&item_rect , &node_id]() -> bool {
@@ -197,7 +193,6 @@ namespace other {
 
     const bool any_descendant_selected = check_if_descendant_selected(path , check_if_descendant_selected);
     const bool is_active_directory = IsDirSelected(path);
-    //(selection.has_value() && path == selection.value());
 
     ImGuiTreeNodeFlags flags = (is_active_directory ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_SpanFullWidth;
     
@@ -230,7 +225,7 @@ namespace other {
 
     // directory items 
 
-    if (open && NewSelectionAllowed()) {
+    if (open) {
       for (auto& e : Filesystem::GetSubPaths(path)) {
         if (!Filesystem::IsDirectory(e)) {
           continue;
@@ -301,10 +296,6 @@ namespace other {
     return false;
   }
 
-  bool ProjectPanel::NewSelectionAllowed() const {
-    return true;
-  }
-
   void ProjectPanel::SetSelectionContext(const Path& path) {
     selection = path;
   }
@@ -315,9 +306,6 @@ namespace other {
     } else {
       // render root 
     }
-  }
-
-  void ProjectPanel::EndSelectionFrame() {
   }
 
 } // namespace other 

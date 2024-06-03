@@ -9,6 +9,7 @@
 #include "core/ref_counted.hpp"
 #include "core/uuid.hpp"
 #include "event/event.hpp"
+#include "scene/scene_manager.hpp"
 
 namespace other {
 
@@ -30,6 +31,8 @@ namespace other {
       void ProcessEvent(Event* event);
       void Detach();
 
+      void LoadScene(const SceneMetadata* metadata);
+
     protected:
       const std::string debug_name;
       const UUID uuid;
@@ -45,6 +48,8 @@ namespace other {
       virtual void OnRender() {}
       virtual void OnUIRender() {}
       virtual void OnEvent(Event* event) {}
+
+      virtual void OnSceneLoad(const SceneMetadata* metadata) {}
   };
 
 } // namespace other

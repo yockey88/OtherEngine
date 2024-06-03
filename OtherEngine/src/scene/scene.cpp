@@ -1,24 +1,23 @@
-/**
+/**scene.c
  * \file scene/scene.cpp
  **/
 #include "scene/scene.hpp"
 
-#include <algorithm>
-
-#include "core/rand.hpp"
-#include "core/errors.hpp"
-#include "core/logger.hpp"
-#include "parsing/ini_parser.hpp"
 #include "ecs/entity.hpp"
+#include "ecs/components/tag.hpp"
+#include "ecs/systems/core_systems.hpp"
 
 namespace other {
 
-  Scene::Scene(const Path& path) 
-      : scene_path(path) {
-    LoadScene(); 
+  Scene::Scene() {
+    registry.on_construct<entt::entity>().connect<&OnConstructEntity>();
+    registry.on_destroy<entt::entity>().connect<&OnDestroyEntity>();
   }
-      
+
   Scene::~Scene() {
+    registry.on_destroy<entt::entity>().disconnect<&OnDestroyEntity>();
+    registry.on_construct<entt::entity>().disconnect<&OnConstructEntity>();
+
     for (auto& [id , entity] : entities) {
       delete entity;
     }
@@ -35,35 +34,37 @@ namespace other {
   const std::map<UUID , Entity*>& Scene::SceneEntities() const {
     return entities;
   }
-
-
-  void Scene::LoadScene() {
-    try {
-      IniFileParser parser{ scene_path.string() };
-      scene_table = parser.Parse();
-
-      auto entities = scene_table.Get("METADATA" , "ENTITIES");
-      OE_DEBUG("Scene {} has {} entities" , scene_path , entities.size());
-      for (auto& e : entities) {
-        OE_DEBUG("Loading Entity : {}" , e);
-        AddEntity(e);
-      }
-
-      corrupt = false;
-
-      OE_INFO("Scene loaded : {} (Entites : {})" , scene_path , entities.size());
-    } catch (IniException& err) {
-      OE_WARN("Failed to parse scene file - {} : {}" , scene_path , err.what()); 
-    }  
-  }
   
-  void Scene::AddEntity(const std::string& name) {
-    auto n = name;
-    std::transform(n.begin() , n.end() , n.begin() , ::toupper);
-    auto uuid_opt = scene_table.GetVal<uint64_t>(n , "UUID");
-    UUID id = UUID(uuid_opt.value_or(Random::Generate()));
+  const Entity* Scene::GetEntity(UUID id) const {
+    auto ent = entities.find(id);
+    if (ent == entities.end()) {
+      return nullptr;
+    }
 
-    entities[id] = new Entity(this , registry.create() , id , name);
+    return ent->second;
+  }
+
+  void Scene::AddEntity(const std::string& name) {
+    UUID id = FNV(name);
+    Entity* ent = new Entity(this , id , name);
+    AddEntity(ent);
+  }
+      
+  void Scene::AddEntity(Entity* entity) {
+    if (entity == nullptr) {
+      OE_ERROR("Attempting to add null entity to scene");
+      return;
+    }
+
+    auto& tag = entity->GetComponent<Tag>();
+    for (const auto& [id , ent] : entities) {
+      if (tag.id == id && tag.name == ent->Name()) {
+        OE_WARN("Entity {} [{}] already exists in scene" , tag.name , id);
+        return;
+      }
+    }
+
+    entities[tag.id] = entity;
   }
 
 } // namespace other

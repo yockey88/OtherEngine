@@ -11,42 +11,92 @@
 namespace other {
 
   ConfigTable IniFileParser::Parse() {
-    std::ifstream file(file_path);
-    if (!file.is_open()) {
-      throw IniException("File not found");
-    }
 
+    std::string contents;
     {
+      std::ifstream file(file_path);
+      if (!file.is_open()) {
+        throw IniException("File not found");
+      }
+
       std::stringstream ss;
       ss << file.rdbuf();
       if (ss.str().empty()) {
         return ConfigTable();
       }
-
-      file.seekg(0);
+      contents = ss.str();
     }
 
     std::string line;
-    std::string section;
-    while (std::getline(file, line)) {
-      if (line.empty()) {
-        continue;
-      }
-
-      Trim(line);
-      switch (line[0]) {
+    
+    do {
+      switch (contents[index]) {
         case '[':
+          while (index < contents.length() && contents[index] != '\n') {
+            line += contents[index];
+            ++index;
+          }
           ParseSection(line);
           break;
 
         case '#':
-          continue;
+          while (index < contents.length() && contents[index] != '\n') {
+            ++index;
+          }
+          break;
 
+        case '\n':
+          break;
+        
         default:
+          while (index < contents.length() && contents[index] != '=') {
+            line += contents[index];
+            ++index;
+          }
+          
+          /// save equals
+          if (index >= contents.length()) {
+            throw IniException("key value par without value" , IniError::FILE_PARSE_ERROR);
+          }
+
+          line += contents[index];
+          ++index;
+
+          /// save whitespace
+          if (index >= contents.length()) {
+            throw IniException("key value pair without value" , IniError::FILE_PARSE_ERROR);
+          }
+
+          line += contents[index];
+          ++index;
+
+          if (contents[index] == '{') {
+            while (index < contents.length() && contents[index] != '}') {
+              line += contents[index];
+              ++index;
+            }
+
+            /// save '}'
+            if (index >= contents.length()) {
+              throw IniException("key value pair without value" , IniError::FILE_PARSE_ERROR);
+            }
+
+            line += contents[index];
+            ++index;
+          } else {
+            while (index < contents.length() && contents[index] != '\n') {
+              line += contents[index];
+              ++index;
+            }
+          }
+
           ParseKeyValue(line);
           break;
       }
-    }
+
+      ++index;
+      line.clear();
+    } while(index < contents.size());
 
     return table;
   }

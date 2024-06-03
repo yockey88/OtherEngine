@@ -64,7 +64,7 @@ namespace other {
       virtual void RenderUI() = 0;
       virtual void OnDetach() = 0;
 
-      virtual void OnSceneLoad(const Path& path) {}
+      virtual void OnSceneLoad(const SceneMetadata* path) {}
 
       Engine* GetEngine() { return engine_handle; }
 

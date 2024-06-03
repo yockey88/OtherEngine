@@ -3,9 +3,6 @@
  **/
 #include "editor/entity_properties.hpp"
 
-#include <stdexcept>
-#include <string_view>
-
 #include <imgui/imgui.h>
 
 #include "ecs/entity.hpp"
@@ -14,6 +11,7 @@
 namespace other {
 
   void EntityProperties::OnGuiRender(bool& is_open) {
+    is_open = SelectionManager::HasSelection();
     if (!is_open) {
       return;
     }
@@ -25,8 +23,9 @@ namespace other {
 
     Entity* selection = SelectionManager::ActiveSelection();
     if (selection == nullptr) {
-      ///> If ActiveSelection is ever null then we are in major trouble, we deserve to crash
-      throw std::runtime_error("ay yo wtf happened");
+      SelectionManager::ClearSelection();
+      ImGui::End();
+      return;
     }
 
     ImGui::Text("%s" , selection->Name().c_str());

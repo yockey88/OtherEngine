@@ -4,6 +4,7 @@
 #ifndef OTHER_ENGINE_DEFINES_HPP
 #define OTHER_ENGINE_DEFINES_HPP
 
+#include <concepts>
 #include <string_view>
 #include <cstdint>
 #include <memory>
