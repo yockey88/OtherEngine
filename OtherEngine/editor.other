@@ -10,16 +10,14 @@ path = "logs/other-launcher.log"
 [window]
 width = 1020
 height = 600
-
 title = "Other Engine Project Manager"
-
 clear-color = { 0.1 , 0.1 , 0.1 , 1.0 }
 
 [window.flags]
 fullscreen = false
 resizable = true
 
-[renderer.opengl]
+[renderer]
 major-version = 4
 minor-version = 6
 double-buffer = true

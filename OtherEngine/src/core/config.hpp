@@ -17,14 +17,14 @@ namespace other {
       ConfigTable() = default;
       ~ConfigTable() = default;
 
-      void Add(const std::string& section, const std::string& key = "", const std::string& value = "" , bool is_string = false);
+      void Add(const std::string_view section, const std::string_view key = "", const std::string_view value = "" , bool is_string = false);
 
-      const std::map<uint64_t , std::vector<std::string>> Get(const std::string& section) const;
-      const std::vector<std::string> Get(const std::string& section, const std::string& key) const;
-      const std::vector<std::string> GetKeys(const std::string& section) const;
+      const std::map<uint64_t , std::vector<std::string>> Get(const std::string_view section) const;
+      const std::vector<std::string> Get(const std::string_view section, const std::string_view key) const;
+      const std::vector<std::string> GetKeys(const std::string_view section) const;
       
       template <typename T>
-      const Opt<T> GetVal(const std::string& section, const std::string& key) const;
+      const Opt<T> GetVal(const std::string_view section, const std::string_view key) const;
 
       std::string TableString();
 

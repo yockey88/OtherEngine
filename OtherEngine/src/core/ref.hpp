@@ -62,13 +62,13 @@ namespace detail {
       }
       
       template<typename T2>
-      Ref(Ref<T2>&& other) {
+      Ref(Ref<T2>&& other) noexcept {
       	object = (T*)other.object;
       	other.object = nullptr;
       }
 
       template <typename... Args>
-      Ref(Args&&... args) {
+      Ref(Args&&... args) noexcept {
         static_assert(std::is_constructible_v<T , Args...> , "Cannot construct a reference from given arguments");
         static_assert(std::is_base_of_v<RefCounted , T> , "Cannot construct a reference from a non-RefCounted type");
         object = new T(std::forward<Args>(args)...);
@@ -81,6 +81,7 @@ namespace detail {
 
       template<typename T2>
       Ref& operator=(const Ref<T2>& other) {
+        static_assert(std::is_base_of_v<T , T2> , "No viable conversion to construct ref with");
       	other.IncRef();
       	DecRef();
       
@@ -89,7 +90,8 @@ namespace detail {
       }
       
       template<typename T2>
-      Ref& operator=(Ref<T2>&& other) {
+      Ref& operator=(Ref<T2>&& other) noexcept {
+        static_assert(std::is_base_of_v<T , T2> , "No viable conversion to construct ref with");
       	DecRef();
       
       	object = other.object;
@@ -171,7 +173,7 @@ namespace detail {
   Ref<T> NewRef(Args&&... args) {
     static_assert(std::is_constructible_v<T , Args...> , "Cannot construct a reference from given arguments");
     static_assert(std::is_base_of_v<RefCounted , T> , "Cannot create a reference to a non-refcounted object");
-    return Ref<T>(std::forward<Args>(args)...);
+    return Ref<T>::Create(std::forward<Args>(args)...);
   }
 
 } // namespace other

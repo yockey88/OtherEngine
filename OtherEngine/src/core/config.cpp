@@ -9,15 +9,15 @@
 
 namespace other {
 
-  void ConfigTable::Add(const std::string& section, const std::string& key, const std::string& value , bool is_string) {
+  void ConfigTable::Add(const std::string_view section, const std::string_view key, const std::string_view value , bool is_string) {
     if (section.empty()) {
       return;
     }
 
-    auto sec = section;
+    std::string sec = section.data();
     std::transform(sec.begin() , sec.end() , sec.begin() , ::toupper);
 
-    auto k = key;
+    std::string k = key.data();
     std::transform(k.begin() , k.end() , k.begin() , ::toupper);
 
     auto sec_hash = FNV(sec);
@@ -34,10 +34,10 @@ namespace other {
 
       if (table[sec_hash].find(key_hash) == table[sec_hash].end()) {
         key_map[key_hash] = k;
-        key_names[sec_hash].push_back(key);
+        key_names[sec_hash].push_back(k);
       }
 
-      auto val = value;
+      std::string val = value.data();
       if (!is_string) {
         std::transform(val.begin() , val.end() , val.begin() , ::toupper);
       }
@@ -59,10 +59,10 @@ namespace other {
 
     if (table[sec_hash].find(key_hash) == table[sec_hash].end()) {
       key_map[key_hash] = k;
-      key_names[sec_hash].push_back(key);
+      key_names[sec_hash].push_back(k);
     }
 
-    auto val = value;
+    std::string val = value.data();
     if (!is_string) {
       std::transform(val.begin() , val.end() , val.begin() , ::toupper);
     }
@@ -70,8 +70,8 @@ namespace other {
     table[sec_hash][key_hash].push_back(val);
   }
 
-  const std::map<uint64_t , std::vector<std::string>> ConfigTable::Get(const std::string& section) const {
-    auto sec = section;
+  const std::map<uint64_t , std::vector<std::string>> ConfigTable::Get(const std::string_view section) const {
+    std::string sec = section.data();
     std::transform(sec.begin() , sec.end() , sec.begin() , ::toupper);
 
     auto sec_hash = FNV(sec);
@@ -83,11 +83,11 @@ namespace other {
     return {};
   }
 
-  const std::vector<std::string> ConfigTable::GetKeys(const std::string& section) const {
-    auto sec = section;
+  const std::vector<std::string> ConfigTable::GetKeys(const std::string_view section) const {
+    std::string sec = section.data();
     std::transform(sec.begin() , sec.end() , sec.begin() , ::toupper);
 
-    auto sec_hash = FNV(sec);
+    uint64_t sec_hash = FNV(sec);
 
     if (table.find(sec_hash) != table.end()) {
       return key_names.at(sec_hash);
@@ -96,11 +96,11 @@ namespace other {
     return {};
   }
 
-  const std::vector<std::string> ConfigTable::Get(const std::string& section, const std::string& key) const {
-    auto sec = section;
+  const std::vector<std::string> ConfigTable::Get(const std::string_view section, const std::string_view key) const {
+    std::string sec = section.data();
     std::transform(sec.begin() , sec.end() , sec.begin() , toupper);
 
-    auto k = key;
+    std::string k = key.data();
     std::transform(k.begin() , k.end() , k.begin() , toupper);
 
     auto sec_hash = FNV(sec);
@@ -118,7 +118,7 @@ namespace other {
     return {};
   }
 
-  template <> const Opt<bool> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
+  template <> const Opt<bool> ConfigTable::GetVal(const std::string_view section, const std::string_view key) const {
     auto ret_str = Get(section , key);
     if (ret_str.empty()) {
       return std::nullopt;
@@ -139,7 +139,7 @@ namespace other {
     return std::nullopt;
   }
 
-  template <> const Opt<uint8_t> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
+  template <> const Opt<uint8_t> ConfigTable::GetVal(const std::string_view section, const std::string_view key) const {
     auto ret_str = Get(section , key);
     if (ret_str.empty()) {
       return std::nullopt;
@@ -158,7 +158,7 @@ namespace other {
     }
   }
 
-  template <> const Opt<uint16_t> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
+  template <> const Opt<uint16_t> ConfigTable::GetVal(const std::string_view section, const std::string_view key) const {
     auto ret_str = Get(section , key);
     if (ret_str.empty()) {
       return std::nullopt;
@@ -177,7 +177,7 @@ namespace other {
     }
   }
 
-  template <> const Opt<uint32_t> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
+  template <> const Opt<uint32_t> ConfigTable::GetVal(const std::string_view section, const std::string_view key) const {
     auto ret_str = Get(section , key);
     if (ret_str.empty()) {
       return std::nullopt;
@@ -196,7 +196,7 @@ namespace other {
     }
   }
 
-  template <> const Opt<uint64_t> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
+  template <> const Opt<uint64_t> ConfigTable::GetVal(const std::string_view section, const std::string_view key) const {
     auto ret_str = Get(section , key);
     if (ret_str.empty()) {
       return std::nullopt;
@@ -215,11 +215,11 @@ namespace other {
     }
   }
 
-  template <> const Opt<UUID> ConfigTable::GetVal(const std::string& section , const std::string& key) const {
+  template <> const Opt<UUID> ConfigTable::GetVal(const std::string_view section , const std::string_view key) const {
     return Opt<UUID>(GetVal<uint64_t>(section , key));
   }
 
-  template <> const Opt<int8_t> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
+  template <> const Opt<int8_t> ConfigTable::GetVal(const std::string_view section, const std::string_view key) const {
     auto ret_str = Get(section , key);
     if (ret_str.empty()) {
       return std::nullopt;
@@ -238,7 +238,7 @@ namespace other {
     }
   }
 
-  template <> const Opt<int16_t> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
+  template <> const Opt<int16_t> ConfigTable::GetVal(const std::string_view section, const std::string_view key) const {
     auto ret_str = Get(section , key);
     if (ret_str.empty()) {
       return std::nullopt;
@@ -257,7 +257,7 @@ namespace other {
     }
   }
 
-  template <> const Opt<int32_t> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
+  template <> const Opt<int32_t> ConfigTable::GetVal(const std::string_view section, const std::string_view key) const {
     auto ret_str = Get(section , key);
     if (ret_str.empty()) {
       return std::nullopt;
@@ -276,7 +276,7 @@ namespace other {
     }
   }
 
-  template <> const Opt<int64_t> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
+  template <> const Opt<int64_t> ConfigTable::GetVal(const std::string_view section, const std::string_view key) const {
     auto ret_str = Get(section , key);
     if (ret_str.empty()) {
       return std::nullopt;
@@ -301,7 +301,7 @@ namespace other {
     return ret;
   }
 
-  template <> const Opt<float> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
+  template <> const Opt<float> ConfigTable::GetVal(const std::string_view section, const std::string_view key) const {
     auto ret_str = Get(section , key);
     if (ret_str.empty()) {
       return std::nullopt;
@@ -326,7 +326,7 @@ namespace other {
     return ret;
   }
   
-  template <> const Opt<double> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
+  template <> const Opt<double> ConfigTable::GetVal(const std::string_view section, const std::string_view key) const {
     auto ret_str = Get(section , key);
     if (ret_str.empty()) {
       return std::nullopt;
@@ -351,7 +351,7 @@ namespace other {
     return ret;
   }
 
-  template <> const Opt<std::string> ConfigTable::GetVal(const std::string& section, const std::string& key) const {
+  template <> const Opt<std::string> ConfigTable::GetVal(const std::string_view section, const std::string_view key) const {
     auto ret_str = Get(section , key);
     if (ret_str.empty()) {
       return std::nullopt;

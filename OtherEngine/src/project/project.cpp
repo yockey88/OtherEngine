@@ -3,10 +3,9 @@
  **/
 #include "project/project.hpp"
 
-#include <filesystem>
-
 #include "core/logger.hpp"
 #include "core/filesystem.hpp"
+#include "core/config_keys.hpp"
 
 namespace other {
 
@@ -14,7 +13,7 @@ namespace other {
    
   Project::Project(const CmdLine& cmdline , const ConfigTable& config)
       : cmdline(cmdline) , config(config) {
-    metadata.name = config.GetVal<std::string>("PROJECT" , "NAME").value_or("Unnamed Project");
+    metadata.name = config.GetVal<std::string>(kProjectSection , kNameValue).value_or("Unnamed Project");
     auto proj_path = cmdline.GetArg("--project").value_or(Arg{});
     if (proj_path.hash != 0) {
       metadata.file_path = Path(proj_path.args[0]);

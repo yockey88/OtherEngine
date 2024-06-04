@@ -3,6 +3,7 @@
 */
 #include "scripting/script_engine.hpp"
 
+#include "core/config_keys.hpp"
 #include "core/logger.hpp"
 #include "core/engine.hpp"
 #include "core/filesystem.hpp"
@@ -35,7 +36,8 @@ namespace {
   };
 
   /// these paths should always work because they are relative to the engine core directory and 
-  /// should not be accessed outside of Filesystem::GetEngineCoreDir(...) calls
+  /// should not be accessed outside of Filesystem::GetEngineCoreDir(...) calls and preferably should move to 
+  /// somewhere that will work everywhere 
   constexpr static std::array<ModuleInfo , kNumDefaultModules> kDefaultModules = {
     ModuleInfo(CS_MODULE , kDefaultModuleNames[CS_MODULE] , "bin/Debug/CsModule/CsModule.dll" , "bin/Release/CsModule/CsModule.dll") ,
     ModuleInfo(LUA_MODULE , kDefaultModuleNames[LUA_MODULE] , "bin/Debug/LuaModule/LuaModule.dll" , "bin/Release/LuaModule/LuaModule.dll") ,
@@ -62,8 +64,8 @@ namespace {
     
     LoadDefaultModules();
 
-    std::string script_engine_str = "SCRIPT-ENGINE";
-    auto modules = config.Get(script_engine_str , "MODULES");
+    std::string script_engine_str = kScriptingSection.data();
+    auto modules = config.Get(script_engine_str , kModulesValue);
 
     /// this loop is loading client loaded language modules so we skip any defaults that are already loaded
     ///  if this is a core module and its not loaded then we load it
@@ -153,7 +155,7 @@ namespace {
   void ScriptEngine::LoadDefaultModules() {
     OE_DEBUG("ScriptEngine::LoadDefaultModules: Loading default modules");
 
-    if (auto val = config.GetVal<bool>("SCRIPT-ENGINE" , "LOAD-CORE-MODULES"); val.has_value() && val.value()) {
+    if (auto val = config.GetVal<bool>(kScriptingSection , kLoadCoreModulesValue); val.has_value() && val.value()) {
       OE_DEBUG("ScriptEngine::LoadDefaultModules: Loading all core modules");
       for (size_t i = 0; i < kNumDefaultModules; ++i) {
         auto& info = kDefaultModules[i];
@@ -173,7 +175,7 @@ namespace {
     }
 
     OE_DEBUG("ScriptEngine::LoadDefaultModules: Loading core modules from config");
-    auto modules = config.Get("SCRIPT-ENGINE" , "MODULES");
+    auto modules = config.Get(kScriptingSection , kLoadCoreModulesValue);
 
     /// here we load core modules, so if its a client module we skip it
     for (auto& module : modules) {

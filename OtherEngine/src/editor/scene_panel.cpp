@@ -56,17 +56,27 @@ namespace other {
         ImGui::EndDragDropTarget();
       }
     } else {
-      ImGui::BeginChild("##scene_hierarchy");
-      {
-        ScopedStyle spacing(ImGuiStyleVar_ItemSpacing , ImVec2(0.f , 0.f));
-        ScopedColorStack item_bg(ImGuiCol_Header , IM_COL32_DISABLE ,
-                                 ImGuiCol_HeaderActive , IM_COL32_DISABLE);
+      ImGuiTableFlags table_flags = ImGuiTableFlags_Resizable 
+        | ImGuiTableFlags_SizingFixedFit
+        | ImGuiTableFlags_BordersInnerV;
+      if (ImGui::BeginTable("##scene_hierarchy" , 2 , table_flags , ImVec2(0.f , 0.f))) {
+        ImGui::TableSetupColumn("Entity Outliner");
+        ImGui::TableSetupColumn("Entities");
+        ImGui::TableNextRow();
 
-        for (auto& [id , entity] : active_scene->SceneEntities()) {
-          RenderEntity(id , entity);
+        ImGui::TableSetColumnIndex(0);
+
+        {
+          ScopedStyle spacing(ImGuiStyleVar_ItemSpacing , ImVec2(0.f , 0.f));
+          ScopedColorStack item_bg(ImGuiCol_Header , IM_COL32_DISABLE ,
+                                   ImGuiCol_HeaderActive , IM_COL32_DISABLE);
+
+          for (auto& [id , entity] : active_scene->SceneEntities()) {
+            RenderEntity(id , entity);
+          }
         }
       }
-      ImGui::EndChild();
+      ImGui::EndTable();
     }
 
     ImGui::End();
@@ -84,14 +94,40 @@ namespace other {
   }
       
   void ScenePanel::RenderEntity(const UUID& id , Entity* entity) {
+    std::string id_str = std::to_string(id.Get());
+    ImGui::PushID(id_str.c_str());
+
     ImGuiID ent_id = ImGui::GetID(entity->Name().c_str());
+    bool prev_state = ImGui::TreeNodeBehaviorIsOpen(ent_id);
 
     const float edge_offset = 4.f;
     const float row_height = 21.f;
 
     auto* window = ImGui::GetCurrentWindow();
-    window->DC.CurrLineSize.y = row_height;
+    window->DC.CurrLineSize.y = 20.f;
     window->DC.CurrLineTextBaseOffset = 3.f;
+    
+
+    const ImVec2 row_area_min = ImGui::TableGetCellBgRect(ImGui::GetCurrentTable(), 0).Min;
+    const ImVec2 row_area_max = { 
+      ImGui::TableGetCellBgRect(ImGui::GetCurrentTable(), ImGui::TableGetColumnCount() - 1).Max.x - 40,
+      row_area_min.y + row_height 
+    };
+    
+    const ImRect item_rect(row_area_min , row_area_max);
+
+    bool is_row_hovered , held;
+    bool is_row_clicked = ImGui::ButtonBehavior(item_rect , ent_id , &is_row_hovered , &held,  
+                                                ImGuiButtonFlags_MouseButtonLeft | 
+                                                ImGuiButtonFlags_MouseButtonRight);
+    const bool item_clicked = is_row_clicked;
+
+    // [&window , &ent_id]() -> bool {
+    //   if (ImGui::ItemHoverable(window->WorkRect , ent_id , 0)) {
+    //     return ImGui::IsMouseDown(ImGuiMouseButton_Left) || ImGui::IsMouseReleased(ImGuiMouseButton_Left);
+    //   }
+    //   return false;
+    // } ();
 
     const bool selected = SelectionManager::ActiveSelection() == entity;
 
@@ -101,11 +137,16 @@ namespace other {
     if (!entity->HasComponent<Relationship>()) {
       flags |= ImGuiTreeNodeFlags_Leaf;
     } else if (entity->ReadComponent<Relationship>().children.empty()) {
-      flags |= ImGuiTreeNodeFlags_Leaf;    
+      flags |= ImGuiTreeNodeFlags_Leaf;
     }
 
     const bool window_focused = ImGui::IsWindowFocused();
     /// const auto& editor_settings = GetEditor().GetSettings();
+
+    auto fill_w_color = [&](const ImColor& color) {
+      const ImU32 bg_color = ImGui::ColorConvertFloat4ToU32(color);
+      ImGui::GetWindowDrawList()->AddRectFilled(item_rect.Min , item_rect.Max , bg_color);
+    };
 
     auto check_if_child_selected = [&](const Entity* ent , auto any_child_selected) -> bool {
       if (!SelectionManager::HasSelection()) {
@@ -138,46 +179,33 @@ namespace other {
       return false;
     };
 
-    auto fill_w_color = [](const ImColor& color) {
-    };
-
-    if (selected) {
-      ImGui::PushStyleColor(ImGuiCol_Text , ui::theme::background_dark);
-    } 
-    
-    bool prev_state = ImGui::TreeNodeBehaviorIsOpen(ent_id);
-
     const bool child_selected = check_if_child_selected(entity , check_if_child_selected);
+
+    if (item_clicked && !child_selected) {
+      /// select entity for properties panel
+      SelectionManager::Select(entity);
+    }
+
     const bool active_selection = entity == SelectionManager::ActiveSelection();
     
-    
-    // if (item_clicked && !child_selected) {
-    //   /// select entity for properties panel
-    //   if (SelectionManager::ActiveSelection() == entity) {
-    //     SelectionManager::ClearSelection();
-    //   } else {
-    //     SelectionManager::Select(entity);
-    //   }
-    // }
-    // 
-    // if (active_selection || item_clicked) {
-    //   if (window_focused) {
-    //     fill_w_color(ui::theme::selection);
-    //   } else {
-    //     const ImColor col = ui::theme::ColorWithMultiplier(ui::theme::selection , 0.8f);
-    //     fill_w_color(ui::theme::ColorWithMultipliedSaturation(col , 0.7f));
-    //   }
+    if (active_selection || item_clicked) {
+      if (window_focused) {
+        fill_w_color(ui::theme::selection);
+      } else {
+        const ImColor col = ui::theme::ColorWithMultiplier(ui::theme::selection , 0.8f);
+        fill_w_color(ui::theme::ColorWithMultipliedSaturation(col , 0.7f));
+      }
 
-    //   // ImGui::PushStyleColor(ImGuiCol_Text , ui::theme::background_dark);
-    // } else if (child_selected) {
-    //   fill_w_color(ui::theme::selection_muted);
-    // }
+      ImGui::PushStyleColor(ImGuiCol_Text , ui::theme::background_dark);
+    } else if (child_selected) {
+      fill_w_color(ui::theme::selection_muted);
+    }
 
     bool open = ImGui::TreeNodeEx(entity->Name().c_str() , flags);
     
-    // if (active_selection || item_clicked) {
-    //   // ImGui::PopStyleColor();
-    // }
+    if (active_selection || item_clicked) {
+      ImGui::PopStyleColor();
+    }
 
     ui::ShiftCursorY(3.0f);
 
@@ -190,6 +218,8 @@ namespace other {
     } else if (prev_state) {
       /// entity selected last frame
     }
+
+    ImGui::PopID();
   }
 
 } // namespace other 

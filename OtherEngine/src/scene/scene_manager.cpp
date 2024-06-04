@@ -7,9 +7,8 @@
 
 #include "core/defines.hpp"
 #include "core/logger.hpp"
-#include "core/errors.hpp"
-#include "parsing/ini_parser.hpp"
 #include "ecs/entity.hpp"
+#include "scene/scene_serializer.hpp"
 
 namespace other {
 
@@ -19,30 +18,22 @@ namespace other {
       active_scene = &scn->second;
       return true;
     }
-    
-    auto& scene_md = loaded_scenes[id] = {
-      .path = scenepath ,
-      .scene = Ref<Scene>::Create() ,
-    };
 
-    try {
-      IniFileParser parser{ scenepath.string() };
-      scene_md.scene_table = parser.Parse();
+    SceneSerializer serializer;
+    {
+      auto loaded_scene = serializer.Deserialize(scenepath.string());
+      if (loaded_scene.scene == nullptr) {
+        OE_ERROR("Failed to deserialize scene : {}" , scenepath.string());
+        return false;
+      }
 
-    } catch (IniException& err) {
-      OE_WARN("Failed to parse scene file - {} : {}" , scenepath , err.what()); 
-      return true;
-    }  
-
-    scene_md.name = scene_md.scene_table.GetVal<std::string>("METADATA" , "NAME").value_or(scenepath.string());
-
-    auto entities = scene_md.scene_table.Get("METADATA" , "ENTITIES");
-    for (auto& e : entities) {
-      Entity* entity = BuildEntityFromConfigTable(scene_md.scene , e , scene_md.scene_table);
-      scene_md.scene->AddEntity(entity);
+      loaded_scenes[id] = SceneMetadata{
+        .name = loaded_scene.name ,
+        .path = scenepath,
+        .scene_table = loaded_scene.scene_table,
+        .scene = Ref<Scene>::Clone(loaded_scene.scene) ,
+      };
     }
-
-    OE_INFO("Scene loaded : {} (Entites : {})" , scenepath , entities.size());
 
     scene_paths.push_back(scenepath.string());
 
@@ -94,7 +85,8 @@ namespace other {
       std::string real_key = name + "." + comp_key;
       std::ranges::transform(real_key.begin() , real_key.end() , real_key.begin() , ::toupper);
 
-      auto comp = table.Get(real_key);
+      // auto derializer = GetComponentSerializer(real_key);
+      // deserializer->Deserialize(entity , table);
 
       OE_DEBUG("{} has component : {}" , name , real_key);
     }

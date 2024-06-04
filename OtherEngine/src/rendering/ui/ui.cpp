@@ -11,6 +11,7 @@
 
 #include "core/defines.hpp"
 #include "core/logger.hpp"
+#include "core/config_keys.hpp"
 
 namespace other {
 
@@ -115,17 +116,17 @@ namespace other {
 
     ui_context = ImGui::GetCurrentContext();
 
-    auto disabled = config.GetVal<bool>("UI" , "DISABLED");
+    auto disabled = config.GetVal<bool>(kUiSection , kDisabledValue);
     if (!disabled.has_value() || !disabled.value()) {
       enabled = true;
     }
 
-    auto theme = config.GetVal<std::string>("UI" , "THEME");
+    auto theme = config.GetVal<std::string>(kUiSection , kThemeValue);
     if (theme.has_value()) {
       // SetTheme(theme.value());
     }
 
-    auto ipath = config.GetVal<std::string>("UI" , "INI-PATH");
+    auto ipath = config.GetVal<std::string>(kUiSection , kIniPathValue);
     if (ipath.has_value()) {
       ini_path = ipath.value();
       std::transform(ini_path.begin() , ini_path.end() , ini_path.begin() , ::tolower);

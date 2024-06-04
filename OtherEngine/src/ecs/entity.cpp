@@ -22,7 +22,7 @@ namespace other {
   Entity::Entity(Scene* ctx , UUID uuid , const std::string& name) 
       : registry(ctx->registry) , uuid(uuid) , name(name) {
     context = Ref<Scene>(ctx);
-    handle = context->registry.create();
+    handle = registry.create();
 
     auto& tag = GetComponent<Tag>();
     tag.id = uuid;

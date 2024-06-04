@@ -27,9 +27,9 @@ namespace other {
       const std::map<UUID , Entity*>& SceneEntities() const;
 
       const Entity* GetEntity(UUID id) const;
-      
-      void AddEntity(const std::string& name); 
-      void AddEntity(Entity* entity);
+
+      Entity* CreateEntity(const std::string& name);
+      Entity* CreateEntity(const std::string& name , UUID id);
 
     protected:
       virtual void OnStart() {}

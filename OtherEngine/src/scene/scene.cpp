@@ -44,27 +44,27 @@ namespace other {
     return ent->second;
   }
 
-  void Scene::AddEntity(const std::string& name) {
+  Entity* Scene::CreateEntity(const std::string& name) {
     UUID id = FNV(name);
-    Entity* ent = new Entity(this , id , name);
-    AddEntity(ent);
+    return CreateEntity(name , id);
   }
-      
-  void Scene::AddEntity(Entity* entity) {
-    if (entity == nullptr) {
-      OE_ERROR("Attempting to add null entity to scene");
-      return;
-    }
 
-    auto& tag = entity->GetComponent<Tag>();
-    for (const auto& [id , ent] : entities) {
-      if (tag.id == id && tag.name == ent->Name()) {
-        OE_WARN("Entity {} [{}] already exists in scene" , tag.name , id);
-        return;
+  Entity* Scene::CreateEntity(const std::string& name , UUID id) {
+    Entity* ent = new Entity(this , id , name); 
+    for (const auto& [eid , e] : entities) {
+      if (eid == id && e->Name() == ent->Name()) {
+        OE_WARN("Entity[{} : {}] already exists in scene" , id , e->Name());
+        return nullptr;
       }
     }
 
-    entities[tag.id] = entity;
+    entities[id] = ent;
+    
+    auto& tag = ent->GetComponent<Tag>();
+    tag.id = id;
+    tag.name = name;
+
+    return ent;
   }
 
 } // namespace other

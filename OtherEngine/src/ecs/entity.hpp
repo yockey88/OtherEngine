@@ -21,12 +21,13 @@ namespace other {
   class Entity {
     public:
       /// this is allow us to modify components using our api instead of entt's
+      ///   and also allows us to create really easy temporary entities in places
+      /// NOTE: this will mean the scene context pointer internall is null
       Entity(entt::registry& registry , entt::entity handle)
         : registry(registry) , handle(handle) {}
 
       /// this is for loading entities from file in SceneManager
       Entity(Ref<Scene>& ctx , UUID uuid , const std::string& name);
-
 
       ~Entity() {}
 
