@@ -6,8 +6,19 @@
 
 #include <string>
 #include <type_traits>
+#include <array>
+#include <string_view>
 
 namespace other {
+
+  constexpr static size_t kBuiltInComponents = 3;
+
+  using ComponentTagPair = std::pair<std::string_view , size_t>;
+  constexpr static std::array<ComponentTagPair , kBuiltInComponents> kBuiltInComponentTags = {
+    ComponentTagPair{ "TAG" , 0 } , 
+    ComponentTagPair{ "TRANSFORM" , 1 } , 
+    ComponentTagPair{ "RELATIONSHIP" , 2 }
+  };
 
   struct Component {
     virtual ~Component() = default;

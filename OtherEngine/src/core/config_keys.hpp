@@ -41,6 +41,9 @@ namespace other {
   constexpr static std::string_view kMetadataSection = "METADATA";
   constexpr static uint64_t kMetadataSectionHash = FNV(kMetadataSection);
 
+  constexpr static std::string_view kTransformSection = "TRANSFORM";
+  constexpr static uint64_t kTransformSectionHash = FNV(kTransformSection);
+
   /// useful value keys
   constexpr static std::string_view kNameValue = "NAME";
   constexpr static uint64_t kNameValueHash = FNV(kNameValue);
@@ -167,6 +170,15 @@ namespace other {
   
   constexpr static std::string_view kChildrenValue = "CHILDREN";
   constexpr static uint64_t kChildrenValueHash = FNV(kChildrenValue);
+  
+  constexpr static std::string_view kPositionValue = "POSITION";
+  constexpr static uint64_t kPositionValueHash = FNV(kPositionValue);
+  
+  constexpr static std::string_view kRotationValue = "ROTATION";
+  constexpr static uint64_t kRotationValueHash = FNV(kRotationValue);
+  
+  constexpr static std::string_view kScaleValue = "SCALE";
+  constexpr static uint64_t kScaleValueHash = FNV(kScaleValue);
 
 } // namespace other 
 

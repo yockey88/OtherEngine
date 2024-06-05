@@ -3,6 +3,8 @@
  **/
 #include "ecs/entity_serializer.hpp"
 #include "core/config_keys.hpp"
+#include "ecs/component_serializer.hpp"
+#include "ecs/systems/entity_serialization.hpp"
 
 namespace other {
 
@@ -14,7 +16,9 @@ namespace other {
     auto entity_data = scene_table.Get(name);
 
     UUID id = scene_table.GetVal<UUID>(name , kUuidValue).value_or(FNV(name));
-    /* Entity* entity = */ ctx->CreateEntity(name , id);
+    Entity* entity = ctx->CreateEntity(name , id);
+
+    OE_ASSERT(entity != nullptr , "Failed to deserialize and create entity : [{} | {}]" , id.Get() , name);
     
     if (entity_data.empty()) {
       return id;
@@ -28,8 +32,13 @@ namespace other {
     std::string key_name = name;
     std::transform(key_name.begin() , key_name.end() , key_name.begin() , ::toupper);
     for (auto& comp : components) {
-      std::string comp_key = fmt::format(fmt::runtime("{}.{}") , key_name , comp);
-      auto comp_data = scene_table.Get(comp_key);
+      Scope<ComponentSerializer> comp_serializer = EntitySerialization::GetComponentSerializer(comp);
+      if (comp_serializer == nullptr) {
+        OE_ERROR("Failed to retrieve serializer for component : [{}.{}]" , entity->Name() , comp);
+        continue;
+      }
+
+      comp_serializer->Deserialize(entity , scene_table);
     }
 
     return id;

@@ -10,6 +10,7 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include "ecs/component.hpp"
+#include "ecs/component_serializer.hpp"
 
 namespace other {
 
@@ -28,6 +29,14 @@ namespace other {
       : position(glm::vec3(x, y, z)) {}
 
     ECS_COMPONENT(Transform);
+  };
+
+  class TransformSerializer : public ComponentSerializer {
+    public:
+      virtual ~TransformSerializer() override {}
+
+      virtual void Serialize(std::ostream& stream , Entity* entity) const override;
+      virtual void Deserialize(Entity* entity , const ConfigTable& scene_table) const override;
   };
 
 } // namespace other
