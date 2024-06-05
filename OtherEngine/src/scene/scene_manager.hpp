@@ -39,8 +39,6 @@ namespace other {
 
       std::vector<std::string> scene_paths;
       std::map<UUID , SceneMetadata> loaded_scenes;
-
-      Entity* BuildEntityFromConfigTable(Ref<Scene>& ctx , const std::string& name , const ConfigTable& table) const; 
   };
 
 } // namespace other

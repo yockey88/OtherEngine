@@ -6,6 +6,7 @@
 #include "core/errors.hpp"
 #include "core/config_keys.hpp"
 #include "parsing/ini_parser.hpp"
+#include "ecs/components/relationship.hpp"
 
 namespace other {
 
@@ -32,7 +33,7 @@ namespace other {
 
     OE_INFO("Attempting to load {} entities" , entities.size());
     for (auto& e : entities) {
-      deserializer.Deserialize(scene_metadata.scene , e , scene_metadata.scene_table);
+      /* UUID entity_id = */ deserializer.Deserialize(scene_metadata.scene , e , scene_metadata.scene_table);
     }
 
     OE_INFO("Scene loaded : {}" , scn_path);

@@ -164,6 +164,9 @@ namespace other {
 
   constexpr static std::string_view kComponentsValue = "COMPONENTS";
   constexpr static uint64_t kComponentsValueHash = FNV(kComponentsValue);
+  
+  constexpr static std::string_view kChildrenValue = "CHILDREN";
+  constexpr static uint64_t kChildrenValueHash = FNV(kChildrenValue);
 
 } // namespace other 
 

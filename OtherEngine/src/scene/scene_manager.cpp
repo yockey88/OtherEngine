@@ -3,8 +3,6 @@
  **/
 #include "scene/scene_manager.hpp"
 
-#include <algorithm>
-
 #include "core/defines.hpp"
 #include "core/logger.hpp"
 #include "ecs/entity.hpp"
@@ -49,6 +47,7 @@ namespace other {
     }
 
     active_scene = &loaded_scenes[id];
+    active_scene->scene->Initialize();
   }
 
   bool SceneManager::HasScene(const Path& path) {
@@ -63,7 +62,7 @@ namespace other {
   }
 
   void SceneManager::UnloadActive() {
-    active_scene->scene->Stop();
+    active_scene->scene->Shutdown();
     active_scene = nullptr;
   }
       
@@ -73,25 +72,6 @@ namespace other {
       
   const std::map<UUID , SceneMetadata>& SceneManager::GetScenes() const {
     return loaded_scenes;
-  }
-      
-  Entity* SceneManager::BuildEntityFromConfigTable(Ref<Scene>& ctx , const std::string& name , const ConfigTable& table) const {
-    /// check if there is a UUID in scene table otherwise we hash a name 
-    UUID id = table.GetVal<UUID>(name , "UUID").value_or(FNV(name));
-    Entity* ent = new Entity(ctx , id , name); 
-
-    auto components = table.Get(name , "COMPONENTS");
-    for (auto& comp_key : components) {
-      std::string real_key = name + "." + comp_key;
-      std::ranges::transform(real_key.begin() , real_key.end() , real_key.begin() , ::toupper);
-
-      // auto derializer = GetComponentSerializer(real_key);
-      // deserializer->Deserialize(entity , table);
-
-      OE_DEBUG("{} has component : {}" , name , real_key);
-    }
-
-    return ent;
   }
 
 } // namespace other

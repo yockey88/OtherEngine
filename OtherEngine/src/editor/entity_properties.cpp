@@ -7,6 +7,8 @@
 
 #include "ecs/entity.hpp"
 #include "editor/selection_manager.hpp"
+#include "rendering/ui/ui_colors.hpp"
+#include "rendering/ui/ui_helpers.hpp"
 
 namespace other {
 
@@ -21,15 +23,18 @@ namespace other {
       return;
     }
 
-    Entity* selection = SelectionManager::ActiveSelection();
-    if (selection == nullptr) {
-      SelectionManager::ClearSelection();
-      ImGui::End();
-      return;
+    {
+      ScopedColor bg_color(ImGuiCol_WindowBg , ui::theme::background_dark);
+
+      Entity* selection = SelectionManager::ActiveSelection();
+      if (selection == nullptr) {
+        SelectionManager::ClearSelection();
+        ImGui::End();
+        return;
+      }
+
+      ImGui::Text("%s" , selection->Name().c_str());
     }
-
-    ImGui::Text("%s" , selection->Name().c_str());
-
     ImGui::End();
   }
 

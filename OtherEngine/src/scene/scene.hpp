@@ -21,24 +21,36 @@ namespace other {
       Scene();
       ~Scene();
 
+      void Initialize();
       void Start(); 
+      void Update(float dt);
       void Stop(); 
+      void Shutdown();
+
+      const bool IsInitialized() const;
+      const bool IsRunning() const;
+      const bool IsDirty() const;
 
       const std::map<UUID , Entity*>& SceneEntities() const;
 
-      const Entity* GetEntity(UUID id) const;
+      Entity* GetEntity(UUID id) const;
 
       Entity* CreateEntity(const std::string& name);
       Entity* CreateEntity(const std::string& name , UUID id);
 
     protected:
+      virtual void OnInit() {}
       virtual void OnStart() {}
+      virtual void OnUpdate(float dt) {}
       virtual void OnStop() {}
+      virtual void OnShutdown() {}
 
     private:
       friend class Entity;
       // Octree space_partition;
 
+      bool initialized = false;
+      bool running = false;
       bool corrupt = true;
 
       entt::registry registry;

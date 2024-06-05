@@ -14,7 +14,7 @@ namespace other {
       ~EntitySerializer() {}
 
       void Serialize(std::ostream& stream , Entity* entity) const;
-      void Deserialize(Ref<Scene>& ctx , const std::string& name , const ConfigTable& scene_table) const;
+      UUID Deserialize(Ref<Scene>& ctx , const std::string& name , const ConfigTable& scene_table) const;
 
     private:
   };

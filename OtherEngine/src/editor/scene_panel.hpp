@@ -10,6 +10,8 @@ namespace other {
 
   class Editor;
 
+  constexpr static std::string_view kCtxMenuFmtStr = "{}-ContextMenu";
+
   class ScenePanel : public EditorPanel {
     public:
       ScenePanel(Editor& parent_app) 
@@ -23,6 +25,10 @@ namespace other {
 
     private:
       Ref<Scene> active_scene;
+
+      bool shift_selection_running = false;
+      int32_t first_selected_row = -1;
+      int32_t last_selected_row = -1;
 
       void RenderEntity(const UUID& id , Entity* entity);
   };

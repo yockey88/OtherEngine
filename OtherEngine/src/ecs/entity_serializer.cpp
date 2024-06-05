@@ -10,20 +10,19 @@ namespace other {
 
   }
   
-  void EntitySerializer::Deserialize(Ref<Scene>& ctx , const std::string& name , const ConfigTable& scene_table) const {
-    OE_DEBUG("Deserializing {}" , name);
+  UUID EntitySerializer::Deserialize(Ref<Scene>& ctx , const std::string& name , const ConfigTable& scene_table) const {
     auto entity_data = scene_table.Get(name);
 
     UUID id = scene_table.GetVal<UUID>(name , kUuidValue).value_or(FNV(name));
-    Entity* entity = ctx->CreateEntity(name , id);
+    /* Entity* entity = */ ctx->CreateEntity(name , id);
     
     if (entity_data.empty()) {
-      return;
+      return id;
     }
 
     auto components = scene_table.Get(name , kComponentsValue);
     if (components.empty()) {
-      return;
+      return id;
     }
 
     std::string key_name = name;
@@ -32,6 +31,8 @@ namespace other {
       std::string comp_key = fmt::format(fmt::runtime("{}.{}") , key_name , comp);
       auto comp_data = scene_table.Get(comp_key);
     }
+
+    return id;
   }
 
 } // namespace other

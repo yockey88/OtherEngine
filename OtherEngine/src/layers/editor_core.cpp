@@ -4,7 +4,6 @@
 #include "layers/editor_core.hpp"
 
 #include "core/logger.hpp"
-#include "application/app.hpp"
 #include "event/scene_events.hpp"
 
 namespace other {

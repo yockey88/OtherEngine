@@ -23,19 +23,76 @@ namespace other {
     }
   }
 
+  void Scene::Initialize() {
+    /// check if any entities were given a parent and need to removed from root
+    OnInit(); 
+    initialized = true;
+  }
+
   void Scene::Start() {
+    OE_ASSERT(initialized , "Starting scene without initialization");
+
     OnStart();
+    running = true;
+  }
+
+  void Scene::Update(float dt) {
+    OE_ASSERT(initialized , "Updating scene without initialization");
+    if (!running) {
+      return;
+    }
+
+    /// prepare scene update
+    if (corrupt) {
+      Stop();
+      return;
+    }
+
+    OnUpdate(dt);
+    
+    /// finish scene update
+    /// checks the case the scene become corrupt on client update
+    if (corrupt) {
+      Stop();
+      return;
+    }
+
   }
 
   void Scene::Stop() {
+    OE_ASSERT(initialized , "Updating scene without initialization");
+    if (!running) {
+      OE_WARN("Scene not running, nothing to stop");
+      return;
+    }
+
+    running = false;
     OnStop();
+  }
+
+  void Scene::Shutdown() {
+    OE_ASSERT(initialized , "Shutting down scene before initialization");
+    initialized = false;
+    OnShutdown();
+  }
+
+  const bool Scene::IsInitialized() const {
+    return initialized;
+  }
+
+  const bool Scene::IsRunning() const {
+    return running;
+  }
+
+  const bool Scene::IsDirty() const {
+    return corrupt;
   }
 
   const std::map<UUID , Entity*>& Scene::SceneEntities() const {
     return entities;
   }
   
-  const Entity* Scene::GetEntity(UUID id) const {
+  Entity* Scene::GetEntity(UUID id) const {
     auto ent = entities.find(id);
     if (ent == entities.end()) {
       return nullptr;

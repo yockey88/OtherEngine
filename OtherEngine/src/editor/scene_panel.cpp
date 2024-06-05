@@ -56,25 +56,69 @@ namespace other {
         ImGui::EndDragDropTarget();
       }
     } else {
-      ImGuiTableFlags table_flags = ImGuiTableFlags_Resizable 
-        | ImGuiTableFlags_SizingFixedFit
-        | ImGuiTableFlags_BordersInnerV;
-      if (ImGui::BeginTable("##scene_hierarchy" , 2 , table_flags , ImVec2(0.f , 0.f))) {
-        ImGui::TableSetupColumn("Entity Outliner");
-        ImGui::TableSetupColumn("Entities");
+      ImGuiTableFlags table_flags = ImGuiTableFlags_NoPadInnerX |
+        ImGuiTableFlags_Reorderable | 
+        ImGuiTableFlags_ScrollY;
+
+      ImRect window_rect = {
+        ImGui::GetWindowContentRegionMin() , 
+        ImGui::GetWindowContentRegionMax()
+      };
+
+      const float edge_offset = 4.f;
+
+      ScopedColor table_bg(ImGuiCol_ChildBg , ui::theme::background_dark);
+
+      const int32_t num_columns = 2;
+      if (ImGui::BeginTable("##scene_entities" , num_columns , table_flags , ImVec2(ImGui::GetContentRegionAvail()))) {
+        ImGui::TableSetupColumn("ID | Children");
+        ImGui::TableSetupColumn("Objects");
+
+        /// heaers 
+        {
+          const ImU32 active_color = ui::theme::ColorWithMultiplier(ui::theme::group_header, 1.2f);
+          ScopedColorStack header_cols(
+            ImGuiCol_HeaderHovered , active_color ,
+            ImGuiCol_HeaderActive , active_color
+          );
+
+          ImGui::TableSetupScrollFreeze(ImGui::TableGetColumnCount() , 1);
+
+          ImGui::TableNextRow(ImGuiTableRowFlags_Headers , 22.f);
+          for (int32_t col = 0; col < ImGui::TableGetColumnCount(); ++col) {
+            ImGui::TableSetColumnIndex(col);
+            const char* col_name = ImGui::TableGetColumnName(col);
+            ScopedID col_id(col);
+
+            ui::ShiftCursor(edge_offset * 3.f , edge_offset * 2.f);
+            ImGui::TableHeader(col_name);
+            ui::ShiftCursor(-edge_offset * 3.f , -edge_offset * 2.f);
+          }
+          ImGui::SetCursorPosX(ImGui::GetCurrentTable()->OuterRect.Min.x);
+          ui::Underline(true , 0.f , 5.f);
+        }
+
         ImGui::TableNextRow();
 
-        ImGui::TableSetColumnIndex(0);
-
+        /// hierarchy
         {
-          ScopedStyle spacing(ImGuiStyleVar_ItemSpacing , ImVec2(0.f , 0.f));
-          ScopedColorStack item_bg(ImGuiCol_Header , IM_COL32_DISABLE ,
-                                   ImGuiCol_HeaderActive , IM_COL32_DISABLE);
+          ScopedColorStack entity_select(
+            ImGuiCol_Header , IM_COL32_DISABLE ,
+            ImGuiCol_HeaderHovered , IM_COL32_DISABLE ,
+            ImGuiCol_HeaderActive , IM_COL32_DISABLE
+          );
 
           for (auto& [id , entity] : active_scene->SceneEntities()) {
             RenderEntity(id , entity);
           }
+
+          // if () {
+            /// DrawCreateMenu()
+            /// EndPopup();
+          // }
         }
+      } else {
+        ImGui::Text("Failed to draw entity hierarchy");
       }
       ImGui::EndTable();
     }
@@ -90,62 +134,85 @@ namespace other {
 
   void ScenePanel::SetSceneContext(const Ref<Scene>& scene) {
     OE_ASSERT(scene != nullptr , "Attempting to set null scene context in ScenePanel");
+
+    OE_DEBUG("ScenePanel::SetSceneContext(entities = {})" , scene->SceneEntities().size());
     active_scene = scene;
+
+    for (auto& [id , ent] : active_scene->SceneEntities()) {
+      OE_DEBUG("Entity : {}" , ent->Name());
+    }
   }
       
   void ScenePanel::RenderEntity(const UUID& id , Entity* entity) {
-    std::string id_str = std::to_string(id.Get());
-    ImGui::PushID(id_str.c_str());
+    OE_ASSERT(entity != nullptr , "DRAWING NULL ENTITY IN HIERARCHY");
 
-    ImGuiID ent_id = ImGui::GetID(entity->Name().c_str());
-    bool prev_state = ImGui::TreeNodeBehaviorIsOpen(ent_id);
+    auto& tag = entity->GetComponent<Tag>();
+    auto& relationships = entity->GetComponent<Relationship>();
+    const std::string ent_name = tag.name;
 
-    const float edge_offset = 4.f;
+    // const float edge_offset = 4.f;
     const float row_height = 21.f;
 
     auto* window = ImGui::GetCurrentWindow();
-    window->DC.CurrLineSize.y = 20.f;
+    window->DC.CurrLineSize.y = row_height;
+
+    ImGui::TableNextRow(0 , row_height);
+
+    ImGui::TableSetColumnIndex(0);
+    
+    ImGui::Text("  [%lld | %lld]" , tag.id.Get() , relationships.children.size());
+
+    ImGui::TableSetColumnIndex(1);
+
     window->DC.CurrLineTextBaseOffset = 3.f;
-    
 
-    const ImVec2 row_area_min = ImGui::TableGetCellBgRect(ImGui::GetCurrentTable(), 0).Min;
-    const ImVec2 row_area_max = { 
-      ImGui::TableGetCellBgRect(ImGui::GetCurrentTable(), ImGui::TableGetColumnCount() - 1).Max.x - 40,
-      row_area_min.y + row_height 
+    const ImVec2 row_area_min = ImGui::TableGetCellBgRect(ImGui::GetCurrentTable() , 0).Min;
+    const ImVec2 row_area_max = {
+      ImGui::TableGetCellBgRect(ImGui::GetCurrentTable() , ImGui::TableGetColumnCount() - 1).Max.x - 20 ,
+      row_area_min.y + row_height
     };
-    
-    const ImRect item_rect(row_area_min , row_area_max);
 
-    bool is_row_hovered , held;
-    bool is_row_clicked = ImGui::ButtonBehavior(item_rect , ent_id , &is_row_hovered , &held,  
-                                                ImGuiButtonFlags_MouseButtonLeft | 
-                                                ImGuiButtonFlags_MouseButtonRight);
-    const bool item_clicked = is_row_clicked;
+    const bool active_selection = SelectionManager::HasSelection() ? 
+      tag.id == SelectionManager::ActiveSelection()->ReadComponent<Tag>().id :
+      false;
 
-    // [&window , &ent_id]() -> bool {
-    //   if (ImGui::ItemHoverable(window->WorkRect , ent_id , 0)) {
-    //     return ImGui::IsMouseDown(ImGuiMouseButton_Left) || ImGui::IsMouseReleased(ImGuiMouseButton_Left);
-    //   }
-    //   return false;
-    // } ();
-
-    const bool selected = SelectionManager::ActiveSelection() == entity;
-
-    ImGuiTreeNodeFlags flags = (selected ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow;
+    ImGuiTreeNodeFlags flags = (active_selection ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow;
     flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
 
-    if (!entity->HasComponent<Relationship>()) {
-      flags |= ImGuiTreeNodeFlags_Leaf;
-    } else if (entity->ReadComponent<Relationship>().children.empty()) {
+    // if has_child_matching_search
+    //    flags |= ImGuiTreeNodeFlags_DefaultOpen;
+
+    if (entity->ReadComponent<Relationship>().children.empty()) {
       flags |= ImGuiTreeNodeFlags_Leaf;
     }
 
-    const bool window_focused = ImGui::IsWindowFocused();
+    // const std::string ent_str_id = fmt::format(fmt::runtime("{}.{}") , tag.name , tag.id);
+
+    ImGui::PushClipRect(row_area_min , row_area_max , false);
+    bool is_row_hovered , held;
+    bool is_row_clicked = ImGui::ButtonBehavior(
+      ImRect(row_area_min , row_area_max) , 
+      ImGui::GetID(ent_name.c_str()) ,
+      &is_row_hovered , &held ,
+      ImGuiButtonFlags_AllowOverlap |
+        ImGuiButtonFlags_PressedOnClickRelease |
+        ImGuiButtonFlags_MouseButtonLeft |
+        ImGuiButtonFlags_MouseButtonRight
+    );
+
+    bool right_clicked = ImGui::IsMouseReleased(ImGuiMouseButton_Right);
+
+    ImGui::SetItemAllowOverlap();
+
+    ImGui::PopClipRect();
+
+    const bool window_focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
     /// const auto& editor_settings = GetEditor().GetSettings();
 
-    auto fill_w_color = [&](const ImColor& color) {
-      const ImU32 bg_color = ImGui::ColorConvertFloat4ToU32(color);
-      ImGui::GetWindowDrawList()->AddRectFilled(item_rect.Min , item_rect.Max , bg_color);
+    auto fill_row_w_color = [](const ImColor& color) {
+      for (int32_t col = 0; col < ImGui::TableGetColumnCount(); ++col) {
+        ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg , color , col);
+      }
     };
 
     auto check_if_child_selected = [&](const Entity* ent , auto any_child_selected) -> bool {
@@ -153,14 +220,10 @@ namespace other {
         return false; 
       }
 
-      auto ent_tag = ent->GetComponent<Tag>();
-      auto selection_tag = ent->GetComponent<Tag>();
-      if (ent_tag.id == selection_tag.id) {
+      auto ent_id = ent->ReadComponent<Tag>().id;
+      auto selection_id = SelectionManager::ActiveSelection()->ReadComponent<Tag>().id;
+      if (ent_id == selection_id) {
         return true;
-      }
-
-      if (!ent->HasComponent<Relationship>()) {
-        return false; 
       }
 
       const auto& relationships = ent->ReadComponent<Relationship>();
@@ -175,51 +238,125 @@ namespace other {
         }
       }
 
-
       return false;
     };
 
-    const bool child_selected = check_if_child_selected(entity , check_if_child_selected);
+    const bool child_selected = check_if_child_selected(entity , check_if_child_selected); 
 
-    if (item_clicked && !child_selected) {
-      /// select entity for properties panel
-      SelectionManager::Select(entity);
-    }
-
-    const bool active_selection = entity == SelectionManager::ActiveSelection();
-    
-    if (active_selection || item_clicked) {
-      if (window_focused) {
-        fill_w_color(ui::theme::selection);
+    if (active_selection) {
+      if (window_focused /* ui::NavigatedTo()? */) {
+        fill_row_w_color(ui::theme::selection);
       } else {
-        const ImColor col = ui::theme::ColorWithMultiplier(ui::theme::selection , 0.8f);
-        fill_w_color(ui::theme::ColorWithMultipliedSaturation(col , 0.7f));
-      }
+        const ImColor col = ui::theme::ColorWithMultiplier(ui::theme::selection , 0.9f);
+        fill_row_w_color(ui::theme::ColorWithMultipliedSaturation(col , 0.7f));
+      } 
 
       ImGui::PushStyleColor(ImGuiCol_Text , ui::theme::background_dark);
+    } else if (is_row_hovered) {
+      fill_row_w_color(ui::theme::group_header);
     } else if (child_selected) {
-      fill_w_color(ui::theme::selection_muted);
+      fill_row_w_color(ui::theme::selection_muted);
     }
 
-    bool open = ImGui::TreeNodeEx(entity->Name().c_str() , flags);
+    ImGuiContext& g = *GImGui;
+    auto& style = ImGui::GetStyle();
+    // const ImVec2 label_size = ImGui::CalcTextSize(tag.name.c_str(), nullptr, false);
+
+    const ImVec2 padding = ((flags & ImGuiTreeNodeFlags_FramePadding)) ? 
+      style.FramePadding : 
+      ImVec2(style.FramePadding.x, ImMin(window->DC.CurrLineTextBaseOffset, style.FramePadding.y));
     
-    if (active_selection || item_clicked) {
+    // Collapser arrow width + Spacing
+    const float text_offset_x = g.FontSize + padding.x * 2;
+
+    // Latch before ItemSize changes it
+    const float text_offset_y = ImMax(padding.y, window->DC.CurrLineTextBaseOffset);
+
+    // Include collapser
+    // const float text_width = g.FontSize + (label_size.x > 0.0f ? label_size.x + padding.x * 2 : 0.0f);
+    ImVec2 text_pos(window->DC.CursorPos.x + text_offset_x, window->DC.CursorPos.y + text_offset_y);
+    const float arrow_hit_x1 = (text_pos.x - text_offset_x) - style.TouchExtraPadding.x;
+    const float arrow_hit_x2 = (text_pos.x - text_offset_x) + (g.FontSize + padding.x * 2.0f) + style.TouchExtraPadding.x;
+    const bool is_mouse_x_over_arrow = (g.IO.MousePos.x >= arrow_hit_x1 && g.IO.MousePos.x < arrow_hit_x2);
+
+    bool prev_node_state = ImGui::TreeNodeBehaviorIsOpen(ImGui::GetID(tag.name.c_str()));
+
+    if (is_mouse_x_over_arrow && is_row_clicked) {
+      ImGui::SetNextItemOpen(!prev_node_state);
+    }
+
+    if (!active_selection && child_selected) {
+      ImGui::SetNextItemOpen(true);
+    }
+
+    const bool open = ImGui::TreeNodeEx(tag.name.c_str() , flags);
+    
+    int32_t row_idx = ImGui::TableGetRowIndex();
+    if (row_idx >= first_selected_row && row_idx <= last_selected_row && !active_selection && shift_selection_running) {
+      SelectionManager::Select(entity);
+
+      /// count selections
+    }
+
+    const std::string right_click_popup = fmt::format(kCtxMenuFmtStr , tag.name);
+
+    bool entity_deleted = false;
+    if (ImGui::BeginPopupContextItem(right_click_popup.c_str())) {
+      /// entity context menu
+      ImGui::EndPopup();
+    }
+
+    if (is_row_clicked) {
+      if (right_clicked) {
+        ImGui::OpenPopup(right_click_popup.c_str());
+      } else {
+        /// bool ctrl_down
+        /// bool shift_down
+        /// if (shift_down && SelectionManager::SelectionCount() > 0) {
+        ///   SelectionManager::DeselectAll();
+        ///
+        ///   if (row_idx < first_row_selected) {
+        ///     last_row_selected = first_row_selected;
+        ///     first_row_selected = row_idx;
+        ///   } else {
+        ///     last_row_selected = row_idx;
+        ///   }
+        ///
+        ///   shift_selection_running
+        /// } else if (!ctrl_down || shift_down) {
+        ///   SelectionManager::DeselectAll();
+        ///   SelectManager::Select(entity);
+        ///   first_row_selected = row_idx;
+        ///   last_row_selected = -1;
+        /// } else 
+
+        if (active_selection) {
+          SelectionManager::ClearSelection();
+        } else {
+          SelectionManager::Select(entity);
+        }
+      } 
+
+      ImGui::FocusWindow(ImGui::GetCurrentWindow());
+    }
+
+    /// entity selection stuff for selecting more than one
+
+    if (active_selection) {
       ImGui::PopStyleColor();
     }
 
-    ui::ShiftCursorY(3.0f);
-
-    /// context menu
+    /// entity component drag drop sections
 
     if (open) {
-      /// render children
+      /// draw children
 
       ImGui::TreePop();
-    } else if (prev_state) {
-      /// entity selected last frame
     }
 
-    ImGui::PopID();
+    if (entity_deleted) {
+      /// delete entity
+    }
   }
 
 } // namespace other 
