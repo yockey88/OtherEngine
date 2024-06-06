@@ -5,6 +5,7 @@
 
 #include "ecs/entity.hpp"
 #include "ecs/components/tag.hpp"
+#include "ecs/components/relationship.hpp"
 #include "ecs/systems/core_systems.hpp"
 
 namespace other {
@@ -25,6 +26,15 @@ namespace other {
 
   void Scene::Initialize() {
     /// check if any entities were given a parent and need to removed from root
+    for (auto itr = root_entities.begin(); itr != root_entities.end();) {
+      if (itr->second->GetComponent<Relationship>().parent.has_value()) {
+        OE_DEBUG("De-rooting entity : {}" , itr->second->Name());
+        itr = root_entities.erase(itr); 
+      } else {
+        ++itr;
+      }
+    }
+
     OnInit(); 
     initialized = true;
   }
@@ -88,6 +98,22 @@ namespace other {
     return corrupt;
   }
 
+  bool Scene::EntityExists(UUID id) const {
+    return std::find_if(entities.begin() , entities.end() , [&id](const auto& ent_pair) ->bool {
+      return id == ent_pair.first; 
+    }) != entities.end();
+  }
+
+  bool Scene::EntityExists(const std::string& name) const {
+    return std::find_if(entities.begin() , entities.end() , [&name](const auto& ent_pair) ->bool {
+      return name == ent_pair.second->Name(); 
+    }) != entities.end();
+  }
+      
+  const std::map<UUID , Entity*>& Scene::RootEntities() const {
+    return root_entities;
+  }
+
   const std::map<UUID , Entity*>& Scene::SceneEntities() const {
     return entities;
   }
@@ -115,6 +141,7 @@ namespace other {
       }
     }
 
+    root_entities[id] = ent;
     entities[id] = ent;
     
     auto& tag = ent->GetComponent<Tag>();

@@ -74,7 +74,7 @@ namespace other {
         ImGui::TableSetupColumn("ID | Children");
         ImGui::TableSetupColumn("Objects");
 
-        /// heaers 
+        /// headers 
         {
           const ImU32 active_color = ui::theme::ColorWithMultiplier(ui::theme::group_header, 1.2f);
           ScopedColorStack header_cols(
@@ -108,7 +108,7 @@ namespace other {
             ImGuiCol_HeaderActive , IM_COL32_DISABLE
           );
 
-          for (auto& [id , entity] : active_scene->SceneEntities()) {
+          for (auto& [id , entity] : active_scene->RootEntities()) {
             RenderEntity(id , entity);
           }
 
@@ -182,7 +182,7 @@ namespace other {
     // if has_child_matching_search
     //    flags |= ImGuiTreeNodeFlags_DefaultOpen;
 
-    if (entity->ReadComponent<Relationship>().children.empty()) {
+    if (relationships.children.empty()) {
       flags |= ImGuiTreeNodeFlags_Leaf;
     }
 
@@ -350,6 +350,11 @@ namespace other {
 
     if (open) {
       /// draw children
+      auto& relationship = entity->GetComponent<Relationship>();
+      for (auto& child : relationship.children) {
+        auto* child_ent = active_scene->GetEntity(child);
+        RenderEntity(child , child_ent);
+      }
 
       ImGui::TreePop();
     }

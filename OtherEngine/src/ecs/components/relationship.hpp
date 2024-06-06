@@ -9,6 +9,7 @@
 #include "core/defines.hpp"
 #include "core/uuid.hpp"
 #include "ecs/component.hpp"
+#include "ecs/component_serializer.hpp"
 
 namespace other {
 
@@ -17,6 +18,13 @@ namespace other {
     std::vector<UUID> children;
 
     ECS_COMPONENT(Relationship);
+  };
+  
+  class RelationshipSerializer : public ComponentSerializer {
+    public:
+      virtual ~RelationshipSerializer() override {}
+
+      COMPONENT_SERIALIZERS(Relationship);
   };
 
 } // namespace other 

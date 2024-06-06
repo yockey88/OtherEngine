@@ -31,6 +31,10 @@ namespace other {
       const bool IsRunning() const;
       const bool IsDirty() const;
 
+      bool EntityExists(UUID id) const;
+      bool EntityExists(const std::string& name) const;
+
+      const std::map<UUID , Entity*>& RootEntities() const;
       const std::map<UUID , Entity*>& SceneEntities() const;
 
       Entity* GetEntity(UUID id) const;
@@ -55,6 +59,7 @@ namespace other {
 
       entt::registry registry;
 
+      std::map<UUID , Entity*> root_entities{};
       std::map<UUID , Entity*> entities{};
       
   };

@@ -24,6 +24,18 @@ namespace other {
       return id;
     }
 
+    { /// transform
+      Scope<ComponentSerializer> transform_serializer = EntitySerialization::GetComponentSerializer(kTransformSection);
+      OE_ASSERT(transform_serializer != nullptr , "Failed to retrieve transform serializer for deserialization");
+      transform_serializer->Deserialize(entity , scene_table , ctx);
+    }
+
+    { /// relationship
+      Scope<ComponentSerializer> relationship_serializer = EntitySerialization::GetComponentSerializer(kRelationshipSection);
+      OE_ASSERT(relationship_serializer != nullptr , "Failed to retrieve relationship serializer for deserialization");
+      relationship_serializer->Deserialize(entity , scene_table , ctx);
+    }
+
     auto components = scene_table.Get(name , kComponentsValue);
     if (components.empty()) {
       return id;
@@ -38,7 +50,7 @@ namespace other {
         continue;
       }
 
-      comp_serializer->Deserialize(entity , scene_table);
+      comp_serializer->Deserialize(entity , scene_table , ctx);
     }
 
     return id;

@@ -35,8 +35,7 @@ namespace other {
     public:
       virtual ~TransformSerializer() override {}
 
-      virtual void Serialize(std::ostream& stream , Entity* entity) const override;
-      virtual void Deserialize(Entity* entity , const ConfigTable& scene_table) const override;
+      COMPONENT_SERIALIZERS(Transform);
   };
 
 } // namespace other

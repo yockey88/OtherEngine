@@ -8,31 +8,16 @@
 
 namespace other {
 
-  void TransformSerializer::Serialize(std::ostream& stream , Entity* entity) const {
+  void TransformSerializer::Serialize(std::ostream& stream , Entity* entity , const Ref<Scene>& scene) const {
     auto& transform = entity->GetComponent<Transform>();
 
     stream << "[" << entity->Name() << ".transform]\n";
-    stream << "position = { " 
-           << transform.position.x 
-           << transform.position.y
-           << transform.position.z
-           << " }\n";
-                            
-    stream << "rotation = { " 
-           << transform.qrotation.x 
-           << transform.qrotation.y
-           << transform.qrotation.z
-           << transform.qrotation.w
-           << " }\n";
-
-    stream << "scale = { " 
-           << transform.scale.x 
-           << transform.scale.y
-           << transform.scale.z
-           << " }\n";
+    SerializeVec3(stream , "position" , transform.position);
+    SerializeQuat(stream , "rotation" , transform.qrotation);
+    SerializeVec3(stream , "scale" , transform.scale);
   }
       
-  void TransformSerializer::Deserialize(Entity* entity , const ConfigTable& scene_table) const {
+  void TransformSerializer::Deserialize(Entity* entity , const ConfigTable& scene_table , Ref<Scene>& scene) const {
     OE_ASSERT(entity->HasComponent<Transform>() , "ENTITY WITHOUT TRANSFORM BEING DESERIALIZED");
     std::string comp_key = entity->Name();
     std::transform(comp_key.begin() , comp_key.end() , comp_key.begin() , ::toupper);
@@ -47,28 +32,19 @@ namespace other {
       return;
     }
 
-    /// all entities already have a transform
     auto& transform = entity->GetComponent<Transform>();
     if (pos_value.size() > 0) {
-      OE_ASSERT(pos_value.size() == 3 , "CORRUPT TRANSFORM POSITION [{}]" , comp_key);
-      transform.position.x = std::stof(pos_value[0]);
-      transform.position.y = std::stof(pos_value[1]);
-      transform.position.z = std::stof(pos_value[2]);
+      DeserializeVec3(pos_value , transform.position);
     }
     
     if (rotation_value.size() > 0) {
       OE_ASSERT(rotation_value.size() == 4 , "CORRUPT TRANSFORM ROTATION [{}]" , comp_key);
-      transform.qrotation.x = std::stof(rotation_value[0]);
-      transform.qrotation.y = std::stof(rotation_value[1]);
-      transform.qrotation.z = std::stof(rotation_value[2]);
-      transform.qrotation.w = std::stof(rotation_value[3]);
+      DeserializeQuat(rotation_value , transform.qrotation);
     }
     
     if (scale_value.size() > 0) {
       OE_ASSERT(scale_value.size() == 3 , "CORRUPT TRANSFORM SCALE [{}]" , comp_key);
-      transform.scale.x = std::stof(scale_value[0]);
-      transform.scale.y = std::stof(scale_value[1]);
-      transform.scale.z = std::stof(scale_value[2]);
+      DeserializeVec3(scale_value , transform.scale);
     }
   }
 

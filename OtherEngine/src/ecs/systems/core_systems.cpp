@@ -12,9 +12,12 @@ namespace other {
 
   void OnConstructEntity(entt::registry& context , entt::entity entt) {
     Entity e(context , entt);
-    e.AddComponent<Tag>();
-    e.AddComponent<Transform>();
-    e.AddComponent<Relationship>();
+    auto& tag = e.AddComponent<Tag>();
+    tag.id = 0;
+    tag.name = "[ Blank Entity ]";
+    
+    /* auto& relationship = */ e.AddComponent<Relationship>();
+    /* auto& transform = */ e.AddComponent<Transform>();
   }
   
   void OnDestroyEntity(entt::registry& context , entt::entity entt) {

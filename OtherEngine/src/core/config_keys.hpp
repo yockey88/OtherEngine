@@ -44,6 +44,9 @@ namespace other {
   constexpr static std::string_view kTransformSection = "TRANSFORM";
   constexpr static uint64_t kTransformSectionHash = FNV(kTransformSection);
 
+  constexpr static std::string_view kRelationshipSection = "RELATIONSHIP";
+  constexpr static uint64_t kRelationshipSectionHash = FNV(kRelationshipSection);
+
   /// useful value keys
   constexpr static std::string_view kNameValue = "NAME";
   constexpr static uint64_t kNameValueHash = FNV(kNameValue);
