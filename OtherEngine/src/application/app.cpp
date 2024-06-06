@@ -122,9 +122,7 @@ namespace other {
 
       DoUpdate(dt);
 
-      // if (scene_context != nullptr) {
-      //   scene_context->Update(dt);
-      // }
+      UpdateSceneContext(dt);
 
       Renderer::BeginFrame();
 
@@ -325,6 +323,10 @@ namespace other {
       window = nullptr;
     }
     ui_windows.clear();
+  }
+      
+  void App::UpdateSceneContext(float dt) {
+    scene_manager->UpdateScene(dt);
   }
 
 } // namespace other

@@ -3,6 +3,12 @@
  **/
 #include "rendering/ui/ui_helpers.hpp"
 
+#include <array>
+
+#include <imgui/imgui.h>
+
+#include "rendering/ui/ui_colors.hpp"
+
 namespace other {
 
   ScopedFont::ScopedFont(ImFont* font) {
@@ -57,6 +63,21 @@ namespace other {
   }
 
 namespace ui {
+
+  static uint32_t ui_context = 0;
+  static uint32_t counter = 0;
+  static std::array<char , 16 + 2 + 1> id_buffer = { '#' , '#' };
+  static std::array<char , 1024 + 1> label_id_buffer = {};
+  
+  void PushId() {
+    ImGui::PushID(ui_context++);
+    counter = 0;
+  }
+  
+  void PopId() {
+    ImGui::PopID();
+    ui_context;
+  }
 
   void ShiftCursor(float x , float y) {
     const ImVec2 cursor_pos = ImGui::GetCursorPos();
@@ -126,6 +147,12 @@ namespace ui {
     ScopedColor tcolor(ImGuiCol_Text, foreground);
     ScopedColor bcolor(ImGuiCol_Button, background);
     return ImGui::Button(label , size);
+  }
+  
+  bool DragFloat(const char* label , float* v , float v_speed , float v_min , float v_max , 
+                 const char* format , ImGuiSliderFlags flags) {
+    /// replace with fancy DragScalar
+    return ImGui::DragFloat(label , v);
   }
   
   bool TableRowClickable(const char* id, float rowHeight) {
@@ -209,6 +236,37 @@ namespace ui {
     ImGui::PopStyleVar(2); // ItemSpacing, FramePadding
     ShiftCursorY(18.0f);
     //PopID();
+  }
+  
+  bool OpenPopup(const std::string& str_id , ImGuiWindowFlags flags) {
+    bool opened = false;
+    if (ImGui::BeginPopup(str_id.c_str() , flags)) {
+      opened = true;
+
+      const float padding = ImGui::GetStyle().WindowBorderSize;
+      const ImRect window_rect = RectExpanded(ImGui::GetCurrentWindow()->Rect() , -padding , -padding);
+      
+      ImGui::PushClipRect(window_rect.Min , window_rect.Max, false);
+
+      const ImColor col1 = ImGui::GetStyleColorVec4(ImGuiCol_PopupBg);
+      const ImColor col2 = theme::ColorWithMultiplier(col1 , 0.8f);
+
+      ImGui::GetWindowDrawList()->AddRectFilledMultiColor(window_rect.Min , window_rect.Max , col1 , col1 , col2 , col2);
+      ImGui::GetWindowDrawList()->AddRect(window_rect.Min , window_rect.Max , theme::ColorWithMultiplier(col1 , 1.1f));
+
+      ImGui::PopClipRect();
+
+      ImGui::PushStyleColor(ImGuiCol_HeaderHovered , IM_COL32(0 , 0 , 0 , 80));
+      ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding , ImVec2(1.f , 1.f));
+    }
+
+    return opened;
+  }
+  
+  void EndPopup() {
+    ImGui::PopStyleVar();
+    ImGui::PopStyleColor();
+    ImGui::EndPopup();
   }
 
 } // namespace ui

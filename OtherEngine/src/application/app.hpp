@@ -84,6 +84,7 @@ namespace other {
       Engine* engine_handle = nullptr;
 
       friend class Editor;
+      void UpdateSceneContext(float dt);
   };
 
 } // namespace other

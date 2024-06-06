@@ -54,8 +54,6 @@ namespace other {
     /// TODO: 
     ///  - move to panel manager so that we can generalize panel creation
     ///     and allow for user created panels
-    /// important to note panels are not layers so we have to dereference to pass an Editor& and not an
-    ///   App*
     project_panel = Ref<ProjectPanel>::Create(*this);
     scene_panel = Ref<ScenePanel>::Create(*this);
     entity_properties_panel = Ref<EntityProperties>(*this);
@@ -77,7 +75,6 @@ namespace other {
     ///   i.e. we want the app to be prepared for the mock 'runtime' but not
     ///   fully running
     app->OnLoad();
-    // app->OnAttach();
 
     if (SelectionManager::HasSelection()) {
       OE_INFO("Why tf we have a selection???");
@@ -89,8 +86,6 @@ namespace other {
   }
 
   void Editor::Update(float dt) {
-    app->Update(dt);
-
     entity_properties_open = SelectionManager::HasSelection();
   }
 

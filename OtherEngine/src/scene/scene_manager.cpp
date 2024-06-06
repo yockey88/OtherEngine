@@ -74,4 +74,12 @@ namespace other {
     return loaded_scenes;
   }
 
+  void SceneManager::UpdateScene(float dt) {
+    if (active_scene == nullptr) {
+      return;
+    }
+
+    active_scene->scene->Update(dt);
+  }
+
 } // namespace other

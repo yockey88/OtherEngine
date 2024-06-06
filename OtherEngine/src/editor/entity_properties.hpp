@@ -4,6 +4,7 @@
 #ifndef OTHER_ENGINE_ENTITY_PROPERTIES_HPP
 #define OTHER_ENGINE_ENTITY_PROPERTIES_HPP
 
+#include "scene/scene.hpp"
 #include "editor/editor_panel.hpp"
 
 namespace other {
@@ -12,12 +13,16 @@ namespace other {
     public:
       EntityProperties(Editor& editor)
         : EditorPanel(editor) {}
+
       virtual void OnGuiRender(bool& is_open) override;
       virtual void OnEvent(Event* e) override;
       virtual void OnProjectChange(const Ref<Project>& project) override;
       virtual void SetSceneContext(const Ref<Scene>& scene) override;
       
-    protected:
+    private:
+      Ref<Scene> active_scene;
+
+      void DrawSelectionComponents(Entity* entity);
   };
 
 } // namespace other

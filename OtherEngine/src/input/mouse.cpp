@@ -10,6 +10,9 @@
 
 namespace other {
 
+  Mouse::MouseState Mouse::state = {};
+  std::map<Mouse::Button , Mouse::ButtonState> Mouse::buttons = {};
+
   void Mouse::Initialize() {
     SDL_Window* window = SDL_GetMouseFocus();
     if (window == nullptr) {

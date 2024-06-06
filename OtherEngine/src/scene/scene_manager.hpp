@@ -34,6 +34,8 @@ namespace other {
       const std::vector<std::string>& ScenePaths() const; 
       const std::map<UUID , SceneMetadata>& GetScenes() const;
 
+      void UpdateScene(float dt);
+
     private:
       SceneMetadata* active_scene = nullptr;
 

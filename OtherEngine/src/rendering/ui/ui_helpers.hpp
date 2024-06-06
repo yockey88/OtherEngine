@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <utility>
+#include <string>
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
@@ -86,6 +87,16 @@ namespace other {
 
 namespace ui {
 
+  inline ImRect RectExpanded(const ImRect& rect , float x , float y) {
+    return ImRect(
+      ImVec2(rect.Min.x - x , rect.Min.y - y) ,
+      ImVec2(rect.Max.x + x , rect.Max.y + y)
+    );
+  }
+
+  void PushId();
+  void PopId();
+
   void ShiftCursor(float x , float y);
   void ShiftCursorX(float x);
   void ShiftCursorY(float y);
@@ -99,6 +110,9 @@ namespace ui {
     const char* label , const ImVec4& background , 
     const ImVec4& foreground , ImVec2 size
   );    
+
+  bool DragFloat(const char* label , float* v , float v_speed = 1.f , float v_min = 0.f , float v_max = 0.f , 
+                 const char* format = "%.3f" , ImGuiSliderFlags flags = 0);
   
   bool TableRowClickable(const char* id, float rowHeight);
   
@@ -115,6 +129,9 @@ namespace ui {
   );
   
   void EndPropertyGrid();
+
+  bool OpenPopup(const std::string& str_id , ImGuiWindowFlags flags = 0);
+  void EndPopup();
 
 } // namespace ui
 } // namespace other
