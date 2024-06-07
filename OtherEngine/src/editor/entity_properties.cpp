@@ -3,6 +3,8 @@
  **/
 #include "editor/entity_properties.hpp"
 
+#include <glm/gtc/type_ptr.hpp>
+
 #include <imgui/imgui.h>
 
 #include "input/keyboard.hpp"
@@ -41,14 +43,7 @@ namespace other {
     {
       ScopedStyle header_rounding(ImGuiStyleVar_FrameRounding , 0.f);
       ScopedStyle header_padding_and_height(ImGuiStyleVar_FramePadding , ImVec2{ frame_paddingx , frame_paddingy });
-
-      const std::string id_str = fmt::format(fmt::runtime("{}.{}") , selection->Name() , "TRANSFORM");
-      ImGuiID ent_comp_id = ImGui::GetID(id_str.c_str());
-
-      ImGui::PushID(ent_comp_id);
       open = ImGui::TreeNodeEx(name.c_str() , tree_flags);
-
-      ImGui::PopID();
     }
     bool right_clicked = ImGui::IsItemClicked(ImGuiMouseButton_Right);
 
@@ -66,8 +61,6 @@ namespace other {
     }
 
     if (ui::OpenPopup("##component_settings")) {
-      auto& component = selection->GetComponent<C>();
-
       /// this should really be submesh?
       if constexpr (!std::is_same_v<C , Mesh>) {
         ui::ShiftCursorX(item_padding);
@@ -97,13 +90,11 @@ namespace other {
     }
 
     if (open) {
-      C& component = selection->GetComponent<C>();
-      /// const bool is_multi_edit ??
-      ui_function(component , selection);
+      ui_function(selection);
       ImGui::TreePop();
     }
 
-    if (remove_comp) {
+    if (remove_comp && selection->HasComponent<C>()) {
       selection->RemoveComponent<C>();
     }
 
@@ -277,7 +268,7 @@ namespace other {
   }
       
   void EntityProperties::DrawSelectionComponents(Entity* entity) {
-    DrawComponent<Transform>("Transform" , [&](Transform& transform , Entity* selection) {
+    DrawComponent<Transform>("Transform" , [](Entity* selection) {
       ScopedStyle spacing(ImGuiStyleVar_ItemSpacing , ImVec2(8.f , 8.f));
       ScopedStyle padding(ImGuiStyleVar_FramePadding , ImVec2(4.f , 4.f));
 
@@ -294,14 +285,12 @@ namespace other {
       if (multi_edit) {
       } else {
         auto& component = selection->GetComponent<Transform>();
-
+        
         ImGui::TableNextRow();
         ui::widgets::DrawVec3Control("Translation" , component.position , translation_manually_edited);
 
         ImGui::TableNextRow();
-        glm::vec3 erotation = glm::degrees(component.erotation);
-        if (ui::widgets::DrawVec3Control("Rotation" , erotation , rotation_manually_edited)) {
-          component.erotation = erotation;
+        if (ui::widgets::DrawVec3Control("Rotation" , component.erotation , rotation_manually_edited)) {
           /// recalculate quaternion
         }
 

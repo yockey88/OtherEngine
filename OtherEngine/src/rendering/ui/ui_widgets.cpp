@@ -3,9 +3,11 @@
  **/
 #include "rendering/ui/ui_widgets.hpp"
 
+#include <glm/gtc/type_ptr.hpp>
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 
+#include "core/logger.hpp"
 #include "input/keyboard.hpp"
 #include "rendering/ui/ui_helpers.hpp"
 
@@ -17,7 +19,6 @@ namespace widgets {
                        float reset_val , float col_w , VectorAxis axes) {
     bool modified = false;
     
-    PushId();
     ImGui::TableSetColumnIndex(0);
     ShiftCursor(17.f , 7.f);
 
@@ -29,8 +30,6 @@ namespace widgets {
 
     modified = EditVec3(label , ImVec2(ImGui::GetContentRegionAvail().x - 8.f , ImGui::GetFrameHeightWithSpacing() + 8.f) , 
                         reset_val , edited , value , axes);
-
-    PopId();
 
     return modified;
   }

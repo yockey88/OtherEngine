@@ -56,7 +56,7 @@ namespace other {
     ///     and allow for user created panels
     project_panel = Ref<ProjectPanel>::Create(*this);
     scene_panel = Ref<ScenePanel>::Create(*this);
-    entity_properties_panel = Ref<EntityProperties>(*this);
+    entity_properties_panel = Ref<EntityProperties>::Create(*this);
 
     /// tbh should get rid of OnProjectChange, engine should be focused on one project at a time
     ///   and to reload we should either recompile or simply shut down and reload a new file

@@ -92,6 +92,16 @@ namespace other {
         registry.remove<T>(handle);
       }
 
+      template <component_type T>
+      inline void UpdateComponent(const T& component) {
+        if (!HasComponent<T>()) {
+          AddComponent<T>();
+        } else {
+          registry.patch<T>(handle , [&](auto& comp) { comp = component; });
+            //.patch<T>(handle , component);
+        }
+      }
+
       inline entt::entity GetEntity() const { return handle; }
 
       inline bool IsNull() const { return handle == entt::null; }

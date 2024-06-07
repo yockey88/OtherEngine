@@ -16,8 +16,12 @@ namespace other {
     tag.id = 0;
     tag.name = "[ Blank Entity ]";
     
+    auto& transform = e.AddComponent<Transform>();
+    transform.position = { 0.f , 0.f , 0.f };
+    transform.erotation = { 0.f , 0.f , 0.f };
+    transform.scale = { 1.f , 1.f , 1.f };
+
     /* auto& relationship = */ e.AddComponent<Relationship>();
-    /* auto& transform = */ e.AddComponent<Transform>();
   }
   
   void OnDestroyEntity(entt::registry& context , entt::entity entt) {

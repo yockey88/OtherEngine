@@ -6,6 +6,7 @@
 #include <array>
 
 #include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
 
 #include "rendering/ui/ui_colors.hpp"
 
@@ -68,6 +69,34 @@ namespace ui {
   static uint32_t counter = 0;
   static std::array<char , 16 + 2 + 1> id_buffer = { '#' , '#' };
   static std::array<char , 1024 + 1> label_id_buffer = {};
+  
+  bool IsItemDisabled() {
+    return ImGui::GetItemFlags() & ImGuiItemFlags_Disabled;
+  }
+  
+  ImRect GetItemRect() {
+    return ImRect(ImGui::GetItemRectMin() , ImGui::GetItemRectMax());
+  }
+  
+  void DrawItemActivityOutline(OutlineFlags flags , ImColor color_highlight , float rounding) {
+    if (IsItemDisabled()) {
+      return;
+    }
+
+    auto* draw_list = ImGui::GetWindowDrawList();
+    const ImRect rect = RectExpanded(GetItemRect() , 1.f , 1.f);
+    if ((flags & OutlineFlags_WhenActive) && ImGui::IsItemActive()) {
+      if (flags & OutlineFlags_HighlightActive) {
+        draw_list->AddRect(rect.Min , rect.Max , theme::highlight , rounding , 0 , 1.5f);
+      } else {
+        draw_list->AddRect(rect.Min , rect.Max , ImColor(60 , 60 , 60) , rounding , 0 , 1.5f);
+      }
+    } else if ((flags & OutlineFlags_WhenHovered) && ImGui::IsItemHovered() && !ImGui::IsItemActive()) {
+      draw_list->AddRect(rect.Min , rect.Max , ImColor(60 , 60 , 60) , rounding , 0 , 1.5f);
+    } else if ((flags & OutlineFlags_WhenInactive) && !ImGui::IsItemHovered() && !ImGui::IsItemActive()) {
+      draw_list->AddRect(rect.Min , rect.Max , ImColor(50 , 50 , 50) , rounding , 0 , 1.f);
+    }
+  }
   
   void PushId() {
     ImGui::PushID(ui_context++);
@@ -148,11 +177,64 @@ namespace ui {
     ScopedColor bcolor(ImGuiCol_Button, background);
     return ImGui::Button(label , size);
   }
+
+namespace {
+  
+  inline int FormatString(char* buf , size_t buf_size , const char* fmt , ...) {
+    va_list args;
+    va_start(args , fmt);
+
+#ifdef IMGUI_USE_STB_SPRINTF
+    int w = stbsp_vsnsprintf(buf , (int)buf_size , fmt , args);
+#else
+    int w = vsnprintf(buf , buf_size , fmt , args);
+#endif
+    va_end(args);
+
+    if (buf == nullptr) {
+      return w;
+    }
+
+    if (w == -1 || w >= (int)buf_size) {
+      w = (int)buf_size - 1;
+    }
+
+    buf[w] = 0;
+    
+    return w;
+  }
+
+  inline const char* PatchFormatStringFloatToInt(const char* fmt) {
+    if (fmt[0] == '%' && fmt[1] == '.' && fmt[2] == '0' && fmt[3] == 'f' && fmt[4] == '0') {
+      return "%d";
+    }
+
+    const char* fmt_start = ImParseFormatFindStart(fmt);
+    const char* fmt_end = ImParseFormatFindEnd(fmt_start);
+    if (fmt_end > fmt_start && fmt_end[-1] == 'f') {
+#ifndef IMGUI_DISABLE_OBSOLETE_FUNCTIONS
+      if (fmt_start == fmt && fmt_end[-0] == 0) {
+        return "%d";
+      }
+
+      ImGuiContext& g = *GImGui;
+      FormatString(g.TempBuffer.Data , IM_ARRAYSIZE(g.TempBuffer.Data) , "%.*s%%d%s" , (int)(fmt_start - fmt) , fmt , fmt_end);
+      return g.TempBuffer.Data;
+#else
+      /// I dont think this should be DragInt???
+      IM_ASSERT(0 && "DragInt(): Invalid format string!");
+#endif
+    }
+    return fmt;
+  }
+
+} // anonymous namespace
   
   bool DragFloat(const char* label , float* v , float v_speed , float v_min , float v_max , 
                  const char* format , ImGuiSliderFlags flags) {
-    /// replace with fancy DragScalar
-    return ImGui::DragFloat(label , v);
+    bool changed = ImGui::DragFloat(label , v , v_speed , v_min , v_max , format , flags);
+    DrawItemActivityOutline();
+    return changed;
   }
   
   bool TableRowClickable(const char* id, float rowHeight) {

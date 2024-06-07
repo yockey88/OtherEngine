@@ -45,6 +45,18 @@ namespace other {
     if (scale_value.size() > 0) {
       OE_ASSERT(scale_value.size() == 3 , "CORRUPT TRANSFORM SCALE [{}]" , comp_key);
       DeserializeVec3(scale_value , transform.scale);
+
+      if (transform.scale.x == 0) {
+        transform.scale.x = 1;
+      }
+      
+      if (transform.scale.y == 0) {
+        transform.scale.y = 1;
+      }
+      
+      if (transform.scale.z == 0) {
+        transform.scale.z = 1;
+      }
     }
   }
 
