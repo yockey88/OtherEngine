@@ -3,6 +3,7 @@
 */
 #include "scripting/script_engine.hpp"
 
+#include "core/config_keys.hpp"
 #include "core/logger.hpp"
 #include "core/engine.hpp"
 #include "core/filesystem.hpp"
@@ -35,7 +36,8 @@ namespace {
   };
 
   /// these paths should always work because they are relative to the engine core directory and 
-  /// should not be accessed outside of Filesystem::GetEngineCoreDir(...) calls
+  /// should not be accessed outside of Filesystem::GetEngineCoreDir(...) calls and preferably should move to 
+  /// somewhere that will work everywhere 
   constexpr static std::array<ModuleInfo , kNumDefaultModules> kDefaultModules = {
     ModuleInfo(CS_MODULE , kDefaultModuleNames[CS_MODULE] , "bin/Debug/CsModule/CsModule.dll" , "bin/Release/CsModule/CsModule.dll") ,
     ModuleInfo(LUA_MODULE , kDefaultModuleNames[LUA_MODULE] , "bin/Debug/LuaModule/LuaModule.dll" , "bin/Release/LuaModule/LuaModule.dll") ,
@@ -62,8 +64,8 @@ namespace {
     
     LoadDefaultModules();
 
-    std::string script_engine_str = "SCRIPT-ENGINE";
-    auto modules = config.Get(script_engine_str , "MODULES");
+    std::string script_engine_str = kScriptingSection.data();
+    auto modules = config.Get(script_engine_str , kModulesValue);
 
     /// this loop is loading client loaded language modules so we skip any defaults that are already loaded
     ///  if this is a core module and its not loaded then we load it
@@ -79,7 +81,7 @@ namespace {
   }
 
   void ScriptEngine::LoadModule(const std::string& name , const std::string& path) {
-    if (!Filesystem::FileExists(path)) {
+    if (!Filesystem::PathExists(path)) {
       OE_WARN("ScriptEngine::LoadModule: Path {} for module {} does not exist" , path , name);
       return;
     }
@@ -153,11 +155,11 @@ namespace {
   void ScriptEngine::LoadDefaultModules() {
     OE_DEBUG("ScriptEngine::LoadDefaultModules: Loading default modules");
 
-    if (auto val = config.GetVal<bool>("SCRIPT-ENGINE" , "LOAD-CORE-MODULES"); val.has_value() && val.value()) {
+    if (auto val = config.GetVal<bool>(kScriptingSection , kLoadCoreModulesValue); val.has_value() && val.value()) {
       OE_DEBUG("ScriptEngine::LoadDefaultModules: Loading all core modules");
       for (size_t i = 0; i < kNumDefaultModules; ++i) {
         auto& info = kDefaultModules[i];
-        std::filesystem::path engine_core = std::filesystem::absolute(kEngineCoreDir);
+        Path engine_core = std::filesystem::absolute(kEngineCoreDir);
 
 #ifdef OE_DEBUG_BUILD
         engine_core /= info.debug_path;
@@ -173,7 +175,7 @@ namespace {
     }
 
     OE_DEBUG("ScriptEngine::LoadDefaultModules: Loading core modules from config");
-    auto modules = config.Get("SCRIPT-ENGINE" , "MODULES");
+    auto modules = config.Get(kScriptingSection , kLoadCoreModulesValue);
 
     /// here we load core modules, so if its a client module we skip it
     for (auto& module : modules) {
@@ -183,11 +185,10 @@ namespace {
       }
 
       auto mod_info = std::ranges::find_if(kDefaultModules , [&module](const ModuleInfo& info) {
-        println("Comparing {} to {}", info.name , module);
         return info.name == module;
       });
       if (mod_info != kDefaultModules.end()) {
-        std::filesystem::path engine_core = std::filesystem::absolute(kEngineCoreDir);
+        Path engine_core = std::filesystem::absolute(kEngineCoreDir);
 
 #ifdef OE_DEBUG_BUILD
         engine_core /= mod_info->debug_path;
@@ -197,7 +198,7 @@ namespace {
 
         println("Loading core module {} from path {}", mod_info->name , engine_core.string());
 
-        if (!Filesystem::FileExists(engine_core.string())) {
+        if (!Filesystem::PathExists(engine_core.string())) {
           OE_WARN("ScriptEngine::LoadDefaultModules: Path {} for module {} does not exist" , engine_core.string() , mod_info->name);
           continue;
         } else {

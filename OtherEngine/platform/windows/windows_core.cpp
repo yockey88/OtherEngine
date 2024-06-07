@@ -12,11 +12,11 @@ namespace other {
     return PlatformType::WINDOWS;
   }
 
-  bool PlatformLayer::LaunchProject(const std::filesystem::path& path , LaunchType type) {
+  bool PlatformLayer::LaunchProject(const Path& path , LaunchType type) {
     OE_ASSERT(Filesystem::FileExists(path) , "File does not exist : {}", path);
 
-    std::filesystem::path project_file = path;
-    std::filesystem::path project_folder = path.parent_path();
+    Path project_file = path;
+    Path project_folder = path.parent_path();
     bool found = false;
 
     do {
@@ -58,7 +58,7 @@ namespace other {
     return LaunchProcess(real_path , project_folder , args_str);
   }
 
-  bool PlatformLayer::LaunchProcess(const std::filesystem::path& path_ , const std::filesystem::path& working_dir , 
+  bool PlatformLayer::LaunchProcess(const Path& path_ , const Path& working_dir , 
                                     const std::string& args) {
     /// assert here because these checks should always have passed before calling 
     OE_ASSERT(Filesystem::FileExists(path_) , "File does not exist : {}", path_);
@@ -70,7 +70,7 @@ namespace other {
     std::string folder = std::filesystem::absolute(working_dir).string();
 
     /// stupid silly windows I fucking hate you, do you know how long it took me find to this bug here????
-    /// like I swear to god this took me like 3-4 days, why tf doesn't std::filesystem::path do the right slashes for when 
+    /// like I swear to god this took me like 3-4 days, why tf doesn't Path do the right slashes for when 
     /// compiling with MSVC??? like wtf??? And the fact that when I print out .string() and see the delimiters as '\' is just insane'
     std::replace(path.begin() , path.end() , '/' , '\\');
     std::replace(folder.begin() , folder.end() , '/' , '\\');

@@ -5,7 +5,6 @@
 #define OTHER_ENGINE_PROJECT_HPP
 
 #include <string>
-#include <filesystem>
 
 #include "core/defines.hpp"
 #include "core/ref_counted.hpp"
@@ -17,7 +16,9 @@ namespace other {
   
   struct ProjectMetadata {
     std::string name = "";
-    std::filesystem::path file_path = "";
+    Path file_path = "";
+
+    std::vector<Path> project_dir_folders{};
   };
   
   class Project : public RefCounted {
@@ -30,7 +31,8 @@ namespace other {
       ProjectMetadata GetMetadata() { return metadata; }
 
       std::string GetName() { return metadata.name; }
-      std::filesystem::path GetFilePath() { return metadata.file_path; }
+      Path GetFilePath() { return metadata.file_path; }
+      std::vector<Path> GetProjectDirPaths() { return metadata.project_dir_folders; }
 
       static void QueueNewProject(const std::string& path);
       static bool HasQueuedProject();

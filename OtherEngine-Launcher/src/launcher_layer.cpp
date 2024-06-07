@@ -41,7 +41,7 @@ namespace other {
 
     if (selection_context.selected_path.has_value()) {
       auto path = selection_context.selected_path.value();
-      if (!Filesystem::FileExists(path)) {
+      if (!Filesystem::PathExists(path)) {
         OE_WARN("Selected path does not exist: {}", path);
         selection_context.selected_path = std::nullopt;
         return;

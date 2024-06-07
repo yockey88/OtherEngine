@@ -8,6 +8,7 @@
 
 #include "core/defines.hpp"
 #include "core/engine.hpp"
+#include "core/config_keys.hpp"
 #include "event/window_events.hpp"
 #include "event/core_events.hpp"
 #include "rendering/renderer.hpp"
@@ -23,7 +24,7 @@ namespace other {
     event_buffer = new uint8_t[buffer_size];
     cursor = event_buffer;
 
-    auto ui_enabled = config.GetVal<bool>("UI" , "DISABLED");
+    auto ui_enabled = config.GetVal<bool>(kUiSection , kDisabledValue);
     if (!ui_enabled.has_value() || !ui_enabled.value()) {
       EnableUIEvents();
     } else {

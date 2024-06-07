@@ -10,6 +10,9 @@
 
 namespace other {
 
+  uint8_t* Keyboard::state = nullptr;
+  std::map<Keyboard::Key , Keyboard::KeyState> Keyboard::keys = {};
+
   void Keyboard::Initialize() {
     for (uint16_t i = 0 ; i < kKeyCount ; ++i)
       keys[static_cast<Key>(i)] = KeyState{};

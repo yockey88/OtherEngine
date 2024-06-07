@@ -7,9 +7,12 @@
 #include "core/config.hpp"
 #include "core/layer.hpp"
 #include "core/layer_stack.hpp"
+#include "project/project.hpp"
 #include "parsing/cmd_line_parser.hpp"
 #include "asset/asset_handler.hpp"
 #include "rendering/ui/ui_window.hpp"
+#include "scene/scene.hpp"
+#include "scene/scene_manager.hpp"
 
 namespace other {
 
@@ -19,6 +22,8 @@ namespace other {
     public:
       App(Engine* engine);
       virtual ~App();
+
+      void LoadMetadata(const Ref<Project>& project);
     
       void OnLoad();
       void Run();
@@ -40,6 +45,10 @@ namespace other {
       bool RemoveUIWindow(const std::string& name);
       bool RemoveUIWindow(UUID id);
 
+      void LoadScene(const Path& path);
+      Ref<Scene> ActiveScene();
+      void UnloadScene();
+
     protected:
       
       void Attach();
@@ -55,20 +64,27 @@ namespace other {
       virtual void RenderUI() = 0;
       virtual void OnDetach() = 0;
 
+      virtual void OnSceneLoad(const SceneMetadata* path) {}
+
       Engine* GetEngine() { return engine_handle; }
 
       const CmdLine& cmdline;
       const ConfigTable& config;
 
     private:
+      Ref<Project> project_metadata;
+
       Scope<LayerStack> layer_stack = nullptr;
       Scope<AssetHandler> asset_handler = nullptr;
+
+      Scope<SceneManager> scene_manager = nullptr;
 
       std::map<UUID , Ref<UIWindow>> ui_windows;
 
       Engine* engine_handle = nullptr;
 
       friend class Editor;
+      void UpdateSceneContext(float dt);
   };
 
 } // namespace other

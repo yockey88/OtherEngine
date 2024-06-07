@@ -100,11 +100,15 @@ namespace other {
     LogDebug("Loading script module {} from {}" , module_info.name , module_info.paths[0]);
 
     for (const auto& path : module_info.paths) {
-      if (!Filesystem::FileExists(path)) {
+      if (!Filesystem::PathExists(path)) {
         LogError("Script module {} path {} does not exist" , module_info.name , path);
         return nullptr;
       }
     }
+
+    loaded_modules[id] = new LuaScript(GetEngine() , module_info.paths[0]);
+    loaded_modules[id]->Initialize();
+    return loaded_modules[id];
   }
 
   void LuaModule::UnloadScriptModule(const std::string& name) {

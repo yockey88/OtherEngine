@@ -6,9 +6,12 @@
 
 #include <cstdint>
 #include <utility>
+#include <string>
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
+
+#include "rendering/ui/ui_colors.hpp"
 
 #define UI_COLOR(r , g , b , a) ImVec4(r / 255.0f , g / 255.0f , b / 255.0f , a / 255.0f)
 
@@ -86,6 +89,33 @@ namespace other {
 
 namespace ui {
 
+  typedef int32_t OutlineFlags;
+  enum OutlineFlags_ {
+    OutlineFlags_None            = 0 ,
+    OutlineFlags_WhenHovered     = 1 << 1 ,
+    OutlineFlags_WhenActive      = 1 << 2 ,
+    OutlineFlags_WhenInactive    = 1 << 3 ,
+    OutlineFlags_HighlightActive = 1 << 4,
+    OutlineFlags_NoHighlightActive = OutlineFlags_WhenHovered | OutlineFlags_WhenActive | OutlineFlags_WhenInactive ,
+    OutlineFlags_NoOutlineInactive = OutlineFlags_WhenHovered | OutlineFlags_WhenActive | OutlineFlags_HighlightActive ,
+    OutlineFlags_All = OutlineFlags_WhenHovered | OutlineFlags_WhenActive | OutlineFlags_WhenInactive | OutlineFlags_HighlightActive ,
+  };
+
+  bool IsItemDisabled();
+  ImRect GetItemRect();
+
+  void DrawItemActivityOutline(OutlineFlags flags = OutlineFlags_All , ImColor color_highlight = theme::accent , float rounding = GImGui->Style.FrameRounding);
+
+  inline ImRect RectExpanded(const ImRect& rect , float x , float y) {
+    return ImRect(
+      ImVec2(rect.Min.x - x , rect.Min.y - y) ,
+      ImVec2(rect.Max.x + x , rect.Max.y + y)
+    );
+  }
+
+  void PushId();
+  void PopId();
+
   void ShiftCursor(float x , float y);
   void ShiftCursorX(float x);
   void ShiftCursorY(float y);
@@ -99,6 +129,11 @@ namespace ui {
     const char* label , const ImVec4& background , 
     const ImVec4& foreground , ImVec2 size
   );    
+
+  /// this is a wrapper around ImGui::DragFloat so we can add the outline using other::ui::DrawItemActivityOutline(...) 
+  ///   after the dragger is drawn
+  bool DragFloat(const char* label , float* v , float v_speed = 1.f , float v_min = 0.f , float v_max = 0.f , 
+                 const char* format = "%.3f" , ImGuiSliderFlags flags = 0);
   
   bool TableRowClickable(const char* id, float rowHeight);
   
@@ -115,6 +150,9 @@ namespace ui {
   );
   
   void EndPropertyGrid();
+
+  bool OpenPopup(const std::string& str_id , ImGuiWindowFlags flags = 0);
+  void EndPopup();
 
 } // namespace ui
 } // namespace other

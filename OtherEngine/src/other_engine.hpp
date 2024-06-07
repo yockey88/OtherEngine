@@ -12,7 +12,7 @@
 namespace other {
 
   /// implemented by user
-  extern Scope<App> NewApp(Engine* engine , const ConfigTable& config);
+  extern Scope<App> NewApp(Engine* engine);
 
   class OE {
     public:
@@ -22,7 +22,7 @@ namespace other {
       static CmdLine cmd_line;
       static ConfigTable current_config;
 
-      static std::filesystem::path config_path;
+      static Path config_path;
 
       Engine engine;
 
@@ -37,6 +37,11 @@ namespace other {
       void Launch();
       ExitCode Run();
       void Shutdown();
+      Scope<App> active_app = nullptr;
+      Ref<Project> project_metadata;
+
+      Opt<ExitCode> exit_code = std::nullopt;
+
       static void HandleExit(ExitCode code);
 
       static void CoreShutdown();
@@ -46,7 +51,7 @@ namespace other {
 
 #define OE_APPLICATION(project_name) \
   namespace other { \
-    Scope<App> NewApp(Engine* engine , const ConfigTable& config) { \
+    Scope<App> NewApp(Engine* engine) { \
       static_assert(std::is_base_of_v<App , project_name> , #project_name " must derive from other::App"); \
       return NewScope<project_name>(engine); \
     } \

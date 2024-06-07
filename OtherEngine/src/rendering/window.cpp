@@ -4,18 +4,21 @@
  **/
 #include "rendering/window.hpp"
 
+#include <SDL_video.h>
+
 #include "core/logger.hpp"
+#include "core/config_keys.hpp"
 
 namespace other {
 
 namespace {
 
   void EnableGlSettings(const other::ConfigTable& config) {
-    auto depth_test = config.GetVal<bool>("RENDERER.OPENGL" , "DEPTH-TEST").value_or(true);
-    auto stencil_test = config.GetVal<bool>("RENDERER.OPENGL" , "STENCIL-TEST").value_or(false);
-    auto cull_face = config.GetVal<bool>("RENDERER.OPENGL" , "CULL-FACE").value_or(true);
-    auto multisample = config.GetVal<bool>("RENDERER.OPENGL" , "MULTISAMPLE").value_or(true);
-    auto blend = config.GetVal<bool>("RENDERER.OPENGL" , "BLEND").value_or(true);
+    auto depth_test = config.GetVal<bool>(kRendererSection , kDepthTestValue).value_or(true);
+    auto stencil_test = config.GetVal<bool>(kRendererSection , kStencilTestValue).value_or(false);
+    auto cull_face = config.GetVal<bool>(kRendererSection , kCullFaceValue).value_or(true);
+    auto multisample = config.GetVal<bool>(kRendererSection , kMultisampleValue).value_or(true);
+    auto blend = config.GetVal<bool>(kRendererSection , kBlendValue).value_or(true);
 
     if (depth_test) {
       OE_DEBUG("Enabling Depth Test");
@@ -47,15 +50,15 @@ namespace {
   }
 
   void EnableSdlGlSettings(const other::ConfigTable& config) {
-    auto gl_major = config.GetVal<uint32_t>("RENDERER.OPENGL" , "MAJOR").value_or(4);
-    auto gl_minor = config.GetVal<uint32_t>("RENDERER.OPENGL" , "MINOR").value_or(6);
-    auto double_buffer = config.GetVal<bool>("RENDERER.OPENGL" , "DOUBLE-BUFFER").value_or(true);
-    auto depth_size = config.GetVal<uint32_t>("RENDERER.OPENGL" , "DEPTH-SIZE").value_or(24);
-    auto stencil_size = config.GetVal<uint32_t>("RENDERER.OPENGL" , "STENCIL-SIZE").value_or(8);
-    auto accelerated_visual = config.GetVal<bool>("RENDERER.OPENGL" , "ACCELERATED-VISUAL").value_or(true);
-    auto multisample_buffers = config.GetVal<uint32_t>("RENDERER.OPENGL" , "MULTISAMPLE-BUFFERS").value_or(1);
-    auto multisample_samples = config.GetVal<uint32_t>("RENDERER.OPENGL" , "MULTISAMPLE-SAMPLES").value_or(16);
-    auto srgb_capable = config.GetVal<bool>("RENDERER.OPENGL" , "SRGB-CAPABLE").value_or(true);
+    auto gl_major = config.GetVal<uint32_t>(kRendererSection , kMajorValue).value_or(4);
+    auto gl_minor = config.GetVal<uint32_t>(kRendererSection , kMinorValue).value_or(6);
+    auto double_buffer = config.GetVal<bool>(kRendererSection , kDoubleBufferValue).value_or(true);
+    auto depth_size = config.GetVal<uint32_t>(kRendererSection , kDepthSizeValue).value_or(24);
+    auto stencil_size = config.GetVal<uint32_t>(kRendererSection , kStencilSizeValue).value_or(8);
+    auto accelerated_visual = config.GetVal<bool>(kRendererSection , kAccelVisualValue).value_or(true);
+    auto multisample_buffers = config.GetVal<uint32_t>(kRendererSection , kMultisampleBuffersValue).value_or(1);
+    auto multisample_samples = config.GetVal<uint32_t>(kRendererSection , kMultisampleSamplesValue).value_or(16);
+    auto srgb_capable = config.GetVal<bool>(kRendererSection , kSrgbCapableValue).value_or(true);
 
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION , gl_major);
@@ -69,20 +72,20 @@ namespace {
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES , multisample_samples);
     SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE , srgb_capable);
 
-    auto vsync = config.GetVal<bool>("RENDERER.OPENGL" , "VSYNC").value_or(true);
+    auto vsync = config.GetVal<bool>(kRendererSection , kVsyncValue).value_or(true);
     SDL_GL_SetSwapInterval(vsync);
   }
 
   uint32_t ProcessFlags(const ConfigTable& config) {
     uint32_t flags = SDL_WINDOW_OPENGL;
 
-    const auto cfg = config.Get("WINDOW.FLAGS");
+    const auto cfg = config.Get(kWindowFlagsSection);
     if (cfg.size() > 0) {
-      bool resize = config.GetVal<bool>("WINDOW.FLAGS" , "RESIZABLE").value_or(false);
-      bool borderless = config.GetVal<bool>("WINDOW.FLAGS" , "BORDERLESS").value_or(false);
-      bool maximized = config.GetVal<bool>("WINDOW.FLAGS" , "MAXIMIZED").value_or(false);
-      bool minimized = config.GetVal<bool>("WINDOW.FLAGS" , "MINIMIZED").value_or(false);
-      bool allow_highdpi = config.GetVal<bool>("WINDOW.FLAGS" , "ALLOW-HIGH-DPI").value_or(false);
+      bool resize = config.GetVal<bool>(kWindowFlagsSection , kResizableValue).value_or(false);
+      bool borderless = config.GetVal<bool>(kWindowFlagsSection , kBorderlessValue).value_or(false);
+      bool maximized = config.GetVal<bool>(kWindowFlagsSection , kMaximizedValue).value_or(false);
+      bool minimized = config.GetVal<bool>(kWindowFlagsSection , kMinimizedValue).value_or(false);
+      bool allow_highdpi = config.GetVal<bool>(kWindowFlagsSection , kAllowHighDpiValue).value_or(false);
 
       if (resize) {
         flags |= SDL_WINDOW_RESIZABLE;
@@ -152,34 +155,48 @@ namespace {
     return size;
   }
 
+  glm::vec4 Window::ClearColor() const {
+    return config.color;
+  }
+
+  uint32_t Window::ClearFlags() const {
+    return config.clear_flags;
+  }
+
   void Window::Resize(const glm::ivec2& size) {
     if (config.flags & SDL_WINDOW_RESIZABLE) {
-      SDL_SetWindowSize(context.window , size.x , size.y);
-      glViewport(0 , 0 , size.x , size.y);
+      ForceResize(size);
     }
+  }
+      
+  void Window::ForceResize(const glm::ivec2& size) {
+    config.size = size;
+    SDL_SetWindowSize(context.window , config.size.x , config.size.y);
+    SDL_SetWindowPosition(context.window , SDL_WINDOWPOS_CENTERED , SDL_WINDOWPOS_CENTERED);
+    glViewport(0 , 0 , config.size.x , config.size.y);
   }
 
   WindowConfig Window::ConfigureWindow(const other::ConfigTable& config) {
     other::WindowConfig cfg;
   
-    const auto wheight = config.GetVal<uint32_t>("WINDOW" , "HEIGHT");
-    const auto wwidth = config.GetVal<uint32_t>("WINDOW" , "WIDTH");
+    const auto wheight = config.GetVal<uint32_t>(kWindowSection , kHeightValue);
+    const auto wwidth = config.GetVal<uint32_t>(kWindowSection , kWidthValue);
   
     cfg.size.x = wwidth.value_or(1920);
     cfg.size.y = wheight.value_or(1080);
   
-    const auto title_cfg = config.Get("WINDOW" , "TITLE");
+    const auto title_cfg = config.Get(kWindowSection , kTitleValue);
     if (title_cfg.size() > 0) {
       cfg.title = title_cfg[0];
     }
   
-    const auto xpos = config.GetVal<int>("WINDOW" , "XPOS");
-    const auto ypos = config.GetVal<int>("WINDOW" , "YPOS");
+    const auto xpos = config.GetVal<int>(kWindowSection , kXposValue);
+    const auto ypos = config.GetVal<int>(kWindowSection , kYposValue);
   
     cfg.pos.x = xpos.value_or(SDL_WINDOWPOS_CENTERED);
     cfg.pos.y = ypos.value_or(SDL_WINDOWPOS_CENTERED);
   
-    cfg.centered = config.GetVal<bool>("WINDOW" , "CENTERED").value_or(true);
+    cfg.centered = config.GetVal<bool>(kWindowSection , kCenteredValue).value_or(true);
     if (cfg.centered) {
       cfg.pos.x = SDL_WINDOWPOS_CENTERED;
       cfg.pos.y = SDL_WINDOWPOS_CENTERED;
@@ -188,7 +205,7 @@ namespace {
     cfg.flags = ProcessFlags(config);
   
     glm::vec4 col = { 0.1f , 0.3f , 0.5f , 1.0f };
-    const auto color = config.Get("WINDOW" , "CLEAR-COLOR");
+    const auto color = config.Get(kWindowSection , kClearColorValue);
   
     if (color.size() == 4) {
       col.r = std::stof(color[0]);
@@ -208,18 +225,18 @@ namespace {
           err_str += ",";
         }
       }
-      err_str = other::fmtstr("{}\n - using default clear color : {}" , col);
+      err_str += other::fmtstr(" - using default clear color : {}" , col);
       OE_WARN(err_str);
     }
     
     uint32_t buffer_flags = 0;
-    const auto clear_flags = config.Get("WINDOW" , "CLEAR-BUFFERS");
+    const auto clear_flags = config.Get(kWindowSection , kClearBuffersValue);
     for (const auto& flag : clear_flags) {
-      if (flag == "COLOR") {
+      if (flag == kColorValue) {
         buffer_flags |= GL_COLOR_BUFFER_BIT;
-      } else if (flag == "DEPTH") {
+      } else if (flag == kDepthValue) {
         buffer_flags |= GL_DEPTH_BUFFER_BIT;
-      } else if (flag == "STENCIL") {
+      } else if (flag == kStencilValue) {
         buffer_flags |= GL_STENCIL_BUFFER_BIT;
       } else {
         OE_WARN("Invalid clear buffer flag : {}", flag);

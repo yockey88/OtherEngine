@@ -3,8 +3,6 @@
  **/
 #include "scene/octree.hpp"
 
-#include <ranges>
-
 #include "core/logger.hpp"
 #include "ecs/entity.hpp"
 
@@ -244,22 +242,9 @@ namespace {
   }
   
   void Octree::AddEntity(Entity* entity) {
-    if (entity == nullptr) {
-      return;
-    }
+    OE_ASSERT(entity != nullptr , "Attempting to add null entity to octree");
 
-    Octant* octant = GetOctant(entity->Position());
-    Octant* previous_spot = entity->ContainingSpace();
-
-    if (octant == previous_spot) {
-      return;
-    }
-
-    /// remove entity from previous spot
-    std::erase(previous_spot->entities , entity);
-
-    /// add entity to new spot
-    entity->PlaceInSpace(octant);
+    throw std::runtime_error("ADD ENTITY UNIMPLEMENTED");
   }
 
 } // namespace other

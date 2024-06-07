@@ -10,6 +10,7 @@ namespace other {
 namespace ui {
 namespace theme {
 
+  constexpr auto blue = IM_COL32(0 , 0 , 255 , 255);
   constexpr auto accent = IM_COL32(236 , 158 , 36 , 255);
   constexpr auto highlight = IM_COL32(39 , 185 , 242 , 255);
   /* ?? */ constexpr auto nice_blue = IM_COL32(83 , 232 , 254 , 255);
@@ -36,6 +37,7 @@ namespace theme {
   constexpr auto mesh_not_set = IM_COL32(250, 101, 23, 255);
 
   ImU32 ColorWithMultiplier(const ImColor& color , float multiplier);
+  ImU32 ColorWithMultipliedSaturation(const ImColor& color , float multiplier);
 
 } // namespace theme
 } // namespace ui

@@ -25,8 +25,7 @@ namespace other {
       std::optional<std::string> current_section = "";
       std::optional<std::string> current_key = "";
 
-      size_t line = 1;
-      size_t col = 1;
+      size_t index = 0;
 
       ConfigTable table;
       bool in_string = false;

@@ -17,13 +17,10 @@ namespace other {
       WindowEvent() {}
       ~WindowEvent() {}
 
-      EVENT_CATEGORY(WINDOW_EVENT | APPLICATION_EVENT);
+      EVENT_CATEGORY(WINDOW_EVENT | APPLICATION_EVENT | CORE_EVENT);
   };
 
   class WindowResized : public WindowEvent {
-    glm::ivec2 size;
-    glm::ivec2 old_size;
-
     public:
       WindowResized(const glm::ivec2& size , const glm::ivec2& old_size) 
         : size(size) , old_size(old_size) {}
@@ -45,6 +42,10 @@ namespace other {
       }
 
       EVENT_TYPE(WINDOW_RESIZE);
+      
+    private:
+      glm::ivec2 size;
+      glm::ivec2 old_size;
   };
 
   class WindowMinimized : public WindowEvent {

@@ -5,16 +5,28 @@
 
 #include "scene/scene.hpp"
 #include "scene/octree.hpp"
+#include "ecs/components/tag.hpp"
 
 namespace other {
 
-  void Entity::PlaceInSpace(Octant* space) {
-    if (space == nullptr) {
-      return;
-    }
+  Entity::Entity(Ref<Scene>& ctx , UUID uuid , const std::string& name)
+      : registry(ctx->registry) , uuid(uuid) , name(name) {
+    context = ctx;
+    handle = context->registry.create();
 
-    containing_space = space;
-    containing_space->entities.push_back(this);
+    auto& tag = GetComponent<Tag>();
+    tag.id = uuid;
+    tag.name = name;
+  }
+      
+  Entity::Entity(Scene* ctx , UUID uuid , const std::string& name) 
+      : registry(ctx->registry) , uuid(uuid) , name(name) {
+    context = Ref<Scene>(ctx);
+    handle = registry.create();
+
+    auto& tag = GetComponent<Tag>();
+    tag.id = uuid;
+    tag.name = name;
   }
 
 } // namespace other

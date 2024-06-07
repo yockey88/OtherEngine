@@ -11,13 +11,12 @@ namespace detail {
 
   void RegisterReference(void* instance);
   void RemoveReference(void* instance);
-
   bool IsValidRef(void* instance);
 
 } // namespace detail
 
   template <typename T>
-  class Ref : public RefCounted {
+  class Ref {
     public:
       Ref()
           : object(nullptr) {}
@@ -27,7 +26,33 @@ namespace detail {
 
       Ref(T* p) {
         object = p;
-        Increment();
+        IncRef();
+      }
+
+      Ref(const Ref<T>& other) {
+        object = other.object;
+        IncRef();
+      }
+
+      Ref(Ref<T>&& other) noexcept {
+        object = other.object;
+        other.object = nullptr;
+      }
+      
+      Ref& operator=(const Ref<T>& other) {
+        if (this != &other) {
+          object = other.object;
+          IncRef();
+        }
+        return *this;
+      }
+
+      Ref& operator=(Ref<T>&& other) noexcept {
+        if (this != &other) {
+          object = other.object;
+          other.object = nullptr;
+        }
+        return *this;
       }
 
       template<typename T2>
@@ -37,56 +62,26 @@ namespace detail {
       }
       
       template<typename T2>
-      Ref(Ref<T2>&& other) {
+      Ref(Ref<T2>&& other) noexcept {
       	object = (T*)other.object;
       	other.object = nullptr;
       }
 
       template <typename... Args>
-      Ref(Args&&... args) {
+      Ref(Args&&... args) noexcept {
         static_assert(std::is_constructible_v<T , Args...> , "Cannot construct a reference from given arguments");
         static_assert(std::is_base_of_v<RefCounted , T> , "Cannot construct a reference from a non-RefCounted type");
         object = new T(std::forward<Args>(args)...);
-        Increment();
+        IncRef();
       }
       
-      virtual ~Ref() override {
-        Decrement();
-        if (Count() == 0) {
-          delete object;
-        }
-      }
-
-      Ref(const Ref& other) {
-        object = other.object;
-        Increment();
-      }
-
-      /// @note count does not change on move
-      Ref(Ref&& other) noexcept {
-        object = other.object;
-        other.object = nullptr;
-      }
-
-      Ref& operator=(const Ref& other) {
-        if (this != &other) {
-          object = other.object;
-          Increment();
-        }
-        return *this;
-      }
-
-      /// @note count does not change on move 
-      Ref& operator=(Ref&& other) noexcept {
-        if (this != &other) {
-          object = other.object;
-          other.object = nullptr;
-        }
-        return *this;
+      virtual ~Ref() {
+        DecRef();
       }
 
       template<typename T2>
       Ref& operator=(const Ref<T2>& other) {
+        static_assert(std::is_base_of_v<T , T2> , "No viable conversion to construct ref with");
       	other.IncRef();
       	DecRef();
       
@@ -95,7 +90,8 @@ namespace detail {
       }
       
       template<typename T2>
-      Ref& operator=(Ref<T2>&& other) {
+      Ref& operator=(Ref<T2>&& other) noexcept {
+        static_assert(std::is_base_of_v<T , T2> , "No viable conversion to construct ref with");
       	DecRef();
       
       	object = other.object;
@@ -113,13 +109,19 @@ namespace detail {
       const T* Raw() const { return object; }
 
       void Reset(T* object = nullptr) {
-        DecRef();
         this->object = object;
+        if (this->object == nullptr) {
+          DecRef();
+        }
       }
 
       template <typename U>
       Ref<U> As() const {
         return Ref<U>(*this);
+      }
+
+      static Ref<T> Clone(const Ref<T>& old_ref) {
+        return Ref<T>(old_ref);
       }
 
       template <typename... Args>
@@ -171,7 +173,7 @@ namespace detail {
   Ref<T> NewRef(Args&&... args) {
     static_assert(std::is_constructible_v<T , Args...> , "Cannot construct a reference from given arguments");
     static_assert(std::is_base_of_v<RefCounted , T> , "Cannot create a reference to a non-refcounted object");
-    return Ref<T>(std::forward<Args>(args)...);
+    return Ref<T>::Create(std::forward<Args>(args)...);
   }
 
 } // namespace other

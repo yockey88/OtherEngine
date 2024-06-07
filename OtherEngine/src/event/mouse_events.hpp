@@ -14,9 +14,6 @@
 namespace other {
 
   class MouseMoved : public Event {
-    glm::vec2 position;
-    glm::vec2 last_position;
-
     public:
       MouseMoved(const glm::vec2& position , const glm::vec2& last_position)
         : position(position) , last_position(last_position) {}
@@ -34,12 +31,14 @@ namespace other {
       }
 
       EVENT_TYPE(MOUSE_MOVD);
-      EVENT_CATEGORY(EventCategory::MOUSE_EVNT | EventCategory::INPUT_EVENT);
+      EVENT_CATEGORY(MOUSE_EVNT | INPUT_EVENT);
+
+    private:
+      glm::vec2 position;
+      glm::vec2 last_position;
   };
 
   class MouseScrolled : public Event {
-    glm::vec2 offset;
-
     public:
       MouseScrolled(const glm::vec2& offset) 
         : offset(offset) {}
@@ -54,7 +53,10 @@ namespace other {
       }
 
       EVENT_TYPE(MOUSE_SCROLLED);
-      EVENT_CATEGORY(EventCategory::MOUSE_EVNT | EventCategory::INPUT_EVENT);
+      EVENT_CATEGORY(MOUSE_EVNT | INPUT_EVENT);
+
+    public:
+      glm::vec2 offset;
   };
 
   class MouseButton : public Event {
@@ -67,12 +69,10 @@ namespace other {
     public:
       inline Mouse::Button Button() const { return button; }
 
-      EVENT_CATEGORY(EventCategory::MOUSE_BUTTON_EVENT | EventCategory::MOUSE_EVNT | EventCategory::INPUT_EVENT);
+      EVENT_CATEGORY(MOUSE_BUTTON_EVENT | MOUSE_EVNT | INPUT_EVENT);
   };
 
   class MouseButtonPressed : public MouseButton {
-    uint32_t repeat;
-
     public:
       MouseButtonPressed(Mouse::Button button , uint32_t repeat) 
         : MouseButton(button) , repeat(repeat) {}
@@ -86,6 +86,9 @@ namespace other {
       uint32_t FramesHeld() const { return repeat; }
 
       EVENT_TYPE(MOUSE_BUTTON_PRESSED);
+
+    private:
+      uint32_t repeat;
   };
 
   class MouseButtonReleased : public MouseButton {
@@ -103,8 +106,6 @@ namespace other {
   };
   
   class MouseButtonHeld : public MouseButton {
-    uint32_t repeat;
-
     public:
       MouseButtonHeld(Mouse::Button button , uint32_t repeat)
         : MouseButton(button) , repeat(repeat) {}
@@ -117,7 +118,10 @@ namespace other {
 
       uint32_t FramesHeld() const { return repeat; }
   
-      EVENT_TYPE(MOUSE_BUTTON_HELD)
+      EVENT_TYPE(MOUSE_BUTTON_HELD);
+    
+    private:
+        uint32_t repeat;
   };
 
 } // namespace other

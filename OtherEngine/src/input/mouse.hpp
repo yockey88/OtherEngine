@@ -43,37 +43,36 @@ namespace other {
       };
 
     private:
-      const uint32_t kButtonCount = 5;
+      constexpr static uint32_t kButtonCount = 5;
 
-      MouseState state;
-      std::map<Button , ButtonState> buttons;
+      static MouseState state;
+      static std::map<Button , ButtonState> buttons;
 
     public:
-      void Initialize();
-      void Update();
-      void SnapToCenter();
-      void FreeCursor();
-      void HideCursor();
+      static void Initialize();
+      static void Update();
+      static void SnapToCenter();
+      static void FreeCursor();
+      static void HideCursor();
 
-      inline ButtonState GetButtonState(Button button) { return buttons[button]; }
+      static inline ButtonState GetButtonState(Button button) { return buttons[button]; }
 
-      inline uint32_t X() { return state.position.x; }
-      inline uint32_t Y() { return state.position.y; }
+      static inline uint32_t X() { return state.position.x; }
+      static inline uint32_t Y() { return state.position.y; }
       
-      inline uint32_t PreviousX() { return state.previous_position.x; }
-      inline uint32_t PreviousY() { return state.previous_position.y; }
+      static inline uint32_t PreviousX() { return state.previous_position.x; }
+      static inline uint32_t PreviousY() { return state.previous_position.y; }
 
-      inline uint32_t DX() { return state.position.x - state.previous_position.x; }
-      inline uint32_t DY() { return state.position.y - state.previous_position.y; }
+      static inline uint32_t DX() { return state.position.x - state.previous_position.x; }
+      static inline uint32_t DY() { return state.position.y - state.previous_position.y; }
 
-      inline bool InWindow() { return state.in_window; }
+      static inline bool InWindow() { return state.in_window; }
 
-
-      inline uint32_t FramesHeld(Button button) { return buttons[button].frames_held; }
-      inline bool Pressed(Button button) { return buttons[button].current_state == State::PRESSED; }
-      inline bool Blocked(Button button) { return buttons[button].current_state == State::BLOCKED; }
-      inline bool Held(Button button) { return buttons[button].current_state == State::HELD; }
-      inline bool Released(Button button) { return buttons[button].current_state == State::RELEASED; }
+      static inline uint32_t FramesHeld(Button button) { return buttons[button].frames_held; }
+      static inline bool Pressed(Button button) { return buttons[button].current_state == State::PRESSED; }
+      static inline bool Blocked(Button button) { return buttons[button].current_state == State::BLOCKED; }
+      static inline bool Held(Button button) { return buttons[button].current_state == State::HELD; }
+      static inline bool Released(Button button) { return buttons[button].current_state == State::RELEASED; }
   };
 
 } // namespace other

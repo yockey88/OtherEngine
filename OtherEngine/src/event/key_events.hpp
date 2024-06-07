@@ -19,7 +19,7 @@ namespace other {
     public:
       inline Keyboard::Key Key() const { return key_code; }
 
-      EVENT_CATEGORY(KEYBOARD_EVENT | INPUT_EVENT)
+      EVENT_CATEGORY(KEYBOARD_EVENT | INPUT_EVENT);
   }; 
 
   class KeyPressed : public KeyEvent {
@@ -51,8 +51,6 @@ namespace other {
   };
 
   class KeyHeld : public KeyEvent {
-    uint32_t repeat;
-
     public:
       KeyHeld(Keyboard::Key key_code , uint32_t repeat)
         : KeyEvent(key_code) , repeat(repeat) {}
@@ -66,6 +64,9 @@ namespace other {
       uint32_t FramesHeld() const { return repeat; }
 
       EVENT_TYPE(KEY_HELD);
+
+    public:
+      uint32_t repeat;
   };
 
 } // namespace other

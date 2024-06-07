@@ -147,8 +147,8 @@ namespace other {
 } // namespace other
 
 template <>
-struct fmt::formatter<std::filesystem::path> : fmt::formatter<std::string_view> {
-  auto format(std::filesystem::path p , fmt::format_context& ctx) {
+struct fmt::formatter<other::Path> : fmt::formatter<std::string_view> {
+  auto format(other::Path p , fmt::format_context& ctx) {
     return fmt::formatter<std::string_view>::format(p.string() , ctx);
   }
 };

@@ -49,7 +49,12 @@ namespace other {
       void SwapBuffers();
 
       glm::ivec2 Size() const;
+      glm::vec4 ClearColor() const;
+      uint32_t ClearFlags() const;
+
       void Resize(const glm::ivec2& size);
+
+      void ForceResize(const glm::ivec2& size);
 
       static WindowConfig ConfigureWindow(const ConfigTable& config);
       static Result<Scope<Window>> GetWindow(const WindowConfig& config , const ConfigTable& cfg_table); 

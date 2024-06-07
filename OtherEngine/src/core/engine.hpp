@@ -27,12 +27,6 @@ namespace other {
 
       void ProcessEvent(Event* event);
 
-      void PushEngineLayer(Ref<Layer>& layer);
-      void PopEngineLayer(Ref<Layer>& layer);
-      void PopEngineLayer();
-      void PushEngineOverlay(Ref<Layer>& overlay);
-      void PopEngineOverlay(Ref<Layer>& overlay);
-
       Logger* GetLog() const { return logger_instance; }
 
       CmdLine cmd_line;
@@ -42,8 +36,9 @@ namespace other {
 
       Logger* logger_instance = nullptr;
 
+      Ref<Project> project_metadata;
+
       Scope<App> active_app;
-      Scope<LayerStack> layer_stack;
       Scope<AssetHandler> asset_handler;
   };
 

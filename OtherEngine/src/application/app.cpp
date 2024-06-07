@@ -78,9 +78,15 @@ namespace other {
 
   App::~App() {}
 
+  void App::LoadMetadata(const Ref<Project>& metadata) {
+    project_metadata = metadata;
+  }
+
   void App::OnLoad() {
     layer_stack = NewScope<LayerStack>();
     asset_handler = NewScope<AssetHandler>();
+
+    scene_manager = NewScope<SceneManager>();
 
     {
       Ref<Layer> core_layer = NewRef<CoreLayer>(this);
@@ -116,9 +122,7 @@ namespace other {
 
       DoUpdate(dt);
 
-      // if (scene_context != nullptr) {
-      //   scene_context->Update(dt);
-      // }
+      UpdateSceneContext(dt);
 
       Renderer::BeginFrame();
 
@@ -231,6 +235,45 @@ namespace other {
     ui_windows.erase(id);
     return true;
   }
+  
+  void App::LoadScene(const Path& path) {
+    if (scene_manager->HasScene(path)) {
+      scene_manager->SetAsActive(path);
+    } else {
+      if (!scene_manager->LoadScene(path)) {
+        OE_ERROR("Failed to load scene : {}" , path);
+        return;
+      }
+      UnloadScene();
+      
+      scene_manager->SetAsActive(path);
+      if (scene_manager->ActiveScene() == nullptr) {
+        OE_ERROR("Failed to load scene : {}" , path);
+        return;
+      }
+
+      /// propogate scene loading through layers
+      for (size_t i = 0; i < layer_stack->Size(); ++i) {
+        (*layer_stack)[i]->LoadScene(scene_manager->ActiveScene());
+      }
+      
+      /// alert the client app new scene is loaded 
+      OnSceneLoad(scene_manager->ActiveScene());
+    }
+  }
+
+  Ref<Scene> App::ActiveScene() {
+    return scene_manager->ActiveScene()->scene;
+  }
+
+  void App::UnloadScene() {
+    if (scene_manager->ActiveScene() == nullptr) {
+      return;
+    }
+
+    OE_DEBUG("Unloading scene : {}" , scene_manager->ActiveScene()->path);
+    scene_manager->UnloadActive();
+  }
 
   void App::Attach() {
     OnAttach();
@@ -255,7 +298,11 @@ namespace other {
 
   void App::DoRender() {
     Render();
-    /// scene_context->Render();
+    
+    if (scene_manager->ActiveScene() != nullptr) {
+      //scene_manager->ActiveScene()->Render();
+    }
+
     for (size_t i = 0; i < layer_stack->Size(); ++i) {
       (*layer_stack)[i]->Render();
     }
@@ -276,6 +323,10 @@ namespace other {
       window = nullptr;
     }
     ui_windows.clear();
+  }
+      
+  void App::UpdateSceneContext(float dt) {
+    scene_manager->UpdateScene(dt);
   }
 
 } // namespace other

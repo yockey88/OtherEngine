@@ -24,7 +24,7 @@ namespace other {
   CmdLine OE::cmd_line;
   ConfigTable OE::current_config;
 
-  std::filesystem::path OE::config_path;
+  Path OE::config_path;
 
   ExitCode OE::Main(int argc , char* argv[]) {
 #ifdef OE_DEBUG_BUILD
@@ -70,7 +70,7 @@ namespace other {
     try {
       CoreInit();
 
-      {
+      /* main engine entry point */ {
         OE driver;
         ExitCode run_code = driver.Run();
         if (run_code != ExitCode::SUCCESS) {
@@ -203,7 +203,7 @@ namespace other {
     do {
       Launch();
       {
-        auto app = NewApp(&engine , current_config);
+        auto app = NewApp(&engine);
         engine.LoadApp(app);
       }
 
