@@ -1,6 +1,6 @@
 using System;
 
-namespace enginey {
+namespace Other {
 
   public static class Mathf {
     public const float epsilon = 0.00001f;

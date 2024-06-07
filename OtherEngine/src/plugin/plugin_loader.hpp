@@ -22,7 +22,7 @@ namespace other {
       Plugin* plugin = nullptr;
   };
 
-  Scope<PluginLoader> GetPluginLoader(const std::string& path);
+  Scope<PluginLoader> GetPluginLoader(const std::string_view path);
 
 } // namespace other
 

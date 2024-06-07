@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace enginey {
+namespace Other {
 
   [StructLayout(LayoutKind.Sequential)]
   public struct Vec4 : IEquatable<Vec4> {

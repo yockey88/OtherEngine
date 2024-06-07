@@ -11,7 +11,7 @@
 
 namespace other {
 
-  constexpr static size_t kBuiltInComponents = 4;
+  constexpr static size_t kBuiltInComponents = 5;
 
   using ComponentTagPair = std::pair<std::string_view , size_t>;
   constexpr static std::array<ComponentTagPair , kBuiltInComponents> kBuiltInComponentTags = {
@@ -19,6 +19,7 @@ namespace other {
     ComponentTagPair{ "TRANSFORM" , 1 } , 
     ComponentTagPair{ "RELATIONSHIP" , 2 } ,
     ComponentTagPair{ "MESH" , 3 } ,
+    ComponentTagPair{ "SCRIPT" , 4 } ,
   };
 
   struct Component {

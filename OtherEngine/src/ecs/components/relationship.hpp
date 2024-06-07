@@ -22,8 +22,6 @@ namespace other {
   
   class RelationshipSerializer : public ComponentSerializer {
     public:
-      virtual ~RelationshipSerializer() override {}
-
       COMPONENT_SERIALIZERS(Relationship);
   };
 

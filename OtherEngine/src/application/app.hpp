@@ -24,6 +24,7 @@ namespace other {
       virtual ~App();
 
       void LoadMetadata(const Ref<Project>& project);
+      Ref<Project> GetProjectContext();
     
       void OnLoad();
       void Run();

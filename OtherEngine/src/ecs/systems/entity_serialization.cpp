@@ -10,6 +10,7 @@
 #include "ecs/components/transform.hpp"
 #include "ecs/components/relationship.hpp"
 #include "ecs/components/mesh.hpp"
+#include "ecs/components/script.hpp"
 
 namespace other {
 
@@ -19,6 +20,7 @@ namespace other {
     []() -> Scope<ComponentSerializer> { return NewScope<TransformSerializer>(); } ,
     []() -> Scope<ComponentSerializer> { return NewScope<RelationshipSerializer>(); } ,
     []() -> Scope<ComponentSerializer> { return NewScope<MeshSerializer>(); } ,
+    []() -> Scope<ComponentSerializer> { return NewScope<ScriptSerializer>(); } ,
   };
 
   Scope<ComponentSerializer> EntitySerialization::GetComponentSerializer(const std::string_view tag) {

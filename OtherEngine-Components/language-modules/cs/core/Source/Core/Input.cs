@@ -1,4 +1,4 @@
-﻿namespace enginey {
+﻿namespace Other {
 
   enum State {
     PRESSED = 0,
@@ -303,12 +303,12 @@
   public static class Keyboard {
     private const int NumKeys = 287;
     
-    public static int KeyFramesHeld(KeyCode key) => Engine.KeyFramesHeld(key);
-    public static bool KeyPressed(KeyCode key) => Engine.IsKeyPressed(key);
-    public static bool KeyBlocked(KeyCode key) => Engine.IsKeyBlocked(key);
-    public static bool KeyHeld(KeyCode key) => Engine.IsKeyHeld(key);
-    public static bool KeyDown(KeyCode key) => Engine.IsKeyDown(key);
-    public static bool KeyReleased(KeyCode key) => Engine.IsKeyReleased(key);
+    // public static int KeyFramesHeld(KeyCode key) => Engine.KeyFramesHeld(key);
+    // public static bool KeyPressed(KeyCode key) => Engine.IsKeyPressed(key);
+    // public static bool KeyBlocked(KeyCode key) => Engine.IsKeyBlocked(key);
+    // public static bool KeyHeld(KeyCode key) => Engine.IsKeyHeld(key);
+    // public static bool KeyDown(KeyCode key) => Engine.IsKeyDown(key);
+    // public static bool KeyReleased(KeyCode key) => Engine.IsKeyReleased(key);
 
     public static int KeyCount {
       get => NumKeys;
@@ -317,42 +317,42 @@
   
   public static class Mouse {
     private const int NumButtons = 5;
-    public static void SnapToCenter() => Engine.SnapMouseToCenter();
-    public static void FreeCursor() => Engine.FreeMouse();
-    public static void HideCursor() => Engine.HideMouse();
-    public static int X => Engine.MouseX();
-    public static int Y => Engine.MouseY();
-    public static int LastX => Engine.MouseLastX();
-    public static int LastY => Engine.MouseLastY();
-    public static int DX => Engine.MouseDX();
-    public static int DY => Engine.MouseDY();
-    public static int ButtonCount {
-      get => NumButtons;
-    }
-    public static Vec2 Position {
-      get {
-        Engine.MousePos(out Vec2 result);
-        return result;
-      }    
-    }
-    public static Vec2 LastPosition {
-      get {
-        Engine.MouseLastPos(out Vec2 result);
-        return result;
-      }
-    }
-    public static Vec2 Delta {
-      get {
-        Engine.MouseDelta(out Vec2 result);
-        return result;
-      }
-    }
-    public static bool InWindow => Engine.MouseInWindow();
+    // public static void SnapToCenter() => Engine.SnapMouseToCenter();
+    // public static void FreeCursor() => Engine.FreeMouse();
+    // public static void HideCursor() => Engine.HideMouse();
+    // public static int X => Engine.MouseX();
+    // public static int Y => Engine.MouseY();
+    // public static int LastX => Engine.MouseLastX();
+    // public static int LastY => Engine.MouseLastY();
+    // public static int DX => Engine.MouseDX();
+    // public static int DY => Engine.MouseDY();
+    // public static int ButtonCount {
+    //   get => NumButtons;
+    // }
+    // public static Vec2 Position {
+    //   get {
+    //     Engine.MousePos(out Vec2 result);
+    //     return result;
+    //   }    
+    // }
+    // public static Vec2 LastPosition {
+    //   get {
+    //     Engine.MouseLastPos(out Vec2 result);
+    //     return result;
+    //   }
+    // }
+    // public static Vec2 Delta {
+    //   get {
+    //     Engine.MouseDelta(out Vec2 result);
+    //     return result;
+    //   }
+    // }
+    // public static bool InWindow => Engine.MouseInWindow();
     
-    public static int ButtonFramesHeld(Button button) => Engine.ButtonFramesHeld(button);
-    public static bool ButtonPressed(Button button) => Engine.IsMouseButtonPressed(button);
-    public static bool ButtonBlocked(Button button) => Engine.IsMouseButtonBlocked(button);
-    public static bool ButtonHeld(Button button) => Engine.IsMouseButtonHeld(button);
-    public static bool ButtonReleased(Button button) => Engine.IsMouseButtonReleased(button);
+    // public static int ButtonFramesHeld(Button button) => Engine.ButtonFramesHeld(button);
+    // public static bool ButtonPressed(Button button) => Engine.IsMouseButtonPressed(button);
+    // public static bool ButtonBlocked(Button button) => Engine.IsMouseButtonBlocked(button);
+    // public static bool ButtonHeld(Button button) => Engine.IsMouseButtonHeld(button);
+    // public static bool ButtonReleased(Button button) => Engine.IsMouseButtonReleased(button);
   }
 }

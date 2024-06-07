@@ -81,6 +81,10 @@ namespace other {
   void App::LoadMetadata(const Ref<Project>& metadata) {
     project_metadata = metadata;
   }
+      
+  Ref<Project> App::GetProjectContext() {
+    return Ref<Project>::Clone(project_metadata);
+  }
 
   void App::OnLoad() {
     layer_stack = NewScope<LayerStack>();

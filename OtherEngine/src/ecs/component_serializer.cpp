@@ -2,6 +2,8 @@
  * \file ecs/component_serializer.cpp
  **/
 #include "ecs/component_serializer.hpp"
+#include <cctype>
+#include <iterator>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm/gtx/quaternion.hpp"
@@ -9,6 +11,17 @@
 #include "core/logger.hpp"
 
 namespace other {
+      
+  std::string ComponentSerializer::GetComponentSectionKey(const std::string& name , const std::string& section_key) const {
+    std::string key_name;
+    std::transform(name.begin() , name.end() , std::back_inserter(key_name) , ::toupper); 
+
+    key_name += "." + section_key;
+    
+    OE_DEBUG("Attempting to load {}" , key_name);
+
+    return key_name;
+  }
   
   void ComponentSerializer::SerializeVec2(std::ostream& stream , const std::string_view name , const glm::vec2& vec) const {
     stream << name << " = { "

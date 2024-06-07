@@ -153,12 +153,12 @@ namespace other {
   constexpr static std::string_view kIniPathValue = "INI-PATH";
   constexpr static uint64_t kIniPathValueHash = FNV(kIniPathValue);
 
+  constexpr static std::string_view kDefaultModulesValue = "DEFAULT-MODULES";
+  constexpr static uint64_t kDefaultModulesHash = FNV(kDefaultModulesValue);
+
   constexpr static std::string_view kModulesValue = "MODULES";
   constexpr static uint64_t kModulesValueHash = FNV(kModulesValue);
   
-  constexpr static std::string_view kLoadCoreModulesValue = "LOAD-CORE-MODULES";
-  constexpr static uint64_t kLoadCoreModulesValueHash = FNV(kLoadCoreModulesValue);
-
   constexpr static std::string_view kEntitiesValue = "ENTITIES";
   constexpr static uint64_t kEntitiesValueHash = FNV(kEntitiesValue);
 
@@ -170,10 +170,7 @@ namespace other {
 
   constexpr static std::string_view kComponentsValue = "COMPONENTS";
   constexpr static uint64_t kComponentsValueHash = FNV(kComponentsValue);
-  
-  constexpr static std::string_view kChildrenValue = "CHILDREN";
-  constexpr static uint64_t kChildrenValueHash = FNV(kChildrenValue);
-  
+   
   constexpr static std::string_view kPositionValue = "POSITION";
   constexpr static uint64_t kPositionValueHash = FNV(kPositionValue);
   
@@ -182,6 +179,9 @@ namespace other {
   
   constexpr static std::string_view kScaleValue = "SCALE";
   constexpr static uint64_t kScaleValueHash = FNV(kScaleValue);
+  
+  constexpr static std::string_view kChildrenValue = "CHILDREN";
+  constexpr static uint64_t kChildrenValueHash = FNV(kChildrenValue);
 
 } // namespace other 
 

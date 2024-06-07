@@ -33,8 +33,6 @@ namespace other {
 
   class TransformSerializer : public ComponentSerializer {
     public:
-      virtual ~TransformSerializer() override {}
-
       COMPONENT_SERIALIZERS(Transform);
   };
 

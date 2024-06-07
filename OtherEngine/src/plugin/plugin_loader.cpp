@@ -11,9 +11,9 @@
 
 namespace other {
 
-  Scope<PluginLoader> GetPluginLoader(const std::string& path) {
+  Scope<PluginLoader> GetPluginLoader(const std::string_view path) {
 #ifdef OE_WINDOWS
-    return NewScope<WindowsPluginLoader>(path);
+    return NewScope<WindowsPluginLoader>(std::string{ path });
 #else
     return nullptr;
 #endif

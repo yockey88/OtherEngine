@@ -34,11 +34,8 @@ namespace other {
   } 
 
   void RelationshipSerializer::Deserialize(Entity* entity , const ConfigTable& scene_table , Ref<Scene>& scene) const {
-    std::string key_name = entity->Name();
-    std::transform(key_name.begin() , key_name.end() , key_name.begin() , ::toupper);
-    
+    std::string key_name = GetComponentSectionKey(entity->Name() , std::string{ kRelationshipSection });
 
-    key_name += "." + std::string{ kRelationshipSection };
     auto children = scene_table.Get(key_name , kChildrenValue);
     if (children.empty()) {
       return;

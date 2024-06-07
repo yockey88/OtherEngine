@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace enginey {
+namespace Other {
     
   [StructLayout(LayoutKind.Explicit)]
   public struct Mat4 {
@@ -88,11 +88,11 @@ namespace enginey {
       }
     }
 
-    public Mat4 LookAt(Vec3 pos, Vec3 front, Vec3 up) {
-      Mat4 result = new Mat4();
-      Engine.Mat4LookAt(ref pos, ref front, ref up, ref result);
-      return result;
-    }
+    // public Mat4 LookAt(Vec3 pos, Vec3 front, Vec3 up) {
+      // Mat4 result = new Mat4();
+      // Engine.Mat4LookAt(ref pos, ref front, ref up, ref result);
+    //   return result;
+    // }
   }
     
 }

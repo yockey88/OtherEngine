@@ -18,8 +18,6 @@ namespace other {
 
   class MeshSerializer : public ComponentSerializer {
     public:
-      virtual ~MeshSerializer() override {}
-
       COMPONENT_SERIALIZERS(Mesh);
   };
 
