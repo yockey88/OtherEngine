@@ -87,6 +87,7 @@ namespace other {
 
       static std::vector<std::string> module_paths;
       static std::map<UUID , LanguageModuleMetadata> language_modules;
+      static std::map<UUID , ScriptObject*> objects;
 
       static void LoadDefaultModules();
 

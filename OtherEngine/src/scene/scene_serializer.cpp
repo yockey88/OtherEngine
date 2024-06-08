@@ -6,6 +6,7 @@
 #include "core/errors.hpp"
 #include "core/config_keys.hpp"
 #include "parsing/ini_parser.hpp"
+#include "scripting/script_engine.hpp"
 
 namespace other {
 

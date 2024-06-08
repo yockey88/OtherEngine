@@ -47,6 +47,7 @@
     <Compile Include="core\Properties\CoreModuleInfo.cs" />
     <Compile Include="core\Source\Core\Input.cs" />
     <Compile Include="core\Source\Core\InternalCalls.cs" />
+    <Compile Include="core\Source\Editor\EditorPanel.cs" />
     <Compile Include="core\Source\Math\Mat4.cs" />
     <Compile Include="core\Source\Math\Mathf.cs" />
     <Compile Include="core\Source\Math\Vec2.cs" />

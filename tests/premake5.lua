@@ -50,4 +50,29 @@ sandbox.components = {}
 sandbox.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
 sandbox.components["gtest"] = "%{wks.location}/externals/gtest/googletest/include"
 
+local scripting_tests = {}
+
+scripting_tests.name = "scripting_tests"
+scripting_tests.path = "./scripting_tests"
+scripting_tests.kind = "ConsoleApp"
+scripting_tests.language = "C++"
+scripting_tests.cppdialect = "C++latest"
+
+scripting_tests.files = function()
+  files {
+    "./scripting_tests/**.cpp",
+    "./scripting_tests/**.hpp",
+  }
+end
+
+scripting_tests.include_dirs = function()
+  includedirs {
+    "./scripting_tests",
+  }
+end
+
+scripting_tests.components = {}
+scripting_tests.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
+scripting_tests.components["gtest"] = "%{wks.location}/externals/gtest/googletest/include"
+
 AddProject(sandbox)

@@ -15,9 +15,9 @@ namespace other {
 
   ConfigTable ScriptEngine::config;
 
-
   std::vector<std::string> ScriptEngine::module_paths;
   std::map<UUID , LanguageModuleMetadata> ScriptEngine::language_modules;
+  std::map<UUID , ScriptObject*> ScriptEngine::objects;
 
   static Scope<LanguageModule> null_module = nullptr;
 
