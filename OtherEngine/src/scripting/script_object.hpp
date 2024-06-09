@@ -5,9 +5,10 @@
 #define OTHER_ENGINE_SCRIPT_OBJECT_HPP
 
 #include <string>
+#include <map>
 
-#include "core/defines.hpp"
 #include "core/value.hpp"
+#include "scripting/script_field.hpp"
 
 namespace other {
 
@@ -23,10 +24,11 @@ namespace other {
       void MarkCorrupt();
       bool IsCorrupt() const;
 
+      const std::map<UUID , ScriptField>& GetFields();
+
       virtual void InitializeScriptMethods() = 0;
-      virtual void CallMethod(Value* ret , const std::string& name , ParamHandle* args) = 0;
-      virtual void GetProperty(Value* ret , const std::string& name) const = 0;
-      virtual void SetProperty(const Value& value) = 0;
+      virtual void InitializeScriptFields() = 0;
+      virtual Opt<Value> CallMethod(const std::string& name , Parameter* args , uint32_t argc) = 0;
 
       virtual void Initialize() = 0;
       virtual void Update(float dt) = 0;
@@ -38,6 +40,8 @@ namespace other {
       bool is_corrupt = false;
       std::string script_name;
       std::string language;
+
+      std::map<UUID , ScriptField> fields;
   };
 
 } // namespace other

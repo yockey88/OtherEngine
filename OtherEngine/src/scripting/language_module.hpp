@@ -7,18 +7,16 @@
 
 #include <map>
 
-#include "core/engine.hpp"
 #include "core/uuid.hpp"
-#include "plugin/plugin.hpp"
+#include "core/ref_counted.hpp"
 #include "scripting/script_module.hpp"
 
 namespace other {
 
-  class LanguageModule : public Plugin {
+  class LanguageModule : public RefCounted {
     public: 
-      LanguageModule(Engine* engine)
-        : Plugin(engine) {}
-      virtual ~LanguageModule() override {}
+      LanguageModule() {}
+      virtual ~LanguageModule() {}
 
       bool HasScriptModule(const std::string_view name) const;
       bool HasScriptModule(UUID id) const;
@@ -26,6 +24,7 @@ namespace other {
       virtual bool Initialize() = 0;
       virtual bool Reinitialize() = 0;
       virtual void Shutdown() = 0;
+      virtual void Reload() = 0;
       virtual ScriptModule* GetScriptModule(const std::string& name) = 0;
       virtual ScriptModule* GetScriptModule(const UUID& id) = 0;
       virtual ScriptModule* LoadScriptModule(const ScriptModuleInfo& module_info) = 0;

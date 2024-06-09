@@ -52,6 +52,10 @@ namespace other {
     }
   }
       
+  void Value::Clear() {
+    value.Release();
+  }
+      
   void Value::Set(ParamHandle val , size_t typesize , ValueType t) {
     value.Release();
     value.Allocate(typesize);

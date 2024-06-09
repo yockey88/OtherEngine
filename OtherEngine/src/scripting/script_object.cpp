@@ -21,4 +21,8 @@ namespace  other {
     return is_corrupt;
   }
 
+  const std::map<UUID , ScriptField>& ScriptObject::GetFields() {
+    return fields; 
+  }
+
 } // namespace other

@@ -18,6 +18,7 @@
 #include "rendering/renderer.hpp"
 #include "layers/debug_layer.hpp"
 #include "layers/editor_core.hpp"
+#include "scripting/script_engine.hpp"
 #include "editor/project_panel.hpp"
 #include "editor/selection_manager.hpp"
 
@@ -78,9 +79,7 @@ namespace other {
     app->SetInEditor();
     app->OnLoad();
 
-    if (SelectionManager::HasSelection()) {
-      OE_INFO("Why tf we have a selection???");
-    }
+    /// load editor scripts
   }
 
   void Editor::OnEvent(Event* event) {
@@ -102,6 +101,10 @@ namespace other {
 
     if (ImGui::BeginMainMenuBar()) {
       if (ImGui::BeginMenu("File")) {
+        if (ImGui::MenuItem("Reload")) {
+          ScriptEngine::ReloadAllScripts();
+        }
+
         ImGui::EndMenu();
       }
       

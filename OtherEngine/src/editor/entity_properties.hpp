@@ -24,8 +24,8 @@ namespace other {
       Ref<Scene> active_scene;
 
       bool value = false;
-      Value test_value;
-      Opt<Value> testv2;
+      Opt<Value> test_value;
+      Opt<float> testval2;
 
       void DrawSelectionComponents(Entity* entity);
   };

@@ -8,7 +8,6 @@
 #include <string>
 #include <vector>
 
-#include "plugin/plugin.hpp"
 #include "scripting/script_object.hpp"
 
 namespace other {
@@ -18,20 +17,23 @@ namespace other {
     std::vector<std::string> paths;
   };
   
-  class ScriptModule : public Plugin {
+  class ScriptModule {
     public:
-      ScriptModule(Engine* engine) 
-        : Plugin(engine) {}
-      virtual ~ScriptModule() override {}
+      ScriptModule() {}
+      virtual ~ScriptModule() {}
+
+      bool HasChanged() const;
     
       virtual void Initialize() = 0;
       virtual void Shutdown() = 0;
+      virtual void Reload() = 0;
       virtual ScriptObject* GetScript(const std::string& name , const std::string& nspace = "") = 0;
 
       bool IsValid() const { return valid; }
     
     protected:
       bool valid = false;
+      bool changed_on_disk = false;
   };
   
 } // namespace other

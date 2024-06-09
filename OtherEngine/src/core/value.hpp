@@ -15,6 +15,11 @@ namespace other {
   
   typedef void* ParamHandle;
   typedef ParamHandle* ParamArray;
+
+  typedef void* FlagHandle;
+  typedef void* FieldHandle;
+  typedef void* MethodHandle;
+  typedef void* PropertyHandle;
   
   enum ValueType {
     EMPTY , // Void , null , nil ,etc...
@@ -28,6 +33,11 @@ namespace other {
     VEC2 , VEC3 , VEC4 , 
     ASSET , 
     ENTITY 
+  };
+
+  struct Parameter {
+    ParamHandle handle;
+    ValueType type;
   };
 
   template <typename T>
@@ -96,6 +106,8 @@ namespace other {
       const T& Read() const {
         return value.Read<T>();
       }
+
+      void Clear();
 
       void Set(ParamHandle value , size_t typesize , ValueType type);
 

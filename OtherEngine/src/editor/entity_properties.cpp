@@ -17,6 +17,7 @@
 #include "rendering/ui/ui_colors.hpp"
 #include "rendering/ui/ui_helpers.hpp"
 #include "rendering/ui/ui_widgets.hpp"
+#include "scripting/lua/lua_object.hpp"
 
 namespace other {
   
@@ -33,6 +34,8 @@ namespace other {
       return;
     }
 
+    /// TODO: eliminate rtti here, this is simply the easiest for right now
+    ///       without using the name or hashing the name 
     ImGui::PushID((void*)typeid(C).hash_code());
     ImVec2 avail_region = ImGui::GetContentRegionAvail();
 
@@ -275,6 +278,8 @@ namespace other {
   }
       
   void EntityProperties::DrawSelectionComponents(Entity* entity) {
+    
+
     DrawComponent<Transform>("Transform" , [](Entity* selection) {
       ScopedStyle spacing(ImGuiStyleVar_ItemSpacing , ImVec2(8.f , 8.f));
       ScopedStyle padding(ImGuiStyleVar_FramePadding , ImVec2(4.f , 4.f));
@@ -333,17 +338,89 @@ namespace other {
       for (const auto& [id , s] : script.scripts) {
         bool is_error = s->IsCorrupt();
         if (is_error) {
-          ImGui::Text("%s is corrupt, attempt recompilation or re-add script to this entity" , s->Name().c_str());
+          ImGui::Text("%s corrupt, recompile or reload" , s->Name().c_str());
+
+          if (ImGui::Button(("Reload Script##" + s->Name()).c_str())) {
+            OE_INFO("Reloading script : {}" , s->Name());
+          }
           return;
         }
       
         ui::BeginPropertyGrid();
-        ImGui::Text("%s" , s->Name().c_str());
+        ui::ShiftCursor(10.f , 9.f);
+        ImGui::Text("%s [ %s ]" , s->Name().c_str() , s->LanguageName().c_str());
+
         ImGui::NextColumn();
-        ImGui::Text("%s" , s->LanguageName().c_str());
+        ui::ShiftCursorY(4.f);
+        ImGui::PushItemWidth(-1);
+
+        ImVec2 og_button_txt_align = ImGui::GetStyle().ButtonTextAlign;
+        {
+          ImGui::GetStyle().ButtonTextAlign = { 0.f , 0.5f };
+          float width = ImGui::GetContentRegionAvail().x;
+          float item_height = 28.f;
+
+          std::string button_txt = "None";
+          bool valid = true;
+          /// get full name
+          /// button_txt = full_name
+
+          if ((GImGui->CurrentItemFlags & ImGuiItemFlags_MixedValue) != 0) {
+            button_txt = "---";
+          }
+
+          {
+            ScopedColor bg_col(ImGuiCol_WindowBg , ui::theme::property_field);
+            ScopedColor button_label_col(ImGuiCol_Text , ui::theme::text);
+            ImGui::Button(button_txt.c_str() , { width , item_height });
+
+            const bool hovered = ImGui::IsItemHovered();
+
+            if (hovered) {
+              if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+                /// open script in text editor
+              } else if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                ImGui::OpenPopup(("##script_popup" + s->Name()).c_str());
+              }
+            }
+          }
+        }
+
+        ImGui::GetStyle().ButtonTextAlign = og_button_txt_align;
+
+        bool clear = false;
+        if (ImGui::BeginPopup(("##script_popup" + s->Name()).c_str())) {
+          if (clear) {
+             
+          }
+
+          ImGui::EndPopup();
+        }
+
+        ImGui::PopItemWidth();
+        // Advance to next column 
+
         ui::EndPropertyGrid();
 
+        ui::BeginPropertyGrid();
+        
         /// display exported properties
+        for (auto& [field_id , val] : s->GetFields()) {
+          if (val.value.IsArray()) {
+          } else {
+            ImGui::PushID(val.name.c_str());
+            bool result = false;
+
+            switch (val.value.Type()) {
+              default:
+                ImGui::Text("Field value %s has corrupted type" , val.name.c_str());
+            }
+
+            ImGui::PopID();
+          } 
+        }
+
+        ui::EndPropertyGrid();
       }
     });
     

@@ -2,7 +2,7 @@
 debug = true
 
 [log]
-console-level = "warn"
+console-level = "debug"
 file-level = "debug"
 path = "logs/other-launcher.log"
 

@@ -12,6 +12,7 @@
 #include "core/ref.hpp"
 #include "scene/scene.hpp"
 #include "ecs/component.hpp"
+#include "ecs/components/tag.hpp"
 
 namespace other {
 
@@ -36,7 +37,7 @@ namespace other {
       const entt::entity& Handle() const { return handle; }
 
       const UUID& GetUUID() const { return uuid; }
-      const std::string& Name() const { return name; }
+      const std::string Name() const { return GetComponent<Tag>().name; }
 
       operator bool() const { return handle != entt::null; }
       operator entt::entity() const { return handle; }

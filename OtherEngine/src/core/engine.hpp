@@ -4,7 +4,6 @@
 #define OTHER_ENGINE_ENGINE_HPP
 
 #include "core/defines.hpp"
-#include "core/layer_stack.hpp"
 #include "parsing/cmd_line_parser.hpp"
 #include "event/event_queue.hpp"
 #include "application/app.hpp"

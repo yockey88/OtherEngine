@@ -59,7 +59,7 @@ namespace other {
     }
 
     OE_DEBUG("Loading C# script modules");
-    auto* cs_language_module = ScriptEngine::GetModule(kCsModuleSection);
+    Ref<LanguageModule> cs_language_module = ScriptEngine::GetModule(kCsModuleSection);
     if (cs_language_module != nullptr) {
       std::string real_key = std::string{ kScriptingSection } + "." + std::string{ kCsModuleSection };
       auto cs_modules = config.Get(real_key , kPathsValue);
@@ -76,7 +76,7 @@ namespace other {
     }
 
     OE_DEBUG("Loading Lua script modules");
-    auto* lua_language_module = ScriptEngine::GetModule(kLuaModuleSection);
+    Ref<LanguageModule> lua_language_module = ScriptEngine::GetModule(kLuaModuleSection);
     if (lua_language_module != nullptr) {
       std::string real_key = std::string{ kScriptingSection } + "." + std::string{ kLuaModuleSection };
       auto lua_modules = config.Get(real_key , kPathsValue);
@@ -170,7 +170,7 @@ namespace other {
     }
     
     OE_DEBUG("Unloading Lua script modules");
-    auto* lua_language_module = ScriptEngine::GetModule(kLuaModuleSection);
+    Ref<LanguageModule> lua_language_module = ScriptEngine::GetModule(kLuaModuleSection);
     if (lua_language_module != nullptr) {
       std::string real_key = std::string{ kScriptingSection } + "." + std::string{ kLuaModuleSection };
       auto lua_modules = config.Get(real_key , kPathsValue);
@@ -184,7 +184,7 @@ namespace other {
     }
     
     OE_DEBUG("Unloading C# script modules");
-    auto* cs_language_module = ScriptEngine::GetModule(kCsModuleSection);
+    Ref<LanguageModule> cs_language_module = ScriptEngine::GetModule(kCsModuleSection);
     if (cs_language_module != nullptr) {
       std::string real_key = std::string{ kScriptingSection } + "." + std::string{ kCsModuleSection };
       auto cs_modules = config.Get(real_key , kPathsValue);

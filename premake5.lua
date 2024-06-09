@@ -14,11 +14,8 @@ configuration.platforms = { "Windows" }
 
 configuration.groups = {
     ["OtherEngine"] = { "./OtherEngine" } ,
+    ["OtherEngine-CsCore"] = { "./OtherEngine-ScriptCore/cs" } ,
     ["OtherEngine-Tools"] = { "./OtherEngine-Launcher" } ,
-    [ "OtherEngine-Components" ] = {
-        "./OtherEngine-Components/language-modules/cs" ,
-        "./OtherEngine-Components/language-modules/lua" ,
-    } ,
     ["Development"] = { "C:/Yock/gamedev/Testbed" } ,
     ["Testing"] = { "./tests" }
 }
@@ -88,6 +85,18 @@ zep.path = "./externals/zep"
 zep.include_dir = "%{wks.location}/externals/zep/include"
 zep.lib_name = "zep"
 
+local mono = {}
+mono.name = "mono"
+mono.include_dir = "%{wks.location}/externals/mono/include"
+mono.lib_dir = "%{wks.location}/externals/mono/lib"
+mono.lib_name = "mono-2.0-sgen"
+
+local sol2 = {}
+sol2.name = "sol2"
+sol2.path = "./externals/sol2"
+sol2.include_dir = "%{wks.location}/externals/sol2"
+sol2.lib_name = "sol2"
+
 AddDependency(choc)
 AddDependency(entt)
 AddDependency(glad)
@@ -99,5 +108,7 @@ AddDependency(nativefiledialog)
 AddDependency(sdl2)
 AddDependency(spdlog)
 AddDependency(zep)
+AddDependency(mono)
+AddDependency(sol2)
 
 CppWorkspace(configuration)

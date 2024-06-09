@@ -31,6 +31,9 @@ namespace other {
 
   constexpr static std::string_view kScriptingSection = "SCRIPT-ENGINE";
   constexpr static uint64_t kScriptingSectionHash = FNV(kScriptingSection);
+
+  constexpr static std::string_view kEditorSection = "EDITOR";
+  constexpr static uint64_t kEditorSectionHash = FNV(kEditorSection);
   
   constexpr static std::string_view kCsModuleSection = "C#";
   constexpr static uint64_t kCsModuleSectionHash = FNV(kCsModuleSection);

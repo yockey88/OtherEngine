@@ -9,8 +9,7 @@
 
 #include "core/defines.hpp"
 #include "core/uuid.hpp"
-#include "core/config.hpp"
-#include "plugin/plugin_loader.hpp"
+#include "core/ref.hpp"
 #include "scripting/language_module.hpp"
 
 namespace other {
@@ -27,55 +26,49 @@ namespace other {
     INVALID_LANGUAGE_MODULE = NUM_LANGUAGE_MODULES
   };
 
-  constexpr static size_t kNumDefaultModules = NUM_LANGUAGE_MODULES;
-  constexpr static std::array<std::string_view , kNumDefaultModules> kDefaultModuleNames = {
+  constexpr static size_t kNumModules = NUM_LANGUAGE_MODULES;
+  constexpr static std::array<std::string_view , kNumModules> kModuleNames = {
     /// to match the fact config parse use uppercase for case insensitivity
     "C#" ,
     "LUA" , 
   };
 
+  using FunctionModuleBuilder = Scope<LanguageModule>(*)();
+
   struct ModuleInfo {
     LanguageModuleType type;
     std::string_view name;
-    std::string_view debug_path;
-    std::string_view release_path;
+    uint64_t hash;
 
-    constexpr ModuleInfo(LanguageModuleType t , std::string_view n , std::string_view dp , std::string_view rp) 
-      : type(t) , name(n) , debug_path(dp) , release_path(rp) {}
+    constexpr ModuleInfo(LanguageModuleType t , std::string_view n) 
+      : type(t) , name(n) , hash(FNV(n)) {}
   };
 
-  /// these paths should always work because they are relative to the engine core directory and 
-  /// should not be accessed outside of Filesystem::GetEngineCoreDir(...) calls and preferably should move to 
-  /// somewhere that will work everywhere 
-  constexpr static std::array<ModuleInfo , kNumDefaultModules> kDefaultModules = {
-    ModuleInfo(CS_MODULE , kDefaultModuleNames[CS_MODULE] , "bin/Debug/CsModule/CsModule.dll" , "bin/Release/CsModule/CsModule.dll") ,
-    ModuleInfo(LUA_MODULE , kDefaultModuleNames[LUA_MODULE] , "bin/Debug/LuaModule/LuaModule.dll" , "bin/Release/LuaModule/LuaModule.dll") ,
+  constexpr static std::array<ModuleInfo , kNumModules> kModuleInfo = {
+    ModuleInfo(CS_MODULE , kModuleNames[CS_MODULE]) ,
+    ModuleInfo(LUA_MODULE , kModuleNames[LUA_MODULE]) ,
   };
 
   struct LanguageModuleMetadata {
     UUID id;
-    std::string path;
     std::string name;
-    LanguageModule* module = nullptr;
-    Scope<PluginLoader> loader = nullptr;
+    Ref<LanguageModule> module = nullptr;
   };
 
   class ScriptEngine {
     public:
       static void Initialize(Engine* engine , const ConfigTable& config);
       static void Shutdown();
-      
-      static void LoadModule(const std::string_view name , const std::string_view path);
-      static void UnloadModule(const std::string_view name);
 
-      static bool ModuleLoaded(const std::string_view name);
-      static bool ModuleLoaded(UUID id);
+      static void Reinitialize();
 
       static std::string GetProjectAssemblyDir();
-      
-      static LanguageModule* GetModule(const std::string_view name);
-      static LanguageModule* GetModule(UUID id);
 
+      static void ReloadAllScripts();
+
+      static Ref<LanguageModule> GetModule(const std::string_view name);
+      static Ref<LanguageModule> GetModule(UUID id);
+      
       static ScriptModule* GetScriptModule(const std::string_view name);
       static ScriptModule* GetScriptModule(UUID id);
 
@@ -88,18 +81,14 @@ namespace other {
       static App* app_context;
       static ConfigTable config;
 
-      static std::vector<std::string> module_paths;
       static std::map<UUID , LanguageModuleMetadata> language_modules;
       static std::map<UUID , ScriptModule*> loaded_modules;
       static std::map<UUID , ScriptObject*> objects;
-      
-      static void LoadDefaultModules();
-      
-      static void ReinitializeModule(const UUID& id);
-      static void ReinitializeAllModules();
-      
-      static void UnloadModule(const UUID& id);
-      static void UnloadAllModules();
+
+      static LanguageModuleType StringToModuleType(const std::string_view);
+      static LanguageModuleType IdToModuleType(UUID id);
+
+      static void LoadModule(LanguageModuleType type);
   };
 
 } // namespace other
