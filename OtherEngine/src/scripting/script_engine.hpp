@@ -72,9 +72,12 @@ namespace other {
       static bool ModuleLoaded(UUID id);
 
       static std::string GetProjectAssemblyDir();
-
+      
       static LanguageModule* GetModule(const std::string_view name);
       static LanguageModule* GetModule(UUID id);
+
+      static ScriptModule* GetScriptModule(const std::string_view name);
+      static ScriptModule* GetScriptModule(UUID id);
 
       static void SetAppContext(App* app);
 
@@ -87,10 +90,11 @@ namespace other {
 
       static std::vector<std::string> module_paths;
       static std::map<UUID , LanguageModuleMetadata> language_modules;
+      static std::map<UUID , ScriptModule*> loaded_modules;
       static std::map<UUID , ScriptObject*> objects;
-
+      
       static void LoadDefaultModules();
-
+      
       static void ReinitializeModule(const UUID& id);
       static void ReinitializeAllModules();
       

@@ -7,6 +7,7 @@
 #include "core/logger.hpp"
 #include "core/engine.hpp"
 #include "core/filesystem.hpp"
+#include <spdlog/cfg/helpers.h>
 
 namespace other {
 
@@ -17,6 +18,7 @@ namespace other {
 
   std::vector<std::string> ScriptEngine::module_paths;
   std::map<UUID , LanguageModuleMetadata> ScriptEngine::language_modules;
+  std::map<UUID , ScriptModule*> ScriptEngine::loaded_modules;
   std::map<UUID , ScriptObject*> ScriptEngine::objects;
 
   static Scope<LanguageModule> null_module = nullptr;
@@ -27,13 +29,9 @@ namespace other {
     config = cfg;
     engine_handle = engine;
     
+    /// check if we should load the default modules, we always should unless specified otherwise
     auto default_modules = cfg.GetVal<bool>(kScriptingSection , kDefaultModulesValue);
-
-    if (!default_modules.has_value()) {
-      OE_DEBUG("Loading default scripting module");
-      LoadDefaultModules();
-    } else if (default_modules.value()) {
-      OE_DEBUG("Loading default scripting module");
+    if (!default_modules.has_value() || true == default_modules.value()) {
       LoadDefaultModules();
     }
 
@@ -124,7 +122,7 @@ namespace other {
 
     return "";
   }
-
+  
   LanguageModule* ScriptEngine::GetModule(const std::string_view name) {
     auto hash = FNV(name);
     return GetModule(hash);
@@ -137,15 +135,47 @@ namespace other {
 
     return nullptr;
   }
+      
+  ScriptModule* ScriptEngine::GetScriptModule(const std::string_view name) {
+    auto* smod = GetScriptModule(FNV(name));
+    if (smod == nullptr) {
+      OE_WARN("Failed to retrieve script module {}" , name); 
+    }
+    return smod;
+  }
+
+  ScriptModule* ScriptEngine::GetScriptModule(UUID id) {
+    if (std::find_if(loaded_modules.begin() , loaded_modules.end() , [&](const auto& module) -> bool {
+      return module.first == id;
+    }) != loaded_modules.end()) {
+      return loaded_modules[id];
+    }
+
+    for (const auto& [lid , lang] : language_modules) {
+      if (lang.module->HasScriptModule(id)) {
+        ScriptModule* mod = lang.module->GetScriptModule(id);
+        OE_ASSERT(mod != nullptr , "Failed to retrieve script module from language module");
+
+        if (!mod->IsValid()) {
+          OE_WARN("Corrupt script module {}" , id);
+          return nullptr;
+        }
+
+        loaded_modules[id] = mod;
+        return mod;
+      }
+    }
+
+    return nullptr;
+  }
 
   void ScriptEngine::SetAppContext(App* app) {
     app_context = app;
   }
 
   void ScriptEngine::LoadDefaultModules() {
-    OE_DEBUG("ScriptEngine::LoadDefaultModules: Loading default modules");
+    OE_DEBUG("ScriptEngine::LoadDefaultModules: Loading core modules");
 
-    OE_DEBUG("ScriptEngine::LoadDefaultModules: Loading all core modules");
     for (size_t i = 0; i < kNumDefaultModules; ++i) {
       auto& info = kDefaultModules[i];
       Path engine_core = std::filesystem::absolute(kEngineCoreDir);
@@ -159,10 +189,9 @@ namespace other {
       LoadModule(info.name.data() , engine_core.string());
     }
 
-    /// we loaded all core modules so we can skip the loop below 
     return;
   }
-
+  
   void ScriptEngine::ReinitializeModule(const UUID& id) {
     auto* lang_module = GetModule(id);
     if (lang_module != nullptr) {

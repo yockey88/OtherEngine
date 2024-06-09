@@ -3,9 +3,13 @@
 */
 #include "logger.hpp"
 
+#include <cctype>
+#include <iterator>
 #include <spdlog/common.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/basic_file_sink.h>
+
+#include "core/config_keys.hpp"
 
 namespace other {
   
@@ -55,9 +59,17 @@ namespace other {
     }
     return instance;
   }
+  
+  void Logger::SetLoggerInstance(Logger* inst) {
+    if (inst == nullptr) {
+      return;
+    }
+
+    instance = inst;
+  }
 
   void Logger::Configure(const ConfigTable& config_table) {
-    auto config = config_table.Get("LOG");
+    auto config = config_table.Get(kLogSection);
 
     auto log_file_path = config.find(kLogFilePathKey);
     auto console_level = config.find(kConsoleLevelKey);
@@ -121,35 +133,20 @@ namespace other {
   }
 
   void Logger::SetCorePattern(CoreTarget target , const std::string& pattern) {
-    if (target == CoreTarget::CONSOLE) {
-      sink_patterns[CONSOLE] = pattern;
-      sinks[CONSOLE]->set_pattern(pattern);
-    } else if (target == CoreTarget::FILE) {
-      sink_patterns[FILE] = pattern;
-      sinks[FILE]->set_pattern(pattern);
-    }
+    sink_patterns[target] = pattern;
+    sinks[target]->set_pattern(pattern);
   }
 
   void Logger::SetCoreLevel(CoreTarget target , const std::string& level) {
     spdlog::level::level_enum spd_level = LevelFromString(level);
-    if (target == CoreTarget::CONSOLE) {
-      sink_levels[CONSOLE] = spd_level;
-      sinks[CONSOLE]->set_level(spd_level);
-    } else if (target == CoreTarget::FILE) {
-      sink_levels[FILE] = spd_level;
-      sinks[FILE]->set_level(spd_level);
-    }
+    sink_levels[target] = spd_level;
+    sinks[target]->set_level(spd_level);
   }
 
   void Logger::SetCoreLevel(CoreTarget target , Level level) {
     spdlog::level::level_enum spd_level = LevelFromLevel(level);
-    if (target == CoreTarget::CONSOLE) {
-      sink_levels[CONSOLE] = spd_level;
-      sinks[CONSOLE]->set_level(spd_level);
-    } else if (target == CoreTarget::FILE) {
-      sink_levels[FILE] = spd_level;
-      sinks[FILE]->set_level(spd_level);
-    }
+    sink_levels[target] = spd_level;
+    sinks[target]->set_level(spd_level);
   }
 
   bool Logger::ChangeFiles(const std::string& path) {
@@ -199,7 +196,10 @@ namespace other {
   }
 
   spdlog::level::level_enum Logger::LevelFromString(const std::string& l) {
-    uint64_t hash = FNV(l);
+    std::string case_ins_lvl;
+    std::transform(l.begin() , l.end() , std::back_inserter(case_ins_lvl) , ::toupper);
+
+    uint64_t hash = FNV(case_ins_lvl);
 
     switch (hash) {
       case kTraceKey: return spdlog::level::trace;

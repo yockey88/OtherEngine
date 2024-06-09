@@ -44,6 +44,8 @@ namespace other {
     if (find_scene == loaded_scenes.end()) {
       OE_WARN("Scene : {} does not exist! Cant not set as active" , path);
       return;
+    } else {
+      OE_DEBUG("Setting {} as active scene" , path);
     }
 
     active_scene = &loaded_scenes[id];

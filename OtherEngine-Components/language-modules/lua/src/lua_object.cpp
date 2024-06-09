@@ -3,99 +3,69 @@
  **/
 #include "lua_object.hpp"
 
-extern "C" {
-  #include <lua/lua.h>
-  #include <lua/lualib.h>
-  #include <lua/lauxlib.h>
-}
-
 namespace other {
 
-    LuaObject::LuaObject(const std::string& name , const std::string& file) 
-      : ScriptObject(name) , file(file) {
+    LuaObject::LuaObject(const std::string& name , sol::state* script_state) 
+      : ScriptObject(name , "Lua") , state(script_state) {
     }
 
     LuaObject::~LuaObject() {
     }
 
     void LuaObject::InitializeScriptMethods() {
-    }
-
-    Opt<Value> LuaObject::CallMethod(const std::string& name , ParamHandle* args) {
-      if (L == nullptr) {
-        return std::nullopt;
-      }
-
-      auto method = lua_getglobal(L , name.c_str());
-      if (method == LUA_TFUNCTION) {
-        lua_call(L , 0 , 0);
-      }
-
-      return std::nullopt;
-    }
-
-    void LuaObject::Initialize() {
-      if (L != nullptr) {
+      sol::optional<sol::table> obj = (*state)[script_name];
+      if (!obj.has_value()) {
+        is_corrupt = true;
         return;
       }
 
-      L = luaL_newstate();
-      luaL_openlibs(L);
+      initialize = (*state)[script_name]["OnInitialize"];
+      update = (*state)[script_name]["OnUpdate"];
+      render = (*state)[script_name]["OnRender"];
+      render_ui = (*state)[script_name]["OnRenderUI"];
+      shutdown = (*state)[script_name]["OnShutdown"];
+    }
 
-      luaL_dofile(L , file.c_str());
+    void LuaObject::CallMethod(Value* ret , const std::string& name , ParamHandle* args) {
+      sol::function func = (*state)[script_name][name];
+      if (func.valid()) {
+      }
+    }
 
-      auto init = lua_getglobal(L , "Initialize");
-      if (init == LUA_TFUNCTION) {
-        lua_call(L , 0 , 0);
+    void LuaObject::GetProperty(Value* val , const std::string& name) const {
+    }
+    
+    void LuaObject::SetProperty(const Value& value) {
+    }
+
+    void LuaObject::Initialize() {
+      if (initialize.valid()) {
+        initialize.call();
       }
     }
 
     void LuaObject::Update(float dt) {
-      if (L == nullptr) {
-        return;
-      }
-
-      auto update = lua_getglobal(L , "Update");
-      if (update == LUA_TFUNCTION) {
-        lua_pushnumber(L , dt);
-        lua_call(L , 1 , 0);
+      if (update.valid()) {
+        update.call(dt);
       }
     }
 
     void LuaObject::Render() {
-      if (L == nullptr) {
-        return;
-      }
-
-      auto render = lua_getglobal(L , "Render");
-      if (render == LUA_TFUNCTION) {
-        lua_call(L , 0 , 0);
+      if (render.valid()) {
+        render.call();
       }
     }
 
     void LuaObject::RenderUI() {
-      if (L == nullptr) {
-        return;
-      }
-
-      auto render_ui = lua_getglobal(L , "Render_ui");
-      if (render_ui == LUA_TFUNCTION) {
-        lua_call(L , 0 , 0);
+      if (render_ui.valid()) {
+        render_ui.call();
       }
     }
 
     void LuaObject::Shutdown() {
-      if (L == nullptr) {
-        return;
+      if (shutdown.valid()) {
+        shutdown.call();
       }
-
-      auto shutdown = lua_getglobal(L , "Shutdown");
-      if (shutdown == LUA_TFUNCTION) {
-        lua_call(L , 0 , 0);
-      }
-
-      lua_close(L);
-      L = nullptr;
     }
 
 } // namespace other

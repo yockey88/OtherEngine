@@ -144,7 +144,7 @@ namespace ui {
   void HelpMarker(const char* desc);
   
   void BeginPropertyGrid(
-    uint32_t columns , 
+    uint32_t columns = 2 , 
     const ImVec2& item_spacing = ImVec2(8.f , 8.f) , 
     const ImVec2& frame_pading = ImVec2(4.f , 4.f)
   );

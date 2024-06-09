@@ -6,6 +6,7 @@
 #include "core/logger.hpp"
 #include "core/time.hpp"  
 #include "core/engine.hpp"
+#include "core/config_keys.hpp"
 #include "input/io.hpp"
 #include "event/event_queue.hpp"
 #include "event/app_events.hpp"
@@ -13,64 +14,9 @@
 #include "rendering/ui/ui.hpp"
 #include "layers/core_layer.hpp"
 #include "layers/debug_layer.hpp"
+#include "scripting/script_engine.hpp"
 
 namespace other {
-
-  void App::PushLayer(Ref<Layer>&  layer) {
-    layer->Attach();
-    layer_stack->PushLayer(layer);
-
-    EventQueue::PushEvent<AppLayerEvent>(LayerEventType::LAYER_PUSH , layer->GetUUID() , layer->Name());
-  }
-
-  void App::PushOverlay(Ref<Layer>&  overlay) {
-    overlay->Attach();
-    layer_stack->PushOverlay(overlay);
-
-    EventQueue::PushEvent<AppLayerEvent>(LayerEventType::OVERLAY_PUSH , overlay->GetUUID() , overlay->Name());
-  }
-
-  void App::PopLayer(Ref<Layer>&  layer) {
-    layer->Detach();
-    layer_stack->PopLayer(layer);
-    EventQueue::PushEvent<AppLayerEvent>(LayerEventType::LAYER_POP , layer->GetUUID() , layer->Name());
-  }
-
-  void App::PopLayer() {
-    if (layer_stack->Empty()) {
-      OE_WARN("Attempting to pop a layer from an empty layer stack");
-      return;
-    }
-
-    layer_stack->Top()->Detach();
-    EventQueue::PushEvent<AppLayerEvent>(LayerEventType::LAYER_POP , layer_stack->Top()->GetUUID() , layer_stack->Top()->Name());
-    layer_stack->PopLayer();
-  }
-
-  void App::PopOverlay(Ref<Layer>&  overlay) {
-    overlay->Detach();
-    layer_stack->PopOverlay(overlay);
-
-    EventQueue::PushEvent<AppLayerEvent>(LayerEventType::OVERLAY_POP , layer_stack->Top()->GetUUID() , overlay->Name());
-  }
-
-  void App::ProcessEvent(Event* event) {
-    for (auto& window : ui_windows) {
-      window.second->OnEvent(event);
-    }
-
-    for (auto itr = layer_stack->end(); itr != layer_stack->begin();) {
-      (*--itr)->ProcessEvent(event);
-    
-      if (event->handled) {
-        itr = layer_stack->begin();
-      }
-    }
-
-    if (!event->handled) {
-      OnEvent(event);
-    }
-  }
 
   App::App(Engine* engine) 
     :  cmdline(engine->cmd_line) , config(engine->config) , engine_handle(engine) {
@@ -87,6 +33,8 @@ namespace other {
   }
 
   void App::OnLoad() {
+    OE_DEBUG("Loading application");
+
     layer_stack = NewScope<LayerStack>();
     asset_handler = NewScope<AssetHandler>();
 
@@ -97,10 +45,51 @@ namespace other {
       PushLayer(core_layer);
     }
 
-    auto debug = config.GetVal<bool>("PROJECT" , "DEBUG");
+    auto debug = config.GetVal<bool>(kProjectSection , kDebugValue);
     if (debug.has_value() && debug.value()) {
+      OE_DEBUG("Pushing debug layer");
+
       Ref<Layer> debug_layer = NewRef<DebugLayer>(this);
       PushLayer(debug_layer);
+    }
+    
+    /// return because the editor will have already loaded all of this stuff already
+    if (in_editor) {
+      return;
+    }
+
+    OE_DEBUG("Loading C# script modules");
+    auto* cs_language_module = ScriptEngine::GetModule(kCsModuleSection);
+    if (cs_language_module != nullptr) {
+      std::string real_key = std::string{ kScriptingSection } + "." + std::string{ kCsModuleSection };
+      auto cs_modules = config.Get(real_key , kPathsValue);
+      
+      for (const auto& cs_mod : cs_modules) {
+        Path path = cs_mod;
+        std::string name = path.filename().string().substr(0 , path.filename().string().find_last_of('.'));
+
+        cs_language_module->LoadScriptModule({
+          .name = name ,
+          .paths = { path.string() } ,
+        });    
+      }
+    }
+
+    OE_DEBUG("Loading Lua script modules");
+    auto* lua_language_module = ScriptEngine::GetModule(kLuaModuleSection);
+    if (lua_language_module != nullptr) {
+      std::string real_key = std::string{ kScriptingSection } + "." + std::string{ kLuaModuleSection };
+      auto lua_modules = config.Get(real_key , kPathsValue);
+
+      for (const auto& lua_mod : lua_modules) {
+        Path path = lua_mod;
+        std::string name = path.filename().string().substr(0 , path.filename().string().find_last_of('.'));
+
+        lua_language_module->LoadScriptModule({
+          .name = name ,
+          .paths = { path.string() } ,
+        });
+      }
     }
   }
 
@@ -168,10 +157,103 @@ namespace other {
   }
 
   void App::OnUnload() {
+    OE_DEBUG("Unloading application");
+    
     asset_handler = nullptr;
 
     layer_stack->Clear(); 
     layer_stack = nullptr;
+
+    if (is_editor) {
+      OE_DEBUG(" > Editor unloaded");
+      return;
+    }
+    
+    OE_DEBUG("Unloading Lua script modules");
+    auto* lua_language_module = ScriptEngine::GetModule(kLuaModuleSection);
+    if (lua_language_module != nullptr) {
+      std::string real_key = std::string{ kScriptingSection } + "." + std::string{ kLuaModuleSection };
+      auto lua_modules = config.Get(real_key , kPathsValue);
+
+      for (const auto& lua_mod : lua_modules) {
+        Path path = lua_mod;
+        std::string name = path.filename().string().substr(0 , path.filename().string().find_last_of('.'));
+
+        lua_language_module->UnloadScriptModule(name);
+      }
+    }
+    
+    OE_DEBUG("Unloading C# script modules");
+    auto* cs_language_module = ScriptEngine::GetModule(kCsModuleSection);
+    if (cs_language_module != nullptr) {
+      std::string real_key = std::string{ kScriptingSection } + "." + std::string{ kCsModuleSection };
+      auto cs_modules = config.Get(real_key , kPathsValue);
+      
+      for (const auto& cs_mod : cs_modules) {
+        Path path = cs_mod;
+        std::string name = path.filename().string().substr(0 , path.filename().string().find_last_of('.'));
+
+        cs_language_module->UnloadScriptModule(name);    
+      }
+    }
+
+    OE_DEBUG(" > Application unloaded");
+  }
+  
+  void App::PushLayer(Ref<Layer>&  layer) {
+    layer->Attach();
+    layer_stack->PushLayer(layer);
+
+    EventQueue::PushEvent<AppLayerEvent>(LayerEventType::LAYER_PUSH , layer->GetUUID() , layer->Name());
+  }
+
+  void App::PushOverlay(Ref<Layer>&  overlay) {
+    overlay->Attach();
+    layer_stack->PushOverlay(overlay);
+
+    EventQueue::PushEvent<AppLayerEvent>(LayerEventType::OVERLAY_PUSH , overlay->GetUUID() , overlay->Name());
+  }
+
+  void App::PopLayer(Ref<Layer>&  layer) {
+    layer->Detach();
+    layer_stack->PopLayer(layer);
+    EventQueue::PushEvent<AppLayerEvent>(LayerEventType::LAYER_POP , layer->GetUUID() , layer->Name());
+  }
+
+  void App::PopLayer() {
+    if (layer_stack->Empty()) {
+      OE_WARN("Attempting to pop a layer from an empty layer stack");
+      return;
+    }
+
+    layer_stack->Top()->Detach();
+    EventQueue::PushEvent<AppLayerEvent>(LayerEventType::LAYER_POP , layer_stack->Top()->GetUUID() , layer_stack->Top()->Name());
+    layer_stack->PopLayer();
+  }
+
+  void App::PopOverlay(Ref<Layer>&  overlay) {
+    overlay->Detach();
+    layer_stack->PopOverlay(overlay);
+
+    EventQueue::PushEvent<AppLayerEvent>(LayerEventType::OVERLAY_POP , layer_stack->Top()->GetUUID() , overlay->Name());
+  }
+
+  void App::ProcessEvent(Event* event) {
+    for (auto& window : ui_windows) {
+      window.second->OnEvent(event);
+    }
+
+    for (auto itr = layer_stack->end(); itr != layer_stack->begin();) {
+      (*--itr)->ProcessEvent(event);
+    
+      if (event->handled) {
+        itr = layer_stack->begin();
+      }
+    }
+
+    if (!event->handled) {
+      OnEvent(event);
+    }
   }
 
   static Ref<UIWindow> null_window = nullptr;
@@ -255,15 +337,15 @@ namespace other {
         OE_ERROR("Failed to load scene : {}" , path);
         return;
       }
-
-      /// propogate scene loading through layers
-      for (size_t i = 0; i < layer_stack->Size(); ++i) {
-        (*layer_stack)[i]->LoadScene(scene_manager->ActiveScene());
-      }
-      
-      /// alert the client app new scene is loaded 
-      OnSceneLoad(scene_manager->ActiveScene());
     }
+
+    /// propogate scene loading through layers
+    for (size_t i = 0; i < layer_stack->Size(); ++i) {
+      (*layer_stack)[i]->LoadScene(scene_manager->ActiveScene());
+    }
+    
+    /// alert the client app new scene is loaded 
+    OnSceneLoad(scene_manager->ActiveScene());
   }
 
   Ref<Scene> App::ActiveScene() {
@@ -277,9 +359,18 @@ namespace other {
 
     OE_DEBUG("Unloading scene : {}" , scene_manager->ActiveScene()->path);
     scene_manager->UnloadActive();
+
+    /// propogate scene unload through layers
+    for (size_t i = 0; i < layer_stack->Size(); ++i) {
+      (*layer_stack)[i]->LoadScene(nullptr);
+    }
+
+    /// alert client app about scene unload
+    OnSceneUnload();
   }
 
   void App::Attach() {
+    OE_DEBUG("Attaching application");
     OnAttach();
   }
 
@@ -320,6 +411,10 @@ namespace other {
   }
 
   void App::Detach() {
+    OE_DEBUG("Detaching application");
+
+    UnloadScene();
+
     OnDetach();
 
     for (auto& [id , window] : ui_windows) {
@@ -331,6 +426,10 @@ namespace other {
       
   void App::UpdateSceneContext(float dt) {
     scene_manager->UpdateScene(dt);
+  }
+
+  void App::SetInEditor() {
+    in_editor = true;
   }
 
 } // namespace other

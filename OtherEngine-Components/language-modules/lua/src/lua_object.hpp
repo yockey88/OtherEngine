@@ -6,21 +6,21 @@
 
 #include "scripting/script_object.hpp"
 
-extern "C" {
-  #include <lua/lua.h>
-}
+#include <sol/sol.hpp>
 
 namespace other {
 
     class LuaObject : public ScriptObject {
       public:
         LuaObject()
-          : ScriptObject("[ Empty Lua Object ]") {}
-        LuaObject(const std::string& name , const std::string& file);
+          : ScriptObject("[ Empty Lua Object ]" , "Lua") {}
+        LuaObject(const std::string& name , sol::state* script_state);
         virtual ~LuaObject() override;
 
         virtual void InitializeScriptMethods() override;
-        virtual Opt<Value> CallMethod(const std::string& name , ParamHandle* args) override;
+        virtual void CallMethod(Value* ret , const std::string& name , ParamHandle* args) override;
+        virtual void GetProperty(Value* ret , const std::string& name) const override;
+        virtual void SetProperty(const Value& value) override;
 
         virtual void Initialize() override;
         virtual void Update(float dt) override;
@@ -29,9 +29,15 @@ namespace other {
         virtual void Shutdown() override;
 
       private:
-        lua_State* L = nullptr;
+        sol::state* state = nullptr;
 
-        std::string file;
+        sol::table object;
+
+        sol::function initialize;
+        sol::function update;
+        sol::function render;
+        sol::function render_ui;
+        sol::function shutdown;
     };
 
 } // namespace other

@@ -47,7 +47,20 @@ local function AddInclude(table)
   end
 end
 
-function ProcessProjectComponents(project, config)
+function ProcessModuleComponents(module)
+  if module.components == nil then 
+    return
+  end
+
+  for lib, comp in pairs(module.components) do
+    links{ lib }
+    if module.lang ~= nil and module.lang == "C++" then 
+      externalincludedirs { comp }
+    end
+  end
+end
+
+function ProcessProjectComponents(project)
   if project.components == nil then
     return
   end

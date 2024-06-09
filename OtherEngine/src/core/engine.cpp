@@ -48,6 +48,8 @@ namespace other {
 
     active_app->OnUnload();
     active_app = nullptr;
+
+    OE_DEBUG("Engine unloaded");
   }
 
   void Engine::ProcessEvent(Event* event) {

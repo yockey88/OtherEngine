@@ -5,14 +5,21 @@
 #define OTHER_ENGINE_BUFFER_HPP
 
 #include <cstdint>
+#include <typeinfo>
+
+#include "core/logger.hpp"
 
 namespace other {
 
   class Buffer {
     public:
       Buffer() {}
-      Buffer(void* data , uint64_t size)
-        : data(data) , size(size) {}
+      Buffer(void* data , uint64_t size);
+
+      Buffer(Buffer&& other);
+      Buffer(const Buffer& other);
+      Buffer& operator=(Buffer&& other);
+      Buffer& operator=(const Buffer& other);
 
       static Buffer Copy(const Buffer& other);
 
@@ -25,18 +32,27 @@ namespace other {
       void ZeroMem();
 
       template <typename T>
-      T& Read(uint64_t offset) {
-        return *(T*)((uint8_t*)data + offset);
+      T& Read(uint64_t offset = 0) {
+        OE_ASSERT(offset + sizeof(T) <= size , "Attempting to read buffer as incorrectly sized type");
+        return *reinterpret_cast<T*>(data + offset);
       }
 
       template <typename T>
-      const T& Read(uint64_t offset) const {
-        return *(T*)((uint8_t*)data + offset);
+      const T& Read(uint64_t offset = 0) const {
+        OE_ASSERT(offset + sizeof(T) <= size , "Attempting to read buffer as incorrectly sized type");
+        return *reinterpret_cast<T*>(data + offset);
       }
 
-      uint8_t* ReadBytes(uint64_t size , uint64_t offset);
+      const uint8_t* ReadBytes(uint64_t offset) const;
 
       void Write(const void* data , uint64_t size , uint64_t offset = 0);
+
+      template <typename T>
+      void Write(const T& value) {
+        OE_ASSERT(sizeof(data) >= size , "Buffer::Write({}) Out of bounds" , typeid(T).name());
+        memcpy(data , &value , sizeof(data));
+        size = sizeof(data);
+      }
 
       operator bool() const {
         return data != nullptr;
@@ -46,14 +62,15 @@ namespace other {
       uint8_t operator[](uint64_t offset) const;
 
       template <typename T>
-      T* As() {
-        return (T*)data;
+      const T* As() const {
+        OE_ASSERT(sizeof(T) == size , "Attempting to retrieve data is incorrectly sized type");
+        return reinterpret_cast<T*>(&data[0]);
       }
 
-      inline uint64_t Size() const;
+      uint64_t Size() const;
 
     protected:
-      void* data = nullptr;
+      uint8_t* data = nullptr;
       uint64_t size = 0;
   };
 

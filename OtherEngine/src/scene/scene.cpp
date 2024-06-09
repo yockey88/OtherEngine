@@ -6,6 +6,7 @@
 #include "ecs/entity.hpp"
 #include "ecs/components/tag.hpp"
 #include "ecs/components/relationship.hpp"
+#include "ecs/components/script.hpp"
 #include "ecs/systems/core_systems.hpp"
 
 namespace other {
@@ -34,6 +35,12 @@ namespace other {
         ++itr;
       }
     }
+
+    registry.view<Script>().each([](const Script& script) {
+      for (auto& [id , s] : script.scripts) {
+        s->Initialize();
+      }
+    });
 
     OnInit(); 
     initialized = true;
@@ -84,6 +91,12 @@ namespace other {
     OE_ASSERT(initialized , "Shutting down scene before initialization");
     initialized = false;
     OnShutdown();
+    
+    registry.view<Script>().each([](const Script& script) {
+      for (auto& [id , s] : script.scripts) {
+        s->Shutdown();
+      }
+    });
   }
 
   const bool Scene::IsInitialized() const {

@@ -22,7 +22,7 @@ namespace other {
   class Editor : public App {
     public:
       Editor(Engine* engine , Scope<App>& app);
-      ~Editor() = default;
+      virtual ~Editor() override {} 
 
     private:
       const CmdLine& cmdline;
@@ -52,6 +52,7 @@ namespace other {
       virtual void OnDetach() override;
 
       virtual void OnSceneLoad(const SceneMetadata* path) override;
+      virtual void OnSceneUnload() override;
   };
 
 } // namespace other

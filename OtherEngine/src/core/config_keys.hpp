@@ -31,6 +31,12 @@ namespace other {
 
   constexpr static std::string_view kScriptingSection = "SCRIPT-ENGINE";
   constexpr static uint64_t kScriptingSectionHash = FNV(kScriptingSection);
+  
+  constexpr static std::string_view kCsModuleSection = "C#";
+  constexpr static uint64_t kCsModuleSectionHash = FNV(kCsModuleSection);
+  
+  constexpr static std::string_view kLuaModuleSection = "LUA";
+  constexpr static uint64_t kLuaModuleSectionHash = FNV(kLuaModuleSection);
 
   constexpr static std::string_view kResourcesSection = "RESOURCES";
   constexpr static uint64_t kResourcesSectionHash = FNV(kResourcesSection);
@@ -48,6 +54,9 @@ namespace other {
   constexpr static uint64_t kRelationshipSectionHash = FNV(kRelationshipSection);
 
   /// useful value keys
+  constexpr static std::string_view kDebugValue = "DEBUG";
+  constexpr static uint64_t kDebugValueHash = FNV(kDebugValue);
+
   constexpr static std::string_view kNameValue = "NAME";
   constexpr static uint64_t kNameValueHash = FNV(kNameValue);
 
@@ -164,6 +173,9 @@ namespace other {
 
   constexpr static std::string_view kPathValue = "PATH";
   constexpr static uint64_t kPathValueHash = FNV(kPathValue);
+  
+  constexpr static std::string_view kPathsValue = "PATHS";
+  constexpr static uint64_t kPathsValueHash = FNV(kPathsValue);
 
   constexpr static std::string_view kUuidValue = "UUID";
   constexpr static uint64_t kUuidValueHash = FNV(kUuidValue);
@@ -182,6 +194,9 @@ namespace other {
   
   constexpr static std::string_view kChildrenValue = "CHILDREN";
   constexpr static uint64_t kChildrenValueHash = FNV(kChildrenValue);
+
+  constexpr static std::string_view kScriptValue = "SCRIPT";
+  constexpr static uint64_t kScriptValueHash = FNV(kScaleValue);
 
 } // namespace other 
 

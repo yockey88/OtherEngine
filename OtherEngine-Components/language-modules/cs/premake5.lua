@@ -18,7 +18,7 @@ end
 
 cs_lang_module.defines = function()
   defines {
-    "OE_MODULE",
+    "OE_MODULE" ,
   }
 end
 
@@ -63,6 +63,12 @@ OE_ScriptCore.files = function()
   files {
     "./core/Source/**.cs" ,
     "./core/Properties/**.cs"
+  }
+end
+
+OE_ScriptCore.defines = function()
+  defines {
+    "OE_MODULE" ,
   }
 end
 

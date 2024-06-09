@@ -19,9 +19,6 @@ namespace other {
   };
   
   class ScriptModule : public Plugin {
-    protected:
-      bool valid = false;
-
     public:
       ScriptModule(Engine* engine) 
         : Plugin(engine) {}
@@ -32,6 +29,9 @@ namespace other {
       virtual ScriptObject* GetScript(const std::string& name , const std::string& nspace = "") = 0;
 
       bool IsValid() const { return valid; }
+    
+    protected:
+      bool valid = false;
   };
   
 } // namespace other

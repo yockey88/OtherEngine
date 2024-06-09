@@ -7,12 +7,6 @@
 #include "core/platform.hpp"
 #include "scripting/language_module.hpp"
 
-extern "C" {
-  #include <lua/lua.h>
-  #include <lua/lualib.h>
-  #include <lua/lauxlib.h>
-}
-
 namespace other {
   
   class LuaModule : public LanguageModule {
@@ -34,15 +28,9 @@ namespace other {
       virtual std::string_view GetModuleVersion() const override;
 
     private:
-      lua_State* L;
-      constexpr static luaL_Reg lualibs[] = {
-        { "base" , luaopen_base },
-        { nullptr , nullptr }
-      };
+      constexpr static std::string_view kLuaCorePath = "OtherEngine-Components/language-modules/lua/core";
 
-      constexpr static std::string_view kLuaCore = "OtherEngine-Components/language-modules/lua";
-
-      std::filesystem::path lua_core_path;
+      std::vector<std::string> core_files;
   };
 
 } // namespace other

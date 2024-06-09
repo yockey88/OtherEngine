@@ -54,4 +54,8 @@ namespace other {
 OE_API other::Plugin* CreatePlugin(other::Engine* engine);
 OE_API void DestroyPlugin(other::Plugin* module);
 
+/// other functions to implement for plugins
+///   void PluginRender(other::Plugin* plugin);
+///   void RenderPluginUi(other::Plugin* plugin);
+
 #endif // !OTHER_ENGINE_CS_MODULE_HPP

@@ -60,8 +60,7 @@ scripting_tests.cppdialect = "C++latest"
 
 scripting_tests.files = function()
   files {
-    "./scripting_tests/**.cpp",
-    "./scripting_tests/**.hpp",
+    "./scripting-tests/main.cpp"
   }
 end
 
@@ -75,4 +74,4 @@ scripting_tests.components = {}
 scripting_tests.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
 scripting_tests.components["gtest"] = "%{wks.location}/externals/gtest/googletest/include"
 
-AddProject(sandbox)
+AddProject(scripting_tests)

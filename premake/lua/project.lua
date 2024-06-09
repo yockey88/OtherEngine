@@ -150,17 +150,15 @@ function AddModule(project)
   ProjectHeader(project)
     project.files()
 
-    if project.language ~= "C++" then 
-      return
-    end
-    
     if project.defines ~= nil then
       project.defines()
     end
 
-    project.include_dirs()
-
-    ProcessProjectComponents(project)
+    if project.language == "C++" then 
+      project.include_dirs()
+    end
+    
+    ProcessModuleComponents(project)
     ProcessConfigurations(project)
 end
 

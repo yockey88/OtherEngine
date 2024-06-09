@@ -3,8 +3,6 @@
  */
 #include "core/layer.hpp"
 
-#include "core/logger.hpp"
-
 namespace other {
 
   void Layer::Attach() {
@@ -32,7 +30,6 @@ namespace other {
   }
       
   void Layer::LoadScene(const SceneMetadata* metadata) {
-    OE_ASSERT(metadata != nullptr , "Attempting to pass null scene metadata into layer");
     OnSceneLoad(metadata);
   }
 

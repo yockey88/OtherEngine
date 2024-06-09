@@ -20,6 +20,9 @@ namespace other {
         : Plugin(engine) {}
       virtual ~LanguageModule() override {}
 
+      bool HasScriptModule(const std::string_view name) const;
+      bool HasScriptModule(UUID id) const;
+
       virtual bool Initialize() = 0;
       virtual bool Reinitialize() = 0;
       virtual void Shutdown() = 0;

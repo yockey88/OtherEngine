@@ -12,6 +12,7 @@
 #include "ecs/components/transform.hpp"
 #include "ecs/components/relationship.hpp"
 #include "ecs/components/mesh.hpp"
+#include "ecs/components/script.hpp"
 #include "editor/selection_manager.hpp"
 #include "rendering/ui/ui_colors.hpp"
 #include "rendering/ui/ui_helpers.hpp"
@@ -25,6 +26,10 @@ namespace other {
 
     Entity* selection = SelectionManager::ActiveSelection();
     if (selection == nullptr) {
+      return;
+    }
+
+    if (!selection->HasComponent<C>()) {
       return;
     }
 
@@ -263,8 +268,10 @@ namespace other {
   }
 
   void EntityProperties::SetSceneContext(const Ref<Scene>& scene) {
-    OE_ASSERT(scene != nullptr , "Setting null scene context in entity properties panel");
     active_scene = scene;
+    if (active_scene == nullptr) {
+      SelectionManager::ClearSelection();
+    }
   }
       
   void EntityProperties::DrawSelectionComponents(Entity* entity) {
@@ -304,6 +311,43 @@ namespace other {
       ui::Underline();
 
       ui::ShiftCursorY(18.f);
+    });
+
+    DrawComponent<Relationship>("Scene Relationships" , [](Entity* selection) {
+      auto& relations = selection->GetComponent<Relationship>();
+
+      if (!relations.parent.has_value()) {
+        ImGui::Text("Root Entity");
+      } else {
+        ImGui::Text("Parent Entity > [ %lld ]" , relations.parent.value().Get());
+      }
+
+      ImGui::Text("Put options related to how parents and children interact");
+      ImGui::Text(" > have children inherit parent position? ");
+      ImGui::Text(" > other things...");
+    });
+
+    DrawComponent<Script>("Script" , [&](Entity* selection) {
+      auto& script = selection->GetComponent<Script>();
+ 
+      for (const auto& [id , s] : script.scripts) {
+        bool is_error = s->IsCorrupt();
+        if (is_error) {
+          ImGui::Text("%s is corrupt, attempt recompilation or re-add script to this entity" , s->Name().c_str());
+          return;
+        }
+      
+        ui::BeginPropertyGrid();
+        ImGui::Text("%s" , s->Name().c_str());
+        ImGui::NextColumn();
+        ImGui::Text("%s" , s->LanguageName().c_str());
+        ui::EndPropertyGrid();
+
+        /// display exported properties
+      }
+    });
+    
+    DrawComponent<Mesh>("Mesh" , [](Entity* selection) {
     });
   }
 

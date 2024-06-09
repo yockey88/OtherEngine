@@ -12,7 +12,32 @@
 
 namespace other {
 
-  using AssetHandle = UUID;
+  struct AssetHandle {
+    UUID id;
+
+    uint64_t Get() const {
+      return id.Get();
+    }
+
+    AssetHandle()
+      : id(0) {}
+
+    AssetHandle(uint64_t uid) {
+      id = uid;
+    }
+  };
+
+  inline bool operator==(const AssetHandle& lhs , const AssetHandle& rhs) {
+    return lhs.id == rhs.id;
+  }
+  
+  // inline bool operator==(const AssetHandle& lhs , int rhs) {
+  //   return lhs.id.Get() == rhs;
+  // }
+  // 
+  // inline bool operator==(int lhs , const AssetHandle& rhs) {
+  //   return lhs == rhs.id.Get();
+  // }
 
   enum AssetFlag : uint16_t {
     NO_ASSET_FLAGS = 0 , 
@@ -99,5 +124,23 @@ namespace util {
 
 } // namespace util
 } // namespace other
+
+template <>
+struct fmt::formatter<other::AssetHandle> : public fmt::formatter<std::string_view> {
+  auto format(const other::AssetHandle& handle, fmt::format_context& ctx) {
+    return fmt::formatter<std::string_view>::format(fmt::format(std::string_view{ "[{}:{:#08x}]" } , handle.Get() , handle.Get()) , ctx);
+  }
+};
+
+namespace std {
+
+  template<>
+  struct hash<other::AssetHandle> {
+    size_t operator()(const other::AssetHandle& handle) const {
+      return hash<other::UUID>{}(handle.id);
+    }
+  };
+
+} // namespace std
 
 #endif // !OTHER_ENGINE_ASSET_TYPES_HPP

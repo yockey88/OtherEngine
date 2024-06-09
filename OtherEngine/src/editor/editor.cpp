@@ -26,7 +26,7 @@ namespace other {
   Editor::Editor(Engine* engine , Scope<App>& app)
       : App(engine) , cmdline(engine->cmd_line) , engine_config(engine->config) , 
         app(std::move(app)) {
-    project = Project::Create(engine->cmd_line , engine->config);     
+    project = Project::Create(engine->cmd_line , engine->config);
   } 
       
   void Editor::OnAttach() {
@@ -74,6 +74,8 @@ namespace other {
     /// here we want to load the application but not attach it
     ///   i.e. we want the app to be prepared for the mock 'runtime' but not
     ///   fully running
+    is_editor = true;
+    app->SetInEditor();
     app->OnLoad();
 
     if (SelectionManager::HasSelection()) {
@@ -145,6 +147,10 @@ namespace other {
   void Editor::OnDetach() {
     viewport = nullptr;
     app->OnUnload();
+
+    project_panel = nullptr;
+    scene_panel = nullptr;
+    entity_properties_panel = nullptr;
   }
 
   void Editor::OnSceneLoad(const SceneMetadata* metadata) {
@@ -152,6 +158,14 @@ namespace other {
     project_panel->SetSceneContext(metadata->scene);
     scene_panel->SetSceneContext(metadata->scene);  
     entity_properties_panel->SetSceneContext(metadata->scene);
+  }
+      
+  void Editor::OnSceneUnload() {
+    OE_DEBUG("Editor::OnSceneUnload()");
+    project_panel->SetSceneContext(nullptr);
+    scene_panel->SetSceneContext(nullptr);
+    entity_properties_panel->SetSceneContext(nullptr);
+    OE_DEBUG("Scene Context Unloaded");
   }
 
 } // namespace other

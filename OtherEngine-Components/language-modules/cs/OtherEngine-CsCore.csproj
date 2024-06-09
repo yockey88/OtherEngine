@@ -21,7 +21,7 @@
     <OutputPath>..\..\..\bin\Debug\OtherEngine-CsCore\</OutputPath>
     <BaseIntermediateOutputPath>..\..\..\bin_obj\Debug\OtherEngine-CsCore\</BaseIntermediateOutputPath>
     <IntermediateOutputPath>$(BaseIntermediateOutputPath)</IntermediateOutputPath>
-    <DefineConstants>_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;_SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS;NOMINMAX</DefineConstants>
+    <DefineConstants>_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;_SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS;OE_MODULE;NOMINMAX;OE_DEBUG_BUILD</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <NoWarn>68</NoWarn>
@@ -34,14 +34,16 @@
     <OutputPath>..\..\..\bin\Release\OtherEngine-CsCore\</OutputPath>
     <BaseIntermediateOutputPath>..\..\..\bin_obj\Release\OtherEngine-CsCore\</BaseIntermediateOutputPath>
     <IntermediateOutputPath>$(BaseIntermediateOutputPath)</IntermediateOutputPath>
-    <DefineConstants>_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;_SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS</DefineConstants>
+    <DefineConstants>_CRT_SECURE_NO_WARNINGS;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;_SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS;OE_MODULE;OE_RELEASE_BUILD</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <NoWarn>68</NoWarn>
   </PropertyGroup>
   <ItemGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' ">
+    <Reference Include="SDL2d" />
   </ItemGroup>
   <ItemGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
+    <Reference Include="SDL2" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="core\Properties\CoreModuleInfo.cs" />
@@ -56,6 +58,30 @@
     <Compile Include="core\Source\OtherBehaviour.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\externals\glad\glad.vcxproj">
+      <Project>{DD62977C-C999-980D-7286-7E105E9C140F}</Project>
+      <Name>glad</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\externals\gtest\gtest.vcxproj">
+      <Project>{EC34880F-5849-B0C0-21CB-53208D9EACF1}</Project>
+      <Name>gtest</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\externals\imgui\imgui.vcxproj">
+      <Project>{0098A80F-6CAC-D0C0-352E-7420A101CDF1}</Project>
+      <Name>imgui</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\externals\nativefiledialog\nfd.vcxproj">
+      <Project>{5D94880B-C99D-887C-5219-9F7CBE21947C}</Project>
+      <Name>nfd</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\externals\spdlog\spdlog.vcxproj">
+      <Project>{8EAD431C-7A4F-6EF2-630A-82464F4BF542}</Project>
+      <Name>spdlog</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\externals\zep\zep.vcxproj">
+      <Project>{54C7880B-C0D0-887C-494C-9F7CB554947C}</Project>
+      <Name>zep</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.

@@ -66,6 +66,7 @@ namespace other {
       virtual void OnDetach() = 0;
 
       virtual void OnSceneLoad(const SceneMetadata* path) {}
+      virtual void OnSceneUnload() {}
 
       Engine* GetEngine() { return engine_handle; }
 
@@ -84,8 +85,12 @@ namespace other {
 
       Engine* engine_handle = nullptr;
 
+      bool is_editor = false;
+      bool in_editor = false;
+
       friend class Editor;
       void UpdateSceneContext(float dt);
+      void SetInEditor();
   };
 
 } // namespace other

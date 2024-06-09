@@ -56,6 +56,12 @@ namespace other {
         ImGui::EndDragDropTarget();
       }
     } else {
+      if (ImGui::Button("Unload Active scene")) {
+        GetEditor().UnloadScene();
+        ImGui::End();
+        return;
+      }
+
       ImGuiTableFlags table_flags = ImGuiTableFlags_NoPadInnerX |
         ImGuiTableFlags_Reorderable | 
         ImGuiTableFlags_ScrollY;
@@ -133,7 +139,11 @@ namespace other {
   }
 
   void ScenePanel::SetSceneContext(const Ref<Scene>& scene) {
-    OE_ASSERT(scene != nullptr , "Attempting to set null scene context in ScenePanel");
+    if (scene == nullptr) {
+      OE_DEBUG("Unloading scene");
+      active_scene = nullptr;
+      return;
+    }
 
     OE_DEBUG("ScenePanel::SetSceneContext(entities = {})" , scene->SceneEntities().size());
     active_scene = scene;

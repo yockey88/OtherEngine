@@ -306,7 +306,7 @@ namespace {
     const ImVec2& item_spacing , 
     const ImVec2& frame_pading
   ) {
-    // PushID();
+    PushId();
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 8.0f));
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 4.0f));
     ImGui::Columns(columns);
@@ -317,7 +317,7 @@ namespace {
     Underline();
     ImGui::PopStyleVar(2); // ItemSpacing, FramePadding
     ShiftCursorY(18.0f);
-    //PopID();
+    PopId();
   }
   
   bool OpenPopup(const std::string& str_id , ImGuiWindowFlags flags) {

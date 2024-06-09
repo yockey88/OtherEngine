@@ -6,34 +6,64 @@
 #include "core/logger.hpp"
 
 namespace other {
+      
+  Buffer::Buffer(void* data , uint64_t size) {
+    Allocate(size);
+    Write(data , size);
+  }
+
+  Buffer::Buffer(Buffer&& other) {
+    Allocate(other.size);
+    Write(other.data , other.size);
+    other.Release();
+  }
+
+  Buffer::Buffer(const Buffer& other) {
+    Allocate(other.size);
+    Write(other.data , other.size);
+  }
+
+  Buffer& Buffer::operator=(Buffer&& other) {
+    Allocate(other.size);
+    Write(other.data , other.size);
+    other.Release();
+    return *this;
+  }
+
+  Buffer& Buffer::operator=(const Buffer& other) {
+    Allocate(other.size);
+    Write(other.data , other.size);
+    return *this;
+  }
 
   Buffer Buffer::Copy(const Buffer& other) {
     Buffer b;
     b.Allocate(other.size);
-    memcpy(b.data , other.data , other.size);
+    b.Write(other.data , other.size);
     return b;
   }
 
   Buffer Buffer::Copy(const void* data , uint64_t size) {
     Buffer b;
     b.Allocate(size);
-    memcpy(b.data , data , size);
+    b.Write(data , size);
     return b;
   }
 
-  void Buffer::Allocate(uint64_t size) {
-    delete[] reinterpret_cast<uint8_t*>(data);
+  void Buffer::Allocate(uint64_t sz) {
+    delete[] data;
     data = nullptr;
 
-    if (size == 0)
+    if (sz == 0) {
       return;
+    }
 
-    data = new uint8_t[size];
-    this->size = size;
+    data = new uint8_t[sz];
+    size = sz;
   }
 
   void Buffer::Release() {
-    delete[] reinterpret_cast<uint8_t*>(data);
+    delete[] data;
     data = nullptr;
     size = 0;
   }
@@ -44,27 +74,28 @@ namespace other {
     }
   }
 
-  uint8_t* Buffer::ReadBytes(uint64_t size , uint64_t offset) {
-    OE_ASSERT(offset + size <= this->size , "Buffer::ReadBytes |> Out of bounds");
-    uint8_t* ptr = new uint8_t[size];
-    memcpy(ptr , (uint8_t*)data + offset , size);
-    return (uint8_t*)data + offset;
+  const uint8_t* Buffer::ReadBytes(uint64_t offset) const {
+    OE_ASSERT(offset < size , "Buffer::ReadBytes |> Out of bounds");
+    return static_cast<const uint8_t*>(&data[offset]);
   }
 
-  void Buffer::Write(const void* data , uint64_t size , uint64_t offset) {
-    OE_ASSERT(offset + size <= this->size , "Buffer::Write |> Out of bounds");
-    memcpy((uint8_t*)this->data + offset , data , size);
+  void Buffer::Write(const void* d , uint64_t sz , uint64_t offset) {
+    OE_ASSERT(sz <= size , "Buffer::Write |> Out of bounds ({} vs {})" , sz , size);
+    memcpy(data , d , size);
+    size = sz;
   }
 
   uint8_t& Buffer::operator[](uint64_t offset) {
-    return *(uint8_t*)((uint8_t*)data + offset);
+    OE_ASSERT(offset >= size , "Accessing Buffer out of bounds");
+    return *(data + offset);
   }
 
   uint8_t Buffer::operator[](uint64_t offset) const {
-    return *(uint8_t*)((uint8_t*)data + offset);
+    OE_ASSERT(offset >= size , "Accessing Buffer out of bounds");
+    return *(data + offset);
   }
 
-  inline uint64_t Buffer::Size() const {
+  uint64_t Buffer::Size() const {
     return size;
   }
   

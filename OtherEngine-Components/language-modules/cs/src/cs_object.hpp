@@ -16,13 +16,15 @@ namespace other {
   class CsObject : public ScriptObject {
     public:
       CsObject() 
-        : ScriptObject("[Empty Script Object]") {}
-      CsObject(const std::string& name , MonoClass* klass , MonoObject* instance) 
-        : ScriptObject(name) , klass(klass) , instance(instance) {}
+        : ScriptObject("[Empty Script Object]" , "C#") {}
+      CsObject(const std::string& name , MonoClass* klass , MonoObject* instance , MonoImage* asm_image) 
+        : ScriptObject(name , "C#") , asm_image(asm_image) , klass(klass) , instance(instance) {}
       virtual ~CsObject() override {}
 
       virtual void InitializeScriptMethods() override;
-      virtual Opt<Value> CallMethod(const std::string& name , ParamHandle* args) override;
+      virtual void CallMethod(Value* ret , const std::string& name , ParamHandle* args) override;
+      virtual void GetProperty(Value* ret , const std::string& name) const override;
+      virtual void SetProperty(const Value& value) override;
 
       virtual void Initialize() override;
       virtual void Update(float dt) override;
@@ -31,6 +33,7 @@ namespace other {
       virtual void Shutdown() override;
 
     private:
+      MonoImage* asm_image = nullptr;
       MonoClass* klass = nullptr;
       MonoObject* instance = nullptr;
 

@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace Other {
 
-//   public static class Engine {
+  public static class Engine {
 // #region Math
 //     [MethodImpl(MethodImplOptions.InternalCall)]
 //     internal static extern void Mat4LookAt(ref Vec3 pos, ref Vec3 front, ref Vec3 up, ref Mat4 out_mat);
@@ -307,25 +307,25 @@ namespace Other {
 //     [MethodImpl(MethodImplOptions.InternalCall)]
 //     internal static extern bool IsMouseButtonReleased(Button button);
 // #endregion
-// #region Log
-//     [MethodImpl(MethodImplOptions.InternalCall)]
-//     public static extern void LogTrace(String line);
+#region Log
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern void LogTrace(String line);
 
-//     [MethodImpl(MethodImplOptions.InternalCall)]
-//     public static extern void LogDebug(String line);
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern void LogDebug(String line);
 
-//     [MethodImpl(MethodImplOptions.InternalCall)]
-//     public static extern void LogInfo(String line);
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern void LogInfo(String line);
 
-//     [MethodImpl(MethodImplOptions.InternalCall)]
-//     public static extern void LogWarn(String line);
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern void LogWarn(String line);
 
-//     [MethodImpl(MethodImplOptions.InternalCall)]
-//     public static extern void LogError(String line);
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern void LogError(String line);
 
-//     [MethodImpl(MethodImplOptions.InternalCall)]
-//     public static extern void LogFatal(String line);
-// #endregion 
-//   } 
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern void LogFatal(String line);
+#endregion 
+  } 
 
 }

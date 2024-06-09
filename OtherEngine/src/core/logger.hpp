@@ -66,6 +66,9 @@ namespace other {
       /// not typical 'get' function, this will throw if Open has not been called
       static Logger* Instance();
 
+      /// called by plugin loaders to set the global logging state on the other side of the DLL boundary
+      static void SetLoggerInstance(Logger* instance);
+
       StdRef<spdlog::logger> GetLogger() { return logger; }
 
       void Configure(const ConfigTable& config);

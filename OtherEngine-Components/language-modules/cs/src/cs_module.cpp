@@ -9,25 +9,26 @@
 
 #include "core/filesystem.hpp"
 #include "cs_script.hpp"
+#include "script_cache.hpp"
 
 namespace other {
 
   bool CsModule::Initialize() {
-    LogDebug("Initializing Mono Runtime");
+    OE_DEBUG("Initializing Mono Runtime");
 
     mono_path = Filesystem::FindEngineCoreDir(kMonoPath);
     if (mono_path.empty()) {
-      LogError("Mono .NET runtime assemblies not found");
+      OE_ERROR("Mono .NET runtime assemblies not found");
       return load_success;
     }
 
     mono_config_path = Filesystem::FindEngineCoreDir(kMonoConfigPath);
     if (mono_config_path.empty()) {
-      LogError("Mono .NET config file not found");
+      OE_ERROR("Mono .NET config file not found");
       return load_success;
     }
 
-    LogDebug("Mono Path: {}" , mono_path.string());
+    OE_DEBUG("Mono Path: {}" , mono_path.string());
     mono_set_dirs(mono_path.string().data() , mono_config_path.string().data());
     root_domain = mono_jit_init(kRootDomainName.data());
 
@@ -37,11 +38,11 @@ namespace other {
     mono_thread_set_main(mono_thread_current());
     mono_domain_set(app_domain , true);
 
-    LogDebug("Mono Runtime initialized");
+    OE_DEBUG("Mono Runtime initialized");
 
     std::filesystem::path mono_core = std::filesystem::absolute(kEngineCoreDir) / "bin" / "Debug" / "OtherEngine-CsCore" / "OtherEngine-CsCore.dll";
     if (!Filesystem::FileExists(mono_core.string())) {
-      LogError("Mono core assembly {} not found, unloading C# module" , mono_core.string());
+      OE_ERROR("Mono core assembly {} not found, unloading C# module" , mono_core.string());
 
       mono_domain_set(root_domain , true);
       mono_domain_unload(app_domain);
@@ -56,15 +57,19 @@ namespace other {
       }
     });
 
+    CsScriptCache::InitializeCache();
+
     load_success = true;
     return load_success;
   }
 
   bool CsModule::Reinitialize() {
-    LogDebug("Reinitializing Mono Runtime");
+    OE_DEBUG("Reinitializing Mono Runtime");
     if (!load_success) {
       return Initialize();
     }
+
+    CsScriptCache::ShutdownCache();
 
     for (auto& [id , module] : loaded_modules) {
       module->Shutdown();
@@ -88,7 +93,9 @@ namespace other {
       module->Initialize();
     }
 
-    LogDebug("Mono Runtime reinitialized");
+    CsScriptCache::InitializeCache();
+
+    OE_DEBUG("Mono Runtime reinitialized");
     load_success = true;
     return load_success;
   }
@@ -97,6 +104,8 @@ namespace other {
     if (!load_success) {
       return;
     }
+
+    CsScriptCache::ShutdownCache();
 
     for (auto& [id , module] : loaded_modules) {
       module->Shutdown();
@@ -111,19 +120,28 @@ namespace other {
     app_domain = nullptr;
     root_domain = nullptr;
 
-    LogDebug("Mono Runtime shutdown");
+    OE_DEBUG("Mono Runtime shutdown");
   }
   
   ScriptModule* CsModule::GetScriptModule(const std::string& name) {
     if (!load_success) {
-      LogWarn("Attempting to get script module {} when C# module is not loaded" , name);
+      OE_WARN("Attempting to get script module {} when C# module is not loaded" , name);
       return nullptr;
     }
 
-    auto hash = FNV(name);
+    for (const auto& m : loaded_modules) {
+      OE_DEBUG("  {}" , m.first);
+    }
+
+    std::string case_insensitive_name;
+    std::transform(name.begin() , name.end() , std::back_inserter(case_insensitive_name) , ::toupper);
+
+    auto hash = FNV(case_insensitive_name);
+    OE_DEBUG("Looking for script module {} [{}]" , name , hash);
+
     auto* module = GetScriptModule(hash);
     if (module == nullptr) {
-      LogError("Script module {} not found" , name);
+      OE_ERROR("Script module {} not found" , name);
     }
 
     return module;
@@ -131,7 +149,7 @@ namespace other {
   
   ScriptModule* CsModule::GetScriptModule(const UUID& id) {
     if (!load_success) {
-      LogWarn("Attempting to get script module {} when C# module is not loaded" , id);
+      OE_WARN("Attempting to get script module {} when C# module is not loaded" , id);
       return nullptr;
     }
 
@@ -139,28 +157,37 @@ namespace other {
       return loaded_modules[id];
     }
 
-    LogError("Script module {} not found" , id);
+    OE_ERROR("Script module w/ ID [{}] not found" , id.Get());
     return nullptr;
   }
 
-  ScriptModule* CsModule::LoadScriptModule(const ScriptModuleInfo& module_info) {
-    UUID id = FNV(module_info.name);
+  ScriptModule* CsModule::LoadScriptModule(const ScriptModuleInfo& module_info) {    
+    std::string case_insensitive_name;
+    std::transform(module_info.name.begin() , module_info.name.end() , std::back_inserter(case_insensitive_name) , ::toupper);
+
+    UUID id = FNV(case_insensitive_name);
+    OE_DEBUG("Loading C# script module {} [{}]" , module_info.name , id);
+
     if (loaded_modules.find(id) != loaded_modules.end()) {
-      LogError("Script module {} already loaded" , module_info.name);
+      OE_ERROR("  > Script module {} already loaded" , module_info.name);
       return loaded_modules[id];
-    } else {
-      LogDebug("Loading script module {} from {}" , module_info.name , module_info.paths[0]);
-    }
+    } 
 
     loaded_modules[id] = new CsScript(GetEngine() , root_domain , app_domain , module_info.paths[0]);
     loaded_modules[id]->Initialize();
+
     return loaded_modules[id];
   }
       
   void CsModule::UnloadScriptModule(const std::string& name) {
-    UUID id = FNV(name);
+    std::string case_insensitive_name;
+    std::transform(name.begin() , name.end() , std::back_inserter(case_insensitive_name) , ::toupper);
+
+    UUID id = FNV(case_insensitive_name);
+    OE_DEBUG("Unloading C# script module {} [{}]" , name , id);
+
     if (loaded_modules.find(id) == loaded_modules.end()) {
-      LogError("Attempting to unload cript module {} that is not loaded" , name);
+      OE_ERROR("Attempting to unload script module {} that is not loaded" , name);
       return;
     }
 
@@ -172,6 +199,7 @@ namespace other {
 } // namespace other
 
 other::Plugin* CreatePlugin(other::Engine* engine) {
+  other::Logger::SetLoggerInstance(engine->GetLog());
   return new other::CsModule(engine);
 }
 

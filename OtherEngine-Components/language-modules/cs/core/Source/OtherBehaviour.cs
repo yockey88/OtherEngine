@@ -1,6 +1,6 @@
 namespace Other {
 
-  class OtherBehaviour {
+  public class OtherBehaviour {
 
     void OnStart() {}
 

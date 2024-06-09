@@ -8,11 +8,7 @@
 
 #include "scripting/script_module.hpp"
 
-extern "C" {
-  #include <lua/lua.h>
-  #include <lua/lualib.h>
-  #include <lua/lauxlib.h>
-}
+#include <sol/sol.hpp>
 
 #include "lua_object.hpp"
 
@@ -20,7 +16,7 @@ namespace other {
 
   class LuaScript : public ScriptModule {
     public:
-      LuaScript(Engine* engine , const std::string& path);
+      LuaScript(Engine* engine , const std::vector<std::string>& paths);
       virtual ~LuaScript() override;
 
       virtual void Initialize() override;
@@ -28,10 +24,11 @@ namespace other {
       virtual ScriptObject* GetScript(const std::string& name , const std::string& nspace = "") override;
 
     private:
+      sol::state lua_state;
+
       std::map<UUID , LuaObject> loaded_objects;
 
-      std::string path;
-      std::vector<std::string> script_paths;
+      std::vector<std::string> paths;
   };  
 
 } // namespace other

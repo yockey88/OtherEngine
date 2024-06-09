@@ -21,7 +21,9 @@ namespace other {
 
       static Engine Create(const CmdLine& cmd_line , const ConfigTable& config , const std::string& config_path);
 
+      /// this takes ownership of the application pointer
       void LoadApp(Scope<App>& app);
+
       Scope<App>& ActiveApp() { return active_app; }
       void UnloadApp();
 

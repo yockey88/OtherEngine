@@ -4,6 +4,7 @@
 #ifndef OTHER_ENGINE_ENTITY_PROPERTIES_HPP
 #define OTHER_ENGINE_ENTITY_PROPERTIES_HPP
 
+#include "core/value.hpp"
 #include "scene/scene.hpp"
 #include "editor/editor_panel.hpp"
 
@@ -21,6 +22,10 @@ namespace other {
       
     private:
       Ref<Scene> active_scene;
+
+      bool value = false;
+      Value test_value;
+      Opt<Value> testv2;
 
       void DrawSelectionComponents(Entity* entity);
   };

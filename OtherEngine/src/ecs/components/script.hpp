@@ -22,10 +22,6 @@ namespace other {
   class ScriptSerializer : public ComponentSerializer {
     public:
       COMPONENT_SERIALIZERS(Script);
-
-    private:
-      void LoadScripts(Entity* entity , const std::string_view mod_name , const std::string_view mod_path ,
-                       const std::vector<std::string>& scripts) const;
   };
 
 } // namespace other

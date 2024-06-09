@@ -3,16 +3,10 @@
  **/
 #include "lua_module.hpp"
 
-
-extern "C" {
-  #include <lua/lua.h>
-  #include <lua/lualib.h>
-  #include <lua/lauxlib.h>
-}
-
 #include "core/filesystem.hpp"
 
 #include "lua_script.hpp"
+#include <filesystem>
 
 namespace other {
 
@@ -24,27 +18,31 @@ namespace other {
   }
 
   bool LuaModule::Initialize() {
-    LogDebug("Initializing Lua Module");
+    OE_DEBUG("Initializing Lua Module");
 
-    lua_core_path = Filesystem::FindEngineCoreDir(kLuaCore);
-    if (lua_core_path.empty()) {
-      LogError("Lua core scripts not found");
-      return load_success;
+    Path lua_core = Filesystem::GetEngineCoreDir().string() / Path{ kLuaCorePath };
+
+    if (!Filesystem::PathExists(lua_core)) {
+      OE_ERROR("Failed to find lua scripting core");
+      return false;
     }
 
-    LoadScriptModule(ScriptModuleInfo {
-      .name = "Lua-Core" ,
-      .paths = {
-        lua_core_path.string()
-      } ,
-    });
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(lua_core)) {
+      if (entry.is_regular_file()) {
+        auto path = entry.path();
+        if (path.extension() == ".lua") {
+          OE_DEBUG("Adding lua core file {}" , path.string());
+          core_files.push_back(path.string());
+        }
+      }
+    }
 
     load_success = true;
     return load_success;
   }
 
   bool LuaModule::Reinitialize() {
-    LogDebug("Reinitializing Lua Module");
+    OE_DEBUG("Reinitializing Lua Module");
     if (!load_success) {
       return Initialize();
     }
@@ -68,14 +66,14 @@ namespace other {
     }
     loaded_modules.clear();
 
-    LogDebug("Lua Module Shutdown");
+    OE_DEBUG("Lua Module Shutdown");
   }
 
   ScriptModule* LuaModule::GetScriptModule(const std::string& name) {
     UUID id = FNV(name);
     auto* module = GetScriptModule(id);
     if (module == nullptr) {
-      LogError("Script module {} not found" , name);
+      OE_ERROR("Script module {} not found" , name);
     }
 
     return module;
@@ -86,35 +84,47 @@ namespace other {
       return loaded_modules[id];
     }
 
-    LogError("Script module {} not found" , id);
+    OE_ERROR("Script module {} not found" , id);
     return nullptr;
   }
 
   ScriptModule* LuaModule::LoadScriptModule(const ScriptModuleInfo& module_info) {
-    UUID id = FNV(module_info.name);
+    std::string case_insensitive_name;
+    std::transform(module_info.name.begin() , module_info.name.end() , std::back_inserter(case_insensitive_name) , ::toupper);
+
+    UUID id = FNV(case_insensitive_name);
+    OE_DEBUG("Loading Lua script module {} [{}]" , module_info.name , id);
+
     if (loaded_modules.find(id) != loaded_modules.end()) {
-      LogError("Attempting to load script module {} that is already loaded" , module_info.name);
+      OE_ERROR("Attempting to load script module {} that is already loaded" , module_info.name);
       return nullptr;
     }
 
-    LogDebug("Loading script module {} from {}" , module_info.name , module_info.paths[0]);
-
     for (const auto& path : module_info.paths) {
       if (!Filesystem::PathExists(path)) {
-        LogError("Script module {} path {} does not exist" , module_info.name , path);
+        OE_ERROR("Script module {} path {} does not exist" , module_info.name , path);
         return nullptr;
       }
     }
 
-    loaded_modules[id] = new LuaScript(GetEngine() , module_info.paths[0]);
+    std::vector<std::string> paths;
+    paths.insert(paths.end() , core_files.begin() , core_files.end());
+    paths.insert(paths.end() , module_info.paths.begin() , module_info.paths.end());
+
+    loaded_modules[id] = new LuaScript(GetEngine() , paths);
     loaded_modules[id]->Initialize();
     return loaded_modules[id];
   }
 
   void LuaModule::UnloadScriptModule(const std::string& name) {
-    UUID id = FNV(name);
+    std::string case_insensitive_name;
+    std::transform(name.begin() , name.end() , std::back_inserter(case_insensitive_name) , ::toupper);
+
+    UUID id = FNV(case_insensitive_name);
+    OE_DEBUG("Unloading C# script module {} [{}]" , name , id);
+
     if (loaded_modules.find(id) == loaded_modules.end()) {
-      LogError("Attempting to unload script module {} that is not loaded" , name);
+      OE_ERROR("Attempting to unload script module {} that is not loaded" , name);
       return;
     }
 
@@ -134,6 +144,7 @@ namespace other {
 } // namespace other
 
 OE_API other::Plugin* CreatePlugin(other::Engine* engine) {
+  other::Logger::SetLoggerInstance(engine->GetLog());
   return new other::LuaModule(engine);
 }
 
