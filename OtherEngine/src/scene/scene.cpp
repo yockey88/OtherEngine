@@ -3,6 +3,7 @@
  **/
 #include "scene/scene.hpp"
 
+#include "scripting/script_engine.hpp"
 #include "ecs/entity.hpp"
 #include "ecs/components/tag.hpp"
 #include "ecs/components/relationship.hpp"
@@ -95,6 +96,29 @@ namespace other {
     registry.view<Script>().each([](const Script& script) {
       for (auto& [id , s] : script.scripts) {
         s->Shutdown();
+      }
+    });
+  }
+      
+  void Scene::ReloadScripts() {
+    registry.view<Script>().each([](Script& script) {
+      script.scripts.clear();
+
+      for (auto& [id , data] : script.data) {
+        ScriptModule* mod = ScriptEngine::GetScriptModule(data.module);
+        if (mod == nullptr) {
+          OE_ERROR("Unable to reload script {}::{} : Failed to get Module" , data.module , data.obj_name);
+          continue;
+        }
+
+        ScriptObject* inst = mod->GetScript(data.obj_name);
+        if (inst == nullptr) {
+          OE_ERROR("Unable to reload script {}::{} : Failed to get Script" , data.module , data.obj_name);
+          continue;
+        }
+
+        script.scripts[id] = inst;
+        inst->Initialize();
       }
     });
   }

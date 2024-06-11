@@ -4,10 +4,8 @@
 #ifndef OTHER_ENGINE_FILE_WATCHER_HPP
 #define OTHER_ENGINE_FILE_WATCHER_HPP
 
+#include <filesystem>
 #include <string_view>
-#include <chrono>
-
-#include "core/defines.hpp"
 
 namespace other {
 
@@ -17,13 +15,10 @@ namespace other {
 
       bool ChangedSinceLastCheck();
 
-    private:
+    protected:
       std::string file_path;
-
-
+      std::filesystem::file_time_type last_write;
   }; 
-
-  Scope<FileWatcher> GetFileWatcher(const std::string_view file_path);
 
 } // namespace other
 

@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 
+#include "core/file_watcher.hpp"
 #include "scripting/script_object.hpp"
 
 namespace other {
@@ -23,6 +24,8 @@ namespace other {
       virtual ~ScriptModule() {}
 
       bool HasChanged() const;
+
+      void Update();
     
       virtual void Initialize() = 0;
       virtual void Shutdown() = 0;
@@ -34,6 +37,10 @@ namespace other {
     protected:
       bool valid = false;
       bool changed_on_disk = false;
+
+      std::vector<Scope<FileWatcher>> file_watchers;
+
+      void SetPaths(const std::vector<std::string>& paths);
   };
   
 } // namespace other

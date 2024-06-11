@@ -13,7 +13,7 @@ namespace other {
   bool SceneManager::LoadScene(const Path& scenepath) {
     UUID id = FNV(scenepath.string());
     if (auto scn = loaded_scenes.find(id); scn != loaded_scenes.end()) {
-      active_scene = &scn->second;
+      loaded_scenes.erase(scn);
       return true;
     }
 

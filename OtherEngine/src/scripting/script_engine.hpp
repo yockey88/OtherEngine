@@ -60,7 +60,7 @@ namespace other {
       static void Initialize(Engine* engine , const ConfigTable& config);
       static void Shutdown();
 
-      static void Reinitialize();
+      static void UpdateScripts();
 
       static std::string GetProjectAssemblyDir();
 
@@ -73,6 +73,7 @@ namespace other {
       static ScriptModule* GetScriptModule(UUID id);
 
       static void SetAppContext(App* app);
+      static App* GetAppContext();
 
       static const std::map<UUID , LanguageModuleMetadata>& GetModules() { return language_modules; }
 

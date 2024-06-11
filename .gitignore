@@ -47,6 +47,8 @@ bin_obj/
 *.vcxproj
 *.vcxproj.user
 *.vcxproj.filters
+*.csproj
+*.csproj.user
 
 ## Pycache
 tools/__pycache__/

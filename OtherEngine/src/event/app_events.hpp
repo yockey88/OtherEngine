@@ -7,6 +7,7 @@
 #include <sstream>
 
 #include "event/core_events.hpp"
+#include "event/event.hpp"
 
 namespace other {
 
@@ -25,6 +26,19 @@ namespace other {
       }
 
       EVENT_TYPE(APP_LAYER);
+  };
+  
+  class ScriptReloadEvent : public Event {
+    public:
+      ScriptReloadEvent()
+        : Event() {}
+
+      virtual std::string ToString() const override {
+        return "ScriptReloadEvent";
+      }
+
+      EVENT_CATEGORY(APPLICATION_EVENT);
+      EVENT_TYPE(SCRIPT_RELOAD);
   };
 
 } // namespace other

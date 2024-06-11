@@ -78,10 +78,18 @@ namespace other {
     };
   }
 
+  template <component_type C>
+  static void UnloadComponentFunctions() {
+    function_maps->component_getters<C>.clear();
+    function_maps->component_setters<C>.clear();
+  }
+
   void CsScriptBindings::InitializeBindings(MonoImage* asm_image) {
-    if (function_maps == nullptr) {
-      function_maps = new FunctionMaps;
+    if (function_maps != nullptr) {
+      delete function_maps;
     }
+
+    function_maps = new FunctionMaps;
 
     RegisterComponentType<Tag>(asm_image);
     RegisterComponentType<Transform>(asm_image);
@@ -96,6 +104,13 @@ namespace other {
     function_maps->component_destroyers.clear();
     function_maps->component_checkers.clear();
     function_maps->component_builders.clear();
+
+    UnloadComponentFunctions<Tag>();
+    UnloadComponentFunctions<Transform>();
+    UnloadComponentFunctions<Relationship>();
+    UnloadComponentFunctions<Script>();
+    UnloadComponentFunctions<Mesh>();
+
     delete function_maps;
   }
 

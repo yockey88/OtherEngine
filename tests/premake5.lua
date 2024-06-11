@@ -70,8 +70,46 @@ scripting_tests.include_dirs = function()
   }
 end
 
+scripting_tests.post_build_commands = function()
+  filter { "system:windows" , "configurations:Debug" }
+    postbuildcommands {
+      '{COPY} "%{wks.location}/externals/sdl2/lib/Debug/SDL2d.dll" "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/mono-2.0-sgen.dll "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/mono-2.0-sgen.pdb "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/MonoPosixHelper.dll "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/MonoPosixHelper.pdb "%{cfg.targetdir}"',
+    }
+
+  filter { "system:windows" , "configurations:Release" }
+    postbuildcommands {
+      '{COPY} "%{wks.location}/externals/sdl2/lib/Release/SDL2.dll" "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/mono-2.0-sgen.dll "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/MonoPosixHelper.dll "%{cfg.targetdir}"',
+    }
+end
+
 scripting_tests.components = {}
 scripting_tests.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
 scripting_tests.components["gtest"] = "%{wks.location}/externals/gtest/googletest/include"
 
 AddProject(scripting_tests)
+
+local test_asm = {}
+
+test_asm.name = "test_asm"
+test_asm.kind = "SharedLib"
+test_asm.language = "C#"
+
+test_asm.files = function()
+  files {
+    "./scripting-tests/test_script_cs.cs" ,
+  }
+end
+
+test_asm.defines = function()
+  defines {
+    "OE_MODULE" ,
+  }
+end
+
+AddModule(test_asm)

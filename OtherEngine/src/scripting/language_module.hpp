@@ -21,8 +21,9 @@ namespace other {
       bool HasScriptModule(const std::string_view name) const;
       bool HasScriptModule(UUID id) const;
 
+      void Update();
+
       virtual bool Initialize() = 0;
-      virtual bool Reinitialize() = 0;
       virtual void Shutdown() = 0;
       virtual void Reload() = 0;
       virtual ScriptModule* GetScriptModule(const std::string& name) = 0;

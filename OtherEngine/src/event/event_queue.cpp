@@ -9,6 +9,7 @@
 #include "core/defines.hpp"
 #include "core/engine.hpp"
 #include "core/config_keys.hpp"
+#include "event/event.hpp"
 #include "event/window_events.hpp"
 #include "event/core_events.hpp"
 #include "rendering/renderer.hpp"
@@ -82,8 +83,15 @@ namespace other {
 
     uint8_t* tmp_cursor = event_buffer;
 
+    bool scripts_reloaded = false;
+
     while (tmp_cursor != cursor) {
       Event* event = reinterpret_cast<Event*>(tmp_cursor);
+
+      /// only reload scripts once per frame at most
+      if (scripts_reloaded && event->Type() == EventType::SCRIPT_RELOAD) {
+        continue;
+      }
 
       app->ProcessEvent(event);
       
@@ -92,6 +100,10 @@ namespace other {
       }
 
       tmp_cursor += event->Size();
+
+      if (event->Type() == EventType::SCRIPT_RELOAD) {
+        scripts_reloaded = true;
+      }
     }
 
     Clear();

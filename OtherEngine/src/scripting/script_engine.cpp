@@ -45,9 +45,9 @@ namespace other {
     }
   }
 
-  void ScriptEngine::Reinitialize() {
+  void ScriptEngine::UpdateScripts() {
     for (auto& [id , mod] : language_modules) {
-      mod.module->Reinitialize();
+      mod.module->Update();
     }
   }
       
@@ -119,6 +119,10 @@ namespace other {
 
   void ScriptEngine::SetAppContext(App* app) {
     app_context = app;
+  }
+
+  App* ScriptEngine::GetAppContext() {
+    return app_context;
   }
       
   LanguageModuleType ScriptEngine::StringToModuleType(const std::string_view name) {

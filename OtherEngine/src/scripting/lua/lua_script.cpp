@@ -57,6 +57,7 @@ namespace other {
       return;
     }
 
+    SetPaths(paths);
     valid = true;
   }
 
@@ -71,7 +72,8 @@ namespace other {
   }
 
   void LuaScript::Reload() {
-    
+    Shutdown();
+    Initialize();
   }
 
   ScriptObject* LuaScript::GetScript(const std::string& name , const std::string& nspace) {

@@ -6,7 +6,8 @@
 #include <filesystem>
 
 #include "core/filesystem.hpp"
-
+#include "event/event_queue.hpp"
+#include "event/app_events.hpp"
 #include "scripting/lua/lua_script.hpp"
 
 
@@ -36,24 +37,6 @@ namespace other {
     return load_success;
   }
 
-  bool LuaModule::Reinitialize() {
-    OE_DEBUG("Reinitializing Lua Module");
-    if (!load_success) {
-      return Initialize();
-    }
-
-    for (auto& [id , module] : loaded_modules) {
-      module->Shutdown();
-    }
-
-    for (auto& [id , module] : loaded_modules) {
-      module->Initialize();
-    }
-
-    load_success = true;
-    return load_success;
-  }
-
   void LuaModule::Shutdown() {
     for (auto& [id , module] : loaded_modules) {
       module->Shutdown();
@@ -62,6 +45,20 @@ namespace other {
     loaded_modules.clear();
 
     OE_DEBUG("Lua Module Shutdown");
+  }
+  
+  void LuaModule::Reload() {
+    bool reload_event = false;
+    for (auto& [id , mod] : loaded_modules) {
+      if (mod->HasChanged()) {
+        mod->Reload();
+
+        if (!reload_event) {
+          EventQueue::PushEvent<ScriptReloadEvent>();
+          reload_event = true;
+        }
+      }
+    }
   }
 
   ScriptModule* LuaModule::GetScriptModule(const std::string& name) {

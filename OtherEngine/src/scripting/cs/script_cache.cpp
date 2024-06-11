@@ -43,29 +43,6 @@ namespace other {
     asm_caches = new AssemblyCaches;
 
     CacheAssembly(*core_cache , "MSCORLIB" , FNV("MSCORLIB") , mono_get_corlib());
-
-#define CACHE_MSCORLIB_CLASS(name) \
-    CacheClass(*core_cache , "System::" ##name , mono_class_from_name(mono_get_corlib() , "System" , name))
-
-    // CACHE_MSCORLIB_CLASS("Object");
-    // CACHE_MSCORLIB_CLASS("ValueType");
-    // CACHE_MSCORLIB_CLASS("Enum");
-    // CACHE_MSCORLIB_CLASS("String");
-    // CACHE_MSCORLIB_CLASS("Boolean");
-    // CACHE_MSCORLIB_CLASS("Char");
-    // CACHE_MSCORLIB_CLASS("SByte");
-    // CACHE_MSCORLIB_CLASS("Byte");
-    // CACHE_MSCORLIB_CLASS("Int16");
-    // CACHE_MSCORLIB_CLASS("UInt16");
-    // CACHE_MSCORLIB_CLASS("Int32");
-    // CACHE_MSCORLIB_CLASS("UInt32");
-    // CACHE_MSCORLIB_CLASS("Int64");
-    // CACHE_MSCORLIB_CLASS("UInt64");
-    // CACHE_MSCORLIB_CLASS("Single");
-    // CACHE_MSCORLIB_CLASS("Double");
-    // CACHE_MSCORLIB_CLASS("Void");
-
-#undef CACHE_MSCORLIB_CLASS
     
     initialized = true;
   }
@@ -113,7 +90,7 @@ namespace other {
     cache.method_data.clear();
     asm_caches->asm_caches.erase(asm_caches->asm_caches.find(id));
 
-    OE_DEBUG("Unregistered C# assembly");
+    OE_DEBUG("Unregistered C# assembly with id [{}]" , id);
   }
   
   void CsScriptCache::CacheAssembly(Cache& target_cache , const std::string_view asm_name , UUID id , MonoImage* asm_image , bool log_data) {

@@ -21,7 +21,6 @@ namespace other {
       virtual ~CsModule() override {}
 
       virtual bool Initialize() override;
-      virtual bool Reinitialize() override;
       virtual void Shutdown() override;
       virtual void Reload() override;
       virtual ScriptModule* GetScriptModule(const std::string& name) override;
@@ -45,6 +44,8 @@ namespace other {
 
       MonoDomain* root_domain = nullptr;
       MonoDomain* app_domain = nullptr; 
+
+      std::map<UUID , ScriptModuleInfo> loaded_modules_data;
 
       bool load_success = false;
   };

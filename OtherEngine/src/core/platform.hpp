@@ -87,6 +87,7 @@ namespace other {
       static bool LaunchProject(const Path& path , LaunchType type);
       static bool LaunchProcess(const Path& path , const Path& working_dir , 
                                 const std::string& args_str = "");
+      static bool BuildProject(const Path& project_file);
   };
 
 } // namespace other

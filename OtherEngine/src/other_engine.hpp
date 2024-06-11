@@ -4,8 +4,6 @@
 #ifndef OTHER_ENGINE_HPP
 #define OTHER_ENGINE_HPP
 
-#include <filesystem>
-
 #include "core/engine.hpp"
 #include "parsing/cmd_line_parser.hpp"
 

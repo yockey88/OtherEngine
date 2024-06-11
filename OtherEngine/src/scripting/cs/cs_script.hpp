@@ -37,11 +37,20 @@ namespace other {
       MonoAssembly* assembly = nullptr;
 
       UUID script_id;
+      
+      struct ScriptSymbol {
+        std::string name_space;
+        std::string name;
+      };
+
+      std::map<UUID , ScriptSymbol> loaded_symbols;
       std::map<UUID , MonoClass*> classes;
       std::map<UUID , CsObject> loaded_objects;
       // garbage_collector stuff
 
       std::string assembly_path;
+
+      bool reloaded = false;
 
       MonoClass* GetClass(const std::string& name , const std::string& nspace);
   };

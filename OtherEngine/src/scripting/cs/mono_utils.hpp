@@ -12,7 +12,7 @@
 namespace other {
 
   enum FieldAccessFlag {
-    NONE = -1 ,
+    NO_ACCESS_CONTROL = -1 ,
     READONLY = bit(0) ,
     STATIC = bit(1) , 
     PUBLIC  = bit(2) ,

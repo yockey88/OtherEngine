@@ -26,21 +26,17 @@ namespace other {
 
     OE_DEBUG("Loading application");
     project_metadata = Project::Create(cmd_line , config);
-    app->LoadMetadata(project_metadata);
 
     if (cmd_line.HasFlag("--editor")) {
       OE_DEBUG("Loading editor");
-
       auto editor_app = NewScope<Editor>(this , app);
       active_app = std::move(editor_app);
-      active_app->OnLoad();
-
-      return;
     } else {
       active_app = std::move(app);
-      active_app->OnLoad();
     }
 
+    active_app->LoadMetadata(project_metadata);
+    active_app->OnLoad();
   }
 
   void Engine::UnloadApp() {

@@ -194,8 +194,6 @@ namespace other {
     EventQueue::Initialize(current_config);
     Renderer::Initialize(current_config);
     UI::Initialize(current_config , Renderer::GetWindow());
-
-    ScriptEngine::Initialize(&engine , current_config);
   }
 
   ExitCode OE::Run() {
@@ -242,8 +240,6 @@ namespace other {
   }
 
   void OE::Shutdown() {
-    ScriptEngine::Shutdown();
-
     UI::Shutdown();
     Renderer::Shutdown();
     EventQueue::Shutdown();

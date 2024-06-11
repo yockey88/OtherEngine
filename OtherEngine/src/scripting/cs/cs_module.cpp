@@ -8,6 +8,8 @@
 #include <mono/metadata/threads.h>
 
 #include "core/filesystem.hpp"
+#include "event/event_queue.hpp"
+#include "event/app_events.hpp"
 #include "scripting/cs/cs_script.hpp"
 #include "scripting/cs/script_bindings.hpp"
 #include "scripting/cs/script_cache.hpp"
@@ -36,8 +38,7 @@ namespace other {
     char* app_domain_name = const_cast<char*>(kAppDomainName.data());
     app_domain = mono_domain_create_appdomain(app_domain_name , nullptr);
 
-    mono_thread_set_main(mono_thread_current());
-    mono_domain_set(app_domain , true);
+    mono_domain_set(app_domain , 0);
 
     OE_DEBUG("Mono Runtime initialized");
 
@@ -45,7 +46,7 @@ namespace other {
     if (!Filesystem::FileExists(mono_core.string())) {
       OE_ERROR("Mono core assembly {} not found, unloading C# module" , mono_core.string());
 
-      mono_domain_set(root_domain , true);
+      mono_domain_set(root_domain , 0);
       mono_domain_unload(app_domain);
       mono_jit_cleanup(root_domain);
       return load_success;
@@ -65,69 +66,23 @@ namespace other {
     return load_success;
   }
 
-  bool CsModule::Reinitialize() {
-    OE_DEBUG("Reinitializing Mono Runtime");
-    if (!load_success) {
-      return Initialize();
-    }
-
-    CsScriptCache::ShutdownCache();
-    CsScriptBindings::ShutdownBindings();
-    /// CsGarbageCollector::ShutdownGC();
-
-    for (auto& [id , module] : loaded_modules) {
-      module->Shutdown();
-    }
-
-    mono_domain_set(root_domain , true);
-    mono_domain_unload(app_domain);
-    mono_jit_cleanup(root_domain);
-
-    load_success = false;
-
-    root_domain = mono_jit_init(kRootDomainName.data());
-
-    char* app_domain_name = const_cast<char*>(kAppDomainName.data());
-    app_domain = mono_domain_create_appdomain(app_domain_name , nullptr);
-
-    mono_thread_set_main(mono_thread_current());
-    mono_domain_set(app_domain , true);
-    
-    CsScriptCache::InitializeCache();
-    /// CsGarbageCollector::InitializeGC();
-    
-    CsScript* core_mod = dynamic_cast<CsScript*>(loaded_modules.find(FNV("C#-CORE"))->second);
-    core_mod->Initialize();
-    CsScriptBindings::InitializeBindings(core_mod->GetImage());
-
-    for (auto& [id , module] : loaded_modules) {
-      if (id.Get() == FNV("C#-CORE")) {
-        continue;
-      }
-      module->Initialize();
-    }
-
-    OE_DEBUG("Mono Runtime reinitialized");
-    load_success = true;
-    return load_success;
-  }
-
   void CsModule::Shutdown() {
     if (!load_success) {
       return;
     }
-
-    /// CsGarbageCollector::ShutdownGC();
+    
     CsScriptCache::ShutdownCache();
     CsScriptBindings::ShutdownBindings();
-
+    
     for (auto& [id , module] : loaded_modules) {
       module->Shutdown();
       delete module;
     }
     loaded_modules.clear();
 
-    mono_domain_set(root_domain , true);
+    /// CsGarbageCollector::ShutdownGC();
+
+    mono_domain_set(root_domain , 0);
     mono_domain_unload(app_domain);
     mono_jit_cleanup(root_domain);
 
@@ -136,11 +91,52 @@ namespace other {
 
     OE_DEBUG("Mono Runtime shutdown");
   }
-      
+
   void CsModule::Reload() {
+    bool need_to_reload = false;
+    for (auto& [id , mod] : loaded_modules) {
+      if (mod->HasChanged()) {
+        need_to_reload = true;
+        break;
+      }
+    }
+
+    if (!need_to_reload) {
+      return;
+    }
+
+    for (auto& [id , module] : loaded_modules) {
+      module->Shutdown();
+      module->Reload(); /// should be called rebuild
+      delete module;
+    }
+    loaded_modules.clear();
     
+    /// CsGarbageCollector::ShutdownGC();
+    CsScriptCache::ShutdownCache();
+    // CsScriptBindings::ShutdownBindings();
+
+    mono_domain_set(root_domain, 0);
+    mono_domain_unload(app_domain);
+
+    OE_DEBUG("Reloading Mono Runtime");
+
+    char* app_domain_name = const_cast<char*>(kAppDomainName.data());
+    app_domain = mono_domain_create_appdomain(app_domain_name , nullptr);
+
+    mono_domain_set(app_domain , true);
+
+    OE_DEBUG("Mono Runtime initialized");
+    
+    CsScriptCache::InitializeCache();
+
+    for (const auto& [id , module_info] : loaded_modules_data) {
+      LoadScriptModule(module_info);
+    }
+
+    EventQueue::PushEvent<ScriptReloadEvent>();
   }
-  
+      
   ScriptModule* CsModule::GetScriptModule(const std::string& name) {
     if (!load_success) {
       OE_WARN("Attempting to get script module {} when C# module is not loaded" , name);
@@ -194,6 +190,8 @@ namespace other {
     CsScript* script = new CsScript(root_domain , app_domain , module_info.paths[0]);
     loaded_modules[id] = script;
     loaded_modules[id]->Initialize();
+
+    loaded_modules_data[id] = module_info;
 
     if (id.Get() == FNV("C#-CORE")) {
       CsScriptBindings::InitializeBindings(script->GetImage());

@@ -13,7 +13,13 @@
 
 namespace other {
 
+  struct ScriptObjectData {
+    std::string module;
+    std::string obj_name;
+  };
+
   struct Script : public Component {
+    std::map<UUID , ScriptObjectData> data = {};
     std::map<UUID , ScriptObject*> scripts = {};
 
     ECS_COMPONENT(Script);

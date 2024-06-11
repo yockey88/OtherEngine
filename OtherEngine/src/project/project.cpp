@@ -22,6 +22,11 @@ namespace other {
 
     metadata.project_dir_folders = Filesystem::GetSubPaths(metadata.file_path.parent_path());
 
+    auto assets_directory = config.GetVal<std::string>(kProjectSection , kAssetsValue);
+    if (assets_directory.has_value()) {
+      metadata.assets_dir = assets_directory.value();
+    }
+
     Increment();
   }
 

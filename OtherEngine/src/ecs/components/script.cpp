@@ -47,7 +47,12 @@ namespace other {
         std::string case_ins_name;
         std::transform(s.begin() , s.end() , std::back_inserter(case_ins_name) , ::toupper);
 
-        script.scripts[FNV(case_ins_name)] = inst;
+        UUID id = FNV(case_ins_name);
+        script.data[id] = ScriptObjectData{
+          .module = m ,
+          .obj_name = s ,
+        };
+        script.scripts[id] = inst;
       }
     }
 

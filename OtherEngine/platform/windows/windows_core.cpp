@@ -3,6 +3,10 @@
  **/
 #include "core/platform.hpp"
 
+#include <ShlObj.h>
+#include <minwinbase.h>
+#include <processthreadsapi.h>
+
 #include "core/logger.hpp"
 #include "core/filesystem.hpp"
 
@@ -105,6 +109,60 @@ namespace other {
     }
 
     return result;
+  }
+      
+  bool PlatformLayer::BuildProject(const Path& project_file) {
+    if (!Filesystem::FileExists(project_file)) {
+      OE_ERROR("Failed to build project file : {}" , project_file);
+      return false;
+    } 
+
+    TCHAR program_files_path_buffer[MAX_PATH];
+    SHGetSpecialFolderPath(0 , program_files_path_buffer , CSIDL_PROGRAM_FILES , FALSE);
+
+    Path ms_build = std::filesystem::path(program_files_path_buffer) /
+      "Microsoft Visual Studio" / "2022" / "Community" / 
+      "Msbuild" / "Current" / "Bin" / "MSBuild.exe";
+
+    std::string project_file_str = project_file.string();
+    std::replace(project_file_str.begin() , project_file_str.end() , '/' , '\\');
+
+    /// replace configuration in the future
+    std::string cmd = fmt::format(fmt::runtime("cmd.exe /c '{}'") , ms_build.string());
+    std::string args = fmt::format(fmt::runtime("\"{} /property:Configuration=Debug\"") , project_file_str);
+
+    /// we can't use LaunchProcess because we want to wait on the process to finish
+
+    std::replace(cmd.begin() , cmd.end() , '/' , '\\');
+    cmd.append(" ");
+    cmd.append(args);
+
+    std::wstring wcmd(cmd.begin() , cmd.end());
+    wchar_t* wcmdline = const_cast<wchar_t*>(wcmd.c_str());
+
+    OE_DEBUG("Launching process {}" , cmd);
+
+    PROCESS_INFORMATION pi;
+    STARTUPINFO si;
+    ZeroMemory(&si , sizeof(si));
+    si.cb = sizeof(si);
+    ZeroMemory(&pi , sizeof(pi));
+
+    bool result = CreateProcessW(nullptr , wcmdline , nullptr , nullptr , 
+                                 true , CREATE_NEW_CONSOLE , nullptr , nullptr , &si , &pi);  
+
+    if (!result) {
+      OE_ERROR("Failed to launch build using command line {}" , cmd);
+      CloseHandle(pi.hProcess);
+      CloseHandle(pi.hThread);
+      return false;
+    }
+
+    WaitForSingleObject(pi.hProcess , 5000);
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+    
+    return true;
   }
 
 } // namespace other

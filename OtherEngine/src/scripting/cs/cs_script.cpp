@@ -9,6 +9,9 @@
 #include <mono/metadata/row-indexes.h>
 
 #include "core/filesystem.hpp"
+#include "core/platform.hpp"
+#include "application/app.hpp"
+#include "scripting/script_engine.hpp"
 #include "scripting/cs/script_cache.hpp"
 
 namespace other {
@@ -30,10 +33,8 @@ namespace other {
     std::vector<char> file_data = Filesystem::ReadFileAsChars(assembly_path);
 
     MonoImageOpenStatus status;
-    assembly_image = mono_image_open_from_data_full(
-      file_data.data() , static_cast<uint32_t>(file_data.size()) , 
-      true , &status , false
-    );
+    assembly_image = mono_image_open_from_data_full(file_data.data() , static_cast<uint32_t>(file_data.size()) , 
+                                               true , &status , false);
 
     if (status != MONO_IMAGE_OK) {
       OE_ERROR("Mono Script Module image could not open : {}" , assembly_path);
@@ -82,6 +83,29 @@ namespace other {
               asm_name , name , major_version , minor_version , patch_version , revision_version);
     }
 
+    std::string script_name = Path{ 
+      assembly_path 
+    }.filename().string().substr(0 , assembly_path.find_last_of('.'));
+
+    App* app_ctx = ScriptEngine::GetAppContext();
+
+    Path script_dir = app_ctx->GetProjectContext()->GetMetadata().assets_dir / "scripts";
+    Path real_script_file_full = script_dir / Path{ assembly_path }.filename();
+    std::string real_file = real_script_file_full.string().substr(0 , real_script_file_full.string().find_last_of('.'));
+    real_file += ".cs";
+    
+    if (real_file.find("OtherEngine-CsCore") == std::string::npos && !reloaded) {
+      SetPaths({ real_file });
+    }
+
+    if (reloaded) {
+      for (const auto& [id , sym] : loaded_symbols) {
+        ScriptObject* obj =  GetScript(sym.name , sym.name_space); 
+        obj->InitializeScriptMethods();
+        obj->InitializeScriptFields();
+      }
+    }
+
     valid = true;
 
     OE_DEBUG("Mono Script Module loaded : {}" , assembly_path);
@@ -92,13 +116,39 @@ namespace other {
       return;
     }
 
+    for (auto& [id , obj] : loaded_objects) {
+      obj.Shutdown();
+    }
+    loaded_objects.clear();
+    classes.clear();
+
     CsScriptCache::UnregisterAssembly(script_id);
 
     mono_image_close(assembly_image);
+    assembly_image = nullptr;
+
+    valid = false;
   }
 
   void CsScript::Reload() {
-    
+    App* app_ctx = ScriptEngine::GetAppContext();
+
+    Path project_dir = app_ctx->GetProjectContext()->GetMetadata().file_path.parent_path();
+    Path build_file = project_dir / Path{ assembly_path }.filename();
+    std::string real_file = build_file.string().substr(0 , build_file.string().find_last_of('.'));
+    real_file += ".csproj";
+
+    if (!Filesystem::FileExists(real_file)) {
+      OE_WARN("Failed to find build file for script {} [ tried : {} ]" , assembly_path , real_file);
+      OE_WARN("Assemblies may be incomplete");
+      return;
+    }
+
+    OE_DEBUG("Kicking off build for script {}" , assembly_path);
+
+    if (!PlatformLayer::BuildProject(real_file)) {
+      OE_ERROR("Failed to rebuild project file");
+    }
   }
       
   ScriptObject* CsScript::GetScript(const std::string& name , const std::string& nspace) {
@@ -131,6 +181,11 @@ namespace other {
     loaded_objects[id].InitializeScriptMethods();
     loaded_objects[id].InitializeScriptFields();
 
+    loaded_symbols[id] = {
+      .name_space = nspace , 
+      .name = name ,
+    };
+
     return &loaded_objects[id];
   }
 
@@ -156,6 +211,8 @@ namespace other {
     } else {
       OE_INFO("Mono class {} loaded from assembly : {}" , name , assembly_path);
     }
+
+    classes[id] = klass;
 
     return klass;
   }

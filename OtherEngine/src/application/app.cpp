@@ -52,18 +52,21 @@ namespace other {
       Ref<Layer> debug_layer = NewRef<DebugLayer>(this);
       PushLayer(debug_layer);
     }
-    
+     
     /// return because the editor will have already loaded all of this stuff already
     if (in_editor) {
       return;
     }
+    
+    ScriptEngine::SetAppContext(this);
+    ScriptEngine::Initialize(GetEngine() , config);
 
     OE_DEBUG("Loading C# script modules");
     Ref<LanguageModule> cs_language_module = ScriptEngine::GetModule(kCsModuleSection);
     if (cs_language_module != nullptr) {
       std::string real_key = std::string{ kScriptingSection } + "." + std::string{ kCsModuleSection };
       auto cs_modules = config.Get(real_key , kPathsValue);
-      
+    
       for (const auto& cs_mod : cs_modules) {
         Path path = cs_mod;
         std::string name = path.filename().string().substr(0 , path.filename().string().find_last_of('.'));
@@ -103,6 +106,16 @@ namespace other {
     while (!GetEngine()->exit_code.has_value()) {
       float dt = delta_time.Get();
       // float dt = frame_rate_enforcer.TimeStep();
+
+      /// first we check to see if we need to reload any scripts
+      
+      /// this updates the internal representation of the udpate, the actual script 'OnUpdate'
+      ///   method is not called until the scene calls it if the scene is currently running
+      ScriptEngine::UpdateScripts();
+
+      /// this reloads scripts that were marked as changed above and queues an event to tell
+      ///   the application it needs to refresh it's script objects
+      ScriptEngine::ReloadAllScripts();
 
       // updates mouse/keyboard/any connected controllers
       IO::Update();
@@ -188,14 +201,18 @@ namespace other {
     if (cs_language_module != nullptr) {
       std::string real_key = std::string{ kScriptingSection } + "." + std::string{ kCsModuleSection };
       auto cs_modules = config.Get(real_key , kPathsValue);
-      
+    
       for (const auto& cs_mod : cs_modules) {
         Path path = cs_mod;
         std::string name = path.filename().string().substr(0 , path.filename().string().find_last_of('.'));
 
-        cs_language_module->UnloadScriptModule(name);    
+        OE_DEBUG(" > Unloading C# script module {}" , name);
+        cs_language_module->UnloadScriptModule(name);
       }
     }
+
+    OE_DEBUG("Shutting down script engine");
+    ScriptEngine::Shutdown();
 
     OE_DEBUG(" > Application unloaded");
   }
@@ -239,6 +256,11 @@ namespace other {
   }
 
   void App::ProcessEvent(Event* event) {
+    if (event->Type() == EventType::SCRIPT_RELOAD && scene_manager->ActiveScene() != nullptr) {
+      Ref<Scene> active = scene_manager->ActiveScene()->scene;
+      active->ReloadScripts();
+    }
+
     for (auto& window : ui_windows) {
       window.second->OnEvent(event);
     }

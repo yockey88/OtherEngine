@@ -17,6 +17,7 @@ namespace other {
   struct ProjectMetadata {
     std::string name = "";
     Path file_path = "";
+    Path assets_dir = "";
 
     std::vector<Path> project_dir_folders{};
   };

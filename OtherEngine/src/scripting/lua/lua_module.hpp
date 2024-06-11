@@ -14,9 +14,8 @@ namespace other {
       virtual ~LuaModule() override {}
 
       virtual bool Initialize() override;
-      virtual bool Reinitialize() override;
       virtual void Shutdown() override;
-      virtual void Reload() override {}
+      virtual void Reload() override;
       virtual ScriptModule* GetScriptModule(const std::string& name) override;
       virtual ScriptModule* GetScriptModule(const UUID& id) override;
       virtual ScriptModule* LoadScriptModule(const ScriptModuleInfo& module_info) override;

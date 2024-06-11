@@ -5,6 +5,9 @@ local function ProjectHeader(project_data)
   project (project_data.name)
     kind (project_data.kind)
     language (project_data.language)
+    if project_data.language == "C#" then
+      dotnetframework "4.7.2"
+    end
 
     if project_data.cppdialect ~= nil then
       cppdialect (project_data.cppdialect)
@@ -32,6 +35,27 @@ local function ProjectHeader(project_data)
 
     targetdir (project_data.tdir)
     objdir (project_data.odir)
+end
+
+local function ProcessModuleConfigurations(project , external)
+  filter "configurations:Debug"
+    defines { "OE_DEBUG_BUILD" }
+    if project.debug_configuration ~= nil then
+      project.debug_configuration()
+    else
+      debugdir "."
+      optimize "Off"
+      symbols "On"
+    end
+
+  filter "configurations:Release"
+    defines { "OE_RELEASE_BUILD" }
+    if project.release_configuration ~= nil then
+      project.release_configuration()
+    else
+      optimize "On"
+      symbols "Off"
+    end
 end
 
 local function ProcessConfigurations(project , external)
@@ -159,7 +183,7 @@ function AddModule(project)
     end
     
     ProcessModuleComponents(project)
-    ProcessConfigurations(project)
+    ProcessModuleConfigurations(project)
 end
 
 function AddProject(project)

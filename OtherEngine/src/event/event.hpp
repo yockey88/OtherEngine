@@ -20,6 +20,7 @@ namespace other {
 
     // application events
     APP_TICK , APP_UPDATE , APP_RENDER , APP_LAYER ,
+    SCRIPT_RELOAD ,
     
     // input events
     KEY_PRESSED , KEY_RELEASED , KEY_TYPED , KEY_HELD ,

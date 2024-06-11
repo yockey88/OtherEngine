@@ -4,23 +4,25 @@
 #include "core/file_watcher.hpp"
 
 #include "core/platform.hpp"
-
-#ifdef OE_WINDOWS
-  #include "windows/windows_file_watcher.hpp"
-#endif
+#include <filesystem>
 
 namespace other {
 
   FileWatcher::FileWatcher(const std::string_view file_path) {
-    
+    this->file_path = file_path;
+    last_write = std::filesystem::last_write_time(Path{ file_path });
   }
 
-  Scope<FileWatcher> GetFileWatcher(const std::string_view file_path) {
-#ifdef OE_WINDOWS
-    return NewScope<WindowsFileWatcher>(file_path);
-#else
-    return nullptr;
-#endif
-  } 
+  bool FileWatcher::ChangedSinceLastCheck() {
+    bool changed = false;
+
+    auto new_write_time = std::filesystem::last_write_time(file_path);
+    if (last_write != new_write_time) {
+      changed = true;
+    } 
+
+    last_write = new_write_time;
+    return changed;
+  }
 
 } // namespace other
