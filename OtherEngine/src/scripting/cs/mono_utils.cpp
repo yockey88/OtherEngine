@@ -5,12 +5,24 @@
 
 #include "core/logger.hpp"
 
-#include <mono/metadata/object.h>
 #include <mono/utils/mono-error.h>
+#include <mono/metadata/object.h>
 #include <mono/metadata/metadata.h>
 #include <mono/metadata/class.h>
+#include <mono/metadata/attrdefs.h>
 
 namespace other {
+
+  bool CheckMonoError(MonoError* error) {
+    bool has_error = !mono_error_ok(error);
+    if (has_error) {
+      unsigned short err_code = mono_error_get_error_code(error);
+      std::string err_msg{ mono_error_get_message(error) };
+      OE_ERROR("Mono error: {0} | {1}" , err_code , err_msg);
+      mono_error_cleanup(error);
+    }
+    return has_error;
+  }
 
   bool CheckMonoError() {
     MonoError error;
@@ -57,10 +69,10 @@ namespace other {
         /// if vec2
         /// if vec3
         /// if vec4
-      }
+      } break;
       case MONO_TYPE_CLASS: {
         /// defined classes
-      }
+      } break;
       case MONO_TYPE_SZARRAY:
       case MONO_TYPE_ARRAY: {
         MonoClass* elt_class = mono_class_get_element_class(type_class);
@@ -68,7 +80,7 @@ namespace other {
           break;
         }
 
-      }
+      } break;
 
       default: 
         OE_ERROR("Failed to retrieve mono type");
@@ -140,6 +152,26 @@ namespace other {
       case ValueType::DOUBLE: {
         double  d = UnsafeUnbox<double>(object);
         val.Set(d);
+      } break;
+      case ValueType::STRING: {
+        MonoString* mstr = reinterpret_cast<MonoString*>(object);
+        if (mono_string_length(mstr) == 0) {
+          return Value{};
+        }
+
+        MonoError error{};
+        char* utf8 = mono_string_to_utf8_checked(mstr , &error);
+        if (CheckMonoError(&error)) {
+          return Value{};
+        }
+
+        std::string res{ utf8 };
+        mono_free(utf8);
+
+        Value v;
+        v.Set(res);
+
+        return v;
       } break;
 
       default:

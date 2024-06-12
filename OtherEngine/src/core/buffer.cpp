@@ -8,19 +8,16 @@
 namespace other {
       
   Buffer::Buffer(void* data , uint64_t size) {
-    Allocate(size);
-    Write(data , size);
+    *this = Copy(data , size);
   }
 
   Buffer::Buffer(Buffer&& other) {
-    Allocate(other.size);
-    Write(other.data , other.size);
+    *this = Copy(other);
     other.Release();
   }
 
   Buffer::Buffer(const Buffer& other) {
-    Allocate(other.size);
-    Write(other.data , other.size);
+    *this = Copy(other);
   }
 
   Buffer& Buffer::operator=(Buffer&& other) {
@@ -31,8 +28,7 @@ namespace other {
   }
 
   Buffer& Buffer::operator=(const Buffer& other) {
-    Allocate(other.size);
-    Write(other.data , other.size);
+    *this = Copy(other);
     return *this;
   }
 
@@ -58,7 +54,7 @@ namespace other {
       return;
     }
 
-    data = new uint8_t[sz];
+    data = new uint8_t[sz + 1];
     size = sz;
   }
 
@@ -75,23 +71,22 @@ namespace other {
   }
 
   const uint8_t* Buffer::ReadBytes(uint64_t offset) const {
-    OE_ASSERT(offset < size , "Buffer::ReadBytes |> Out of bounds");
+    OE_ASSERT(offset <= size , "Buffer::ReadBytes |> Out of bounds");
     return static_cast<const uint8_t*>(&data[offset]);
   }
 
   void Buffer::Write(const void* d , uint64_t sz , uint64_t offset) {
-    OE_ASSERT(sz <= size , "Buffer::Write |> Out of bounds ({} vs {})" , sz , size);
-    memcpy(data , d , size);
-    size = sz;
+    OE_ASSERT(offset + sz <= size , "Buffer::Write |> Out of bounds ({} vs {})" , offset + sz , size);
+    memcpy((data + offset), d , size);
   }
 
   uint8_t& Buffer::operator[](uint64_t offset) {
-    OE_ASSERT(offset >= size , "Accessing Buffer out of bounds");
+    OE_ASSERT(offset <= size , "Accessing Buffer out of bounds");
     return *(data + offset);
   }
 
   uint8_t Buffer::operator[](uint64_t offset) const {
-    OE_ASSERT(offset >= size , "Accessing Buffer out of bounds");
+    OE_ASSERT(offset <= size , "Accessing Buffer out of bounds");
     return *(data + offset);
   }
 

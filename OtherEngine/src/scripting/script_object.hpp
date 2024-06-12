@@ -25,7 +25,8 @@ namespace other {
       bool IsCorrupt() const;
       bool IsInitialized() const;
 
-      const std::map<UUID , ScriptField>& GetFields();
+      std::map<UUID , ScriptField*>& GetFields();
+      const std::map<UUID , ScriptField*>& GetFields() const;
 
       virtual void InitializeScriptMethods() = 0;
       virtual void InitializeScriptFields() = 0;
@@ -43,7 +44,7 @@ namespace other {
       std::string script_name;
       std::string language;
 
-      std::map<UUID , ScriptField> fields;
+      std::map<UUID , ScriptField*> fields;
   };
 
 } // namespace other

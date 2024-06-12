@@ -5,7 +5,10 @@
 
 #include "core/logger.hpp"
 
-#include "mono_utils.hpp"
+#include "scripting/cs/mono_utils.hpp"
+#include "scripting/cs/script_cache.hpp"
+#include <mono/metadata/class.h>
+#include <mono/metadata/object.h>
 
 namespace other {
 
@@ -17,7 +20,28 @@ namespace other {
     shutdown_method = mono_class_get_method_from_name(klass , "OnShutdown" , 0);
   }
 
-  void CsObject::InitializeScriptFields() {}
+  void CsObject::InitializeScriptFields() {
+    std::vector<ScriptField*> fdata = CsScriptCache::GetClassFields(asm_id , klass , instance);
+    for (const auto& f : fdata) {
+      MonoClassField* mcfield = mono_class_get_field_from_name(klass , f->name.c_str());
+      if (mcfield == nullptr) {
+        continue;
+      }
+
+      MonoObject* mobj = mono_field_get_value_object(app_domain , mcfield, instance);
+      if (mobj == nullptr) {
+        continue;
+      }
+
+      auto& fval = fields[f->id] = f;
+      Opt<Value> val = MonoObjectToValue(mobj);
+      OE_DEBUG("Get field back from MonoObjectToValue");
+
+      if (val.has_value()) {
+        fval->value = val.value();
+      }
+    }
+  }
 
   Opt<Value> CsObject::CallMethod(const std::string& name , Parameter* args , uint32_t argc)  {
     UUID id = FNV(name);
@@ -75,6 +99,12 @@ namespace other {
     }
 
     is_initialized = false;
+
+    for (auto& [id , field] : fields) {
+      delete field;
+      field = nullptr;
+    }
+    fields.clear();
   }
   
   Opt<Value> CsObject::CallMonoMethod(MonoMethod* method , uint32_t argc , Parameter* args) {

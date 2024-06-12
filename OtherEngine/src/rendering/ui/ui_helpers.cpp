@@ -8,6 +8,8 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 
+#include <spdlog/fmt/fmt.h>
+
 #include "rendering/ui/ui_colors.hpp"
 
 namespace other {
@@ -230,9 +232,37 @@ namespace {
 
 } // anonymous namespace
   
+  bool DragInt8(const char* label , int8_t* v , float v_speed , int8_t min , int8_t max ,
+                const char* format , ImGuiSliderFlags flags) {
+    bool changed = ImGui::DragScalar(label , ImGuiDataType_S8 , v , v_speed , &min , &max , format , flags);
+    DrawItemActivityOutline();
+    return changed;
+  }
+  
+  bool DragInt16(const char* label , int16_t* v , float v_speed , int16_t min , int16_t max ,
+                const char* format , ImGuiSliderFlags flags) {
+    bool changed = ImGui::DragScalar(label , ImGuiDataType_S16 , v , v_speed , &min , &max , format , flags);
+    DrawItemActivityOutline();
+    return changed;
+  }
+  
+  bool DragInt32(const char* label , int32_t* v , float v_speed , int32_t min , int32_t max ,
+                const char* format , ImGuiSliderFlags flags) {
+    bool changed = ImGui::DragScalar(label , ImGuiDataType_S32 , v , v_speed , &min , &max , format , flags);
+    DrawItemActivityOutline();
+    return changed;
+  }
+  
+  bool DragInt64(const char* label , int64_t* v , float v_speed , int64_t min , int64_t max ,
+                const char* format , ImGuiSliderFlags flags) {
+    bool changed = ImGui::DragScalar(label , ImGuiDataType_S64 , v , v_speed , &min , &max , format , flags);
+    DrawItemActivityOutline();
+    return changed;
+  }
+  
   bool DragFloat(const char* label , float* v , float v_speed , float v_min , float v_max , 
                  const char* format , ImGuiSliderFlags flags) {
-    bool changed = ImGui::DragFloat(label , v , v_speed , v_min , v_max , format , flags);
+    bool changed = ImGui::DragScalar(label , ImGuiDataType_Float , v , v_speed , &v_min , &v_max , format , flags);
     DrawItemActivityOutline();
     return changed;
   }
@@ -349,6 +379,94 @@ namespace {
     ImGui::PopStyleVar();
     ImGui::PopStyleColor();
     ImGui::EndPopup();
+  }
+  
+  bool Property(const char* label , int8_t& value , int8_t min , int8_t max , const char* help_text) {
+    ShiftCursor(10.f , 9.f);
+    ImGui::Text("%s" , label);
+
+    if (std::strlen(help_text) != 0) {
+      ImGui::SameLine();
+      HelpMarker(help_text);
+    }
+
+    ImGui::NextColumn();
+    ShiftCursorY(4.f);
+    ImGui::PushItemWidth(-1);
+
+    bool modified = DragInt8(fmt::format(fmt::runtime("##{}") , label).c_str() , &value , 1.f , min , max);
+
+    ImGui::PopItemWidth();
+    ImGui::NextColumn();
+    Underline();
+
+    return modified;
+  }
+
+  bool Property(const char* label , int16_t& value , int16_t min , int16_t max , const char* help_text) {
+    ShiftCursor(10.f , 9.f);
+    ImGui::Text("%s" , label);
+
+    if (std::strlen(help_text) != 0) {
+      ImGui::SameLine();
+      HelpMarker(help_text);
+    }
+
+    ImGui::NextColumn();
+    ShiftCursorY(4.f);
+    ImGui::PushItemWidth(-1);
+
+    bool modified = DragInt16(fmt::format(fmt::runtime("##{}") , label).c_str() , &value , 1.f , min , max);
+
+    ImGui::PopItemWidth();
+    ImGui::NextColumn();
+    Underline();
+
+    return modified;
+  }
+
+  bool Property(const char* label , int32_t& value , int32_t min , int32_t max , const char* help_text) {
+    ShiftCursor(10.f , 9.f);
+    ImGui::Text("%s" , label);
+
+    if (std::strlen(help_text) != 0) {
+      ImGui::SameLine();
+      HelpMarker(help_text);
+    }
+
+    ImGui::NextColumn();
+    ShiftCursorY(4.f);
+    ImGui::PushItemWidth(-1);
+
+    bool modified = ImGui::DragInt(fmt::format(fmt::runtime("##{}") , label).c_str() , &value , 1.f , min , max);
+
+    ImGui::PopItemWidth();
+    ImGui::NextColumn();
+    Underline();
+
+    return modified;
+  }
+
+  bool Property(const char* label , int64_t& value , int64_t min , int64_t max , const char* help_text) {
+    ShiftCursor(10.f , 9.f);
+    ImGui::Text("%s" , label);
+
+    if (std::strlen(help_text) != 0) {
+      ImGui::SameLine();
+      HelpMarker(help_text);
+    }
+
+    ImGui::NextColumn();
+    ShiftCursorY(4.f);
+    ImGui::PushItemWidth(-1);
+
+    bool modified = DragInt64(fmt::format(fmt::runtime("##{}") , label).c_str() , &value , 1.f , min , max);
+
+    ImGui::PopItemWidth();
+    ImGui::NextColumn();
+    Underline();
+
+    return modified;
   }
 
 } // namespace ui

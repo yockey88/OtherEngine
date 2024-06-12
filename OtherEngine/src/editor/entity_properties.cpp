@@ -17,7 +17,6 @@
 #include "rendering/ui/ui_colors.hpp"
 #include "rendering/ui/ui_helpers.hpp"
 #include "rendering/ui/ui_widgets.hpp"
-#include "scripting/lua/lua_object.hpp"
 
 namespace other {
   
@@ -335,7 +334,7 @@ namespace other {
     DrawComponent<Script>("Script" , [&](Entity* selection) {
       auto& script = selection->GetComponent<Script>();
  
-      for (const auto& [id , s] : script.scripts) {
+      for (auto& [id , s] : script.scripts) {
         bool is_error = s->IsCorrupt();
         if (is_error) {
           ImGui::Text("%s corrupt, recompile or reload" , s->Name().c_str());
@@ -406,18 +405,64 @@ namespace other {
         
         /// display exported properties
         for (auto& [field_id , val] : s->GetFields()) {
-          if (val.value.IsArray()) {
+          ImGui::PushID(val->name.c_str());
+          if (val == nullptr) {
+            ImGui::Text("Field [%lld] is corrupt in script %s" , field_id.Get() , s->Name().c_str());
+            continue;
+          }
+          if (val->value.IsArray()) {
           } else {
-            ImGui::PushID(val.name.c_str());
             bool result = false;
 
-            switch (val.value.Type()) {
+            switch (val->value.Type()) {
+              case ValueType::BOOL: 
+                
+              break;
+              case ValueType::CHAR: break;
+              case ValueType::INT8: break;
+              case ValueType::UINT8: break;
+              case ValueType::INT16: break;
+              case ValueType::UINT16: break;
+              case ValueType::INT32: {
+                int32_t v = val->value.Read<int32_t>();
+                if (ui::Property(val->name.c_str() , v)) {
+                  val->value.Set(v);
+                  result = true;
+                }
+              } break;
+              case ValueType::UINT32: break;
+              case ValueType::INT64: break;
+              case ValueType::UINT64: break;
+              case ValueType::FLOAT: break;
+              case ValueType::DOUBLE: break;
+              case ValueType::VEC2: break;
+              case ValueType::VEC3: break;
+              case ValueType::VEC4: break;
+              case ValueType::STRING: { 
+                // std::string v = val->value.Get<std::string>();
+                ui::ShiftCursor(10.f , 9.f);
+                ImGui::Text("%s" , val->name.c_str());
+
+                ImGui::NextColumn();
+                ui::ShiftCursorY(4.f);
+                ImGui::PushItemWidth(-1);
+
+                // ImGui::InputText(" > %s" , v.data() , v.length());
+
+                ImGui::PopItemWidth();
+                ImGui::NextColumn();
+                ui::Underline();
+
+              } break;
+              case ValueType::ASSET: break;
+              case ValueType::ENTITY: break;
               default:
-                ImGui::Text("Field value %s has corrupted type" , val.name.c_str());
+                ImGui::Text("Field value %s has corrupted type" , val->name.c_str());
             }
 
-            ImGui::PopID();
           } 
+            
+          ImGui::PopID();
         }
 
         ui::EndPropertyGrid();

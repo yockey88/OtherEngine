@@ -27,7 +27,6 @@ namespace other {
     }
 
     void LuaObject::InitializeScriptFields() {
-      
     }
 
     Opt<Value> LuaObject::CallMethod(const std::string& name , Parameter* args , uint32_t argc)  {

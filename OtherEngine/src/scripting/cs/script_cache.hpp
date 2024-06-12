@@ -11,6 +11,7 @@
 
 #include "core/uuid.hpp"
 #include "core/value.hpp"
+#include "scripting/script_field.hpp"
 #include "scripting/cs/mono_utils.hpp"
 
 namespace other {
@@ -28,6 +29,13 @@ namespace other {
     inline bool HasFlag(FieldAccessFlag flag) const { return flags & (uint64_t)flag; }
     inline bool IsWritable() const { return (!HasFlag(FieldAccessFlag::READONLY) && HasFlag(FieldAccessFlag::PUBLIC)); }
     inline bool IsArray() const { return HasFlag(FieldAccessFlag::ARRAY); }
+  };
+  
+  struct CsScriptField : ScriptField {
+    FieldData& fdata;
+
+    CsScriptField(FieldData& fdata)
+      : fdata(fdata) {}
   };
 
   struct TypeData {
@@ -67,6 +75,8 @@ namespace other {
 
       static UUID CacheAssembly(const std::string_view asm_name , MonoImage* asm_image);
       static void UnregisterAssembly(UUID id);
+
+      static std::vector<ScriptField*> GetClassFields(UUID cache_id , MonoClass* klass , MonoObject* instance);
 
     private:
       static bool initialized;

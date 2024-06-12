@@ -79,6 +79,21 @@ namespace other {
 
     type = t;
   }
+      
+  void Value::Set(const std::string& str) {
+    if (str.length() == 0) {
+      return;
+    }
+
+    value.Release();
+    value.Allocate(str.length());
+    for (size_t i = 0; i < str.length(); ++i) {
+      char c = str[i];
+      value.Write(&c , sizeof(char) , i);
+    }
+
+    type = ValueType::STRING;
+  }
 
   ValueType Value::Type() const {
     return type;

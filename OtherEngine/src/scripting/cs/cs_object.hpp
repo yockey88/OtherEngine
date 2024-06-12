@@ -17,8 +17,9 @@ namespace other {
     public:
       CsObject() 
         : ScriptObject("[Empty Script Object]" , "C#") {}
-      CsObject(const std::string& name , MonoClass* klass , MonoObject* instance , MonoImage* asm_image) 
-        : ScriptObject(name , "C#") , asm_image(asm_image) , klass(klass) , instance(instance) {}
+      CsObject(const std::string& name , MonoClass* klass , MonoObject* instance , MonoImage* asm_image , UUID asm_id ,
+                MonoDomain* app_domain) 
+        : ScriptObject(name , "C#") , asm_id(asm_id) , app_domain(app_domain) , asm_image(asm_image) , klass(klass) , instance(instance) {}
       virtual ~CsObject() override {}
 
       virtual void InitializeScriptMethods() override;
@@ -32,6 +33,9 @@ namespace other {
       virtual void Shutdown() override;
 
     private:
+      UUID asm_id = 0;
+
+      MonoDomain* app_domain = nullptr;
       MonoImage* asm_image = nullptr;
       MonoClass* klass = nullptr;
       MonoObject* instance = nullptr;

@@ -49,7 +49,7 @@ namespace other {
 
       template <typename T>
       void Write(const T& value) {
-        OE_ASSERT(sizeof(data) >= size , "Buffer::Write({}) Out of bounds" , typeid(T).name());
+        OE_ASSERT(sizeof(value) <= size , "Buffer::Write({}) Out of bounds" , typeid(T).name());
         memcpy(data , &value , sizeof(data));
         size = sizeof(data);
       }
@@ -63,7 +63,7 @@ namespace other {
 
       template <typename T>
       const T* As() const {
-        OE_ASSERT(sizeof(T) == size , "Attempting to retrieve data is incorrectly sized type");
+        OE_ASSERT(sizeof(T) <= size , "Attempting to retrieve data is incorrectly sized type");
         return reinterpret_cast<T*>(&data[0]);
       }
 

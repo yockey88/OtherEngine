@@ -97,9 +97,20 @@ namespace other {
       ~Value();
 
       template <typename T>
-      const T& Get() const {
+      T Get() const {
         T ret = value.Read<T>();
         return ret;
+      }
+
+      template <>
+      std::string Get<std::string>() const {
+        std::string res;
+        res.resize(value.Size());
+        for (uint32_t i = 0; i < value.Size(); ++i) {
+          res[i] = value[i];
+        }
+
+        return res; 
       }
 
       template <typename T>
@@ -111,7 +122,9 @@ namespace other {
 
       void Set(ParamHandle value , size_t typesize , ValueType type);
 
-      void Set(ParamArray , size_t typesize , size_t elements , ValueType type);
+      void Set(ParamArray values , size_t typesize , size_t elements , ValueType type);
+
+      void Set(const std::string& str);
 
       template <typename T>
       void Set(const T& val) {

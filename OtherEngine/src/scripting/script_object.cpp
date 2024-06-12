@@ -24,8 +24,12 @@ namespace  other {
   bool ScriptObject::IsInitialized() const {
     return is_initialized;
   }
+  
+  std::map<UUID , ScriptField*>& ScriptObject::GetFields() {
+    return fields; 
+  }
 
-  const std::map<UUID , ScriptField>& ScriptObject::GetFields() {
+  const std::map<UUID , ScriptField*>& ScriptObject::GetFields() const {
     return fields; 
   }
 

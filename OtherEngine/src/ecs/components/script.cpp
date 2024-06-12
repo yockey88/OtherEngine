@@ -38,7 +38,17 @@ namespace other {
       for (auto& s : scripts) {
         OE_DEBUG("attaching script {} to ent : {}" , s , entity->Name());
 
-        ScriptObject* inst = mod->GetScript(s);
+        std::string nspace = "";
+        std::string name = s;
+        if (s.find("::") != std::string::npos) {
+          nspace = s.substr(0 , s.find_first_of(":"));
+          OE_DEBUG("Loading from namespace {}" , nspace);
+
+          name = s.substr(s.find_last_of(":") + 1 , s.length() - nspace.length() - 2);
+          OE_DEBUG(" > with name {}" , name);
+        }
+
+        ScriptObject* inst = mod->GetScript(name , nspace);
         if (inst == nullptr) {
           OE_ERROR("Failed to get script {} from script module {}" , s , m);
           continue;

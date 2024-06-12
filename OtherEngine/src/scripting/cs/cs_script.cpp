@@ -99,16 +99,6 @@ namespace other {
     
     valid = true;
 
-    if (reloaded) {
-      for (const auto& [id , sym] : loaded_symbols) {
-        ScriptObject* obj =  GetScript(sym.name , sym.name_space); 
-        obj->InitializeScriptMethods();
-        obj->InitializeScriptFields();
-      }
-
-      reloaded = false;
-    }
-
     OE_DEBUG("Mono Script Module loaded : {}" , assembly_path);
   }
 
@@ -180,7 +170,7 @@ namespace other {
 
     mono_runtime_object_init(object);
 
-    loaded_objects[id] = CsObject(name , klass , object , assembly_image);
+    loaded_objects[id] = CsObject(name , klass , object , assembly_image , script_id , app_domain);
     loaded_objects[id].InitializeScriptMethods();
     loaded_objects[id].InitializeScriptFields();
 

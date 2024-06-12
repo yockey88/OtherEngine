@@ -15,8 +15,6 @@
 #include "layers/core_layer.hpp"
 #include "layers/debug_layer.hpp"
 #include "scripting/script_engine.hpp"
-#include <optional>
-#include <thread>
 
 namespace other {
 

@@ -3,6 +3,7 @@
  **/
 #include "scripting/cs/script_cache.hpp"
 
+#include <cstring>
 #include <iterator>
 #include <map>
 
@@ -42,7 +43,29 @@ namespace other {
     core_cache = new Cache; 
     asm_caches = new AssemblyCaches;
 
-    CacheAssembly(*core_cache , "MSCORLIB" , FNV("MSCORLIB") , mono_get_corlib());
+    core_id = FNV("MSCORLIB");
+#define CACHE_MSCORLIB_CLASS(name) \
+    CacheClass(*core_cache , "System::" name , mono_class_from_name(mono_get_corlib() , "System" , name) , false)
+
+    CACHE_MSCORLIB_CLASS("Object");
+    CACHE_MSCORLIB_CLASS("ValueType");
+    CACHE_MSCORLIB_CLASS("Enum");
+    CACHE_MSCORLIB_CLASS("String");
+    CACHE_MSCORLIB_CLASS("Boolean");
+    CACHE_MSCORLIB_CLASS("Char");
+    CACHE_MSCORLIB_CLASS("SByte");
+    CACHE_MSCORLIB_CLASS("Byte");
+    CACHE_MSCORLIB_CLASS("Int16");
+    CACHE_MSCORLIB_CLASS("UInt16");
+    CACHE_MSCORLIB_CLASS("Int32");
+    CACHE_MSCORLIB_CLASS("UInt32");
+    CACHE_MSCORLIB_CLASS("Int64");
+    CACHE_MSCORLIB_CLASS("UInt64");
+    CACHE_MSCORLIB_CLASS("Single");
+    CACHE_MSCORLIB_CLASS("Double");
+    CACHE_MSCORLIB_CLASS("Void");
+
+#undef CACHE_MSCORLIB_CLASS
     
     initialized = true;
   }
@@ -91,6 +114,41 @@ namespace other {
     asm_caches->asm_caches.erase(asm_caches->asm_caches.find(id));
 
     OE_DEBUG("Unregistered C# assembly with id [{}]" , id);
+  }
+      
+  std::vector<ScriptField*> CsScriptCache::GetClassFields(UUID cache_id , MonoClass* klass , MonoObject* instance) {
+    if (asm_caches->asm_caches.find(cache_id) == asm_caches->asm_caches.end()) {
+      OE_WARN("Unable to find assembly cached with id [{}]" , cache_id);
+      return {};
+    }
+
+    auto& cache = asm_caches->asm_caches[cache_id];
+    UUID klass_id;
+    for (const auto& [id , c] : cache.class_data) {
+      if (klass == c.asm_class) {
+        klass_id = id;
+      }
+    }
+    
+    if (klass_id.Get() == 0) {
+      return {};
+    }
+
+    const auto& tdata = cache.class_data[klass_id];
+    OE_DEBUG("Retrieving field data for C# class {} from assembly with id {}" , tdata.name , cache_id);
+    OE_DEBUG("  > {} fields" , tdata.fields.size());
+
+    std::vector<ScriptField*> fields;
+    for (const auto& f : tdata.fields) {
+      auto& fdata = cache.field_data[f];
+      CsScriptField* sfield = new CsScriptField(fdata);
+      sfield->id = fdata.hash;
+      sfield->name = fdata.name;
+
+      fields.push_back(sfield);
+    }
+
+    return fields;
   }
   
   void CsScriptCache::CacheAssembly(Cache& target_cache , const std::string_view asm_name , UUID id , MonoImage* asm_image , bool log_data) {
@@ -149,11 +207,9 @@ namespace other {
 
     TypeData& td = cache.class_data[data.id] = data;
 
-    if (name.find("Other.") != std::string::npos) {
-      StoreClassMethods(cache , td);
-      StoreClassFields(cache ,td);
-      StoreClassProperties(cache , td);
-    }
+    StoreClassMethods(cache , td);
+    StoreClassFields(cache ,td);
+    StoreClassProperties(cache , td);
   }
 
   void CsScriptCache::StoreClassMethods(Cache& cache , TypeData& data) {
@@ -221,7 +277,8 @@ namespace other {
           break;
         }
 
-        std::string name{ mono_field_get_name(field) };
+        const char* raw_name = mono_field_get_name(field);
+        std::string name = raw_name;
 
         if (name.find("k__BackingField") != std::string::npos) {
           continue;
@@ -234,16 +291,14 @@ namespace other {
           continue;
         }
 
-        // MonoCustomAttrInfo* attr = mono_custom_attrs_from_field(curr_class , field);
-
         std::string hash_str = data.name + ":" + name;
         UUID id = FNV(hash_str);
 
         int32_t type_encoding = mono_type_get_type(mtype);
 
-        FieldData sf = cache.field_data[id];
+        FieldData& sf = cache.field_data[id] = FieldData{};
 
-        sf.name = std::string{ mono_field_get_name(field) };
+        sf.name = name;
         sf.hash = id;
         sf.vtype = ftype;
         sf.is_property = false;

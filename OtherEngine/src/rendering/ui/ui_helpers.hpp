@@ -130,8 +130,18 @@ namespace ui {
     const ImVec4& foreground , ImVec2 size
   );    
 
-  /// this is a wrapper around ImGui::DragFloat so we can add the outline using other::ui::DrawItemActivityOutline(...) 
-  ///   after the dragger is drawn
+  bool DragInt8(const char* label , int8_t* v , float v_speed = 1.f , int8_t v_min = 0.f , int8_t v_max = 0.f , 
+                 const char* format = "%.3f" , ImGuiSliderFlags flags = 0);
+
+  bool DragInt16(const char* label , int16_t* v , float v_speed = 1.f , int16_t v_min = 0.f , int16_t v_max = 0.f , 
+                 const char* format = "%.3f" , ImGuiSliderFlags flags = 0);
+
+  bool DragInt32(const char* label , int32_t* v , float v_speed = 1.f , int32_t v_min = 0.f , int32_t v_max = 0.f , 
+                 const char* format = "%.3f" , ImGuiSliderFlags flags = 0);
+
+  bool DragInt64(const char* label , int64_t* v , float v_speed = 1.f , int64_t v_min = 0.f , int64_t v_max = 0.f , 
+                 const char* format = "%.3f" , ImGuiSliderFlags flags = 0);
+
   bool DragFloat(const char* label , float* v , float v_speed = 1.f , float v_min = 0.f , float v_max = 0.f , 
                  const char* format = "%.3f" , ImGuiSliderFlags flags = 0);
   
@@ -153,6 +163,11 @@ namespace ui {
 
   bool OpenPopup(const std::string& str_id , ImGuiWindowFlags flags = 0);
   void EndPopup();
+
+  bool Property(const char* label , int8_t& value , int8_t min = 0 , int8_t max = 0 , const char* help_text = "");
+  bool Property(const char* label , int16_t& value , int16_t min = 0 , int16_t max = 0 , const char* help_text = "");
+  bool Property(const char* label , int32_t& value , int32_t min = 0 , int32_t max = 0 , const char* help_text = "");
+  bool Property(const char* label , int64_t& value , int64_t min = 0 , int64_t max = 0 , const char* help_text = "");
 
 } // namespace ui
 } // namespace other
