@@ -44,6 +44,8 @@ namespace other {
 
       ~Window();
 
+      bool HasFocus();
+
       void Clear();
 
       void SwapBuffers();

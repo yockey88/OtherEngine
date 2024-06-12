@@ -139,6 +139,10 @@ namespace {
     }
     SDL_Quit();
   }
+      
+  bool Window::HasFocus() {
+    return (SDL_GetWindowFlags(context.window) & SDL_WINDOW_INPUT_FOCUS) != 0;
+  }
 
   void Window::Clear() {
     glClearColor(config.color.r , config.color.g , config.color.b , config.color.a);

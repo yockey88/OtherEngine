@@ -6,9 +6,8 @@
 #include <filesystem>
 
 #include "core/filesystem.hpp"
-#include "event/event_queue.hpp"
-#include "event/app_events.hpp"
 #include "scripting/lua/lua_script.hpp"
+#include "scripting/lua/lua_bindings.hpp"
 
 
 namespace other {
@@ -25,12 +24,40 @@ namespace other {
 
     for (const auto& entry : std::filesystem::recursive_directory_iterator(lua_core)) {
       if (entry.is_regular_file()) {
+       
         auto path = entry.path();
         if (path.extension() == ".lua") {
           OE_DEBUG("Adding lua core file {}" , path.string());
           core_files.push_back(path.string());
         }
       }
+    }
+    
+    try {
+      lua_state.open_libraries(sol::lib::base , sol::lib::io , sol::lib::os , sol::lib::math ,
+                               sol::lib::table , sol::lib::string , sol::lib::debug , sol::lib::package , 
+                               sol::lib::coroutine);
+
+      /// load scripts 
+      bool load_failed = false;
+      for (const auto& p : core_files) {
+        sol::function_result res = lua_state.safe_script_file(p);
+        if (!res.valid()) {
+          OE_ERROR("Failed to load lua script {}" , p);
+          load_failed = true;
+        }
+      }
+
+      if (load_failed) {
+        lua_state = sol::state();
+        return false;
+      }
+
+      LuaScriptBindings::InitializeBindings(lua_state);
+
+    } catch (const std::exception& e) {
+      OE_ERROR("Exception caught loading lua scripts : {}" , e.what());
+      return false;
     }
 
     load_success = true;
@@ -48,17 +75,49 @@ namespace other {
   }
   
   void LuaModule::Reload() {
-    bool reload_event = false;
-    for (auto& [id , mod] : loaded_modules) {
-      if (mod->HasChanged()) {
-        mod->Reload();
+    lua_state.collect_garbage();
+    loaded_modules.clear();
 
-        if (!reload_event) {
-          EventQueue::PushEvent<ScriptReloadEvent>();
-          reload_event = true;
+    lua_state = sol::state();
+
+    try {
+      lua_state.open_libraries(sol::lib::base , sol::lib::io , sol::lib::os , sol::lib::math ,
+                               sol::lib::table , sol::lib::string , sol::lib::debug , sol::lib::package , 
+                               sol::lib::coroutine);
+
+      /// load scripts 
+      bool load_failed = false;
+      for (const auto& p : core_files) {
+        sol::function_result res = lua_state.safe_script_file(p);
+        if (!res.valid()) {
+          OE_ERROR("Failed to load lua script {}" , p);
+          load_failed = true;
         }
       }
+
+      if (load_failed) {
+        OE_ERROR("Reloaded lua state failed, lua scripts corrupt");
+        return;
+      }
+
+      LuaScriptBindings::InitializeBindings(lua_state);
+
+    } catch (const std::exception& e) {
+      OE_ERROR("Exception caught re-loading lua scripts : {}" , e.what());
+      return;
     }
+
+    for (auto& [id , mod] : loaded_modules) {
+      mod->Reload();
+      delete mod;
+    }
+    loaded_modules.clear();
+
+    for (const auto& [id , data] : loaded_modules_data) {
+      LoadScriptModule(data);
+    }
+
+    load_success = true;
   }
 
   ScriptModule* LuaModule::GetScriptModule(const std::string& name) {
@@ -99,12 +158,11 @@ namespace other {
       }
     }
 
-    std::vector<std::string> paths;
-    paths.insert(paths.end() , core_files.begin() , core_files.end());
-    paths.insert(paths.end() , module_info.paths.begin() , module_info.paths.end());
-
-    loaded_modules[id] = new LuaScript(paths);
+    loaded_modules[id] = new LuaScript(lua_state , module_info.paths);
     loaded_modules[id]->Initialize();
+    
+    loaded_modules_data[id] = module_info;
+
     return loaded_modules[id];
   }
 

@@ -5,9 +5,6 @@
 
 #include <iterator>
 
-#include "event/event_queue.hpp"
-#include "event/app_events.hpp"
-
 namespace other {
 
   bool LanguageModule::HasScriptModule(const std::string_view name) const {

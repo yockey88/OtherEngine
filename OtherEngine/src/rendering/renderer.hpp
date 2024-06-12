@@ -30,6 +30,7 @@ namespace other {
 
       static glm::ivec2 WindowSize();
       static void HandleWindowResize(const glm::ivec2& size);
+      static bool IsWindowFocused();
 
       static void Shutdown();
 

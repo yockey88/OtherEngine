@@ -27,7 +27,7 @@ namespace other {
       void Stop(); 
       void Shutdown();
 
-      void ReloadScripts();
+      void Refresh();
 
       const bool IsInitialized() const;
       const bool IsRunning() const;

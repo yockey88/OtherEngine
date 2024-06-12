@@ -45,8 +45,6 @@ namespace other {
       MonoDomain* root_domain = nullptr;
       MonoDomain* app_domain = nullptr; 
 
-      std::map<UUID , ScriptModuleInfo> loaded_modules_data;
-
       bool load_success = false;
   };
 

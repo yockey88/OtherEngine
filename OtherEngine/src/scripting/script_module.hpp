@@ -37,6 +37,7 @@ namespace other {
     protected:
       bool valid = false;
       bool changed_on_disk = false;
+      bool reloaded = false;
 
       std::vector<Scope<FileWatcher>> file_watchers;
 

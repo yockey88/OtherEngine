@@ -13,7 +13,6 @@ namespace other {
   bool SceneManager::LoadScene(const Path& scenepath) {
     UUID id = FNV(scenepath.string());
     if (auto scn = loaded_scenes.find(id); scn != loaded_scenes.end()) {
-      loaded_scenes.erase(scn);
       return true;
     }
 
@@ -55,6 +54,12 @@ namespace other {
   bool SceneManager::HasScene(const Path& path) {
     return loaded_scenes.find(FNV(path.string())) != loaded_scenes.end();
   }
+      
+  void SceneManager::RefreshScenes() {
+    for (auto& [id , scene] : loaded_scenes) {
+      scene.scene->Refresh();
+    } 
+  }
 
   const SceneMetadata* SceneManager::ActiveScene() const { 
     if (active_scene == nullptr) {
@@ -66,6 +71,15 @@ namespace other {
   void SceneManager::UnloadActive() {
     active_scene->scene->Shutdown();
     active_scene = nullptr;
+  }
+    
+  void SceneManager::ClearScenes() {
+    if (active_scene != nullptr) {
+      active_scene->scene->Shutdown();
+      active_scene = nullptr;
+    }
+
+    loaded_scenes.clear();
   }
       
   const std::vector<std::string>& SceneManager::ScenePaths() const {

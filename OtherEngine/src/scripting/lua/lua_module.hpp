@@ -4,6 +4,8 @@
 #ifndef LUA_MODULE_HPP
 #define LUA_MODULE_HPP
 
+#include <sol/sol.hpp>
+
 #include "scripting/language_module.hpp"
 
 namespace other {
@@ -27,6 +29,8 @@ namespace other {
 
     private:
       constexpr static std::string_view kLuaCorePath = "OtherEngine-ScriptCore/lua";
+
+      sol::state lua_state;
 
       std::vector<std::string> core_files;
   };

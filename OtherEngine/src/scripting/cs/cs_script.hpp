@@ -50,8 +50,6 @@ namespace other {
 
       std::string assembly_path;
 
-      bool reloaded = false;
-
       MonoClass* GetClass(const std::string& name , const std::string& nspace);
   };
 

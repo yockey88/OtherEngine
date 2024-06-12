@@ -21,6 +21,10 @@ namespace  other {
     return is_corrupt;
   }
 
+  bool ScriptObject::IsInitialized() const {
+    return is_initialized;
+  }
+
   const std::map<UUID , ScriptField>& ScriptObject::GetFields() {
     return fields; 
   }

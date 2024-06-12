@@ -16,8 +16,9 @@ namespace other {
 
   class LuaScript : public ScriptModule {
     public:
-      LuaScript(const std::vector<std::string>& paths);
-      virtual ~LuaScript() override;
+      LuaScript(sol::state& lua_state , const std::vector<std::string>& paths) 
+        : lua_state(lua_state) , paths(paths) {}
+      virtual ~LuaScript() override {}
 
       virtual void Initialize() override;
       virtual void Shutdown() override;
@@ -25,7 +26,7 @@ namespace other {
       virtual ScriptObject* GetScript(const std::string& name , const std::string& nspace = "") override;
 
     private:
-      sol::state lua_state;
+      sol::state& lua_state;
 
       std::map<UUID , LuaObject> loaded_objects;
 

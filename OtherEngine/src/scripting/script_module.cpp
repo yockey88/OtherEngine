@@ -3,6 +3,8 @@
  **/
 #include "scripting/script_module.hpp"
 
+#include "event/event_queue.hpp"
+#include "event/app_events.hpp"
 
 namespace other {
 
@@ -18,8 +20,8 @@ namespace other {
 
       changed_on_disk = fw->ChangedSinceLastCheck();
       if (changed_on_disk) {
-        // don't need to know any more other than that one file changed
-        break;
+        EventQueue::PushEvent<ScriptReloadEvent>();
+        return;
       }
     }
   }

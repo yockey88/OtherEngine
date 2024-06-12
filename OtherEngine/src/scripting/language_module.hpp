@@ -36,6 +36,7 @@ namespace other {
 
     protected:
       std::map<UUID , ScriptModule*> loaded_modules;
+      std::map<UUID , ScriptModuleInfo> loaded_modules_data;
 
       bool load_success = false;
   };

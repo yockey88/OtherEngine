@@ -43,6 +43,8 @@ namespace other {
     if (initialize_method != nullptr) {
       CallMonoMethod(initialize_method);
     }
+
+    is_initialized = true;
   }
 
   void CsObject::Update(float dt) {
@@ -71,6 +73,8 @@ namespace other {
     if (shutdown_method != nullptr) {
       CallMonoMethod(shutdown_method);
     }
+
+    is_initialized = false;
   }
   
   Opt<Value> CsObject::CallMonoMethod(MonoMethod* method , uint32_t argc , Parameter* args) {

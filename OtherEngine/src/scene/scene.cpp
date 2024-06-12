@@ -93,14 +93,14 @@ namespace other {
     initialized = false;
     OnShutdown();
     
-    registry.view<Script>().each([](const Script& script) {
+    registry.view<Script>().each([](Script& script) {
       for (auto& [id , s] : script.scripts) {
         s->Shutdown();
       }
     });
   }
       
-  void Scene::ReloadScripts() {
+  void Scene::Refresh() {
     registry.view<Script>().each([](Script& script) {
       script.scripts.clear();
 
@@ -111,6 +111,8 @@ namespace other {
           continue;
         }
 
+        OE_DEBUG("Retrieving {} from {}" , data.obj_name , data.module);
+
         ScriptObject* inst = mod->GetScript(data.obj_name);
         if (inst == nullptr) {
           OE_ERROR("Unable to reload script {}::{} : Failed to get Script" , data.module , data.obj_name);
@@ -118,7 +120,6 @@ namespace other {
         }
 
         script.scripts[id] = inst;
-        inst->Initialize();
       }
     });
   }

@@ -42,6 +42,8 @@ namespace other {
         if (inst == nullptr) {
           OE_ERROR("Failed to get script {} from script module {}" , s , m);
           continue;
+        } else {
+          OE_DEBUG("Retrieved {} from {}" , s , m);
         }
 
         std::string case_ins_name;

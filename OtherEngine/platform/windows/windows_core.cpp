@@ -6,6 +6,7 @@
 #include <ShlObj.h>
 #include <minwinbase.h>
 #include <processthreadsapi.h>
+#include <winbase.h>
 
 #include "core/logger.hpp"
 #include "core/filesystem.hpp"
@@ -128,41 +129,9 @@ namespace other {
     std::replace(project_file_str.begin() , project_file_str.end() , '/' , '\\');
 
     /// replace configuration in the future
-    std::string cmd = fmt::format(fmt::runtime("cmd.exe /c '{}'") , ms_build.string());
-    std::string args = fmt::format(fmt::runtime("\"{} /property:Configuration=Debug\"") , project_file_str);
+    std::string cmd = fmt::format(fmt::runtime("\"\"{}\" \"{}\" /p:Configuration=Debug\"") , ms_build.string(), project_file_str);
 
-    /// we can't use LaunchProcess because we want to wait on the process to finish
-
-    std::replace(cmd.begin() , cmd.end() , '/' , '\\');
-    cmd.append(" ");
-    cmd.append(args);
-
-    std::wstring wcmd(cmd.begin() , cmd.end());
-    wchar_t* wcmdline = const_cast<wchar_t*>(wcmd.c_str());
-
-    OE_DEBUG("Launching process {}" , cmd);
-
-    PROCESS_INFORMATION pi;
-    STARTUPINFO si;
-    ZeroMemory(&si , sizeof(si));
-    si.cb = sizeof(si);
-    ZeroMemory(&pi , sizeof(pi));
-
-    bool result = CreateProcessW(nullptr , wcmdline , nullptr , nullptr , 
-                                 true , CREATE_NEW_CONSOLE , nullptr , nullptr , &si , &pi);  
-
-    if (!result) {
-      OE_ERROR("Failed to launch build using command line {}" , cmd);
-      CloseHandle(pi.hProcess);
-      CloseHandle(pi.hThread);
-      return false;
-    }
-
-    WaitForSingleObject(pi.hProcess , 5000);
-    CloseHandle(pi.hProcess);
-    CloseHandle(pi.hThread);
-    
-    return true;
+    return system(cmd.c_str()) == 0;
   }
 
 } // namespace other

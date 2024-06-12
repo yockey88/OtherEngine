@@ -89,9 +89,13 @@ namespace other {
       Event* event = reinterpret_cast<Event*>(tmp_cursor);
 
       /// only reload scripts once per frame at most
-      if (scripts_reloaded && event->Type() == EventType::SCRIPT_RELOAD) {
-        continue;
-      }
+      if (event->Type() == EventType::SCRIPT_RELOAD) {
+        if (scripts_reloaded) {
+          tmp_cursor += event->Size();
+          continue;
+        }
+        scripts_reloaded = true;
+      } 
 
       app->ProcessEvent(event);
       
@@ -100,10 +104,6 @@ namespace other {
       }
 
       tmp_cursor += event->Size();
-
-      if (event->Type() == EventType::SCRIPT_RELOAD) {
-        scripts_reloaded = true;
-      }
     }
 
     Clear();

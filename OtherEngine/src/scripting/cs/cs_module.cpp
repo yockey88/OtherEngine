@@ -93,33 +93,20 @@ namespace other {
   }
 
   void CsModule::Reload() {
-    bool need_to_reload = false;
-    for (auto& [id , mod] : loaded_modules) {
-      if (mod->HasChanged()) {
-        need_to_reload = true;
-        break;
-      }
-    }
-
-    if (!need_to_reload) {
-      return;
-    }
-
-    for (auto& [id , module] : loaded_modules) {
-      module->Shutdown();
-      module->Reload(); /// should be called rebuild
-      delete module;
-    }
-    loaded_modules.clear();
-    
     /// CsGarbageCollector::ShutdownGC();
     CsScriptCache::ShutdownCache();
-    // CsScriptBindings::ShutdownBindings();
+    CsScriptBindings::ShutdownBindings();
 
     mono_domain_set(root_domain, 0);
     mono_domain_unload(app_domain);
 
     OE_DEBUG("Reloading Mono Runtime");
+
+    for (auto& [id, module] : loaded_modules) {
+      module->Reload();
+      delete module;
+    }
+    loaded_modules.clear();
 
     char* app_domain_name = const_cast<char*>(kAppDomainName.data());
     app_domain = mono_domain_create_appdomain(app_domain_name , nullptr);
@@ -133,8 +120,6 @@ namespace other {
     for (const auto& [id , module_info] : loaded_modules_data) {
       LoadScriptModule(module_info);
     }
-
-    EventQueue::PushEvent<ScriptReloadEvent>();
   }
       
   ScriptModule* CsModule::GetScriptModule(const std::string& name) {

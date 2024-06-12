@@ -89,14 +89,15 @@ namespace other {
 
     App* app_ctx = ScriptEngine::GetAppContext();
 
-    Path script_dir = app_ctx->GetProjectContext()->GetMetadata().assets_dir / "scripts";
-    Path real_script_file_full = script_dir / Path{ assembly_path }.filename();
-    std::string real_file = real_script_file_full.string().substr(0 , real_script_file_full.string().find_last_of('.'));
-    real_file += ".cs";
-    
-    if (real_file.find("OtherEngine-CsCore") == std::string::npos && !reloaded) {
+    if (assembly_path.find("OtherEngine-CsCore") == std::string::npos && !reloaded) {
+      Path script_dir = app_ctx->GetProjectContext()->GetMetadata().assets_dir / "scripts";
+      Path real_script_file_full = script_dir / Path{ assembly_path }.filename();
+      std::string real_file = real_script_file_full.string().substr(0 , real_script_file_full.string().find_last_of('.'));
+      real_file += ".cs";
       SetPaths({ real_file });
     }
+    
+    valid = true;
 
     if (reloaded) {
       for (const auto& [id , sym] : loaded_symbols) {
@@ -104,9 +105,9 @@ namespace other {
         obj->InitializeScriptMethods();
         obj->InitializeScriptFields();
       }
-    }
 
-    valid = true;
+      reloaded = false;
+    }
 
     OE_DEBUG("Mono Script Module loaded : {}" , assembly_path);
   }
@@ -139,8 +140,6 @@ namespace other {
     real_file += ".csproj";
 
     if (!Filesystem::FileExists(real_file)) {
-      OE_WARN("Failed to find build file for script {} [ tried : {} ]" , assembly_path , real_file);
-      OE_WARN("Assemblies may be incomplete");
       return;
     }
 
@@ -149,6 +148,8 @@ namespace other {
     if (!PlatformLayer::BuildProject(real_file)) {
       OE_ERROR("Failed to rebuild project file");
     }
+
+    reloaded = true;
   }
       
   ScriptObject* CsScript::GetScript(const std::string& name , const std::string& nspace) {
@@ -163,6 +164,8 @@ namespace other {
         return object;
       }
     }
+
+    OE_DEBUG("Retrieving {} from {}" , name , assembly_path);
 
     MonoClass* klass = GetClass(name , nspace);
     if (klass == nullptr) {
@@ -191,6 +194,7 @@ namespace other {
 
   MonoClass* CsScript::GetClass(const std::string& name , const std::string& nspace) {
     if (!valid) {
+      OE_WARN("Attempting to retrieve script {} from invalid assembly {}" , name , assembly_path);
       return nullptr;
     }
 
@@ -203,6 +207,8 @@ namespace other {
         return klass;
       }
     }
+
+    OE_DEBUG("Looking for {} in {}" , name , assembly_path);
 
     MonoClass* klass = mono_class_from_name(assembly_image , nspace.c_str() , name.c_str());
     if (klass == nullptr) {

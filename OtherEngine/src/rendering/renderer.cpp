@@ -55,6 +55,10 @@ namespace other {
   void Renderer::HandleWindowResize(const glm::ivec2& size) {
     render_data.window->Resize(size);
   }
+      
+  bool Renderer::IsWindowFocused() {
+    return render_data.window->HasFocus();
+  }
 
   void Renderer::Shutdown() {
     render_data.window = nullptr;

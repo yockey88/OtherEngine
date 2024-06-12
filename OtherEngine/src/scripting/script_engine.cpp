@@ -59,6 +59,7 @@ namespace other {
   }
       
   void ScriptEngine::ReloadAllScripts() {
+    loaded_modules.clear();
     for (auto& [id , mod] : language_modules) {
       mod.module->Reload();
     }

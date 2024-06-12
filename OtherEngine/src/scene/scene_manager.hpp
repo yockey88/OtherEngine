@@ -27,9 +27,13 @@ namespace other {
       void SetAsActive(const Path& name);
 
       bool HasScene(const Path& path);
+      
+      void RefreshScenes();
 
       const SceneMetadata* ActiveScene() const;
       void UnloadActive();
+
+      void ClearScenes();
 
       const std::vector<std::string>& ScenePaths() const; 
       const std::map<UUID , SceneMetadata>& GetScenes() const;

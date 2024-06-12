@@ -112,6 +112,7 @@ namespace other {
     UnloadComponentFunctions<Mesh>();
 
     delete function_maps;
+    function_maps = nullptr;
   }
 
   void CsScriptBindings::RegisterNativeFunctions(MonoImage* asm_image) {

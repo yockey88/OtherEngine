@@ -47,6 +47,8 @@ namespace other {
       if (initialize.valid()) {
         initialize.call();
       }
+
+      is_initialized = true;
     }
 
     void LuaObject::Update(float dt) {
@@ -71,6 +73,8 @@ namespace other {
       if (shutdown.valid()) {
         shutdown.call();
       }
+
+      is_initialized = false;
     }
 
 } // namespace other

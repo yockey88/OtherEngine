@@ -15,6 +15,8 @@
 #include "layers/core_layer.hpp"
 #include "layers/debug_layer.hpp"
 #include "scripting/script_engine.hpp"
+#include <optional>
+#include <thread>
 
 namespace other {
 
@@ -109,26 +111,26 @@ namespace other {
 
       /// first we check to see if we need to reload any scripts
       
-      /// this updates the internal representation of the udpate, the actual script 'OnUpdate'
-      ///   method is not called until the scene calls it if the scene is currently running
-      ScriptEngine::UpdateScripts();
-
-      /// this reloads scripts that were marked as changed above and queues an event to tell
-      ///   the application it needs to refresh it's script objects
-      ScriptEngine::ReloadAllScripts();
+      if (Renderer::IsWindowFocused()) {
+        /// this updates the internal representation of the udpate, the actual script 'OnUpdate'
+        ///   method is not called until the scene calls it if the scene is currently running
+        ScriptEngine::UpdateScripts();
+      }
 
       // updates mouse/keyboard/any connected controllers
       IO::Update();
       EventQueue::Poll(GetEngine() , this);
-      
-      // update all layers
-      for (size_t i = 0; i < layer_stack->Size(); ++i) {
-        (*layer_stack)[i]->Update(dt);
+        
+      if (Renderer::IsWindowFocused()) {
+        // update all layers
+        for (size_t i = 0; i < layer_stack->Size(); ++i) {
+          (*layer_stack)[i]->Update(dt);
+        }
+
+        DoUpdate(dt);
+
+        UpdateSceneContext(dt);
       }
-
-      DoUpdate(dt);
-
-      UpdateSceneContext(dt);
 
       Renderer::BeginFrame();
 
@@ -256,9 +258,19 @@ namespace other {
   }
 
   void App::ProcessEvent(Event* event) {
-    if (event->Type() == EventType::SCRIPT_RELOAD && scene_manager->ActiveScene() != nullptr) {
-      Ref<Scene> active = scene_manager->ActiveScene()->scene;
-      active->ReloadScripts();
+    if (event->Type() == EventType::SCRIPT_RELOAD) {
+      Opt<Path> active_path = std::nullopt;
+      if (scene_manager->ActiveScene() != nullptr) {
+        active_path = scene_manager->ActiveScene()->path;
+        UnloadScene();
+      } 
+        
+      scene_manager->ClearScenes();
+      ScriptEngine::ReloadAllScripts();
+
+      if (active_path.has_value()) {
+        LoadScene(active_path.value());
+      }
     }
 
     for (auto& window : ui_windows) {

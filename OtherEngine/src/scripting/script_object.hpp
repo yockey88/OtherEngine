@@ -23,6 +23,7 @@ namespace other {
 
       void MarkCorrupt();
       bool IsCorrupt() const;
+      bool IsInitialized() const;
 
       const std::map<UUID , ScriptField>& GetFields();
 
@@ -37,6 +38,7 @@ namespace other {
       virtual void Shutdown() = 0; 
     
     protected:
+      bool is_initialized = false;
       bool is_corrupt = false;
       std::string script_name;
       std::string language;

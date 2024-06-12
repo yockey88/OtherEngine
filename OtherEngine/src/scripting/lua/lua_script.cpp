@@ -4,16 +4,10 @@
 #include "scripting/lua/lua_script.hpp"
 
 #include "core/filesystem.hpp"
-#include "scripting/lua/lua_bindings.hpp"
+#include <sol/forward.hpp>
+#include <sol/load_result.hpp>
 
 namespace other {
-
-  LuaScript::LuaScript(const std::vector<std::string>& paths) 
-      : ScriptModule() , paths(paths) {
-  }
-
-  LuaScript::~LuaScript() {
-  }
 
   void LuaScript::Initialize() {
     bool corrupt = false;
@@ -28,52 +22,35 @@ namespace other {
     if (corrupt) {
       return;
     }
-    
-    try {
-      lua_state.open_libraries(sol::lib::base , sol::lib::io , sol::lib::os , sol::lib::ffi , 
-                               sol::lib::jit  , sol::lib::math , sol::lib::utf8 , sol::lib::bit32 , 
-                               sol::lib::count , sol::lib::table , sol::lib::string , sol::lib::debug ,
-                               sol::lib::package , sol::lib::coroutine);
 
-      /// load scripts 
-      bool load_failed = false;
-      for (const auto& p : paths) {
+    for (const auto& p : paths) {
+      try {
         sol::function_result res = lua_state.safe_script_file(p);
         if (!res.valid()) {
-          OE_ERROR("Failed to load lua script {}" , p);
-          load_failed = true;
+          OE_ERROR("Failed to load lua script file {}" , p);
+          continue;
         }
+      } catch (const std::exception& e) {
+        OE_ERROR("Failed to load lua script file {}" , p);
+        OE_ERROR("  > Error = {}" , e.what());
+        continue;
       }
-
-      if (load_failed) {
-        lua_state = sol::state();
-        return;
-      }
-
-      LuaScriptBindings::InitializeBindings(lua_state);
-
-    } catch (const std::exception& e) {
-      OE_ERROR("Exception caught loading lua scripts : {}" , e.what());
-      return;
     }
 
     SetPaths(paths);
     valid = true;
+
+    if (reloaded) {
+      reloaded = false;
+    }
   }
 
   void LuaScript::Shutdown() {
-    for (auto& [id , script] : loaded_objects) {
-      script.Shutdown();
-    }
     loaded_objects.clear();
-
-    lua_state.collect_garbage();
-    lua_state = sol::state();
   }
 
   void LuaScript::Reload() {
     Shutdown();
-    Initialize();
   }
 
   ScriptObject* LuaScript::GetScript(const std::string& name , const std::string& nspace) {

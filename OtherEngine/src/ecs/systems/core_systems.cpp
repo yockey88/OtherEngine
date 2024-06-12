@@ -7,6 +7,7 @@
 #include "ecs/components/tag.hpp"
 #include "ecs/components/transform.hpp"
 #include "ecs/components/relationship.hpp"
+#include "ecs/components/script.hpp"
 
 namespace other {
 
@@ -25,6 +26,14 @@ namespace other {
   }
   
   void OnDestroyEntity(entt::registry& context , entt::entity entt) {
+    context.view<Script>().each([](Script& script) {
+      for (auto& [id , script] : script.scripts) {
+        if (script->IsInitialized()) {
+          script->Shutdown();
+        }
+      }
+      script.scripts.clear();
+    });
   }
 
 } // namespace other
