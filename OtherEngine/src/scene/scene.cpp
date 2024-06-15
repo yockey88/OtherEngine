@@ -59,12 +59,18 @@ namespace other {
     if (!running) {
       return;
     }
-
+    
     /// prepare scene update
     if (corrupt) {
       Stop();
       return;
     }
+
+    registry.view<Script>().each([&dt](const Script& script) {
+      for (auto& [id , s] : script.scripts) {
+        s->Update(dt);
+      }
+    });
 
     OnUpdate(dt);
     

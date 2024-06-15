@@ -11,8 +11,8 @@
 #include "core/filesystem.hpp"
 #include "core/platform.hpp"
 #include "application/app.hpp"
+#include "scripting/cs/cs_garbage_collector.hpp"
 #include "scripting/script_engine.hpp"
-#include "scripting/cs/script_cache.hpp"
 
 namespace other {
       
@@ -48,7 +48,6 @@ namespace other {
       return;
     }
 
-    script_id = CsScriptCache::CacheAssembly(assembly_path , assembly_image);
     OE_INFO("Loaded C# Assembly : {} [{}]" , assembly_path , script_id);
 
     const MonoTableInfo* asm_details = mono_image_get_table_info(assembly_image , MONO_TABLE_ASSEMBLY);
@@ -89,6 +88,8 @@ namespace other {
 
     App* app_ctx = ScriptEngine::GetAppContext();
 
+    /// since script-modules loaded from the .dll path and not the actual script we have to find the 
+    ///   original C# file to track with the filewatcher
     if (assembly_path.find("OtherEngine-CsCore") == std::string::npos && !reloaded) {
       Path script_dir = app_ctx->GetProjectContext()->GetMetadata().assets_dir / "scripts";
       Path real_script_file_full = script_dir / Path{ assembly_path }.filename();
@@ -107,13 +108,17 @@ namespace other {
       return;
     }
 
+    for (const auto& [id , gch] : gc_handles) {
+      CsGarbageCollector::FreeHandle(gch);
+    }
+
+    cached_symbols.Clear();
+
     for (auto& [id , obj] : loaded_objects) {
       obj.Shutdown();
     }
     loaded_objects.clear();
     classes.clear();
-
-    CsScriptCache::UnregisterAssembly(script_id);
 
     mono_image_close(assembly_image);
     assembly_image = nullptr;
@@ -170,7 +175,12 @@ namespace other {
 
     mono_runtime_object_init(object);
 
-    loaded_objects[id] = CsObject(name , klass , object , assembly_image , script_id , app_domain);
+    UUID class_id = FNV(name);
+    CsTypeData* type_data = cached_symbols.GetClassData(class_id);
+    
+    GcHandle gc_handle = CsGarbageCollector::NewHandle(object);
+
+    loaded_objects[id] = CsObject(name , type_data , object , assembly_image , app_domain , class_id , &cached_symbols);
     loaded_objects[id].InitializeScriptMethods();
     loaded_objects[id].InitializeScriptFields();
 
@@ -178,6 +188,8 @@ namespace other {
       .name_space = nspace , 
       .name = name ,
     };
+
+    gc_handles[id] = gc_handle;
 
     return &loaded_objects[id];
   }
@@ -209,6 +221,7 @@ namespace other {
     }
 
     classes[id] = klass;
+    cached_symbols.CacheClass(name , klass);
 
     return klass;
   }

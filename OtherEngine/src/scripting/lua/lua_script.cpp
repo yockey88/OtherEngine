@@ -50,7 +50,7 @@ namespace other {
   }
 
   void LuaScript::Reload() {
-    Shutdown();
+    /// no need to build anything here
   }
 
   ScriptObject* LuaScript::GetScript(const std::string& name , const std::string& nspace) {

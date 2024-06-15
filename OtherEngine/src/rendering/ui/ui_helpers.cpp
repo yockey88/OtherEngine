@@ -10,7 +10,9 @@
 
 #include <spdlog/fmt/fmt.h>
 
+#include "core/logger.hpp"
 #include "rendering/ui/ui_colors.hpp"
+#include "rendering/ui/ui_widgets.hpp"
 
 namespace other {
 
@@ -223,7 +225,6 @@ namespace {
       FormatString(g.TempBuffer.Data , IM_ARRAYSIZE(g.TempBuffer.Data) , "%.*s%%d%s" , (int)(fmt_start - fmt) , fmt , fmt_end);
       return g.TempBuffer.Data;
 #else
-      /// I dont think this should be DragInt???
       IM_ASSERT(0 && "DragInt(): Invalid format string!");
 #endif
     }
@@ -239,9 +240,23 @@ namespace {
     return changed;
   }
   
+  bool DragUInt8(const char* label , uint8_t* v , float v_speed , uint8_t min , uint8_t max ,
+                const char* format , ImGuiSliderFlags flags) {
+    bool changed = ImGui::DragScalar(label , ImGuiDataType_U8 , v , v_speed , &min , &max , format , flags);
+    DrawItemActivityOutline();
+    return changed;
+  }
+  
   bool DragInt16(const char* label , int16_t* v , float v_speed , int16_t min , int16_t max ,
                 const char* format , ImGuiSliderFlags flags) {
     bool changed = ImGui::DragScalar(label , ImGuiDataType_S16 , v , v_speed , &min , &max , format , flags);
+    DrawItemActivityOutline();
+    return changed;
+  }
+  
+  bool DragUInt16(const char* label , uint16_t* v , float v_speed , uint16_t min , uint16_t max ,
+                const char* format , ImGuiSliderFlags flags) {
+    bool changed = ImGui::DragScalar(label , ImGuiDataType_U16 , v , v_speed , &min , &max , format , flags);
     DrawItemActivityOutline();
     return changed;
   }
@@ -253,6 +268,13 @@ namespace {
     return changed;
   }
   
+  bool DragUInt32(const char* label , uint32_t* v , float v_speed , uint32_t min , uint32_t max ,
+                const char* format , ImGuiSliderFlags flags) {
+    bool changed = ImGui::DragScalar(label , ImGuiDataType_U32 , v , v_speed , &min , &max , format , flags);
+    DrawItemActivityOutline();
+    return changed;
+  }
+  
   bool DragInt64(const char* label , int64_t* v , float v_speed , int64_t min , int64_t max ,
                 const char* format , ImGuiSliderFlags flags) {
     bool changed = ImGui::DragScalar(label , ImGuiDataType_S64 , v , v_speed , &min , &max , format , flags);
@@ -260,9 +282,23 @@ namespace {
     return changed;
   }
   
+  bool DragUInt64(const char* label , uint64_t* v , float v_speed , uint64_t min , uint64_t max ,
+                const char* format , ImGuiSliderFlags flags) {
+    bool changed = ImGui::DragScalar(label , ImGuiDataType_U64 , v , v_speed , &min , &max , format , flags);
+    DrawItemActivityOutline();
+    return changed;
+  }
+  
   bool DragFloat(const char* label , float* v , float v_speed , float v_min , float v_max , 
                  const char* format , ImGuiSliderFlags flags) {
     bool changed = ImGui::DragScalar(label , ImGuiDataType_Float , v , v_speed , &v_min , &v_max , format , flags);
+    DrawItemActivityOutline();
+    return changed;
+  }
+  
+  bool DragDouble(const char* label , double* v , float v_speed , double v_min , double v_max , 
+                 const char* format , ImGuiSliderFlags flags) {
+    bool changed = ImGui::DragScalar(label , ImGuiDataType_Double , v , v_speed , &v_min , &v_max , format , flags);
     DrawItemActivityOutline();
     return changed;
   }
@@ -336,7 +372,6 @@ namespace {
     const ImVec2& item_spacing , 
     const ImVec2& frame_pading
   ) {
-    PushId();
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 8.0f));
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 4.0f));
     ImGui::Columns(columns);
@@ -347,7 +382,6 @@ namespace {
     Underline();
     ImGui::PopStyleVar(2); // ItemSpacing, FramePadding
     ShiftCursorY(18.0f);
-    PopId();
   }
   
   bool OpenPopup(const std::string& str_id , ImGuiWindowFlags flags) {
@@ -381,7 +415,7 @@ namespace {
     ImGui::EndPopup();
   }
   
-  bool Property(const char* label , int8_t& value , int8_t min , int8_t max , const char* help_text) {
+  void BeginProperty(const char* label , const char* help_text) {
     ShiftCursor(10.f , 9.f);
     ImGui::Text("%s" , label);
 
@@ -393,80 +427,102 @@ namespace {
     ImGui::NextColumn();
     ShiftCursorY(4.f);
     ImGui::PushItemWidth(-1);
-
-    bool modified = DragInt8(fmt::format(fmt::runtime("##{}") , label).c_str() , &value , 1.f , min , max);
-
+  }
+  
+  void EndProperty() {
     ImGui::PopItemWidth();
     ImGui::NextColumn();
     Underline();
-
+  }
+  
+  bool Property(const char* label , int8_t* value , int8_t min , int8_t max , const char* help_text) {
+    BeginProperty(label , help_text);
+    bool modified = DragInt8(fmt::format(fmt::runtime("##{}") , label).c_str() , value , 1.f , min , max);
+    EndProperty();
+    return modified;
+  }
+  
+  bool Property(const char* label , uint8_t* value , uint8_t min , uint8_t max , const char* help_text) {
+    BeginProperty(label , help_text);
+    bool modified = DragUInt8(fmt::format(fmt::runtime("##{}") , label).c_str() , value , 1.f , min , max);
+    EndProperty();
     return modified;
   }
 
-  bool Property(const char* label , int16_t& value , int16_t min , int16_t max , const char* help_text) {
-    ShiftCursor(10.f , 9.f);
-    ImGui::Text("%s" , label);
-
-    if (std::strlen(help_text) != 0) {
-      ImGui::SameLine();
-      HelpMarker(help_text);
-    }
-
-    ImGui::NextColumn();
-    ShiftCursorY(4.f);
-    ImGui::PushItemWidth(-1);
-
-    bool modified = DragInt16(fmt::format(fmt::runtime("##{}") , label).c_str() , &value , 1.f , min , max);
-
-    ImGui::PopItemWidth();
-    ImGui::NextColumn();
-    Underline();
-
+  bool Property(const char* label , int16_t* value , int16_t min , int16_t max , const char* help_text) {
+    BeginProperty(label , help_text);
+    bool modified = DragInt16(fmt::format(fmt::runtime("##{}") , label).c_str() , value , 1.f , min , max);
+    EndProperty();
+    return modified;
+  }
+  
+  bool Property(const char* label , uint16_t* value , uint16_t min , uint16_t max , const char* help_text) {
+    BeginProperty(label , help_text);
+    bool modified = DragUInt16(fmt::format(fmt::runtime("##{}") , label).c_str() , value , 1.f , min , max);
+    EndProperty();
     return modified;
   }
 
-  bool Property(const char* label , int32_t& value , int32_t min , int32_t max , const char* help_text) {
-    ShiftCursor(10.f , 9.f);
-    ImGui::Text("%s" , label);
-
-    if (std::strlen(help_text) != 0) {
-      ImGui::SameLine();
-      HelpMarker(help_text);
-    }
-
-    ImGui::NextColumn();
-    ShiftCursorY(4.f);
-    ImGui::PushItemWidth(-1);
-
-    bool modified = ImGui::DragInt(fmt::format(fmt::runtime("##{}") , label).c_str() , &value , 1.f , min , max);
-
-    ImGui::PopItemWidth();
-    ImGui::NextColumn();
-    Underline();
-
+  bool Property(const char* label , int32_t* value , int32_t min , int32_t max , const char* help_text) {
+    BeginProperty(label , help_text);
+    bool modified = DragInt32(fmt::format(fmt::runtime("##{}") , label).c_str() , value , 1.f , min , max);
+    EndProperty();
+    return modified;
+  }
+  
+  bool Property(const char* label , uint32_t* value , uint32_t min , uint32_t max , const char* help_text) {
+    BeginProperty(label , help_text);
+    bool modified = DragUInt32(fmt::format(fmt::runtime("##{}") , label).c_str() , value , 1.f , min , max);
+    EndProperty();
     return modified;
   }
 
-  bool Property(const char* label , int64_t& value , int64_t min , int64_t max , const char* help_text) {
-    ShiftCursor(10.f , 9.f);
-    ImGui::Text("%s" , label);
-
-    if (std::strlen(help_text) != 0) {
-      ImGui::SameLine();
-      HelpMarker(help_text);
-    }
-
-    ImGui::NextColumn();
-    ShiftCursorY(4.f);
-    ImGui::PushItemWidth(-1);
-
-    bool modified = DragInt64(fmt::format(fmt::runtime("##{}") , label).c_str() , &value , 1.f , min , max);
-
-    ImGui::PopItemWidth();
-    ImGui::NextColumn();
-    Underline();
-
+  bool Property(const char* label , int64_t* value , int64_t min , int64_t max , const char* help_text) {
+    BeginProperty(label , help_text);
+    bool modified = DragInt64(fmt::format(fmt::runtime("##{}") , label).c_str() , value , 1.f , min , max);
+    EndProperty();
     return modified;
+  }
+  
+  bool Property(const char* label , uint64_t* value , uint32_t min , uint32_t max , const char* help_text) {
+    BeginProperty(label , help_text);
+    bool modified = DragUInt64(fmt::format(fmt::runtime("##{}") , label).c_str() , value , 1.f , min , max);
+    EndProperty();
+    return modified;
+  }
+  
+  bool Property(const char* label , float* value , float min , float max , const char* help_text) {
+    BeginProperty(label , help_text);
+    bool modified = DragFloat(fmt::format(fmt::runtime("##{}") , label).c_str() , value , 1.f , min , max);
+    EndProperty();
+    return modified;
+  }
+
+  bool Property(const char* label , double* value , double min , double max , const char* help_text) {
+    BeginProperty(label , help_text);
+    bool modified = DragDouble(fmt::format(fmt::runtime("##{}") , label).c_str() , value , 1.f , min , max);
+    EndProperty();
+    return modified;
+  }
+  
+  bool Property(const char* label , glm::vec2* value , glm::vec2 min , glm::vec2 max , const char* help_text) {
+    BeginProperty(label , help_text);
+    bool edited = false;
+    bool modified = widgets::DrawVec2Control(label , *value , edited);
+    EndProperty();
+    return modified;
+  }
+
+  bool Property(const char* label , glm::vec3* value , glm::vec3 min , glm::vec3 max , const char* help_text) {
+    BeginProperty(label , help_text);
+    bool edited = false;
+    bool modified = widgets::DrawVec3Control(label , *value , edited);
+    EndProperty();
+    return modified;
+  }
+
+  bool Property(const char* label , glm::vec4* value , glm::vec4 min , glm::vec4 max , const char* help_text) {
+    return false; 
   }
 
 } // namespace ui

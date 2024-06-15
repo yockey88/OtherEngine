@@ -79,6 +79,15 @@ namespace other {
     OE_ASSERT(offset + sz <= size , "Buffer::Write |> Out of bounds ({} vs {})" , offset + sz , size);
     memcpy((data + offset), d , size);
   }
+      
+  void Buffer::WriteStr(const std::string_view str) {
+    Release();
+    Allocate(str.length() + 1);
+    for (size_t i = 0; i < str.length(); ++i) {
+      data[i] = static_cast<uint8_t>(str[i]);
+    }
+    data[str.length()] = '\0';
+  }
 
   uint8_t& Buffer::operator[](uint64_t offset) {
     OE_ASSERT(offset <= size , "Accessing Buffer out of bounds");

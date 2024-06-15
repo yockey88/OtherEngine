@@ -1,13 +1,16 @@
-﻿namespace Other {
+﻿using System;
+using System.Runtime.CompilerServices;
 
-  enum State {
+namespace Other {
+
+  enum State : int {
     PRESSED = 0,
     BLOCKED ,
     HELD ,
     RELEASED ,
   }
 
-  public enum Button {
+  public enum Button : int {
     FIRST = 0 ,
     LEFT = FIRST ,
     MIDDLE = 1 , 
@@ -17,7 +20,7 @@
     LAST = X2
   }
 
-  public enum KeyCode {
+  public enum KeyCode : int {
     UNKNOWN = 0,
     UNKNOWN1 = 1,
     UNKNOWN2 = 2,
@@ -303,12 +306,23 @@
   public static class Keyboard {
     private const int NumKeys = 287;
     
-    // public static int KeyFramesHeld(KeyCode key) => Engine.KeyFramesHeld(key);
-    // public static bool KeyPressed(KeyCode key) => Engine.IsKeyPressed(key);
-    // public static bool KeyBlocked(KeyCode key) => Engine.IsKeyBlocked(key);
-    // public static bool KeyHeld(KeyCode key) => Engine.IsKeyHeld(key);
-    // public static bool KeyDown(KeyCode key) => Engine.IsKeyDown(key);
-    // public static bool KeyReleased(KeyCode key) => Engine.IsKeyReleased(key);
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern int FramesHeld(KeyCode key);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern bool Pressed(KeyCode key);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern bool Blocked(KeyCode key);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern bool Held(KeyCode key);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern bool Down(KeyCode key);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern bool Released(KeyCode key);
 
     public static int KeyCount {
       get => NumKeys;
@@ -317,42 +331,84 @@
   
   public static class Mouse {
     private const int NumButtons = 5;
-    // public static void SnapToCenter() => Engine.SnapMouseToCenter();
-    // public static void FreeCursor() => Engine.FreeMouse();
-    // public static void HideCursor() => Engine.HideMouse();
-    // public static int X => Engine.MouseX();
-    // public static int Y => Engine.MouseY();
-    // public static int LastX => Engine.MouseLastX();
-    // public static int LastY => Engine.MouseLastY();
-    // public static int DX => Engine.MouseDX();
-    // public static int DY => Engine.MouseDY();
-    // public static int ButtonCount {
-    //   get => NumButtons;
-    // }
-    // public static Vec2 Position {
-    //   get {
-    //     Engine.MousePos(out Vec2 result);
-    //     return result;
-    //   }    
-    // }
-    // public static Vec2 LastPosition {
-    //   get {
-    //     Engine.MouseLastPos(out Vec2 result);
-    //     return result;
-    //   }
-    // }
-    // public static Vec2 Delta {
-    //   get {
-    //     Engine.MouseDelta(out Vec2 result);
-    //     return result;
-    //   }
-    // }
-    // public static bool InWindow => Engine.MouseInWindow();
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern void SnapToCenter();
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern void FreeCursor();
     
-    // public static int ButtonFramesHeld(Button button) => Engine.ButtonFramesHeld(button);
-    // public static bool ButtonPressed(Button button) => Engine.IsMouseButtonPressed(button);
-    // public static bool ButtonBlocked(Button button) => Engine.IsMouseButtonBlocked(button);
-    // public static bool ButtonHeld(Button button) => Engine.IsMouseButtonHeld(button);
-    // public static bool ButtonReleased(Button button) => Engine.IsMouseButtonReleased(button);
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern void LockCursor();
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern int GetX();
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern int GetY();
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern int PreviosX();
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern int PreviousY();
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern int GetDX();
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern int GetDY();
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern bool InWindow();
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern int FramesHeld(Button button);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern bool Pressed(Button button);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern bool Blocked(Button button);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern bool Held(Button button);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern bool Released(Button button);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern void MousePos(out Vec2 result);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern void MousePreviousPos(out Vec2 result);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern void MouseDeltaPos(out Vec2 result);
+
+    public static int ButtonCount {
+      get => NumButtons;
+    }
+
+    public static Vec2 Position {
+      get {
+        MousePos(out Vec2 result);
+        return result;
+      }    
+    }
+
+    public static Vec2 LastPosition {
+      get {
+        MousePreviousPos(out Vec2 result);
+        return result;
+      }
+    }
+
+    public static Vec2 Delta {
+      get {
+        MouseDeltaPos(out Vec2 result);
+        return result;
+      }
+    }
   }
 }

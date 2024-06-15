@@ -3,55 +3,23 @@
  **/
 #include "scripting/lua/lua_module.hpp"
 
-#include <filesystem>
-
 #include "core/filesystem.hpp"
+#include "scripting/lua/lua_error_handlers.hpp"
 #include "scripting/lua/lua_script.hpp"
 #include "scripting/lua/lua_bindings.hpp"
-
 
 namespace other {
 
   bool LuaModule::Initialize() {
     OE_DEBUG("Initializing Lua Module");
 
-    Path lua_core = Filesystem::GetEngineCoreDir().string() / Path{ kLuaCorePath };
-
-    if (!Filesystem::PathExists(lua_core)) {
-      OE_ERROR("Failed to find lua scripting core");
-      return false;
-    }
-
-    for (const auto& entry : std::filesystem::recursive_directory_iterator(lua_core)) {
-      if (entry.is_regular_file()) {
-       
-        auto path = entry.path();
-        if (path.extension() == ".lua") {
-          OE_DEBUG("Adding lua core file {}" , path.string());
-          core_files.push_back(path.string());
-        }
-      }
-    }
-    
     try {
-      lua_state.open_libraries(sol::lib::base , sol::lib::io , sol::lib::os , sol::lib::math ,
-                               sol::lib::table , sol::lib::string , sol::lib::debug , sol::lib::package , 
+      lua_state.open_libraries(sol::lib::base  , sol::lib::io   , 
+                               sol::lib::os    , sol::lib::math ,
+                               sol::lib::table , sol::lib::string , 
+                               sol::lib::debug , sol::lib::package , 
                                sol::lib::coroutine);
-
-      /// load scripts 
-      bool load_failed = false;
-      for (const auto& p : core_files) {
-        sol::function_result res = lua_state.safe_script_file(p);
-        if (!res.valid()) {
-          OE_ERROR("Failed to load lua script {}" , p);
-          load_failed = true;
-        }
-      }
-
-      if (load_failed) {
-        lua_state = sol::state();
-        return false;
-      }
+      lua_state.set_exception_handler(LuaExceptionHandler);
 
       LuaScriptBindings::InitializeBindings(lua_state);
 
@@ -65,53 +33,21 @@ namespace other {
   }
 
   void LuaModule::Shutdown() {
+    lua_state.collect_garbage();
     for (auto& [id , module] : loaded_modules) {
       module->Shutdown();
       delete module;
     }
     loaded_modules.clear();
 
+    lua_state = sol::state();
+
     OE_DEBUG("Lua Module Shutdown");
   }
   
   void LuaModule::Reload() {
-    lua_state.collect_garbage();
-    loaded_modules.clear();
-
-    lua_state = sol::state();
-
-    try {
-      lua_state.open_libraries(sol::lib::base , sol::lib::io , sol::lib::os , sol::lib::math ,
-                               sol::lib::table , sol::lib::string , sol::lib::debug , sol::lib::package , 
-                               sol::lib::coroutine);
-
-      /// load scripts 
-      bool load_failed = false;
-      for (const auto& p : core_files) {
-        sol::function_result res = lua_state.safe_script_file(p);
-        if (!res.valid()) {
-          OE_ERROR("Failed to load lua script {}" , p);
-          load_failed = true;
-        }
-      }
-
-      if (load_failed) {
-        OE_ERROR("Reloaded lua state failed, lua scripts corrupt");
-        return;
-      }
-
-      LuaScriptBindings::InitializeBindings(lua_state);
-
-    } catch (const std::exception& e) {
-      OE_ERROR("Exception caught re-loading lua scripts : {}" , e.what());
-      return;
-    }
-
-    for (auto& [id , mod] : loaded_modules) {
-      mod->Reload();
-      delete mod;
-    }
-    loaded_modules.clear();
+    Shutdown();
+    Initialize();
 
     for (const auto& [id , data] : loaded_modules_data) {
       LoadScriptModule(data);

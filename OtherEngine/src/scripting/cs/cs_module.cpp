@@ -8,11 +8,9 @@
 #include <mono/metadata/threads.h>
 
 #include "core/filesystem.hpp"
-#include "event/event_queue.hpp"
-#include "event/app_events.hpp"
 #include "scripting/cs/cs_script.hpp"
-#include "scripting/cs/script_bindings.hpp"
-#include "scripting/cs/script_cache.hpp"
+#include "scripting/cs/cs_script_bindings.hpp"
+#include "scripting/cs/cs_garbage_collector.hpp"
 
 namespace other {
 
@@ -51,9 +49,6 @@ namespace other {
       mono_jit_cleanup(root_domain);
       return load_success;
     }
-    
-    CsScriptCache::InitializeCache();
-    /// CsGarbageCollector::InitializeGC();
 
     LoadScriptModule(ScriptModuleInfo {
       .name = "C#-Core" ,
@@ -71,16 +66,17 @@ namespace other {
       return;
     }
     
-    CsScriptCache::ShutdownCache();
-    CsScriptBindings::ShutdownBindings();
+    bool blocking = true;
+    CsGarbageCollector::Collect(blocking);
     
     for (auto& [id , module] : loaded_modules) {
       module->Shutdown();
       delete module;
     }
     loaded_modules.clear();
-
-    /// CsGarbageCollector::ShutdownGC();
+    
+    CsScriptBindings::ShutdownBindings();
+    CsGarbageCollector::Shutdown();
 
     mono_domain_set(root_domain , 0);
     mono_domain_unload(app_domain);
@@ -93,9 +89,11 @@ namespace other {
   }
 
   void CsModule::Reload() {
-    /// CsGarbageCollector::ShutdownGC();
-    CsScriptCache::ShutdownCache();
+    bool blocking = true;
+    CsGarbageCollector::Collect(blocking);
+
     CsScriptBindings::ShutdownBindings();
+    CsGarbageCollector::Shutdown();
 
     mono_domain_set(root_domain, 0);
     mono_domain_unload(app_domain);
@@ -115,8 +113,6 @@ namespace other {
 
     OE_DEBUG("Mono Runtime initialized");
     
-    CsScriptCache::InitializeCache();
-
     for (const auto& [id , module_info] : loaded_modules_data) {
       LoadScriptModule(module_info);
     }

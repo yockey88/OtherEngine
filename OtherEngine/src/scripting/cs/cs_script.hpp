@@ -10,11 +10,11 @@
 
 #include "core/UUID.hpp"
 #include "scripting/script_module.hpp"
-#include "cs_object.hpp"
+#include "scripting/cs/cs_object.hpp"
+#include "scripting/cs/cs_script_cache.hpp"
+#include "scripting/cs/cs_garbage_collector.hpp"
 
 namespace other {
-
-  class Engine;
 
   class CsScript : public ScriptModule {
     public:
@@ -46,7 +46,9 @@ namespace other {
       std::map<UUID , ScriptSymbol> loaded_symbols;
       std::map<UUID , MonoClass*> classes;
       std::map<UUID , CsObject> loaded_objects;
-      // garbage_collector stuff
+      std::map<UUID , GcHandle> gc_handles;
+
+      CsCache cached_symbols;
 
       std::string assembly_path;
 

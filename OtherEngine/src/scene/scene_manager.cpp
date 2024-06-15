@@ -50,6 +50,26 @@ namespace other {
     active_scene = &loaded_scenes[id];
     active_scene->scene->Initialize();
   }
+      
+  void SceneManager::StartScene() {
+    if (active_scene == nullptr) {
+      return;
+    } 
+
+    active_scene->scene->Start();
+  }
+  
+  void SceneManager::StopScene() {
+    if (active_scene == nullptr) {
+      return;
+    } 
+
+    if (!active_scene->scene->IsRunning()) {
+      return;
+    }
+
+    active_scene->scene->Stop();
+  }
 
   bool SceneManager::HasScene(const Path& path) {
     return loaded_scenes.find(FNV(path.string())) != loaded_scenes.end();
@@ -69,6 +89,15 @@ namespace other {
   }
 
   void SceneManager::UnloadActive() {
+    if (active_scene == nullptr) {
+      return;
+    }
+
+    if (!active_scene->scene->IsRunning()) {
+      return;
+    }
+    
+    active_scene->scene->Stop();
     active_scene->scene->Shutdown();
     active_scene = nullptr;
   }

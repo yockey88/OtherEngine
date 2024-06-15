@@ -29,6 +29,9 @@ namespace other {
       const ConfigTable& engine_config;
       ConfigTable editor_config;
 
+      /// TODO: find a better way to manage state than this
+      bool playing = false;
+
       Scope<App> app;
       Ref<Project> project;
       Ref<Scene> active_scene;

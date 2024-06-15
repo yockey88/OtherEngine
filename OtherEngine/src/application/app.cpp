@@ -457,7 +457,9 @@ namespace other {
   }
       
   void App::UpdateSceneContext(float dt) {
-    scene_manager->UpdateScene(dt);
+    if (!in_editor) {
+      scene_manager->UpdateScene(dt);
+    }
   }
 
   void App::SetInEditor() {

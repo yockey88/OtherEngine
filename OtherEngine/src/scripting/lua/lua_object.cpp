@@ -5,13 +5,6 @@
 
 namespace other {
 
-    LuaObject::LuaObject(const std::string& name , sol::state* script_state) 
-      : ScriptObject(name , "Lua") , state(script_state) {
-    }
-
-    LuaObject::~LuaObject() {
-    }
-
     void LuaObject::InitializeScriptMethods() {
       sol::optional<sol::table> obj = (*state)[script_name];
       if (!obj.has_value()) {
@@ -20,26 +13,29 @@ namespace other {
       }
 
       initialize = (*state)[script_name]["OnInitialize"];
-      update = (*state)[script_name]["OnUpdate"];
-      render = (*state)[script_name]["OnRender"];
-      render_ui = (*state)[script_name]["OnRenderUI"];
+      update = (*state)[script_name]["Update"];
+      render = (*state)[script_name]["Render"];
+      render_ui = (*state)[script_name]["RenderUI"];
       shutdown = (*state)[script_name]["OnShutdown"];
+
+      if (!update.valid()) {
+        OE_WARN("{} has no update method" , script_name);
+      }
     }
 
     void LuaObject::InitializeScriptFields() {
     }
 
-    Opt<Value> LuaObject::CallMethod(const std::string& name , Parameter* args , uint32_t argc)  {
+    Opt<Value> LuaObject::OnCallMethod(const std::string_view name , std::span<Value> args)  {
       return std::nullopt;
-      // sol::optional<sol::function> func = (*state)[name];
-      // if (!func.has_value()) {
-      //   func = (*state)[script_name][name];
+    }
+      
+    Opt<Value> LuaObject::GetField(const std::string& name) {
+      return std::nullopt;
+    }
 
-      //   if (!func.has_value()) {
-      //     OE_DEBUG("Could not find symbol {} in script {}" , name , script_name);
-      //     return std::nullopt;
-      //   }
-      // }
+    void LuaObject::SetField(const std::string& name , const Value& value) {
+
     }
 
     void LuaObject::Initialize() {

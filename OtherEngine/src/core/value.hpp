@@ -24,15 +24,19 @@ namespace other {
   enum ValueType {
     EMPTY , // Void , null , nil ,etc...
             
+    /// primitive types
     BOOL , CHAR ,
     INT8 , INT16 , INT32 , INT64 ,
     UINT8 , UINT16 , UINT32 , UINT64 ,
     FLOAT , DOUBLE ,
     STRING ,
 
+    /// engine types
     VEC2 , VEC3 , VEC4 , 
-    ASSET , 
-    ENTITY 
+    ASSET , ENTITY ,
+
+    /// user types
+    USER_TYPE ,
   };
 
   struct Parameter {
@@ -41,7 +45,7 @@ namespace other {
   };
 
   template <typename T>
-  ValueType GetValueType(const T& val) {
+  static constexpr ValueType GetValueType() {
     if constexpr (std::is_same_v<T , bool>) {
       return ValueType::BOOL;
     } else if constexpr (std::is_same_v<T , char>) {
@@ -85,9 +89,14 @@ namespace other {
     public:
       Value() {}
 
-      Value(ParamHandle value , size_t typesize , ValueType type);
+      template <typename T>
+      Value(T val) {
+        Set<T>(val);
+      }
 
-      Value(ParamArray array , size_t typesize , size_t elements , ValueType type);
+      Value(const std::string& str) {
+        SetStr(str);
+      }
 
       Value(Value&& other);
       Value(const Value& other);
@@ -118,13 +127,11 @@ namespace other {
         return value.Read<T>();
       }
 
+      void* AsRawMemory() const;
+
       void Clear();
 
-      void Set(ParamHandle value , size_t typesize , ValueType type);
-
-      void Set(ParamArray values , size_t typesize , size_t elements , ValueType type);
-
-      void Set(const std::string& str);
+      void SetStr(const std::string& str);
 
       template <typename T>
       void Set(const T& val) {
@@ -132,7 +139,7 @@ namespace other {
         value.Allocate(sizeof(T));
         value.Write(&val , sizeof(T));
 
-        type = GetValueType<T>(val);
+        type = GetValueType<T>();
       }
 
       template <typename T>
@@ -142,6 +149,8 @@ namespace other {
         for (uint32_t i = 0; i < values.size(); ++i) {
           value.Write(values[i] , sizeof(T) , sizeof(T) * i); 
         } 
+
+        type = GetValueType<T>();
 
         is_array = true;
       }

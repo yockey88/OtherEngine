@@ -25,12 +25,16 @@ namespace  other {
     return is_initialized;
   }
   
-  std::map<UUID , ScriptField*>& ScriptObject::GetFields() {
+  std::map<UUID , ScriptField>& ScriptObject::GetFields() {
     return fields; 
   }
 
-  const std::map<UUID , ScriptField*>& ScriptObject::GetFields() const {
+  const std::map<UUID , ScriptField>& ScriptObject::GetFields() const {
     return fields; 
+  }
+      
+  Opt<Value> ScriptObject::OnCallMethod(const std::string_view name , Parameter* args , uint32_t argc) {
+    return std::nullopt; 
   }
 
 } // namespace other

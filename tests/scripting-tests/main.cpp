@@ -2,62 +2,51 @@
  * \file tests/scripting-tests/main.cpp
  **/
 #include <filesystem>
-
-#include <ShlObj.h>
-#include <minwinbase.h>
-#include <processthreadsapi.h>
-
 #include <spdlog/fmt/fmt.h>
 
-#include "core/defines.hpp"
+#include <sol/sol.hpp>
 
 using Path = std::filesystem::path;
 
+class C {
+  public:
+    enum class Number : uint32_t {
+      ZERO = 0 ,
+      ONE = 1 , 
+      TWO = 2 , 
+      THREE = 3
+    };
+
+    static bool CheckNum(Number num) {
+      return num == Number::THREE;
+    }
+};
+
 int main(int argc , char* argv[]) {
-    TCHAR program_files_path_buffer[MAX_PATH];
-    SHGetSpecialFolderPath(0 , program_files_path_buffer , CSIDL_PROGRAM_FILES , FALSE);
+  sol::state lua;
 
-    Path ms_build = std::filesystem::path(program_files_path_buffer) /
-      "Microsoft Visual Studio" / "2022" / "Community" / 
-      "MSBuild" / "Current" / "Bin" / "MSBuild.exe";
+  lua.open_libraries(sol::lib::io , sol::lib::string);
 
-    std::string project_file_str = "C:/Yock/gamedev/Testbed/CsScript1.csproj";
-    std::replace(project_file_str.begin() , project_file_str.end() , '/' , '\\');
+  lua["Number"] = lua.create_table_with(
+    "Zero" , C::Number::ZERO , 
+    "One" , C::Number::ONE , 
+    "Two" , C::Number::TWO , 
+    "Three" , C::Number::THREE
+  );
 
-    /// replace configuration in the future
-    std::string cmd = fmt::format(fmt::runtime("{}") , ms_build.string());
+  lua.set_function("print" , [](const std::string& str) { std::cout << str << "\n"; });
 
-    /// we can't use LaunchProcess because we want to wait on the process to finish
+  lua.new_usertype<C>(
+    "Class" ,
+    "CheckNum" , C::CheckNum 
+  );
 
-    std::replace(cmd.begin() , cmd.end() , '/' , '\\');
-    std::string args = fmt::format(fmt::runtime("\"\"{}\" {}\" /property:Configuration=Debug") , cmd , project_file_str);
+  lua.script(R"(
+    if Class.CheckNum(Number.Three) then
+      print("Hell ya!");
+    end
+  )");
 
-    std::wstring wcmd(cmd.begin() , cmd.end());
-    wchar_t* wcmdline = const_cast<wchar_t*>(wcmd.c_str());
-
-    other::println("Launching process {}" , args);    
-
-    PROCESS_INFORMATION pi;
-    STARTUPINFO si;
-    ZeroMemory(&si , sizeof(si));
-    si.cb = sizeof(si);
-    ZeroMemory(&pi , sizeof(pi));
-
-    std::system(args.c_str());
-
-    // bool result = CreateProcessW(nullptr , wcmdline , nullptr , nullptr , 
-    //                              true , 0 , nullptr , nullptr , &si , &pi);  
-
-    // if (!result) {
-    //   other::println("Failed to launch build using command line {}" , cmd);
-    //   CloseHandle(pi.hProcess);
-    //   CloseHandle(pi.hThread);
-    //   return 1;
-    // }
-
-    // WaitForSingleObject(pi.hProcess , INFINITE);
-    // CloseHandle(pi.hProcess);
-    // CloseHandle(pi.hThread);
 
   return 0;
 }

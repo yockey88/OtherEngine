@@ -57,7 +57,7 @@ namespace other {
 
       bool initialized = false;
       bool running = false;
-      bool corrupt = true;
+      bool corrupt = false;
 
       entt::registry registry;
 

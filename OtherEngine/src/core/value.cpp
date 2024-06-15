@@ -33,65 +33,20 @@ namespace other {
     value.Release();
   }
   
-  Value::Value(ParamHandle val , size_t typesize , ValueType type) : type(type) {
-    value.Allocate(typesize);
-    value.Write(val , typesize);
-  }
-      
-  Value::Value(ParamArray array , size_t typesize , size_t elements , ValueType type) 
-      : type(type) {
-    if (elements <= 0) {
-      return;
-    }
-
-    is_array = true;
-
-    value.Allocate(typesize * elements);
-    for (uint32_t i = 0; i < elements; ++i) {
-      value.Write(array[i] , typesize , i * typesize);
-    }
+  void* Value::AsRawMemory() const {
+    return static_cast<void*>(const_cast<uint8_t*>(value.ReadBytes()));
   }
       
   void Value::Clear() {
     value.Release();
   }
       
-  void Value::Set(ParamHandle val , size_t typesize , ValueType t) {
+  void Value::SetStr(const std::string& str) {
     value.Release();
-    value.Allocate(typesize);
-    value.Write(val , typesize);
-
-    type = t;
-  }
-
-  void Value::Set(ParamArray array , size_t typesize , size_t elements , ValueType t) {
-    if (elements <= 0) {
-      return;
-    }
-
-    is_array = true;
-
-    value.Release();
-    value.Allocate(typesize * elements);
-    for (uint32_t i = 0; i < elements; ++i) {
-      value.Write(array[i] , typesize , i * typesize);
-    }
-
-    type = t;
-  }
-      
-  void Value::Set(const std::string& str) {
     if (str.length() == 0) {
       return;
     }
-
-    value.Release();
-    value.Allocate(str.length());
-    for (size_t i = 0; i < str.length(); ++i) {
-      char c = str[i];
-      value.Write(&c , sizeof(char) , i);
-    }
-
+    value.WriteStr(str);
     type = ValueType::STRING;
   }
 

@@ -13,7 +13,7 @@ namespace other {
 
   class Mouse {
     public:
-      enum class Button : uint8_t {
+      enum Button : uint8_t {
         FIRST = 0 ,
         LEFT = FIRST ,
         MIDDLE = 1 ,
@@ -51,20 +51,22 @@ namespace other {
     public:
       static void Initialize();
       static void Update();
+
       static void SnapToCenter();
+
       static void FreeCursor();
-      static void HideCursor();
+      static void LockCursor();
 
       static inline ButtonState GetButtonState(Button button) { return buttons[button]; }
 
-      static inline uint32_t X() { return state.position.x; }
-      static inline uint32_t Y() { return state.position.y; }
+      static inline uint32_t GetX() { return state.position.x; }
+      static inline uint32_t GetY() { return state.position.y; }
       
       static inline uint32_t PreviousX() { return state.previous_position.x; }
       static inline uint32_t PreviousY() { return state.previous_position.y; }
 
-      static inline uint32_t DX() { return state.position.x - state.previous_position.x; }
-      static inline uint32_t DY() { return state.position.y - state.previous_position.y; }
+      static inline uint32_t GetDX() { return state.position.x - state.previous_position.x; }
+      static inline uint32_t GetDY() { return state.position.y - state.previous_position.y; }
 
       static inline bool InWindow() { return state.in_window; }
 

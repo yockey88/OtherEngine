@@ -11,6 +11,13 @@ namespace other {
   class LuaScriptBindings {
     public:
       static void InitializeBindings(sol::state& lua_state);
+
+    public:
+      static void BindGlmTypes(sol::state& lua_state);
+      static void BindEcsTypes(sol::state& lua_state);
+
+      static void InitializeMouseEnums(sol::state& lua_state);
+      static void InitializeKeyEnums(sol::state& lua_state);
   };  
 
 } // namespace other

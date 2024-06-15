@@ -106,7 +106,7 @@ namespace other {
     SDL_SetRelativeMouseMode(SDL_FALSE);
   }
 
-  void Mouse::HideCursor() {
+  void Mouse::LockCursor() {
     SDL_SetRelativeMouseMode(SDL_TRUE);
   }
 

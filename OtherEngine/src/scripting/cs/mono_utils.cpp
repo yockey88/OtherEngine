@@ -65,13 +65,25 @@ namespace other {
           return ValueTypeFromMonoType(mono_type_get_underlying_type(type));
         }
 
-        /// if asset handle 
-        /// if vec2
-        /// if vec3
-        /// if vec4
       } break;
+      
+      /// need to be able to check if asset handle and also 
+      ///  handle custom types
       case MONO_TYPE_CLASS: {
-        /// defined classes
+        char* name = mono_type_get_name(type);
+        std::string typestr{ name };
+        typestr = typestr.substr(typestr.find('.') + 1 , typestr.length() - 1);
+
+        if (typestr == "Vec2") {
+          return ValueType::VEC2;
+        } else if (typestr == "Vec3") {
+          return ValueType::VEC3;
+        } else if (typestr == "Vec4") {
+          return ValueType::VEC4;
+        } else {
+          return ValueType::USER_TYPE;
+        }
+
       } break;
       case MONO_TYPE_SZARRAY:
       case MONO_TYPE_ARRAY: {
@@ -79,6 +91,9 @@ namespace other {
         if (elt_class == nullptr) {
           break;
         }
+
+        MonoType* elt_type = mono_class_get_type(elt_class);
+        return ValueTypeFromMonoType(elt_type);
 
       } break;
 
@@ -168,11 +183,12 @@ namespace other {
         std::string res{ utf8 };
         mono_free(utf8);
 
-        Value v;
-        v.Set(res);
-
-        return v;
+        val.SetStr(res);
       } break;
+
+      case ValueType::USER_TYPE: 
+        
+      break;
 
       default:
         return std::nullopt;

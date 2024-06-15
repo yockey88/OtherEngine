@@ -26,6 +26,9 @@ namespace other {
       bool LoadScene(const Path& scenepath);
       void SetAsActive(const Path& name);
 
+      void StartScene();
+      void StopScene();
+
       bool HasScene(const Path& path);
       
       void RefreshScenes();

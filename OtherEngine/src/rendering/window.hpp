@@ -53,6 +53,7 @@ namespace other {
       glm::ivec2 Size() const;
       glm::vec4 ClearColor() const;
       uint32_t ClearFlags() const;
+      float AspectRatio() const;
 
       void Resize(const glm::ivec2& size);
 

@@ -148,6 +148,10 @@ namespace {
     glClearColor(config.color.r , config.color.g , config.color.b , config.color.a);
     glClear(config.clear_flags);
   }
+      
+  float Window::AspectRatio() const {
+    return (16.f / 9.f);
+  }
 
   void Window::SwapBuffers() {
     SDL_GL_SwapWindow(context.window);

@@ -3,64 +3,98 @@
 */
 #include "scripting/cs/cs_object.hpp"
 
-#include "core/logger.hpp"
-
-#include "scripting/cs/mono_utils.hpp"
-#include "scripting/cs/script_cache.hpp"
 #include <mono/metadata/class.h>
 #include <mono/metadata/object.h>
+
+#include "core/logger.hpp"
+#include "scripting/cs/mono_utils.hpp"
+#include "scripting/cs/cs_script_cache.hpp"
 
 namespace other {
 
   void CsObject::InitializeScriptMethods() {
-    initialize_method = mono_class_get_method_from_name(klass , "OnInitialize" , 0);
-    update_method = mono_class_get_method_from_name(klass , "Update" , 1);
-    render_method = mono_class_get_method_from_name(klass , "Render" , 0);
-    render_ui_method = mono_class_get_method_from_name(klass , "RenderUI" , 0);
-    shutdown_method = mono_class_get_method_from_name(klass , "OnShutdown" , 0);
+    initialize_method = mono_class_get_method_from_name(type_data->asm_class , "OnInitialize" , 0);
+    update_method = mono_class_get_method_from_name(type_data->asm_class , "Update" , 1);
+    render_method = mono_class_get_method_from_name(type_data->asm_class , "Render" , 0);
+    render_ui_method = mono_class_get_method_from_name(type_data->asm_class , "RenderUI" , 0);
+    shutdown_method = mono_class_get_method_from_name(type_data->asm_class , "OnShutdown" , 0);
   }
 
   void CsObject::InitializeScriptFields() {
-    std::vector<ScriptField*> fdata = CsScriptCache::GetClassFields(asm_id , klass , instance);
-    for (const auto& f : fdata) {
-      MonoClassField* mcfield = mono_class_get_field_from_name(klass , f->name.c_str());
-      if (mcfield == nullptr) {
+    for (const auto& [fid , f] : type_data->fields) {
+      if (f.HasFlag(FieldAccessFlag::PRIVATE) || f.HasFlag(FieldAccessFlag::PROTECTED)) {
         continue;
       }
 
-      MonoObject* mobj = mono_field_get_value_object(app_domain , mcfield, instance);
-      if (mobj == nullptr) {
-        continue;
-      }
+      auto& fval = fields[fid] = ScriptField{};
+      fval.name = f.name;
 
-      auto& fval = fields[f->id] = f;
-      Opt<Value> val = MonoObjectToValue(mobj);
-      OE_DEBUG("Get field back from MonoObjectToValue");
+      Opt<Value> val = std::nullopt;
+
+      if (f.is_property) {
+        val = GetMonoProperty(f.asm_property_getter);
+      } else {
+        val = GetMonoField(f.asm_field);
+      }
 
       if (val.has_value()) {
-        fval->value = val.value();
+        fval.value = val.value();
       }
     }
   }
+      
+  Opt<Value> CsObject::OnCallMethod(const std::string_view name , std::span<Value> args) {
+    /// dont need to construct the vector below if no args provided
+    if (args.size() == 0) {
+      return OnCallMethod(name , nullptr , 0);
+    }
 
-  Opt<Value> CsObject::CallMethod(const std::string& name , Parameter* args , uint32_t argc)  {
+    std::vector<Parameter> call_args(args.size());
+    for (uint32_t i = 0; i < args.size(); ++i) {
+      call_args[i] = {
+        args[i].AsRawMemory() ,
+        args[i].Type() ,
+      };
+    }
+
+    return OnCallMethod(name , call_args.data() , call_args.size());
+  }
+
+  Opt<Value> CsObject::OnCallMethod(const std::string_view name , Parameter* args , uint32_t argc)  {
     UUID id = FNV(name);
+    for (const auto& [mid , m] : type_data->methods) {
+      if (id == mid) {
+        return CallMonoMethod(m.asm_method , argc , args);
+      }
+    }
 
-    if (other_methods.find(id) != other_methods.end()) {
-      return CallMonoMethod(other_methods[id] , argc , args);
+    OE_ERROR("Failed to find method {} on C# script {}" , name , script_name);
+    return std::nullopt;
+  }
+      
+  Opt<Value> CsObject::GetField(const std::string& name) {
+    UUID id = FNV(name);
+    for (const auto& [fid , f] : type_data->fields) {
+      if (id == fid && f.is_property) {
+        return GetMonoProperty(f.asm_property_getter);
+      } else if (id == fid) {
+        return GetMonoField(f.asm_field);
+      }
     }
     
-    MonoMethod* method = mono_class_get_method_from_name(klass , name.c_str() , 0);
-    if (method == nullptr) {
-      OE_ERROR("Mono Script Object [{}] method [{}] not found" , script_name , name);
-      OE_WARN("Mono Script Object [{}] invalid" , script_name);
-      is_corrupt = true;
-      return std::nullopt;
+    OE_ERROR("Failed to find field {} on C# script {}" , name , script_name);
+    return std::nullopt;
+  }
+
+  void CsObject::SetField(const std::string& name , const Value& value) {
+    UUID id = FNV(name);
+    for (const auto& [fid , f] : type_data->fields) {
+      if (id == fid && f.is_property) {
+        SetMonoProperty(f.asm_property_setter , value);
+      } else if (id == fid) {
+        SetMonoField(f.asm_field , value);
+      }
     }
-    
-    /// cache the method
-    other_methods[id] = method;
-    return CallMonoMethod(method , argc , args);
   }
 
   void CsObject::Initialize() {
@@ -99,12 +133,38 @@ namespace other {
     }
 
     is_initialized = false;
-
-    for (auto& [id , field] : fields) {
-      delete field;
-      field = nullptr;
-    }
     fields.clear();
+  }
+      
+  Opt<Value> CsObject::GetMonoField(MonoClassField* field) {
+    MonoObject* mobj = mono_field_get_value_object(app_domain , field , instance);
+    if (mobj == nullptr) {
+      return std::nullopt;
+    }
+
+    return MonoObjectToValue(mobj);
+  }
+
+  Opt<Value> CsObject::GetMonoProperty(MonoMethod* getter) {
+    return CallMonoMethod(getter);
+  }
+
+  void CsObject::SetMonoField(MonoClassField* field , const Value& value) {
+    if (value.Type() == ValueType::STRING) {
+      std::string val = value.Get<std::string>();
+      MonoString* mstr = mono_string_new(app_domain , val.c_str());
+      mono_field_set_value(instance , field , mstr);
+    } else {
+      mono_field_set_value(instance , field , value.AsRawMemory());
+    }
+  }
+
+  void CsObject::SetMonoProperty(MonoMethod* setter , const Value& value) {
+    Parameter param {
+      .handle = value.AsRawMemory() ,
+      .type = value.Type() ,
+    };
+    CallMonoMethod(setter , 1 , &param);
   }
   
   Opt<Value> CsObject::CallMonoMethod(MonoMethod* method , uint32_t argc , Parameter* args) {
@@ -130,7 +190,8 @@ namespace other {
     MonoObject* exception = nullptr;
     MonoObject* ret_val = mono_runtime_invoke(method , instance , params.data() , &exception);
     if (exception) {
-      OE_ERROR("CsObject::CallMethod: exception");
+      OE_ERROR("C# Exception thrown by : {}" , script_name);
+      CheckMonoError();
       is_corrupt = true; 
       return std::nullopt;
     }

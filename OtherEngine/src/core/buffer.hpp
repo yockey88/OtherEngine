@@ -43,12 +43,15 @@ namespace other {
         return *reinterpret_cast<T*>(data + offset);
       }
 
-      const uint8_t* ReadBytes(uint64_t offset) const;
+      const uint8_t* ReadBytes(uint64_t offset = 0) const;
 
       void Write(const void* data , uint64_t size , uint64_t offset = 0);
 
+      void WriteStr(const std::string_view str);
+
       template <typename T>
       void Write(const T& value) {
+        static_assert(!std::is_same_v<T , std::string> , "Use WriteStr instead of Write");
         OE_ASSERT(sizeof(value) <= size , "Buffer::Write({}) Out of bounds" , typeid(T).name());
         memcpy(data , &value , sizeof(data));
         size = sizeof(data);

@@ -88,6 +88,10 @@ namespace other {
 
   void Editor::Update(float dt) {
     entity_properties_open = SelectionManager::HasSelection();
+
+    if (playing) {
+      app->Update(dt);
+    }
   }
 
   void Editor::Render() {
@@ -125,7 +129,16 @@ namespace other {
 
     if (ImGui::Begin("Viewport")) {
       if (viewport != nullptr && viewport->Valid()) {
-        auto size = ImGui::GetContentRegionAvail();
+        auto ar_size = ImGui::GetContentRegionAvail();
+        ImVec2 size{};
+        size.x = ar_size.y * Renderer::GetWindow()->AspectRatio();
+        size.y = ar_size.x * (1.f / Renderer::GetWindow()->AspectRatio());
+        if (ar_size.y >= size.y) {
+          size.y = ar_size.x;
+        } else {
+          size.y = ar_size.y;
+        }
+
         ImGui::Image((void*)(intptr_t)viewport->Texture() , size , ImVec2(0 , 1) , ImVec2(1 , 0)); 
       } else {
         ImGui::Text("No Viewport Generated");
@@ -142,8 +155,15 @@ namespace other {
     }
 
     if (ImGui::Begin("Inspector")) {
-
+      if (!playing && ImGui::Button("Play")) {
+        scene_manager->StartScene();
+        playing = true; 
+      } else if (playing && ImGui::Button("Stop Scene")) {
+        scene_manager->StopScene();
+        playing = false;
+      }
     }
+
     ImGui::End();
   }
 
@@ -158,16 +178,18 @@ namespace other {
 
   void Editor::OnSceneLoad(const SceneMetadata* metadata) {
     OE_DEBUG("Editor::OnSceneLoad({})" , metadata->path);
+
     project_panel->SetSceneContext(metadata->scene);
     scene_panel->SetSceneContext(metadata->scene);  
     entity_properties_panel->SetSceneContext(metadata->scene);
   }
       
   void Editor::OnSceneUnload() {
-    OE_DEBUG("Editor::OnSceneUnload()");
     project_panel->SetSceneContext(nullptr);
     scene_panel->SetSceneContext(nullptr);
     entity_properties_panel->SetSceneContext(nullptr);
+
+    playing = false;
     OE_DEBUG("Scene Context Unloaded");
   }
 
