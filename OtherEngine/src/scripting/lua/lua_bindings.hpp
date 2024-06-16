@@ -5,21 +5,14 @@
 #define OTHER_ENGINE_LUA_BINDINGS_HPP
 
 #include <sol/sol.hpp>
+#include <sol/state.hpp>
 
 namespace other {
+namespace lua_script_bindings {
 
-  class LuaScriptBindings {
-    public:
-      static void InitializeBindings(sol::state& lua_state);
+  void BindCoreTypes(sol::state& lua);
 
-    public:
-      static void BindGlmTypes(sol::state& lua_state);
-      static void BindEcsTypes(sol::state& lua_state);
-
-      static void InitializeMouseEnums(sol::state& lua_state);
-      static void InitializeKeyEnums(sol::state& lua_state);
-  };  
-
+} // namespace lua_script_bindings
 } // namespace other
 
 #endif // !OTHER_ENGINE_LUA_BINDINGS_HPP

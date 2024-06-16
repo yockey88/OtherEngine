@@ -24,6 +24,8 @@ namespace other {
       void Initialize();
       void Start(); 
       void Update(float dt);
+      void Render();
+      void RenderUI();
       void Stop(); 
       void Shutdown();
 
@@ -48,6 +50,8 @@ namespace other {
       virtual void OnInit() {}
       virtual void OnStart() {}
       virtual void OnUpdate(float dt) {}
+      virtual void OnRender() {}
+      virtual void OnRenderUI() {}
       virtual void OnStop() {}
       virtual void OnShutdown() {}
 

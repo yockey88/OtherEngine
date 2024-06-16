@@ -5,12 +5,20 @@
 
 namespace  other {
 
+  const std::string& ScriptObject::ScriptName() const {
+    return script_module_name;
+  }
+
+  const Opt<std::string> ScriptObject::NameSpace() const {
+    return name_space; 
+  }
+
   const std::string& ScriptObject::Name() const {
     return script_name;
   }
       
-  const std::string& ScriptObject::LanguageName() const {
-    return language;
+  LanguageModuleType ScriptObject::LanguageType() const {
+    return lang_type;
   }
       
   void ScriptObject::MarkCorrupt() {

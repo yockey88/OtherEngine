@@ -89,7 +89,6 @@ namespace other {
       bool in_editor = false;
 
       friend class Editor;
-      void UpdateSceneContext(float dt);
       void SetInEditor();
   };
 

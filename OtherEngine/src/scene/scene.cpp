@@ -3,9 +3,16 @@
  **/
 #include "scene/scene.hpp"
 
+#include <glm/gtc/constants.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/euler_angles.hpp>
+
 #include "scripting/script_engine.hpp"
 #include "ecs/entity.hpp"
 #include "ecs/components/tag.hpp"
+#include "ecs/components/transform.hpp"
+#include "ecs/components/mesh.hpp"
 #include "ecs/components/relationship.hpp"
 #include "ecs/components/script.hpp"
 #include "ecs/systems/core_systems.hpp"
@@ -37,11 +44,6 @@ namespace other {
       }
     }
 
-    registry.view<Script>().each([](const Script& script) {
-      for (auto& [id , s] : script.scripts) {
-        s->Initialize();
-      }
-    });
 
     OnInit(); 
     initialized = true;
@@ -49,6 +51,12 @@ namespace other {
 
   void Scene::Start() {
     OE_ASSERT(initialized , "Starting scene without initialization");
+    
+    registry.view<Script>().each([](const Script& script) {
+      for (auto& [id , s] : script.scripts) {
+        s->Initialize();
+      }
+    });
 
     OnStart();
     running = true;
@@ -65,11 +73,29 @@ namespace other {
       Stop();
       return;
     }
+    
+    registry.view<Tag>().each([](Tag& relationship) {
+    });
+
+    registry.view<Transform>().each([](Transform& transform) {
+      transform.erotation = glm::eulerAngles(transform.qrotation);
+      transform.model_transform = glm::translate(glm::mat4(1.f) , transform.position);
+      transform.model_transform = glm::eulerAngleYXZ(
+        transform.erotation.y , transform.erotation.x , transform.erotation.z
+      );
+      transform.model_transform = glm::scale(transform.model_transform , transform.scale);
+    });
+
+    registry.view<Relationship>().each([](Relationship& relationship) {
+    });
 
     registry.view<Script>().each([&dt](const Script& script) {
       for (auto& [id , s] : script.scripts) {
         s->Update(dt);
       }
+    });
+
+    registry.view<Mesh>().each([](Mesh& mesh) {
     });
 
     OnUpdate(dt);
@@ -82,6 +108,22 @@ namespace other {
     }
 
   }
+      
+  void Scene::Render() {
+    /// push active camera to bind UBOs
+    /// set shader unidorms
+    
+    // registry.view<Camera>().each([](const CameraComponent& camera) {});
+
+    // registry.view<RenderedText>().each([](const RenderedText& mesh) {});
+
+    registry.view<Mesh>().each([](const Mesh& mesh) {
+    });
+  }
+      
+  void Scene::RenderUI() {
+    // registry.view<UI>().each([](const UI& ui) {}); 
+  }
 
   void Scene::Stop() {
     OE_ASSERT(initialized , "Updating scene without initialization");
@@ -89,6 +131,12 @@ namespace other {
       OE_WARN("Scene not running, nothing to stop");
       return;
     }
+    
+    registry.view<Script>().each([](Script& script) {
+      for (auto& [id , s] : script.scripts) {
+        s->Shutdown();
+      }
+    });
 
     running = false;
     OnStop();
@@ -98,15 +146,14 @@ namespace other {
     OE_ASSERT(initialized , "Shutting down scene before initialization");
     initialized = false;
     OnShutdown();
-    
-    registry.view<Script>().each([](Script& script) {
-      for (auto& [id , s] : script.scripts) {
-        s->Shutdown();
-      }
-    });
   }
       
   void Scene::Refresh() {
+    /// no refresh tag
+    /// refresh transform
+    /// refresh relationships?
+    /// rebuild meshes
+
     registry.view<Script>().each([](Script& script) {
       script.scripts.clear();
 

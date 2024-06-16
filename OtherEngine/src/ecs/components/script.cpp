@@ -13,7 +13,18 @@
 
 namespace other {
 
-  void ScriptSerializer::Serialize(std::ostream& stream , Entity* entity , const Ref<Scene>& scene) const {}
+  void ScriptSerializer::Serialize(std::ostream& stream , Entity* entity , const Ref<Scene>& scene) const {
+    const auto& script = entity->GetComponent<Script>();
+
+    stream << "[" << entity->Name() << ".script]\n";
+    for (const auto& [id , s] : script.scripts) {
+      stream << s->ScriptName() << " = { \"";
+      if (s->NameSpace().has_value()) {
+        stream << s->NameSpace().value() << "::";
+      }
+      stream << s->Name() << "\" }\n";
+    }
+  }
 
   void ScriptSerializer::Deserialize(Entity* entity , const ConfigTable& scene_table , Ref<Scene>& scene) const {
     OE_ASSERT(entity != nullptr && scene != nullptr , "Attempting to deserialize scripts into null entity or scene");

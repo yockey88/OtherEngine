@@ -8,8 +8,9 @@
 namespace other {
 
   void MeshSerializer::Serialize(std::ostream& stream , Entity* entity , const Ref<Scene>& scene) const {
-    /// this is going to be tricky  
     stream << "[" << entity->Name() << ".mesh]\n";
+    /// need to retrieve the path from the asset handler, this is temporary
+    stream << "import-path = \"assets/cube.obj\"\n"; 
   }
 
   void MeshSerializer::Deserialize(Entity* entity , const ConfigTable& scene_table , Ref<Scene>& scene) const {

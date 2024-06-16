@@ -1,0 +1,7 @@
+namespace Other {
+
+  class UI {
+    
+  }
+
+}

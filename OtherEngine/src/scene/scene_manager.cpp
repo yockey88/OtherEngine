@@ -74,6 +74,10 @@ namespace other {
   bool SceneManager::HasScene(const Path& path) {
     return loaded_scenes.find(FNV(path.string())) != loaded_scenes.end();
   }
+
+  bool SceneManager::HasActiveScene() const {
+    return active_scene != nullptr && active_scene->scene != nullptr;
+  }
       
   void SceneManager::RefreshScenes() {
     for (auto& [id , scene] : loaded_scenes) {
@@ -82,28 +86,30 @@ namespace other {
   }
 
   const SceneMetadata* SceneManager::ActiveScene() const { 
-    if (active_scene == nullptr) {
+    if (!HasActiveScene()) {
       return nullptr;
     }
     return active_scene;
   }
 
   void SceneManager::UnloadActive() {
-    if (active_scene == nullptr) {
+    if (!HasActiveScene()) {
       return;
     }
 
-    if (!active_scene->scene->IsRunning()) {
-      return;
+    if (active_scene->scene->IsRunning()) {
+      active_scene->scene->Stop();
     }
     
-    active_scene->scene->Stop();
     active_scene->scene->Shutdown();
     active_scene = nullptr;
   }
     
   void SceneManager::ClearScenes() {
-    if (active_scene != nullptr) {
+    if (HasActiveScene()) {
+      if (active_scene->scene->IsRunning()) {
+        active_scene->scene->Stop();
+      }
       active_scene->scene->Shutdown();
       active_scene = nullptr;
     }
@@ -120,11 +126,27 @@ namespace other {
   }
 
   void SceneManager::UpdateScene(float dt) {
-    if (active_scene == nullptr) {
+    if (!HasActiveScene()) {
       return;
     }
 
     active_scene->scene->Update(dt);
+  }
+
+  void SceneManager::RenderScene() {
+    if (!HasActiveScene()) {
+      return;
+    }
+
+    active_scene->scene->Render();
+  }
+      
+  void SceneManager::RenderSceneUI() {
+    if (!HasActiveScene()) {
+      return;
+    }
+
+    active_scene->scene->RenderUI();
   }
 
 } // namespace other

@@ -106,62 +106,35 @@ namespace other {
     while (!GetEngine()->exit_code.has_value()) {
       float dt = delta_time.Get();
       // float dt = frame_rate_enforcer.TimeStep();
+      
+      // updates mouse/keyboard/any connected controllers
+      IO::Update();
 
       /// first we check to see if we need to reload any scripts
-      
       if (Renderer::IsWindowFocused()) {
-        /// this updates the internal representation of the udpate, the actual script 'OnUpdate'
-        ///   method is not called until the scene calls it if the scene is currently running
         ScriptEngine::UpdateScripts();
       }
 
-      // updates mouse/keyboard/any connected controllers
-      IO::Update();
+      /// physics step
+      
+      /// process any other updates that might trigger events here
+      
+      /// process all events queued from updating
       EventQueue::Poll(GetEngine() , this);
-        
+
+      /// process any updates that are the result of events here
+      
+      /// if the window is focuseed we update the application and then the scene
       if (Renderer::IsWindowFocused()) {
-        // update all layers
-        for (size_t i = 0; i < layer_stack->Size(); ++i) {
-          (*layer_stack)[i]->Update(dt);
-        }
-
         DoUpdate(dt);
-
-        UpdateSceneContext(dt);
       }
-
+        
       Renderer::BeginFrame();
-
-      // if (scene_context != nullptr) {
-      //   scene_context->Render();
-      // }
-
       DoRender();
-
-      // if (GetEngine()->window->FramebufferAttached()) {
-      //   GetEngine()->window->DrawFramebuffer();
-      // }
-
-      if (UI::Enabled()) {
-        UI::BeginFrame();
-
-        // client ui render
-        DoRenderUI();
-
-        // if (scene_context != nullptr) {
-        //   scene_context->RenderUI();
-        // }
-
-        { // render all layers
-          for (size_t i = 0; i < layer_stack->Size(); ++i) {
-            (*layer_stack)[i]->UIRender();
-          }
-        }
-
-        UI::EndFrame();
-      }
-
       Renderer::EndFrame();
+
+      DoRenderUI();
+      Renderer::SwapBuffers();
 
       frame_rate_enforcer.Enforce();
     } 
@@ -355,20 +328,23 @@ namespace other {
   }
   
   void App::LoadScene(const Path& path) {
-    if (scene_manager->HasScene(path)) {
-      scene_manager->SetAsActive(path);
-    } else {
-      if (!scene_manager->LoadScene(path)) {
-        OE_ERROR("Failed to load scene : {}" , path);
-        return;
-      }
-      UnloadScene();
+    if (scene_manager->HasActiveScene() && scene_manager->ActiveScene()->path == path) {
+      return;
+    }
       
-      scene_manager->SetAsActive(path);
-      if (scene_manager->ActiveScene() == nullptr) {
-        OE_ERROR("Failed to load scene : {}" , path);
-        return;
-      }
+    if (scene_manager->HasActiveScene()) {
+      UnloadScene();
+    }
+
+    if (!scene_manager->HasScene(path) && !scene_manager->LoadScene(path)) {
+      OE_ERROR("Failed to load scene : {}" , path);
+      return;
+    }
+      
+    scene_manager->SetAsActive(path);
+    if (scene_manager->ActiveScene() == nullptr) {
+      OE_ERROR("Failed to load scene : {}" , path);
+      return;
     }
 
     /// propogate scene loading through layers
@@ -388,6 +364,9 @@ namespace other {
     if (scene_manager->ActiveScene() == nullptr) {
       return;
     }
+    
+    /// alert client app about scene unload
+    OnSceneUnload();
 
     OE_DEBUG("Unloading scene : {}" , scene_manager->ActiveScene()->path);
     scene_manager->UnloadActive();
@@ -396,9 +375,6 @@ namespace other {
     for (size_t i = 0; i < layer_stack->Size(); ++i) {
       (*layer_stack)[i]->LoadScene(nullptr);
     }
-
-    /// alert client app about scene unload
-    OnSceneUnload();
   }
 
   void App::Attach() {
@@ -407,6 +383,18 @@ namespace other {
   }
 
   void App::DoUpdate(float dt) {
+    // update all layers
+    for (size_t i = 0; i < layer_stack->Size(); ++i) {
+      (*layer_stack)[i]->Update(dt);
+    }
+
+    Update(dt);
+    
+    if (!in_editor) {
+      scene_manager->UpdateScene(dt);
+    }
+    
+    /// update the ui windows, closing any that need to be closed 
     auto itr = ui_windows.begin();
     while (itr != ui_windows.end()) {
       if (itr->second == nullptr) {
@@ -420,15 +408,12 @@ namespace other {
         ++itr;
       }
     }
-    Update(dt);
   }
 
   void App::DoRender() {
     Render();
-    
-    if (scene_manager->ActiveScene() != nullptr) {
-      //scene_manager->ActiveScene()->Render();
-    }
+
+    scene_manager->RenderScene();
 
     for (size_t i = 0; i < layer_stack->Size(); ++i) {
       (*layer_stack)[i]->Render();
@@ -436,10 +421,24 @@ namespace other {
   }
 
   void App::DoRenderUI() {
-    RenderUI();
-    for (auto& [id , window] : ui_windows) {
-      window->Render();
+    if (UI::Enabled()) {
+      UI::BeginFrame();
+      
+      RenderUI();
+      
+      for (auto& [id , window] : ui_windows) {
+        window->Render();
+      }
+      
+      for (size_t i = 0; i < layer_stack->Size(); ++i) {
+        (*layer_stack)[i]->UIRender();
+      }
+
+      scene_manager->RenderSceneUI();
+
+      UI::EndFrame();
     }
+
   }
 
   void App::Detach() {
@@ -454,12 +453,6 @@ namespace other {
       window = nullptr;
     }
     ui_windows.clear();
-  }
-      
-  void App::UpdateSceneContext(float dt) {
-    if (!in_editor) {
-      scene_manager->UpdateScene(dt);
-    }
   }
 
   void App::SetInEditor() {

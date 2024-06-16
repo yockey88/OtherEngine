@@ -13,7 +13,7 @@ namespace other {
   struct Mesh : public Component {
     AssetHandle handle; 
 
-    ECS_COMPONENT(Mesh);
+    ECS_COMPONENT(Mesh , kMeshIndex);
   }; 
 
   class MeshSerializer : public ComponentSerializer {

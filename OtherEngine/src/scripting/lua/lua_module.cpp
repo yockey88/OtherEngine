@@ -7,6 +7,7 @@
 #include "scripting/lua/lua_error_handlers.hpp"
 #include "scripting/lua/lua_script.hpp"
 #include "scripting/lua/lua_bindings.hpp"
+#include "scripting/lua/lua_math_bindings.hpp"
 
 namespace other {
 
@@ -21,7 +22,8 @@ namespace other {
                                sol::lib::coroutine);
       lua_state.set_exception_handler(LuaExceptionHandler);
 
-      LuaScriptBindings::InitializeBindings(lua_state);
+      lua_script_bindings::BindGlmTypes(lua_state);
+      lua_script_bindings::BindCoreTypes(lua_state);
 
     } catch (const std::exception& e) {
       OE_ERROR("Exception caught loading lua scripts : {}" , e.what());
@@ -76,6 +78,11 @@ namespace other {
   }
 
   ScriptModule* LuaModule::LoadScriptModule(const ScriptModuleInfo& module_info) {
+    if (module_info.paths.size() < 1) {
+      OE_ERROR("Attempting to create lua script from empty module data");
+      return nullptr;
+    }
+
     std::string case_insensitive_name;
     std::transform(module_info.name.begin() , module_info.name.end() , std::back_inserter(case_insensitive_name) , ::toupper);
 
@@ -87,14 +94,12 @@ namespace other {
       return nullptr;
     }
 
-    for (const auto& path : module_info.paths) {
-      if (!Filesystem::PathExists(path)) {
-        OE_ERROR("Script module {} path {} does not exist" , module_info.name , path);
-        return nullptr;
-      }
+    if (!Filesystem::PathExists(module_info.paths[0])) {
+      OE_ERROR("Script module {} path {} does not exist" , module_info.name , module_info.paths[0]);
+      return nullptr;
     }
 
-    loaded_modules[id] = new LuaScript(lua_state , module_info.paths);
+    loaded_modules[id] = new LuaScript(lua_state , module_info.paths[0]);
     loaded_modules[id]->Initialize();
     
     loaded_modules_data[id] = module_info;

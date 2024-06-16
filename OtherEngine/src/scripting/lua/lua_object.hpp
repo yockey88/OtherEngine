@@ -14,8 +14,8 @@ namespace other {
       public:
         LuaObject()
           : ScriptObject(LanguageModuleType::LUA_MODULE , "[ Empty Lua Object ]" , "Lua") {}
-        LuaObject(const std::string& name , sol::state* script_state) 
-          : ScriptObject(LanguageModuleType::LUA_MODULE , name , "Lua") , state(script_state) {}
+        LuaObject(const std::string& module_name , const std::string& name , sol::state* script_state) 
+          : ScriptObject(LanguageModuleType::LUA_MODULE , module_name , name) , state(script_state) {}
         virtual ~LuaObject() override {}
 
         virtual void InitializeScriptMethods() override;

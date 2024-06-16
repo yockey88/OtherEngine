@@ -16,8 +16,9 @@ namespace other {
 
   class ScriptObject {
     public:
-      ScriptObject(LanguageModuleType lang_type , const std::string& name , const std::string& language) 
-        : lang_type(lang_type) , script_name(name) , language(language) {}
+      ScriptObject(LanguageModuleType lang_type , const std::string& module_name , 
+          const std::string& name , Opt<std::string> name_space = std::nullopt) 
+        : lang_type(lang_type) , script_module_name(module_name) , name_space(name_space) , script_name(name) {}
       virtual ~ScriptObject() {}
 
       template <typename... Args>
@@ -35,8 +36,11 @@ namespace other {
         return OnCallMethod(method , empty);
       }
 
+      const std::string& ScriptName() const;
+      const Opt<std::string> NameSpace() const;
       const std::string& Name() const;
-      const std::string& LanguageName() const;
+
+      LanguageModuleType LanguageType() const;
 
       void MarkCorrupt();
       bool IsCorrupt() const;
@@ -62,8 +66,10 @@ namespace other {
 
       bool is_initialized = false;
       bool is_corrupt = false;
+
+      std::string script_module_name;
+      Opt<std::string> name_space;
       std::string script_name;
-      std::string language;
 
       std::map<UUID , ScriptField> fields;
       

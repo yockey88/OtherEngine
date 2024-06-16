@@ -16,21 +16,30 @@ namespace other {
     const auto& relationship = entity->ReadComponent<Relationship>();
     
     stream << "[" << entity->Name() << ".relationship]\n";
-    stream << "children = { ";
-    for (auto itr = relationship.children.begin(); itr != relationship.children.end(); ++itr) {
+    stream << "children = {";
+    if (relationship.children.empty()) {
+      stream << "}\n\n";
+      return;
+    }
+    stream << "\n";
+
+    for (auto itr = relationship.children.begin(); itr != relationship.children.end();) {
       auto* child = scene->GetEntity(*itr);
       if (child == nullptr) {
         OE_ERROR("{} has invalid child with id : {}" , entity->Name() , itr->Get());
         continue;
       }
 
-      stream << child->Name();
+      stream << "  \"" << child->Name() << "\"";
+
+      ++itr;
 
       if (itr != relationship.children.end()) {
         stream << " , ";
       }
+      stream << "\n";
     }
-    stream << " }";
+    stream << "}\n\n";
   } 
 
   void RelationshipSerializer::Deserialize(Entity* entity , const ConfigTable& scene_table , Ref<Scene>& scene) const {

@@ -5,12 +5,40 @@
 
 #include "core/errors.hpp"
 #include "core/config_keys.hpp"
+#include "ecs/entity_serializer.hpp"
 #include "parsing/ini_parser.hpp"
-#include "scripting/script_engine.hpp"
 
 namespace other {
 
-  void SceneSerializer::Serialize(const std::string_view scene_name , Ref<Scene>& scene) const {
+  void SceneSerializer::Serialize(const std::string_view scene_name , std::ostream& stream , const Ref<Scene>& scene) const {
+    if (scene == nullptr) {
+      OE_ERROR("Attempting to serialize scene {} with a null scene reference" , scene_name);
+      return;
+    }
+    
+    const auto& entities = scene->SceneEntities();
+
+    stream << "[metadata]\n";
+    stream << "name = \"" << scene_name << "\"\n";
+    stream << "entities = {\n";
+
+    for (auto itr = entities.begin(); itr != entities.end();) {
+      stream << "  \"" << (*itr).second->Name() << "\"";
+
+      ++itr;
+
+      if (itr != entities.end()) {
+        stream << " , ";
+      }
+      stream << "\n";
+    }
+    
+    stream << "}\n\n";
+
+    EntitySerializer serializer;
+    for (const auto& [id , e] : entities) {
+      serializer.Serialize(stream , e , scene);
+    }
   }
 
   DeserializedScene SceneSerializer::Deserialize(const std::string_view scn_path) const {

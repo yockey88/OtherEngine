@@ -15,6 +15,7 @@ namespace other {
     SerializeVec3(stream , "position" , transform.position);
     SerializeQuat(stream , "rotation" , transform.qrotation);
     SerializeVec3(stream , "scale" , transform.scale);
+    stream << "\n";
   }
       
   void TransformSerializer::Deserialize(Entity* entity , const ConfigTable& scene_table , Ref<Scene>& scene) const {

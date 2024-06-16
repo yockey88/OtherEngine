@@ -22,6 +22,7 @@ namespace other {
     }
 
     render_data.window = std::move(win_res.Unwrap());
+    render_data.viewport = NewScope<Framebuffer>();
   }
 
   void Renderer::QueueCommand(RenderCommand command) {
@@ -35,6 +36,7 @@ namespace other {
 
   void Renderer::BeginFrame() {
     render_data.window->Clear();
+    render_data.viewport->BindFrame();
   }
 
   void Renderer::Render() {
@@ -43,8 +45,12 @@ namespace other {
     }
     render_data.commands.clear();
   }
-
+      
   void Renderer::EndFrame() {
+    render_data.viewport->UnbindFrame();
+  }
+      
+  void Renderer::SwapBuffers() {
     render_data.window->SwapBuffers();
   }
 
@@ -62,6 +68,26 @@ namespace other {
 
   void Renderer::Shutdown() {
     render_data.window = nullptr;
+  }
+      
+  const RenderData& Renderer::GetData() { 
+    return render_data; 
+  }
+  
+  const Scope<Window>& Renderer::GetWindow() { 
+    return render_data.window; 
+  }
+
+  void Renderer::ClearColor(const std::vector<std::string>& color) {
+    glm::vec4 c;
+    for (int i = 0; i < color.size(); i++) {
+      c[i] = std::stof(color[i]);
+    }
+    render_data.window->SetClearColor(c);
+  }
+      
+  void Renderer::ClearColor(const glm::vec4& color) { 
+    render_data.window->SetClearColor(color); 
   }
 
 } // namespace other

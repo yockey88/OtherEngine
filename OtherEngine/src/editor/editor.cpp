@@ -4,6 +4,8 @@
 #include "editor/editor.hpp"
 
 #include <filesystem>
+#include <fstream>
+
 #include <glad/glad.h>
 #include <imgui/imgui.h>
 
@@ -18,7 +20,9 @@
 #include "rendering/renderer.hpp"
 #include "layers/debug_layer.hpp"
 #include "layers/editor_core.hpp"
+#include "scene/scene_serializer.hpp"
 #include "scripting/script_engine.hpp"
+#include "scripting/lua/lua_module.hpp"
 #include "editor/project_panel.hpp"
 #include "editor/selection_manager.hpp"
 
@@ -50,8 +54,6 @@ namespace other {
 
     Renderer::GetWindow()->ForceResize({ 1920 , 1080 });
 
-    viewport = NewScope<Framebuffer>();
-
     /// TODO: 
     ///  - move to panel manager so that we can generalize panel creation
     ///     and allow for user created panels
@@ -80,6 +82,9 @@ namespace other {
     app->OnLoad();
 
     /// load editor scripts
+    ///  get the module
+    ///  ... and then idrk ????
+    lua_module = ScriptEngine::GetModuleAs<LuaModule>(LanguageModuleType::LUA_MODULE);
   }
 
   void Editor::OnEvent(Event* event) {
@@ -95,9 +100,7 @@ namespace other {
   }
 
   void Editor::Render() {
-    viewport->BindFrame();
     app->Render();
-    viewport->UnbindFrame();
   }
 
   void Editor::RenderUI() {
@@ -128,7 +131,7 @@ namespace other {
     }
 
     if (ImGui::Begin("Viewport")) {
-      if (viewport != nullptr && viewport->Valid()) {
+      if (Renderer::GetData().viewport != nullptr && Renderer::GetData().viewport->Valid()) {
         auto ar_size = ImGui::GetContentRegionAvail();
         ImVec2 size{};
         size.x = ar_size.y * Renderer::GetWindow()->AspectRatio();
@@ -139,7 +142,7 @@ namespace other {
           size.y = ar_size.y;
         }
 
-        ImGui::Image((void*)(intptr_t)viewport->Texture() , size , ImVec2(0 , 1) , ImVec2(1 , 0)); 
+        ImGui::Image((void*)(intptr_t)Renderer::GetData().viewport->Texture() , size , ImVec2(0 , 1) , ImVec2(1 , 0)); 
       } else {
         ImGui::Text("No Viewport Generated");
       }
@@ -154,7 +157,7 @@ namespace other {
       SelectionManager::ClearSelection();
     }
 
-    if (ImGui::Begin("Inspector")) {
+    if (ImGui::Begin("Inspector") && scene_manager->HasActiveScene()) {
       if (!playing && ImGui::Button("Play")) {
         scene_manager->StartScene();
         playing = true; 
@@ -162,13 +165,37 @@ namespace other {
         scene_manager->StopScene();
         playing = false;
       }
+
+      if (ImGui::Button("Save Scene")) {
+        Path active_path = scene_manager->ActiveScene()->path;
+        std::string scene_name = scene_manager->ActiveScene()->name;
+        Ref<Scene> scene = scene_manager->ActiveScene()->scene;
+
+        UnloadScene();
+
+        SceneSerializer serializer;
+        std::stringstream ss;
+        serializer.Serialize(scene_name , ss , scene);
+
+        if (ss.str().size() == 0) {
+          OE_WARN("Failed to serialize scene!");
+        } else {
+          std::ofstream scn_file(active_path);
+          if (!scn_file.is_open()) {
+            OE_ERROR("Failed to open scene file for scene {}" , scene_name);
+          } else {
+            scn_file << ss.str();
+          }
+        }
+
+        LoadScene(active_path);
+      }
     }
 
     ImGui::End();
   }
 
   void Editor::OnDetach() {
-    viewport = nullptr;
     app->OnUnload();
 
     project_panel = nullptr;

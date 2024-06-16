@@ -40,6 +40,9 @@ namespace other {
         }
       }
 
+      // friend class EditorAssetManager;
+      friend class MeshLoader;
+      friend class TextureSerializer;
       friend class AssetHandler;
   };
 

@@ -30,6 +30,7 @@ namespace other {
       void StopScene();
 
       bool HasScene(const Path& path);
+      bool HasActiveScene() const;
       
       void RefreshScenes();
 
@@ -42,6 +43,8 @@ namespace other {
       const std::map<UUID , SceneMetadata>& GetScenes() const;
 
       void UpdateScene(float dt);
+      void RenderScene();
+      void RenderSceneUI();
 
     private:
       SceneMetadata* active_scene = nullptr;

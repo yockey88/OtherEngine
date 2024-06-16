@@ -16,10 +16,11 @@ namespace other {
     public:
       CsObject() 
         : ScriptObject(LanguageModuleType::CS_MODULE , "[Empty Script Object]" , "C#") {}
-      CsObject(const std::string& name , CsTypeData* type_data , MonoObject* instance , MonoImage* asm_image ,  
-                MonoDomain* app_domain , UUID class_id , CsCache* script_cache) 
-        : ScriptObject(LanguageModuleType::CS_MODULE , name , "C#") , class_id(class_id) , type_data(type_data) , instance(instance) , 
-          app_domain(app_domain) , asm_image(asm_image) , script_cache(script_cache) {}
+      CsObject(const std::string& module_name , const std::string& name , CsTypeData* type_data , MonoObject* instance , MonoImage* asm_image ,  
+                MonoDomain* app_domain , UUID class_id , CsCache* script_cache , Opt<std::string> name_space = std::nullopt) 
+        : ScriptObject(LanguageModuleType::CS_MODULE , module_name , name , name_space) , class_id(class_id) , 
+          type_data(type_data) , instance(instance) , app_domain(app_domain) , asm_image(asm_image) , 
+          script_cache(script_cache) {}
       virtual ~CsObject() override {}
 
       virtual void InitializeScriptMethods() override;

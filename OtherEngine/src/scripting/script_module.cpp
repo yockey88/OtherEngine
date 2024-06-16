@@ -11,25 +11,27 @@ namespace other {
   bool ScriptModule::HasChanged() const {
     return changed_on_disk;
   }
+      
+  const std::string& ScriptModule::ModuleName() const {
+    return module_name;
+  }
 
   void ScriptModule::Update() {
-    for (auto& fw : file_watchers) {
-      if (fw == nullptr) {
-        continue;
-      }
+    if (file_watcher == nullptr) {
+      return;
+    }
 
-      changed_on_disk = fw->ChangedSinceLastCheck();
-      if (changed_on_disk) {
-        EventQueue::PushEvent<ScriptReloadEvent>();
-        return;
-      }
+    changed_on_disk = file_watcher->ChangedSinceLastCheck();
+    if (changed_on_disk) {
+      EventQueue::PushEvent<ScriptReloadEvent>();
+      return;
     }
   }
       
-  void ScriptModule::SetPaths(const std::vector<std::string>& paths) {
-    for (auto& p : paths) {
-      file_watchers.emplace_back(NewScope<FileWatcher>(p));
-    }
+  void ScriptModule::SetPath(const std::string& path) {
+    module_name = Path{ path }.filename().string();
+    module_name = module_name.substr(0 , module_name.find_last_of('.'));
+    file_watcher =  NewScope<FileWatcher>(path);
   }
 
 } // namespace other

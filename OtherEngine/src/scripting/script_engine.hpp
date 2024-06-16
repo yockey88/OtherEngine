@@ -15,6 +15,7 @@
 namespace other {
   
   struct LanguageModuleMetadata {
+    LanguageModuleType type;
     UUID id;
     std::string name;
     Ref<LanguageModule> module = nullptr;
@@ -41,6 +42,21 @@ namespace other {
       static App* GetAppContext();
 
       static const std::map<UUID , LanguageModuleMetadata>& GetModules() { return language_modules; }
+
+      /// because certain parts of the engine rely on specifically lua or c# scripts they need to be 
+      ///   able to interface with those modules directly
+      /// this is an unfortunate result of the fact that i am too lazy to write my own lua engine 
+      ///   and so am using sol, hopefully go away one day
+      template <typename T> requires LangModule<T>
+      static Ref<T> GetModuleAs(LanguageModuleType type) {
+        for (const auto& [id , mod] : language_modules) {
+          if (type == mod.type) {
+            return Ref<T>(mod.module);
+          }
+          
+          return nullptr;
+        }
+      }
 
     private:
       static Engine* engine_handle;

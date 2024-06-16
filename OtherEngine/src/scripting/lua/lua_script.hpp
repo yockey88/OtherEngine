@@ -16,8 +16,8 @@ namespace other {
 
   class LuaScript : public ScriptModule {
     public:
-      LuaScript(sol::state& lua_state , const std::vector<std::string>& paths) 
-        : lua_state(lua_state) , paths(paths) {}
+      LuaScript(sol::state& lua_state , const std::string& path) 
+        : lua_state(lua_state) , path(path) {}
       virtual ~LuaScript() override {}
 
       virtual void Initialize() override;
@@ -30,7 +30,7 @@ namespace other {
 
       std::map<UUID , LuaObject> loaded_objects;
 
-      std::vector<std::string> paths;
+      std::string path;
   };  
 
 } // namespace other

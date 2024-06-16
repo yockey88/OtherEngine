@@ -4,6 +4,7 @@
 #ifndef LUA_MODULE_HPP
 #define LUA_MODULE_HPP
 
+#include <optional>
 #include <sol/sol.hpp>
 
 #include "scripting/language_module.hpp"
@@ -14,6 +15,20 @@ namespace other {
     public:
       LuaModule() {}
       virtual ~LuaModule() override {}
+
+      template <typename Ret , typename... Args>
+      Opt<Ret> CallLuaMethod(const std::string_view name , Args&&... args) {
+        sol::optional<sol::function> func = lua_state[name];
+        if (!func.has_value()) {
+          return std::nullopt;
+        }
+
+        if (!(*func).valid()) {
+          return std::nullopt;
+        }
+
+        return (*func)(std::forward<Args>(args)...);
+      }
 
       virtual bool Initialize() override;
       virtual void Shutdown() override;

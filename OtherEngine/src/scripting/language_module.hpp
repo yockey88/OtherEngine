@@ -6,12 +6,20 @@
 #define OTHER_ENGINE_LANGUAGE_MODULE_HPP
 
 #include <map>
+#include <type_traits>
 
 #include "core/uuid.hpp"
 #include "core/ref_counted.hpp"
 #include "scripting/script_module.hpp"
 
 namespace other {
+
+  class LanguageModule;
+
+  template <typename T>
+  concept LangModule = requires {
+    std::is_base_of_v<LanguageModule , T>;
+  };
 
   class LanguageModule : public RefCounted {
     public: 

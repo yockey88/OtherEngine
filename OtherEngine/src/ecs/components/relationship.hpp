@@ -17,7 +17,7 @@ namespace other {
     Opt<UUID> parent;
     std::vector<UUID> children;
 
-    ECS_COMPONENT(Relationship);
+    ECS_COMPONENT(Relationship , kRelationshipIndex);
   };
   
   class RelationshipSerializer : public ComponentSerializer {

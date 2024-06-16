@@ -47,6 +47,9 @@ namespace other {
 
 } // namespace other
 
+/// forwarded headers
+#include "application/app.hpp"
+
 #define OE_APPLICATION(project_name) \
   namespace other { \
     Scope<App> NewApp(Engine* engine) { \

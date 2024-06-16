@@ -26,6 +26,8 @@ namespace other {
       bool HasChanged() const;
 
       void Update();
+
+      const std::string& ModuleName() const;
     
       virtual void Initialize() = 0;
       virtual void Shutdown() = 0;
@@ -37,11 +39,11 @@ namespace other {
     protected:
       bool valid = false;
       bool changed_on_disk = false;
-      bool reloaded = false;
 
-      std::vector<Scope<FileWatcher>> file_watchers;
+      std::string module_name;
+      Scope<FileWatcher> file_watcher;
 
-      void SetPaths(const std::vector<std::string>& paths);
+      void SetPath(const std::string& path);
   };
   
 } // namespace other

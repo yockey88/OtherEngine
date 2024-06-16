@@ -5,20 +5,18 @@
 
 #include <entt/entity/fwd.hpp>
 #include <sol/raii.hpp>
-#include <glm/glm.hpp>
-#include <glm/gtc/epsilon.hpp>
 #include <entt/entt.hpp>
 
-#include "core/logger.hpp"
 #include "input/mouse.hpp"
 #include "input/keyboard.hpp"
 #include "scripting/lua/native_functions/lua_native_logging.hpp"
 
 namespace other {
+namespace lua_script_bindings {
 
-  void LuaScriptBindings::InitializeBindings(sol::state &lua_state) {
-    BindGlmTypes(lua_state); 
+  void BindKeyEnums(sol::state& lua_state);
 
+  void BindCoreTypes(sol::state& lua_state) {
     lua_state["Logger"] = lua_state.create_table();
     lua_state["Logger"]["WriteTrace"] = lua_script_bindings::WriteTrace;
     lua_state["Logger"]["WriteDebug"] = lua_script_bindings::WriteDebug;
@@ -27,7 +25,15 @@ namespace other {
     lua_state["Logger"]["WriteError"] = lua_script_bindings::WriteError;
     lua_state["Logger"]["WriteCritical"] = lua_script_bindings::WriteCritical;
 
-    InitializeKeyEnums(lua_state);
+    lua_state["Button"] = lua_state.create_table_with(
+      "First" , Mouse::Button::FIRST , 
+      "Left" , Mouse::Button::LEFT , 
+      "Middle" , Mouse::Button::MIDDLE ,
+      "Right" , Mouse::Button::RIGHT ,
+      "X1" , Mouse::Button::X1 ,
+      "X2" , Mouse::Button::X2 ,
+      "Last" , Mouse::Button::LAST
+    );
 
     lua_state.new_usertype<Keyboard>(
       "Keyboard" , 
@@ -39,7 +45,7 @@ namespace other {
       "Released" , Keyboard::Released
     );
 
-    InitializeMouseEnums(lua_state);
+    BindKeyEnums(lua_state);
 
     lua_state.new_usertype<Mouse>(
       "Mouse" ,
@@ -62,204 +68,61 @@ namespace other {
       "MouseDeltaPos" , []() -> glm::vec2 { return { Mouse::GetDX() , Mouse::GetDY() }; }
     );
   }
-      
-  void LuaScriptBindings::BindGlmTypes(sol::state& lua_state) {
-    auto vec2_multiply = sol::overload(
-      [](const glm::vec2& v , float s) -> glm::vec2 { return s * v; } ,
-      [](float s , const glm::vec2& v) -> glm::vec2 { return s * v; }
-    );
-
-    auto vec2_divide = sol::overload(
-      [](const glm::vec2& v , float s) -> glm::vec2 { return v / s; } 
-    );
-
-    auto vec2_add = sol::overload(
-      [](const glm::vec2& v1 , const glm::vec2& v2) -> glm::vec2 { return v1 + v2; } ,
-      [](const glm::vec2& v , float s) -> glm::vec2 { return s + v; } ,
-      [](float s , const glm::vec2& v) -> glm::vec2 { return s + v; }
-    );
-
-    auto vec2_subtract = sol::overload(
-      [](const glm::vec2& v1 , const glm::vec2& v2) -> glm::vec2 { return v1 - v2; } ,
-      [](const glm::vec2& v , float s) -> glm::vec2 { return s - v; } ,
-      [](float s , const glm::vec2& v) -> glm::vec2 { return s - v; }
-    );
-
-    auto vec3_multiply = sol::overload(
-      [](const glm::vec3& v , float s) -> glm::vec3 { return s * v; } ,
-      [](float s , const glm::vec3& v) -> glm::vec3 { return s * v; }
-    );
-
-    auto vec3_divide = sol::overload(
-      [](const glm::vec3& v , float s) -> glm::vec3 { return v / s; } 
-    );
-
-    auto vec3_add = sol::overload(
-      [](const glm::vec3& v1 , const glm::vec3& v2) -> glm::vec3 { return v1 + v2; } ,
-      [](const glm::vec3& v , float s) -> glm::vec3 { return s + v; } ,
-      [](float s , const glm::vec3& v) -> glm::vec3 { return s + v; }
-    );
-
-    auto vec3_subtract = sol::overload(
-      [](const glm::vec3& v1 , const glm::vec3& v2) -> glm::vec3 { return v1 - v2; } ,
-      [](const glm::vec3& v , float s) -> glm::vec3 { return s - v; } ,
-      [](float s , const glm::vec3& v) -> glm::vec3 { return s - v; }
-    );
-    
-    auto vec4_multiply = sol::overload(
-      [](const glm::vec4& v , float s) -> glm::vec4 { return s * v; } ,
-      [](float s , const glm::vec4& v) -> glm::vec4 { return s * v; }
-    );
-
-    auto vec4_divide = sol::overload(
-      [](const glm::vec4& v , float s) -> glm::vec4 { return v / s; } 
-    );
-
-    auto vec4_add = sol::overload(
-      [](const glm::vec4& v1 , const glm::vec4& v2) -> glm::vec4 { return v1 + v2; } ,
-      [](const glm::vec4& v , float s) -> glm::vec4 { return s + v; } ,
-      [](float s , const glm::vec4& v) -> glm::vec4 { return s + v; }
-    );
-
-    auto vec4_subtract = sol::overload(
-      [](const glm::vec4& v1 , const glm::vec4& v2) -> glm::vec4 { return v1 - v2; } ,
-      [](const glm::vec4& v , float s) -> glm::vec4 { return s - v; } ,
-      [](float s , const glm::vec4& v) -> glm::vec4 { return s - v; }
-    );
-    
-    lua_state.new_usertype<glm::vec2>(
-      "Vec2" ,
-      sol::call_constructor ,
-      sol::constructors<glm::vec2(float) , glm::vec2(float , float)>() ,
-      "x" , &glm::vec2::x ,
-      "y" , &glm::vec2::y ,
-      sol::meta_function::multiplication , vec2_multiply ,
-      sol::meta_function::division , vec2_divide ,
-      sol::meta_function::addition , vec2_add ,
-      sol::meta_function::subtraction , vec2_subtract ,
-      "length" , [](const glm::vec2& v) -> float { return glm::length(v); } ,
-      "length2" , [](const glm::vec2& v) -> float { return glm::length(v) * glm::length(v); } ,
-      "normalize" , [](const glm::vec2& v) -> glm::vec2 { return glm::normalize(v); } ,
-      "direction_to" , [](const glm::vec2& v1 , const glm::vec2& v2) -> glm::vec2 { return glm::normalize(v2 - v1); } ,
-      "nearly_zero_x" , [](const glm::vec2& v) -> bool { return glm::epsilonEqual(v.x , 0.f , std::numeric_limits<float>::epsilon()); } ,
-      "nearly_zero_y" , [](const glm::vec2& v) -> bool { return glm::epsilonEqual(v.y , 0.f , std::numeric_limits<float>::epsilon()); }
-    );
-
-    lua_state.new_usertype<glm::vec3>(
-      "Vec3" ,
-      sol::call_constructor ,
-      sol::constructors<glm::vec3(float) , glm::vec3(float , float , float)>() ,
-      "x" , &glm::vec3::x ,
-      "y" , &glm::vec3::y ,
-      "z" , &glm::vec3::z ,
-      sol::meta_function::multiplication , vec3_multiply ,
-      sol::meta_function::division , vec3_divide ,
-      sol::meta_function::addition , vec3_add ,
-      sol::meta_function::subtraction , vec3_subtract ,
-      "length" , [](const glm::vec3& v) -> float { return glm::length(v); } ,
-      "length2" , [](const glm::vec3& v) -> float { return glm::length(v) * glm::length(v); } ,
-      "normalize" , [](const glm::vec3& v) -> glm::vec3 { return glm::normalize(v); } ,
-      "direction_to" , [](const glm::vec3& v1 , const glm::vec3& v2) -> glm::vec3 { return glm::normalize(v2 - v1); } ,
-      "nearly_zero_x" , [](const glm::vec3& v) -> bool { return glm::epsilonEqual(v.x , 0.f , std::numeric_limits<float>::epsilon()); } ,
-      "nearly_zero_y" , [](const glm::vec3& v) -> bool { return glm::epsilonEqual(v.y , 0.f , std::numeric_limits<float>::epsilon()); } ,
-      "nearly_zero_z" , [](const glm::vec3& v) -> bool { return glm::epsilonEqual(v.z , 0.f , std::numeric_limits<float>::epsilon()); }
-    );
-    
-    lua_state.new_usertype<glm::vec4>(
-      "Vec4" ,
-      sol::call_constructor ,
-      sol::constructors<glm::vec4(float) , glm::vec4(float , float , float , float)>() ,
-      "x" , &glm::vec4::x ,
-      "y" , &glm::vec4::y ,
-      "z" , &glm::vec4::z ,
-      "w" , &glm::vec4::w ,
-      sol::meta_function::multiplication , vec4_multiply ,
-      sol::meta_function::division , vec4_divide ,
-      sol::meta_function::addition , vec4_add ,
-      sol::meta_function::subtraction , vec4_subtract ,
-      "length" , [](const glm::vec4& v) -> float { return glm::length(v); } ,
-      "length2" , [](const glm::vec4& v) -> float { return glm::length(v) * glm::length(v); } ,
-      "normalize" , [](const glm::vec4& v) -> glm::vec4 { return glm::normalize(v); } ,
-      "direction_to" , [](const glm::vec4& v1 , const glm::vec4& v2) -> glm::vec4 { return glm::normalize(v2 - v1); } ,
-      "nearly_zero_x" , [](const glm::vec4& v) -> bool { return glm::epsilonEqual(v.x , 0.f , std::numeric_limits<float>::epsilon()); } ,
-      "nearly_zero_y" , [](const glm::vec4& v) -> bool { return glm::epsilonEqual(v.y , 0.f , std::numeric_limits<float>::epsilon()); } ,
-      "nearly_zero_z" , [](const glm::vec4& v) -> bool { return glm::epsilonEqual(v.z , 0.f , std::numeric_limits<float>::epsilon()); } ,
-      "nearly_zero_w" , [](const glm::vec4& v) -> bool { return glm::epsilonEqual(v.w , 0.f , std::numeric_limits<float>::epsilon()); }
-    );
-
-    lua_state.set_function("dot2" , [](const glm::vec2& v1 , const glm::vec2& v2) -> float { return glm::dot(v1 , v2); });
-    lua_state.set_function("dot3" , [](const glm::vec3& v1 , const glm::vec3& v2) -> float { return glm::dot(v1 , v2); });
-    lua_state.set_function("dot4" , [](const glm::vec4& v1 , const glm::vec4& v2) -> float { return glm::dot(v1 , v2); });
-
-    lua_state.set_function("cross" , [](const glm::vec3& v1 , const glm::vec3& v2) -> glm::vec3 { return glm::cross(v1 , v2); });
-  }
 
 namespace {
 
-  [[nodiscard]] static inline entt::id_type GetTypeId(const sol::table& obj) {
-    const auto f = obj["type_id"].get<sol::function>();
-    OE_ASSERT(f.valid() , "TypeId not exposed to LUA");
-    return f.valid() ? f().get<entt::id_type>() : -1;
-  }
+  // [[nodiscard]] static inline entt::id_type GetTypeId(const sol::table& obj) {
+  //   const auto f = obj["type_id"].get<sol::function>();
+  //   OE_ASSERT(f.valid() , "TypeId not exposed to LUA");
+  //   return f.valid() ? f().get<entt::id_type>() : -1;
+  // }
 
-  template <typename... Args>
-  static inline auto InvokeMetaFunc(entt::meta_type meta_type , entt::id_type function_id , Args&&... args) {
-    if (!meta_type) {
+  // template <typename... Args>
+  // static inline auto InvokeMetaFunc(entt::meta_type meta_type , entt::id_type function_id , Args&&... args) {
+  //   if (!meta_type) {
 
-    } else {
-      if (auto&& meta_function = meta_type.func(function_id); meta_function) {
-        return meta_function.invoke({} , std::forward<Args>(args)...);
-      }
-    }
-    return entt::meta_any{};
-  }
+  //   } else {
+  //     if (auto&& meta_function = meta_type.func(function_id); meta_function) {
+  //       return meta_function.invoke({} , std::forward<Args>(args)...);
+  //     }
+  //   }
+  //   return entt::meta_any{};
+  // }
 
-  template <typename... Args>
-  static inline auto InvokeMetaFunc(entt::id_type type_id , entt::id_type function_id , Args&&... args) {
-    return InvokeMetaFunc(entt::resolve(type_id) , function_id , std::forward<Args>(args)...);
-  }
+  // template <typename... Args>
+  // static inline auto InvokeMetaFunc(entt::id_type type_id , entt::id_type function_id , Args&&... args) {
+  //   return InvokeMetaFunc(entt::resolve(type_id) , function_id , std::forward<Args>(args)...);
+  // }
 
 } // anonyomous namespace 
       
-  void LuaScriptBindings::BindEcsTypes(sol::state& lua_state) {
-    using namespace entt::literals;
+  // void LuaScriptBindings::BindEcsTypes(sol::state& lua_state) {
+  //   using namespace entt::literals;
 
-    lua_state.new_usertype<entt::registry>(
-      "registry" , 
-      sol::meta_function::construct , sol::factories([]() -> entt::registry { return entt::registry{}; }) ,
-      "size" , [](const entt::registry& self) -> size_t { return self.storage<entt::entity>()->size(); } ,
-      "alive" , [](const entt::registry& self) -> bool { return self.storage<entt::entity>()->free_list(); } ,
-      "valid" , &entt::registry::valid , 
-      "current" , &entt::registry::current , 
-      "create" , [](entt::registry& self) -> entt::entity { return self.create(); } ,
-      "destroy" , [](entt::registry& self , entt::entity handle) { return self.destroy(handle); } // ,
-      /// TODO: implement entt::meta reflection bindings to complete binding ecs to lua 
-      // "emplace" , [](entt::registry& self , entt::entity entity , const sol::table& comp , sol::this_state s) -> sol::object {
-      //   if (!comp.valid()) {
-      //     return sol::lua_nil_t{};
-      //   }
+  //   // lua_state.new_usertype<entt::registry>(
+  //   //   "registry" , 
+  //   //   sol::meta_function::construct , sol::factories([]() -> entt::registry { return entt::registry{}; }) ,
+  //   //   "size" , [](const entt::registry& self) -> size_t { return self.storage<entt::entity>()->size(); } ,
+  //   //   "alive" , [](const entt::registry& self) -> bool { return self.storage<entt::entity>()->free_list(); } ,
+  //   //   "valid" , &entt::registry::valid , 
+  //   //   "current" , &entt::registry::current , 
+  //   //   "create" , [](entt::registry& self) -> entt::entity { return self.create(); } ,
+  //   //   "destroy" , [](entt::registry& self , entt::entity handle) { return self.destroy(handle); } // ,
+  //   //   /// TODO: implement entt::meta reflection bindings to complete binding ecs to lua 
+  //   //   // "emplace" , [](entt::registry& self , entt::entity entity , const sol::table& comp , sol::this_state s) -> sol::object {
+  //   //   //   if (!comp.valid()) {
+  //   //   //     return sol::lua_nil_t{};
+  //   //   //   }
 
-      //   const auto maybe_any = InvokeMetaFunc(GetTypeId(comp) , "emplace"_hs , &self , entity , comp , s);
-      //   return maybe_any ? 
-      //     maybe_any.cast<sol::reference>() : 
-      //     sol::lua_nil_t{};
-      // }
-    );
-  }
-  
-  void LuaScriptBindings::InitializeMouseEnums(sol::state& lua_state) {
-    lua_state["Button"] = lua_state.create_table_with(
-      "First" , Mouse::Button::FIRST , 
-      "Left" , Mouse::Button::LEFT , 
-      "Middle" , Mouse::Button::MIDDLE ,
-      "Right" , Mouse::Button::RIGHT ,
-      "X1" , Mouse::Button::X1 ,
-      "X2" , Mouse::Button::X2 ,
-      "Last" , Mouse::Button::LAST
-    );
-  }
+  //   //   //   const auto maybe_any = InvokeMetaFunc(GetTypeId(comp) , "emplace"_hs , &self , entity , comp , s);
+  //   //   //   return maybe_any ? 
+  //   //   //     maybe_any.cast<sol::reference>() : 
+  //   //   //     sol::lua_nil_t{};
+  //   //   // }
+  //   // );
+  // }
 
-  void LuaScriptBindings::InitializeKeyEnums(sol::state& lua_state) {
+  void BindKeyEnums(sol::state& lua_state) {
     lua_state["Key"] = lua_state.create_table_with(
       "A" , Keyboard::Key::OE_A ,
       "B" , Keyboard::Key::OE_B ,
@@ -511,5 +374,5 @@ namespace {
     );
   }
 
-
-} // namespace other
+} // namespace lua_script_bindings
+} // namespace othe

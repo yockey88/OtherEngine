@@ -22,13 +22,13 @@ namespace other {
     glm::mat4 model_transform = glm::identity<glm::mat4>();
 
     Transform(const glm::vec3& position) 
-      : position(position) {}
+      : Component(kTransformIndex) , position(position) {}
     Transform(float p) 
-      : position(glm::vec3(p)) {}
+      : Component(kTransformIndex) , position(glm::vec3(p)) {}
     Transform(float x, float y, float z) 
-      : position(glm::vec3(x, y, z)) {}
+      : Component(kTransformIndex) , position(glm::vec3(x, y, z)) {}
 
-    ECS_COMPONENT(Transform);
+    ECS_COMPONENT(Transform , kTransformIndex);
   };
 
   class TransformSerializer : public ComponentSerializer {

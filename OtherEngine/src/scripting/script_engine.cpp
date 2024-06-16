@@ -9,6 +9,7 @@
 #include "core/engine.hpp"
 #include "scripting/cs/cs_module.hpp"
 #include "scripting/lua/lua_module.hpp"
+#include "scripting/script_defines.hpp"
 
 namespace other {
 
@@ -139,9 +140,12 @@ namespace other {
         return LanguageModuleType::LUA_MODULE;
       return LanguageModuleType::INVALID_LANGUAGE_MODULE;
     }
+
+    return LanguageModuleType::INVALID_LANGUAGE_MODULE;
   }
       
   void ScriptEngine::LoadModule(LanguageModuleType type) {
+    language_modules[type].type = type;
     language_modules[type].id = kModuleInfo[type].hash;
     language_modules[type].name = kModuleInfo[type].name;
     language_modules[type].module = kModuleGetters[type]();

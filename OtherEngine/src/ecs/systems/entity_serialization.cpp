@@ -11,6 +11,7 @@
 #include "ecs/components/relationship.hpp"
 #include "ecs/components/mesh.hpp"
 #include "ecs/components/script.hpp"
+#include "ecs/components/camera.hpp"
 
 namespace other {
 
@@ -21,11 +22,28 @@ namespace other {
     []() -> Scope<ComponentSerializer> { return NewScope<RelationshipSerializer>(); } ,
     []() -> Scope<ComponentSerializer> { return NewScope<MeshSerializer>(); } ,
     []() -> Scope<ComponentSerializer> { return NewScope<ScriptSerializer>(); } ,
+    []() -> Scope<ComponentSerializer> { return NewScope<CameraSerializer>(); } 
   };
 
   Scope<ComponentSerializer> EntitySerialization::GetComponentSerializer(const std::string_view tag) {
     auto itr = std::find_if(kBuiltInComponentTags.begin() , kBuiltInComponentTags.end() , [&tag](const ComponentTagPair& tag_pair) -> bool {
         if (tag == tag_pair.first) {
+          return true;
+        }
+        return false;
+    });
+
+    if (itr == kBuiltInComponentTags.end()) {
+      /// find plugin to load component
+      return nullptr;
+    }
+
+    return kComponentSerializerTable[itr->second](); 
+  }
+      
+  Scope<ComponentSerializer> EntitySerialization::GetComponentSerializer(uint32_t idx) {
+    auto itr = std::find_if(kBuiltInComponentTags.begin() , kBuiltInComponentTags.end() , [&idx](const ComponentTagPair& tag_pair) -> bool {
+        if (idx == tag_pair.second) {
           return true;
         }
         return false;

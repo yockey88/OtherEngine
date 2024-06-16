@@ -211,7 +211,8 @@ namespace other {
     
       ui::BeginPropertyGrid();
       ui::ShiftCursor(10.f , 9.f);
-      ImGui::Text("%s [ %s ]" , s->Name().c_str() , s->LanguageName().c_str());
+      std::string lang_name = s->LanguageType() == LanguageModuleType::CS_MODULE ? "C#" : "Lua";
+      ImGui::Text("%s [ %s ]" , s->Name().c_str() , lang_name.c_str());
 
       ImGui::NextColumn();
       ui::ShiftCursorY(4.f);
@@ -249,9 +250,7 @@ namespace other {
       }
 
       ImGui::GetStyle().ButtonTextAlign = og_button_txt_align;
-
-      bool clear = false;
-      if (ImGui::BeginPopup(("##script_popup" + s->Name()).c_str())) {
+bool clear = false; if (ImGui::BeginPopup(("##script_popup" + s->Name()).c_str())) {
         if (clear) {
            
         }

@@ -103,6 +103,8 @@ namespace other {
         }
       }
 
+      const std::vector<uint32_t> GetComponentIndices() const;
+
       inline entt::entity GetEntity() const { return handle; }
 
       inline bool IsNull() const { return handle == entt::null; }

@@ -30,14 +30,6 @@ namespace other {
   inline bool operator==(const AssetHandle& lhs , const AssetHandle& rhs) {
     return lhs.id == rhs.id;
   }
-  
-  // inline bool operator==(const AssetHandle& lhs , int rhs) {
-  //   return lhs.id.Get() == rhs;
-  // }
-  // 
-  // inline bool operator==(int lhs , const AssetHandle& rhs) {
-  //   return lhs == rhs.id.Get();
-  // }
 
   enum AssetFlag : uint16_t {
     NO_ASSET_FLAGS = 0 , 

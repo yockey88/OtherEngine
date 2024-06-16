@@ -11,38 +11,30 @@ namespace other {
 
   void LuaScript::Initialize() {
     bool corrupt = false;
-    for (const auto& file : paths) {
-      if (Path{ file }.extension() != ".lua" || !Filesystem::FileExists(file)) {
-        OE_ERROR("Failed to load lua script {}" , file);
-        corrupt = true;
-        continue;
-      }
+    if (Path{ path }.extension() != ".lua" || !Filesystem::FileExists(path)) {
+      OE_ERROR("Failed to load lua script {}" , path);
+      corrupt = true;
+      return;
     }
 
     if (corrupt) {
       return;
     }
 
-    for (const auto& p : paths) {
-      try {
-        sol::function_result res = lua_state.safe_script_file(p);
-        if (!res.valid()) {
-          OE_ERROR("Failed to load lua script file {}" , p);
-          continue;
-        }
-      } catch (const std::exception& e) {
-        OE_ERROR("Failed to load lua script file {}" , p);
-        OE_ERROR("  > Error = {}" , e.what());
-        continue;
+    try {
+      sol::function_result res = lua_state.safe_script_file(path);
+      if (!res.valid()) {
+        OE_ERROR("Failed to load lua script file {}" , path);
+        return;
       }
+    } catch (const std::exception& e) {
+      OE_ERROR("Failed to load lua script file {}" , path);
+      OE_ERROR("  > Error = {}" , e.what());
+      return;
     }
 
-    SetPaths(paths);
+    SetPath(path);
     valid = true;
-
-    if (reloaded) {
-      reloaded = false;
-    }
   }
 
   void LuaScript::Shutdown() {
@@ -68,7 +60,7 @@ namespace other {
 
     OE_INFO("Lua object {} loaded" , name);
   
-    loaded_objects[id] = LuaObject(name , &lua_state);
+    loaded_objects[id] = LuaObject(module_name , name , &lua_state);
     loaded_objects[id].InitializeScriptMethods();
     loaded_objects[id].InitializeScriptFields();
 

@@ -10,12 +10,12 @@
 #include "parsing/cmd_line_parser.hpp"
 #include "project/project.hpp"
 #include "application/app.hpp"
-#include "rendering/framebuffer.hpp"
 #include "editor/editor_panel.hpp"
 #include "editor/scene_panel.hpp"
 #include "editor/entity_properties.hpp"
 
 #include "scene/scene.hpp"
+#include "scripting/language_module.hpp"
 
 namespace other {
 
@@ -45,7 +45,7 @@ namespace other {
       bool entity_properties_open = false;
       Ref<EntityProperties> entity_properties_panel;
 
-      Scope<Framebuffer> viewport = nullptr;
+      Ref<LanguageModule> lua_module = nullptr;
 
       virtual void OnAttach() override;
       virtual void OnEvent(Event* event) override;

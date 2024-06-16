@@ -82,20 +82,16 @@ namespace other {
               asm_name , name , major_version , minor_version , patch_version , revision_version);
     }
 
-    std::string script_name = Path{ 
-      assembly_path 
-    }.filename().string().substr(0 , assembly_path.find_last_of('.'));
-
     App* app_ctx = ScriptEngine::GetAppContext();
 
     /// since script-modules loaded from the .dll path and not the actual script we have to find the 
     ///   original C# file to track with the filewatcher
-    if (assembly_path.find("OtherEngine-CsCore") == std::string::npos && !reloaded) {
+    if (assembly_path.find("OtherEngine-CsCore") == std::string::npos) {
       Path script_dir = app_ctx->GetProjectContext()->GetMetadata().assets_dir / "scripts";
       Path real_script_file_full = script_dir / Path{ assembly_path }.filename();
       std::string real_file = real_script_file_full.string().substr(0 , real_script_file_full.string().find_last_of('.'));
       real_file += ".cs";
-      SetPaths({ real_file });
+      SetPath(real_file);
     }
     
     valid = true;
@@ -143,8 +139,6 @@ namespace other {
     if (!PlatformLayer::BuildProject(real_file)) {
       OE_ERROR("Failed to rebuild project file");
     }
-
-    reloaded = true;
   }
       
   ScriptObject* CsScript::GetScript(const std::string& name , const std::string& nspace) {
@@ -180,7 +174,8 @@ namespace other {
     
     GcHandle gc_handle = CsGarbageCollector::NewHandle(object);
 
-    loaded_objects[id] = CsObject(name , type_data , object , assembly_image , app_domain , class_id , &cached_symbols);
+    loaded_objects[id] = CsObject(module_name , name , type_data , object , assembly_image , 
+                                  app_domain , class_id , &cached_symbols , nspace);
     loaded_objects[id].InitializeScriptMethods();
     loaded_objects[id].InitializeScriptFields();
 

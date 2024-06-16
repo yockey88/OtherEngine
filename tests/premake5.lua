@@ -113,3 +113,47 @@ test_asm.defines = function()
 end
 
 AddModule(test_asm)
+
+local reflection_testing = {}
+
+reflection_testing.name = "reflection_tests"
+reflection_testing.path = "./reflection_tests"
+reflection_testing.kind = "ConsoleApp"
+reflection_testing.language = "C++"
+reflection_testing.cppdialect = "C++latest"
+
+reflection_testing.files = function()
+  files {
+    "./reflection_tests/main.cpp"
+  }
+end
+
+reflection_testing.include_dirs = function()
+  includedirs {
+    "./reflection_tests",
+  }
+end
+
+reflection_testing.post_build_commands = function()
+  filter { "system:windows" , "configurations:Debug" }
+    postbuildcommands {
+      '{COPY} "%{wks.location}/externals/sdl2/lib/Debug/SDL2d.dll" "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/mono-2.0-sgen.dll "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/mono-2.0-sgen.pdb "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/MonoPosixHelper.dll "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/MonoPosixHelper.pdb "%{cfg.targetdir}"',
+    }
+
+  filter { "system:windows" , "configurations:Release" }
+    postbuildcommands {
+      '{COPY} "%{wks.location}/externals/sdl2/lib/Release/SDL2.dll" "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/mono-2.0-sgen.dll "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/MonoPosixHelper.dll "%{cfg.targetdir}"',
+    }
+end
+
+reflection_testing.components = {}
+reflection_testing.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
+reflection_testing.components["gtest"] = "%{wks.location}/externals/gtest/googletest/include"
+
+AddProject(reflection_testing)
