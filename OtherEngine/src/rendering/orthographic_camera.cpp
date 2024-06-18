@@ -5,8 +5,6 @@
 
 namespace other {
 
-  void OrthographicCamera::CalculateView() {}
-
   void OrthographicCamera::CalculateProjection() {}
 
 } // namespace other

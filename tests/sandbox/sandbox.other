@@ -1,0 +1,14 @@
+[project]
+name = "Sandbox"
+author = "Y"
+version = 0.0.1
+
+[window]
+width = 1200
+height = 800
+title = "Other Engine Sandbox"
+
+[log]
+console-level = "Debug" 
+file-level = "trace"
+path = "./logs/sandbox.log"

@@ -17,6 +17,7 @@
 #include "event/core_events.hpp"
 #include "project/project.hpp"
 #include "parsing/ini_parser.hpp"
+#include "rendering/perspective_camera.hpp"
 #include "rendering/renderer.hpp"
 #include "layers/debug_layer.hpp"
 #include "layers/editor_core.hpp"
@@ -85,6 +86,12 @@ namespace other {
     ///  get the module
     ///  ... and then idrk ????
     lua_module = ScriptEngine::GetModuleAs<LuaModule>(LanguageModuleType::LUA_MODULE);
+
+    editor_camera = Ref<PerspectiveCamera>::Create();
+    editor_camera->SetPosition({ 0.f , 0.f , 3.f });
+    editor_camera->SetDirection({ 0.f , 0.f , -1.f });
+    editor_camera->SetUp({ 0.f , 1.f , 0.f });
+    Renderer::BindCamera(editor_camera);
   }
 
   void Editor::OnEvent(Event* event) {
@@ -131,18 +138,31 @@ namespace other {
     }
 
     if (ImGui::Begin("Viewport")) {
-      if (Renderer::GetData().viewport != nullptr && Renderer::GetData().viewport->Valid()) {
-        auto ar_size = ImGui::GetContentRegionAvail();
+      if (Renderer::Viewport() != nullptr && Renderer::Viewport()->Valid()) {
+        ImVec2 curr_win_size = ImGui::GetWindowSize();
+        float aspect_ratio = Renderer::GetWindow()->AspectRatio();
         ImVec2 size{};
-        size.x = ar_size.y * Renderer::GetWindow()->AspectRatio();
-        size.y = ar_size.x * (1.f / Renderer::GetWindow()->AspectRatio());
-        if (ar_size.y >= size.y) {
-          size.y = ar_size.x;
+        size.x = curr_win_size.y * aspect_ratio;
+        size.y = curr_win_size.x / aspect_ratio;
+
+        if (curr_win_size.y >= size.y) {
+          size.y = curr_win_size.x;
         } else {
-          size.y = ar_size.y;
+          size.y = curr_win_size.y;
         }
 
-        ImGui::Image((void*)(intptr_t)Renderer::GetData().viewport->Texture() , size , ImVec2(0 , 1) , ImVec2(1 , 0)); 
+        Renderer::Viewport()->Resize({ size.x , size.y });
+
+        ImVec2 cursor_pos = {
+          (curr_win_size.x - size.x) * 0.5f ,
+          ((curr_win_size.y - size.y) * 0.5f) + 7.f
+        };
+
+        ImGui::SetCursorPos(cursor_pos);
+
+
+        uint32_t tex_id = Renderer::Viewport()->Texture();
+        ImGui::Image((void*)(uintptr_t)tex_id , size , ImVec2(0 , 1) , ImVec2(1 , 0)); 
       } else {
         ImGui::Text("No Viewport Generated");
       }

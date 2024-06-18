@@ -3,9 +3,12 @@
  **/
 #include "editor/project_panel.hpp"
 
+#include <algorithm>
+
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 
+#include "core/logger.hpp"
 #include "core/filesystem.hpp"
 #include "rendering/ui/ui_helpers.hpp"
 #include "rendering/ui/ui_colors.hpp"
@@ -266,6 +269,54 @@ namespace other {
       ImGui::PopID();
     }
   }
+      
+  std::string ProjectPanel::GetContextMenuTagFromSelection() const {
+    if (!selection.has_value()) {
+      return "";
+    }
+
+    auto itr = std::find_if(tags.begin() , tags.end() , [&](const auto& tag_pair) -> bool {
+      return tag_pair.first.Get() == FNV(selection.value().string());
+    });
+
+    if (itr == tags.end()) {
+      return "";
+    } 
+
+    return std::string{ itr->second };
+  }
+
+  template <typename Fn>
+  void DrawContextMenu(const std::string_view tag , Fn callback) {
+    if (ImGui::BeginPopup(("##project-context-" + std::string{ tag }).c_str())) {
+      callback();
+      ImGui::EndPopup();
+    }
+  }
+      
+  void ProjectPanel::RenderContextMenu() const {
+    std::string tag = "";
+    if (ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+      tag = GetContextMenuTagFromSelection();
+      if (!tag.empty()) {
+        ImGui::OpenPopup(("##project-context-" + tag).c_str());
+      }
+    }
+
+    if (tag.empty()) {
+      return;
+    }
+    
+    DrawContextMenu(tags.at(FNV("editor")) , []{});
+
+    DrawContextMenu(tags.at(FNV("material")) , []{});
+
+    DrawContextMenu(tags.at(FNV("scenes")) , []{});
+
+    DrawContextMenu(tags.at(FNV("scripts")) , []{});
+
+    DrawContextMenu(tags.at(FNV("shaders")) , []{});
+  }
 
   bool ProjectPanel::IsDirSelected(const Path& dir) const {
     return selection.has_value() && dir == selection.value(); 
@@ -302,7 +353,8 @@ namespace other {
 
   void ProjectPanel::ValidateAndRenderSelectionCtx() const {
     if (selection.has_value()) {
-      RenderContents(selection.value());
+      RenderContents(selection.value());    
+      RenderContextMenu();
     } else {
       // render root 
     }

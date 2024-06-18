@@ -13,11 +13,59 @@
 namespace other {
 
   void CsObject::InitializeScriptMethods() {
+    obj_vtable = mono_object_get_vtable(instance);
+
+    MonoClass* parent = mono_class_get_parent(type_data->asm_class);
+    
     initialize_method = mono_class_get_method_from_name(type_data->asm_class , "OnInitialize" , 0);
-    update_method = mono_class_get_method_from_name(type_data->asm_class , "Update" , 1);
-    render_method = mono_class_get_method_from_name(type_data->asm_class , "Render" , 0);
-    render_ui_method = mono_class_get_method_from_name(type_data->asm_class , "RenderUI" , 0);
     shutdown_method = mono_class_get_method_from_name(type_data->asm_class , "OnShutdown" , 0);
+
+    on_start = mono_class_get_method_from_name(type_data->asm_class , "OnStart" , 0);
+    on_stop = mono_class_get_method_from_name(type_data->asm_class , "OnStop" , 0);
+
+    update_method = mono_class_get_method_from_name(type_data->asm_class , "Update" , 1);
+    render_method = mono_class_get_method_from_name(type_data->asm_class , "RenderObject" , 0);
+    render_ui_method = mono_class_get_method_from_name(type_data->asm_class , "RenderUI" , 0);
+
+    while (parent != nullptr) {
+      if (initialize_method != nullptr && shutdown_method != nullptr &&
+          on_start != nullptr && on_stop != nullptr &&
+          update_method != nullptr && render_method != nullptr &&
+          render_ui_method != nullptr) {
+        break;
+      }
+
+      if (initialize_method == nullptr) {
+        initialize_method = mono_class_get_method_from_name(parent , "OnInitialize" , 0);
+      }
+      if (shutdown_method == nullptr) {
+        shutdown_method = mono_class_get_method_from_name(parent , "OnShutdown" , 0);
+      }
+      
+      if (on_start == nullptr) {
+        on_start = mono_class_get_method_from_name(parent , "OnStart" , 0);
+      }
+      if (on_stop == nullptr) {
+        on_stop = mono_class_get_method_from_name(parent , "OnStop" , 0);
+      }
+      
+      if (update_method == nullptr) {
+        update_method = mono_class_get_method_from_name(parent , "Update" , 1);
+      }
+      if (render_method == nullptr) {
+        render_method = mono_class_get_method_from_name(parent , "Render" , 0);
+      }
+      if (render_ui_method == nullptr) {
+        render_ui_method = mono_class_get_method_from_name(parent , "RenderUI" , 0);
+      }
+      
+      const char* name = mono_class_get_name(parent);
+      if (std::string{ name } == "OtherObject") {
+        break;  
+      }
+
+      parent = mono_class_get_parent(parent);
+    }
   }
 
   void CsObject::InitializeScriptFields() {
@@ -104,6 +152,27 @@ namespace other {
 
     is_initialized = true;
   }
+  
+  void CsObject::Shutdown() {
+    if (shutdown_method != nullptr) {
+      CallMonoMethod(shutdown_method);
+    }
+
+    is_initialized = false;
+    fields.clear();
+  }
+
+  void CsObject::Start() {
+    if (on_start != nullptr) {
+      CallMonoMethod(on_start);
+    }
+  }
+
+  void CsObject::Stop() {
+    if (on_stop != nullptr) {
+      CallMonoMethod(on_stop);
+    }
+  }
 
   void CsObject::Update(float dt) {
     if (update_method != nullptr) {
@@ -127,14 +196,6 @@ namespace other {
     }
   }
 
-  void CsObject::Shutdown() {
-    if (shutdown_method != nullptr) {
-      CallMonoMethod(shutdown_method);
-    }
-
-    is_initialized = false;
-    fields.clear();
-  }
       
   Opt<Value> CsObject::GetMonoField(MonoClassField* field) {
     MonoObject* mobj = mono_field_get_value_object(app_domain , field , instance);
@@ -146,7 +207,8 @@ namespace other {
   }
 
   Opt<Value> CsObject::GetMonoProperty(MonoMethod* getter) {
-    return CallMonoMethod(getter);
+    MonoMethod* vgetter = mono_object_get_virtual_method(instance , getter);
+    return CallMonoMethod(vgetter);
   }
 
   void CsObject::SetMonoField(MonoClassField* field , const Value& value) {
@@ -164,7 +226,8 @@ namespace other {
       .handle = value.AsRawMemory() ,
       .type = value.Type() ,
     };
-    CallMonoMethod(setter , 1 , &param);
+    MonoMethod* vsetter = mono_object_get_virtual_method(instance , setter);
+    CallMonoMethod(vsetter , 1 , &param);
   }
   
   Opt<Value> CsObject::CallMonoMethod(MonoMethod* method , uint32_t argc , Parameter* args) {
@@ -188,7 +251,11 @@ namespace other {
     }
 
     MonoObject* exception = nullptr;
-    MonoObject* ret_val = mono_runtime_invoke(method , instance , params.data() , &exception);
+    MonoObject* ret_val = nullptr;
+    MonoMethod* vmethod = mono_object_get_virtual_method(instance , method);
+
+    ret_val = mono_runtime_invoke(vmethod , instance , params.data() , &exception);
+
     if (exception) {
       OE_ERROR("C# Exception thrown by : {}" , script_name);
       CheckMonoError();

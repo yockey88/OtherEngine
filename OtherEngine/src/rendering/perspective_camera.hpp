@@ -10,8 +10,10 @@ namespace other {
 
   class PerspectiveCamera : public CameraBase {
     public:
+      virtual void Rotate(const glm::quat& quat) override {}
+      virtual void RotateAround(const glm::vec3& v , float degrees) override {}
+
     private:
-      virtual void CalculateView() override;
       virtual void CalculateProjection() override;
   };
 

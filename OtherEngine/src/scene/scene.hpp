@@ -8,9 +8,10 @@
 
 #include <entt/entt.hpp>
 
-#include "scene/octree.hpp"
 #include "core/ref_counted.hpp"
 #include "core/uuid.hpp"
+#include "scene/octree.hpp"
+#include "rendering/render_batch.hpp"
 
 namespace other {
 
@@ -37,6 +38,8 @@ namespace other {
 
       bool EntityExists(UUID id) const;
       bool EntityExists(const std::string& name) const;
+
+      std::vector<BatchData> GetRenderBatchData() const;
 
       const std::map<UUID , Entity*>& RootEntities() const;
       const std::map<UUID , Entity*>& SceneEntities() const;

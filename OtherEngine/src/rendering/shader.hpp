@@ -6,56 +6,62 @@
 #include <unordered_map>
 
 #include <glm/glm.hpp>
-
 #include <glad/glad.h>
+
+#include "core/defines.hpp"
 
 namespace other {
 
-    enum ShaderType {
-        VERTEX_SHADER = GL_VERTEX_SHADER ,
-        FRAGMENT_SHADER = GL_FRAGMENT_SHADER ,
-        GEOMETRY_SHADER = GL_GEOMETRY_SHADER ,
-        TESS_CONTROL_SHADER = GL_TESS_CONTROL_SHADER ,
-        TESS_EVALUATION_SHADER = GL_TESS_EVALUATION_SHADER ,
-        COMPUTE_SHADER = GL_COMPUTE_SHADER ,
-    };
+  enum ShaderType {
+    VERTEX_SHADER = GL_VERTEX_SHADER ,
+    FRAGMENT_SHADER = GL_FRAGMENT_SHADER ,
+    GEOMETRY_SHADER = GL_GEOMETRY_SHADER ,
+    TESS_CONTROL_SHADER = GL_TESS_CONTROL_SHADER ,
+    TESS_EVALUATION_SHADER = GL_TESS_EVALUATION_SHADER ,
+    COMPUTE_SHADER = GL_COMPUTE_SHADER ,
+  };
 
-    class Shader {
-        uint32_t renderer_id;
-    
-        std::string vertex_path;
-        std::string fragment_path;
-    
-        std::string vertex_src;
-        std::string fragment_src;
-    
-        std::unordered_map<std::string , int32_t> uniform_locations;
-    
-        bool valid = false;
-    
-        bool CompileShader(uint32_t shader_piece , const char* src);
-        bool LinkShader();
-    
-        uint32_t GetUniformLocation(const std::string& name);
-    
-        public:
-            Shader(const std::string& vertex_path , const std::string& fragment_path);
-            ~Shader();
-    
-            void Bind() const;
-            void Unbind() const;
-    
-            inline const bool IsValid() const { return valid; }
-    
-            void SetUniform(const std::string& name , const int32_t& value);
-            void SetUniform(const std::string& name , const float& value);
-            void SetUniform(const std::string& name , const glm::vec2& value);
-            void SetUniform(const std::string& name , const glm::vec3& value);
-            void SetUniform(const std::string& name , const glm::vec4& value);
-            void SetUniform(const std::string& name , const glm::mat2& value);
-            void SetUniform(const std::string& name , const glm::mat3& value);
-            void SetUniform(const std::string& name , const glm::mat4& value);
-    };
+  class Shader {    
+    public:
+      Shader(const Path& vertex_path , const Path& fragment_path , const Opt<Path>& geometry_shader = std::nullopt);
+      ~Shader();
+  
+      void Bind() const;
+      void Unbind() const;
+  
+      const bool IsValid() const;
+
+      const bool HasGeometry() const;
+  
+      void SetUniform(const std::string& name , const int32_t& value);
+      void SetUniform(const std::string& name , const float& value);
+      void SetUniform(const std::string& name , const glm::vec2& value);
+      void SetUniform(const std::string& name , const glm::vec3& value);
+      void SetUniform(const std::string& name , const glm::vec4& value);
+      void SetUniform(const std::string& name , const glm::mat2& value);
+      void SetUniform(const std::string& name , const glm::mat3& value);
+      void SetUniform(const std::string& name , const glm::mat4& value);
+
+    private:
+      uint32_t renderer_id;
+  
+      Path vertex_path;
+      Path fragment_path;
+      Opt<Path> geometry_path;
+  
+      std::string vertex_src;
+      std::string fragment_src;
+      Opt<std::string> geometry_src;
+  
+      std::unordered_map<std::string , int32_t> uniform_locations;
+  
+      bool valid = false;
+  
+      bool CompileShader(uint32_t shader_piece , const char* src);
+      bool LinkShader();
+  
+      uint32_t GetUniformLocation(const std::string& name);
+  };
 
 } // namespace other 
 

@@ -60,7 +60,7 @@ namespace other {
       void ForceResize(const glm::ivec2& size);
 
       static WindowConfig ConfigureWindow(const ConfigTable& config);
-      static Result<Scope<Window>> GetWindow(const WindowConfig& config , const ConfigTable& cfg_table); 
+      static Result<Scope<Window>> GetWindow(WindowConfig& config , const ConfigTable& cfg_table); 
 
       const WindowContext& Context() const { return context; }
 

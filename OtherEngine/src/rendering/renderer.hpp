@@ -4,36 +4,86 @@
 #ifndef OTHER_ENGINE_RENDERER_HPP
 #define OTHER_ENGINE_RENDERER_HPP
 
-#include <functional>
+#include <array>
+#include <span>
 
 #include "core/ref.hpp"
+#include "scene/scene.hpp"
+#include "rendering/vertex.hpp"
 #include "rendering/window.hpp"
 #include "rendering/camera_base.hpp"
 #include "rendering/framebuffer.hpp"
+#include "rendering/render_batch.hpp"
+#include "rendering/primitives.hpp"
+#include "rendering/color.hpp"
 
 namespace other {
 
-  using RenderCommand = std::function<void()>;
+  constexpr static uint32_t kNumPrimitives = 3;
+  constexpr static uint32_t kLineBatchIndex = 0;
+  constexpr static uint32_t kTriangleBatchIndex = 1;
+  constexpr static uint32_t kRectBatchIndex = 2;
+  
+  void CheckGlError(const char* file , int line);
+
+  #define CHECKGL() do { other::CheckGlError(__FILE__ , __LINE__); } while (false)
 
   struct RenderData {
-    Ref<CameraBase> active_camera;
+    /// global data
     Scope<Window> window;
-    std::vector<RenderCommand> commands;
 
-    Scope<Framebuffer> viewport = nullptr;
-
+    /// frame data
+    bool frame_bound = false;
+    Ref<Framebuffer> frame = nullptr;
     glm::vec4 clear_color = {0.1f, 0.1f, 0.1f, 1.0f};
+
+    /// scene context data
+    Ref<Scene> scene_ctx;
+    Ref<CameraBase> active_camera;
+
+    std::vector<Batch> scene_batches = {};
+    std::array<Batch , kNumPrimitives> primitive_batches = {};
   };
 
   class Renderer {
     public:
       static void Initialize(const ConfigTable& config);
 
+      static void SetSceneContext(const Ref<Scene>& scene);
       static void BindCamera(Ref<CameraBase>& camera);
 
-      static void QueueCommand(RenderCommand command);
       static void BeginFrame();
-      static void Render();
+
+      static void DrawLine(const Point& start , const Point& end , const RgbColor& color);
+      static void DrawLine(const Vertex& start , const Vertex& end);
+      static void DrawLine(const Line& line , const RgbColor& color);
+
+      static void DrawTriangle(const Point& p1 , const Point& p2 , const Point& p3 , const RgbColor& color);
+      static void DrawTriangle(const std::array<Vertex , 3>& corners);
+      static void DrawTriangle(const Triangle& triangle , const RgbColor& color);
+      
+      static void DrawRect(const Point& position , const glm::vec2& half_extents , const RgbColor& color);
+      static void DrawRect(const std::span<Vertex , 4>& corners);
+      static void DrawRect(const Rect& rect , const RgbColor& color);
+
+      /*
+      static void DrawCube(const Point& position , const glm::vec3& half_extents);
+      static void DrawCube(const std::span<Vertex , 8>& corners);
+      static void DrawCube(const Cube& cube , const RgbColor& color);
+
+      static void DrawCircle(const Point& position , float radius);
+      static void DrawCircle(const Circle& circle , const RgbColor& color);
+
+      static void DrawSphere(const Point& position , float radius);
+      static void DrawSphere(const Sphere& circle , const RgbColor& color);
+
+      static void DrawCapsule(const Capsule& capsule , const RgbColor& color);
+
+      static void DrawCylinder(const Cylinder& cylinder , const RgbColor& color);
+      */
+
+      static void DrawVertices(const std::span<Vertex>& vertices);
+
       static void EndFrame();
       static void SwapBuffers();
 
@@ -43,14 +93,25 @@ namespace other {
 
       static void Shutdown();
 
-      static const RenderData& GetData();
       static const Scope<Window>& GetWindow();
+      static Ref<Framebuffer>& Viewport();
 
       static void ClearColor(const std::vector<std::string>& color);
       static void ClearColor(const glm::vec4& color);
 
     private:
       static RenderData render_data;
+
+      static void WriteVertexToBatch(Batch& batch , const Vertex& vert);
+      static void WriteRectIndices();
+
+      static void RenderBatch(Batch& batch);
+
+      static void CreateRenderBatch(const BatchData& data , uint32_t idx , bool internal = false);
+
+      static void CreatePrimitiveBatches();
+      static void DestroyPrimitiveBatches();
+      static void DestroyBatches();
   };
 
 } // namespace other

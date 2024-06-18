@@ -5,7 +5,9 @@
 
 #include <mono/metadata/assembly.h>
 #include <mono/metadata/blob.h>
+#include <mono/metadata/class.h>
 #include <mono/metadata/image.h>
+#include <mono/metadata/object.h>
 #include <mono/metadata/row-indexes.h>
 
 #include "core/filesystem.hpp"
@@ -174,10 +176,11 @@ namespace other {
     
     GcHandle gc_handle = CsGarbageCollector::NewHandle(object);
 
-    loaded_objects[id] = CsObject(module_name , name , type_data , object , assembly_image , 
+    auto& obj = loaded_objects[id] = CsObject(module_name , name , type_data , object , assembly_image , 
                                   app_domain , class_id , &cached_symbols , nspace);
-    loaded_objects[id].InitializeScriptMethods();
-    loaded_objects[id].InitializeScriptFields();
+    obj.InitializeScriptMethods();
+    obj.InitializeScriptFields();
+    obj.Initialize();
 
     loaded_symbols[id] = {
       .name_space = nspace , 
@@ -191,7 +194,7 @@ namespace other {
 
   MonoClass* CsScript::GetClass(const std::string& name , const std::string& nspace) {
     if (!valid) {
-      OE_WARN("Attempting to retrieve script {} from invalid assembly {}" , name , assembly_path);
+      OE_WARN("Attempting to retrieve C# script {} from invalid assembly {}" , name , assembly_path);
       return nullptr;
     }
 
@@ -211,13 +214,17 @@ namespace other {
     if (klass == nullptr) {
       OE_ERROR("Mono class not found : {}" , name);
       return nullptr;
-    } else {
-      OE_INFO("Mono class {} loaded from assembly : {}" , name , assembly_path);
-    }
+    } 
+
+    mono_class_init(klass);
+
+    MonoVTable* vtable = mono_class_vtable(app_domain , klass);
+    mono_runtime_class_init(vtable);
 
     classes[id] = klass;
     cached_symbols.CacheClass(name , klass);
 
+    OE_INFO("Mono class {} loaded from assembly : {}" , name , assembly_path);
     return klass;
   }
 

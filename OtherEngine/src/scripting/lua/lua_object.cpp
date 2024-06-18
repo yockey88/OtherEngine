@@ -13,10 +13,14 @@ namespace other {
       }
 
       initialize = (*state)[script_name]["OnInitialize"];
+      shutdown = (*state)[script_name]["OnShutdown"];
+
+      start = (*state)[script_name]["OnStart"];
+      stop = (*state)[script_name]["OnStop"];
+
       update = (*state)[script_name]["Update"];
       render = (*state)[script_name]["Render"];
       render_ui = (*state)[script_name]["RenderUI"];
-      shutdown = (*state)[script_name]["OnShutdown"];
 
       if (!update.valid()) {
         OE_WARN("{} has no update method" , script_name);
@@ -45,6 +49,26 @@ namespace other {
 
       is_initialized = true;
     }
+    
+    void LuaObject::Shutdown() {
+      if (shutdown.valid()) {
+        shutdown.call();
+      }
+
+      is_initialized = false;
+    }
+
+    void LuaObject::Start() {
+      if (start.valid()) {
+        start.call();
+      }
+    }
+
+    void LuaObject::Stop() {
+      if (stop.valid()) {
+        stop.call();
+      }
+    }
 
     void LuaObject::Update(float dt) {
       if (update.valid()) {
@@ -64,12 +88,5 @@ namespace other {
       }
     }
 
-    void LuaObject::Shutdown() {
-      if (shutdown.valid()) {
-        shutdown.call();
-      }
-
-      is_initialized = false;
-    }
 
 } // namespace other

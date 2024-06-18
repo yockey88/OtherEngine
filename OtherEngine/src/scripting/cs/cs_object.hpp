@@ -33,16 +33,21 @@ namespace other {
       virtual void SetField(const std::string& name , const Value& value) override;
 
       virtual void Initialize() override;
+      virtual void Shutdown() override;
+
+      virtual void Start() override;
+      virtual void Stop() override; 
+
       virtual void Update(float dt) override;
       virtual void Render() override;
       virtual void RenderUI() override;
-      virtual void Shutdown() override;
 
     private:
       /// class data
       UUID class_id = 0;
       CsTypeData* type_data = nullptr;
       MonoObject* instance = nullptr;
+      MonoVTable* obj_vtable = nullptr;
 
       /// dll data
       MonoDomain* app_domain = nullptr;
@@ -51,10 +56,14 @@ namespace other {
 
       /// saved for fast access
       MonoMethod* initialize_method = nullptr;
+      MonoMethod* shutdown_method = nullptr;
+
+      MonoMethod* on_start = nullptr;
+      MonoMethod* on_stop = nullptr;
+
       MonoMethod* update_method = nullptr;
       MonoMethod* render_method = nullptr;
       MonoMethod* render_ui_method = nullptr;
-      MonoMethod* shutdown_method = nullptr;
 
       Opt<Value> GetMonoField(MonoClassField* field);
       Opt<Value> GetMonoProperty(MonoMethod* getter);

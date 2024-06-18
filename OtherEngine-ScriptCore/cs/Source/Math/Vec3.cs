@@ -126,6 +126,12 @@ namespace Other {
     public static Vec3 operator -(Vec3 left, float right) => new Vec3(left.x - right, left.y - right , left.z - right);
     public static Vec3 operator -(Vec3 vector) => new Vec3(-vector.x, -vector.y , -vector.z);
 
+    public static Vec3 operator*(Mat4 lhs, Vec3 rhs) {
+      return new Vec3(lhs.a00 * rhs.x + lhs.a01 * rhs.y + lhs.a02 * rhs.z + lhs.a03,
+                      lhs.a10 * rhs.x + lhs.a11 * rhs.y + lhs.a12 * rhs.z + lhs.a13,
+                      lhs.a20 * rhs.x + lhs.a21 * rhs.y + lhs.a22 * rhs.z + lhs.a23);
+    }
+
     public static Vec3 Cross(Vec3 lhs , Vec3 rhs) {
       return new Vec3(lhs.y * rhs.z - lhs.z * rhs.y,
                       lhs.z * rhs.x - lhs.x * rhs.z,

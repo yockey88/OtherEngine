@@ -1,3 +1,30 @@
+local sandbox = {}
+
+sandbox.name = "sandbox"
+sandbox.path = "./sandbox"
+sandbox.kind = "ConsoleApp"
+sandbox.language = "C++"
+sandbox.cppdialect = "C++latest"
+
+sandbox.files = function()
+  files {
+    "./sandbox/**.cpp",
+    "./sandbox/**.hpp",
+  }
+end
+
+sandbox.include_dirs = function()
+  includedirs {
+    "./sandbox",
+  }
+end
+
+sandbox.components = {}
+sandbox.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
+sandbox.components["gtest"] = "%{wks.location}/externals/gtest/googletest/include"
+
+AddProject(sandbox)
+
 local OctreeTests = {}
 
 OctreeTests.name = "OctreeTests"

@@ -12,6 +12,7 @@
 
 namespace other {
   
+  /// TODO: make this be the install directory at buildtime
   constexpr static std::string_view kEngineCoreDir = "C:/Yock/code/OtherEngine";
 
   class Filesystem {

@@ -10,7 +10,6 @@
 #include <imgui/imgui.h>
 
 #include "core/defines.hpp"
-#include "core/filesystem.hpp"
 #include "project/project.hpp"
 #include "editor/editor_panel.hpp"
 
@@ -28,6 +27,14 @@ namespace other {
       virtual void SetSceneContext(const Ref<Scene>& scene) override;
 
     private:
+      const std::map<UUID , std::string_view> tags {
+        { FNV("editor")    , "editor" } ,
+        { FNV("materials") , "materials" } ,
+        { FNV("scenes")    , "scenes" } ,
+        { FNV("scripts")   , "scripts" } ,
+        { FNV("shaders")   , "shaders" }
+      };
+
       Ref<Project> active_proj;
       Ref<Scene> active_scene;
 
@@ -38,12 +45,15 @@ namespace other {
 
       Opt<Path> selection = std::nullopt;
 
+
       /// Render functions
       void RenderTopBar(float height) const;
       void RenderBottomBar(float height) const;
       void RenderDirectoryTree(const Path& path);
 
       void RenderContents(const Path& path) const;
+      std::string GetContextMenuTagFromSelection() const;
+      void RenderContextMenu() const;
 
       bool IsDirSelected(const Path& p) const;
       bool IsDescendantSelected(const Path& dir) const;

@@ -13,9 +13,11 @@ namespace other {
 
 namespace {
 
-  void EnableGlSettings(const other::ConfigTable& config) {
+  uint32_t EnableGlSettings(const other::ConfigTable& config) {
+    uint32_t flags = GL_COLOR_BUFFER_BIT;
+
     auto depth_test = config.GetVal<bool>(kRendererSection , kDepthTestValue).value_or(true);
-    auto stencil_test = config.GetVal<bool>(kRendererSection , kStencilTestValue).value_or(false);
+    auto stencil_test = config.GetVal<bool>(kRendererSection , kStencilTestValue).value_or(true);
     auto cull_face = config.GetVal<bool>(kRendererSection , kCullFaceValue).value_or(true);
     auto multisample = config.GetVal<bool>(kRendererSection , kMultisampleValue).value_or(true);
     auto blend = config.GetVal<bool>(kRendererSection , kBlendValue).value_or(true);
@@ -23,11 +25,14 @@ namespace {
     if (depth_test) {
       OE_DEBUG("Enabling Depth Test");
       glEnable(GL_DEPTH_TEST);
+      glDepthFunc(GL_LESS);
+      flags |= GL_DEPTH_BUFFER_BIT;
     }
 
     if (stencil_test) {
       OE_DEBUG("Enabling Stencil Test");
       glEnable(GL_STENCIL_TEST);
+      flags |= GL_STENCIL_BUFFER_BIT;
     }
 
     if (cull_face) {
@@ -47,18 +52,20 @@ namespace {
       glEnable(GL_BLEND);
       glBlendFunc(GL_SRC_ALPHA , GL_ONE_MINUS_SRC_ALPHA);
     }
+
+    return flags;
   }
 
   void EnableSdlGlSettings(const other::ConfigTable& config) {
-    auto gl_major = config.GetVal<uint32_t>(kRendererSection , kMajorValue).value_or(4);
-    auto gl_minor = config.GetVal<uint32_t>(kRendererSection , kMinorValue).value_or(6);
-    auto double_buffer = config.GetVal<bool>(kRendererSection , kDoubleBufferValue).value_or(true);
-    auto depth_size = config.GetVal<uint32_t>(kRendererSection , kDepthSizeValue).value_or(24);
-    auto stencil_size = config.GetVal<uint32_t>(kRendererSection , kStencilSizeValue).value_or(8);
-    auto accelerated_visual = config.GetVal<bool>(kRendererSection , kAccelVisualValue).value_or(true);
-    auto multisample_buffers = config.GetVal<uint32_t>(kRendererSection , kMultisampleBuffersValue).value_or(1);
-    auto multisample_samples = config.GetVal<uint32_t>(kRendererSection , kMultisampleSamplesValue).value_or(16);
-    auto srgb_capable = config.GetVal<bool>(kRendererSection , kSrgbCapableValue).value_or(true);
+    int32_t gl_major = config.GetVal<uint32_t>(kRendererSection , kMajorValue).value_or(4);
+    int32_t gl_minor = config.GetVal<uint32_t>(kRendererSection , kMinorValue).value_or(6);
+    int32_t double_buffer = config.GetVal<bool>(kRendererSection , kDoubleBufferValue).value_or(true) ? 1 : 0;
+    int32_t depth_size = config.GetVal<uint32_t>(kRendererSection , kDepthSizeValue).value_or(24);
+    int32_t stencil_size = config.GetVal<uint32_t>(kRendererSection , kStencilSizeValue).value_or(8);
+    int32_t accelerated_visual = config.GetVal<bool>(kRendererSection , kAccelVisualValue).value_or(true) ? 1 : 0;
+    int32_t multisample_buffers = config.GetVal<uint32_t>(kRendererSection , kMultisampleBuffersValue).value_or(1);
+    int32_t multisample_samples = config.GetVal<uint32_t>(kRendererSection , kMultisampleSamplesValue).value_or(16);
+    int32_t srgb_capable = config.GetVal<bool>(kRendererSection , kSrgbCapableValue).value_or(true) ? 1 : 0;
 
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION , gl_major);
@@ -72,7 +79,7 @@ namespace {
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES , multisample_samples);
     SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE , srgb_capable);
 
-    auto vsync = config.GetVal<bool>(kRendererSection , kVsyncValue).value_or(true);
+    int32_t vsync = config.GetVal<bool>(kRendererSection , kVsyncValue).value_or(true) ? 1 : 0;
     SDL_GL_SetSwapInterval(vsync);
   }
 
@@ -154,6 +161,7 @@ namespace {
   }
 
   void Window::SwapBuffers() {
+    SDL_GL_MakeCurrent(context.window , context.context);
     SDL_GL_SwapWindow(context.window);
   }
   
@@ -236,39 +244,20 @@ namespace {
       err_str += other::fmtstr(" - using default clear color : {}" , col);
       OE_WARN(err_str);
     }
-    
-    uint32_t buffer_flags = 0;
-    const auto clear_flags = config.Get(kWindowSection , kClearBuffersValue);
-    for (const auto& flag : clear_flags) {
-      if (flag == kColorValue) {
-        buffer_flags |= GL_COLOR_BUFFER_BIT;
-      } else if (flag == kDepthValue) {
-        buffer_flags |= GL_DEPTH_BUFFER_BIT;
-      } else if (flag == kStencilValue) {
-        buffer_flags |= GL_STENCIL_BUFFER_BIT;
-      } else {
-        OE_WARN("Invalid clear buffer flag : {}", flag);
-      }
-    }
-
-    if (buffer_flags == 0) {
-      buffer_flags = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT;
-    }
   
     cfg.color = col;
-    cfg.clear_flags = buffer_flags;
   
     return cfg;
   }
 
-  Result<Scope<Window>> Window::GetWindow(const WindowConfig& config , const ConfigTable& cfg_table) {
+  Result<Scope<Window>> Window::GetWindow(WindowConfig& config , const ConfigTable& cfg_table) {
     if (SDL_InitSubSystem(SDL_INIT_VIDEO) < 0) {
-      return other::Result<other::Scope<other::Window>>{ std::nullopt , other::fmtstr("Failed to initialize SDL" , SDL_GetError()) };
+      return Result<Scope<Window>>{ std::nullopt , other::fmtstr("Failed to initialize SDL" , SDL_GetError()) };
     } else {
       OE_INFO("SDL initialized successfully");
     }
   
-    other::WindowContext context;
+    WindowContext context;
     context.window = SDL_CreateWindow(config.title.c_str() , config.pos.x , config.pos.y , config.size.x , config.size.y , config.flags);
     if (context.window == nullptr) {
       return { std::nullopt , other::fmtstr("Failed to create window : {}" , SDL_GetError()) };
@@ -295,9 +284,9 @@ namespace {
       OE_INFO("GLAD initialized successfully");
     }
   
-    EnableGlSettings(cfg_table);
+    config.clear_flags = EnableGlSettings(cfg_table);
   
-    return { other::NewScope<other::Window>(context , config) , std::nullopt };
+    return { NewScope<Window>(context , config) , std::nullopt };
   }
 
 } // namespace other

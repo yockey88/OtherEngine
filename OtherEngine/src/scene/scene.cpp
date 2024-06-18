@@ -54,7 +54,7 @@ namespace other {
     
     registry.view<Script>().each([](const Script& script) {
       for (auto& [id , s] : script.scripts) {
-        s->Initialize();
+        s->Start();
       }
     });
 
@@ -117,6 +117,12 @@ namespace other {
 
     // registry.view<RenderedText>().each([](const RenderedText& mesh) {});
 
+    registry.view<Script>().each([](const Script& script) {
+      for (auto& [id , s] : script.scripts) {
+        s->Render();
+      }
+    });
+
     registry.view<Mesh>().each([](const Mesh& mesh) {
     });
   }
@@ -134,7 +140,7 @@ namespace other {
     
     registry.view<Script>().each([](Script& script) {
       for (auto& [id , s] : script.scripts) {
-        s->Shutdown();
+        s->Stop();
       }
     });
 
@@ -199,6 +205,10 @@ namespace other {
     return std::find_if(entities.begin() , entities.end() , [&name](const auto& ent_pair) ->bool {
       return name == ent_pair.second->Name(); 
     }) != entities.end();
+  }
+      
+  std::vector<BatchData> Scene::GetRenderBatchData() const {
+    return {};
   }
       
   const std::map<UUID , Entity*>& Scene::RootEntities() const {

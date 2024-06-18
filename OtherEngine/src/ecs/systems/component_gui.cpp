@@ -154,7 +154,7 @@ namespace other {
   }
 
   void DrawScriptArray(ScriptField* array , ScriptObject* script_instance) {
-    ImGui::Text("Script array : %s" , array->name.c_str()); 
+    // ImGui::Text("Script array : %s" , array->name.c_str()); 
   }
 
   void DrawScriptField(ScriptField* field , ScriptObject* script_instance) {
@@ -250,7 +250,8 @@ namespace other {
       }
 
       ImGui::GetStyle().ButtonTextAlign = og_button_txt_align;
-bool clear = false; if (ImGui::BeginPopup(("##script_popup" + s->Name()).c_str())) {
+      bool clear = false; 
+      if (ImGui::BeginPopup(("##script_popup" + s->Name()).c_str())) {
         if (clear) {
            
         }

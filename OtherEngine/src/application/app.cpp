@@ -109,6 +109,7 @@ namespace other {
       
       // updates mouse/keyboard/any connected controllers
       IO::Update();
+  CHECKGL();
 
       /// first we check to see if we need to reload any scripts
       if (Renderer::IsWindowFocused()) {
@@ -132,6 +133,10 @@ namespace other {
       Renderer::BeginFrame();
       DoRender();
       Renderer::EndFrame();
+
+      if (!in_editor) {
+        Renderer::Viewport()->Draw();
+      }
 
       DoRenderUI();
       Renderer::SwapBuffers();
@@ -342,15 +347,18 @@ namespace other {
     }
       
     scene_manager->SetAsActive(path);
-    if (scene_manager->ActiveScene() == nullptr) {
+    const SceneMetadata* scn_metadata = scene_manager->ActiveScene();
+    if (scn_metadata == nullptr) {
       OE_ERROR("Failed to load scene : {}" , path);
       return;
     }
 
     /// propogate scene loading through layers
     for (size_t i = 0; i < layer_stack->Size(); ++i) {
-      (*layer_stack)[i]->LoadScene(scene_manager->ActiveScene());
+      (*layer_stack)[i]->LoadScene(scn_metadata);
     }
+
+    Renderer::SetSceneContext(scn_metadata->scene);
     
     /// alert the client app new scene is loaded 
     OnSceneLoad(scene_manager->ActiveScene());
@@ -375,6 +383,10 @@ namespace other {
     for (size_t i = 0; i < layer_stack->Size(); ++i) {
       (*layer_stack)[i]->LoadScene(nullptr);
     }
+  }
+      
+  bool App::InEditor() const {
+    return in_editor;
   }
 
   void App::Attach() {
@@ -412,6 +424,8 @@ namespace other {
 
   void App::DoRender() {
     Render();
+
+    CHECKGL();
 
     scene_manager->RenderScene();
 

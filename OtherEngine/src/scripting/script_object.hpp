@@ -56,10 +56,14 @@ namespace other {
       virtual void SetField(const std::string& name , const Value& value) = 0;
 
       virtual void Initialize() = 0;
+      virtual void Shutdown() = 0; 
+
+      virtual void Start() = 0;
+      virtual void Stop() = 0;
+
       virtual void Update(float dt) = 0;
       virtual void Render() = 0;
       virtual void RenderUI() = 0;
-      virtual void Shutdown() = 0; 
     
     protected:
       LanguageModuleType lang_type;

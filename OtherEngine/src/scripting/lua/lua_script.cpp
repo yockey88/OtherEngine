@@ -38,6 +38,9 @@ namespace other {
   }
 
   void LuaScript::Shutdown() {
+    for (auto& [id , obj] : loaded_objects) {
+      obj.Shutdown();
+    }
     loaded_objects.clear();
   }
 
@@ -60,9 +63,10 @@ namespace other {
 
     OE_INFO("Lua object {} loaded" , name);
   
-    loaded_objects[id] = LuaObject(module_name , name , &lua_state);
-    loaded_objects[id].InitializeScriptMethods();
-    loaded_objects[id].InitializeScriptFields();
+    auto& obj = loaded_objects[id] = LuaObject(module_name , name , &lua_state);
+    obj.InitializeScriptMethods();
+    obj.InitializeScriptFields();
+    obj.Initialize();
 
     return &loaded_objects[id];
   }

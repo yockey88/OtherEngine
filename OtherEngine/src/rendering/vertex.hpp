@@ -7,6 +7,8 @@
 #include <glad/glad.h>
 
 #include "core/defines.hpp"
+#include "math/vecmath.hpp"
+#include "rendering/color.hpp"
 
 namespace other {
 
@@ -31,29 +33,51 @@ namespace other {
     POINTS = GL_POINTS ,
   };
 
+  struct Vertex {
+    Point position;
+    RgbColor color;
+    Opt<glm::vec3> normal = std::nullopt;
+    Opt<glm::vec3> tangent = std::nullopt;
+    Opt<glm::vec3> bitangent = std::nullopt;
+    Opt<glm::vec2> uv_coord = std::nullopt;
+
+    /// DO NOT FORGET TO CHANGE BOTH OF THESE FUNCTIONS IF YOU CHANGE ONE
+    constexpr static std::vector<uint32_t> Layout() {
+      return { 3 , 3 , 3 , 3 , 3 , 2 };
+    }
+
+    constexpr static uint32_t Stride() {
+      return 17;
+    }
+  };
+
   class VertexBuffer { 
     public:
-      VertexBuffer(
-        const void* data , uint32_t size , 
-        BufferUsage usage = STATIC_DRAW , 
-        BufferType type = ARRAY_BUFFER
-      );
+      VertexBuffer(BufferType type , size_t capacity);
+      VertexBuffer(const void* data , uint32_t size , BufferUsage usage = STATIC_DRAW , BufferType type = ARRAY_BUFFER);
       ~VertexBuffer();
+
+      size_t Size() const;
   
       void Bind() const;
       void Unbind() const;
 
+      void BufferData(const void* data , uint32_t size , uint32_t offset = 0);
+      void ClearBuffer();
+
     private:
       BufferType buffer_type;
       BufferUsage buffer_usage; 
+
+      Opt<size_t> dynamic_capacity = std::nullopt;
       
-      uint32_t renderer_id;
+      uint32_t renderer_id = 0;
       uint32_t buffer_size;
-      const void* buffer_data;
   };
   
   class VertexArray { 
     public:
+      VertexArray();
       VertexArray(
         const std::vector<float>& vertices , 
         const std::vector<uint32_t>& indices = {} , 

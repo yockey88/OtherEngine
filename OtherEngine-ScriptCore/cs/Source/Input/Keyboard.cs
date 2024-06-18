@@ -1,23 +1,31 @@
-﻿using System;
 using System.Runtime.CompilerServices;
 
 namespace Other {
 
-  enum State : int {
-    PRESSED = 0,
-    BLOCKED ,
-    HELD ,
-    RELEASED ,
-  }
+  public static class Keyboard {
+    private const int NumKeys = 287;
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern int FramesHeld(KeyCode key);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern bool Pressed(KeyCode key);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern bool Blocked(KeyCode key);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern bool Held(KeyCode key);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern bool Down(KeyCode key);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern bool Released(KeyCode key);
 
-  public enum Button : int {
-    FIRST = 0 ,
-    LEFT = FIRST ,
-    MIDDLE = 1 , 
-    RIGHT = 2 ,
-    X1 = 3 ,
-    X2 = 4 ,
-    LAST = X2
+    public static int KeyCount {
+      get => NumKeys;
+    }
   }
 
   public enum KeyCode : int {
@@ -279,136 +287,4 @@ namespace Other {
     KEY_NUM_YES = 512
   }
 
-  public struct InputState {
-    State current_state , previous_state;
-    int frame_count;
-  }
-
-  public struct MouseState {
-    private Vec2 position;
-    private Vec2 last_position;
-    bool in_window;
-    
-    public Vec2 Position {
-      get => position;
-      set {
-        last_position = position;
-        position = value;
-      }
-    }
-    
-    public Vec2 LastPosition {
-      get => last_position;
-      set => last_position = value;
-    }
-  }
-
-  public static class Keyboard {
-    private const int NumKeys = 287;
-    
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern int FramesHeld(KeyCode key);
-    
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern bool Pressed(KeyCode key);
-    
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern bool Blocked(KeyCode key);
-    
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern bool Held(KeyCode key);
-    
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern bool Down(KeyCode key);
-    
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern bool Released(KeyCode key);
-
-    public static int KeyCount {
-      get => NumKeys;
-    }
-  }
-  
-  public static class Mouse {
-    private const int NumButtons = 5;
-
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern void SnapToCenter();
-
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern void FreeCursor();
-    
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern void LockCursor();
-    
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern int GetX();
-
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern int GetY();
-    
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern int PreviosX();
-
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern int PreviousY();
-    
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern int GetDX();
-
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern int GetDY();
-    
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern bool InWindow();
-
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern int FramesHeld(Button button);
-    
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern bool Pressed(Button button);
-    
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern bool Blocked(Button button);
-    
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern bool Held(Button button);
-    
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern bool Released(Button button);
-
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    private static extern void MousePos(out Vec2 result);
-
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    private static extern void MousePreviousPos(out Vec2 result);
-
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    private static extern void MouseDeltaPos(out Vec2 result);
-
-    public static int ButtonCount {
-      get => NumButtons;
-    }
-
-    public static Vec2 Position {
-      get {
-        MousePos(out Vec2 result);
-        return result;
-      }    
-    }
-
-    public static Vec2 LastPosition {
-      get {
-        MousePreviousPos(out Vec2 result);
-        return result;
-      }
-    }
-
-    public static Vec2 Delta {
-      get {
-        MouseDeltaPos(out Vec2 result);
-        return result;
-      }
-    }
-  }
 }

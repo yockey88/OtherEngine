@@ -10,12 +10,13 @@
 #include "parsing/cmd_line_parser.hpp"
 #include "project/project.hpp"
 #include "application/app.hpp"
+#include "scripting/language_module.hpp"
+#include "scene/scene.hpp"
+#include "rendering/camera_base.hpp"
+
 #include "editor/editor_panel.hpp"
 #include "editor/scene_panel.hpp"
 #include "editor/entity_properties.hpp"
-
-#include "scene/scene.hpp"
-#include "scripting/language_module.hpp"
 
 namespace other {
 
@@ -35,6 +36,7 @@ namespace other {
       Scope<App> app;
       Ref<Project> project;
       Ref<Scene> active_scene;
+      Ref<CameraBase> editor_camera = nullptr;
 
       bool project_panel_open = true;
       Ref<EditorPanel> project_panel;

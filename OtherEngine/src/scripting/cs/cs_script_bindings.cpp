@@ -13,6 +13,7 @@
 #include "ecs/components/mesh.hpp"
 #include "scripting/cs/native_functions/cs_native_logging.hpp"
 #include "scripting/cs/native_functions/cs_native_input.hpp"
+#include "scripting/cs/native_functions/cs_native_rendering.hpp"
 
 namespace other {
 
@@ -132,16 +133,21 @@ namespace other {
   /// Still other functions might require the transfer of non-primitive types that are given to the .NET runtime as out parameters
   ///   like the MouseXXXPos calls, which have glm::vec2* parameters natively, but are passed Other.Vec2 out parameters from the .NET runtime
 
-   REGISTER_NATIVE_FUNCTION(Logger , WriteLine); 
-   REGISTER_NATIVE_FUNCTION(Logger , WriteTrace); 
-   REGISTER_NATIVE_FUNCTION(Logger , WriteDebug); 
-   REGISTER_NATIVE_FUNCTION(Logger , WriteWarning); 
-   REGISTER_NATIVE_FUNCTION(Logger , WriteError); 
-   REGISTER_NATIVE_FUNCTION(Logger , WriteCritical); 
+  REGISTER_NATIVE_FUNCTION(Logger , WriteLine); 
+  REGISTER_NATIVE_FUNCTION(Logger , WriteTrace); 
+  REGISTER_NATIVE_FUNCTION(Logger , WriteDebug); 
+  REGISTER_NATIVE_FUNCTION(Logger , WriteWarning); 
+  REGISTER_NATIVE_FUNCTION(Logger , WriteError); 
+  REGISTER_NATIVE_FUNCTION(Logger , WriteCritical); 
 
-   REGISTER_NATIVE_FUNCTION(Mouse , MousePos);
-   REGISTER_NATIVE_FUNCTION(Mouse , MousePreviousPos);
-   REGISTER_NATIVE_FUNCTION(Mouse , MouseDeltaPos);
+  REGISTER_NATIVE_FUNCTION(Mouse , MousePos);
+  REGISTER_NATIVE_FUNCTION(Mouse , MousePreviousPos);
+  REGISTER_NATIVE_FUNCTION(Mouse , MouseDeltaPos);
+
+  REGISTER_NATIVE_FUNCTION(Renderer , NativeDrawLine);
+  REGISTER_NATIVE_FUNCTION(Renderer , NativeDrawTriangle);
+  REGISTER_NATIVE_FUNCTION(Renderer , NativeDrawRect);
+  
 
 #undef REGISTER_NATIVE_FUNCTION
 
