@@ -10,8 +10,13 @@ namespace other {
 
   class OrthographicCamera : public CameraBase {
     public:
-      virtual void Rotate(const glm::quat& quat) override {}
-      virtual void RotateAround(const glm::vec3& v , float degrees) override {}
+      OrthographicCamera()
+          : CameraBase(CameraProjectionType::ORTHOGRAPHIC) {}
+      
+      OrthographicCamera(const Ref<CameraBase>& other) 
+          : CameraBase(other , CameraProjectionType::ORTHOGRAPHIC) {}
+
+      virtual std::string GetCameraTypeString() const override;
 
     private:
       virtual void CalculateProjection() override;

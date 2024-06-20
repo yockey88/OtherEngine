@@ -7,8 +7,6 @@
 
 #include "core/logger.hpp"
 #include "core/engine.hpp"
-#include "scripting/cs/cs_module.hpp"
-#include "scripting/lua/lua_module.hpp"
 #include "scripting/script_defines.hpp"
 
 namespace other {
@@ -21,8 +19,6 @@ namespace other {
   std::map<UUID , LanguageModuleMetadata> ScriptEngine::language_modules;
   std::map<UUID , ScriptModule*> ScriptEngine::loaded_modules;
   std::map<UUID , ScriptObject*> ScriptEngine::objects;
-
-  static Scope<LanguageModule> null_module = nullptr;
 
   constexpr static std::array<Ref<LanguageModule>(*)() , kNumModules> kModuleGetters = {
     []() -> Ref<LanguageModule> { return Ref<CsModule>::Create(); } ,
@@ -37,6 +33,14 @@ namespace other {
     
     LoadModule(CS_MODULE);
     LoadModule(LUA_MODULE);
+
+    auto assets_dir = GetAppContext()->GetProjectContext()->GetMetadata().assets_dir;  
+    auto script_dir = assets_dir / "scripts";
+    auto editor_dir = assets_dir / "editor";
+
+    /// use the lua module to build the scripts
+    Ref<LuaModule> lua = GetModuleAs<LuaModule>(LUA_MODULE);
+    
   }
 
   void ScriptEngine::Shutdown() {
@@ -65,21 +69,9 @@ namespace other {
       mod.module->Reload();
     }
   }
-
-  Ref<LanguageModule> ScriptEngine::GetModule(const std::string_view name) {
-    auto type = StringToModuleType(name);
-    if (type == LanguageModuleType::INVALID_LANGUAGE_MODULE) {
-      OE_DEBUG("Failed to retrieve language module {}" , name);
-      return nullptr;
-    }
-
-    return Ref<LanguageModule>::Clone(language_modules[type].module);
-  }
-
-  Ref<LanguageModule> ScriptEngine::GetModule(UUID id) {
-    auto type = IdToModuleType(id);
-    if (type == LanguageModuleType::INVALID_LANGUAGE_MODULE) {
-      OE_DEBUG("Failed to retrieve language module {}" , id);
+      
+  Ref<LanguageModule> ScriptEngine::GetModule(LanguageModuleType type) {
+    if (type >= LanguageModuleType::INVALID_LANGUAGE_MODULE) {
       return nullptr;
     }
 
@@ -127,6 +119,10 @@ namespace other {
     return app_context;
   }
       
+  std::map<UUID , LanguageModuleMetadata>& ScriptEngine::GetModules() {
+    return language_modules;
+  }
+      
   LanguageModuleType ScriptEngine::StringToModuleType(const std::string_view name) {
     UUID id = FNV(name);
     return IdToModuleType(id);
@@ -145,7 +141,6 @@ namespace other {
   }
       
   void ScriptEngine::LoadModule(LanguageModuleType type) {
-    language_modules[type].type = type;
     language_modules[type].id = kModuleInfo[type].hash;
     language_modules[type].name = kModuleInfo[type].name;
     language_modules[type].module = kModuleGetters[type]();

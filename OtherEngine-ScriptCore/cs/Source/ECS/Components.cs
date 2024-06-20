@@ -3,7 +3,7 @@
 namespace Other {
 
   public abstract class Component {
-    public Entity Entity { get; internal set; }
+    public OtherObject Object { get; internal set; }
   }
 
   public class Tag : Component {

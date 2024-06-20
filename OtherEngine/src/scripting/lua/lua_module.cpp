@@ -30,6 +30,8 @@ namespace other {
       return false;
     }
 
+    OE_DEBUG("Lua Module Initialized");
+
     load_success = true;
     return load_success;
   }

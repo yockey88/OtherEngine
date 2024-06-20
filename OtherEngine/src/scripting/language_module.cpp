@@ -6,6 +6,10 @@
 #include <iterator>
 
 namespace other {
+      
+  LanguageModuleType LanguageModule::GetLanguageType() const {
+    return lang_type;
+  }
 
   bool LanguageModule::HasScriptModule(const std::string_view name) const {
     std::string case_insensitive_name;

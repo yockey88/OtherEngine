@@ -14,8 +14,12 @@
 
 namespace other {
 
-  class ScriptObject {
+  /// TODO: fix how scripts are loaded so this can be an asset and retrieved
+  ///       from the asset manager
+  class ScriptObject /* : public Asset */ {
     public:
+      /// OE_ASSET(SCRIPT);
+
       ScriptObject(LanguageModuleType lang_type , const std::string& module_name , 
           const std::string& name , Opt<std::string> name_space = std::nullopt) 
         : lang_type(lang_type) , script_module_name(module_name) , name_space(name_space) , script_name(name) {}
@@ -36,6 +40,9 @@ namespace other {
         return OnCallMethod(method , empty);
       }
 
+      void SetEntityId(UUID id);
+      UUID GetEntityId() const;
+      
       const std::string& ScriptName() const;
       const Opt<std::string> NameSpace() const;
       const std::string& Name() const;
@@ -68,6 +75,8 @@ namespace other {
     protected:
       LanguageModuleType lang_type;
 
+      UUID entity_id;
+
       bool is_initialized = false;
       bool is_corrupt = false;
 
@@ -77,6 +86,7 @@ namespace other {
 
       std::map<UUID , ScriptField> fields;
       
+      virtual void OnSetEntityId() = 0;
       virtual Opt<Value> OnCallMethod(const std::string_view name , std::span<Value> args) = 0;
       virtual Opt<Value> OnCallMethod(const std::string_view name , Parameter* args , uint32_t argc);
   };

@@ -111,6 +111,12 @@ namespace other {
   constexpr static std::string_view kMinimizedValue = "MINIMIZED";
   constexpr static uint64_t kMinimizedValueHash = FNV(kMinimizedValue);
 
+  constexpr static std::string_view kViewportValue = "VIEWPORT";
+  constexpr static uint64_t kViewportValueHash = FNV(kViewportValue);
+  
+  constexpr static std::string_view kClipValue = "CLIP";
+  constexpr static uint64_t kClipValueHash = FNV(kClipValue);
+
   constexpr static std::string_view kAllowHighDpiValue = "ALLOW-HIGH-DPI";
   constexpr static uint64_t kAllowHighDpiValueHash = FNV(kAllowHighDpiValue);
 
@@ -161,12 +167,24 @@ namespace other {
 
   constexpr static std::string_view kDisabledValue = "DISABLED";
   constexpr static uint64_t kDisabledValueHash = FNV(kDisabledValue);
+  
+  constexpr static std::string_view kMouseValue = "MOUSE";
+  constexpr static uint64_t kMouseValueHash = FNV(kMouseValue);
+  
+  constexpr static std::string_view kLastMouseValue = "LAST-MOUSE";
+  constexpr static uint64_t kLastMouseValueHash = FNV(kLastMouseValue);
+  
+  constexpr static std::string_view kDeltaMouseValue = "DELTA-MOUSE";
+  constexpr static uint64_t kDeltaMouseValueHash = FNV(kDeltaMouseValue);
 
   constexpr static std::string_view kThemeValue = "THEME";
   constexpr static uint64_t kThemeValueHash = FNV(kThemeValue);
 
   constexpr static std::string_view kIniPathValue = "INI-PATH";
   constexpr static uint64_t kIniPathValueHash = FNV(kIniPathValue);
+
+  constexpr static std::string_view kTypeValue = "TYPE";
+  constexpr static uint64_t kTypeValueHash = FNV(kTypeValue);
 
   constexpr static std::string_view kDefaultModulesValue = "DEFAULT-MODULES";
   constexpr static uint64_t kDefaultModulesHash = FNV(kDefaultModulesValue);
@@ -192,6 +210,18 @@ namespace other {
   constexpr static std::string_view kPositionValue = "POSITION";
   constexpr static uint64_t kPositionValueHash = FNV(kPositionValue);
   
+  constexpr static std::string_view kDirectionValue = "DIRECTION";
+  constexpr static uint64_t kDirectionValueHash = FNV(kDirectionValue);
+  
+  constexpr static std::string_view kUpValue = "UP";
+  constexpr static uint64_t kUpValueHash = FNV(kUpValue);
+  
+  constexpr static std::string_view kWorldUpValue = "WORLD-UP";
+  constexpr static uint64_t kWorldUpValueHash = FNV(kWorldUpValue);
+  
+  constexpr static std::string_view kRightValue = "RIGHT";
+  constexpr static uint64_t kRightValueHash = FNV(kRightValue);
+  
   constexpr static std::string_view kRotationValue = "ROTATION";
   constexpr static uint64_t kRotationValueHash = FNV(kRotationValue);
   
@@ -202,7 +232,37 @@ namespace other {
   constexpr static uint64_t kChildrenValueHash = FNV(kChildrenValue);
 
   constexpr static std::string_view kScriptValue = "SCRIPT";
-  constexpr static uint64_t kScriptValueHash = FNV(kScaleValue);
+  constexpr static uint64_t kScriptValueHash = FNV(kScriptValue);
+  
+  constexpr static std::string_view kScriptsValue = "SCRIPTS";
+  constexpr static uint64_t kScriptsValueHash = FNV(kScriptsValue);
+
+  constexpr static std::string_view kCameraValue = "CAMERA";
+  constexpr static uint64_t kCameraValueHash = FNV(kCameraValue);
+
+  constexpr static std::string_view kPerspectiveCamValue = "PERSPECTIVE";
+  constexpr static uint64_t kPerspectiveCamValueHash = FNV(kPerspectiveCamValue);
+  
+  constexpr static std::string_view kOrthographicCamValue = "ORTHOGRAPHIC";
+  constexpr static uint64_t kOrthographicCamValueHash = FNV(kOrthographicCamValue);
+  
+  constexpr static std::string_view kSpeedValue = "SPEED";
+  constexpr static uint64_t kSpeedValueHash = FNV(kSpeedValue);
+
+  constexpr static std::string_view kSensitivityValue = "SENSITIVITY";
+  constexpr static uint64_t kSensitivityValueHash = FNV(kSensitivityValue);
+
+  constexpr static std::string_view kFovValue = "FOV";
+  constexpr static uint64_t kFovValueHash = FNV(kFovValue);
+  
+  constexpr static std::string_view kZoomValue = "ZOOM";
+  constexpr static uint64_t kZoomValueHash = FNV(kZoomValue);
+  
+  constexpr static std::string_view kConstrainPitchValue = "CONSTRAIN-PITCH";
+  constexpr static uint64_t kConstrainPitchValueHash = FNV(kConstrainPitchValue);
+  
+  constexpr static std::string_view kPrimaryValue = "PRIMARY";
+  constexpr static uint64_t kPrimaryValueHash = FNV(kPrimaryValue);
 
 } // namespace other 
 

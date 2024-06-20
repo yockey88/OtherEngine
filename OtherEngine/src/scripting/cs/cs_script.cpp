@@ -3,6 +3,7 @@
  **/
 #include "scripting/cs/cs_script.hpp"
 
+#include <filesystem>
 #include <mono/metadata/assembly.h>
 #include <mono/metadata/blob.h>
 #include <mono/metadata/class.h>
@@ -89,11 +90,34 @@ namespace other {
     /// since script-modules loaded from the .dll path and not the actual script we have to find the 
     ///   original C# file to track with the filewatcher
     if (assembly_path.find("OtherEngine-CsCore") == std::string::npos) {
-      Path script_dir = app_ctx->GetProjectContext()->GetMetadata().assets_dir / "scripts";
-      Path real_script_file_full = script_dir / Path{ assembly_path }.filename();
-      std::string real_file = real_script_file_full.string().substr(0 , real_script_file_full.string().find_last_of('.'));
-      real_file += ".cs";
-      SetPath(real_file);
+      Path assets_dir = app_ctx->GetProjectContext()->GetMetadata().assets_dir;
+      Path script_dir = assets_dir / "scripts";
+      Path editor_dir = assets_dir / "editor";
+
+      Path real_script_file;
+      for (auto entry : std::filesystem::directory_iterator(script_dir)) {
+        if (entry.is_regular_file() && entry.path().extension().string() == ".cs") {
+          Path p = entry.path();
+          std::string name = p.filename().string();
+          name = name.substr(0 , name.find_last_of('.'));
+
+          if (name == asm_name) {
+            SetPath(entry.path().string());
+          }
+        } 
+      }
+
+      for (auto& entry : std::filesystem::directory_iterator(editor_dir)) {
+        if (entry.is_regular_file() && entry.path().extension().string() == ".cs") {
+          Path p = entry.path();
+          std::string name = p.filename().string();
+          name = name.substr(0 , name.find_last_of('.'));
+
+          if (name == asm_name) {
+            SetPath(entry.path().string());
+          }
+        } 
+      }
     }
     
     valid = true;

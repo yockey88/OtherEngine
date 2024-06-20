@@ -9,12 +9,16 @@
 #include <glm/gtx/euler_angles.hpp>
 
 #include "scripting/script_engine.hpp"
+
+#include "rendering/renderer.hpp"
+
 #include "ecs/entity.hpp"
 #include "ecs/components/tag.hpp"
 #include "ecs/components/transform.hpp"
-#include "ecs/components/mesh.hpp"
 #include "ecs/components/relationship.hpp"
+#include "ecs/components/mesh.hpp"
 #include "ecs/components/script.hpp"
+#include "ecs/components/camera.hpp"
 #include "ecs/systems/core_systems.hpp"
 
 namespace other {
@@ -22,9 +26,13 @@ namespace other {
   Scene::Scene() {
     registry.on_construct<entt::entity>().connect<&OnConstructEntity>();
     registry.on_destroy<entt::entity>().connect<&OnDestroyEntity>();
+
+    registry.on_construct<Camera>().connect<&OnCameraAddition>();
   }
 
   Scene::~Scene() {
+    registry.on_construct<Camera>().disconnect<&OnCameraAddition>();
+
     registry.on_destroy<entt::entity>().disconnect<&OnDestroyEntity>();
     registry.on_construct<entt::entity>().disconnect<&OnConstructEntity>();
 
@@ -34,16 +42,7 @@ namespace other {
   }
 
   void Scene::Initialize() {
-    /// check if any entities were given a parent and need to removed from root
-    for (auto itr = root_entities.begin(); itr != root_entities.end();) {
-      if (itr->second->GetComponent<Relationship>().parent.has_value()) {
-        OE_DEBUG("De-rooting entity : {}" , itr->second->Name());
-        itr = root_entities.erase(itr); 
-      } else {
-        ++itr;
-      }
-    }
-
+    FixRoots();
 
     OnInit(); 
     initialized = true;
@@ -55,6 +54,12 @@ namespace other {
     registry.view<Script>().each([](const Script& script) {
       for (auto& [id , s] : script.scripts) {
         s->Start();
+      }
+    });
+
+    registry.view<Camera>().each([](Camera& camera) {
+      if (camera.camera->IsPrimary()) {
+        Renderer::BindCamera(camera.camera);
       }
     });
 
@@ -73,9 +78,6 @@ namespace other {
       Stop();
       return;
     }
-    
-    registry.view<Tag>().each([](Tag& relationship) {
-    });
 
     registry.view<Transform>().each([](Transform& transform) {
       transform.erotation = glm::eulerAngles(transform.qrotation);
@@ -86,16 +88,21 @@ namespace other {
       transform.model_transform = glm::scale(transform.model_transform , transform.scale);
     });
 
-    registry.view<Relationship>().each([](Relationship& relationship) {
-    });
-
     registry.view<Script>().each([&dt](const Script& script) {
       for (auto& [id , s] : script.scripts) {
         s->Update(dt);
       }
     });
 
-    registry.view<Mesh>().each([](Mesh& mesh) {
+    /// because every entity has a transform this is equivalent to view<Camera>
+    registry.view<Camera, Transform>().each([](Camera& camera , Transform& transform) {
+      if (camera.pinned_to_entity_position) {
+        camera.camera->SetPosition(transform.position);
+        camera.camera->SetOrientation(transform.erotation);
+        camera.camera->CalculateMatrix();
+      } else {
+        camera.camera->CalculateMatrix();
+      }
     });
 
     OnUpdate(dt);
@@ -112,18 +119,17 @@ namespace other {
   void Scene::Render() {
     /// push active camera to bind UBOs
     /// set shader unidorms
-    
-    // registry.view<Camera>().each([](const CameraComponent& camera) {});
 
     // registry.view<RenderedText>().each([](const RenderedText& mesh) {});
 
+    registry.view<Mesh>().each([](const Mesh& mesh) {
+      /// submit mesh to correct batch
+    });
+    
     registry.view<Script>().each([](const Script& script) {
       for (auto& [id , s] : script.scripts) {
         s->Render();
       }
-    });
-
-    registry.view<Mesh>().each([](const Mesh& mesh) {
     });
   }
       
@@ -174,7 +180,7 @@ namespace other {
 
         ScriptObject* inst = mod->GetScript(data.obj_name);
         if (inst == nullptr) {
-          OE_ERROR("Unable to reload script {}::{} : Failed to get Script" , data.module , data.obj_name);
+          OE_ERROR("Unable to reload script {}::{} : Failed to get Object" , data.module , data.obj_name);
           continue;
         }
 
@@ -210,6 +216,10 @@ namespace other {
   std::vector<BatchData> Scene::GetRenderBatchData() const {
     return {};
   }
+
+  size_t Scene::NumCameras() const {
+    return registry.view<Camera>().size();
+  }
       
   const std::map<UUID , Entity*>& Scene::RootEntities() const {
     return root_entities;
@@ -217,6 +227,18 @@ namespace other {
 
   const std::map<UUID , Entity*>& Scene::SceneEntities() const {
     return entities;
+  }
+      
+  Entity* Scene::GetEntity(const std::string& name) {
+    auto ent = std::find_if(entities.begin() , entities.end() , [&name](const auto& ent_pair) -> bool {
+      return name == ent_pair.second->Name();
+    });
+
+    if (ent == entities.end()) {
+      return nullptr;
+    }
+
+    return ent->second;
   }
   
   Entity* Scene::GetEntity(UUID id) const {
@@ -229,8 +251,13 @@ namespace other {
   }
 
   Entity* Scene::CreateEntity(const std::string& name) {
-    UUID id = FNV(name);
-    return CreateEntity(name , id);
+    std::string real_name = name;
+    if (real_name.empty()) {
+      real_name = fmtstr("[ Empty Object {}]" , entities.size());
+    }
+
+    UUID id = FNV(real_name);
+    return CreateEntity(real_name , id);
   }
 
   Entity* Scene::CreateEntity(const std::string& name , UUID id) {
@@ -250,6 +277,114 @@ namespace other {
     tag.name = name;
 
     return ent;
+  }
+      
+  void Scene::RenameEntity(UUID curr_id , UUID new_id , const std::string_view name) {
+    if (curr_id == new_id) {
+      return;
+    }
+
+    auto itr = entities.find(curr_id);
+    if (itr == entities.end()) {
+      OE_ERROR("Can not rename entity with id [{}], it does not exist!" , curr_id);
+      return;
+    }
+
+    Entity* entity = itr->second;
+    auto& tag  = entity->GetComponent<Tag>();
+    tag.name = name;
+    tag.id = new_id;
+
+    entities.erase(itr);
+
+    entities[new_id] = entity;
+
+    if (auto ritr = root_entities.find(curr_id); ritr != root_entities.end()) {
+      root_entities.erase(ritr);
+      root_entities[new_id] = entity;
+    }
+  }
+      
+  void Scene::ParentEntity(UUID id , UUID parent_id) {
+    Entity* entity = GetEntity(id);
+    Entity* parent = GetEntity(parent_id);
+
+    if (entity == nullptr) {
+      OE_ERROR("Attempting to parent a non-existent entity");
+      return;
+    }
+    
+    if (parent == nullptr) {
+      OE_ERROR("Attempting to place entity as child of non-existent entity");
+      return;
+    }
+
+    auto& crelationship = entity->GetComponent<Relationship>();
+    auto& prelationship = parent->GetComponent<Relationship>();
+    
+    if (crelationship.parent.has_value()) {
+      OrphanEntity(id);
+    } 
+
+    prelationship.children.insert(id);
+    crelationship.parent = parent_id;
+
+    FixRoots();
+  }
+      
+  void Scene::OrphanEntity(UUID id) {
+    Entity* entity = GetEntity(id);
+    
+    if (entity == nullptr) {
+      OE_ERROR("Attempting to orphan non-existent entity");
+      return;
+    }
+
+    auto& crelationship = entity->GetComponent<Relationship>();
+    
+    if (!crelationship.parent.has_value()) {
+      return;
+    }
+
+    Entity* old_parent = GetEntity(crelationship.parent.value());
+
+    if (old_parent == nullptr) {
+      OE_ERROR("Entity relationships corrupt! {} has null parent" , entity->Name());
+      return;
+    }
+
+    auto& prelation = old_parent->GetComponent<Relationship>();
+    auto itr = std::find(prelation.children.begin() , prelation.children.end() , id);
+    if (itr != prelation.children.end()) {
+      prelation.children.erase(itr);
+    }
+
+    crelationship.parent = std::nullopt;
+
+    FixRoots();
+  }
+      
+  void Scene::FixRoots() {
+    /// add any entities that should be root entities to roots
+    for (auto itr = entities.begin(); itr != entities.end();) {
+      if (!itr->second->GetComponent<Relationship>().parent.has_value()) {
+        auto ritr = root_entities.find(itr->first);
+        if (ritr == root_entities.end()) {
+          root_entities[itr->first] = itr->second;
+        }
+      }
+      ++itr;
+    }
+
+    /// remove any entities with a parent from root
+    for (auto itr = root_entities.begin(); itr != root_entities.end();) {
+      if (itr->second->GetComponent<Relationship>().parent.has_value()) {
+        OE_DEBUG("De-rooting entity : {}" , itr->second->Name());
+        itr = root_entities.erase(itr); 
+      } else {
+        ++itr;
+      }
+    }
   }
 
 } // namespace other

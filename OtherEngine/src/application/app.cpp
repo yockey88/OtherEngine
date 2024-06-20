@@ -14,6 +14,7 @@
 #include "rendering/ui/ui.hpp"
 #include "layers/core_layer.hpp"
 #include "layers/debug_layer.hpp"
+#include "scripting/script_defines.hpp"
 #include "scripting/script_engine.hpp"
 
 namespace other {
@@ -23,17 +24,15 @@ namespace other {
   }
 
   App::~App() {}
-
-  void App::LoadMetadata(const Ref<Project>& metadata) {
-    project_metadata = metadata;
-  }
       
   Ref<Project> App::GetProjectContext() {
     return Ref<Project>::Clone(project_metadata);
   }
 
-  void App::OnLoad() {
+  void App::Load() {
     OE_DEBUG("Loading application");
+
+    project_metadata = Ref<Project>::Create(cmdline , config);
 
     layer_stack = NewScope<LayerStack>();
     asset_handler = NewScope<AssetHandler>();
@@ -62,7 +61,7 @@ namespace other {
     ScriptEngine::Initialize(GetEngine() , config);
 
     OE_DEBUG("Loading C# script modules");
-    Ref<LanguageModule> cs_language_module = ScriptEngine::GetModule(kCsModuleSection);
+    Ref<LanguageModule> cs_language_module = ScriptEngine::GetModule(LanguageModuleType::CS_MODULE);
     if (cs_language_module != nullptr) {
       std::string real_key = std::string{ kScriptingSection } + "." + std::string{ kCsModuleSection };
       auto cs_modules = config.Get(real_key , kPathsValue);
@@ -79,7 +78,7 @@ namespace other {
     }
 
     OE_DEBUG("Loading Lua script modules");
-    Ref<LanguageModule> lua_language_module = ScriptEngine::GetModule(kLuaModuleSection);
+    Ref<LanguageModule> lua_language_module = ScriptEngine::GetModule(LanguageModuleType::LUA_MODULE);
     if (lua_language_module != nullptr) {
       std::string real_key = std::string{ kScriptingSection } + "." + std::string{ kLuaModuleSection };
       auto lua_modules = config.Get(real_key , kPathsValue);
@@ -94,6 +93,8 @@ namespace other {
         });
       }
     }
+
+    OnLoad();
   }
 
   void App::Run() {
@@ -109,7 +110,7 @@ namespace other {
       
       // updates mouse/keyboard/any connected controllers
       IO::Update();
-  CHECKGL();
+      CHECKGL();
 
       /// first we check to see if we need to reload any scripts
       if (Renderer::IsWindowFocused()) {
@@ -145,10 +146,14 @@ namespace other {
     } 
 
     Detach();
+
+    OE_DEBUG("Application successfully attached");
   }
 
-  void App::OnUnload() {
+  void App::Unload() {
     OE_DEBUG("Unloading application");
+
+    OnUnload();
     
     asset_handler = nullptr;
 
@@ -161,7 +166,7 @@ namespace other {
     }
     
     OE_DEBUG("Unloading Lua script modules");
-    Ref<LanguageModule> lua_language_module = ScriptEngine::GetModule(kLuaModuleSection);
+    Ref<LanguageModule> lua_language_module = ScriptEngine::GetModule(LanguageModuleType::LUA_MODULE);
     if (lua_language_module != nullptr) {
       std::string real_key = std::string{ kScriptingSection } + "." + std::string{ kLuaModuleSection };
       auto lua_modules = config.Get(real_key , kPathsValue);
@@ -172,10 +177,12 @@ namespace other {
 
         lua_language_module->UnloadScriptModule(name);
       }
+    } else {
+      OE_ERROR("Failed to load lua script modules!");
     }
     
     OE_DEBUG("Unloading C# script modules");
-    Ref<LanguageModule> cs_language_module = ScriptEngine::GetModule(kCsModuleSection);
+    Ref<LanguageModule> cs_language_module = ScriptEngine::GetModule(LanguageModuleType::CS_MODULE);
     if (cs_language_module != nullptr) {
       std::string real_key = std::string{ kScriptingSection } + "." + std::string{ kCsModuleSection };
       auto cs_modules = config.Get(real_key , kPathsValue);
@@ -187,6 +194,8 @@ namespace other {
         OE_DEBUG(" > Unloading C# script module {}" , name);
         cs_language_module->UnloadScriptModule(name);
       }
+    } else {
+      OE_ERROR("Failed to load C# script modules!");
     }
 
     OE_DEBUG("Shutting down script engine");
@@ -234,7 +243,8 @@ namespace other {
   }
 
   void App::ProcessEvent(Event* event) {
-    if (event->Type() == EventType::SCRIPT_RELOAD) {
+    /// dont reload the scripts of we aren't in the editor
+    if (event->Type() == EventType::SCRIPT_RELOAD && is_editor) {
       Opt<Path> active_path = std::nullopt;
       if (scene_manager->ActiveScene() != nullptr) {
         active_path = scene_manager->ActiveScene()->path;
@@ -243,6 +253,8 @@ namespace other {
         
       scene_manager->ClearScenes();
       ScriptEngine::ReloadAllScripts();
+
+      OnScriptReload();
 
       if (active_path.has_value()) {
         LoadScene(active_path.value());
@@ -333,11 +345,11 @@ namespace other {
   }
   
   void App::LoadScene(const Path& path) {
-    if (scene_manager->HasActiveScene() && scene_manager->ActiveScene()->path == path) {
+    if (HasActiveScene() && ActiveScene()->path == path) {
       return;
     }
       
-    if (scene_manager->HasActiveScene()) {
+    if (HasActiveScene()) {
       UnloadScene();
     }
 
@@ -347,7 +359,7 @@ namespace other {
     }
       
     scene_manager->SetAsActive(path);
-    const SceneMetadata* scn_metadata = scene_manager->ActiveScene();
+    const SceneMetadata* scn_metadata = ActiveScene();
     if (scn_metadata == nullptr) {
       OE_ERROR("Failed to load scene : {}" , path);
       return;
@@ -361,28 +373,34 @@ namespace other {
     Renderer::SetSceneContext(scn_metadata->scene);
     
     /// alert the client app new scene is loaded 
-    OnSceneLoad(scene_manager->ActiveScene());
+    OnSceneLoad(ActiveScene());
+  }
+      
+  bool App::HasActiveScene() {
+    return scene_manager->ActiveScene() != nullptr;
   }
 
-  Ref<Scene> App::ActiveScene() {
-    return scene_manager->ActiveScene()->scene;
+  const SceneMetadata* App::ActiveScene() {
+    return scene_manager->ActiveScene();
   }
 
   void App::UnloadScene() {
-    if (scene_manager->ActiveScene() == nullptr) {
+    if (ActiveScene() == nullptr) {
       return;
     }
     
     /// alert client app about scene unload
     OnSceneUnload();
 
-    OE_DEBUG("Unloading scene : {}" , scene_manager->ActiveScene()->path);
+    OE_DEBUG("Unloading scene : {}" , ActiveScene()->path);
     scene_manager->UnloadActive();
 
     /// propogate scene unload through layers
     for (size_t i = 0; i < layer_stack->Size(); ++i) {
       (*layer_stack)[i]->LoadScene(nullptr);
     }
+
+    OE_DEBUG("Scene Unloaded");
   }
       
   bool App::InEditor() const {
@@ -391,6 +409,10 @@ namespace other {
 
   void App::Attach() {
     OE_DEBUG("Attaching application");
+    for (auto itr = layer_stack->begin(); itr != layer_stack->end(); ++itr) {
+      (*itr)->Attach();
+    }
+    
     OnAttach();
   }
 
@@ -426,12 +448,12 @@ namespace other {
     Render();
 
     CHECKGL();
-
-    scene_manager->RenderScene();
-
+    
     for (size_t i = 0; i < layer_stack->Size(); ++i) {
       (*layer_stack)[i]->Render();
     }
+
+    scene_manager->RenderScene();
   }
 
   void App::DoRenderUI() {
@@ -440,12 +462,12 @@ namespace other {
       
       RenderUI();
       
-      for (auto& [id , window] : ui_windows) {
-        window->Render();
-      }
-      
       for (size_t i = 0; i < layer_stack->Size(); ++i) {
         (*layer_stack)[i]->UIRender();
+      }
+      
+      for (auto& [id , window] : ui_windows) {
+        window->Render();
       }
 
       scene_manager->RenderSceneUI();
@@ -457,16 +479,25 @@ namespace other {
 
   void App::Detach() {
     OE_DEBUG("Detaching application");
-
-    UnloadScene();
-
+    
     OnDetach();
+
+    if (HasActiveScene()) {
+      UnloadScene();
+    }
 
     for (auto& [id , window] : ui_windows) {
       window->OnDetach();
       window = nullptr;
     }
     ui_windows.clear();
+
+    for (auto itr = layer_stack->begin(); itr != layer_stack->end(); ++itr) {
+      (*itr)->Detach();
+    }
+    layer_stack->Clear();
+
+    OE_DEBUG("Application detached");
   }
 
   void App::SetInEditor() {

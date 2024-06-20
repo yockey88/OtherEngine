@@ -2,7 +2,7 @@ using System.Runtime.CompilerServices;
 
 namespace Other {
 
-  public enum Button : int {
+  public enum MouseButton : int {
     FIRST = 0 ,
     LEFT = FIRST ,
     MIDDLE = 1 , 
@@ -65,19 +65,19 @@ namespace Other {
     public static extern bool InWindow();
 
     [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern int FramesHeld(Button button);
+    public static extern int FramesHeld(MouseButton button);
     
     [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern bool Pressed(Button button);
+    public static extern bool Pressed(MouseButton button);
     
     [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern bool Blocked(Button button);
+    public static extern bool Blocked(MouseButton button);
     
     [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern bool Held(Button button);
+    public static extern bool Held(MouseButton button);
     
     [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern bool Released(Button button);
+    public static extern bool Released(MouseButton button);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     private static extern void MousePos(out Vec2 result);

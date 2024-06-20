@@ -9,13 +9,13 @@
 #include <glad/glad.h>
 #include <imgui/imgui.h>
 
+#include "core/config_keys.hpp"
 #include "core/engine.hpp"
 #include "core/errors.hpp"
 #include "core/logger.hpp"
 #include "core/filesystem.hpp"
 #include "event/event_queue.hpp"
 #include "event/core_events.hpp"
-#include "project/project.hpp"
 #include "parsing/ini_parser.hpp"
 #include "rendering/perspective_camera.hpp"
 #include "rendering/renderer.hpp"
@@ -32,8 +32,122 @@ namespace other {
   Editor::Editor(Engine* engine , Scope<App>& app)
       : App(engine) , cmdline(engine->cmd_line) , engine_config(engine->config) , 
         app(std::move(app)) {
-    project = Project::Create(engine->cmd_line , engine->config);
   } 
+      
+  Path Editor::SaveActiveScene() {
+    Path active_path = scene_manager->ActiveScene()->path;
+    std::string scene_name = scene_manager->ActiveScene()->name;
+    Ref<Scene> scene = scene_manager->ActiveScene()->scene;
+
+    UnloadScene();
+
+    SceneSerializer serializer;
+    std::stringstream ss;
+    serializer.Serialize(scene_name , ss , scene);
+
+    if (ss.str().size() == 0) {
+      OE_WARN("Failed to serialize scene!");
+    } else {
+      std::ofstream scn_file(active_path);
+      if (!scn_file.is_open()) {
+        OE_ERROR("Failed to open scene file for scene {}" , scene_name);
+      } else {
+        scn_file << ss.str();
+      }
+    }
+    
+    return active_path;
+  }
+      
+  void Editor::LoadEditorScripts() {
+    Ref<LanguageModule> cs_lang_mod = ScriptEngine::GetModule(LanguageModuleType::CS_MODULE);
+    if (cs_lang_mod == nullptr) {
+      OE_ERROR("Failed to load editor scripts, C# module is null!");
+      return;
+    }
+
+    if (lua_module == nullptr) {
+      OE_ERROR("Failed to load editor scripts Lua Module is null!");
+      return;
+    }
+
+    auto script_paths = engine_config.Get(kEditorSection , kScriptsValue);
+
+    std::string script_key = std::string{ kEditorSection } + "." + std::string{ kScriptValue };
+    auto script_objs = engine_config.GetKeys(script_key);
+
+    OE_DEBUG("Loading Editor Scripts");
+    for (auto& mod : script_paths) {
+      Path module_path = Path{ mod }; 
+
+      std::string fname = module_path.filename().string();
+      std::string mname = fname.substr(0 , fname.find_last_of('.'));
+      OE_DEBUG("Loading Editor Script Module : {} ({})" , mname , module_path.string());
+
+      if (module_path.extension() == ".dll") {
+        cs_lang_mod->LoadScriptModule({
+          .name = mname ,
+          .paths = { module_path.string() }
+        });
+      } else if (module_path.extension() == ".lua") {
+        lua_module->LoadScriptModule({
+          .name = mname ,
+          .paths = { module_path.string() }
+        });
+      }
+    }
+
+    for (const auto& obj : script_objs) {
+      auto scripts = engine_config.Get(script_key , obj);
+
+      ScriptModule* mod = ScriptEngine::GetScriptModule(obj);
+      if (mod == nullptr) {
+        OE_ERROR("Failed to find editor scripting module {} [{}]" , obj , FNV(obj));
+        continue;
+      }
+
+      for (auto& s : scripts) {
+        OE_DEBUG("Attaching editor script");
+
+        std::string nspace = "";
+        std::string name = s;
+        if (s.find("::") != std::string::npos) {
+          nspace = s.substr(0 , s.find_first_of(":"));
+          OE_DEBUG("Editor script from namespace {}" , nspace);
+
+          name = s.substr(s.find_last_of(":") + 1 , s.length() - nspace.length() - 2);
+          OE_DEBUG(" > with name {}" , name);
+        }
+
+        ScriptObject* inst = mod->GetScript(name , nspace);
+        if (inst == nullptr) {
+          OE_ERROR("Failed to get script {} from script module {}" , s , obj);
+          continue;
+        } else {
+          std::string case_ins_name;
+          std::transform(s.begin() , s.end() , std::back_inserter(case_ins_name) , ::toupper);
+
+          UUID id = FNV(case_ins_name);
+          editor_scripts.data[id] = ScriptObjectData{
+            .module = obj ,
+            .obj_name = s ,
+          };
+          auto& obj = editor_scripts.scripts[id] = inst;
+          obj->Start();
+        }
+      }
+    }
+  }
+
+  void Editor::OnLoad() {
+    /// TODO: 
+    ///  - move to panel manager so that we can generalize panel creation
+    ///     and allow for user created panels
+
+    project_panel = Ref<ProjectPanel>::Create(*this);
+    scene_panel = Ref<ScenePanel>::Create(*this);
+    entity_properties_panel = Ref<EntityProperties>::Create(*this);
+  }
       
   void Editor::OnAttach() {
     if (app == nullptr) {
@@ -47,6 +161,8 @@ namespace other {
       Path p = Filesystem::FindCoreFile(std::filesystem::path("editor.other"));
       IniFileParser parser(p.string());
       editor_config = parser.Parse();
+
+      OE_DEBUG("loaded editor config from {}" , p.string());
     } catch (const IniException& e) {
       OE_ERROR("Failed to parse editor configuration file : {}", e.what());
       EventQueue::PushEvent<ShutdownEvent>(ExitCode::FAILURE);
@@ -55,17 +171,10 @@ namespace other {
 
     Renderer::GetWindow()->ForceResize({ 1920 , 1080 });
 
-    /// TODO: 
-    ///  - move to panel manager so that we can generalize panel creation
-    ///     and allow for user created panels
-    project_panel = Ref<ProjectPanel>::Create(*this);
-    scene_panel = Ref<ScenePanel>::Create(*this);
-    entity_properties_panel = Ref<EntityProperties>::Create(*this);
-
     /// tbh should get rid of OnProjectChange, engine should be focused on one project at a time
     ///   and to reload we should either recompile or simply shut down and reload a new file
     ///   (preferably reload new file so we can keep everything at runtime)
-    project_panel->OnProjectChange(project);
+    project_panel->OnProjectChange(GetProjectContext());
     /// end panel manager section
      
     /// editor should always push debug layer to allow for debug control 
@@ -80,39 +189,38 @@ namespace other {
     ///   fully running
     is_editor = true;
     app->SetInEditor();
-    app->OnLoad();
 
     /// load editor scripts
     ///  get the module
     ///  ... and then idrk ????
     lua_module = ScriptEngine::GetModuleAs<LuaModule>(LanguageModuleType::LUA_MODULE);
 
+    LoadEditorScripts();
+    
+    for (const auto& [id , script] : editor_scripts.scripts) {
+      script->Initialize();
+    }
+
     editor_camera = Ref<PerspectiveCamera>::Create();
     editor_camera->SetPosition({ 0.f , 0.f , 3.f });
     editor_camera->SetDirection({ 0.f , 0.f , -1.f });
     editor_camera->SetUp({ 0.f , 1.f , 0.f });
     Renderer::BindCamera(editor_camera);
+
+    OE_DEBUG("Editor attached");
   }
 
   void Editor::OnEvent(Event* event) {
-    app->OnEvent(event);
   }
 
   void Editor::Update(float dt) {
     entity_properties_open = SelectionManager::HasSelection();
-
-    if (playing) {
-      app->Update(dt);
-    }
   }
 
   void Editor::Render() {
-    app->Render();
   }
 
   void Editor::RenderUI() {
-    app->RenderUI();
-
     if (ImGui::BeginMainMenuBar()) {
       if (ImGui::BeginMenu("File")) {
         if (ImGui::MenuItem("Reload")) {
@@ -184,30 +292,12 @@ namespace other {
       } else if (playing && ImGui::Button("Stop Scene")) {
         scene_manager->StopScene();
         playing = false;
+
+        Renderer::BindCamera(editor_camera);
       }
 
       if (ImGui::Button("Save Scene")) {
-        Path active_path = scene_manager->ActiveScene()->path;
-        std::string scene_name = scene_manager->ActiveScene()->name;
-        Ref<Scene> scene = scene_manager->ActiveScene()->scene;
-
-        UnloadScene();
-
-        SceneSerializer serializer;
-        std::stringstream ss;
-        serializer.Serialize(scene_name , ss , scene);
-
-        if (ss.str().size() == 0) {
-          OE_WARN("Failed to serialize scene!");
-        } else {
-          std::ofstream scn_file(active_path);
-          if (!scn_file.is_open()) {
-            OE_ERROR("Failed to open scene file for scene {}" , scene_name);
-          } else {
-            scn_file << ss.str();
-          }
-        }
-
+        Path active_path = SaveActiveScene(); 
         LoadScene(active_path);
       }
     }
@@ -216,8 +306,20 @@ namespace other {
   }
 
   void Editor::OnDetach() {
-    app->OnUnload();
+    OE_DEBUG("Detaching editor");
+    if (HasActiveScene()) {
+      SaveActiveScene();
+    }
 
+    for (const auto& [id , script] : editor_scripts.scripts) {
+      script->Stop();
+    }
+    editor_scripts.scripts.clear();
+
+    OE_DEBUG("Editor detached");
+  }
+
+  void Editor::OnUnload() {
     project_panel = nullptr;
     scene_panel = nullptr;
     entity_properties_panel = nullptr;
@@ -238,6 +340,40 @@ namespace other {
 
     playing = false;
     OE_DEBUG("Scene Context Unloaded");
+  }
+
+  void Editor::OnScriptReload() {
+    editor_scripts.scripts.clear();
+    for (const auto& [id , info] : editor_scripts.data) {
+      ScriptModule* mod = ScriptEngine::GetScriptModule(info.module);
+      if (mod == nullptr) {
+        OE_ERROR("Failed to find editor scripting module {} [{}]" , info.module , FNV(info.module));
+        continue;
+      }
+
+      std::string nspace = "";
+      std::string name = info.obj_name;
+      if (name.find("::") != std::string::npos) {
+        nspace = name.substr(0 , name.find_first_of(":"));
+        OE_DEBUG("Editor script from namespace {}" , nspace);
+
+        name = name.substr(name.find_last_of(":") + 1 , name.length() - nspace.length() - 2);
+        OE_DEBUG(" > with name {}" , name);
+      }
+
+      ScriptObject* inst = mod->GetScript(name , nspace);
+      if (inst == nullptr) {
+        OE_ERROR("Failed to get script {} from script module {}" , name , info.module);
+        continue;
+      } else {
+        std::string case_ins_name;
+        std::transform(name.begin() , name.end() , std::back_inserter(case_ins_name) , ::toupper);
+
+        UUID id = FNV(case_ins_name);
+        auto& obj = editor_scripts.scripts[id] = inst;
+        obj->Start();
+      }
+    }
   }
 
 } // namespace other

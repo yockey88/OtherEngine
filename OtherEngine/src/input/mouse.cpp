@@ -42,8 +42,8 @@ namespace other {
       ButtonState& button_state = buttons[button];
       
       button_state.previous_state = button_state.current_state;
-
-      if (!(curr_state & SDL_BUTTON(b)) && button_state.current_state == State::PRESSED) {
+      
+      if (!(curr_state & SDL_BUTTON(b)) && button_state.current_state == State::BLOCKED) {
         button_state.current_state = State::RELEASED;
         button_state.frames_held = 0;
 
@@ -51,9 +51,17 @@ namespace other {
         continue;
       }
       
+      if (!(curr_state & SDL_BUTTON(b)) && button_state.current_state == State::HELD) {
+        button_state.current_state = State::RELEASED;
+        button_state.frames_held = 0;
+
+        EventQueue::PushEvent<MouseButtonReleased>(button);
+        continue;
+      }
+ 
       if (curr_state & SDL_BUTTON(b) && button_state.current_state == State::RELEASED) {
         button_state.current_state = State::PRESSED;
-        ++button_state.frames_held;
+        button_state.frames_held = 1;
 
         EventQueue::PushEvent<MouseButtonPressed>(button , button_state.frames_held);
         continue;
@@ -65,7 +73,8 @@ namespace other {
         ++button_state.frames_held;
 
         continue;
-      }
+      } 
+
 
       if (curr_state & SDL_BUTTON(b) && button_state.current_state == State::BLOCKED &&
           button_state.frames_held <= 22) {
@@ -108,6 +117,58 @@ namespace other {
 
   void Mouse::LockCursor() {
     SDL_SetRelativeMouseMode(SDL_TRUE);
+  }
+
+  Mouse::ButtonState Mouse::GetButtonState(Button button) { 
+    return buttons[button]; 
+  }
+
+  uint32_t Mouse::GetX() { 
+    return state.position.x; 
+  }
+
+  uint32_t Mouse::GetY() { 
+    return state.position.y; 
+  }
+  
+  uint32_t Mouse::PreviousX() { 
+    return state.previous_position.x; 
+  }
+
+  uint32_t Mouse::PreviousY() { 
+    return state.previous_position.y; 
+  }
+
+  uint32_t Mouse::GetDX() { 
+    return state.position.x - state.previous_position.x; 
+  }
+
+  uint32_t Mouse::GetDY() { 
+    return state.position.y - state.previous_position.y; 
+  }
+
+  bool Mouse::InWindow() { 
+    return state.in_window; 
+  }
+
+  uint32_t Mouse::FramesHeld(Button button) { 
+    return buttons[button].frames_held; 
+  }
+
+  bool Mouse::Pressed(Button button) { 
+    return buttons[button].current_state == State::PRESSED; 
+  }
+
+  bool Mouse::Blocked(Button button) { 
+    return buttons[button].current_state == State::BLOCKED; 
+  }
+
+  bool Mouse::Held(Button button) { 
+    return buttons[button].current_state == State::HELD; 
+  }
+
+  bool Mouse::Released(Button button) { 
+    return buttons[button].current_state == State::RELEASED; 
   }
 
 } // namespace other

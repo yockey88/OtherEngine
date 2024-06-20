@@ -44,6 +44,7 @@ namespace other {
 
   struct CsMethodData {
     std::string name;
+    std::string full_name;
     UUID hash = 0;
     uint32_t flags = 0;
     uint32_t parameter_count = 0;

@@ -10,9 +10,12 @@
 #include "core/filesystem.hpp"
 #include "rendering/ui/ui_helpers.hpp"
 #include "rendering/ui/ui_colors.hpp"
+
 #include "ecs/entity.hpp"
 #include "ecs/components/tag.hpp"
 #include "ecs/components/relationship.hpp"
+#include "ecs/components/camera.hpp"
+
 #include "editor/editor.hpp"
 #include "editor/selection_manager.hpp"
 
@@ -77,7 +80,7 @@ namespace other {
 
       const int32_t num_columns = 2;
       if (ImGui::BeginTable("##scene_entities" , num_columns , table_flags , ImVec2(ImGui::GetContentRegionAvail()))) {
-        ImGui::TableSetupColumn("ID | Children");
+        ImGui::TableSetupColumn("Num Children");
         ImGui::TableSetupColumn("Objects");
 
         /// headers 
@@ -117,15 +120,16 @@ namespace other {
           for (auto& [id , entity] : active_scene->RootEntities()) {
             RenderEntity(id , entity);
           }
-
-          // if () {
-            /// DrawCreateMenu()
-            /// EndPopup();
-          // }
         }
       } else {
         ImGui::Text("Failed to draw entity hierarchy");
       }
+
+      if (ImGui::BeginPopupContextWindow(nullptr , ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
+        RenderCreateEntity();
+        ImGui::EndPopup();
+      }
+
       ImGui::EndTable();
     }
 
@@ -153,6 +157,37 @@ namespace other {
     }
   }
       
+  void ScenePanel::RenderCreateEntity(Entity* parent) {
+    const bool child_entity = parent != nullptr;
+
+    if (!ImGui::BeginMenu("Create")) {
+      return;
+    }
+
+    Entity* entity = nullptr;
+    if (ImGui::MenuItem("Empty Object")) {
+      entity = active_scene->CreateEntity(); 
+    }
+
+    if (ImGui::MenuItem("Camera")) {
+      entity = active_scene->CreateEntity(fmtstr("camera {}" , active_scene->NumCameras())); 
+      entity->AddComponent<Camera>();
+    }
+
+    if (entity == nullptr) {
+      ImGui::EndMenu();
+      return;
+    }
+
+    const auto& tag = entity->GetComponent<Tag>();
+
+    if (child_entity) {
+      active_scene->ParentEntity(tag.id , parent->GetComponent<Tag>().id); 
+    }
+
+    ImGui::EndMenu();
+  }
+      
   void ScenePanel::RenderEntity(const UUID& id , Entity* entity) {
     OE_ASSERT(entity != nullptr , "DRAWING NULL ENTITY IN HIERARCHY");
 
@@ -170,7 +205,7 @@ namespace other {
 
     ImGui::TableSetColumnIndex(0);
     
-    ImGui::Text("  [%lld | %lld]" , tag.id.Get() , relationships.children.size());
+    ImGui::Text("  [%lld]" , relationships.children.size());
 
     ImGui::TableSetColumnIndex(1);
 
@@ -186,8 +221,7 @@ namespace other {
       tag.id == SelectionManager::ActiveSelection()->ReadComponent<Tag>().id :
       false;
 
-    ImGuiTreeNodeFlags flags = (active_selection ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow;
-    flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
+    ImGuiTreeNodeFlags flags = (active_selection ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_SpanAvailWidth;
 
     // if has_child_matching_search
     //    flags |= ImGuiTreeNodeFlags_DefaultOpen;
@@ -195,8 +229,6 @@ namespace other {
     if (relationships.children.empty()) {
       flags |= ImGuiTreeNodeFlags_Leaf;
     }
-
-    // const std::string ent_str_id = fmt::format(fmt::runtime("{}.{}") , tag.name , tag.id);
 
     ImGui::PushClipRect(row_area_min , row_area_max , false);
     bool is_row_hovered , held;

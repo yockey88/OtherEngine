@@ -24,12 +24,11 @@ namespace other {
       App(Engine* engine);
       virtual ~App();
 
-      void LoadMetadata(const Ref<Project>& project);
       Ref<Project> GetProjectContext();
     
-      void OnLoad();
+      void Load();
       void Run();
-      void OnUnload();
+      void Unload();
 
       void PushLayer(Ref<Layer>& layer);
       void PushOverlay(Ref<Layer>& overlay);
@@ -48,7 +47,8 @@ namespace other {
       bool RemoveUIWindow(UUID id);
 
       void LoadScene(const Path& path);
-      Ref<Scene> ActiveScene();
+      bool HasActiveScene();
+      const SceneMetadata* ActiveScene();
       void UnloadScene();
 
     protected:
@@ -61,15 +61,21 @@ namespace other {
       void DoRenderUI();
       void Detach();
 
+      virtual void OnLoad() {}
       virtual void OnAttach() {} 
       virtual void OnEvent(Event* event) {}
       virtual void Update(float dt) {}
       virtual void Render() {}
       virtual void RenderUI() {}
       virtual void OnDetach() {}
+      virtual void OnUnload() {}
 
       virtual void OnSceneLoad(const SceneMetadata* path) {}
       virtual void OnSceneUnload() {}
+
+      /// will only ever be called if editor is active because otherwise the scripts
+      ///   wont be reloaded
+      virtual void OnScriptReload() {}
 
       Engine* GetEngine() { return engine_handle; }
 

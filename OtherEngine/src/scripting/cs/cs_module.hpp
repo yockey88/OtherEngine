@@ -17,7 +17,7 @@ namespace other {
   class CsModule : public LanguageModule {
     public:
       CsModule() 
-        : LanguageModule() {}
+        : LanguageModule(LanguageModuleType::CS_MODULE) {}
       virtual ~CsModule() override {}
 
       virtual bool Initialize() override;

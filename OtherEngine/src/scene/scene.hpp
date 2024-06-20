@@ -10,7 +10,9 @@
 
 #include "core/ref_counted.hpp"
 #include "core/uuid.hpp"
+
 #include "scene/octree.hpp"
+
 #include "rendering/render_batch.hpp"
 
 namespace other {
@@ -41,13 +43,21 @@ namespace other {
 
       std::vector<BatchData> GetRenderBatchData() const;
 
+      size_t NumCameras() const;
+
       const std::map<UUID , Entity*>& RootEntities() const;
       const std::map<UUID , Entity*>& SceneEntities() const;
 
+      Entity* GetEntity(const std::string& name);
       Entity* GetEntity(UUID id) const;
 
-      Entity* CreateEntity(const std::string& name);
+      Entity* CreateEntity(const std::string& name = "");
       Entity* CreateEntity(const std::string& name , UUID id);
+
+      void RenameEntity(UUID curr_id , UUID new_id , const std::string_view name);
+
+      void ParentEntity(UUID id , UUID parent_id);
+      void OrphanEntity(UUID id);
 
     protected:
       virtual void OnInit() {}
@@ -70,7 +80,8 @@ namespace other {
 
       std::map<UUID , Entity*> root_entities{};
       std::map<UUID , Entity*> entities{};
-      
+
+      void FixRoots();
   };
 
 } // namespace other

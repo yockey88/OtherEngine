@@ -10,8 +10,13 @@ namespace other {
 
   class PerspectiveCamera : public CameraBase {
     public:
-      virtual void Rotate(const glm::quat& quat) override {}
-      virtual void RotateAround(const glm::vec3& v , float degrees) override {}
+      PerspectiveCamera()
+          : CameraBase(CameraProjectionType::PERSPECTIVE) {}
+      
+      PerspectiveCamera(const Ref<CameraBase>& other)
+          : CameraBase(other , CameraProjectionType::PERSPECTIVE) {}
+
+      virtual std::string GetCameraTypeString() const override;
 
     private:
       virtual void CalculateProjection() override;

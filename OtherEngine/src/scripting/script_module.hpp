@@ -29,7 +29,7 @@ namespace other {
 
       const std::string& ModuleName() const;
     
-      virtual void Initialize() = 0;
+      virtual void Initialize(/* bool editor_script = false */) = 0;
       virtual void Shutdown() = 0;
       virtual void Reload() = 0;
       virtual ScriptObject* GetScript(const std::string& name , const std::string& nspace = "") = 0;

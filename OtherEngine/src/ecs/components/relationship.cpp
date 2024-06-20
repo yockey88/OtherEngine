@@ -60,7 +60,19 @@ namespace other {
       if (std::find_if(loaded_ents.begin() , loaded_ents.end() , [c](const auto& ent) -> bool {
         return c == ent.second->Name();
       }) != loaded_ents.end()) {
-        continue;
+        /// entity already loaded, so now we add it as a child of this one
+        Entity* child = scene->GetEntity(c);
+        
+        /// double check we loaded it, this should never not be true, if it is
+        ///  we can attempt to load it again outside of this if case below
+        if (child != nullptr) {
+          auto& relation = entity->GetComponent<Relationship>();
+          auto& crelation = child->GetComponent<Relationship>();
+
+          crelation.parent = entity->ReadComponent<Tag>().id;
+          relation.children.insert(child->GetComponent<Tag>().id);
+          continue;
+        }
       }
       OE_DEBUG("Deserializing entity child {}" , c);
 
@@ -68,7 +80,7 @@ namespace other {
       Entity* child = scene->GetEntity(child_id);
 
       child->GetComponent<Relationship>().parent = entity->GetComponent<Tag>().id;
-      entity->GetComponent<Relationship>().children.push_back(child_id);
+      entity->GetComponent<Relationship>().children.insert(child_id);
 
       OE_DEBUG("   > Parent = {} | Child = {}" , child->ReadComponent<Relationship>().parent.value().Get() , child_id.Get());
     }

@@ -26,13 +26,11 @@ namespace lua_script_bindings {
     lua_state["Logger"]["WriteCritical"] = lua_script_bindings::WriteCritical;
 
     lua_state["Button"] = lua_state.create_table_with(
-      "First" , Mouse::Button::FIRST , 
       "Left" , Mouse::Button::LEFT , 
       "Middle" , Mouse::Button::MIDDLE ,
       "Right" , Mouse::Button::RIGHT ,
       "X1" , Mouse::Button::X1 ,
-      "X2" , Mouse::Button::X2 ,
-      "Last" , Mouse::Button::LAST
+      "X2" , Mouse::Button::X2
     );
 
     lua_state.new_usertype<Keyboard>(

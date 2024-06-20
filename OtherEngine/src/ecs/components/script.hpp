@@ -22,7 +22,7 @@ namespace other {
     std::map<UUID , ScriptObjectData> data = {};
     std::map<UUID , ScriptObject*> scripts = {};
 
-    ECS_COMPONENT(Script , kMeshIndex);
+    ECS_COMPONENT(Script , kScriptIndex);
   };
 
   class ScriptSerializer : public ComponentSerializer {

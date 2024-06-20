@@ -11,15 +11,27 @@
 #include "core/ref.hpp"
 #include "scripting/script_defines.hpp"
 #include "scripting/language_module.hpp"
+#include "scripting/cs/cs_module.hpp"
+#include "scripting/lua/lua_module.hpp"
 
 namespace other {
   
   struct LanguageModuleMetadata {
-    LanguageModuleType type;
     UUID id;
     std::string name;
     Ref<LanguageModule> module = nullptr;
   };
+
+  template <typename T> requires LangModule<T>
+  LanguageModuleType ModuleTypeFromStaticType() {
+    if constexpr (std::is_same_v<T , LuaModule>) {
+      return LanguageModuleType::LUA_MODULE;
+    } else if constexpr (std::is_same_v<T , CsModule>) {
+      return LanguageModuleType::CS_MODULE;
+    } else {
+      return LanguageModuleType::INVALID_LANGUAGE_MODULE;
+    }
+  }
 
   class ScriptEngine {
     public:
@@ -32,8 +44,7 @@ namespace other {
 
       static void ReloadAllScripts();
 
-      static Ref<LanguageModule> GetModule(const std::string_view name);
-      static Ref<LanguageModule> GetModule(UUID id);
+      static Ref<LanguageModule> GetModule(LanguageModuleType type);
       
       static ScriptModule* GetScriptModule(const std::string_view name);
       static ScriptModule* GetScriptModule(UUID id);
@@ -41,7 +52,7 @@ namespace other {
       static void SetAppContext(App* app);
       static App* GetAppContext();
 
-      static const std::map<UUID , LanguageModuleMetadata>& GetModules() { return language_modules; }
+      static std::map<UUID , LanguageModuleMetadata>& GetModules();
 
       /// because certain parts of the engine rely on specifically lua or c# scripts they need to be 
       ///   able to interface with those modules directly
@@ -49,13 +60,7 @@ namespace other {
       ///   and so am using sol, hopefully go away one day
       template <typename T> requires LangModule<T>
       static Ref<T> GetModuleAs(LanguageModuleType type) {
-        for (const auto& [id , mod] : language_modules) {
-          if (type == mod.type) {
-            return Ref<T>(mod.module);
-          }
-          
-          return nullptr;
-        }
+        return Ref<T>(language_modules[type].module);
       }
 
     private:

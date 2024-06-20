@@ -181,6 +181,11 @@ namespace ui {
   bool OpenPopup(const std::string& str_id , ImGuiWindowFlags flags = 0);
   void EndPopup();
 
+  bool BeginCombo(const char* label , const char* preview_value , ImGuiComboFlags flags = 0);
+  void EndCombo();
+
+  bool PropertyDropdown(const char* label , const char** options , int32_t option_count , uint32_t& selected , const char* help_text = "");
+
   void BeginProperty(const char* label , const char* help_text = "");
   void EndProperty();
   bool Property(const char* label , int8_t* value , int8_t min = 0 , int8_t max = 0 , const char* help_text = "");

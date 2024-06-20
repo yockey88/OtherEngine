@@ -4,6 +4,15 @@
 #include "scripting/script_object.hpp"
 
 namespace  other {
+      
+  void ScriptObject::SetEntityId(UUID id) {
+    entity_id = id;
+    OnSetEntityId();
+  }
+
+  UUID ScriptObject::GetEntityId() const {
+    return entity_id;
+  }
 
   const std::string& ScriptObject::ScriptName() const {
     return script_module_name;

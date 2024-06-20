@@ -117,13 +117,12 @@ namespace other {
     ImGui::PopID();
   }
 
-  void DrawTransform(Entity* entity);
-
+  void DrawTag(Entity* ent);
+  void DrawTransform(Entity* ent);
   void DrawRelationship(Entity* ent);
-
   void DrawScript(Entity* ent); 
-
   void DrawMesh(Entity* ent);
+  void DrawCamera(Entity* ent);
 
 } // namespace other
 

@@ -25,10 +25,7 @@ namespace other {
 
       virtual void InitializeScriptMethods() override;
       virtual void InitializeScriptFields() override;
-      
-      virtual Opt<Value> OnCallMethod(const std::string_view name , std::span<Value> value) override;
-      virtual Opt<Value> OnCallMethod(const std::string_view name , Parameter* args , uint32_t argc) override;
-      
+       
       virtual Opt<Value> GetField(const std::string& name) override;
       virtual void SetField(const std::string& name , const Value& value) override;
 
@@ -72,6 +69,10 @@ namespace other {
       void SetMonoProperty(MonoMethod* setter , const Value& value);
 
       Opt<Value> CallMonoMethod(MonoMethod* method , uint32_t argc = 0 , Parameter* args = nullptr);
+      
+      void OnSetEntityId() override;
+      virtual Opt<Value> OnCallMethod(const std::string_view name , std::span<Value> value) override;
+      virtual Opt<Value> OnCallMethod(const std::string_view name , Parameter* args , uint32_t argc) override;
   };
 
 } // namespace other

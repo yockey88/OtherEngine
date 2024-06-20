@@ -49,7 +49,6 @@ namespace other {
           if (!Filesystem::IsDirectory(dir)) {
             continue;
           }
-
           RenderDirectoryTree(dir);
         }
       }

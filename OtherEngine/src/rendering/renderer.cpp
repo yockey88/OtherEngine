@@ -197,11 +197,16 @@ namespace other {
     };
     v4.color = color;
 
-    WriteRectIndices();
-    WriteVertexToBatch(render_data.primitive_batches[kRectBatchIndex] , v1);
-    WriteVertexToBatch(render_data.primitive_batches[kRectBatchIndex] , v2);
-    WriteVertexToBatch(render_data.primitive_batches[kRectBatchIndex] , v3);
-    WriteVertexToBatch(render_data.primitive_batches[kRectBatchIndex] , v4);
+    /// TODO: this works but id rather use indices to avoid duplicate vertices :/
+    ///       - find out why index buffer crashes
+
+    // WriteRectIndices();
+    WriteVertexToBatch(render_data.primitive_batches[kRectBatchIndex] , v1); // 0
+    WriteVertexToBatch(render_data.primitive_batches[kRectBatchIndex] , v2); // 1
+    WriteVertexToBatch(render_data.primitive_batches[kRectBatchIndex] , v4); // 3
+    WriteVertexToBatch(render_data.primitive_batches[kRectBatchIndex] , v2); // 1
+    WriteVertexToBatch(render_data.primitive_batches[kRectBatchIndex] , v3); // 2
+    WriteVertexToBatch(render_data.primitive_batches[kRectBatchIndex] , v4); // 3
   }
 
   void Renderer::DrawRect(const std::span<Vertex , 4>& corners) {
@@ -358,25 +363,28 @@ namespace other {
     batch.shader->Bind();
     batch.shader->SetUniform("ucamera" , camera_matrix);
     
-    if (batch.has_indices && batch.index_buffer != nullptr) {
-      batch.index_buffer->BufferData(batch.indices.data() , batch.indices.size() * sizeof(uint32_t));
-    }
+    batch.vertex_buffer->Bind();
     batch.vertex_buffer->BufferData(batch.vertices.data() , batch.vertices.size() * sizeof(float));
+    
+    /// 
+    // if (batch.has_indices && batch.index_buffer != nullptr) {
+    //   batch.index_buffer->Bind();
+    //   batch.index_buffer->BufferData(batch.indices.data() , batch.indices.size() * sizeof(uint32_t));
+    // }
 
     glBindVertexArray(batch.renderer_id);
-    
     if (batch.has_indices) {
-      glDrawElements(batch.draw_mode , batch.indices.size() , GL_UNSIGNED_INT , 0);
+      // glDrawElements(batch.draw_mode , batch.indices.size() , GL_UNSIGNED_INT , 0);
     } else {
       glDrawArrays(batch.draw_mode , 0 , batch.vertices.size() / batch.stride);
     }
 
     batch.vertex_buffer->ClearBuffer();
     batch.vertices.clear();
+    batch.indices.clear();
     
-    if (batch.has_indices && batch.index_buffer != nullptr) {
+    if (batch.index_buffer != nullptr) {
       batch.index_buffer->ClearBuffer();
-      batch.indices.clear();
     }
   }
       
@@ -441,7 +449,7 @@ namespace other {
     primitive_batch.buffer_cap = 3 * 1000 * sizeof(float) * Vertex::Stride();
     CreateRenderBatch(primitive_batch , kTriangleBatchIndex , internal);
 
-    primitive_batch.has_indices = true;
+    // primitive_batch.has_indices = true;
     primitive_batch.buffer_cap = 4 * 1000 * sizeof(float) * Vertex::Stride();
     CreateRenderBatch(primitive_batch , kRectBatchIndex , internal);
   }

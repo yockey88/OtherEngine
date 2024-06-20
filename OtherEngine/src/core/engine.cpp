@@ -25,8 +25,6 @@ namespace other {
     OE_ASSERT(app != nullptr , "Attempting to load a null application");
 
     OE_DEBUG("Loading application");
-    project_metadata = Project::Create(cmd_line , config);
-
     if (cmd_line.HasFlag("--editor")) {
       OE_DEBUG("Loading editor");
       auto editor_app = NewScope<Editor>(this , app);
@@ -35,14 +33,13 @@ namespace other {
       active_app = std::move(app);
     }
 
-    active_app->LoadMetadata(project_metadata);
-    active_app->OnLoad();
+    active_app->Load();
   }
 
   void Engine::UnloadApp() {
     OE_ASSERT(active_app != nullptr , "Attempting to unload a null application");
 
-    active_app->OnUnload();
+    active_app->Unload();
     active_app = nullptr;
 
     OE_DEBUG("Engine unloaded");

@@ -7,15 +7,27 @@
 
 #include "event/event_queue.hpp"
 #include "event/app_events.hpp"
+
+#include "rendering/camera_base.hpp"
+#include "rendering/perspective_camera.hpp"
+#include "rendering/orthographic_camera.hpp"
 #include "rendering/ui/ui_helpers.hpp"
 #include "rendering/ui/ui_widgets.hpp"
+
 #include "ecs/components/transform.hpp"
 #include "ecs/components/relationship.hpp"
 #include "ecs/components/script.hpp"
+#include "ecs/components/camera.hpp"
 
 namespace other {
+  
+  void DrawTag(Entity* ent) {
+    const auto& tag = ent->GetComponent<Tag>();
+    ImGui::Text("ID : %llu" , tag.id.Get());
+    ImGui::Text("Name : %s" , tag.name.c_str());
+  }
 
-  void DrawTransform(Entity *entity) {
+  void DrawTransform(Entity *ent) {
     ScopedStyle spacing(ImGuiStyleVar_ItemSpacing , ImVec2(8.f , 8.f));
     ScopedStyle padding(ImGuiStyleVar_FramePadding , ImVec2(4.f , 4.f));
 
@@ -31,7 +43,7 @@ namespace other {
     bool multi_edit = false;
     if (multi_edit) {
     } else {
-      auto& component = entity->GetComponent<Transform>();
+      auto& component = ent->GetComponent<Transform>();
       
       ImGui::TableNextRow();
       ui::widgets::DrawVec3Control("Translation" , component.position , translation_manually_edited);
@@ -142,10 +154,12 @@ namespace other {
     ui::BeginProperty(name.c_str());
 
     if (ImGui::InputText(("##script-string-" + name).c_str() , buffer.data() , buffer.size())) {
-      v = buffer.data();
-      val.SetStr(v);
-      script_instance->SetField(name , val);
-      result = true;
+      if (ImGui::IsKeyPressed(ImGuiKey_Enter) && buffer[0] != 0) {
+        v = buffer.data();
+        val.SetStr(v);
+        script_instance->SetField(name , val);
+        result = true;
+      }
     }
 
     ui::EndProperty();
@@ -286,5 +300,69 @@ namespace other {
   }
   
   void DrawMesh(Entity* ent) {}
+  
+  void DrawCamera(Entity* ent) {
+    auto& camera = ent->GetComponent<Camera>();
+
+    ui::BeginPropertyGrid();
+
+    const char* proj_types[] = {
+      "Perspective" ,
+      "Orthographic"
+    };
+
+    bool primary = camera.camera->IsPrimary();
+    if (ImGui::Checkbox("Primary Camera" , &primary)) {
+      camera.camera->SetPrimary(primary);
+    }
+
+    uint32_t current_proj = camera.camera->GetCameraProjectionType();
+    
+    if (ui::PropertyDropdown("Projection" , proj_types , 2 , current_proj)) {
+      switch (current_proj) {
+        case CameraProjectionType::PERSPECTIVE:
+          camera.camera = Ref<PerspectiveCamera>::Create(camera.camera);
+        break;
+
+        case CameraProjectionType::ORTHOGRAPHIC:
+          camera.camera = Ref<OrthographicCamera>::Create(camera.camera);
+        break;
+        
+        default:
+          break;
+      }
+    }
+
+    bool position_modified = false;
+    bool orientation_modified = false;
+
+    ui::ShiftCursorY(4.5f);
+    ImGui::Checkbox("Pinned to Object Position" , &camera.pinned_to_entity_position); 
+
+    ImGui::NextColumn();
+
+    if (!camera.pinned_to_entity_position) {
+      ui::widgets::DrawVec3Control("Position" , camera.camera->position , position_modified);
+      ui::widgets::DrawVec3Control("Orientation" , camera.camera->euler_angles , orientation_modified);
+    }
+
+    ImGui::NextColumn();
+
+    switch(camera.camera->GetCameraProjectionType()) {
+      case CameraProjectionType::PERSPECTIVE: {
+      } break;
+
+      case CameraProjectionType::ORTHOGRAPHIC: {
+      } break;
+
+
+      default:
+        ScopedColor col(ImGuiCol_Text , ui::theme::red);
+        ImGui::Text("Invalid Camera Projection Type! Camera Corrupt");
+      break;
+    }
+
+    ui::EndPropertyGrid();
+  }
 
 } // namespace other

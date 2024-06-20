@@ -16,6 +16,7 @@ namespace other {
   
   struct ProjectMetadata {
     std::string name = "";
+    Path project_directory = "";
     Path file_path = "";
     Path assets_dir = "";
 
@@ -25,7 +26,7 @@ namespace other {
   class Project : public RefCounted {
     public:
       Project(const CmdLine& cmdline , const ConfigTable& config);
-      virtual ~Project() override;
+      virtual ~Project() override {}
 
       static Ref<Project> Create(const CmdLine& cmdline , const ConfigTable& data);
 

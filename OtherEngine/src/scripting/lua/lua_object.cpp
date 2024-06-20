@@ -21,19 +21,11 @@ namespace other {
       update = (*state)[script_name]["Update"];
       render = (*state)[script_name]["Render"];
       render_ui = (*state)[script_name]["RenderUI"];
-
-      if (!update.valid()) {
-        OE_WARN("{} has no update method" , script_name);
-      }
     }
 
     void LuaObject::InitializeScriptFields() {
     }
-
-    Opt<Value> LuaObject::OnCallMethod(const std::string_view name , std::span<Value> args)  {
-      return std::nullopt;
-    }
-      
+          
     Opt<Value> LuaObject::GetField(const std::string& name) {
       return std::nullopt;
     }
@@ -88,5 +80,23 @@ namespace other {
       }
     }
 
+    void LuaObject::OnSetEntityId() {
+      sol::optional<sol::function> set_entity_id = (*state)[script_name]["SetEntityId"];
+      if (!set_entity_id.has_value()) {
+        OE_WARN("Lua script {} does not have way to set entity id!" , script_name);
+        return;
+      }
+
+      if (!set_entity_id.value().valid()) {
+        OE_WARN("Lua script {} does not have way to set entity id!" , script_name);
+        return;
+      }
+
+      (*set_entity_id)(entity_id);
+    }
+
+    Opt<Value> LuaObject::OnCallMethod(const std::string_view name , std::span<Value> args)  {
+      return std::nullopt;
+    }
 
 } // namespace other

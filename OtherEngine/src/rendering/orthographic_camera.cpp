@@ -5,6 +5,10 @@
 
 namespace other {
 
+  std::string OrthographicCamera::GetCameraTypeString() const {
+    return "orthographic";
+  }
+
   void OrthographicCamera::CalculateProjection() {}
 
 } // namespace other

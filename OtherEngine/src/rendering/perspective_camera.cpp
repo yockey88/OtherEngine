@@ -8,6 +8,10 @@
 #include "rendering/renderer.hpp"
 
 namespace other {
+  
+  std::string PerspectiveCamera::GetCameraTypeString() const {
+    return "perspective";
+  }
 
   void PerspectiveCamera::CalculateProjection() {
     glm::ivec2 window_size = Renderer::WindowSize();

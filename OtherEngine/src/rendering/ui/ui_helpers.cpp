@@ -415,6 +415,57 @@ namespace {
     ImGui::EndPopup();
   }
   
+  bool BeginCombo(const char* label , const char* preview_value , ImGuiComboFlags flags) {
+    bool opened = ImGui::BeginCombo(label , preview_value , flags);
+    DrawItemActivityOutline();
+    return opened;
+  }
+
+  void EndCombo() {
+    ImGui::EndCombo();
+  }
+  
+  bool PropertyDropdown(const char* label , const char** options , int32_t option_count , uint32_t& selected , const char* help_text) {
+    const char* current = options[selected];
+    ShiftCursor(10.f, 9.f);
+    ImGui::Text("%s" , label);
+
+    if (std::strlen(help_text) != 0) {
+      ImGui::SameLine();
+      HelpMarker(help_text);
+    }
+
+    ImGui::NextColumn();
+    ShiftCursorY(4.f);
+    ImGui::PushItemWidth(-1);
+
+    bool modified = false;
+
+    const std::string id = "##" + std::string{ label };
+    if (BeginCombo(id.c_str() , current)) {
+      for (uint32_t i = 0; i < option_count; ++i) {
+        const bool is_selected = (current == options[i]);
+        if (ImGui::Selectable(options[i] , is_selected)) {
+          current = options[i];
+          selected = i;
+          modified = true;
+        }
+
+        if (is_selected) {
+          ImGui::SetItemDefaultFocus();
+        }
+      }
+
+      EndCombo();
+    }
+
+    ImGui::PopItemWidth();
+    ImGui::NextColumn();
+    Underline();
+
+    return modified;
+  }
+  
   void BeginProperty(const char* label , const char* help_text) {
     ShiftCursor(10.f , 9.f);
     ImGui::Text("%s" , label);

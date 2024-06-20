@@ -66,14 +66,6 @@ namespace detail {
       	object = (T*)other.object;
       	other.object = nullptr;
       }
-
-      template <typename... Args>
-      Ref(Args&&... args) noexcept {
-        static_assert(std::is_constructible_v<T , Args...> , "Cannot construct a reference from given arguments");
-        static_assert(std::is_base_of_v<RefCounted , T> , "Cannot construct a reference from a non-RefCounted type");
-        object = new T(std::forward<Args>(args)...);
-        IncRef();
-      }
       
       virtual ~Ref() {
         DecRef();

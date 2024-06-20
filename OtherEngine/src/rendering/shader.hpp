@@ -9,6 +9,7 @@
 #include <glad/glad.h>
 
 #include "core/defines.hpp"
+#include "asset/asset.hpp"
 
 namespace other {
 
@@ -21,10 +22,12 @@ namespace other {
     COMPUTE_SHADER = GL_COMPUTE_SHADER ,
   };
 
-  class Shader {    
+  class Shader : public Asset {    
     public:
+      OE_ASSET(SHADER);
+
       Shader(const Path& vertex_path , const Path& fragment_path , const Opt<Path>& geometry_shader = std::nullopt);
-      ~Shader();
+      virtual ~Shader() override;
   
       void Bind() const;
       void Unbind() const;
@@ -32,7 +35,7 @@ namespace other {
       const bool IsValid() const;
 
       const bool HasGeometry() const;
-  
+ 
       void SetUniform(const std::string& name , const int32_t& value);
       void SetUniform(const std::string& name , const float& value);
       void SetUniform(const std::string& name , const glm::vec2& value);

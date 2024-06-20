@@ -98,7 +98,7 @@ namespace other {
       } break;
 
       default: 
-        OE_ERROR("Failed to retrieve mono type");
+        // OE_ERROR("Failed to retrieve mono type for class");// {}" , name);
         return ValueType::EMPTY;
     }
 

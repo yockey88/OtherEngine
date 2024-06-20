@@ -5,36 +5,36 @@
 
 namespace other {
 
-  Asset::~Asset() {
-    Decrement();
+  AssetType Asset::GetStaticType() { 
+    return AssetType::BLANK_ASSET; 
+  }  
+
+  AssetType Asset::GetAssetType() const { 
+    return AssetType::BLANK_ASSET; 
   }
 
-  Asset::Asset(Asset&& other) {
-    asset_handle = other.asset_handle;
-    flags = other.flags;
-    other.asset_handle = 0;
-    other.flags = AssetFlag::NO_ASSET_FLAGS;
+  bool Asset::operator==(const Asset& other) const { 
+    return asset_handle == other.asset_handle; 
   }
 
-  Asset::Asset(const Asset& other) {
-    asset_handle = other.asset_handle;
-    flags = other.flags;
-    Increment();
+  bool Asset::operator!=(const Asset& other) const { 
+    return !(*this == other); 
   }
 
-  Asset& Asset::operator=(Asset&& other) {
-    asset_handle = other.asset_handle;
-    flags = other.flags;
-    other.asset_handle = 0;
-    other.flags = AssetFlag::NO_ASSET_FLAGS;
-    return *this;
+  bool Asset::IsValid() const { 
+    return (!CheckFlag(AssetFlag::ASSET_INVALID) && !CheckFlag(AssetFlag::MISSING)); 
   }
 
-  Asset& Asset::operator=(const Asset& other) {
-    asset_handle = other.asset_handle;
-    flags = other.flags;
-    Increment();
-    return *this;
+  bool Asset::CheckFlag(AssetFlag flag) const { 
+    return (flags & flag); 
+  }
+
+  void Asset::SetFlag(AssetFlag flag , bool val) {
+    if (val) {
+      flags |= flag;
+    } else {
+      flags &= ~flag;
+    }
   }
 
 } // namespace other

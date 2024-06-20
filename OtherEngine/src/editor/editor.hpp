@@ -7,11 +7,17 @@
 #include <glad/glad.h>
 
 #include "core/layer.hpp"
+
 #include "parsing/cmd_line_parser.hpp"
+
 #include "project/project.hpp"
+
 #include "application/app.hpp"
+
+#include "ecs/components/script.hpp"
+
 #include "scripting/language_module.hpp"
-#include "scene/scene.hpp"
+
 #include "rendering/camera_base.hpp"
 
 #include "editor/editor_panel.hpp"
@@ -35,8 +41,9 @@ namespace other {
 
       Scope<App> app;
       Ref<Project> project;
-      Ref<Scene> active_scene;
       Ref<CameraBase> editor_camera = nullptr;
+
+      Script editor_scripts;
 
       bool project_panel_open = true;
       Ref<EditorPanel> project_panel;
@@ -49,15 +56,22 @@ namespace other {
 
       Ref<LanguageModule> lua_module = nullptr;
 
+      Path SaveActiveScene();
+      void LoadEditorScripts();
+
+      virtual void OnLoad() override;
       virtual void OnAttach() override;
       virtual void OnEvent(Event* event) override;
       virtual void Update(float dt) override;
       virtual void Render() override;
       virtual void RenderUI() override;
       virtual void OnDetach() override;
+      virtual void OnUnload() override;
 
       virtual void OnSceneLoad(const SceneMetadata* path) override;
       virtual void OnSceneUnload() override;
+
+      virtual void OnScriptReload() override;
   };
 
 } // namespace other

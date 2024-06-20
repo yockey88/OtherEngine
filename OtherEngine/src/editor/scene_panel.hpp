@@ -30,6 +30,7 @@ namespace other {
       int32_t first_selected_row = -1;
       int32_t last_selected_row = -1;
 
+      void RenderCreateEntity(Entity* parent = nullptr);
       void RenderEntity(const UUID& id , Entity* entity);
   };
 

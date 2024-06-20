@@ -79,8 +79,11 @@ namespace other {
       }
 
       CoreShutdown();
-    } catch (other::IniException& e) {
+    } catch (const std::exception& e) {
       OE_CRITICAL("{}", e.what());
+      return ExitCode::FAILURE;
+    } catch (...) {
+      OE_CRITICAL("Caught unknow error!");
       return ExitCode::FAILURE;
     }
 

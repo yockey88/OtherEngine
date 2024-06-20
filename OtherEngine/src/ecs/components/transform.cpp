@@ -11,7 +11,7 @@ namespace other {
   void TransformSerializer::Serialize(std::ostream& stream , Entity* entity , const Ref<Scene>& scene) const {
     auto& transform = entity->GetComponent<Transform>();
 
-    stream << "[" << entity->Name() << ".transform]\n";
+    SerializeComponentSection(stream , entity , "transform");
     SerializeVec3(stream , "position" , transform.position);
     SerializeQuat(stream , "rotation" , transform.qrotation);
     SerializeVec3(stream , "scale" , transform.scale);

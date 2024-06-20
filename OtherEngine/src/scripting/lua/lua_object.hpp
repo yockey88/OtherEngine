@@ -21,8 +21,6 @@ namespace other {
         virtual void InitializeScriptMethods() override;
         virtual void InitializeScriptFields() override;
         
-        virtual Opt<Value> OnCallMethod(const std::string_view name , std::span<Value> args) override;
-      
         virtual Opt<Value> GetField(const std::string& name) override;
         virtual void SetField(const std::string& name , const Value& value) override;
 
@@ -50,7 +48,7 @@ namespace other {
         sol::function update;
         sol::function render;
         sol::function render_ui;
-
+      
         template <typename... Args>
         Opt<Value> CallLuaMethod(const std::string_view name , Args&&... args) {
           sol::optional<sol::function> function = (*state)[name];
@@ -74,6 +72,9 @@ namespace other {
             return std::nullopt;
           }
         }
+        
+        void OnSetEntityId() override;
+        virtual Opt<Value> OnCallMethod(const std::string_view name , std::span<Value> args) override;
     };
 
 } // namespace other

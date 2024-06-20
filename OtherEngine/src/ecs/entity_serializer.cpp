@@ -3,8 +3,10 @@
  **/
 #include "ecs/entity_serializer.hpp"
 #include "core/config_keys.hpp"
+
 #include "ecs/component.hpp"
 #include "ecs/component_serializer.hpp"
+#include "ecs/components/serialization_data.hpp"
 #include "ecs/systems/entity_serialization.hpp"
 
 namespace other {
@@ -17,10 +19,12 @@ namespace other {
 
     auto& tag = entity->GetComponent<Tag>();
     stream << "[" << tag.name << "]\n";
-    stream << "UUID = " << tag.id.Get() << "\n"; 
+    stream << "UUID = " << FNV(tag.name) << "\n"; 
     stream << "components = {";
+
+    const auto& serialization_data = entity->GetComponent<SerializationData>();
+    const auto& comp_idxs = serialization_data.entity_components;
     
-    auto comp_idxs = entity->GetComponentIndices(); 
     if (comp_idxs.empty()) {
       stream << "}\n\n";
     } else {
@@ -62,8 +66,8 @@ namespace other {
   UUID EntitySerializer::Deserialize(Ref<Scene>& ctx , const std::string& name , const ConfigTable& scene_table) const {
     auto entity_data = scene_table.Get(name);
 
-    UUID id = scene_table.GetVal<UUID>(name , kUuidValue).value_or(FNV(name));
-    Entity* entity = ctx->CreateEntity(name , id);
+    Entity* entity = ctx->CreateEntity(name);
+    UUID id = entity->GetComponent<Tag>().id;
 
     OE_ASSERT(entity != nullptr , "Failed to deserialize and create entity : [{} | {}]" , id.Get() , name);
     
@@ -72,13 +76,13 @@ namespace other {
     }
 
     { /// transform
-      Scope<ComponentSerializer> transform_serializer = EntitySerialization::GetComponentSerializer(kTransformSection);
+      Scope<ComponentSerializer> transform_serializer = EntitySerialization::GetComponentSerializer(kTransformIndex);
       OE_ASSERT(transform_serializer != nullptr , "Failed to retrieve transform serializer for deserialization");
       transform_serializer->Deserialize(entity , scene_table , ctx);
     }
 
     { /// relationship
-      Scope<ComponentSerializer> relationship_serializer = EntitySerialization::GetComponentSerializer(kRelationshipSection);
+      Scope<ComponentSerializer> relationship_serializer = EntitySerialization::GetComponentSerializer(kRelationshipIndex);
       OE_ASSERT(relationship_serializer != nullptr , "Failed to retrieve relationship serializer for deserialization");
       relationship_serializer->Deserialize(entity , scene_table , ctx);
     }

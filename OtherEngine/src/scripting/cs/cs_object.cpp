@@ -4,6 +4,7 @@
 #include "scripting/cs/cs_object.hpp"
 
 #include <mono/metadata/class.h>
+#include <mono/metadata/loader.h>
 #include <mono/metadata/object.h>
 
 #include "core/logger.hpp"
@@ -15,61 +16,53 @@ namespace other {
   void CsObject::InitializeScriptMethods() {
     obj_vtable = mono_object_get_vtable(instance);
 
-    MonoClass* parent = mono_class_get_parent(type_data->asm_class);
+    auto init_hash = FNV("OnInitialize"); 
+    auto shutd_hash = FNV("OnShutdown"); 
+    auto start_hash = FNV("OnStart"); 
+    auto stop_hash = FNV("OnStop"); 
+    auto update_hash = FNV("Update"); 
+    auto render_hash = FNV("RenderObject"); 
+    auto ui_hash = FNV("RenderUI"); 
+
+    auto init_itr = type_data->methods.find(init_hash);
+    auto shutd_itr = type_data->methods.find(shutd_hash);
+    auto start_itr = type_data->methods.find(start_hash);
+    auto stop_itr = type_data->methods.find(stop_hash);
+    auto update_itr = type_data->methods.find(update_hash);
+    auto render_itr = type_data->methods.find(render_hash);
+    auto ui_itr = type_data->methods.find(ui_hash);
+
+    if (init_itr != type_data->methods.end()) {
+      initialize_method = mono_object_get_virtual_method(instance , init_itr->second.asm_method);
+    }
     
-    initialize_method = mono_class_get_method_from_name(type_data->asm_class , "OnInitialize" , 0);
-    shutdown_method = mono_class_get_method_from_name(type_data->asm_class , "OnShutdown" , 0);
+    if (shutd_itr != type_data->methods.end()) {
+      shutdown_method = mono_object_get_virtual_method(instance , shutd_itr->second.asm_method);
+    }
+    
+    if (start_itr != type_data->methods.end()) {
+      on_start = mono_object_get_virtual_method(instance , start_itr->second.asm_method);
+    }
+    
+    if (stop_itr != type_data->methods.end()) {
+      on_stop = mono_object_get_virtual_method(instance , stop_itr->second.asm_method);
+    }
+    
+    if (update_itr != type_data->methods.end()) {
+      update_method = mono_object_get_virtual_method(instance , update_itr->second.asm_method);
+    }
 
-    on_start = mono_class_get_method_from_name(type_data->asm_class , "OnStart" , 0);
-    on_stop = mono_class_get_method_from_name(type_data->asm_class , "OnStop" , 0);
+    if (render_itr != type_data->methods.end()) {
+      render_method = mono_object_get_virtual_method(instance , render_itr->second.asm_method);
+    }
 
-    update_method = mono_class_get_method_from_name(type_data->asm_class , "Update" , 1);
-    render_method = mono_class_get_method_from_name(type_data->asm_class , "RenderObject" , 0);
-    render_ui_method = mono_class_get_method_from_name(type_data->asm_class , "RenderUI" , 0);
-
-    while (parent != nullptr) {
-      if (initialize_method != nullptr && shutdown_method != nullptr &&
-          on_start != nullptr && on_stop != nullptr &&
-          update_method != nullptr && render_method != nullptr &&
-          render_ui_method != nullptr) {
-        break;
-      }
-
-      if (initialize_method == nullptr) {
-        initialize_method = mono_class_get_method_from_name(parent , "OnInitialize" , 0);
-      }
-      if (shutdown_method == nullptr) {
-        shutdown_method = mono_class_get_method_from_name(parent , "OnShutdown" , 0);
-      }
-      
-      if (on_start == nullptr) {
-        on_start = mono_class_get_method_from_name(parent , "OnStart" , 0);
-      }
-      if (on_stop == nullptr) {
-        on_stop = mono_class_get_method_from_name(parent , "OnStop" , 0);
-      }
-      
-      if (update_method == nullptr) {
-        update_method = mono_class_get_method_from_name(parent , "Update" , 1);
-      }
-      if (render_method == nullptr) {
-        render_method = mono_class_get_method_from_name(parent , "Render" , 0);
-      }
-      if (render_ui_method == nullptr) {
-        render_ui_method = mono_class_get_method_from_name(parent , "RenderUI" , 0);
-      }
-      
-      const char* name = mono_class_get_name(parent);
-      if (std::string{ name } == "OtherObject") {
-        break;  
-      }
-
-      parent = mono_class_get_parent(parent);
+    if (ui_itr != type_data->methods.end()) {
+      render_ui_method = mono_object_get_virtual_method(instance , ui_itr->second.asm_method);
     }
   }
 
   void CsObject::InitializeScriptFields() {
-    for (const auto& [fid , f] : type_data->fields) {
+    for (auto& [fid , f] : type_data->fields) {
       if (f.HasFlag(FieldAccessFlag::PRIVATE) || f.HasFlag(FieldAccessFlag::PROTECTED)) {
         continue;
       }
@@ -80,6 +73,9 @@ namespace other {
       Opt<Value> val = std::nullopt;
 
       if (f.is_property) {
+        // f.asm_property_getter = mono_object_get_virtual_method(instance , f.asm_property_getter);
+        // f.asm_property_setter = mono_object_get_virtual_method(instance , f.asm_property_setter);
+
         val = GetMonoProperty(f.asm_property_getter);
       } else {
         val = GetMonoField(f.asm_field);
@@ -89,36 +85,7 @@ namespace other {
         fval.value = val.value();
       }
     }
-  }
-      
-  Opt<Value> CsObject::OnCallMethod(const std::string_view name , std::span<Value> args) {
-    /// dont need to construct the vector below if no args provided
-    if (args.size() == 0) {
-      return OnCallMethod(name , nullptr , 0);
-    }
-
-    std::vector<Parameter> call_args(args.size());
-    for (uint32_t i = 0; i < args.size(); ++i) {
-      call_args[i] = {
-        args[i].AsRawMemory() ,
-        args[i].Type() ,
-      };
-    }
-
-    return OnCallMethod(name , call_args.data() , call_args.size());
-  }
-
-  Opt<Value> CsObject::OnCallMethod(const std::string_view name , Parameter* args , uint32_t argc)  {
-    UUID id = FNV(name);
-    for (const auto& [mid , m] : type_data->methods) {
-      if (id == mid) {
-        return CallMonoMethod(m.asm_method , argc , args);
-      }
-    }
-
-    OE_ERROR("Failed to find method {} on C# script {}" , name , script_name);
-    return std::nullopt;
-  }
+  } 
       
   Opt<Value> CsObject::GetField(const std::string& name) {
     UUID id = FNV(name);
@@ -200,6 +167,7 @@ namespace other {
   Opt<Value> CsObject::GetMonoField(MonoClassField* field) {
     MonoObject* mobj = mono_field_get_value_object(app_domain , field , instance);
     if (mobj == nullptr) {
+      OE_ERROR("Failed to retrieve C# field!");
       return std::nullopt;
     }
 
@@ -208,6 +176,11 @@ namespace other {
 
   Opt<Value> CsObject::GetMonoProperty(MonoMethod* getter) {
     MonoMethod* vgetter = mono_object_get_virtual_method(instance , getter);
+    if (vgetter == nullptr) {
+      OE_ERROR("failed to find C# property getter!");
+      return std::nullopt;;
+    }
+
     return CallMonoMethod(vgetter);
   }
 
@@ -226,7 +199,20 @@ namespace other {
       .handle = value.AsRawMemory() ,
       .type = value.Type() ,
     };
+
+    if (param.type == ValueType::STRING) {
+      std::string string = value.Get<std::string>(); 
+      MonoString* mstr = mono_string_new(app_domain , string.c_str());
+
+      param.handle = mstr;
+    }
+
     MonoMethod* vsetter = mono_object_get_virtual_method(instance , setter);
+    if (vsetter == nullptr) {
+      OE_ERROR("failed to find C# property setter!");
+      return;
+    }
+
     CallMonoMethod(vsetter , 1 , &param);
   }
   
@@ -252,9 +238,8 @@ namespace other {
 
     MonoObject* exception = nullptr;
     MonoObject* ret_val = nullptr;
-    MonoMethod* vmethod = mono_object_get_virtual_method(instance , method);
 
-    ret_val = mono_runtime_invoke(vmethod , instance , params.data() , &exception);
+    ret_val = mono_runtime_invoke(method , instance , params.data() , &exception);
 
     if (exception) {
       OE_ERROR("C# Exception thrown by : {}" , script_name);
@@ -268,6 +253,49 @@ namespace other {
     }
 
     return MonoObjectToValue(ret_val);
+  }
+
+  void CsObject::OnSetEntityId() {
+    MonoProperty* property = mono_class_get_property_from_name(type_data->asm_class, "ObjectID");
+    MonoMethod* set_entity_id = mono_property_get_set_method(property);
+    set_entity_id = mono_object_get_virtual_method(instance , set_entity_id);
+
+    uint64_t id = entity_id.Get();
+    Parameter p{
+      .handle = &id ,
+      .type = ValueType::UINT64 ,
+    };
+
+    CallMonoMethod(set_entity_id , 1 , &p);
+  }
+  
+  Opt<Value> CsObject::OnCallMethod(const std::string_view name , std::span<Value> args) {
+    /// dont need to construct the vector below if no args provided
+    if (args.size() == 0) {
+      return OnCallMethod(name , nullptr , 0);
+    }
+
+    std::vector<Parameter> call_args(args.size());
+    for (uint32_t i = 0; i < args.size(); ++i) {
+      call_args[i] = {
+        args[i].AsRawMemory() ,
+        args[i].Type() ,
+      };
+    }
+
+    return OnCallMethod(name , call_args.data() , call_args.size());
+  }
+  
+  Opt<Value> CsObject::OnCallMethod(const std::string_view name , Parameter* args , uint32_t argc)  {
+    UUID id = FNV(name);
+    for (const auto& [mid , m] : type_data->methods) {
+      if (id == mid) {
+        return CallMonoMethod(m.asm_method , argc , args);
+      }
+    }
+
+    OE_ERROR("Failed to find method {} on C# script {}" , name , script_name);
+    return std::nullopt;
   }
 
 } // namespace other

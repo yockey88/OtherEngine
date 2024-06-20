@@ -8,12 +8,14 @@
 #include <sol/sol.hpp>
 
 #include "scripting/language_module.hpp"
+#include "scripting/script_defines.hpp"
 
 namespace other {
   
   class LuaModule : public LanguageModule {
     public:
-      LuaModule() {}
+      LuaModule() 
+          : LanguageModule(LanguageModuleType::LUA_MODULE) {}
       virtual ~LuaModule() override {}
 
       template <typename Ret , typename... Args>

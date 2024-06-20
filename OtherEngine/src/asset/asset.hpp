@@ -9,36 +9,29 @@
 
 namespace other {
 
+#define OE_ASSET(asset_type) \
+  static AssetType GetStaticType() { return AssetType::asset_type; } \
+  virtual AssetType GetAssetType() const override { return AssetType::asset_type; } 
+
   class Asset : public RefCounted {
     public:
       Asset() {}
-      virtual ~Asset();
+      virtual ~Asset() {}
 
-      Asset(Asset&& other);
-      Asset(const Asset& other);
-      Asset& operator=(Asset&& other);
-      Asset& operator=(const Asset& other);
+      static AssetType GetStaticType();  
+      virtual AssetType GetAssetType() const;
 
-      static AssetType GetStaticType() { return AssetType::BLANK_ASSET; }  
-      virtual AssetType GetAssetType() const { return AssetType::BLANK_ASSET; }
-
-      virtual bool operator==(const Asset& other) const { return asset_handle == other.asset_handle; }
-      virtual bool operator!=(const Asset& other) const { return !(*this == other); }
+      virtual bool operator==(const Asset& other) const;
+      virtual bool operator!=(const Asset& other) const;
 
       AssetHandle asset_handle = 0;
       uint16_t flags = AssetFlag::NO_ASSET_FLAGS;
 
     private:
-      bool IsValid() const { return (!CheckFlag(AssetFlag::ASSET_INVALID) && !CheckFlag(AssetFlag::MISSING)); }
+      bool IsValid() const;
 
-      bool CheckFlag(AssetFlag flag) const { return (flags & flag); }
-      void SetFlag(AssetFlag flag , bool val = true) {
-        if (val) {
-          flags |= flag;
-        } else {
-          flags &= ~flag;
-        }
-      }
+      bool CheckFlag(AssetFlag flag) const;
+      void SetFlag(AssetFlag flag , bool val = true);
 
       // friend class EditorAssetManager;
       friend class MeshLoader;

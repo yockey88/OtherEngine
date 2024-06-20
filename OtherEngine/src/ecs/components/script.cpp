@@ -16,7 +16,7 @@ namespace other {
   void ScriptSerializer::Serialize(std::ostream& stream , Entity* entity , const Ref<Scene>& scene) const {
     const auto& script = entity->GetComponent<Script>();
 
-    stream << "[" << entity->Name() << ".script]\n";
+    SerializeComponentSection(stream , entity , "script");
     for (const auto& [id , s] : script.scripts) {
       stream << s->ScriptName() << " = { \"";
       if (s->NameSpace().has_value()) {
@@ -76,6 +76,7 @@ namespace other {
           .obj_name = s ,
         };
         script.scripts[id] = inst;
+        inst->SetEntityId(entity->ReadComponent<Tag>().id);
       }
     }
 

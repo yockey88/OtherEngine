@@ -90,33 +90,47 @@ namespace other {
       return;
     }
 
-    MonoMethod* method = nullptr;
-    MethodHandle iter = nullptr;
+    MonoClass* curr_class = data.asm_class;
+    while (curr_class != nullptr) {
+      std::string class_name{ mono_class_get_name(curr_class) };
+      std::string class_namespace{ mono_class_get_namespace(curr_class) }; 
+    
+      MonoMethod* method = nullptr;
+      MethodHandle iter = nullptr;
 
-    do {
-      method = mono_class_get_methods(data.asm_class , &iter);
-      if (method == nullptr) {
+      do {
+        method = mono_class_get_methods(curr_class , &iter);
+        if (method == nullptr) {
+          break;
+        }
+
+        MonoMethodSignature* sig = mono_method_signature(method);
+
+        std::string full_name = std::string{ mono_method_full_name(method , 0) };
+        std::string name = std::string{ mono_method_get_name(method) };
+        UUID hash = FNV(name);
+        
+        CsMethodData&  mdata = data.methods[hash] = CsMethodData{};
+        mdata.name = name;
+        mdata.full_name = full_name;
+        mdata.hash = hash;
+
+        mdata.flags = mono_method_get_flags(method , nullptr);
+
+        mdata.is_static = mdata.flags & MONO_METHOD_ATTR_STATIC;
+        mdata.is_virtual = mdata.flags & MONO_METHOD_ATTR_VIRTUAL;
+        mdata.parameter_count = mono_signature_get_param_count(sig);
+        mdata.asm_method = method;
+
+        data.methods[mdata.hash] = mdata;
+      } while (method != nullptr);
+
+      if (class_name == "OtherObject") {
         break;
       }
 
-      MonoMethodSignature* sig = mono_method_signature(method);
-
-      std::string name = std::string{ mono_method_full_name(method , 0) };
-      UUID hash = FNV(name);
-      
-      CsMethodData&  mdata = data.methods[hash] = CsMethodData{};
-      mdata.name = name;
-      mdata.hash = hash;
-
-      mdata.flags = mono_method_get_flags(method , nullptr);
-
-      mdata.is_static = mdata.flags & MONO_METHOD_ATTR_STATIC;
-      mdata.is_virtual = mdata.flags & MONO_METHOD_ATTR_VIRTUAL;
-      mdata.parameter_count = mono_signature_get_param_count(sig);
-      mdata.asm_method = method;
-
-      data.methods[mdata.hash] = mdata;
-    } while (method != nullptr);
+      curr_class = mono_class_get_parent(curr_class); 
+    } 
   }
 
   void CsCache::StoreClassFields(CsTypeData& data) {
@@ -131,11 +145,6 @@ namespace other {
     while (curr_class != nullptr) {
       std::string class_name{ mono_class_get_name(curr_class) };
       std::string class_namespace{ mono_class_get_namespace(curr_class) }; 
-
-      if (class_namespace.find("Other") != std::string::npos && class_name.find("Entity") != std::string::npos) {
-        curr_class = nullptr;
-        continue;
-      }
 
       MonoClassField* field = nullptr;
       FieldHandle iter = nullptr;
@@ -217,6 +226,10 @@ namespace other {
 
         data.size += sf.size;
       } while (field != nullptr);
+      
+      if (class_name == "OtherObject") {
+        break;
+      }
 
       curr_class = mono_class_get_parent(curr_class);
     }
@@ -226,6 +239,7 @@ namespace other {
     if (data.asm_class == nullptr) {
       return;
     }
+
 
     MonoProperty* prop = nullptr;
     PropertyHandle iter = nullptr;
@@ -324,7 +338,6 @@ namespace other {
       int32_t align;
       sf.size = mono_type_size(mtype , &align);
       data.size += sf.size;
-
     } while (prop != nullptr);
   }
 
