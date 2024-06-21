@@ -9,9 +9,11 @@
 #include "core/defines.hpp"
 #include "core/engine.hpp"
 #include "core/config_keys.hpp"
+#include "event/app_events.hpp"
 #include "event/event.hpp"
 #include "event/window_events.hpp"
 #include "event/core_events.hpp"
+#include "project/project.hpp"
 #include "rendering/renderer.hpp"
 
 namespace other {
@@ -19,6 +21,7 @@ namespace other {
   uint32_t EventQueue::buffer_offset = 0;
   uint8_t* EventQueue::event_buffer = nullptr;
   uint8_t* EventQueue::cursor = nullptr;
+      
   bool EventQueue::process_ui_events = false;
 
   void EventQueue::Initialize(const ConfigTable& config) {
@@ -83,18 +86,30 @@ namespace other {
 
     uint8_t* tmp_cursor = event_buffer;
 
-    bool scripts_reloaded = false;
+    bool reload_scripts = false;
+    bool regen_project = false;
+
+    std::set<ProjectDirectoryType> directory_changes;
 
     while (tmp_cursor != cursor) {
       Event* event = reinterpret_cast<Event*>(tmp_cursor);
 
+      if (event->Type() == EventType::PROJECT_DIR_UPDATE) {
+        ProjectDirectoryUpdateEvent* e = Cast<ProjectDirectoryUpdateEvent>(event);
+        if (e != nullptr) {
+          directory_changes.insert(e->dir_type);
+        }
+
+        tmp_cursor += event->Size();
+        regen_project = true;
+        continue;
+      }
+
       /// only reload scripts once per frame at most
       if (event->Type() == EventType::SCRIPT_RELOAD) {
-        if (scripts_reloaded) {
-          tmp_cursor += event->Size();
-          continue;
-        }
-        scripts_reloaded = true;
+        tmp_cursor += event->Size();
+        reload_scripts = true;
+        continue;
       } 
 
       app->ProcessEvent(event);
@@ -104,6 +119,20 @@ namespace other {
       }
 
       tmp_cursor += event->Size();
+    }
+
+    /// trigger specific order-dependent events
+
+    if (regen_project) {
+      for (const auto& t : directory_changes) {
+        ProjectDirectoryUpdateEvent e(t);
+        app->ProcessEvent(&e);
+      }
+    }
+
+    if (reload_scripts) {
+      ScriptReloadEvent e;
+      app->ProcessEvent(&e);
     }
 
     Clear();

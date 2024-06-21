@@ -6,8 +6,11 @@
 #include "core/defines.hpp"
 #include "core/logger.hpp"
 #include "core/config.hpp"
+
 #include "event/event.hpp"
 #include "event/core_events.hpp"
+#include "event/event_handler.hpp"
+
 #include "editor/editor.hpp"
 
 namespace other {
@@ -52,12 +55,11 @@ namespace other {
       return;
     }
 
-    if (event->Type() == EventType::SHUTDOWN) {
-      ShutdownEvent* sd = Cast<ShutdownEvent>(event);
-      if (sd != nullptr) {
-        exit_code = sd->GetExitCode();
-      }
-    }
+    EventHandler handler(event);
+    handler.Handle<ShutdownEvent>([this](ShutdownEvent& sd) -> bool { 
+      exit_code = sd.GetExitCode(); 
+      return true;
+    });
   }
 
 } // namespace other

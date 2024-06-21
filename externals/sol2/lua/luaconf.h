@@ -794,8 +794,13 @@
 ** without modifying the main part of the file.
 */
 
-
-
+/*
+@@ LUA_QL describes how error messages quote program elements.
+** Lua does not use these macros anymore; they are here for
+** compatibility only.
+*/
+#define LUA_QL(x)	"'" x "'"
+#define LUA_QS		LUA_QL("%s")
 
 
 #endif

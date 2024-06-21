@@ -10,15 +10,28 @@
 #include "core/ref_counted.hpp"
 #include "core/ref.hpp"
 #include "core/config.hpp"
+#include "core/directory_watcher.hpp"
+
 #include "parsing/cmd_line_parser.hpp"
 
 namespace other {
+  
+  enum ProjectDirectoryType {
+    EDITOR_DIR , 
+    SCRIPT_DIR , 
+  };
   
   struct ProjectMetadata {
     std::string name = "";
     Path project_directory = "";
     Path file_path = "";
     Path assets_dir = "";
+
+    Scope<DirectoryWatcher> cs_editor_watcher = nullptr;
+    Scope<DirectoryWatcher> lua_editor_watcher = nullptr;
+
+    Scope<DirectoryWatcher> cs_scripts_watcher = nullptr;
+    Scope<DirectoryWatcher> lua_scripts_watcher = nullptr;
 
     std::vector<Path> project_dir_folders{};
   };
@@ -30,7 +43,11 @@ namespace other {
 
       static Ref<Project> Create(const CmdLine& cmdline , const ConfigTable& data);
 
-      ProjectMetadata GetMetadata() { return metadata; }
+      bool RegenProjectFile();
+
+      ProjectMetadata& GetMetadata() { return metadata; }
+      bool EditorDirectoryChanged();
+      bool ScriptDirectoryChanged();
 
       std::string GetName() { return metadata.name; }
       Path GetFilePath() { return metadata.file_path; }

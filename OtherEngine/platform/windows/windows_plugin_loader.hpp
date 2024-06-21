@@ -13,7 +13,7 @@ namespace other {
 
   class WindowsPluginLoader : public PluginLoader {
     public:
-      WindowsPluginLoader(const std::string& path) 
+      WindowsPluginLoader(const std::string_view path) 
         : PluginLoader(path) {}
       virtual ~WindowsPluginLoader() = default;
 

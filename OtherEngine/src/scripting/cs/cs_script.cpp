@@ -167,6 +167,23 @@ namespace other {
     }
   }
       
+  bool CsScript::HasScript(const std::string_view name , const std::string_view nspace) {
+    if (!valid) {
+      return false;
+    }
+
+    for (const auto& [id , type] : cached_symbols.class_data) {
+      if (!nspace.empty() && name == type.name && nspace == type.name_space) {
+        return true;
+      } else if (name == type.name) {
+        return true;
+      }
+
+      return false;
+    }
+
+  }
+      
   ScriptObject* CsScript::GetScript(const std::string& name , const std::string& nspace) {
     if (!valid) {
       return nullptr;

@@ -5,9 +5,9 @@ sol2.language = "C++"
 
 sol2.files = function()
   files {
-    "./sol/*.hpp", 
-    "./lua/*.h",
-    "./lua/*.c",
+    "./sol/*.hpp",
+    "./lua/*.c" ,
+    "./lua/*.h"
   }
 end
 

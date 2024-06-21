@@ -56,6 +56,7 @@ namespace other {
   };
   
   struct CsTypeData {
+    std::string name_space;
     std::string name;
     size_t size = 0;
     UUID id;

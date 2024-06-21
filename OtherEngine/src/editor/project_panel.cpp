@@ -9,6 +9,9 @@
 #include <imgui/imgui_internal.h>
 
 #include "core/logger.hpp"
+
+#include "input/mouse.hpp"
+
 #include "core/filesystem.hpp"
 #include "rendering/ui/ui_helpers.hpp"
 #include "rendering/ui/ui_colors.hpp"
@@ -275,7 +278,10 @@ namespace other {
     }
 
     auto itr = std::find_if(tags.begin() , tags.end() , [&](const auto& tag_pair) -> bool {
-      return tag_pair.first.Get() == FNV(selection.value().string());
+      std::string path = selection.value().string();
+      std::replace(path.begin() , path.end() , '/' , '\\');
+      std::string tag = path.substr(path.find_last_of('\\') + 1 , path.length() - path.find_last_of('\\'));
+      return tag_pair.first.Get() == FNV(tag);
     });
 
     if (itr == tags.end()) {
@@ -293,28 +299,40 @@ namespace other {
     }
   }
       
-  void ProjectPanel::RenderContextMenu() const {
-    std::string tag = "";
-    if (ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
-      tag = GetContextMenuTagFromSelection();
-      if (!tag.empty()) {
-        ImGui::OpenPopup(("##project-context-" + tag).c_str());
+  void ProjectPanel::RenderContextMenu() {
+    if (ImGui::IsWindowHovered() && Mouse::Pressed(Mouse::Button::RIGHT)) {
+      std::string tag = GetContextMenuTagFromSelection();
+      if (tag.empty()) {
+        return;
       }
-    }
 
-    if (tag.empty()) {
-      return;
+      selection_tag = tag;
     }
     
-    DrawContextMenu(tags.at(FNV("editor")) , []{});
+    if (selection_tag.has_value()) {
+      ImGui::OpenPopup(("##project-context-" + selection_tag.value()).c_str());
+    } 
+    
+    DrawContextMenu(tags.at(FNV("editor")) , []{
+    });
 
-    DrawContextMenu(tags.at(FNV("material")) , []{});
+    DrawContextMenu(tags.at(FNV("materials")) , []{
+    });
 
-    DrawContextMenu(tags.at(FNV("scenes")) , []{});
+    DrawContextMenu(tags.at(FNV("scenes")) , []{
+    });
 
-    DrawContextMenu(tags.at(FNV("scripts")) , []{});
+    DrawContextMenu(tags.at(FNV("scripts")) , [this]{
+      ImGui::Text("Script Context Menu");
 
-    DrawContextMenu(tags.at(FNV("shaders")) , []{});
+      if (ImGui::Button("Close")) {
+        ImGui::CloseCurrentPopup();
+        selection_tag = std::nullopt;
+      }
+    });
+
+    DrawContextMenu(tags.at(FNV("shaders")) , []{
+    });
   }
 
   bool ProjectPanel::IsDirSelected(const Path& dir) const {
@@ -350,7 +368,7 @@ namespace other {
     selection = path;
   }
 
-  void ProjectPanel::ValidateAndRenderSelectionCtx() const {
+  void ProjectPanel::ValidateAndRenderSelectionCtx() {
     if (selection.has_value()) {
       RenderContents(selection.value());    
       RenderContextMenu();

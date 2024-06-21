@@ -8,7 +8,9 @@
 
 #include "core/logger.hpp"
 #include "core/filesystem.hpp"
+
 #include "event/key_events.hpp"
+#include "event/event_handler.hpp"
 
 namespace other {
     
@@ -60,14 +62,13 @@ namespace other {
       return;
     }
 
-    if (has_focus && event->Type() == EventType::KEY_PRESSED) {
-      auto* key_event = Cast<KeyPressed>(event);
-      if (key_event != nullptr) {
-        if (key_event->Key() == Keyboard::Key::OE_ESCAPE) {
-          event->handled = true;
-        }
+    EventHandler handler(event);
+    handler.Handle<KeyPressed>([this](KeyPressed& key_event) -> bool {
+      if (has_focus && key_event.Key() == Keyboard::Key::OE_ESCAPE) {
+        return true;
       }
-    }
+      return false;
+    });
   }
   
   void TextEditor::Render() {

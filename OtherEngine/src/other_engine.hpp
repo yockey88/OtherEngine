@@ -40,6 +40,9 @@ namespace other {
 
       Opt<ExitCode> exit_code = std::nullopt;
 
+      bool engine_unloaded = false;
+      bool full_shutdown = false;
+
       static void HandleExit(ExitCode code);
 
       static void CoreShutdown();

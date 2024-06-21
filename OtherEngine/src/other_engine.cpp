@@ -67,27 +67,34 @@ namespace other {
       return ExitCode::FAILURE;
     }
 
+    ExitCode ec = ExitCode::SUCCESS;
+
+    OE driver;
     try {
       CoreInit();
 
       /* main engine entry point */ {
-        OE driver;
         ExitCode run_code = driver.Run();
         if (run_code != ExitCode::SUCCESS) {
           std::cerr << "Failed to run application" << std::endl;
         }
       }
-
-      CoreShutdown();
     } catch (const std::exception& e) {
-      OE_CRITICAL("{}", e.what());
-      return ExitCode::FAILURE;
+      OE_CRITICAL("Fatal Error Caught : {}", e.what());
+      ec = ExitCode::FAILURE;
     } catch (...) {
       OE_CRITICAL("Caught unknow error!");
-      return ExitCode::FAILURE;
+      ec =ExitCode::FAILURE;
     }
 
-    return ExitCode::SUCCESS;
+    if (!driver.engine_unloaded) {
+      driver.engine.UnloadApp();
+    }
+    if (!driver.full_shutdown) {
+      driver.Shutdown();
+    }
+    CoreShutdown();
+    return ec;
   }
       
   void OE::Help() {
@@ -161,7 +168,7 @@ namespace other {
     }
 
     println("Using configuration : {}", ini_file);
-    // TODO: clean up finding config file
+
     config_path = ini_file;
 
     try {
@@ -173,11 +180,6 @@ namespace other {
     }
 
     auto config_table_str = current_config.TableString();
-
-    /// Create project metadata
-
-    /// process core config parts of table
-    ///  language modules to load
 
     return true;
   }
@@ -201,7 +203,11 @@ namespace other {
 
   ExitCode OE::Run() {
     bool should_quit = false;
+
     do {
+      engine_unloaded = false;
+      full_shutdown = false;
+
       Launch();
       {
         auto app = NewApp(&engine);
@@ -210,6 +216,7 @@ namespace other {
 
       engine.ActiveApp()->Run();
       engine.UnloadApp();
+      engine_unloaded = true;
 
       auto exit_code = engine.exit_code.value();
       switch (exit_code) {
@@ -237,6 +244,7 @@ namespace other {
       }
 
       Shutdown();
+      full_shutdown = true;
     } while (!should_quit);
 
     return engine.exit_code.value();
@@ -253,6 +261,7 @@ namespace other {
 
   void OE::CoreShutdown() {
     // shutdown allocators
+
     // close logger
     OE_INFO("Core shutdown complete");
     Logger::Shutdown();

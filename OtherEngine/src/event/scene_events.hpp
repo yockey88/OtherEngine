@@ -4,8 +4,7 @@
 #ifndef OTHER_ENGINE_SCENE_EVENTS_HPP
 #define OTHER_ENGINE_SCENE_EVENTS_HPP
 
-#include "core/logger.hpp"
-#include "core/filesystem.hpp"
+#include "event/event.hpp"
 
 namespace other {
 

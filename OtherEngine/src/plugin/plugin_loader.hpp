@@ -10,7 +10,7 @@ namespace other {
 
   class PluginLoader {
     public:
-      PluginLoader(const std::string& path) 
+      PluginLoader(const std::string_view path) 
         : path(path) {}
       virtual ~PluginLoader() = default;
 
@@ -21,8 +21,6 @@ namespace other {
       std::string path;
       Plugin* plugin = nullptr;
   };
-
-  Scope<PluginLoader> GetPluginLoader(const std::string_view path);
 
 } // namespace other
 

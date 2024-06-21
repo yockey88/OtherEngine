@@ -23,6 +23,7 @@ namespace other {
       virtual void Initialize() override;
       virtual void Shutdown() override;
       virtual void Reload() override;
+      virtual bool HasScript(const std::string_view name , const std::string_view nspace = "") override { return false; }
       virtual ScriptObject* GetScript(const std::string& name , const std::string& nspace = "") override;
 
     private:

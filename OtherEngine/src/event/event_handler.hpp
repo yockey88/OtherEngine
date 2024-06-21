@@ -15,22 +15,23 @@ namespace other {
 
   class EventHandler {
     public:
-      EventHandler(Event& event)
+      EventHandler(Event* event)
         : event(event) {}
 
       template <event_t T>
       bool Handle(Handler<T> handler) {
-        if (event.Type() == T::GetStaticType()) {
-          event.handled = handler(*(T*)&event);
-
-          return true;
+        T* e = Cast<T>(event);
+        if (e == nullptr) {
+          return false;
         }
+
+        event->handled = handler(*e);
 
         return false;
       }
 
     private:
-      Event& event;
+      Event* event;
   };
 
 } // namespace other

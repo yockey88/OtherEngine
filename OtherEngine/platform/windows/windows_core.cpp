@@ -10,8 +10,13 @@
 
 #include "core/logger.hpp"
 #include "core/filesystem.hpp"
+#include "windows/windows_plugin_loader.hpp"
 
 namespace other {
+
+  Scope<PluginLoader> PlatformLayer::GetPluginLoader(const std::string_view path) {
+    return NewScope<WindowsPluginLoader>(path);
+  }
 
   PlatformType PlatformLayer::CurrentPlatform() {
     return PlatformType::WINDOWS;

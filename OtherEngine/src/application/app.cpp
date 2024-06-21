@@ -8,12 +8,16 @@
 #include "core/engine.hpp"
 #include "core/config_keys.hpp"
 #include "input/io.hpp"
+
 #include "event/event_queue.hpp"
 #include "event/app_events.hpp"
+#include "event/event_handler.hpp"
+
 #include "rendering/renderer.hpp"
 #include "rendering/ui/ui.hpp"
 #include "layers/core_layer.hpp"
 #include "layers/debug_layer.hpp"
+
 #include "scripting/script_defines.hpp"
 #include "scripting/script_engine.hpp"
 
@@ -112,9 +116,22 @@ namespace other {
       IO::Update();
       CHECKGL();
 
-      /// first we check to see if we need to reload any scripts
-      if (Renderer::IsWindowFocused()) {
+      /// go through and trigger any events to dispatch in the next call
+      if (Renderer::IsWindowFocused() && lost_window_focus) {
+        lost_window_focus = false;
+
+        if (project_metadata->EditorDirectoryChanged()) {
+          EventQueue::PushEvent<ProjectDirectoryUpdateEvent>(EDITOR_DIR);
+        }
+
+        if (project_metadata->ScriptDirectoryChanged()) {
+          EventQueue::PushEvent<ProjectDirectoryUpdateEvent>(SCRIPT_DIR);
+        }
+
+        /// update script watchers
         ScriptEngine::UpdateScripts();
+      } else {
+        lost_window_focus = true;
       }
 
       /// physics step
@@ -134,10 +151,6 @@ namespace other {
       Renderer::BeginFrame();
       DoRender();
       Renderer::EndFrame();
-
-      if (!in_editor) {
-        Renderer::Viewport()->Draw();
-      }
 
       DoRenderUI();
       Renderer::SwapBuffers();
@@ -243,23 +256,30 @@ namespace other {
   }
 
   void App::ProcessEvent(Event* event) {
-    /// dont reload the scripts of we aren't in the editor
-    if (event->Type() == EventType::SCRIPT_RELOAD && is_editor) {
-      Opt<Path> active_path = std::nullopt;
-      if (scene_manager->ActiveScene() != nullptr) {
-        active_path = scene_manager->ActiveScene()->path;
-        UnloadScene();
-      } 
-        
-      scene_manager->ClearScenes();
-      ScriptEngine::ReloadAllScripts();
-
-      OnScriptReload();
-
-      if (active_path.has_value()) {
-        LoadScene(active_path.value());
+    EventHandler handler(event);
+    handler.Handle<ProjectDirectoryUpdateEvent>([this](ProjectDirectoryUpdateEvent& e) -> bool {
+      if (!is_editor) {
+        return true;
+      } else if (!project_metadata->RegenProjectFile()) {
+        OE_ERROR("Failed to generate project files! Project metadata corrupted!");
+        return true;
+      } else {
+        OE_INFO("Project files reloaded");
       }
-    }
+
+      ReloadScripts();
+
+      return true;
+    });
+
+    handler.Handle<ScriptReloadEvent>([this](ScriptReloadEvent& e) -> bool {
+      if (!is_editor) {
+        return false;
+      }
+
+      ReloadScripts();
+      return true;
+    });
 
     for (auto& window : ui_windows) {
       window.second->OnEvent(event);
@@ -502,6 +522,23 @@ namespace other {
 
   void App::SetInEditor() {
     in_editor = true;
+  }
+      
+  void App::ReloadScripts() {
+    Opt<Path> active_path = std::nullopt;
+    if (scene_manager->ActiveScene() != nullptr) {
+      active_path = scene_manager->ActiveScene()->path;
+      UnloadScene();
+    } 
+      
+    scene_manager->ClearScenes();
+    ScriptEngine::ReloadAllScripts();
+
+    OnScriptReload();
+
+    if (active_path.has_value()) {
+      LoadScene(active_path.value());
+    }
   }
 
 } // namespace other

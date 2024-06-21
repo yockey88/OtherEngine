@@ -110,6 +110,61 @@ namespace other {
 
     return nullptr;
   }
+      
+  // ScriptObject* ScriptEngine::GetScriptObject(const std::string_view name , const std::string_view nspace , const std::string_view mod_name) {
+  //   if (mod_name.empty()) {
+  //     return GetScriptObject(name , nspace , nullptr);
+  //   }
+
+  //   ScriptModule* mod = GetScriptModule(mod_name);
+  //   if (mod == nullptr) {
+  //     OE_ERROR("Failed to retrireve script module : {}" , mod_name);
+  //     return nullptr;
+  //   }
+
+  //   return GetScriptObject(name , nspace , mod);
+  // }
+  //     
+  // ScriptObject* ScriptEngine::GetScriptObject(const std::string_view name , const std::string_view nspace , ScriptModule* module) {
+  //   UUID id = FNV(name);
+  //   auto itr = objects.find(id);
+  //   if (itr != objects.end()) {
+  //     return itr->second;
+  //   }
+
+  //   /// if given a module, find it in there
+  //   if (module != nullptr && module->HasScript(name , nspace)) {
+  //     auto* obj =  module->GetScript(std::string{ name } , std::string{ nspace });
+  //     if (obj == nullptr) {
+  //       OE_ERROR("Failed to retrieve script object {}::{} from module {} (module corrupted)" , nspace , name , module->ModuleName());
+  //       return nullptr;
+  //     }
+
+  //     UUID id = FNV(name);
+  //     objects[id] = obj;
+  //     return obj;
+  //   } else if (module == nullptr) {
+  //     for (const auto& [id , module] : loaded_modules) {
+  //       if (module->HasScript(name , nspace)) {
+  //         auto* obj =  module->GetScript(std::string{ name } , std::string{ nspace });
+  //         if (obj == nullptr) {
+  //           OE_ERROR("Failed to retrieve script object {}::{} from module {} (module corrupted)" , nspace , name , module->ModuleName());
+  //           return nullptr;
+  //         }
+
+  //         UUID id = FNV(name);
+  //         objects[id] = obj;
+  //         return obj;
+  //       }
+  //     }
+  //   }
+
+  //   return nullptr;
+  // }
+
+  const std::map<UUID , ScriptObject*>& ScriptEngine::ReadLoadedObjects() {
+    return objects;
+  }
 
   void ScriptEngine::SetAppContext(App* app) {
     app_context = app;

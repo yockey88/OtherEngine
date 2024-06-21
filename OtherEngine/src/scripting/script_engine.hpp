@@ -49,6 +49,10 @@ namespace other {
       static ScriptModule* GetScriptModule(const std::string_view name);
       static ScriptModule* GetScriptModule(UUID id);
 
+      // static ScriptObject* GetScriptObject(const std::string_view name , const std::string_view nspace = "" , const std::string_view mod_name = "");
+      // static ScriptObject* GetScriptObject(const std::string_view name , const std::string_view nspace = "" , ScriptModule* module = nullptr);
+      static const std::map<UUID , ScriptObject*>& ReadLoadedObjects();
+
       static void SetAppContext(App* app);
       static App* GetAppContext();
 

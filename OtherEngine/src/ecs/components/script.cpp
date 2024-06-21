@@ -60,10 +60,12 @@ namespace other {
         }
 
         ScriptObject* inst = mod->GetScript(name , nspace);
+          //ScriptEngine::GetScriptObject(name , nspace , "");
         if (inst == nullptr) {
           OE_ERROR("Failed to get script {} from script module {}" , s , m);
           continue;
-        } else {
+        } 
+        else {
           OE_DEBUG("Retrieved {} from {}" , s , m);
         }
 

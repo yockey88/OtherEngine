@@ -150,6 +150,11 @@ function AddExternalProject(project)
   ProjectHeader(project)
     project.files()
     project.include_dirs()
+
+    if (project.links ~= nil) then
+      project.links()
+    end
+
     if (project.externalincludedirs ~= nil) then
       project.externalincludedirs()
     end

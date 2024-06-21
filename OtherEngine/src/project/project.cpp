@@ -7,6 +7,8 @@
 #include "core/filesystem.hpp"
 #include "core/config_keys.hpp"
 
+#include "core/platform.hpp"
+
 namespace other {
 
   Opt<std::string> Project::queued_project_path = std::nullopt;
@@ -34,10 +36,41 @@ namespace other {
         metadata.assets_dir = dir;
       }
     }
+
+    Path editor_path = metadata.assets_dir / "editor";
+    Path scripts_path = metadata.assets_dir / "scripts";
+
+    metadata.cs_editor_watcher = NewScope<DirectoryWatcher>(editor_path.string() , ".cs");
+    metadata.cs_scripts_watcher = NewScope<DirectoryWatcher>(scripts_path.string() , ".cs");
+    
+    metadata.lua_editor_watcher = NewScope<DirectoryWatcher>(editor_path.string() , ".lua");
+    metadata.lua_scripts_watcher = NewScope<DirectoryWatcher>(scripts_path.string() , ".lua");
   }
 
   Ref<Project> Project::Create(const CmdLine& cmdline , const ConfigTable& data) {
     return NewRef<Project>(cmdline , data);
+  }
+  
+  bool Project::RegenProjectFile() {
+    Path engine_core = Filesystem::GetEngineCoreDir();
+    Path premake = engine_core / "premake" / "premake5.exe";
+
+    /// TODO: replace this with project-specific build file
+    Path project_sln = engine_core / "premake5.lua";
+
+    /// TODO: replace vs2022 with platform specific generator 
+    std::string cmd = fmtstr("{} vs2022 --file={}" , premake.string() , project_sln.string());
+    return system(cmd.c_str()) == 0;
+  }
+
+  bool Project::EditorDirectoryChanged() {
+    OE_ASSERT(metadata.cs_editor_watcher != nullptr  && metadata.lua_editor_watcher != nullptr, "Project editor watchdog nullptr!");
+    return metadata.cs_editor_watcher->DirectoryChanged() || metadata.lua_editor_watcher->DirectoryChanged();
+  }
+
+  bool Project::ScriptDirectoryChanged() {
+    OE_ASSERT(metadata.cs_scripts_watcher != nullptr  && metadata.lua_scripts_watcher != nullptr, "Project scripts watchdog nullptr!");
+    return metadata.cs_scripts_watcher->DirectoryChanged() || metadata.lua_scripts_watcher->DirectoryChanged();
   }
 
   void Project::QueueNewProject(const std::string& path) {

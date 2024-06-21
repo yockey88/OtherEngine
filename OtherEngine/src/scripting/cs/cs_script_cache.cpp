@@ -55,7 +55,6 @@ namespace other {
     
     CsTypeData data{};
     data.name = name;
-
     data.id = FNV(name);
 
     uint32_t align = 0;
@@ -63,6 +62,9 @@ namespace other {
     data.asm_class = klass;
 
     CsTypeData& td = class_data[data.id] = data;
+    td.name_space = std::string{ mono_class_get_namespace(data.asm_class) };
+
+    OE_DEBUG("Caching C# class {}::{}" , td.name_space , td.name);
 
     StoreClassMethods(td);
     StoreClassFields(td);

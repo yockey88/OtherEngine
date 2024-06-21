@@ -44,6 +44,7 @@ namespace other {
       } current_asset_path;
 
       Opt<Path> selection = std::nullopt;
+      Opt<std::string> selection_tag = std::nullopt;
 
 
       /// Render functions
@@ -53,12 +54,12 @@ namespace other {
 
       void RenderContents(const Path& path) const;
       std::string GetContextMenuTagFromSelection() const;
-      void RenderContextMenu() const;
+      void RenderContextMenu();
 
       bool IsDirSelected(const Path& p) const;
       bool IsDescendantSelected(const Path& dir) const;
       void SetSelectionContext(const Path& path);
-      void ValidateAndRenderSelectionCtx() const;
+      void ValidateAndRenderSelectionCtx();
   };
 
 } // namespace other

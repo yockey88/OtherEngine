@@ -95,9 +95,12 @@ namespace other {
 
       bool is_editor = false;
       bool in_editor = false;
+      bool lost_window_focus = false;
 
       friend class Editor;
       void SetInEditor();
+
+      void ReloadScripts();
   };
 
 } // namespace other

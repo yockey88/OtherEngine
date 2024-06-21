@@ -6,6 +6,7 @@
 #define OTHER_ENGINE_SCRIPT_MODULE_HPP
 
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "core/file_watcher.hpp"
@@ -32,6 +33,7 @@ namespace other {
       virtual void Initialize(/* bool editor_script = false */) = 0;
       virtual void Shutdown() = 0;
       virtual void Reload() = 0;
+      virtual bool HasScript(const std::string_view name , const std::string_view nspace = "") = 0;
       virtual ScriptObject* GetScript(const std::string& name , const std::string& nspace = "") = 0;
 
       bool IsValid() const { return valid; }
