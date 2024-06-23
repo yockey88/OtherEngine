@@ -34,6 +34,8 @@ namespace other {
 
     }
 
+    void LuaObject::OnBehaviorLoad() {}
+
     void LuaObject::Initialize() {
       if (initialize.valid()) {
         initialize.call();
@@ -49,6 +51,8 @@ namespace other {
 
       is_initialized = false;
     }
+    
+    void LuaObject::OnBehaviorUnload() {}
 
     void LuaObject::Start() {
       if (start.valid()) {

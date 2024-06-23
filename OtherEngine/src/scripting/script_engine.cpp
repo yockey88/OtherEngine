@@ -16,6 +16,8 @@ namespace other {
 
   ConfigTable ScriptEngine::config;
 
+  Ref<Scene> ScriptEngine::scene_context = nullptr;
+
   std::map<UUID , LanguageModuleMetadata> ScriptEngine::language_modules;
   std::map<UUID , ScriptModule*> ScriptEngine::loaded_modules;
   std::map<UUID , ScriptObject*> ScriptEngine::objects;
@@ -172,6 +174,14 @@ namespace other {
 
   App* ScriptEngine::GetAppContext() {
     return app_context;
+  }
+      
+  void ScriptEngine::SetSceneContext(const Ref<Scene>& scene) {
+    scene_context = scene;
+  }
+
+  Ref<Scene> ScriptEngine::GetSceneContext() {
+    return scene_context;
   }
       
   std::map<UUID , LanguageModuleMetadata>& ScriptEngine::GetModules() {

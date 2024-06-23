@@ -56,15 +56,18 @@ namespace other {
 
       Ref<LanguageModule> lua_module = nullptr;
 
-      Path SaveActiveScene();
+      void SaveActiveScene();
       void LoadEditorScripts();
 
       virtual void OnLoad() override;
       virtual void OnAttach() override;
+
       virtual void OnEvent(Event* event) override;
       virtual void Update(float dt) override;
       virtual void Render() override;
       virtual void RenderUI() override;
+      virtual void LateUpdate(float dt) override;
+
       virtual void OnDetach() override;
       virtual void OnUnload() override;
 

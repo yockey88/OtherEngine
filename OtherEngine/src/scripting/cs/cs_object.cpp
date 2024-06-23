@@ -6,31 +6,44 @@
 #include <mono/metadata/class.h>
 #include <mono/metadata/loader.h>
 #include <mono/metadata/object.h>
+#include <mono/metadata/reflection.h>
 
 #include "core/logger.hpp"
 #include "scripting/cs/mono_utils.hpp"
 #include "scripting/cs/cs_script_cache.hpp"
 
 namespace other {
+      
+  CsCache* CsObject::GetScriptCache() const {
+    return script_cache;
+  }
 
   void CsObject::InitializeScriptMethods() {
     obj_vtable = mono_object_get_vtable(instance);
 
-    auto init_hash = FNV("OnInitialize"); 
-    auto shutd_hash = FNV("OnShutdown"); 
-    auto start_hash = FNV("OnStart"); 
-    auto stop_hash = FNV("OnStop"); 
-    auto update_hash = FNV("Update"); 
-    auto render_hash = FNV("RenderObject"); 
-    auto ui_hash = FNV("RenderUI"); 
+    constexpr auto load_hash = FNV("OnBehaviorLoad"); 
+    constexpr auto init_hash = FNV("OnInitialize"); 
+    constexpr auto shutd_hash = FNV("OnShutdown"); 
+    constexpr auto unload_hash = FNV("OnBehaviorUnload"); 
+    constexpr auto start_hash = FNV("OnStart"); 
+    constexpr auto stop_hash = FNV("OnStop"); 
+    constexpr auto update_hash = FNV("Update"); 
+    constexpr auto render_hash = FNV("RenderObject"); 
+    constexpr auto ui_hash = FNV("RenderUI"); 
 
+    auto load_itr = type_data->methods.find(load_hash);
     auto init_itr = type_data->methods.find(init_hash);
     auto shutd_itr = type_data->methods.find(shutd_hash);
+    auto unload_itr = type_data->methods.find(unload_hash);
     auto start_itr = type_data->methods.find(start_hash);
     auto stop_itr = type_data->methods.find(stop_hash);
     auto update_itr = type_data->methods.find(update_hash);
     auto render_itr = type_data->methods.find(render_hash);
     auto ui_itr = type_data->methods.find(ui_hash);
+
+    if (load_itr != type_data->methods.end()) {
+      on_load_method = mono_object_get_virtual_method(instance , load_itr->second.asm_method); 
+    }
 
     if (init_itr != type_data->methods.end()) {
       initialize_method = mono_object_get_virtual_method(instance , init_itr->second.asm_method);
@@ -38,6 +51,10 @@ namespace other {
     
     if (shutd_itr != type_data->methods.end()) {
       shutdown_method = mono_object_get_virtual_method(instance , shutd_itr->second.asm_method);
+    }
+    
+    if (unload_itr != type_data->methods.end()) {
+      on_unload_method = mono_object_get_virtual_method(instance , unload_itr->second.asm_method); 
     }
     
     if (start_itr != type_data->methods.end()) {
@@ -73,42 +90,83 @@ namespace other {
       Opt<Value> val = std::nullopt;
 
       if (f.is_property) {
-        // f.asm_property_getter = mono_object_get_virtual_method(instance , f.asm_property_getter);
-        // f.asm_property_setter = mono_object_get_virtual_method(instance , f.asm_property_setter);
+        f.asm_property_getter = mono_object_get_virtual_method(instance , f.asm_property_getter);
+        f.asm_property_setter = mono_object_get_virtual_method(instance , f.asm_property_setter);
 
-        val = GetMonoProperty(f.asm_property_getter);
+        val = GetMonoProperty(f.asm_property_getter , f.IsArray());
       } else {
-        val = GetMonoField(f.asm_field);
+        val = GetMonoField(f.asm_field , f.IsArray());
+      }
+
+      if (val.has_value()) {
+        fval.value = val.value();
+      }
+
+      fval.bounds = GetMonoBoundsAttribute(f , script_cache);
+    }
+  } 
+
+  void CsObject::UpdateNativeFields() {
+    for (auto& [fid , f] : type_data->fields) {
+      if (f.HasFlag(FieldAccessFlag::PRIVATE) || f.HasFlag(FieldAccessFlag::PROTECTED)) {
+        continue;
+      }
+
+      auto& fval = fields[fid];
+
+      Opt<Value> val = std::nullopt;
+      if (f.is_property) {
+        val = GetMonoProperty(f.asm_property_getter , f.IsArray());
+      } else {
+        val = GetMonoField(f.asm_field , f.IsArray());
       }
 
       if (val.has_value()) {
         fval.value = val.value();
       }
     }
-  } 
+  }
       
   Opt<Value> CsObject::GetField(const std::string& name) {
     UUID id = FNV(name);
-    for (const auto& [fid , f] : type_data->fields) {
-      if (id == fid && f.is_property) {
-        return GetMonoProperty(f.asm_property_getter);
-      } else if (id == fid) {
-        return GetMonoField(f.asm_field);
-      }
+    auto field_data = type_data->fields.find(id);
+    if (field_data == type_data->fields.end()) {
+      OE_ERROR("Failed to get field {} from C# script {}" , name , script_name);
+      return std::nullopt;
     }
-    
-    OE_ERROR("Failed to find field {} on C# script {}" , name , script_name);
-    return std::nullopt;
+
+    if (field_data->second.is_property) {
+      return GetMonoProperty(field_data->second.asm_property_getter , field_data->second.IsArray());
+    } else {
+      return GetMonoField(field_data->second.asm_field , field_data->second.IsArray());
+    }
   }
 
   void CsObject::SetField(const std::string& name , const Value& value) {
     UUID id = FNV(name);
-    for (const auto& [fid , f] : type_data->fields) {
-      if (id == fid && f.is_property) {
-        SetMonoProperty(f.asm_property_setter , value);
-      } else if (id == fid) {
-        SetMonoField(f.asm_field , value);
-      }
+    auto field = type_data->fields.find(id);
+    if (field == type_data->fields.end()) {
+      OE_ERROR("Attempting to set non-existent field {} on C# script {}" , name , script_name);
+      return;
+    }
+
+    auto& fdata = field->second;
+
+    Value real_value = value;
+    if (HasBoundsAttribute(fdata)) {
+      real_value = ClampValue(fdata , script_cache , value);
+    } 
+
+    if (fdata.is_property) {
+      SetMonoProperty(fdata.asm_property_setter , real_value , fdata.IsArray());
+    } else {
+      SetMonoField(fdata.asm_field , real_value , fdata.IsArray());
+    }
+  }
+    
+  void CsObject::OnBehaviorLoad() {
+    if (on_load_method != nullptr) {
+      CallMonoMethod(on_load_method);
     }
   }
 
@@ -127,6 +185,12 @@ namespace other {
 
     is_initialized = false;
     fields.clear();
+  }
+  
+  void CsObject::OnBehaviorUnload() {
+    if (on_unload_method != nullptr) {
+      CallMonoMethod(on_unload_method);
+    }
   }
 
   void CsObject::Start() {
@@ -162,19 +226,18 @@ namespace other {
       CallMonoMethod(render_ui_method);
     }
   }
-
-      
-  Opt<Value> CsObject::GetMonoField(MonoClassField* field) {
+  
+  Opt<Value> CsObject::GetMonoField(MonoClassField* field , bool is_array) {
     MonoObject* mobj = mono_field_get_value_object(app_domain , field , instance);
     if (mobj == nullptr) {
       OE_ERROR("Failed to retrieve C# field!");
       return std::nullopt;
     }
 
-    return MonoObjectToValue(mobj);
+    return MonoObjectToValue(mobj , field , is_array);
   }
 
-  Opt<Value> CsObject::GetMonoProperty(MonoMethod* getter) {
+  Opt<Value> CsObject::GetMonoProperty(MonoMethod* getter , bool is_array) {
     MonoMethod* vgetter = mono_object_get_virtual_method(instance , getter);
     if (vgetter == nullptr) {
       OE_ERROR("failed to find C# property getter!");
@@ -184,7 +247,7 @@ namespace other {
     return CallMonoMethod(vgetter);
   }
 
-  void CsObject::SetMonoField(MonoClassField* field , const Value& value) {
+  void CsObject::SetMonoField(MonoClassField* field , const Value& value , bool is_array) {
     if (value.Type() == ValueType::STRING) {
       std::string val = value.Get<std::string>();
       MonoString* mstr = mono_string_new(app_domain , val.c_str());
@@ -194,7 +257,7 @@ namespace other {
     }
   }
 
-  void CsObject::SetMonoProperty(MonoMethod* setter , const Value& value) {
+  void CsObject::SetMonoProperty(MonoMethod* setter , const Value& value , bool is_array) {
     Parameter param {
       .handle = value.AsRawMemory() ,
       .type = value.Type() ,
@@ -244,7 +307,6 @@ namespace other {
     if (exception) {
       OE_ERROR("C# Exception thrown by : {}" , script_name);
       CheckMonoError();
-      is_corrupt = true; 
       return std::nullopt;
     }
 

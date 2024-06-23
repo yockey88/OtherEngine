@@ -9,6 +9,9 @@
 
 #include "core/uuid.hpp"
 #include "core/ref.hpp"
+
+#include "scene/scene.hpp"
+
 #include "scripting/script_defines.hpp"
 #include "scripting/language_module.hpp"
 #include "scripting/cs/cs_module.hpp"
@@ -56,6 +59,9 @@ namespace other {
       static void SetAppContext(App* app);
       static App* GetAppContext();
 
+      static void SetSceneContext(const Ref<Scene>& scene);
+      static Ref<Scene> GetSceneContext();
+
       static std::map<UUID , LanguageModuleMetadata>& GetModules();
 
       /// because certain parts of the engine rely on specifically lua or c# scripts they need to be 
@@ -71,6 +77,8 @@ namespace other {
       static Engine* engine_handle;
       static App* app_context;
       static ConfigTable config;
+
+      static Ref<Scene> scene_context;
 
       static std::map<UUID , LanguageModuleMetadata> language_modules;
       static std::map<UUID , ScriptModule*> loaded_modules;

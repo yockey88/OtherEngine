@@ -3,22 +3,34 @@
 namespace Other {
 
   public abstract class Component {
-    public OtherObject Object { get; internal set; }
+
+    public Component(OtherObject obj) {
+      this.obj = obj;
+    }
+
+    private OtherObject obj;
+
+    public OtherObject Object { 
+      get => obj;
+      set => obj = value;
+    }
   }
 
   public class Tag : Component {
-    public String Name;
-    public ulong Id;
-  }
+    private ulong id;
 
-  public class Transform : Component {}
+    public String Name {
+      get => Scene.GetName(id);
+    }
 
-  public class Relationship : Component {}
+    public ulong ID {
+      get => id;
+      set => id = value;
+    }
 
-  public class Script : Component {}
-
-  public class Mesh : Component {
-    public ulong asset_handle;
+    public Tag(OtherObject obj) : base(obj) {
+      id = obj.ObjectID;
+    }
   }
 
 }

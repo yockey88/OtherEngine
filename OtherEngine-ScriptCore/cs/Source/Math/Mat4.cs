@@ -21,6 +21,8 @@ namespace Other {
     [FieldOffset(52)] public float a31;
     [FieldOffset(56)] public float a32;
     [FieldOffset(60)] public float a33;
+
+    public static Mat4 Identity => new Mat4(1f);
     
     // initialize to diagonal matrix
     public Mat4(float value) {

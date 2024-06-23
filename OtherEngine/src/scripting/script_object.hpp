@@ -58,12 +58,15 @@ namespace other {
 
       virtual void InitializeScriptMethods() = 0;
       virtual void InitializeScriptFields() = 0;
+      virtual void UpdateNativeFields() = 0;
 
       virtual Opt<Value> GetField(const std::string& name) = 0;
       virtual void SetField(const std::string& name , const Value& value) = 0;
 
+      virtual void OnBehaviorLoad() = 0;
       virtual void Initialize() = 0;
       virtual void Shutdown() = 0; 
+      virtual void OnBehaviorUnload() = 0;
 
       virtual void Start() = 0;
       virtual void Stop() = 0;

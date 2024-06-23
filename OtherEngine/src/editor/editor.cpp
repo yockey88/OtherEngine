@@ -4,7 +4,6 @@
 #include "editor/editor.hpp"
 
 #include <filesystem>
-#include <fstream>
 
 #include <glad/glad.h>
 #include <imgui/imgui.h>
@@ -21,7 +20,6 @@
 #include "rendering/renderer.hpp"
 #include "layers/debug_layer.hpp"
 #include "layers/editor_core.hpp"
-#include "scene/scene_serializer.hpp"
 #include "scripting/script_engine.hpp"
 #include "scripting/lua/lua_module.hpp"
 #include "editor/project_panel.hpp"
@@ -34,29 +32,13 @@ namespace other {
         app(std::move(app)) {
   } 
       
-  Path Editor::SaveActiveScene() {
-    Path active_path = scene_manager->ActiveScene()->path;
-    std::string scene_name = scene_manager->ActiveScene()->name;
-    Ref<Scene> scene = scene_manager->ActiveScene()->scene;
+  void Editor::SaveActiveScene() {
+    OE_ASSERT(ActiveScene() != nullptr , "Attempting save a null scene");
+    Path p = ActiveScene()->path;
 
+    scene_manager->SaveActiveScene();
     UnloadScene();
-
-    SceneSerializer serializer;
-    std::stringstream ss;
-    serializer.Serialize(scene_name , ss , scene);
-
-    if (ss.str().size() == 0) {
-      OE_WARN("Failed to serialize scene!");
-    } else {
-      std::ofstream scn_file(active_path);
-      if (!scn_file.is_open()) {
-        OE_ERROR("Failed to open scene file for scene {}" , scene_name);
-      } else {
-        scn_file << ss.str();
-      }
-    }
-    
-    return active_path;
+    LoadScene(p);
   }
       
   void Editor::LoadEditorScripts() {
@@ -198,7 +180,9 @@ namespace other {
     LoadEditorScripts();
     
     for (const auto& [id , script] : editor_scripts.scripts) {
+      script->OnBehaviorLoad();
       script->Initialize();
+      script->Start();
     }
 
     editor_camera = Ref<PerspectiveCamera>::Create();
@@ -206,6 +190,10 @@ namespace other {
     editor_camera->SetDirection({ 0.f , 0.f , -1.f });
     editor_camera->SetUp({ 0.f , 1.f , 0.f });
     Renderer::BindCamera(editor_camera);
+
+    project_panel->OnAttach();
+    scene_panel->OnAttach();
+    entity_properties_panel->OnAttach();
 
     OE_DEBUG("Editor attached");
   }
@@ -215,9 +203,16 @@ namespace other {
 
   void Editor::Update(float dt) {
     entity_properties_open = SelectionManager::HasSelection();
+
+    for (const auto& [id , script] : editor_scripts.scripts) {
+      script->Update(dt);
+    }
   }
 
   void Editor::Render() {
+    for (const auto& [id , script] : editor_scripts.scripts) {
+      script->Render();
+    }
   }
 
   void Editor::RenderUI() {
@@ -297,22 +292,30 @@ namespace other {
       }
 
       if (ImGui::Button("Save Scene")) {
-        Path active_path = SaveActiveScene(); 
-        LoadScene(active_path);
+        SaveActiveScene();
       }
+    }
+
+    for (const auto& [id , script] : editor_scripts.scripts) {
+      script->RenderUI();
     }
 
     ImGui::End();
   }
+      
+  void Editor::LateUpdate(float dt) {
+    if (!HasActiveScene()) {
+      return;
+    }
+  }
 
   void Editor::OnDetach() {
     OE_DEBUG("Detaching editor");
-    if (HasActiveScene()) {
-      SaveActiveScene();
-    }
 
     for (const auto& [id , script] : editor_scripts.scripts) {
       script->Stop();
+      script->Shutdown();
+      script->OnBehaviorUnload();
     }
     editor_scripts.scripts.clear();
 

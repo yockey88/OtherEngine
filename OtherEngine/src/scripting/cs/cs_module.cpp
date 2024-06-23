@@ -14,6 +14,14 @@
 
 namespace other {
 
+  MonoDomain* CsModule::RootDomain() const {
+    return root_domain;
+  }
+
+  MonoDomain* CsModule::AppDomain() const {
+    return app_domain;
+  }
+
   bool CsModule::Initialize() {
     OE_DEBUG("Initializing Mono Runtime");
 

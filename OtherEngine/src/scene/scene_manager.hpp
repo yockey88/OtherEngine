@@ -34,7 +34,8 @@ namespace other {
       
       void RefreshScenes();
 
-      const SceneMetadata* ActiveScene() const;
+      SceneMetadata* ActiveScene() const;
+      void SaveActiveScene();
       void UnloadActive();
 
       void ClearScenes();
@@ -45,6 +46,7 @@ namespace other {
       void UpdateScene(float dt);
       void RenderScene();
       void RenderSceneUI();
+      void LateUpdateScene(float dt);
 
     private:
       SceneMetadata* active_scene = nullptr;

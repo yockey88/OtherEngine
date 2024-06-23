@@ -40,7 +40,7 @@ namespace Other {
       NativeDrawLine(line, ColorToRgb(color));
     }
 
-    public static void DrawLine(Line line, RgbColor color) {
+    public static void DrawLine(Line line, ref RgbColor color) {
       NativeDrawLine(line, color);
     }
 
@@ -48,7 +48,7 @@ namespace Other {
       NativeDrawTriangle(triangle, ColorToRgb(color));
     }
 
-    public static void DrawTriangle(Triangle triangle , RgbColor color) {
+    public static void DrawTriangle(Triangle triangle , ref RgbColor color) {
       NativeDrawTriangle(triangle, color);
     }
 
@@ -56,7 +56,7 @@ namespace Other {
       NativeDrawRect(rect, ColorToRgb(color));
     }
 
-    public static void DrawRect(Rect rect, RgbColor color) {
+    public static void DrawRect(Rect rect, ref RgbColor color) {
       NativeDrawRect(rect, color);
     }
 

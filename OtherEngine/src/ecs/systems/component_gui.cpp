@@ -80,13 +80,21 @@ namespace other {
   }
 
   template <typename T>
-  bool DrawFieldValue(const std::string& name , Value& val , ScriptObject* script_instance) {
+  bool DrawFieldValue(ScriptField* field , ScriptObject* script_instance) {
+    OE_ASSERT(field != nullptr , "Attempting to draw null script field");
+
     bool result = false;
 
-    T v = val.Read<T>();
-    if (ui::Property(name.c_str() , &v)) {
-      val.Set(v); 
-      script_instance->SetField(name , val);
+    T v = field->value.Read<T>();
+    T min = 0 , max = 0;
+    if (field->bounds.has_value()) {
+      min = field->bounds->x;
+      max = field->bounds->y;
+    }
+
+    if (ui::Property(field->name.c_str() , &v , min , max)) {
+      field->value.Set(v); 
+      script_instance->SetField(field->name , field->value);
       result = true;
     }
 
@@ -94,15 +102,15 @@ namespace other {
   }
 
   template <>
-  bool DrawFieldValue<bool>(const std::string& name , Value& val , ScriptObject* script_instance) {
+  bool DrawFieldValue<bool>(ScriptField* field , ScriptObject* script_instance) {
     bool result = false;
 
-    bool v = val.Get<bool>();
+    bool v = field->value.Get<bool>();
     
-    ui::BeginProperty(name.c_str());
+    ui::BeginProperty(field->name.c_str());
     if (ImGui::Checkbox("" , &v)) {
-      val.Set(v);
-      script_instance->SetField(name, val);
+      field->value.Set(v);
+      script_instance->SetField(field->name, field->value);
       result = true;
     }
     ui::EndProperty();
@@ -111,10 +119,10 @@ namespace other {
   }
 
   template <>
-  bool DrawFieldValue<char>(const std::string& name , Value& val , ScriptObject* script_instance) {
+  bool DrawFieldValue<char>(ScriptField* field , ScriptObject* script_instance) {
     bool result = false;
 
-    char v = val.Get<char>();
+    char v = field->value.Get<char>();
     static std::array<char , 52> chars = {
       'a' , 'b' , 'c' , 'd' , 'e' , 'f' , 'g' , 'h' , 'i' ,'j' , 'k' , 'l' , 'm' , 'n' , 
             'o' , 'p' , 'q' , 'r' , 's' , 't' , 'u' , 'v' , 'w' , 'x' , 'y' , 'z' ,
@@ -122,15 +130,15 @@ namespace other {
             'O' , 'P' , 'Q' , 'R' , 'S' , 'T' , 'U' , 'V' , 'W' , 'X' , 'Y' , 'Z'
     };
     
-    ui::BeginProperty(name.c_str());
+    ui::BeginProperty(field->name.c_str());
     
-    if (ImGui::BeginCombo(("##char-dropdown" + name).c_str() , &v)) {
+    if (ImGui::BeginCombo(("##char-dropdown" + field->name).c_str() , &v)) {
       for (auto& c : chars) {
         bool is_selected = v == c;
         std::string char_str{ c };
         if (ImGui::Selectable(char_str.c_str() , is_selected)) {
-          val.Set<char>(c);
-          script_instance->SetField(name , val);
+          field->value.Set<char>(c);
+          script_instance->SetField(field->name , field->value);
           result = true;
         }
       }
@@ -143,25 +151,121 @@ namespace other {
   }
 
   template <> 
-  bool DrawFieldValue<std::string>(const std::string& name , Value& val , ScriptObject* script_instance) {
+  bool DrawFieldValue<std::string>(ScriptField* field , ScriptObject* script_instance) {
     bool result = false;
 
-    std::string v = val.Get<std::string>();
+    std::string v = field->value.Get<std::string>();
     std::array<char , 256> buffer{};
     memset(buffer.data() , 0 , 256);
     memcpy(buffer.data() , v.c_str() , v.length());
 
-    ui::BeginProperty(name.c_str());
+    ui::BeginProperty(field->name.c_str());
 
-    if (ImGui::InputText(("##script-string-" + name).c_str() , buffer.data() , buffer.size())) {
+    if (ImGui::InputText(("##script-string-" + field->name).c_str() , buffer.data() , buffer.size())) {
       if (ImGui::IsKeyPressed(ImGuiKey_Enter) && buffer[0] != 0) {
         v = buffer.data();
-        val.SetStr(v);
-        script_instance->SetField(name , val);
+        field->value.SetStr(v);
+        script_instance->SetField(field->name , field->value);
         result = true;
       }
     }
 
+    ui::EndProperty();
+
+    return result;
+  }
+
+  template <>
+  bool DrawFieldValue<glm::vec2>(ScriptField* field , ScriptObject* script_instance) {
+    bool result = false;
+
+    bool modified = false;
+    
+    float min = 0 , max = 0 , speed = 1.f;
+    if (field->bounds.has_value()) {
+      min = field->bounds->x;
+      max = field->bounds->y;
+
+      min = glm::min(min , max);
+      max = glm::max(min , max);
+
+      speed = (max - min) / 20.f;
+    }
+    
+    ui::BeginProperty(field->name.c_str());
+
+    glm::vec2 v = field->value.Get<glm::vec2>();
+    if (ui::widgets::DrawVec2Control(field->name , v , modified , 0.f , 100.f , ui::VectorAxis::ZERO ,
+                                      glm::vec2(min) , glm::vec2(max) , speed)) {
+      field->value.Set(v);
+      script_instance->SetField(field->name , field->value);
+      result = true;
+    }
+    
+    ui::EndProperty();
+
+    return result;
+  }
+  
+  template <>
+  bool DrawFieldValue<glm::vec3>(ScriptField* field , ScriptObject* script_instance) {
+    bool result = false;
+
+    bool modified = false;
+
+    float min = 0 , max = 0 , speed = 1.f;
+    if (field->bounds.has_value()) {
+      min = field->bounds->x;
+      max = field->bounds->y;
+
+      min = glm::min(min , max);
+      max = glm::max(min , max);
+
+      speed = (max - min) / 20.f;
+    }
+
+    ui::BeginProperty(field->name.c_str());
+
+    glm::vec3 v = field->value.Get<glm::vec3>();
+    if (ui::widgets::DrawVec3Control("" , v , modified , 0.f , 100.f , ui::VectorAxis::ZERO ,
+                                      glm::vec3(min) , glm::vec3(max) , speed)) {
+      field->value.Set(v);
+      script_instance->SetField(field->name , field->value);
+      result = true;
+    }
+
+    ui::EndProperty();
+
+    return result;
+  }
+  
+  template <>
+  bool DrawFieldValue<glm::vec4>(ScriptField* field , ScriptObject* script_instance) {
+    bool result = false;
+
+    bool modified = false;
+    
+    float min = 0 , max = 0 , speed = 1.f;
+    if (field->bounds.has_value()) {
+      min = field->bounds->x;
+      max = field->bounds->y;
+
+      min = glm::min(min , max);
+      max = glm::max(min , max);
+
+      speed = (max - min) / 20.f;
+    }
+    
+    ui::BeginProperty(field->name.c_str());
+
+    glm::vec4 v = field->value.Get<glm::vec4>();
+    if (ui::widgets::DrawVec4Control(field->name , v , modified , 0.f , 100.f , ui::VectorAxis::ZERO ,
+                                      glm::vec4(min) , glm::vec4(max) , speed)) {
+      field->value.Set(v);
+      script_instance->SetField(field->name , field->value);
+      result = true;
+    }
+    
     ui::EndProperty();
 
     return result;
@@ -175,22 +279,22 @@ namespace other {
     bool result = false;
 
     switch (field->value.Type()) {
-      case ValueType::BOOL: result = DrawFieldValue<bool>(field->name , field->value , script_instance); break;
-      case ValueType::CHAR: result = DrawFieldValue<char>(field->name , field->value , script_instance); break;
-      case ValueType::INT8: result = DrawFieldValue<int8_t>(field->name , field->value , script_instance); break;
-      case ValueType::UINT8: result = DrawFieldValue<uint8_t>(field->name , field->value , script_instance); break;
-      case ValueType::INT16: result = DrawFieldValue<int16_t>(field->name , field->value , script_instance); break;
-      case ValueType::UINT16: result = DrawFieldValue<uint16_t>(field->name , field->value , script_instance); break;
-      case ValueType::INT32: result = DrawFieldValue<int32_t>(field->name , field->value , script_instance); break;
-      case ValueType::UINT32: result = DrawFieldValue<uint32_t>(field->name , field->value , script_instance); break;
-      case ValueType::INT64: result = DrawFieldValue<int64_t>(field->name , field->value , script_instance); break;
-      case ValueType::UINT64: result = DrawFieldValue<uint32_t>(field->name , field->value , script_instance); break;
-      case ValueType::FLOAT: result = DrawFieldValue<float>(field->name , field->value , script_instance); break;
-      case ValueType::DOUBLE: result = DrawFieldValue<double>(field->name , field->value , script_instance); break;
-      case ValueType::VEC2: result = DrawFieldValue<glm::vec2>(field->name , field->value , script_instance); break;
-      case ValueType::VEC3: result = DrawFieldValue<glm::vec3>(field->name , field->value , script_instance); break;
-      case ValueType::VEC4: result = DrawFieldValue<glm::vec4>(field->name , field->value , script_instance); break;
-      case ValueType::STRING: result = DrawFieldValue<std::string>(field->name , field->value , script_instance); break;
+      case ValueType::BOOL: result = DrawFieldValue<bool>(field , script_instance); break;
+      case ValueType::CHAR: result = DrawFieldValue<char>(field , script_instance); break;
+      case ValueType::INT8: result = DrawFieldValue<int8_t>(field , script_instance); break;
+      case ValueType::UINT8: result = DrawFieldValue<uint8_t>(field , script_instance); break;
+      case ValueType::INT16: result = DrawFieldValue<int16_t>(field , script_instance); break;
+      case ValueType::UINT16: result = DrawFieldValue<uint16_t>(field , script_instance); break;
+      case ValueType::INT32: result = DrawFieldValue<int32_t>(field , script_instance); break;
+      case ValueType::UINT32: result = DrawFieldValue<uint32_t>(field , script_instance); break;
+      case ValueType::INT64: result = DrawFieldValue<int64_t>(field , script_instance); break;
+      case ValueType::UINT64: result = DrawFieldValue<uint32_t>(field , script_instance); break;
+      case ValueType::FLOAT: result = DrawFieldValue<float>(field , script_instance); break;
+      case ValueType::DOUBLE: result = DrawFieldValue<double>(field , script_instance); break;
+      case ValueType::VEC2: result = DrawFieldValue<glm::vec2>(field , script_instance); break;
+      case ValueType::VEC3: result = DrawFieldValue<glm::vec3>(field , script_instance); break;
+      case ValueType::VEC4: result = DrawFieldValue<glm::vec4>(field , script_instance); break;
+      case ValueType::STRING: result = DrawFieldValue<std::string>(field , script_instance); break;
       case ValueType::ASSET: 
         ImGui::Text("Asset values unimplemented!");
       break;
@@ -296,7 +400,6 @@ namespace other {
 
       ImGui::PopID();
     }
-
   }
   
   void DrawMesh(Entity* ent) {}

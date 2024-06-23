@@ -44,6 +44,14 @@ namespace other {
   void Scene::Initialize() {
     FixRoots();
 
+    registry.view<Script , Tag>().each([](Script& script , Tag& tag) {
+      for (auto& [id , obj] : script.scripts) {
+        obj->SetEntityId(tag.id);
+        obj->OnBehaviorLoad();
+        obj->Initialize();
+      }
+    });
+
     OnInit(); 
     initialized = true;
   }
@@ -136,6 +144,9 @@ namespace other {
   void Scene::RenderUI() {
     // registry.view<UI>().each([](const UI& ui) {}); 
   }
+      
+  void Scene::LateUpdate(float dt) {
+  }
 
   void Scene::Stop() {
     OE_ASSERT(initialized , "Updating scene without initialization");
@@ -158,6 +169,13 @@ namespace other {
     OE_ASSERT(initialized , "Shutting down scene before initialization");
     initialized = false;
     OnShutdown();
+
+    registry.view<Script>().each([](Script& script) {
+      for (auto& [id , obj] : script.scripts) {
+        obj->Shutdown();
+        obj->OnBehaviorUnload();
+      }
+    });
   }
       
   void Scene::Refresh() {
@@ -187,6 +205,10 @@ namespace other {
         script.scripts[id] = inst;
       }
     });
+  }
+      
+  entt::registry& Scene::Registry() {
+    return registry;
   }
 
   const bool Scene::IsInitialized() const {
@@ -227,6 +249,14 @@ namespace other {
 
   const std::map<UUID , Entity*>& Scene::SceneEntities() const {
     return entities;
+  }
+      
+  bool Scene::HasEntity(const std::string& name) const {
+    return HasEntity(FNV(name));
+  }
+  
+  bool Scene::HasEntity(UUID id) const {
+    return entities.find(id) != entities.end();
   }
       
   Entity* Scene::GetEntity(const std::string& name) {

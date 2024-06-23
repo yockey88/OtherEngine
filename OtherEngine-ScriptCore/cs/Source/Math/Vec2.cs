@@ -69,7 +69,14 @@ namespace Other {
       return p1 + ((p2 - p1) * t);
     }
 
-    public static float Dot(Vec2 left, Vec2 right) { return left.x * right.x + left.y * right.y; }
+    public static float Dot(Vec2 left, Vec2 right) { 
+      return left.x * right.x + left.y * right.y; 
+    }
+
+    public static bool EpsilonEquals(Vec2 left, Vec2 right, float epsilon = float.Epsilon) {
+			return Mathf.Abs(left.x - right.x) < epsilon && Mathf.Abs(left.y - right.y) < epsilon;
+    }
+
     public static Vec2 operator *(Vec2 left, float scalar) => new Vec2(left.x * scalar, left.y * scalar);
     public static Vec2 operator *(float scalar, Vec2 right) => new Vec2(scalar * right.x, scalar * right.y);
     public static Vec2 operator *(Vec2 left, Vec2 right) => new Vec2(left.x * right.x, left.y * right.y);

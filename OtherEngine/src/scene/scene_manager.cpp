@@ -3,10 +3,18 @@
  **/
 #include "scene/scene_manager.hpp"
 
+#include <fstream>
+
 #include "core/defines.hpp"
 #include "core/logger.hpp"
+
 #include "ecs/entity.hpp"
+
 #include "scene/scene_serializer.hpp"
+
+#include "rendering/renderer.hpp"
+
+#include "scripting/script_engine.hpp"
 
 namespace other {
 
@@ -48,6 +56,10 @@ namespace other {
     }
 
     active_scene = &loaded_scenes[id];
+    
+    ScriptEngine::SetSceneContext(active_scene->scene);
+    Renderer::SetSceneContext(active_scene->scene);
+
     active_scene->scene->Initialize();
   }
       
@@ -85,11 +97,37 @@ namespace other {
     } 
   }
 
-  const SceneMetadata* SceneManager::ActiveScene() const { 
+  SceneMetadata* SceneManager::ActiveScene() const { 
     if (!HasActiveScene()) {
       return nullptr;
     }
     return active_scene;
+  }
+      
+  void SceneManager::SaveActiveScene() {
+    if (!HasActiveScene()) {
+      return;
+    }
+
+    Path active_path = active_scene->path;
+
+    std::string scene_name = active_scene->name;
+    Ref<Scene> scene = active_scene->scene;
+
+    SceneSerializer serializer;
+    std::stringstream ss;
+    serializer.Serialize(scene_name , ss , scene);
+
+    if (ss.str().size() == 0) {
+      OE_WARN("Failed to serialize scene!");
+    } else {
+      std::ofstream scn_file(active_path);
+      if (!scn_file.is_open()) {
+        OE_ERROR("Failed to open scene file for scene {}" , scene_name);
+      } else {
+        scn_file << ss.str();
+      }
+    }
   }
 
   void SceneManager::UnloadActive() {
@@ -103,6 +141,9 @@ namespace other {
     
     active_scene->scene->Shutdown();
     active_scene = nullptr;
+    
+    ScriptEngine::SetSceneContext(nullptr);
+    Renderer::SetSceneContext(nullptr);
   }
     
   void SceneManager::ClearScenes() {
@@ -147,6 +188,14 @@ namespace other {
     }
 
     active_scene->scene->RenderUI();
+  }
+      
+  void SceneManager::LateUpdateScene(float dt) {
+    if (!HasActiveScene()) {
+      return;
+    }
+
+    active_scene->scene->LateUpdate(dt);
   }
 
 } // namespace other

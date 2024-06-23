@@ -13,6 +13,8 @@ namespace other {
     UUID id;
     std::string name;
     Value value;
+
+    Opt<glm::vec2> bounds = std::nullopt;
   };
 
 } // namespace other

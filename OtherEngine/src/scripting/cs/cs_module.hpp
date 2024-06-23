@@ -20,6 +20,9 @@ namespace other {
         : LanguageModule(LanguageModuleType::CS_MODULE) {}
       virtual ~CsModule() override {}
 
+      MonoDomain* RootDomain() const;
+      MonoDomain* AppDomain() const;
+
       virtual bool Initialize() override;
       virtual void Shutdown() override;
       virtual void Reload() override;

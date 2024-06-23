@@ -33,6 +33,10 @@ namespace other {
       static void InitializeBindings(MonoImage* asm_image);
       static void ShutdownBindings();
 
+      static std::function<void(Entity*)> GetBuilder(MonoType* type);
+      static std::function<bool(Entity*)> GetChecker(MonoType* type);
+      static std::function<void(Entity*)> GetDestroyer(MonoType* type);
+
     private:
       static void RegisterNativeFunctions(MonoImage* asm_image);
   };

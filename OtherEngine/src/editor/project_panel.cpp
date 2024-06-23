@@ -5,18 +5,57 @@
 
 #include <algorithm>
 
+#include <filesystem>
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 
 #include "core/logger.hpp"
+#include "core/filesystem.hpp"
+
+#include "project/project.hpp"
 
 #include "input/mouse.hpp"
 
-#include "core/filesystem.hpp"
 #include "rendering/ui/ui_helpers.hpp"
 #include "rendering/ui/ui_colors.hpp"
 
 namespace other {
+namespace {
+
+  Ref<Directory> GetDirectoryStructure(const Path& path);
+
+  std::vector<Ref<Directory>> BuildDirectoryStructure(Ref<Project>& proj) {
+    std::vector<Ref<Directory>> dirs;
+
+    for (const auto& p : proj->GetProjectDirPaths()) {
+      dirs.push_back(GetDirectoryStructure(p));
+    }
+
+    return dirs;
+  }
+  
+  Ref<Directory> GetDirectoryStructure(const Path& path) {
+    auto d = Ref<Directory>::Create(path);
+    auto sub_dirs = Filesystem::GetSubDirs(path);
+    for (auto& dir : sub_dirs) {
+      d->children[FNV(dir.string())] = GetDirectoryStructure(dir);
+    }
+
+    return d;
+  }
+
+} // anonymous namespace
+
+  void ProjectPanel::OnAttach() {
+    OE_ASSERT(active_proj != nullptr , "Project Panel Project context is nullptr");
+
+    project_directories = BuildDirectoryStructure(active_proj);
+
+    auto proj_dir = active_proj->GetProjectDirPaths();
+    for (const auto& p : proj_dir) {
+      project_directories.push_back(Ref<Directory>::Create(p));
+    }
+  }
 
   void ProjectPanel::OnGuiRender(bool& is_open) {
     ImGui::SetNextWindowSize(ImVec2(200.f , ImGui::GetContentRegionAvail().y));
@@ -29,15 +68,15 @@ namespace other {
     ImGuiTableFlags table_flags = ImGuiTableFlags_Resizable 
       | ImGuiTableFlags_SizingFixedFit
       | ImGuiTableFlags_BordersInnerV;
-    if (ImGui::BeginTable("##project_table" , 2 , table_flags , ImVec2(0.f , 0.f))) {
+    if (ImGui::BeginTable("##project-table" , 2 , table_flags , ImVec2(0.f , 0.f))) {
       ImGui::TableSetupColumn("Outliner");
       ImGui::TableSetupColumn("Directory Structure" , ImGuiTableColumnFlags_WidthStretch);
 
       ImGui::TableNextRow();
 
-      ImGui::TableSetColumnIndex(0);
       /// project directory
-      ImGui::BeginChild("##project_directory");
+      ImGui::TableSetColumnIndex(0);
+      ImGui::BeginChild("##directory-items");
       {
         ScopedStyle spacing(ImGuiStyleVar_ItemSpacing , ImVec2(0.f , 0.f));
         ScopedColorStack item_bg(ImGuiCol_Header , IM_COL32_DISABLE , 
@@ -54,15 +93,21 @@ namespace other {
           }
           RenderDirectoryTree(dir);
         }
+
+        /// if want to draw the side shadow for the directory window
+        // ImRect window_rect = ui::RectExpanded(ImGui::GetCurrentWindow()->Rect() , 0.f , 10.f);
+        // ImGui::PushClipRect(window_rect.Min , window_rect.Max , false);
+        // ui::DrawShadowInner(shadow_tex , 20 , window_rect , 1.f , window_rect.GetHeight() / 4.f , false , true , false , false);
+        // ImGui::PopClipRect();
       }
       ImGui::EndChild();
 
-      ImGui::TableSetColumnIndex(1);
       /// Directory Content
+      ImGui::TableSetColumnIndex(1);
       constexpr float top_bar_h = 26.f;
       constexpr float bottom_bar_h = 32.f;
       constexpr float tot_h_offset = top_bar_h + bottom_bar_h;
-      ImGui::BeginChild("##project_directory_content" , 
+      ImGui::BeginChild("##project-directory-content" , 
                          ImVec2(ImGui::GetContentRegionAvail().x , ImGui::GetContentRegionAvail().y - tot_h_offset)); 
       {
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
@@ -71,8 +116,33 @@ namespace other {
 
         ImGui::Separator();
 
+
         ImGui::BeginChild("Scrolling");
         {
+          ImGui::PushStyleColor(ImGuiCol_Button , ImVec4(0.f , 0.f , 0.f , 0.f));
+          ImGui::PushStyleColor(ImGuiCol_ButtonHovered , ImVec4(0.3f , 0.3f , 0.3f ,0.35f));
+          ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing , ImVec2(4.f , 4.f));
+
+          if (ImGui::BeginPopupContextWindow(0 , ImGuiPopupFlags_MouseButtonRight)) {
+            if (ImGui::BeginMenu("New")) {
+              if (ImGui::MenuItem("Folder")) {}
+              if (ImGui::MenuItem("Scene")) {}
+              if (ImGui::MenuItem("Material")) {}
+              if (ImGui::BeginMenu("Script")) {
+                if (ImGui::MenuItem("Scene Script")) {}
+                if (ImGui::MenuItem("Editor Script")) {}
+
+                ImGui::EndMenu();
+              }
+
+              ImGui::EndMenu();
+            }
+
+            ImGui::EndPopup();
+          }
+
+          ImGui::PopStyleVar();
+
           // pop up on right right click here
           const float padding_for_outline = 2.0f;
           // const float scroll_barr_offset = 20.0f + ImGui::GetStyle().ScrollbarSize;
@@ -85,6 +155,8 @@ namespace other {
             // render items
             ValidateAndRenderSelectionCtx();
           }
+          
+          ImGui::PopStyleColor(2);
         }
         ImGui::EndChild();
       }
@@ -114,7 +186,7 @@ namespace other {
     {
       if (selection.has_value()) {
         /// construct navigation string
-        ImGui::Text("%s" , selection.value().string().c_str());
+        ImGui::Text("%s" , selection.value().filename().string().c_str());
       } else {
         ImGui::Text("No Directory Selected");
       }
@@ -153,13 +225,13 @@ namespace other {
       window->WorkRect.Min.x , 
       window->DC.CursorPos.y , 
       window->WorkRect.Min.y , 
-      window->DC.CursorPos.y + 
-        window->DC.CurrLineSize.y
+      window->DC.CursorPos.y + window->DC.CurrLineSize.y
     };
 
     const bool item_clicked = [&item_rect , &node_id]() -> bool {
       if (ImGui::ItemHoverable(item_rect , node_id , 0)) {
-        return ImGui::IsMouseDown(ImGuiMouseButton_Left) || ImGui::IsMouseReleased(ImGuiMouseButton_Left);
+        return ImGui::IsMouseDown(ImGuiMouseButton_Left) || 
+               ImGui::IsMouseReleased(ImGuiMouseButton_Left);
       }
       return false;
     } ();
@@ -262,7 +334,7 @@ namespace other {
         if (ImGui::BeginDragDropSource(dd_flags)) {
           
           ImGui::Text("%s" , f.string().c_str());
-          ImGui::SetDragDropPayload("project_content_folder" , f.string().c_str() , f.string().size() + 1);
+          ImGui::SetDragDropPayload("project-content-folder" , f.string().c_str() , f.string().size() + 1);
 
           ImGui::EndDragDropSource();
         }
@@ -307,6 +379,8 @@ namespace other {
       }
 
       selection_tag = tag;
+    } else if (!ImGui::IsWindowHovered()) {
+      selection_tag = std::nullopt;
     }
     
     if (selection_tag.has_value()) {

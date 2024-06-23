@@ -146,6 +146,7 @@ namespace other {
       /// if the window is focuseed we update the application and then the scene
       if (Renderer::IsWindowFocused()) {
         DoUpdate(dt);
+        DoLateUpdate(dt);
       }
         
       Renderer::BeginFrame();
@@ -154,6 +155,7 @@ namespace other {
 
       DoRenderUI();
       Renderer::SwapBuffers();
+
 
       frame_rate_enforcer.Enforce();
     } 
@@ -259,13 +261,12 @@ namespace other {
     EventHandler handler(event);
     handler.Handle<ProjectDirectoryUpdateEvent>([this](ProjectDirectoryUpdateEvent& e) -> bool {
       if (!is_editor) {
-        return true;
+        /// if not in the editor don't change project file
+        return false;
       } else if (!project_metadata->RegenProjectFile()) {
         OE_ERROR("Failed to generate project files! Project metadata corrupted!");
-        return true;
-      } else {
-        OE_INFO("Project files reloaded");
-      }
+        return false;
+      } 
 
       ReloadScripts();
 
@@ -389,8 +390,6 @@ namespace other {
     for (size_t i = 0; i < layer_stack->Size(); ++i) {
       (*layer_stack)[i]->LoadScene(scn_metadata);
     }
-
-    Renderer::SetSceneContext(scn_metadata->scene);
     
     /// alert the client app new scene is loaded 
     OnSceneLoad(ActiveScene());
@@ -400,7 +399,7 @@ namespace other {
     return scene_manager->ActiveScene() != nullptr;
   }
 
-  const SceneMetadata* App::ActiveScene() {
+  SceneMetadata* App::ActiveScene() {
     return scene_manager->ActiveScene();
   }
 
@@ -408,6 +407,8 @@ namespace other {
     if (ActiveScene() == nullptr) {
       return;
     }
+
+    scene_manager->SaveActiveScene();
     
     /// alert client app about scene unload
     OnSceneUnload();
@@ -494,7 +495,12 @@ namespace other {
 
       UI::EndFrame();
     }
+  }
+      
+  void App::DoLateUpdate(float dt) {
+    LateUpdate(dt);
 
+    scene_manager->LateUpdateScene(dt); 
   }
 
   void App::Detach() {

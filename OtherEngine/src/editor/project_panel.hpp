@@ -10,7 +10,10 @@
 #include <imgui/imgui.h>
 
 #include "core/defines.hpp"
+
 #include "project/project.hpp"
+
+#include "editor/directory.hpp"
 #include "editor/editor_panel.hpp"
 
 namespace other {
@@ -21,6 +24,7 @@ namespace other {
         : EditorPanel(editor) {}
       virtual ~ProjectPanel() {}
 
+      virtual void OnAttach() override;
       virtual void OnGuiRender(bool& is_open) override;
       virtual void OnEvent(Event* e) override;
       virtual void OnProjectChange(const Ref<Project>& project) override;
@@ -34,6 +38,8 @@ namespace other {
         { FNV("scripts")   , "scripts" } ,
         { FNV("shaders")   , "shaders" }
       };
+
+      std::vector<Ref<Directory>> project_directories;
 
       Ref<Project> active_proj;
       Ref<Scene> active_scene;

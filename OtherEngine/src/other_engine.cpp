@@ -16,7 +16,6 @@
 #include "input/io.hpp"
 #include "rendering/renderer.hpp"
 #include "rendering/ui/ui.hpp"
-#include "scripting/script_engine.hpp"
 #include "project/project.hpp"
 
 namespace other { 

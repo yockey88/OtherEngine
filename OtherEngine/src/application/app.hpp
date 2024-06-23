@@ -48,7 +48,7 @@ namespace other {
 
       void LoadScene(const Path& path);
       bool HasActiveScene();
-      const SceneMetadata* ActiveScene();
+      SceneMetadata* ActiveScene();
       void UnloadScene();
 
     protected:
@@ -59,14 +59,18 @@ namespace other {
       void DoUpdate(float dt);
       void DoRender();
       void DoRenderUI();
+      void DoLateUpdate(float dt);
       void Detach();
 
       virtual void OnLoad() {}
       virtual void OnAttach() {} 
+
       virtual void OnEvent(Event* event) {}
       virtual void Update(float dt) {}
       virtual void Render() {}
       virtual void RenderUI() {}
+      virtual void LateUpdate(float dt) {}
+
       virtual void OnDetach() {}
       virtual void OnUnload() {}
 

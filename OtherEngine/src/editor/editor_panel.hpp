@@ -20,10 +20,12 @@ namespace other {
         : editor(editor) {}
       virtual ~EditorPanel() {}
 
+      virtual void OnAttach() {}
       virtual void OnGuiRender(bool& is_open) = 0;
       virtual void OnEvent(Event* e) = 0;
       virtual void OnProjectChange(const Ref<Project>& project) = 0;
       virtual void SetSceneContext(const Ref<Scene>& scene) = 0;
+      virtual void OnDetach() {}
 
     protected:
       Editor& GetEditor() const { return editor; }

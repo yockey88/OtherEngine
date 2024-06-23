@@ -4,6 +4,7 @@
 #ifndef OTHER_ENGINE_SCENE_HPP
 #define OTHER_ENGINE_SCENE_HPP
 
+#include <entt/entity/fwd.hpp>
 #include <map>
 
 #include <entt/entt.hpp>
@@ -26,13 +27,18 @@ namespace other {
 
       void Initialize();
       void Start(); 
+
       void Update(float dt);
       void Render();
       void RenderUI();
+      void LateUpdate(float dt);
+
       void Stop(); 
       void Shutdown();
 
       void Refresh();
+
+      entt::registry& Registry();
 
       const bool IsInitialized() const;
       const bool IsRunning() const;
@@ -48,6 +54,9 @@ namespace other {
       const std::map<UUID , Entity*>& RootEntities() const;
       const std::map<UUID , Entity*>& SceneEntities() const;
 
+      bool HasEntity(const std::string& name) const;
+      bool HasEntity(UUID id) const;
+
       Entity* GetEntity(const std::string& name);
       Entity* GetEntity(UUID id) const;
 
@@ -62,9 +71,12 @@ namespace other {
     protected:
       virtual void OnInit() {}
       virtual void OnStart() {}
+
       virtual void OnUpdate(float dt) {}
       virtual void OnRender() {}
       virtual void OnRenderUI() {}
+      virtual void OnLateUpdate(float dt) {}
+
       virtual void OnStop() {}
       virtual void OnShutdown() {}
 

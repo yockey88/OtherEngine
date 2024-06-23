@@ -1,56 +1,102 @@
 using System;
-using System.Runtime.Serialization;
+using System.Collections.Generic;
 
 namespace Other {
 
-  public class OtherObject : IEquatable<OtherObject> {
+  public class OtherObject : OtherBehavior {
+    private Dictionary<Type , Component> components = new Dictionary<Type , Component>();
+    public ulong Id => ObjectID;
+    public string Name => Scene.GetName(ObjectID);
 
-    private UInt64 object_id;
+    private Transform object_transform;
 
     public OtherObject() {
-      object_id = 0;
+      object_transform = new Transform(this);
     }
 
-    public UInt64 ObjectID {
-      get { return object_id; }
-      set {
-        object_id = value;  
-        Logger.WriteDebug($"ObjectID: {object_id}");
+    public override OtherBehavior Parent {
+      get {
+        parent = Scene.GetParent(ObjectID);
+        return parent;
+      }
+      set { parent = value; }
+    }
+
+    public override List<OtherBehavior> Children {
+      get { 
+        return children; 
+      }
+      set { children = value; }
+    }
+
+    public override void OnBehaviorLoad() {
+      /// add object to the scene
+      Scene.AddObject(this);
+
+      /// initialize data from native side
+      object_transform = new Transform(this);
+      Parent = Scene.GetParent(ObjectID);
+      Children = Scene.GetChildren(ObjectID);
+      for (int i = 0; i < Children.Count; i++) {
+        Children[i].Parent = this;
       }
     }
 
-    public virtual void OnInitialize() {}
+    public override void OnBehaviorUnload() {
+      Parent = null;
+      if (Children != null) {
+        Children.Clear();
+        Children = null;
+      }
+    }
 
-    public virtual void OnStart() {}
+    public Transform Transform => object_transform;
 
-    public virtual void Update(float dt) {}
-
-    public virtual void RenderObject() {}
-
-    public virtual void RenderUI() {}
-
-    public virtual void OnStop() {}
-
-    public virtual void OnShutdown() {}
-
-    public override bool Equals(object obj) => obj is OtherObject other && Equals(other);
-
-    public bool Equals(OtherObject other) {
-      if (other is null) {
-        return false;
+    public T CreateComponent<T>() where T : Component, new() {
+      if (HasComponent<T>()) {
+        return GetComponent<T>();
       }
       
-      if (ReferenceEquals(this , other)) {
-        return true;
+      Type comp_type = typeof(T);
+      Scene.AddComponent(Id, comp_type);
+
+      T comp = new T { Object = this };
+      components.Add(comp_type , comp);
+      
+      return comp;
+    }  
+    
+    public bool HasComponent<T>() where T : Component => Scene.HasComponent(Id, typeof(T));
+
+    public T GetComponent<T>() where T : Component , new() {
+      Type comp_type = typeof(T);
+
+      if (!HasComponent<T>()) {
+        return null;
       }
 
-      return object_id == other.object_id;
+      components.TryGetValue(comp_type , out Component comp);
+
+      if (comp == null) {
+        return CreateComponent<T>();
+      }
+
+      return comp as T;
     }
 
-    public override int GetHashCode() => (int)object_id; 
+    public void RemoveComponent<T>() where T : Component {
+      if (!HasComponent<T>()) {
+        return;
+      }
 
-    public static bool operator ==(OtherObject left , OtherObject right) => left is null ? right is null : left.Equals(right);
-    public static bool operator !=(OtherObject left , OtherObject right) => !(left == right);
+      Type comp_type = typeof(T);
+      Scene.RemoveComponent(Id, comp_type);
+      components.Remove(comp_type);
+      
+      return;
+    }
+
+    
   }
 
 }

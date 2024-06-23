@@ -15,6 +15,8 @@ namespace cs_script_bindings {
   void WriteTrace(MonoString* string);
 
   void WriteDebug(MonoString* string);
+  
+  void WriteInfo(MonoString* string);
 
   void WriteWarning(MonoString* string);
 

@@ -11,6 +11,9 @@
 
 namespace other {
 
+  struct CsFieldData;
+  struct CsCache;
+
   enum FieldAccessFlag : int64_t {
     NO_ACCESS_CONTROL = -1 ,
     READONLY = bit(0) ,
@@ -24,9 +27,19 @@ namespace other {
 
   bool CheckMonoError();  
 
+  MonoClass* MonoClassFromValueType(ValueType type);
+  MonoType* MonoTypeFromValueType(ValueType type);
+
   ValueType ValueTypeFromMonoType(MonoType* type);
 
-  Opt<Value> MonoObjectToValue(MonoObject* object);
+  Opt<Value> MonoObjectToValue(MonoObject* object , MonoClassField* field = nullptr , bool is_array = false);
+  Opt<Value> MonoObjectToValueArray(MonoObject* object , MonoClassField* field = nullptr);
+
+  bool HasBoundsAttribute(const CsFieldData& fdata);
+
+  Opt<glm::vec2> GetMonoBoundsAttribute(const CsFieldData& fdata , CsCache* asm_data);
+
+  Value ClampValue(const CsFieldData& fdata , CsCache* asm_data , const Value& value);
 
   template <typename T>
   T UnsafeUnbox(MonoObject* object) {

@@ -12,6 +12,7 @@
 #include <mono/metadata/debug-helpers.h>
 #include <mono/metadata/attrdefs.h>
 #include <mono/metadata/metadata.h>
+#include <mono/metadata/object.h>
 #include <mono/metadata/reflection.h>
 #include <mono/metadata/appdomain.h>
 #include <mono/metadata/row-indexes.h>
@@ -22,6 +23,23 @@
 
 namespace other {
 
+  CsFieldData::~CsFieldData() {
+    if (attr_info != nullptr) {
+      mono_custom_attrs_free(attr_info);
+    }
+  }
+ 
+  CsMethodData::~CsMethodData() {
+    if (attr_info != nullptr) {
+      mono_custom_attrs_free(attr_info);
+    }
+  }
+  
+  CsTypeData::~CsTypeData() {
+    if (attr_info != nullptr) {
+      mono_custom_attrs_free(attr_info);
+    }
+  }
       
   std::vector<ScriptField> CsCache::GetClassFields(const std::string_view class_name) {
     UUID id = FNV(class_name);
@@ -64,11 +82,50 @@ namespace other {
     CsTypeData& td = class_data[data.id] = data;
     td.name_space = std::string{ mono_class_get_namespace(data.asm_class) };
 
+    td.attr_info = mono_custom_attrs_from_class(td.asm_class);
+
     OE_DEBUG("Caching C# class {}::{}" , td.name_space , td.name);
 
     StoreClassMethods(td);
     StoreClassFields(td);
     StoreClassProperties(td);
+
+    if (td.attr_info == nullptr) {
+      return;
+    }
+
+    MonoArray* attrs = mono_custom_attrs_construct(td.attr_info);
+    size_t len = mono_array_length(attrs);
+    if (len == 0) {
+      return;
+    }
+
+    for (size_t i = 0; i < len; ++i) {
+      MonoObject* attr_obj = mono_array_get(attrs , MonoObject* , i);
+      if (attr_obj == nullptr) {
+        continue;
+      }
+
+      MonoClass* attr_class = mono_object_get_class(attr_obj);
+      if (attr_class == nullptr) {
+        continue;
+      }
+
+      std::string attr_name = mono_class_get_name(attr_class);
+      UUID attr_hash = FNV(attr_name);
+
+      auto& ad = td.attributes[attr_hash] = CsAttributeData{};
+      ad.attribute_instance = attr_obj;
+      
+      ad.hash = attr_hash;
+      ad.name = attr_name;
+
+      if (class_data.find(attr_hash) == class_data.end()) {
+        CacheClass(attr_name , attr_class);
+      }
+
+      ad.attr_type_data = &class_data[attr_hash]; 
+    }
   }
     
   CsTypeData* CsCache::GetClassData(UUID id) {
@@ -124,10 +181,52 @@ namespace other {
         mdata.parameter_count = mono_signature_get_param_count(sig);
         mdata.asm_method = method;
 
-        data.methods[mdata.hash] = mdata;
+        auto& md = data.methods[mdata.hash] = mdata;
+
+        md.attr_info = mono_custom_attrs_from_method(md.asm_method);
+
+        if (md.attr_info == nullptr) {
+          method_data[mdata.hash] = mdata;
+          continue;
+        }
+
+        MonoArray* attrs = mono_custom_attrs_construct(md.attr_info);
+        size_t len = mono_array_length(attrs);
+        if (len == 0) {
+          return;
+        }
+
+        for (size_t i = 0; i < len; ++i) {
+          MonoObject* attr_obj = mono_array_get(attrs , MonoObject* , i);
+          if (attr_obj == nullptr) {
+            continue;
+          }
+
+          MonoClass* attr_class = mono_object_get_class(attr_obj);
+          if (attr_class == nullptr) {
+            continue;
+          }
+
+          std::string attr_name = mono_class_get_name(attr_class);
+          UUID attr_hash = FNV(attr_name);
+          
+          auto& ad = md.attributes[attr_hash] = CsAttributeData{};
+          ad.attribute_instance = attr_obj;
+          
+          ad.hash = attr_hash;
+          ad.name = attr_name;
+
+          if (class_data.find(attr_hash) == class_data.end()) {
+            CacheClass(attr_name , attr_class);
+          }
+
+          ad.attr_type_data = &class_data[attr_hash]; 
+        }
+        
+        method_data[mdata.hash] = md;
       } while (method != nullptr);
 
-      if (class_name == "OtherObject") {
+      if (class_name == "OtherBehavior" || class_name == "OtherAttribute") {
         break;
       }
 
@@ -222,14 +321,59 @@ namespace other {
           MonoClass* elt_class = mono_class_get_element_class(field_arr_class);
           MonoType* elt_type = mono_class_get_type(elt_class);
           sf.size = mono_type_size(elt_type , &align);
+          OE_INFO("Found array : {}" , sf.name);
+
         } else {
           sf.size = mono_type_size(mtype , &align);
         }
 
         data.size += sf.size;
+        
+        sf.attr_info = mono_custom_attrs_from_field(curr_class , sf.asm_field);
+
+        if (sf.attr_info == nullptr) {
+          field_data[sf.hash] = sf;
+          continue;
+        }
+        
+        MonoArray* attrs = mono_custom_attrs_construct(sf.attr_info);
+        size_t len = mono_array_length(attrs);
+        if (len == 0) {
+          return;
+        }
+
+        for (size_t i = 0; i < len; ++i) {
+          MonoObject* attr_obj = mono_array_get(attrs , MonoObject* , i);
+          if (attr_obj == nullptr) {
+            continue;
+          }
+
+          MonoClass* attr_class = mono_object_get_class(attr_obj);
+          if (attr_class == nullptr) {
+            continue;
+          }
+
+          std::string attr_name = mono_class_get_name(attr_class);
+          UUID attr_hash = FNV(attr_name);
+
+          auto& ad = sf.attributes[attr_hash] = CsAttributeData{};
+
+          ad.attribute_instance = attr_obj;
+          
+          ad.hash = attr_hash;
+          ad.name = attr_name;
+
+          if (class_data.find(attr_hash) == class_data.end()) {
+            CacheClass(attr_name , attr_class);
+          }
+
+          ad.attr_type_data = &class_data[attr_hash]; 
+        }
+
+        field_data[sf.hash] = sf;
       } while (field != nullptr);
       
-      if (class_name == "OtherObject") {
+      if (class_name == "OtherBehavior" || class_name == "OtherAttribute") {
         break;
       }
 
@@ -340,6 +484,50 @@ namespace other {
       int32_t align;
       sf.size = mono_type_size(mtype , &align);
       data.size += sf.size;
+
+      sf.attr_info = mono_custom_attrs_from_property(data.asm_class , sf.asm_property);
+
+      if (sf.attr_info == nullptr) {
+        field_data[sf.hash] = sf;
+        continue;
+      }
+
+      
+      MonoArray* attrs = mono_custom_attrs_construct(sf.attr_info);
+      size_t len = mono_array_length(attrs);
+      if (len == 0) {
+        return;
+      }
+
+      for (size_t i = 0; i < len; ++i) {
+        MonoObject* attr_obj = mono_array_get(attrs , MonoObject* , i);
+        if (attr_obj == nullptr) {
+          continue;
+        }
+
+        MonoClass* attr_class = mono_object_get_class(attr_obj);
+        if (attr_class == nullptr) {
+          continue;
+        }
+
+        std::string attr_name = mono_class_get_name(attr_class);
+        UUID attr_hash = FNV(attr_name);
+
+        auto& ad = sf.attributes[attr_hash] = CsAttributeData{};
+        ad.attribute_instance = attr_obj;
+        
+        ad.hash = attr_hash;
+        ad.name = attr_name;
+
+        if (class_data.find(attr_hash) == class_data.end()) {
+          CacheClass(attr_name , attr_class);
+        }
+
+        ad.attr_type_data = &class_data[attr_hash]; 
+      }
+      
+
+      field_data[sf.hash] = sf;
     } while (prop != nullptr);
   }
 

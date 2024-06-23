@@ -5,6 +5,7 @@
 #define OTHER_ENGINE_SCRIPT_HPP
 
 #include <map>
+#include <type_traits>
 
 #include "core/uuid.hpp"
 #include "scripting/script_object.hpp"
@@ -25,10 +26,18 @@ namespace other {
     ECS_COMPONENT(Script , kScriptIndex);
   };
 
+  template <typename T>
+  concept script_obj_t = std::is_base_of_v<ScriptObject, T>;
+
   class ScriptSerializer : public ComponentSerializer {
     public:
       COMPONENT_SERIALIZERS(Script);
   };
+
+  template <script_obj_t SO>
+  SO* ScriptObjectCast(ScriptObject* obj) {
+    return static_cast<SO*>(obj);
+  }
 
 } // namespace other
 

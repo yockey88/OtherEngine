@@ -135,10 +135,6 @@ namespace other {
     }
 
     cached_symbols.Clear();
-
-    for (auto& [id , obj] : loaded_objects) {
-      obj.Shutdown();
-    }
     loaded_objects.clear();
     classes.clear();
 
@@ -221,7 +217,6 @@ namespace other {
                                   app_domain , class_id , &cached_symbols , nspace);
     obj.InitializeScriptMethods();
     obj.InitializeScriptFields();
-    obj.Initialize();
 
     loaded_symbols[id] = {
       .name_space = nspace , 

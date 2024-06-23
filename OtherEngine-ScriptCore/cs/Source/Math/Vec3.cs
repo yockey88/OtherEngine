@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 namespace Other {
@@ -50,6 +51,12 @@ namespace Other {
       x = vec.x;
       y = vec.y;
       z = vec.z;
+    }
+
+    public void Clamp(float min, float max) {
+      x = Mathf.Clamp(x, min, max);
+      y = Mathf.Clamp(y, min, max);
+      z = Mathf.Clamp(z, min, max);
     }
 
     public void Clamp(Vec3 min, Vec3 max) {

@@ -30,9 +30,9 @@ namespace Other {
 
   [StructLayout(LayoutKind.Sequential)]
   public struct Triangle {
-    private Vec3 a;
-    private Vec3 b;
-    private Vec3 c;
+    public Vec3 a;
+    public Vec3 b;
+    public Vec3 c;
 
     public Triangle(Vec3 a, Vec3 b, Vec3 c) {
       this.a = a;

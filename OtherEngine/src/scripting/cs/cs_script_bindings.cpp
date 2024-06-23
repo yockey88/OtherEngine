@@ -4,16 +4,21 @@
 #include "scripting/cs/cs_script_bindings.hpp"
 
 #include "core/type_data.hpp"
+
 #include "input/mouse.hpp"
 #include "input/keyboard.hpp"
+
 #include "ecs/components/tag.hpp"
 #include "ecs/components/transform.hpp"
 #include "ecs/components/relationship.hpp"
 #include "ecs/components/script.hpp"
 #include "ecs/components/mesh.hpp"
+#include "ecs/components/camera.hpp"
+
 #include "scripting/cs/native_functions/cs_native_logging.hpp"
 #include "scripting/cs/native_functions/cs_native_input.hpp"
 #include "scripting/cs/native_functions/cs_native_rendering.hpp"
+#include "scripting/cs/native_functions/cs_native_scene.hpp"
 
 namespace other {
 
@@ -100,6 +105,7 @@ namespace other {
     RegisterComponentType<Relationship>(asm_image);
     RegisterComponentType<Script>(asm_image);
     RegisterComponentType<Mesh>(asm_image);
+    RegisterComponentType<Camera>(asm_image);
 
     RegisterNativeFunctions(asm_image);
   }
@@ -114,9 +120,40 @@ namespace other {
     UnloadComponentFunctions<Relationship>();
     UnloadComponentFunctions<Script>();
     UnloadComponentFunctions<Mesh>();
+    UnloadComponentFunctions<Camera>();
 
     delete function_maps;
     function_maps = nullptr;
+  }
+
+  std::function<void(Entity*)> CsScriptBindings::GetBuilder(MonoType* type) {
+    OE_ASSERT(function_maps != nullptr , "Attempting to access uninitialized C# bindings");
+    auto itr = function_maps->component_builders.find(type);
+    if (itr == function_maps->component_builders.end()) {
+      return nullptr;
+    }
+
+    return itr->second;
+  }
+
+  std::function<bool(Entity*)> CsScriptBindings::GetChecker(MonoType* type) {
+    OE_ASSERT(function_maps != nullptr , "Attempting to access uninitialized C# bindings");
+    auto itr = function_maps->component_checkers.find(type);
+    if (itr == function_maps->component_checkers.end()) {
+      return nullptr;
+    }
+
+    return itr->second;
+  }
+
+  std::function<void(Entity*)> CsScriptBindings::GetDestroyer(MonoType* type) {
+    OE_ASSERT(function_maps != nullptr , "Attempting to access uninitialized C# bindings");
+    auto itr = function_maps->component_destroyers.find(type);
+    if (itr == function_maps->component_destroyers.end()) {
+      return nullptr;
+    }
+
+    return itr->second;
   }
 
   void CsScriptBindings::RegisterNativeFunctions(MonoImage* asm_image) {
@@ -136,6 +173,7 @@ namespace other {
   REGISTER_NATIVE_FUNCTION(Logger , WriteLine); 
   REGISTER_NATIVE_FUNCTION(Logger , WriteTrace); 
   REGISTER_NATIVE_FUNCTION(Logger , WriteDebug); 
+  REGISTER_NATIVE_FUNCTION(Logger , WriteInfo); 
   REGISTER_NATIVE_FUNCTION(Logger , WriteWarning); 
   REGISTER_NATIVE_FUNCTION(Logger , WriteError); 
   REGISTER_NATIVE_FUNCTION(Logger , WriteCritical); 
@@ -147,7 +185,25 @@ namespace other {
   REGISTER_NATIVE_FUNCTION(Renderer , NativeDrawLine);
   REGISTER_NATIVE_FUNCTION(Renderer , NativeDrawTriangle);
   REGISTER_NATIVE_FUNCTION(Renderer , NativeDrawRect);
-  
+
+  REGISTER_NATIVE_FUNCTION(Scene , NativeGetName);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeGetObjectByName);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeHasObjectById);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeHasObjectByName);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeGetScale);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeGetPosition);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeGetRotation);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeGetParent);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeGetNumChildren);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeGetChildren);
+
+  REGISTER_NATIVE_FUNCTION(Scene , NativeAddComponent);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeHasComponent);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeRemoveComponent);
+
+  REGISTER_NATIVE_FUNCTION(Scene , NativeSetScale);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeSetPosition);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeSetRotation);
 
 #undef REGISTER_NATIVE_FUNCTION
 

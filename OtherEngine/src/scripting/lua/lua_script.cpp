@@ -66,7 +66,6 @@ namespace other {
     auto& obj = loaded_objects[id] = LuaObject(module_name , name , &lua_state);
     obj.InitializeScriptMethods();
     obj.InitializeScriptFields();
-    obj.Initialize();
 
     return &loaded_objects[id];
   }

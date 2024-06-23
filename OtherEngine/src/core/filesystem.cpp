@@ -237,7 +237,7 @@ namespace other {
 
     std::vector<Path> paths;
     for (auto& entry : std::filesystem::directory_iterator(path)) {
-      if (entry.is_directory()) {
+      if (entry.is_directory() || (entry.is_directory() && entry.path().parent_path().filename().string()[0] != '.')) {
         continue;
       }
       paths.push_back(entry.path());
