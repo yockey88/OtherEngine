@@ -443,7 +443,8 @@ namespace other {
         }
 
         if ((flags & MONO_METHOD_ATTR_STATIC) != 0) {
-          prop_flags |= FieldAccessFlag::STATIC; }
+          prop_flags |= FieldAccessFlag::STATIC_ACCESS; 
+        }
       }
 
       MonoMethod* setter = mono_property_get_set_method(prop);
@@ -458,7 +459,7 @@ namespace other {
         }
 
         if ((flags & MONO_METHOD_ATTR_STATIC) != 0) {
-          prop_flags |= FieldAccessFlag::STATIC;
+          prop_flags |= FieldAccessFlag::STATIC_ACCESS;
         }
       }
 

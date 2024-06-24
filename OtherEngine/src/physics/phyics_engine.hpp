@@ -6,23 +6,22 @@
 
 #include "core/ref.hpp"
 
+#include "scene/scene.hpp"
+
 #include "physics/2D/physics_world_2d.hpp"
 
 namespace other {
 
-  enum PhysicsType {
-    PHYSICS_2D , 
-    PHYSICS_3D ,
-
-    NUM_PHYSICS_TYPES ,
-    INVALID_PHYSICS_TYPE = NUM_PHYSICS_TYPES
-  };
-
   class PhysicsEngine {
     public:
+      static void SetSceneContext(const Ref<Scene>& scene);
+
+      static Ref<Scene> GetSceneContext();
+
       static Ref<PhysicsWorld2D> GetPhysicsWorld(const glm::vec2& gravity);
 
     private:
+      static Ref<Scene> scene_context;
   };
 
 } // namespace other

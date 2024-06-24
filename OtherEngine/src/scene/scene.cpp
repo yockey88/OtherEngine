@@ -1,4 +1,4 @@
-/**scene.c
+/**
  * \file scene/scene.cpp
  **/
 #include "scene/scene.hpp"
@@ -8,6 +8,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/euler_angles.hpp>
 
+#include "physics/physics_defines.hpp"
 #include "scripting/script_engine.hpp"
 
 #include "rendering/renderer.hpp"
@@ -19,6 +20,8 @@
 #include "ecs/components/mesh.hpp"
 #include "ecs/components/script.hpp"
 #include "ecs/components/camera.hpp"
+#include "ecs/components/rigid_body_2d.hpp"
+
 #include "ecs/systems/core_systems.hpp"
 
 namespace other {
@@ -28,9 +31,13 @@ namespace other {
     registry.on_destroy<entt::entity>().connect<&OnDestroyEntity>();
 
     registry.on_construct<Camera>().connect<&OnCameraAddition>();
+
+    registry.on_update<RigidBody2D>().connect<&OnRigidBody2DUpdate>();
   }
 
   Scene::~Scene() {
+    registry.on_update<RigidBody2D>().disconnect<&OnRigidBody2DUpdate>();
+
     registry.on_construct<Camera>().disconnect<&OnCameraAddition>();
 
     registry.on_destroy<entt::entity>().disconnect<&OnDestroyEntity>();
@@ -58,6 +65,12 @@ namespace other {
 
   void Scene::Start() {
     OE_ASSERT(initialized , "Starting scene without initialization");
+
+    if (physics_type == PHYSICS_2D) {
+      registry.view<RigidBody2D , Tag , Transform>().each([&](RigidBody2D& body , const Tag& tag , const Transform& transform) {
+        Initialize2DRigidBody(physics_world_2d , body , tag , transform);
+      });
+    }
     
     registry.view<Script>().each([](const Script& script) {
       for (auto& [id , s] : script.scripts) {
@@ -86,6 +99,24 @@ namespace other {
       Stop();
       return;
     }
+
+    if (physics_type == PhysicsType::PHYSICS_2D) {
+      OE_ASSERT(physics_world_2d != nullptr , "Can not step physics world with null scene (2D)!");
+
+      /// TODO: fix these to customizeable
+      physics_world_2d->Step(dt , 32 , 2);
+    }
+
+    registry.view<RigidBody2D , Transform>().each([](RigidBody2D& body , Transform& transform) {
+      if (body.physics_body == nullptr) {
+        return;
+      } 
+
+      auto& position = body.physics_body->GetPosition();
+      transform.position.x = position.x;
+      transform.position.y = position.y;
+      transform.erotation.z = body.physics_body->GetAngle(); 
+    });
 
     registry.view<Transform>().each([](Transform& transform) {
       transform.erotation = glm::eulerAngles(transform.qrotation);
@@ -161,6 +192,12 @@ namespace other {
       }
     });
 
+    if (physics_type == PHYSICS_2D) {
+      registry.view<RigidBody2D>().each([&](RigidBody2D& body) {
+        physics_world_2d->DestroyBody(body.physics_body);
+      });
+    }
+
     running = false;
     OnStop();
   }
@@ -213,6 +250,10 @@ namespace other {
       
   PhysicsType Scene::ActivePhysicsType() const {
     return physics_type;
+  }
+      
+  Ref<PhysicsWorld2D> Scene::Get2DPhysicsWorld() const {
+    return physics_world_2d;
   }
 
   const bool Scene::IsInitialized() const {

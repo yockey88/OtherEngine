@@ -40,6 +40,27 @@ namespace Other {
     private static extern ulong[] NativeGetChildren(ulong id);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern UInt32 NativeGetPhysicsBodyType(ulong id);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern float NativeGetMass(ulong id);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern float NativeGetLinearDrag(ulong id);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern float NativeGetAngularDrag(ulong id);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern float NativeGetGravityScale(ulong id);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern bool NativeGetFixedRotation(ulong id);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern bool NativeGetBullet(ulong id);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
     private static extern void NativeAddComponent(ulong id , Type type);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
@@ -140,6 +161,34 @@ namespace Other {
       return children;
     }
 
+    static public PhysicsBodyType GetPhysicsBodyType(ulong id) {
+      return (PhysicsBodyType)NativeGetPhysicsBodyType(id);
+    }
+
+    static public float GetMass(ulong id) {
+      return NativeGetMass(id);
+    }
+
+    static public float GetLinearDrag(ulong id) {
+      return NativeGetLinearDrag(id);
+    }
+
+    static public float GetAngularDrag(ulong id) {
+      return NativeGetAngularDrag(id);
+    }
+
+    static public float GetGravityScale(ulong id) {
+      return NativeGetGravityScale(id);
+    }
+
+    static public bool GetFixedRotation(ulong id) {
+      return NativeGetFixedRotation(id);
+    }
+
+    static public bool GetBullet(ulong id) {
+      return NativeGetBullet(id);
+    }
+
     static public void AddComponent(ulong id , Type type) {
       NativeAddComponent(id , type);
     }
@@ -155,9 +204,6 @@ namespace Other {
     /// native setters
 
     [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern void NativeSetName(ulong id, string name);
-
-    [MethodImpl(MethodImplOptions.InternalCall)]
     private static extern void NativeSetScale(ulong id , ref Vec3 scale);    
     
 
@@ -165,10 +211,31 @@ namespace Other {
     private static extern void NativeSetPosition(ulong id , ref Vec3 position);    
 
     [MethodImpl(MethodImplOptions.InternalCall)]
-    private static extern void NativeSetRotation(ulong id , ref Vec3 rotation);   
+    private static extern void NativeSetRotation(ulong id , ref Vec3 rotation);  
 
     [MethodImpl(MethodImplOptions.InternalCall)]
-    private static extern void NativeSetParent(ulong id , ref Vec3 scale);
+    private static extern void NativeSetPhysicsBodyType(ulong id , UInt32 type); 
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern void NativeSetMass(ulong id , float mass);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern void NativeSetLinearDrag(ulong id , float drag);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern void NativeSetAngularDrag(ulong id , float drag);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern void NativeSetGravityScale(ulong id , float scale);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern void NativeSetFixedRotation(ulong id , bool fixed_rotation);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern void NativeSetBullet(ulong id , bool bullet);
+
+    // [MethodImpl(MethodImplOptions.InternalCall)]
+    // private static extern void NativeSetParent(ulong id , ref Vec3 scale);
 
     /// C# setters 
 
@@ -182,6 +249,34 @@ namespace Other {
 
     static public void SetRotation(ulong id , ref Vec3 rotation) {
       NativeSetRotation(id , ref rotation);
+    }
+
+    static public void SetPhysicsBodyType(ulong id , PhysicsBodyType type) {
+      NativeSetPhysicsBodyType(id , (UInt32)type);
+    }
+
+    static public void SetMass(ulong id , float mass) {
+      NativeSetMass(id , mass);
+    }
+
+    static public void SetLinearDrag(ulong id , float drag) {
+      NativeSetLinearDrag(id , drag);
+    }
+
+    static public void SetAngularDrag(ulong id , float drag) {
+      NativeSetAngularDrag(id , drag);
+    }
+
+    static public void SetGravityScale(ulong id , float scale) {
+      NativeSetGravityScale(id , scale);
+    }
+
+    static public void SetFixedRotation(ulong id , bool fixed_rotation) {
+      NativeSetFixedRotation(id , fixed_rotation);
+    }
+
+    static public void SetBullet(ulong id , bool bullet) {
+      NativeSetBullet(id , bullet);
     }
 
     static public void InitializeScene() {

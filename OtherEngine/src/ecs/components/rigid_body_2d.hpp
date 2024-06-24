@@ -14,8 +14,9 @@
 namespace other {
 
   struct RigidBody2D : public Component {
+    b2BodyDef body_def;
     b2Body* physics_body = nullptr; 
-    PhysicsBodyType type;
+    PhysicsBodyType type = STATIC;
     float mass = 1.f;
     float linear_drag = 0.01f;
     float angular_drag = 0.05f;

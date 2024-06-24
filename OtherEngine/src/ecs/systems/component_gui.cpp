@@ -481,24 +481,27 @@ namespace other {
     };
 
     uint32_t selected = body.type;
-    if (ui::PropertyDropdown("Type" , body_type_strings , 3 , selected)) {
-      body.type = static_cast<PhysicsBodyType>(selected);
-    }
-
-    if (body.type == PhysicsBodyType::DYNAMIC) {
-      ui::BeginPropertyGrid();
-      
-      ui::Property("Mass" , &body.mass);
-      ui::Property("Linear Drag" , &body.linear_drag);
-      ui::Property("Angular Drag" , &body.angular_drag);
-      ui::Property("Gravity Scale" , &body.gravity_scale);
-      ui::Property("Fixed Rotation" , &body.fixed_rotation);
-      ui::Property("Bullet" , &body.bullet);
-
-      ui::EndPropertyGrid();
-    } else if (body.type >= INVALID_PHYSICS_BODY) {
+    if (selected >= INVALID_PHYSICS_BODY) {
       ScopedColor red(ImGuiCol_Text , ui::theme::red);
       ImGui::Text("Invalid valid for Rigid Body 2D body type : %d" , body.type);
+    } else {
+      if (ui::PropertyDropdown("Type" , body_type_strings , 3 , selected)) {
+        body.type = static_cast<PhysicsBodyType>(selected);
+        ent->UpdateComponent<RigidBody2D>(body);
+      }
+      
+      if (body.type == PhysicsBodyType::DYNAMIC) {
+        ui::BeginPropertyGrid();
+        
+        ui::Property("Mass" , &body.mass);
+        ui::Property("Linear Drag" , &body.linear_drag);
+        ui::Property("Angular Drag" , &body.angular_drag);
+        ui::Property("Gravity Scale" , &body.gravity_scale);
+        ui::Property("Fixed Rotation" , &body.fixed_rotation);
+        ui::Property("Bullet" , &body.bullet);
+
+        ui::EndPropertyGrid();
+      } 
     }
 
     ui::EndPropertyGrid();

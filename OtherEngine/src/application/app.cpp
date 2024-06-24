@@ -21,6 +21,8 @@
 #include "scripting/script_defines.hpp"
 #include "scripting/script_engine.hpp"
 
+#include "physics/phyics_engine.hpp"
+
 namespace other {
 
   App::App(Engine* engine) 
@@ -390,6 +392,9 @@ namespace other {
     for (size_t i = 0; i < layer_stack->Size(); ++i) {
       (*layer_stack)[i]->LoadScene(scn_metadata);
     }
+
+    ScriptEngine::SetSceneContext(scn_metadata->scene);
+    PhysicsEngine::SetSceneContext(scn_metadata->scene);
     
     /// alert the client app new scene is loaded 
     OnSceneLoad(ActiveScene());

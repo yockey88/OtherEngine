@@ -282,7 +282,6 @@ namespace other {
               default:
                 break;
             }
-            DrawAddComponentButton<RigidBody2D>("Rigid Body 2D");
             
             ImGui::EndTable();
           }

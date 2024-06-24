@@ -27,11 +27,27 @@ namespace cs_script_bindings {
 
   uint64_t NativeGetNumChildren(uint64_t id);
   MonoArray* NativeGetChildren(uint64_t id);
+
+  uint32_t NativeGetPhysicsBodyType(uint64_t id);
+  float NativeGetMass(uint64_t id);
+  float NativeGetLinearDrag(uint64_t id);
+  float NativeGetAngularDrag(uint64_t id);
+  float NativeGetGravityScale(uint64_t id);
+  bool NativeGetFixedRotation(uint64_t id);
+  bool NativeGetBullet(uint64_t id);
   
   /// internal setters
   void NativeSetScale(uint64_t id , glm::vec3* out_scale);
   void NativeSetPosition(uint64_t id , glm::vec3* out_position);
   void NativeSetRotation(uint64_t id , glm::vec3* out_rotation);
+  
+  void NativeSetPhysicsBodyType(uint64_t id , uint32_t type);
+  void NativeSetMass(uint64_t id , float* mass);
+  void NativeSetLinearDrag(uint64_t id , float* linear_drag);
+  void NativeSetAngularDrag(uint64_t id , float* angular_drag);
+  void NativeSetGravityScale(uint64_t id , float* gravity_scale);
+  void NativeSetFixedRotation(uint64_t id , bool* fixed_rot);
+  void NativeSetBullet(uint64_t id , bool* bullet);
 
   void NativeAddComponent(uint64_t id , MonoReflectionType* rtype);
   bool NativeHasComponent(uint64_t id , MonoReflectionType* rtype);

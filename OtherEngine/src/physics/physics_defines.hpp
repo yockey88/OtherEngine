@@ -7,6 +7,14 @@
 #include <cstdint>
 
 namespace other {
+  
+  enum PhysicsType {
+    PHYSICS_2D , 
+    PHYSICS_3D ,
+
+    NUM_PHYSICS_TYPES ,
+    INVALID_PHYSICS_TYPE = NUM_PHYSICS_TYPES
+  };
 
   enum PhysicsBodyType : uint32_t {
     STATIC = 0, 

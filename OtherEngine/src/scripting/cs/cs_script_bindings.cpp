@@ -14,6 +14,7 @@
 #include "ecs/components/script.hpp"
 #include "ecs/components/mesh.hpp"
 #include "ecs/components/camera.hpp"
+#include "ecs/components/rigid_body_2d.hpp"
 
 #include "scripting/cs/native_functions/cs_native_logging.hpp"
 #include "scripting/cs/native_functions/cs_native_input.hpp"
@@ -106,6 +107,7 @@ namespace other {
     RegisterComponentType<Script>(asm_image);
     RegisterComponentType<Mesh>(asm_image);
     RegisterComponentType<Camera>(asm_image);
+    RegisterComponentType<RigidBody2D>(asm_image);
 
     RegisterNativeFunctions(asm_image);
   }
@@ -121,6 +123,7 @@ namespace other {
     UnloadComponentFunctions<Script>();
     UnloadComponentFunctions<Mesh>();
     UnloadComponentFunctions<Camera>();
+    UnloadComponentFunctions<RigidBody2D>();
 
     delete function_maps;
     function_maps = nullptr;
@@ -190,12 +193,22 @@ namespace other {
   REGISTER_NATIVE_FUNCTION(Scene , NativeGetObjectByName);
   REGISTER_NATIVE_FUNCTION(Scene , NativeHasObjectById);
   REGISTER_NATIVE_FUNCTION(Scene , NativeHasObjectByName);
+
   REGISTER_NATIVE_FUNCTION(Scene , NativeGetScale);
   REGISTER_NATIVE_FUNCTION(Scene , NativeGetPosition);
   REGISTER_NATIVE_FUNCTION(Scene , NativeGetRotation);
+
   REGISTER_NATIVE_FUNCTION(Scene , NativeGetParent);
   REGISTER_NATIVE_FUNCTION(Scene , NativeGetNumChildren);
   REGISTER_NATIVE_FUNCTION(Scene , NativeGetChildren);
+
+  REGISTER_NATIVE_FUNCTION(Scene , NativeGetPhysicsBodyType);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeGetMass);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeGetLinearDrag);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeGetAngularDrag);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeGetGravityScale);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeGetFixedRotation);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeGetBullet);
 
   REGISTER_NATIVE_FUNCTION(Scene , NativeAddComponent);
   REGISTER_NATIVE_FUNCTION(Scene , NativeHasComponent);
@@ -204,6 +217,14 @@ namespace other {
   REGISTER_NATIVE_FUNCTION(Scene , NativeSetScale);
   REGISTER_NATIVE_FUNCTION(Scene , NativeSetPosition);
   REGISTER_NATIVE_FUNCTION(Scene , NativeSetRotation);
+  
+  REGISTER_NATIVE_FUNCTION(Scene , NativeSetPhysicsBodyType);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeSetMass);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeSetLinearDrag);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeSetAngularDrag);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeSetGravityScale);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeSetFixedRotation);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeSetBullet);
 
 #undef REGISTER_NATIVE_FUNCTION
 

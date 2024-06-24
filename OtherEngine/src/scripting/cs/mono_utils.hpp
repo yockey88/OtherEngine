@@ -17,7 +17,7 @@ namespace other {
   enum FieldAccessFlag : int64_t {
     NO_ACCESS_CONTROL = -1 ,
     READONLY = bit(0) ,
-    STATIC = bit(1) , 
+    STATIC_ACCESS = bit(1) , 
     PUBLIC  = bit(2) ,
     PRIVATE = bit(3) , 
     PROTECTED = bit(4) ,

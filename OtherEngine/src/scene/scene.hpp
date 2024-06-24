@@ -9,6 +9,7 @@
 
 #include <entt/entt.hpp>
 
+#include "core/ref.hpp"
 #include "core/ref_counted.hpp"
 #include "core/uuid.hpp"
 
@@ -16,7 +17,8 @@
 
 #include "rendering/render_batch.hpp"
 
-#include "physics/phyics_engine.hpp"
+#include "physics/physics_defines.hpp"
+#include "physics/2D/physics_world_2d.hpp"
 
 namespace other {
 
@@ -43,6 +45,7 @@ namespace other {
       entt::registry& Registry();
 
       PhysicsType ActivePhysicsType() const;
+      Ref<PhysicsWorld2D> Get2DPhysicsWorld() const;
 
       const bool IsInitialized() const;
       const bool IsRunning() const;
