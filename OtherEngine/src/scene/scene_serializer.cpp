@@ -5,8 +5,12 @@
 
 #include "core/errors.hpp"
 #include "core/config_keys.hpp"
+#include "core/logger.hpp"
+
 #include "ecs/entity_serializer.hpp"
+
 #include "parsing/ini_parser.hpp"
+#include "physics/phyics_engine.hpp"
 
 namespace other {
 
@@ -33,12 +37,41 @@ namespace other {
       stream << "\n";
     }
     
-    stream << "}\n\n";
+    stream << "}\n";
+
+    std::string physics_str;
+
+    stream << "physics = ";
+    switch (scene->physics_type) {
+      case PhysicsType::PHYSICS_2D:
+        physics_str = "2D";
+      break;
+      case PhysicsType::PHYSICS_3D:
+        physics_str = "3D";
+      break;
+      default:
+      break;
+    }
+    stream << physics_str << "\n";
+
+    /// final metadata newline 
+    stream << "\n";
 
     EntitySerializer serializer;
     for (const auto& [id , e] : entities) {
       serializer.Serialize(stream , e , scene);
     }
+
+    stream << "[physics." << physics_str << "]\n"; 
+    switch (scene->physics_type) {
+      case PhysicsType::PHYSICS_2D:
+        SerializeVec2(stream , "gravity" , scene->physics_world_2d->GetGravity());
+      break;
+      case PhysicsType::PHYSICS_3D:
+      break;
+      default:
+        break;
+    }  
   }
 
   DeserializedScene SceneSerializer::Deserialize(const std::string_view scn_path) const {
@@ -46,7 +79,6 @@ namespace other {
     try {
       IniFileParser parser{ scn_path.data() };
       scene_metadata.scene_table = parser.Parse();
-
     } catch (IniException& err) {
       OE_WARN("Failed to parse scene file - {} : {}" , scn_path , err.what()); 
       return {};
@@ -55,8 +87,9 @@ namespace other {
     scene_metadata.name = scene_metadata.scene_table.GetVal<std::string>(kMetadataSection , kNameValue).value_or(scn_path.data());
     scene_metadata.scene = NewRef<Scene>();
 
-    EntitySerializer deserializer;
+    std::string physics = scene_metadata.scene_table.GetVal<std::string>(kMetadataSection , kPhysicsValue).value_or("3D");
 
+    EntitySerializer deserializer;
     auto entities = scene_metadata.scene_table.Get(kMetadataSection , kEntitiesValue);
 
     OE_INFO("Attempting to load {} entities" , entities.size());
@@ -66,8 +99,32 @@ namespace other {
       }
 
       OE_DEBUG("Deserializing root entity : {}" , e);
-
       /* UUID entity_id = */ deserializer.Deserialize(scene_metadata.scene , e , scene_metadata.scene_table);
+    }
+
+    uint64_t physics_hash = FNV(physics);
+    std::string physics_section = std::string{ kPhysicsValue } + ".";
+    switch (physics_hash) {
+      case FNV("2D"): {
+        physics_section += "2D";
+        scene_metadata.scene->physics_type = PHYSICS_2D;
+
+        auto gravity = scene_metadata.scene_table.Get(physics_section , kGravityValue);
+        if (gravity.size() != 2) {
+          OE_ERROR("{} section has corrupt gravity value!" , physics_section);
+        } else {
+          glm::vec2 g;
+          DeserializeVec2(gravity , g);
+          scene_metadata.scene->physics_world_2d = PhysicsEngine::GetPhysicsWorld(g);
+        }
+      } break;
+      case FNV("3D"):
+        OE_ASSERT(false , "3D Physics Unimplemented!");
+        physics_section += "3D";
+        scene_metadata.scene->physics_type = PHYSICS_3D;
+      break;
+      default:
+        break;
     }
 
     OE_INFO("Scene loaded : {}" , scn_path);

@@ -8,6 +8,7 @@
 #include <imgui/imgui.h>
 #include <type_traits>
 
+#include "ecs/components/rigid_body_2d.hpp"
 #include "input/keyboard.hpp"
 #include "input/mouse.hpp"
 
@@ -21,6 +22,7 @@
 
 #include "editor/selection_manager.hpp"
 
+#include "physics/phyics_engine.hpp"
 #include "rendering/texture.hpp"
 #include "rendering/ui/ui_colors.hpp"
 #include "rendering/ui/ui_helpers.hpp"
@@ -270,6 +272,17 @@ namespace other {
             DrawAddComponentButton<Script>("Script");
             DrawAddComponentButton<Mesh>("Mesh");
             DrawAddComponentButton<Camera>("Camera");
+            switch (active_scene->ActivePhysicsType()) {
+              case PHYSICS_2D:
+                DrawAddComponentButton<RigidBody2D>("Rigid Body 2D");
+              break;
+              case PHYSICS_3D: { 
+                ui::DrawTodoReminder("3D PHYSICS COMPONENT ADDERS");
+              } break;
+              default:
+                break;
+            }
+            DrawAddComponentButton<RigidBody2D>("Rigid Body 2D");
             
             ImGui::EndTable();
           }
@@ -303,6 +316,7 @@ namespace other {
     DrawComponent<Script>("Script" , DrawScript);
     DrawComponent<Mesh>("Mesh" , DrawMesh);
     DrawComponent<Camera>("Camera" , DrawCamera);
+    DrawComponent<RigidBody2D>("Rigid Body 2D" , DrawRigidBody2D);
   }
 
 } // namespace other

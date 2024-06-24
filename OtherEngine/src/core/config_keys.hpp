@@ -7,6 +7,7 @@
 #include <string_view>
 
 #include "core/defines.hpp"
+#include "ecs/component.hpp"
 
 namespace other {
 
@@ -263,6 +264,42 @@ namespace other {
   
   constexpr static std::string_view kPrimaryValue = "PRIMARY";
   constexpr static uint64_t kPrimaryValueHash = FNV(kPrimaryValue);
+
+  constexpr static std::string_view kPhysicsValue = "PHYSICS";
+  constexpr static uint64_t kPhysicsValueHash = FNV(kPhysicsValue);
+
+  constexpr static std::string_view kRigidBody2DValue = "RIGID-BODY-2D";
+  constexpr static uint64_t kRigidBody2DValueHash = FNV(kRigidBody2DValue);
+
+  constexpr static std::string_view kStaticValue = "STATIC";
+  constexpr static uint64_t kStaticValueHash = FNV(kStaticValue);
+
+  constexpr static std::string_view kKinematicValue = "KINEMATIC";
+  constexpr static uint64_t kKinematicValueHash = FNV(kKinematicValue);
+
+  constexpr static std::string_view kDynamicValue = "DYNAMIC";
+  constexpr static uint64_t kDynamicValueHash = FNV(kDynamicValue);
+
+  constexpr static std::string_view kGravityValue = "GRAVITY";
+  constexpr static uint64_t kGravityValueHash = FNV(kGravityValue);
+
+  constexpr static std::string_view kMassValue = "MASS";
+  constexpr static uint64_t kMassValueHash = FNV(kMassValue);
+
+  constexpr static std::string_view kLinearDragValue = "LINEAR-DRAG";
+  constexpr static uint64_t kLinearDragValueHash = FNV(kLinearDragValue);
+
+  constexpr static std::string_view kAngularDragValue = "ANGULAR-DRAG";
+  constexpr static uint64_t kAngularDragValueHash = FNV(kAngularDragValue);
+
+  constexpr static std::string_view kGravityScaleValue = "GRAVITY-SCALE";
+  constexpr static uint64_t kGravityScaleValueHash = FNV(kGravityScaleValue);
+
+  constexpr static std::string_view kFixedRotationValue = "FIXED-ROTATION";
+  constexpr static uint64_t kFixedRotationValueHash = FNV(kFixedRotationValue);
+
+  constexpr static std::string_view kBulletValue = "BULLET";
+  constexpr static uint64_t kBulletValueHash = FNV(kBulletValue);
 
 } // namespace other 
 

@@ -103,6 +103,8 @@ namespace ui {
     OutlineFlags_All = OutlineFlags_WhenHovered | OutlineFlags_WhenActive | OutlineFlags_WhenInactive | OutlineFlags_HighlightActive ,
   };
 
+  void DrawTodoReminder(const std::string& item);
+
   bool IsItemDisabled();
   ImRect GetItemRect();
 
@@ -169,6 +171,8 @@ namespace ui {
   bool IsWindowFocused(const char* window_name, const bool check_root_window);
   
   void HelpMarker(const char* desc);
+
+  bool Checkbox(const char* label , bool* value);
   
   void BeginPropertyGrid(
     uint32_t columns = 2 , 
@@ -188,6 +192,8 @@ namespace ui {
 
   void BeginProperty(const char* label , const char* help_text = "");
   void EndProperty();
+
+  bool Property(const char* label , bool* value , const char* help_text = "");
   bool Property(const char* label , int8_t* value , int8_t min = 0 , int8_t max = 0 , const char* help_text = "");
   bool Property(const char* label , uint8_t* value , uint8_t min = 0 , uint8_t max = 0 , const char* help_text = "");
   bool Property(const char* label , int16_t* value , int16_t min = 0 , int16_t max = 0 , const char* help_text = "");

@@ -23,6 +23,8 @@ namespace other {
       
       Ref<PhysicsBody2D> CreateBody(const b2BodyDef* body_definition);
 
+      glm::vec2 GetGravity() const;
+
     private:
       b2Vec2 gravity = b2Vec2{ 0 , -10.f };
       Scope<b2World> world = nullptr;

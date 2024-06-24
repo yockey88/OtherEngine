@@ -10,6 +10,14 @@
 
 namespace other {
 
+  enum PhysicsType {
+    PHYSICS_2D , 
+    PHYSICS_3D ,
+
+    NUM_PHYSICS_TYPES ,
+    INVALID_PHYSICS_TYPE = NUM_PHYSICS_TYPES
+  };
+
   class PhysicsEngine {
     public:
       static Ref<PhysicsWorld2D> GetPhysicsWorld(const glm::vec2& gravity);

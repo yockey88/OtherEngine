@@ -210,6 +210,10 @@ namespace other {
   entt::registry& Scene::Registry() {
     return registry;
   }
+      
+  PhysicsType Scene::ActivePhysicsType() const {
+    return physics_type;
+  }
 
   const bool Scene::IsInitialized() const {
     return initialized;

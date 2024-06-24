@@ -38,14 +38,13 @@ namespace other {
     OE_ASSERT(entity != nullptr && scene != nullptr , "Attempting to deserialize a camera into null entity or scene");
     std::string key_value = GetComponentSectionKey(entity->Name() , std::string{ kCameraValue });
     
-    auto& camera = entity->AddComponent<Camera>();
-    
     auto camera_type = scene_table.Get(key_value , kTypeValue);
     if (camera_type.size() != 1) {
       OE_ERROR("Failed to deserialize camera component into entity {}" , entity->Name());
-      entity->RemoveComponent<Camera>();
       return;
     }
+    
+    auto& camera = entity->AddComponent<Camera>();
 
     std::string type = camera_type[0];
     std::string uc_type;

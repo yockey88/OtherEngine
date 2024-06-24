@@ -16,6 +16,8 @@
 
 #include "rendering/render_batch.hpp"
 
+#include "physics/phyics_engine.hpp"
+
 namespace other {
 
   class Entity;
@@ -39,6 +41,8 @@ namespace other {
       void Refresh();
 
       entt::registry& Registry();
+
+      PhysicsType ActivePhysicsType() const;
 
       const bool IsInitialized() const;
       const bool IsRunning() const;
@@ -82,6 +86,7 @@ namespace other {
 
     private:
       friend class Entity;
+      friend class SceneSerializer;
       // Octree space_partition;
 
       bool initialized = false;
@@ -89,6 +94,9 @@ namespace other {
       bool corrupt = false;
 
       entt::registry registry;
+
+      PhysicsType physics_type = PhysicsType::PHYSICS_2D;
+      Ref<PhysicsWorld2D> physics_world_2d;
 
       std::map<UUID , Entity*> root_entities{};
       std::map<UUID , Entity*> entities{};

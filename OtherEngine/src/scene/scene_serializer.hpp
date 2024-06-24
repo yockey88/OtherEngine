@@ -6,6 +6,8 @@
 
 #include "core/ref.hpp"
 #include "core/config.hpp"
+#include "core/serializer.hpp"
+
 #include "scene/scene.hpp"
 
 namespace other {
@@ -16,7 +18,7 @@ namespace other {
     std::string name = "[ Empty Scene ]";
   };
 
-  class SceneSerializer {
+  class SceneSerializer : public Serializer {
     public: 
       SceneSerializer() {}
       ~SceneSerializer() {}

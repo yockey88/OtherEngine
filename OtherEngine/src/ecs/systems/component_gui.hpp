@@ -123,6 +123,7 @@ namespace other {
   void DrawScript(Entity* ent); 
   void DrawMesh(Entity* ent);
   void DrawCamera(Entity* ent);
+  void DrawRigidBody2D(Entity* ent);
 
 } // namespace other
 

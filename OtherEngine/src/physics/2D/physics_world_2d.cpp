@@ -21,5 +21,9 @@ namespace other {
   Ref<PhysicsBody2D> PhysicsWorld2D::CreateBody(const b2BodyDef* body_definition) {
     return Ref<PhysicsBody2D>::Create(world , body_definition);
   }
+      
+  glm::vec2 PhysicsWorld2D::GetGravity() {
+    return { gravity.x , gravity.y };
+  }
 
 } // namespace other

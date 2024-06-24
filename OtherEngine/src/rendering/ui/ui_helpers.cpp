@@ -74,6 +74,11 @@ namespace ui {
   static std::array<char , 16 + 2 + 1> id_buffer = { '#' , '#' };
   static std::array<char , 1024 + 1> label_id_buffer = {};
   
+  void DrawTodoReminder(const std::string& item) {
+    ScopedColor red(ImGuiCol_Text , ui::theme::red);
+    ImGui::Text("TODO: IMPLEMENT %s" , item.c_str());
+  }
+  
   bool IsItemDisabled() {
     return ImGui::GetItemFlags() & ImGuiItemFlags_Disabled;
   }
@@ -367,6 +372,12 @@ namespace {
     }
   }
   
+  bool Checkbox(const char* label , bool* value) {
+    bool changed = ImGui::Checkbox(label , value);
+    DrawItemActivityOutline();
+    return changed;
+  }
+  
   void BeginPropertyGrid(
     uint32_t columns , 
     const ImVec2& item_spacing , 
@@ -484,6 +495,14 @@ namespace {
     ImGui::PopItemWidth();
     ImGui::NextColumn();
     Underline();
+  }
+  
+  bool Property(const char* label , bool* value , const char* help_text) {
+    bool modified = false;
+    BeginProperty(label , help_text);
+    modified = Checkbox(fmtstr("##{}" , label).c_str() , value);
+    EndProperty();
+    return modified;
   }
   
   bool Property(const char* label , int8_t* value , int8_t min , int8_t max , const char* help_text) {
