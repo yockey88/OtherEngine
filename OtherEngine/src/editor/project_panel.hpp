@@ -32,11 +32,11 @@ namespace other {
 
     private:
       const std::map<UUID , std::string_view> tags {
-        { FNV("editor")    , "editor" } ,
+        { FNV("editor")    , "editor"    } ,
         { FNV("materials") , "materials" } ,
-        { FNV("scenes")    , "scenes" } ,
-        { FNV("scripts")   , "scripts" } ,
-        { FNV("shaders")   , "shaders" }
+        { FNV("scenes")    , "scenes"    } ,
+        { FNV("scripts")   , "scripts"   } ,
+        { FNV("shaders")   , "shaders"   }
       };
 
       std::vector<Ref<Directory>> project_directories;

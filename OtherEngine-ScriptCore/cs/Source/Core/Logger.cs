@@ -18,7 +18,7 @@ namespace Other {
     public static extern void WriteInfo(string line);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern void WriteWarn(string line);
+    public static extern void WriteWarning(string line);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     public static extern void WriteError(string line);

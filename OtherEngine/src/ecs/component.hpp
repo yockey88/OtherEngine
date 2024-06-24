@@ -18,7 +18,7 @@
 
 namespace other {
 
-  constexpr static size_t kBuiltInComponents = 6;
+  constexpr static size_t kNumComponents = 7;
 
   constexpr static int32_t kTagIndex = 0;
   constexpr static int32_t kTransformIndex = 1;
@@ -26,15 +26,17 @@ namespace other {
   constexpr static int32_t kMeshIndex = 3;
   constexpr static int32_t kScriptIndex = 4;
   constexpr static int32_t kCameraIndex = 5;
+  constexpr static int32_t kRigidBody2DIndex = 6;
 
   using ComponentTagPair = std::pair<std::string_view , size_t>;
-  constexpr static std::array<ComponentTagPair , kBuiltInComponents> kBuiltInComponentTags = {
+  constexpr static std::array<ComponentTagPair , kNumComponents> kComponentTags = {
     ComponentTagPair{ "TAG" , 0 } , 
     ComponentTagPair{ "TRANSFORM" , 1 } , 
     ComponentTagPair{ "RELATIONSHIP" , 2 } ,
     ComponentTagPair{ "MESH" , 3 } ,
     ComponentTagPair{ "SCRIPT" , 4 } ,
     ComponentTagPair{ "CAMERA" , 5 } ,
+    ComponentTagPair{ "RIGID-BODY-2D" , 6} ,
   };
 
   class ComponentDataBase {

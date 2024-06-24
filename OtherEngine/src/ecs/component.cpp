@@ -12,11 +12,11 @@
 namespace other {
 
   std::string ComponentDataBase::GetComponentTagUc(size_t idx) {
-    auto itr = std::find_if(kBuiltInComponentTags.begin() , kBuiltInComponentTags.end() , [&idx](const auto& tag_pair) -> bool {
+    auto itr = std::find_if(kComponentTags.begin() , kComponentTags.end() , [&idx](const auto& tag_pair) -> bool {
       return idx == tag_pair.second;
     });
 
-    if (itr == kBuiltInComponentTags.end()) {
+    if (itr == kComponentTags.end()) {
       return "";
     }
 
@@ -24,11 +24,11 @@ namespace other {
   }
 
   std::string ComponentDataBase::GetComponentTagLc(size_t idx) {
-    auto itr = std::find_if(kBuiltInComponentTags.begin() , kBuiltInComponentTags.end() , [&idx](const auto& tag_pair) -> bool {
+    auto itr = std::find_if(kComponentTags.begin() , kComponentTags.end() , [&idx](const auto& tag_pair) -> bool {
       return idx == tag_pair.second;
     });
 
-    if (itr == kBuiltInComponentTags.end()) {
+    if (itr == kComponentTags.end()) {
       return "";
     }
 
@@ -43,11 +43,11 @@ namespace other {
     std::transform(tag.begin() , tag.end() , std::back_inserter(uc_tag) , ::toupper);
 
     UUID hash = FNV(uc_tag);
-    auto itr = std::find_if(kBuiltInComponentTags.begin() , kBuiltInComponentTags.end() , [&hash](const auto& tag_pair) -> bool {
+    auto itr = std::find_if(kComponentTags.begin() , kComponentTags.end() , [&hash](const auto& tag_pair) -> bool {
       return hash.Get() == FNV(tag_pair.first);
     });
 
-    if (itr == kBuiltInComponentTags.end()) {
+    if (itr == kComponentTags.end()) {
       return -1;
     }
     

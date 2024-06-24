@@ -97,6 +97,12 @@ sol2.path = "./externals/sol2"
 sol2.include_dir = "%{wks.location}/externals/sol2"
 sol2.lib_name = "sol2"
 
+local box2d = {}
+box2d.name = "box2d"
+box2d.path = "./externals/box2d"
+box2d.include_dir = "%{wks.location}/externals/box2d"
+box2d.lib_name = "box2d"
+
 AddDependency(choc)
 AddDependency(entt)
 AddDependency(glad)
@@ -110,5 +116,6 @@ AddDependency(spdlog)
 AddDependency(zep)
 AddDependency(mono)
 AddDependency(sol2)
+AddDependency(box2d)
 
 CppWorkspace(configuration)

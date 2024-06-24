@@ -14,15 +14,12 @@
 
 #include "application/app.hpp"
 
-#include "ecs/components/script.hpp"
-
 #include "scripting/language_module.hpp"
 
 #include "rendering/camera_base.hpp"
 
-#include "editor/editor_panel.hpp"
-#include "editor/scene_panel.hpp"
-#include "editor/entity_properties.hpp"
+#include "editor/panel_manager.hpp"
+
 
 namespace other {
 
@@ -40,24 +37,11 @@ namespace other {
       bool playing = false;
 
       Scope<App> app;
-      Ref<Project> project;
       Ref<CameraBase> editor_camera = nullptr;
 
-      Script editor_scripts;
-
-      bool project_panel_open = true;
-      Ref<EditorPanel> project_panel;
-
-      bool scene_panel_open = true;
-      Ref<ScenePanel> scene_panel;
-
-      bool entity_properties_open = false;
-      Ref<EntityProperties> entity_properties_panel;
-
-      Ref<LanguageModule> lua_module = nullptr;
+      Scope<PanelManager> panel_manager = nullptr;
 
       void SaveActiveScene();
-      void LoadEditorScripts();
 
       virtual void OnLoad() override;
       virtual void OnAttach() override;

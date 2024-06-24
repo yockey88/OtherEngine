@@ -21,9 +21,6 @@
 #include "layers/debug_layer.hpp"
 #include "layers/editor_core.hpp"
 #include "scripting/script_engine.hpp"
-#include "scripting/lua/lua_module.hpp"
-#include "editor/project_panel.hpp"
-#include "editor/selection_manager.hpp"
 
 namespace other {
   
@@ -40,95 +37,10 @@ namespace other {
     UnloadScene();
     LoadScene(p);
   }
-      
-  void Editor::LoadEditorScripts() {
-    Ref<LanguageModule> cs_lang_mod = ScriptEngine::GetModule(LanguageModuleType::CS_MODULE);
-    if (cs_lang_mod == nullptr) {
-      OE_ERROR("Failed to load editor scripts, C# module is null!");
-      return;
-    }
-
-    if (lua_module == nullptr) {
-      OE_ERROR("Failed to load editor scripts Lua Module is null!");
-      return;
-    }
-
-    auto script_paths = engine_config.Get(kEditorSection , kScriptsValue);
-
-    std::string script_key = std::string{ kEditorSection } + "." + std::string{ kScriptValue };
-    auto script_objs = engine_config.GetKeys(script_key);
-
-    OE_DEBUG("Loading Editor Scripts");
-    for (auto& mod : script_paths) {
-      Path module_path = Path{ mod }; 
-
-      std::string fname = module_path.filename().string();
-      std::string mname = fname.substr(0 , fname.find_last_of('.'));
-      OE_DEBUG("Loading Editor Script Module : {} ({})" , mname , module_path.string());
-
-      if (module_path.extension() == ".dll") {
-        cs_lang_mod->LoadScriptModule({
-          .name = mname ,
-          .paths = { module_path.string() }
-        });
-      } else if (module_path.extension() == ".lua") {
-        lua_module->LoadScriptModule({
-          .name = mname ,
-          .paths = { module_path.string() }
-        });
-      }
-    }
-
-    for (const auto& obj : script_objs) {
-      auto scripts = engine_config.Get(script_key , obj);
-
-      ScriptModule* mod = ScriptEngine::GetScriptModule(obj);
-      if (mod == nullptr) {
-        OE_ERROR("Failed to find editor scripting module {} [{}]" , obj , FNV(obj));
-        continue;
-      }
-
-      for (auto& s : scripts) {
-        OE_DEBUG("Attaching editor script");
-
-        std::string nspace = "";
-        std::string name = s;
-        if (s.find("::") != std::string::npos) {
-          nspace = s.substr(0 , s.find_first_of(":"));
-          OE_DEBUG("Editor script from namespace {}" , nspace);
-
-          name = s.substr(s.find_last_of(":") + 1 , s.length() - nspace.length() - 2);
-          OE_DEBUG(" > with name {}" , name);
-        }
-
-        ScriptObject* inst = mod->GetScript(name , nspace);
-        if (inst == nullptr) {
-          OE_ERROR("Failed to get script {} from script module {}" , s , obj);
-          continue;
-        } else {
-          std::string case_ins_name;
-          std::transform(s.begin() , s.end() , std::back_inserter(case_ins_name) , ::toupper);
-
-          UUID id = FNV(case_ins_name);
-          editor_scripts.data[id] = ScriptObjectData{
-            .module = obj ,
-            .obj_name = s ,
-          };
-          auto& obj = editor_scripts.scripts[id] = inst;
-          obj->Start();
-        }
-      }
-    }
-  }
 
   void Editor::OnLoad() {
-    /// TODO: 
-    ///  - move to panel manager so that we can generalize panel creation
-    ///     and allow for user created panels
-
-    project_panel = Ref<ProjectPanel>::Create(*this);
-    scene_panel = Ref<ScenePanel>::Create(*this);
-    entity_properties_panel = Ref<EntityProperties>::Create(*this);
+    panel_manager = NewScope<PanelManager>();
+    panel_manager->Load(this , GetProjectContext());
   }
       
   void Editor::OnAttach() {
@@ -150,15 +62,10 @@ namespace other {
       EventQueue::PushEvent<ShutdownEvent>(ExitCode::FAILURE);
       return;
     }
+    
 
     Renderer::GetWindow()->ForceResize({ 1920 , 1080 });
 
-    /// tbh should get rid of OnProjectChange, engine should be focused on one project at a time
-    ///   and to reload we should either recompile or simply shut down and reload a new file
-    ///   (preferably reload new file so we can keep everything at runtime)
-    project_panel->OnProjectChange(GetProjectContext());
-    /// end panel manager section
-     
     /// editor should always push debug layer to allow for debug control 
     Ref<Layer> debug_layer = NewRef<DebugLayer>(this);
     PushLayer(debug_layer);
@@ -172,18 +79,7 @@ namespace other {
     is_editor = true;
     app->SetInEditor();
 
-    /// load editor scripts
-    ///  get the module
-    ///  ... and then idrk ????
-    lua_module = ScriptEngine::GetModuleAs<LuaModule>(LanguageModuleType::LUA_MODULE);
-
-    LoadEditorScripts();
-    
-    for (const auto& [id , script] : editor_scripts.scripts) {
-      script->OnBehaviorLoad();
-      script->Initialize();
-      script->Start();
-    }
+    panel_manager->Attach(engine_config);
 
     editor_camera = Ref<PerspectiveCamera>::Create();
     editor_camera->SetPosition({ 0.f , 0.f , 3.f });
@@ -191,28 +87,19 @@ namespace other {
     editor_camera->SetUp({ 0.f , 1.f , 0.f });
     Renderer::BindCamera(editor_camera);
 
-    project_panel->OnAttach();
-    scene_panel->OnAttach();
-    entity_properties_panel->OnAttach();
-
     OE_DEBUG("Editor attached");
   }
 
   void Editor::OnEvent(Event* event) {
+    panel_manager->OnEvent(event);
   }
 
   void Editor::Update(float dt) {
-    entity_properties_open = SelectionManager::HasSelection();
-
-    for (const auto& [id , script] : editor_scripts.scripts) {
-      script->Update(dt);
-    }
+    panel_manager->Update(dt);
   }
 
   void Editor::Render() {
-    for (const auto& [id , script] : editor_scripts.scripts) {
-      script->Render();
-    }
+    panel_manager->Render();
   }
 
   void Editor::RenderUI() {
@@ -272,14 +159,6 @@ namespace other {
     }
     ImGui::End();
 
-    project_panel->OnGuiRender(project_panel_open);
-    scene_panel->OnGuiRender(scene_panel_open);
-
-    entity_properties_panel->OnGuiRender(entity_properties_open);
-    if (SelectionManager::HasSelection() && !entity_properties_open) {
-      SelectionManager::ClearSelection();
-    }
-
     if (ImGui::Begin("Inspector") && scene_manager->HasActiveScene()) {
       if (!playing && ImGui::Button("Play")) {
         scene_manager->StartScene();
@@ -296,9 +175,7 @@ namespace other {
       }
     }
 
-    for (const auto& [id , script] : editor_scripts.scripts) {
-      script->RenderUI();
-    }
+    panel_manager->RenderUI();
 
     ImGui::End();
   }
@@ -312,71 +189,30 @@ namespace other {
   void Editor::OnDetach() {
     OE_DEBUG("Detaching editor");
 
-    for (const auto& [id , script] : editor_scripts.scripts) {
-      script->Stop();
-      script->Shutdown();
-      script->OnBehaviorUnload();
-    }
-    editor_scripts.scripts.clear();
+    panel_manager->Detach();
 
     OE_DEBUG("Editor detached");
   }
 
   void Editor::OnUnload() {
-    project_panel = nullptr;
-    scene_panel = nullptr;
-    entity_properties_panel = nullptr;
+    panel_manager->Unload();
   }
 
   void Editor::OnSceneLoad(const SceneMetadata* metadata) {
     OE_DEBUG("Editor::OnSceneLoad({})" , metadata->path);
 
-    project_panel->SetSceneContext(metadata->scene);
-    scene_panel->SetSceneContext(metadata->scene);  
-    entity_properties_panel->SetSceneContext(metadata->scene);
+    panel_manager->OnSceneLoad(metadata);
   }
       
   void Editor::OnSceneUnload() {
-    project_panel->SetSceneContext(nullptr);
-    scene_panel->SetSceneContext(nullptr);
-    entity_properties_panel->SetSceneContext(nullptr);
+    panel_manager->OnSceneUnload();
 
     playing = false;
     OE_DEBUG("Scene Context Unloaded");
   }
 
   void Editor::OnScriptReload() {
-    editor_scripts.scripts.clear();
-    for (const auto& [id , info] : editor_scripts.data) {
-      ScriptModule* mod = ScriptEngine::GetScriptModule(info.module);
-      if (mod == nullptr) {
-        OE_ERROR("Failed to find editor scripting module {} [{}]" , info.module , FNV(info.module));
-        continue;
-      }
-
-      std::string nspace = "";
-      std::string name = info.obj_name;
-      if (name.find("::") != std::string::npos) {
-        nspace = name.substr(0 , name.find_first_of(":"));
-        OE_DEBUG("Editor script from namespace {}" , nspace);
-
-        name = name.substr(name.find_last_of(":") + 1 , name.length() - nspace.length() - 2);
-        OE_DEBUG(" > with name {}" , name);
-      }
-
-      ScriptObject* inst = mod->GetScript(name , nspace);
-      if (inst == nullptr) {
-        OE_ERROR("Failed to get script {} from script module {}" , name , info.module);
-        continue;
-      } else {
-        std::string case_ins_name;
-        std::transform(name.begin() , name.end() , std::back_inserter(case_ins_name) , ::toupper);
-
-        UUID id = FNV(case_ins_name);
-        auto& obj = editor_scripts.scripts[id] = inst;
-        obj->Start();
-      }
-    }
+    panel_manager->OnScriptReload();
   }
 
 } // namespace other

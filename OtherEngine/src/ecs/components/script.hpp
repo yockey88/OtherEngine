@@ -19,7 +19,7 @@ namespace other {
     std::string obj_name;
   };
 
-  struct Script : public Component {
+  struct Script : Component {
     std::map<UUID , ScriptObjectData> data = {};
     std::map<UUID , ScriptObject*> scripts = {};
 
