@@ -8,6 +8,7 @@
 #include <imgui/imgui.h>
 #include <type_traits>
 
+#include "ecs/components/collider_2d.hpp"
 #include "ecs/components/rigid_body_2d.hpp"
 #include "input/keyboard.hpp"
 #include "input/mouse.hpp"
@@ -275,6 +276,7 @@ namespace other {
             switch (active_scene->ActivePhysicsType()) {
               case PHYSICS_2D:
                 DrawAddComponentButton<RigidBody2D>("Rigid Body 2D");
+                DrawAddComponentButton<Collider2D>("Collider 2D");
               break;
               case PHYSICS_3D: { 
                 ui::DrawTodoReminder("3D PHYSICS COMPONENT ADDERS");
@@ -316,6 +318,7 @@ namespace other {
     DrawComponent<Mesh>("Mesh" , DrawMesh);
     DrawComponent<Camera>("Camera" , DrawCamera);
     DrawComponent<RigidBody2D>("Rigid Body 2D" , DrawRigidBody2D);
+    DrawComponent<Collider2D>("Collider 2D" , DrawCollider2D);
   }
 
 } // namespace other

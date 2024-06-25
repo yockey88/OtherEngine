@@ -10,7 +10,9 @@
 #include "core/logger.hpp"
 #include "core/uuid.hpp"
 #include "core/ref.hpp"
+
 #include "scene/scene.hpp"
+
 #include "ecs/component.hpp"
 #include "ecs/components/tag.hpp"
 #include "ecs/components/transform.hpp"

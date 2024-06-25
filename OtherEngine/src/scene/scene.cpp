@@ -8,6 +8,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/euler_angles.hpp>
 
+#include "ecs/components/collider_2d.hpp"
 #include "physics/physics_defines.hpp"
 #include "scripting/script_engine.hpp"
 
@@ -32,16 +33,18 @@ namespace other {
 
     registry.on_construct<Camera>().connect<&OnCameraAddition>();
 
+    registry.on_construct<RigidBody2D>().connect<&Scene::OnAddRigidBody2D>(this);
     registry.on_update<RigidBody2D>().connect<&OnRigidBody2DUpdate>();
   }
 
   Scene::~Scene() {
-    registry.on_update<RigidBody2D>().disconnect<&OnRigidBody2DUpdate>();
+    registry.on_update<RigidBody2D>().disconnect();
+    registry.on_construct<RigidBody2D>().disconnect(this);
 
-    registry.on_construct<Camera>().disconnect<&OnCameraAddition>();
+    registry.on_construct<Camera>().disconnect();
 
-    registry.on_destroy<entt::entity>().disconnect<&OnDestroyEntity>();
-    registry.on_construct<entt::entity>().disconnect<&OnConstructEntity>();
+    registry.on_destroy<entt::entity>().disconnect();
+    registry.on_construct<entt::entity>().disconnect();
 
     for (auto& [id , entity] : entities) {
       delete entity;
@@ -437,6 +440,33 @@ namespace other {
     crelationship.parent = std::nullopt;
 
     FixRoots();
+  }
+      
+  void Scene::OnAddRigidBody2D(entt::registry& context , entt::entity entt) {
+    OE_ASSERT(physics_world_2d != nullptr , "Somehow created a rigid body 2D component without active 2D physics");
+
+    Entity ent(context , entt);
+    auto& body = ent.GetComponent<RigidBody2D>(); 
+
+    auto& tag = ent.GetComponent<Tag>();
+    auto& transform = ent.GetComponent<Transform>();
+    
+    Initialize2DRigidBody(physics_world_2d , body , tag , transform); 
+  }
+      
+  void Scene::OnAddCollider2D(entt::registry& context , entt::entity entt) {
+    OE_ASSERT(physics_world_2d != nullptr , "Somehow created a collider 2D component without active 2D physics");
+
+    Entity ent(context , entt);
+    if (!ent.HasComponent<RigidBody2D>()) {
+      ent.AddComponent<RigidBody2D>(); 
+    }
+
+    auto& body = ent.AddComponent<RigidBody2D>();
+    auto& collider = ent.AddComponent<Collider2D>();
+    auto& transform = ent.GetComponent<Transform>();
+
+    Initialize2DCollider(physics_world_2d , body , collider , transform);
   }
       
   void Scene::FixRoots() {

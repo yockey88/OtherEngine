@@ -5,9 +5,12 @@
 #include <glad/glad.h>
 #include <iostream>
 
-#include <glm/ext/matrix_clip_space.hpp>
-#include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/ext/matrix_clip_space.hpp>
+
+#include <box2d/box2d.h>
+#include <box2d/b2_world.h>
 
 #include "core/logger.hpp"
 #include "core/errors.hpp"
@@ -210,6 +213,42 @@ int main() {
     
     CHECK();
 
+    b2World world(b2Vec2(0 , -9.8f));
+
+    b2BodyDef body_def;
+    body_def.type = b2BodyType::b2_dynamicBody;
+    body_def.position = b2Vec2(0.f , 0.f);
+    body_def.angle = 0.f; 
+    body_def.linearVelocity = b2Vec2(0.f , 0.f);
+    body_def.angularVelocity = 0.f;
+    body_def.angularVelocity = 0.f;
+    body_def.linearDamping = 0.f;
+    body_def.angularDamping = 0.f;
+    body_def.allowSleep = false; 
+    body_def.awake = true; 
+    body_def.fixedRotation = false; 
+    body_def.bullet = false; 
+    body_def.enabled = true;
+    body_def.gravityScale = 1.f;
+
+    // b2PolygonShape shape;
+    // shape.SetAsBox(1.f , 1.f);
+
+    // b2FixtureDef fixture_def;
+    // fixture_def.shape = &shape;
+    // fixture_def.density = 1.f;
+    // fixture_def.friction = 0.3f;
+
+    b2Body* body = world.CreateBody(&body_def);
+    // body->CreateFixture(&fixture_def);
+
+    b2MassData mass_data = body->GetMassData();
+    mass_data.mass = 1.f;
+
+    body->SetMassData(&mass_data);
+      
+    glm::vec3 position = { 0.f , 0.f , 0.f };
+
     bool running = true;
     while (running) {
       SDL_Event event;
@@ -224,10 +263,19 @@ int main() {
         }
       }
 
+      world.Step(1.f / 60.f , 6 , 2);
+
+      position.x = body->GetPosition().x;
+      position.y = body->GetPosition().y;
+
+      model = glm::mat4(1.f);
+      model = glm::translate(model , position);
+
       glClearColor(0.2f , 0.3f , 0.3f , 1.f);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
       glUseProgram(shader);
+      glUniformMatrix4fv(model_loc , 1 , GL_FALSE , glm::value_ptr(model));
       glBindVertexArray(vao);
       glDrawArrays(GL_TRIANGLES , 0 , 3);
 

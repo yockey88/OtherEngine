@@ -76,6 +76,9 @@ namespace other {
       void OrphanEntity(UUID id);
 
     protected:
+      void OnAddRigidBody2D(entt::registry& context , entt::entity ent);
+      void OnAddCollider2D(entt::registry& context , entt::entity ent);
+
       virtual void OnInit() {}
       virtual void OnStart() {}
 

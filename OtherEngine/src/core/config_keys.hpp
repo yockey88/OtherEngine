@@ -301,6 +301,21 @@ namespace other {
   constexpr static std::string_view kBulletValue = "BULLET";
   constexpr static uint64_t kBulletValueHash = FNV(kBulletValue);
 
+  constexpr static std::string_view kCollider2DValue = "COLLIDER-2D";
+  constexpr static uint64_t kCollider2DValueHash = FNV(kCollider2DValue);
+
+  constexpr static std::string_view kOffsetValue = "OFFSET";
+  constexpr static uint64_t kOffsetValueHash = FNV(kOffsetValue);
+  
+  constexpr static std::string_view kSizeValue = "SIZE";
+  constexpr static uint64_t kSizeValueHash = FNV(kSizeValue);
+  
+  constexpr static std::string_view kDensityValue = "DENSITY";
+  constexpr static uint64_t kDensityValueHash = FNV(kDensityValue);
+  
+  constexpr static std::string_view kFrictionValue = "FRICTION";
+  constexpr static uint64_t kFrictionValueHash = FNV(kFrictionValue);
+
 } // namespace other 
 
 #endif // !OTHER_ENGINE_CONFIG_KEYS_HPP

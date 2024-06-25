@@ -16,6 +16,8 @@
 #include "rendering/perspective_camera.hpp"
 
 #include "physics/phyics_engine.hpp"
+#include <box2d/b2_fixture.h>
+#include <box2d/b2_polygon_shape.h>
 
 namespace other {
 
@@ -80,6 +82,23 @@ namespace other {
     }
 
     body.physics_body = world->CreateBody(&body.body_def);
+
+    body.mass_data = body.physics_body->GetMassData();
+    body.mass_data.mass = body.mass;
+
+    body.physics_body->SetMassData(&body.mass_data);
+  }
+  
+  void Initialize2DCollider(Ref<PhysicsWorld2D>& world , RigidBody2D& body , Collider2D& collider , const Transform& transform) {
+    b2PolygonShape shape;
+    shape.SetAsBox(transform.scale.x * collider.size.x , transform.scale.y * collider.size.y);
+
+    b2FixtureDef fixture_def;
+    fixture_def.shape = &shape;
+    fixture_def.density = collider.density;
+    fixture_def.friction = collider.friction;
+
+    collider.fixture = body.physics_body->CreateFixture(&fixture_def);
   }
 
   CORE_SYSTEM(OnRigidBody2DUpdate) {
@@ -96,6 +115,22 @@ namespace other {
     auto& transform = ent.GetComponent<Transform>();
     
     Initialize2DRigidBody(physics_world , body , tag , transform); 
+  }
+  
+
+  CORE_SYSTEM(OnCollider2DUpdate) {
+    Ref<Scene> scene = PhysicsEngine::GetSceneContext();
+    OE_ASSERT(scene != nullptr , "Somehow created a rigidy body 2D component without and active scene context");
+    
+    auto physics_world = scene->Get2DPhysicsWorld();
+    OE_ASSERT(physics_world != nullptr , "Somehow create a rigid body 2D component without active 2D physics");
+
+    Entity ent(context , entt);
+    auto& body = ent.GetComponent<RigidBody2D>(); 
+    auto& collider = ent.GetComponent<Collider2D>();
+    auto& transform = ent.GetComponent<Transform>();
+
+    Initialize2DCollider(physics_world , body , collider , transform);
   }
 
 } // namespace other

@@ -124,6 +124,7 @@ namespace other {
   void DrawMesh(Entity* ent);
   void DrawCamera(Entity* ent);
   void DrawRigidBody2D(Entity* ent);
+  void DrawCollider2D(Entity* ent);
 
 } // namespace other
 

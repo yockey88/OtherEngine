@@ -88,20 +88,6 @@ namespace other {
     scene_metadata.scene = NewRef<Scene>();
 
     std::string physics = scene_metadata.scene_table.GetVal<std::string>(kMetadataSection , kPhysicsValue).value_or("3D");
-
-    EntitySerializer deserializer;
-    auto entities = scene_metadata.scene_table.Get(kMetadataSection , kEntitiesValue);
-
-    OE_INFO("Attempting to load {} entities" , entities.size());
-    for (auto& e : entities) {
-      if (scene_metadata.scene->EntityExists(e)) {
-        continue;
-      }
-
-      OE_DEBUG("Deserializing root entity : {}" , e);
-      /* UUID entity_id = */ deserializer.Deserialize(scene_metadata.scene , e , scene_metadata.scene_table);
-    }
-
     uint64_t physics_hash = FNV(physics);
     std::string physics_section = std::string{ kPhysicsValue } + ".";
     switch (physics_hash) {
@@ -125,6 +111,19 @@ namespace other {
       break;
       default:
         break;
+    }
+
+    EntitySerializer deserializer;
+    auto entities = scene_metadata.scene_table.Get(kMetadataSection , kEntitiesValue);
+
+    OE_INFO("Attempting to load {} entities" , entities.size());
+    for (auto& e : entities) {
+      if (scene_metadata.scene->EntityExists(e)) {
+        continue;
+      }
+
+      OE_DEBUG("Deserializing root entity : {}" , e);
+      /* UUID entity_id = */ deserializer.Deserialize(scene_metadata.scene , e , scene_metadata.scene_table);
     }
 
     OE_INFO("Scene loaded : {}" , scn_path);

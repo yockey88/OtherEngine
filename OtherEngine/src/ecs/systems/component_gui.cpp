@@ -506,5 +506,11 @@ namespace other {
 
     ui::EndPropertyGrid();
   }
+  
+  void DrawCollider2D(Entity* ent) {
+    ui::BeginPropertyGrid();
+
+    ui::EndPropertyGrid();
+  }
 
 } // namespace other

@@ -10,6 +10,7 @@
 #include "ecs/components/tag.hpp"
 #include "ecs/components/transform.hpp"
 #include "ecs/components/rigid_body_2d.hpp"
+#include "ecs/components/collider_2d.hpp"
 
 #include "physics/2D/physics_world_2d.hpp"
 
@@ -23,8 +24,10 @@ namespace other {
   CORE_SYSTEM(OnCameraAddition);
   
   void Initialize2DRigidBody(Ref<PhysicsWorld2D>& world , RigidBody2D& body , const Tag& tag , const Transform& transform);
+  void Initialize2DCollider(Ref<PhysicsWorld2D>& world , RigidBody2D& body , Collider2D& collider , const Transform& transform);
 
   CORE_SYSTEM(OnRigidBody2DUpdate);
+  CORE_SYSTEM(OnCollider2DUpdate);
 
 } // namespace other
 

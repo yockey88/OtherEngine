@@ -5,6 +5,7 @@
 #define OTHER_ENGINE_RIGID_BODY_2D_HPP
 
 #include <box2d/b2_body.h>
+#include <box2d/b2_fixture.h>
 
 #include "ecs/component.hpp"
 #include "ecs/component_serializer.hpp"
@@ -16,6 +17,7 @@ namespace other {
   struct RigidBody2D : public Component {
     b2BodyDef body_def;
     b2Body* physics_body = nullptr; 
+    b2MassData mass_data;
     PhysicsBodyType type = STATIC;
     float mass = 1.f;
     float linear_drag = 0.01f;
