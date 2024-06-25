@@ -61,6 +61,18 @@ namespace Other {
     private static extern bool NativeGetBullet(ulong id);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern void NativeGet2DColliderOffset(ulong id , out Vec2 offset);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern void NativeGet2DColliderSize(ulong id , out Vec2 size);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern float NativeGet2DColliderDensity(ulong id);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern float NativeGet2DColliderFriction(ulong id);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
     private static extern void NativeAddComponent(ulong id , Type type);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
@@ -189,6 +201,22 @@ namespace Other {
       return NativeGetBullet(id);
     }
 
+    static public void GetColliderOffset(ulong id , out Vec2 offset) {
+      NativeGet2DColliderOffset(id , out offset);
+    }
+
+    static public void GetColliderSize(ulong id , out Vec2 size) {
+      NativeGet2DColliderSize(id , out size);
+    }
+
+    static public float GetDensity(ulong id) {
+      return NativeGet2DColliderDensity(id);
+    }
+
+    static public float GetFriction(ulong id) {
+      return NativeGet2DColliderFriction(id);
+    }
+
     static public void AddComponent(ulong id , Type type) {
       NativeAddComponent(id , type);
     }
@@ -234,6 +262,18 @@ namespace Other {
     [MethodImpl(MethodImplOptions.InternalCall)]
     private static extern void NativeSetBullet(ulong id , bool bullet);
 
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern void NativeSet2DColliderOffset(ulong id , ref Vec2 offset);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern void NativeSet2DColliderSize(ulong id , ref Vec2 size);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern void NativeSet2DColliderDensity(ulong id , float density);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern void NativeSet2DColliderFriction(ulong id , float friction);
+
     // [MethodImpl(MethodImplOptions.InternalCall)]
     // private static extern void NativeSetParent(ulong id , ref Vec3 scale);
 
@@ -277,6 +317,22 @@ namespace Other {
 
     static public void SetBullet(ulong id , bool bullet) {
       NativeSetBullet(id , bullet);
+    }
+
+    static public void SetColliderOffset(ulong id , ref Vec2 offset) {
+      NativeSet2DColliderOffset(id , ref offset);
+    }
+
+    static public void SetColliderSize(ulong id , ref Vec2 size) {
+      NativeSet2DColliderSize(id , ref size);
+    }
+
+    static public void SetDensity(ulong id , float density) {
+      NativeSet2DColliderDensity(id , density);
+    }
+
+    static public void SetFriction(ulong id , float friction) {
+      NativeSet2DColliderFriction(id , friction);
     }
 
     static public void InitializeScene() {

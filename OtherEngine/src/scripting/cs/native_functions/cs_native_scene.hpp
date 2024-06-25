@@ -35,6 +35,11 @@ namespace cs_script_bindings {
   float NativeGetGravityScale(uint64_t id);
   bool NativeGetFixedRotation(uint64_t id);
   bool NativeGetBullet(uint64_t id);
+
+  void NativeGet2DColliderOffset(uint64_t id , glm::vec2* out_offset);
+  void NativeGet2DColliderSize(uint64_t id , glm::vec2* out_size);
+  float NativeGet2DColliderDensity(uint64_t id);
+  float NativeGet2DColliderFriction(uint64_t id);
   
   /// internal setters
   void NativeSetScale(uint64_t id , glm::vec3* out_scale);
@@ -48,6 +53,11 @@ namespace cs_script_bindings {
   void NativeSetGravityScale(uint64_t id , float* gravity_scale);
   void NativeSetFixedRotation(uint64_t id , bool* fixed_rot);
   void NativeSetBullet(uint64_t id , bool* bullet);
+  
+  void NativeSet2DColliderOffset(uint64_t id , glm::vec2* offset);
+  void NativeSet2DColliderSize(uint64_t id , glm::vec2* size);
+  void NativeSet2DColliderDensity(uint64_t id , float* density);
+  void NativeSet2DColliderFriction(uint64_t id , float* friction);
 
   void NativeAddComponent(uint64_t id , MonoReflectionType* rtype);
   bool NativeHasComponent(uint64_t id , MonoReflectionType* rtype);

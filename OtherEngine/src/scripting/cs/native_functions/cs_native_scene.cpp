@@ -6,11 +6,11 @@
 #include <mono/metadata/object.h>
 #include <mono/metadata/reflection.h>
 
-#include "ecs/components/rigid_body_2d.hpp"
 #include "ecs/entity.hpp"
 
 #include "ecs/components/tag.hpp"
-#include "ecs/components/script.hpp"
+#include "ecs/components/rigid_body_2d.hpp"
+#include "ecs/components/collider_2d.hpp"
 
 #include "scripting/script_engine.hpp"
 #include "scripting/cs/mono_utils.hpp"
@@ -207,6 +207,48 @@ namespace cs_script_bindings {
     });
   }
   
+  void NativeGet2DColliderOffset(uint64_t id , glm::vec2* out_offset) {
+    NativeDoThing<void>(id , [&out_offset](Entity* entity) {
+      if (!entity->HasComponent<Collider2D>()) {
+        OE_ERROR("Retrieving density from entity without a collider : {}" , entity->Name());
+      }
+
+      *out_offset = entity->ReadComponent<Collider2D>().offset;
+    });
+  }
+
+  void NativeGet2DColliderSize(uint64_t id , glm::vec2* out_size) {
+    NativeDoThing<void>(id , [&out_size](Entity* entity) {
+      if (!entity->HasComponent<Collider2D>()) {
+        OE_ERROR("Retrieving density from entity without a collider : {}" , entity->Name());
+      }
+
+      *out_size = entity->ReadComponent<Collider2D>().size;
+    });
+  }
+
+  float NativeGet2DColliderDensity(uint64_t id) {
+    return NativeDoThing<float>(id , [](Entity* entity) -> float {
+      if (!entity->HasComponent<Collider2D>()) {
+        OE_ERROR("Retrieving density from entity without a collider : {}" , entity->Name());
+        return 0.f;
+      }
+
+      return entity->ReadComponent<Collider2D>().density;
+    });
+  }
+
+  float NativeGet2DColliderFriction(uint64_t id) {
+    return NativeDoThing<float>(id , [](Entity* entity) -> float {
+      if (!entity->HasComponent<Collider2D>()) {
+        OE_ERROR("Retrieving friction from entity without a collider : {}" , entity->Name());
+        return 0.f;
+      }
+
+      return entity->ReadComponent<Collider2D>().friction;
+    });
+  }
+  
   void NativeSetScale(uint64_t id , glm::vec3* scale) {
     NativeDoThing<void>(id , [&scale](Entity* ent) {
       ent->GetComponent<Transform>().scale = *scale;
@@ -301,6 +343,50 @@ namespace cs_script_bindings {
       }
       
       ent->GetComponent<RigidBody2D>().bullet = *bullet;
+    });
+  }
+  
+  void NativeSet2DColliderOffset(uint64_t id , glm::vec2* offset) {
+    NativeDoThing<void>(id , [&offset](Entity* ent) {
+      if (!ent->HasComponent<Collider2D>()) {
+        OE_ERROR("Retrieving offset from entity without a rigid body : {}" , ent->Name());
+        return;
+      }
+      
+      ent->GetComponent<Collider2D>().offset = *offset;
+    });
+  }
+
+  void NativeSet2DColliderSize(uint64_t id , glm::vec2* size) {
+    NativeDoThing<void>(id , [&size](Entity* ent) {
+      if (!ent->HasComponent<Collider2D>()) {
+        OE_ERROR("Retrieving size from entity without a rigid body : {}" , ent->Name());
+        return;
+      }
+      
+      ent->GetComponent<Collider2D>().size = *size;
+    });
+  }
+
+  void NativeSet2DColliderDensity(uint64_t id , float* density) {
+    NativeDoThing<void>(id , [&density](Entity* ent) {
+      if (!ent->HasComponent<Collider2D>()) {
+        OE_ERROR("Retrieving density from entity without a rigid body : {}" , ent->Name());
+        return;
+      }
+      
+      ent->GetComponent<Collider2D>().density = *density;
+    });
+  }
+
+  void NativeSet2DColliderFriction(uint64_t id , float* friction) {
+    NativeDoThing<void>(id , [&friction](Entity* ent) {
+      if (!ent->HasComponent<Collider2D>()) {
+        OE_ERROR("Retrieving friction from entity without a rigid body : {}" , ent->Name());
+        return;
+      }
+      
+      ent->GetComponent<Collider2D>().friction = *friction;
     });
   }
   

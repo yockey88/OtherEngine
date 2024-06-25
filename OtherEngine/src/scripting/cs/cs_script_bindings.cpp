@@ -209,6 +209,11 @@ namespace other {
   REGISTER_NATIVE_FUNCTION(Scene , NativeGetGravityScale);
   REGISTER_NATIVE_FUNCTION(Scene , NativeGetFixedRotation);
   REGISTER_NATIVE_FUNCTION(Scene , NativeGetBullet);
+  
+  REGISTER_NATIVE_FUNCTION(Scene , NativeGet2DColliderOffset);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeGet2DColliderSize);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeGet2DColliderDensity);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeGet2DColliderFriction);
 
   REGISTER_NATIVE_FUNCTION(Scene , NativeAddComponent);
   REGISTER_NATIVE_FUNCTION(Scene , NativeHasComponent);
@@ -225,6 +230,11 @@ namespace other {
   REGISTER_NATIVE_FUNCTION(Scene , NativeSetGravityScale);
   REGISTER_NATIVE_FUNCTION(Scene , NativeSetFixedRotation);
   REGISTER_NATIVE_FUNCTION(Scene , NativeSetBullet);
+  
+  REGISTER_NATIVE_FUNCTION(Scene , NativeSet2DColliderOffset);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeSet2DColliderSize);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeSet2DColliderDensity);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeSet2DColliderFriction);
 
 #undef REGISTER_NATIVE_FUNCTION
 
