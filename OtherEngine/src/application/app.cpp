@@ -413,7 +413,7 @@ namespace other {
       return;
     }
 
-    scene_manager->SaveActiveScene();
+    // scene_manager->SaveActiveScene();
     
     /// alert client app about scene unload
     OnSceneUnload();

@@ -352,6 +352,14 @@ namespace Other {
       }
     }
 
+    static public void ClearObjects() {
+      try {
+        objects.Clear();
+      } catch (Exception e) {
+        Logger.WriteError($"Failed to clear objects: {e.Message}");
+      }
+    }
+
   }
 
 }

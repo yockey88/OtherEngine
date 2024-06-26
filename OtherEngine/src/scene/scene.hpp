@@ -17,6 +17,8 @@
 
 #include "rendering/render_batch.hpp"
 
+#include "scripting/script_object.hpp"
+
 #include "physics/physics_defines.hpp"
 #include "physics/2D/physics_world_2d.hpp"
 
@@ -100,6 +102,8 @@ namespace other {
       bool corrupt = false;
 
       entt::registry registry;
+
+      ScriptObject* scene_object = nullptr;
 
       PhysicsType physics_type = PhysicsType::PHYSICS_2D;
       Ref<PhysicsWorld2D> physics_world_2d;

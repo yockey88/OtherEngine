@@ -54,6 +54,15 @@ namespace other {
   void Scene::Initialize() {
     FixRoots();
 
+    auto cs_module = ScriptEngine::GetModule(CS_MODULE);
+    auto cs_core = cs_module->GetScriptModule("C#-Core");
+    scene_object = cs_core->GetScript("Scene" , "Other");
+    if (scene_object == nullptr) {
+      OE_ERROR("Failed to retrieve scene interface from C# script core!");
+    } else {
+      scene_object->CallMethod("InitializeScene");
+    }
+
     registry.view<Script , Tag>().each([](Script& script , Tag& tag) {
       for (auto& [id , obj] : script.scripts) {
         obj->SetEntityId(tag.id);
@@ -203,6 +212,12 @@ namespace other {
 
     running = false;
     OnStop();
+
+    if (scene_object == nullptr) {
+      return;
+    }
+
+    // scene_object->CallMethod("ClearObjects");
   }
 
   void Scene::Shutdown() {

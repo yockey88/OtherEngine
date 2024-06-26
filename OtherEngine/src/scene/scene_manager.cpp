@@ -71,6 +71,9 @@ namespace other {
     active_scene->scene->Start();
   }
   
+  /// TODO: create state system so we don't have to reload the scene each time we stop it to reset
+  ///         it to how it was.
+  ///       this should also be the same system to handle undoing changes and stuff like that
   void SceneManager::StopScene() {
     if (active_scene == nullptr) {
       return;
@@ -79,8 +82,26 @@ namespace other {
     if (!active_scene->scene->IsRunning()) {
       return;
     }
-
+    
     active_scene->scene->Stop();
+    active_scene->scene->Shutdown();
+
+    Path path = active_scene->path;
+    UUID id = FNV(path.string());
+
+    SceneSerializer serializer;
+    {
+      auto loaded_scene = serializer.Deserialize(path.string());
+      if (loaded_scene.scene == nullptr) {
+        OE_ERROR("Failed to reset scene while stopping : {}" , path.string());
+        return;
+      }
+
+      loaded_scenes[id].scene = Ref<Scene>::Clone(loaded_scene.scene);
+    }
+    active_scene->scene->Initialize();
+    SetAsActive(path);
+
   }
 
   bool SceneManager::HasScene(const Path& path) {

@@ -52,9 +52,9 @@ namespace Other {
       NativeDrawTriangle(triangle, color);
     }
 
-    public static void DrawRect(Rect rect, Color color) {
-      NativeDrawRect(rect, ColorToRgb(color));
-    }
+    // public static void DrawRect(Rect rect, Color color) {
+    //   NativeDrawRect(rect, ColorToRgb(color));
+    // }
 
     public static void DrawRect(Rect rect, ref RgbColor color) {
       NativeDrawRect(rect, color);
