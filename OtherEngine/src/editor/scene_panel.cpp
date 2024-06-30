@@ -35,7 +35,7 @@ namespace other {
       ImGui::Dummy(win_rect.GetSize());
 
       if (ImGui::BeginDragDropTarget()) { 
-        const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("project-content-folder" , ImGuiDragDropFlags_AcceptNoDrawDefaultRect);
+        const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("project-scenes-folder" , ImGuiDragDropFlags_AcceptNoDrawDefaultRect);
         if (payload == nullptr) {
           ImGui::EndDragDropTarget();
           ImGui::End();

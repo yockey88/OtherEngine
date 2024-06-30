@@ -21,12 +21,13 @@
 #include "ecs/components/camera.hpp"
 #include "ecs/systems/component_gui.hpp"
 
-#include "editor/selection_manager.hpp"
-
+#include "scripting/script_engine.hpp"
 #include "physics/phyics_engine.hpp"
 #include "rendering/texture.hpp"
 #include "rendering/ui/ui_colors.hpp"
 #include "rendering/ui/ui_helpers.hpp"
+
+#include "editor/selection_manager.hpp"
 
 namespace other {
   
@@ -293,6 +294,45 @@ namespace other {
       }
 
       DrawSelectionComponents(selection);
+
+      ImRect win_rect = { ImGui::GetWindowContentRegionMin() , ImGui::GetWindowContentRegionMax() }; 
+      ImGui::Dummy(win_rect.GetSize());
+
+      if (ImGui::BeginDragDropTarget()) {
+        const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("project-scripts-folder" , ImGuiDragDropFlags_AcceptNoDrawDefaultRect);
+        if (payload != nullptr) {
+          std::string script_name{ static_cast<const char*>(payload->Data) };
+
+
+          ScriptObject* script = ScriptEngine::GetScriptObject(script_name);
+          if (selection->HasComponent<Script>()) {
+            auto& scripts = selection->GetComponent<Script>();
+
+            bool exists = false;
+            for (auto& [id , s] : scripts.scripts) {
+              if (script == s) {
+                exists = true; 
+              } 
+            }
+
+            if (!exists) {
+              std::string case_ins_name;
+              std::transform(script_name.begin() , script_name.end() , std::back_inserter(case_ins_name) , ::toupper);
+
+              UUID id = FNV(case_ins_name);
+              scripts.data[id] = ScriptObjectData{
+                .module = "" , 
+                .obj_name = script_name ,
+              };
+              scripts.scripts[id] = script;
+            } else {
+              OE_WARN("Script {} already attached to object" , script_name);
+            }
+          }
+        }
+
+        ImGui::EndDragDropTarget();
+      }
     }
     ImGui::End();
   }

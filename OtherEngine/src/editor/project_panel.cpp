@@ -4,57 +4,36 @@
 #include "editor/project_panel.hpp"
 
 #include <algorithm>
-
 #include <filesystem>
+
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
+#include <zep/theme.h>
+#include <zep/window.h>
 
 #include "core/logger.hpp"
 #include "core/filesystem.hpp"
+
+#include "event/event_handler.hpp"
+#include "event/ui_events.hpp"
 
 #include "project/project.hpp"
 
 #include "input/mouse.hpp"
 
+#include "scripting/script_engine.hpp"
+
 #include "rendering/ui/ui_helpers.hpp"
 #include "rendering/ui/ui_colors.hpp"
 
+#include "editor/editor.hpp"
+#include "editor/script_window.hpp"
+#include "editor/script_editor.hpp"
+
 namespace other {
-namespace {
-
-  Ref<Directory> GetDirectoryStructure(const Path& path);
-
-  std::vector<Ref<Directory>> BuildDirectoryStructure(Ref<Project>& proj) {
-    std::vector<Ref<Directory>> dirs;
-
-    for (const auto& p : proj->GetProjectDirPaths()) {
-      dirs.push_back(GetDirectoryStructure(p));
-    }
-
-    return dirs;
-  }
-  
-  Ref<Directory> GetDirectoryStructure(const Path& path) {
-    auto d = Ref<Directory>::Create(path);
-    auto sub_dirs = Filesystem::GetSubDirs(path);
-    for (auto& dir : sub_dirs) {
-      d->children[FNV(dir.string())] = GetDirectoryStructure(dir);
-    }
-
-    return d;
-  }
-
-} // anonymous namespace
-
+      
   void ProjectPanel::OnAttach() {
     OE_ASSERT(active_proj != nullptr , "Project Panel Project context is nullptr");
-
-    project_directories = BuildDirectoryStructure(active_proj);
-
-    auto proj_dir = active_proj->GetProjectDirPaths();
-    for (const auto& p : proj_dir) {
-      project_directories.push_back(Ref<Directory>::Create(p));
-    }
   }
 
   void ProjectPanel::OnGuiRender(bool& is_open) {
@@ -82,23 +61,14 @@ namespace {
         ScopedColorStack item_bg(ImGuiCol_Header , IM_COL32_DISABLE , 
                                  ImGuiCol_HeaderActive , IM_COL32_DISABLE);
 
-        auto folders = active_proj->GetProjectDirPaths();
-        std::sort(folders.begin() , folders.end() , [](const auto& a , const auto& b) -> bool {
-          return a.stem().string() < b.stem().string();
-        });
-
-        for (auto& dir : folders) {
+        auto project_dir = active_proj->GetMetadata().project_directory;
+        auto project_dirs = Filesystem::GetSubDirs(project_dir);
+        for (auto& dir : project_dirs) {
           if (!Filesystem::IsDirectory(dir)) {
             continue;
           }
           RenderDirectoryTree(dir);
         }
-
-        /// if want to draw the side shadow for the directory window
-        // ImRect window_rect = ui::RectExpanded(ImGui::GetCurrentWindow()->Rect() , 0.f , 10.f);
-        // ImGui::PushClipRect(window_rect.Min , window_rect.Max , false);
-        // ui::DrawShadowInner(shadow_tex , 20 , window_rect , 1.f , window_rect.GetHeight() / 4.f , false , true , false , false);
-        // ImGui::PopClipRect();
       }
       ImGui::EndChild();
 
@@ -123,14 +93,29 @@ namespace {
           ImGui::PushStyleColor(ImGuiCol_ButtonHovered , ImVec4(0.3f , 0.3f , 0.3f ,0.35f));
           ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing , ImVec2(4.f , 4.f));
 
+          auto assets_dir = active_proj->GetMetadata().assets_dir;
           if (ImGui::BeginPopupContextWindow(0 , ImGuiPopupFlags_MouseButtonRight)) {
             if (ImGui::BeginMenu("New")) {
               if (ImGui::MenuItem("Folder")) {}
               if (ImGui::MenuItem("Scene")) {}
               if (ImGui::MenuItem("Material")) {}
+
               if (ImGui::BeginMenu("Script")) {
-                if (ImGui::MenuItem("Scene Script")) {}
-                if (ImGui::MenuItem("Editor Script")) {}
+                bool editor_script = false;
+                bool create_script = false;
+                if (ImGui::MenuItem("Scene Script")) {
+                  create_script = true;
+                }
+                if (ImGui::MenuItem("Editor Script")) {
+                  editor_script = false;
+                  create_script = true;
+                }
+                
+                if (create_script) {
+                  OE_DEBUG("Pushing ScriptWindow");
+                  auto create_win = NewRef<ScriptWindow>(editor_script);
+                  GetEditor().PushUIWindow(create_win);
+                }
 
                 ImGui::EndMenu();
               }
@@ -168,9 +153,31 @@ namespace {
     }
 
     ImGui::End();
+
+    for (auto& [id , window] : ui_windows) {
+      window->Render(); 
+    }
+  }
+      
+  void ProjectPanel::OnUpdate(float dt) {
+    for (auto& [id , window] : ui_windows) {
+      window->OnUpdate(dt);
+    }
   }
 
   void ProjectPanel::OnEvent(Event* e) {
+    EventHandler handler(e);
+    handler.Handle<UIWindowClosed>([this](UIWindowClosed& event) -> bool {
+      UUID id = event.GetWindowId();
+      auto itr = ui_windows.find(id);
+      if (itr == ui_windows.end()) {
+        return false;
+      }
+
+      itr->second->OnDetach();
+      ui_windows.erase(itr);
+      return true;
+    });
   }
 
   void ProjectPanel::OnProjectChange(const Ref<Project>& project) {
@@ -211,7 +218,7 @@ namespace {
       
   void ProjectPanel::RenderDirectoryTree(const Path& path) {
     ImGui::PushID(path.string().c_str());
-    auto non_absolute = path.relative_path();
+    auto non_absolute = path.stem();
     auto files = Filesystem::GetSubDirs(path);
 
     ImGuiID node_id = ImGui::GetID(non_absolute.string().c_str());
@@ -319,22 +326,115 @@ namespace {
     ImGui::PopID();
   }
 
-  void ProjectPanel::RenderContents(const Path& path) const {
+  void ProjectPanel::RenderContents(const Path& path) {
+    auto itr = std::find_if(tags.begin() , tags.end() , [&](const auto& tag_pair) -> bool {
+      std::string tag = selection.value().stem().string();
+      return tag_pair.first.Get() == FNV(tag);
+    });
+        
+    if (itr == tags.end()) {
+      return;
+    }
+        
+
+    if (itr->first.Get() == FNV("scripts")) {
+      RenderScriptContents();
+    } else if (itr->first.Get() == FNV("editor")) {
+      RenderEditorFiles();
+    } else {
+      RenderPathContents(path);
+    }
+  }
+      
+  void ProjectPanel::RenderScriptContents() {
+    std::string drag_drop_tag = drag_drop_tags.at(FNV("scripts")).data();
+    auto loaded_script_objects = ScriptEngine::GetLoadedObjects();
+
+    for (auto& obj : loaded_script_objects) {
+      ImGui::PushID(("##" + obj.name).c_str());
+
+      if (ImGui::Selectable(obj.name.c_str())) {
+        Ref<UIWindow> script_editor = nullptr;
+        auto script_editor_itr = ui_windows.find(FNV("Script Editor")); 
+        if (script_editor_itr == ui_windows.end()) {
+          script_editor = NewRef<ScriptEditor>();
+          ui_windows[FNV(script_editor->Title())] = script_editor;
+        } else {
+          script_editor = Ref<ScriptEditor>(script_editor_itr->second);
+        }
+
+        Ref<ScriptEditor> editor = Ref<UIWindow>::Cast<ScriptEditor>(script_editor);
+        editor->AddEditor(obj , obj.path);
+      }
+
+      ImGuiDragDropFlags dd_flags = 0; // ImGuiDragDropFlags_SourceNoDisableHover;
+      if (ImGui::BeginDragDropSource(dd_flags)) {
+        ImGui::Text("%s" , obj.name.c_str());
+        ImGui::SetDragDropPayload(drag_drop_tag.c_str() , obj.name.c_str() , obj.name.length() + 1);
+        ImGui::EndDragDropSource();
+      }
+
+      ImGui::PopID();
+    }
+  }
+      
+  void ProjectPanel::RenderEditorFiles() const {
+    std::string drag_drop_tag = drag_drop_tags.at(FNV("editor")).data();
+
+    /// other things
+
+    if (ImGui::TreeNode("Editor Scripts")) {
+      auto editor_scripts = ScriptEngine::GetLoadedEditorObjects();
+    
+      for (auto& obj : editor_scripts) {
+        ImGui::PushID(("##" + obj.name).c_str());
+
+        ImGui::Selectable(obj.name.c_str());
+
+        ImGuiDragDropFlags dd_flags = 0; // ImGuiDragDropFlags_SourceNoDisableHover;
+        if (ImGui::BeginDragDropSource(dd_flags)) {
+          ImGui::Text("%s" , obj.name.c_str());
+          ImGui::SetDragDropPayload(drag_drop_tag.c_str() , obj.name.c_str() , obj.name.length() + 1);
+          ImGui::EndDragDropSource();
+        }
+
+        ImGui::PopID();
+      }
+
+
+      ImGui::TreePop();
+    }
+  }
+      
+  void ProjectPanel::RenderPathContents(const Path& path) const {
+    auto itr = std::find_if(tags.begin() , tags.end() , [&](const auto& tag_pair) -> bool {
+      std::string tag = selection.value().stem().string();
+      return tag_pair.first.Get() == FNV(tag);
+    });
+    OE_ASSERT(itr != tags.end() , "UNREGISTERED PROJECT DIRECTORY");
+        
+    std::string drag_drop_tag = drag_drop_tags.at(itr->first).data();
+
     for (auto& f : Filesystem::GetSubPaths(path)) {
       ImGui::PushID(f.string().c_str());
       
       if (Filesystem::IsDirectory(f)) {
         // render folder icon and if clicked set selection context
       } else {
-        ImGui::Selectable(f.string().c_str());
+        ImGui::Selectable(f.filename().string().c_str());
 
+        if (!selection.has_value()) {
+          ImGui::PopID();
+          return;
+        }
+        
         /// need to keep track of context here because drag-drop tag is dependent on active selected folder
         ///   different assets have different valid drop targets
         ImGuiDragDropFlags dd_flags = ImGuiDragDropFlags_SourceNoDisableHover;
         if (ImGui::BeginDragDropSource(dd_flags)) {
           
           ImGui::Text("%s" , f.string().c_str());
-          ImGui::SetDragDropPayload("project-content-folder" , f.string().c_str() , f.string().size() + 1);
+          ImGui::SetDragDropPayload(drag_drop_tag.c_str() , f.string().c_str() , f.string().size() + 1);
 
           ImGui::EndDragDropSource();
         }
@@ -350,9 +450,7 @@ namespace {
     }
 
     auto itr = std::find_if(tags.begin() , tags.end() , [&](const auto& tag_pair) -> bool {
-      std::string path = selection.value().string();
-      std::replace(path.begin() , path.end() , '/' , '\\');
-      std::string tag = path.substr(path.find_last_of('\\') + 1 , path.length() - path.find_last_of('\\'));
+      std::string tag = selection.value().stem().string();
       return tag_pair.first.Get() == FNV(tag);
     });
 

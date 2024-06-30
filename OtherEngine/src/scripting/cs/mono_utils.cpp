@@ -437,7 +437,6 @@ namespace other {
         val.y = Clamp<float>(val.y , real_min , real_max);
         val.z = Clamp<float>(val.z , real_min , real_max);
         result.Set(val);
-        OE_DEBUG("clamped to [{} , {} , {}]" , val.x , val.y , val.z);
       } break;
       case ValueType::VEC4: {
         glm::vec4 val = value.Get<glm::vec4>();

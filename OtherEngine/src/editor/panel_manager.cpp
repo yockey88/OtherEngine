@@ -5,6 +5,8 @@
 
 #include "core/config_keys.hpp"
 
+#include "event/event_handler.hpp"
+
 #include "scripting/script_engine.hpp"
 
 #include "editor/project_panel.hpp"
@@ -54,6 +56,11 @@ namespace other {
   }
 
   void PanelManager::OnEvent(Event* event) {
+    EventHandler handler(event);
+
+    for (auto& [id , panel] : active_panels) {
+      panel.panel->OnEvent(event);      
+    } 
   }
   
   void PanelManager::Update(float dt) {
@@ -165,6 +172,9 @@ namespace other {
     std::string script_key = std::string{ kEditorSection } + "." + std::string{ kScriptValue };
     auto script_objs = editor_config.GetKeys(script_key);
 
+    auto project_path = project_context->GetMetadata().file_path.parent_path();
+    auto assets_dir = project_context->GetMetadata().assets_dir;
+
     OE_DEBUG("Loading Editor Scripts");
     for (auto& mod : script_paths) {
       Path module_path = Path{ mod }; 
@@ -174,14 +184,18 @@ namespace other {
       OE_DEBUG("Loading Editor Script Module : {} ({})" , mname , module_path.string());
 
       if (module_path.extension() == ".dll") {
+        module_path = project_path / "bin" / "Debug" / mod;
         cs_lang_mod->LoadScriptModule({
           .name = mname ,
-          .paths = { module_path.string() }
+          .paths = { module_path.string() } ,
+          .type = ScriptModuleType::EDITOR_SCRIPT ,
         });
       } else if (module_path.extension() == ".lua") {
+        module_path = assets_dir / "editor" / mod;
         lua_module->LoadScriptModule({
           .name = mname ,
-          .paths = { module_path.string() }
+          .paths = { module_path.string() } ,
+          .type = ScriptModuleType::EDITOR_SCRIPT ,
         });
       }
     }

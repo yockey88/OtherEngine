@@ -10,9 +10,8 @@
 #include "project/project.hpp"
 #include "parsing/cmd_line_parser.hpp"
 #include "asset/asset_handler.hpp"
-#include "rendering/framebuffer.hpp"
 #include "rendering/ui/ui_window.hpp"
-#include "scene/scene.hpp"
+#include "rendering/ui/ui_window_map.hpp"
 #include "scene/scene_manager.hpp"
 
 namespace other {
@@ -52,10 +51,10 @@ namespace other {
       void UnloadScene();
 
     protected:
-
       bool InEditor() const;
       
       void Attach();
+      void DoEarlyUpdate(float dt);
       void DoUpdate(float dt);
       void DoRender();
       void DoRenderUI();
@@ -66,6 +65,7 @@ namespace other {
       virtual void OnAttach() {} 
 
       virtual void OnEvent(Event* event) {}
+      virtual void EarlyUpdate(float dt) {}
       virtual void Update(float dt) {}
       virtual void Render() {}
       virtual void RenderUI() {}
@@ -93,7 +93,7 @@ namespace other {
       Scope<AssetHandler> asset_handler = nullptr;
       Scope<SceneManager> scene_manager = nullptr;
 
-      std::map<UUID , Ref<UIWindow>> ui_windows;
+      UIWindowMap ui_windows;
 
       Engine* engine_handle = nullptr;
 

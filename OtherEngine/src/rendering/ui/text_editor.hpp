@@ -16,20 +16,40 @@ namespace Zep {
 
   using MessagePtr = std::shared_ptr<ZepMessage>;
 
+  using MessageFunc = std::function<void(const std::vector<std::string>&)>;
+
 } // namespace Zep
 
 namespace other {
 
-  class ZepWrapper final : public Zep::IZepComponent  {
-    std::function<void(Zep::MessagePtr)> message_callback;
+  class ZepCmd final : public Zep::ZepExCommand {
+    public:
+      ZepCmd(Zep::ZepEditor& editor , const std::string& name , Zep::MessageFunc callback) 
+        : Zep::ZepExCommand(editor) , name(name) , callback(callback) {}
 
+      virtual void Run(const std::vector<std::string>& commands) override {
+        callback(commands);
+      }
+
+      virtual const char* ExCommandName() const override {
+        return name.c_str();
+      };
+
+    private:
+      std::string name;
+      Zep::MessageFunc callback;
+
+  };
+
+  class ZepWrapper final : public Zep::IZepComponent  {
     public:
       Scope<Zep::ZepEditor_ImGui> editor;
 
       ZepWrapper(
         const std::string& config_path , const Zep::NVec2f& pixel_scale , 
         std::function<void(Zep::MessagePtr)> message_callback
-      ) : message_callback(message_callback) ,  editor(NewScope<Zep::ZepEditor_ImGui>(config_path , pixel_scale)) {
+      ) : editor(NewScope<Zep::ZepEditor_ImGui>(config_path , pixel_scale)) , 
+          message_callback(message_callback) {
         editor->RegisterCallback(this);
       }
 
@@ -49,6 +69,9 @@ namespace other {
         editor->UnRegisterCallback(this);
         editor = nullptr;
       }
+
+    private:
+      std::function<void(Zep::MessagePtr)> message_callback;
   };
 
   class TextEditor : public UIWindow {

@@ -122,7 +122,7 @@ namespace other {
     if (has_focus) {
       uint32_t focus = 0;
       if (focus++ < 2) {
-          ImGui::SetWindowFocus();
+        ImGui::SetWindowFocus();
       }
     }
 

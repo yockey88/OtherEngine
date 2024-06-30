@@ -4,32 +4,22 @@
 #include "scripting/lua/lua_module.hpp"
 
 #include "core/filesystem.hpp"
-#include "scripting/lua/lua_error_handlers.hpp"
 #include "scripting/lua/lua_script.hpp"
-#include "scripting/lua/lua_bindings.hpp"
-#include "scripting/lua/lua_math_bindings.hpp"
 
 namespace other {
 
-  bool LuaModule::Initialize() {
-    OE_DEBUG("Initializing Lua Module");
-
-    try {
-      lua_state.open_libraries(sol::lib::base  , sol::lib::io   , 
-                               sol::lib::os    , sol::lib::math ,
-                               sol::lib::table , sol::lib::string , 
-                               sol::lib::debug , sol::lib::package , 
-                               sol::lib::coroutine);
-      lua_state.set_exception_handler(LuaExceptionHandler);
-
-      lua_script_bindings::BindGlmTypes(lua_state);
-      lua_script_bindings::BindCoreTypes(lua_state);
-
-    } catch (const std::exception& e) {
-      OE_ERROR("Exception caught loading lua scripts : {}" , e.what());
-      return false;
+  LuaScript* LuaModule::GetRawScriptHandle(const std::string_view name) {
+    UUID id = FNV(name);
+    auto* module = GetScriptModule(id);
+    if (module == nullptr) {
+      OE_ERROR("Script module {} not found" , name);
     }
 
+    return static_cast<LuaScript*>(module);
+  }
+
+  bool LuaModule::Initialize() {
+    OE_DEBUG("Initializing Lua Module");
     OE_DEBUG("Lua Module Initialized");
 
     load_success = true;
@@ -37,14 +27,12 @@ namespace other {
   }
 
   void LuaModule::Shutdown() {
-    lua_state.collect_garbage();
     for (auto& [id , module] : loaded_modules) {
       module->Shutdown();
       delete module;
     }
     loaded_modules.clear();
 
-    lua_state = sol::state();
 
     OE_DEBUG("Lua Module Shutdown");
   }
@@ -101,7 +89,7 @@ namespace other {
       return nullptr;
     }
 
-    loaded_modules[id] = new LuaScript(lua_state , module_info.paths[0]);
+    loaded_modules[id] = new LuaScript(module_info.paths[0]);
     loaded_modules[id]->Initialize();
     
     loaded_modules_data[id] = module_info;

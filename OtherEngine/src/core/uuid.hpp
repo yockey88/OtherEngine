@@ -20,7 +20,7 @@ namespace other {
       operator uint64_t() const { return uuid; }
       operator const uint64_t() const { return uuid; }
 
-      uint64_t Get() const { return uuid; }
+      constexpr uint64_t Get() const { return uuid; }
 
       constexpr auto operator<=>(const UUID&) const = default;
     
@@ -37,7 +37,7 @@ namespace other {
       operator uint32_t() const { return uuid; }
       operator const uint32_t() const { return uuid; }
 
-      uint32_t Get() const { return uuid; }
+      constexpr uint32_t Get() const { return uuid; }
 
       constexpr auto operator<=>(const UUID32&) const = default;
     

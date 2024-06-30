@@ -18,6 +18,26 @@
 #include "rendering/ui/ui_helpers.hpp"
 
 namespace other {
+
+  /// generate folders
+  ///   - logs/
+  ///   - <Project-Name>/
+  ///     - <Project-Name>/assets/
+  ///       - <Project-Name>/assets/editor
+  ///       - <Project-Name>/assets/materials
+  ///       - <Project-Name>/assets/scenes
+  ///       - <Project-Name>/assets/scripts
+  ///       - <Project-Name>/assets/shaders
+  ///     - <Project-Name>/src/
+  ///   - <project-name>.other
+  ///
+  /// copy over premake dir and ymake.lua
+  /// create premake5.lua
+  ///
+  /// create <Project-Name>/premake5.lua
+  ///
+  /// create <Project-Name>/src/<project-name>.cpp
+  /// create <Project-Name>/src/<project-name>.hpp
   
   void CreateProjectLayer::OnAttach() {
     OE_ASSERT(!project_path.empty() , "Project path is empty");

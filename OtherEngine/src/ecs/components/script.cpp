@@ -34,46 +34,18 @@ namespace other {
     try {
       OE_DEBUG("Getting key value from section key : {}" , key_value);
       auto& mod_s = scene_table.GetKeys(key_value);
-
-      /// for each script in entity
-      ///   load script object from script module
-
       OE_DEBUG("finding first script module {}" , key_value);
-
-
 
       for (auto& m : mod_s) {
         auto scripts = scene_table.Get(key_value , m);
-        
-        ScriptModule* mod = ScriptEngine::GetScriptModule(m);
-        if (mod == nullptr) {
-          OE_ERROR("Failed to find scripting module {} [{}] for entity {}" , m , FNV(m) , entity->Name());
-          continue;
-        }
-
-
         for (auto& s : scripts) {
           OE_DEBUG("attaching script {} to ent : {}" , s , entity->Name());
 
-          std::string nspace = "";
-          std::string name = s;
-          if (s.find("::") != std::string::npos) {
-            nspace = s.substr(0 , s.find_first_of(":"));
-            OE_DEBUG("Loading from namespace {}" , nspace);
-
-            name = s.substr(s.find_last_of(":") + 1 , s.length() - nspace.length() - 2);
-            OE_DEBUG(" > with name {}" , name);
-          }
-
-          ScriptObject* inst = mod->GetScript(name , nspace);
-            //ScriptEngine::GetScriptObject(name , nspace , "");
+          ScriptObject* inst = ScriptEngine::GetScriptObject(s);
           if (inst == nullptr) {
             OE_ERROR("Failed to get script {} from script module {}" , s , m);
             continue;
           } 
-          else {
-            OE_DEBUG("Retrieved {} from {}" , s , m);
-          }
 
           std::string case_ins_name;
           std::transform(s.begin() , s.end() , std::back_inserter(case_ins_name) , ::toupper);

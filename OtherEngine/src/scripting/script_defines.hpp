@@ -26,8 +26,7 @@ namespace other {
   constexpr static size_t kNumModules = NUM_LANGUAGE_MODULES;
   constexpr static std::array<std::string_view , kNumModules> kModuleNames = {
     /// to match the fact config parse use uppercase for case insensitivity
-    "C#" ,
-    "LUA" , 
+    "C#" , "LUA" , 
   };
 
   using FunctionModuleBuilder = Scope<LanguageModule>(*)();

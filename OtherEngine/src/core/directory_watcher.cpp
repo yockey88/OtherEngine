@@ -21,14 +21,14 @@ namespace other {
     }
 
     /// save data
-    size_t pre_check = num_files_last_check;
+    size_t pre_check = files.size();
     std::set<Path> old_files = files;
 
     /// collect files
     CollectFiles();
 
     /// early exit if different amount
-    if (pre_check != num_files_last_check) {
+    if (pre_check != files.size()) {
       return true;
     }
 
@@ -58,6 +58,8 @@ namespace other {
       return;
     }
 
+    files.clear();
+
     for (auto entry : std::filesystem::directory_iterator(path)) {
       if (!entry.is_regular_file()) {
         continue;
@@ -68,8 +70,9 @@ namespace other {
       }
 
       files.insert(entry.path());
-      num_files_last_check = files.size();
     }
+      
+    num_files_last_check = files.size();
   }
 
 } // namespace other

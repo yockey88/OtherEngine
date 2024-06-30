@@ -7,17 +7,9 @@
 #include <glad/glad.h>
 
 #include "core/layer.hpp"
-
 #include "parsing/cmd_line_parser.hpp"
-
-#include "project/project.hpp"
-
 #include "application/app.hpp"
-
-#include "scripting/language_module.hpp"
-
 #include "rendering/camera_base.hpp"
-
 #include "editor/panel_manager.hpp"
 
 
@@ -47,6 +39,7 @@ namespace other {
       virtual void OnAttach() override;
 
       virtual void OnEvent(Event* event) override;
+      virtual void EarlyUpdate(float dt) override;
       virtual void Update(float dt) override;
       virtual void Render() override;
       virtual void RenderUI() override;

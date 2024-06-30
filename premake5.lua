@@ -16,7 +16,6 @@ configuration.groups = {
     ["OtherEngine"] = { "./OtherEngine" } ,
     ["OtherEngine-CsCore"] = { "./OtherEngine-ScriptCore/cs" } ,
     ["OtherEngine-Tools"] = { "./OtherEngine-Launcher" } ,
-    ["Development"] = { "C:/Yock/gamedev/Testbed" } ,
     ["Testing"] = { "./tests" } ,
 }
 

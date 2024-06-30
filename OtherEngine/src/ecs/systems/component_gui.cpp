@@ -314,6 +314,8 @@ namespace other {
 
   void DrawScript(Entity* ent) {
     auto& script = ent->GetComponent<Script>();
+
+    std::vector<UUID> scripts_to_remove;
  
     for (auto& [id , s] : script.scripts) {
       ImGui::PushID(id.Get());
@@ -322,7 +324,7 @@ namespace other {
       if (is_error) {
         ImGui::Text("%s corrupt, recompile or reload" , s->Name().c_str());
 
-        if (ImGui::Button(("Reload Script##" + s->Name()).c_str())) {
+        if (ImGui::Button("Rebuild Scripts")) {
           EventQueue::PushEvent<ScriptReloadEvent>();
         }
         return;
@@ -378,9 +380,14 @@ namespace other {
         ImGui::EndPopup();
       }
 
+      if (ImGui::Button("Remove Script")) {
+        scripts_to_remove.push_back(id);
+      }
+      
       ImGui::PopItemWidth();
-      ui::EndPropertyGrid();
 
+      ui::EndPropertyGrid();
+      ui::Underline();
       ui::BeginPropertyGrid();
       
       /// display exported properties
@@ -400,6 +407,11 @@ namespace other {
       ui::EndPropertyGrid();
 
       ImGui::PopID();
+    }
+
+    for (const auto& id : scripts_to_remove) {
+      script.scripts.erase(script.scripts.find(id));
+      script.data.erase(script.data.find(id));
     }
   }
   

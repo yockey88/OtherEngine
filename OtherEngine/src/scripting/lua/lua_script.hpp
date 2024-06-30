@@ -16,19 +16,37 @@ namespace other {
 
   class LuaScript : public ScriptModule {
     public:
-      LuaScript(sol::state& lua_state , const std::string& path) 
-        : lua_state(lua_state) , path(path) {}
+      LuaScript(const std::string& path) 
+        : ScriptModule(LanguageModuleType::LUA_MODULE) , path(path) {}
       virtual ~LuaScript() override {}
+      
+      template <typename Ret , typename... Args>
+      Opt<Ret> CallLuaMethod(const std::string_view name , Args&&... args) {
+        sol::optional<sol::function> func = lua_state[name];
+        if (!func.has_value()) {
+          return std::nullopt;
+        }
+
+        if (!(*func).valid()) {
+          return std::nullopt;
+        }
+
+        return (*func)(std::forward<Args>(args)...);
+      }
 
       virtual void Initialize() override;
       virtual void Shutdown() override;
       virtual void Reload() override;
-      virtual bool HasScript(const std::string_view name , const std::string_view nspace = "") override { return false; }
+      virtual bool HasScript(UUID id) override;
+      virtual bool HasScript(const std::string_view name , const std::string_view nspace = "") override;
       virtual ScriptObject* GetScript(const std::string& name , const std::string& nspace = "") override;
+      
+      virtual std::vector<ScriptObjectTag> GetObjectTags() override;
 
     private:
-      sol::state& lua_state;
+      sol::state lua_state;
 
+      std::vector<std::string> loaded_tables;
       std::map<UUID , LuaObject> loaded_objects;
 
       std::string path;

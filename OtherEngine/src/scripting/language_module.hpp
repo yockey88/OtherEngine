@@ -17,7 +17,7 @@ namespace other {
   class LanguageModule;
 
   template <typename T>
-  concept LangModule = requires {
+  concept lang_module_t = requires {
     std::is_base_of_v<LanguageModule , T>;
   };
 
@@ -31,8 +31,9 @@ namespace other {
 
       bool HasScriptModule(const std::string_view name) const;
       bool HasScriptModule(UUID id) const;
-
-      void Update();
+      
+      const ScriptModuleInfo* GetScriptModule(const std::string& name) const;
+      const ScriptModuleInfo* GetScriptModule(const UUID& id) const;
 
       virtual bool Initialize() = 0;
       virtual void Shutdown() = 0;
@@ -44,6 +45,8 @@ namespace other {
 
       virtual std::string_view GetModuleName() const = 0;
       virtual std::string_view GetModuleVersion() const = 0;
+
+      const std::map<UUID , ScriptModule*>& GetModules() const;
 
     protected:
       LanguageModuleType lang_type;

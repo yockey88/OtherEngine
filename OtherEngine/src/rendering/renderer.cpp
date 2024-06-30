@@ -210,7 +210,7 @@ namespace other {
   }
 
   void Renderer::DrawRect(const std::span<Vertex , 4>& corners) {
-    WriteRectIndices(); 
+    // WriteRectIndices(); 
     for (const auto& v : corners) {
       WriteVertexToBatch(render_data.primitive_batches[kRectBatchIndex] , v);
     }

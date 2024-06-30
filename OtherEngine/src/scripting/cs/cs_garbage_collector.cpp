@@ -73,16 +73,13 @@ namespace other {
       return;
     }
 
-    if (mono_gchandle_get_target(handle) != nullptr) {
-      mono_gchandle_free(handle);
-    } else {
-      OE_ERROR("Failed to release C# Garbage Collector handle");
+    auto ref = active_refs.find(handle);
+    if (ref == active_refs.end()) {
+      // OE_ERROR("Failed to release C# Garbage Collector handle");
       return;
     }
 
-    if (active_refs.find(handle) != active_refs.end()) {
-      active_refs.erase(handle);
-    }
+    active_refs.erase(handle);
   }
 
 } // namespace other

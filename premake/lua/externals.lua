@@ -1,4 +1,4 @@
-include "ordered_pairs.lua"
+require("ordered_pairs")
 
 local function FirstToUpper(str)
   return (str:gsub("^%l", string.upper))
@@ -48,13 +48,13 @@ local function AddInclude(table)
 end
 
 function ProcessModuleComponents(module)
-  if module.components == nil then 
+  if module.components == nil then
     return
   end
 
   for lib, comp in pairs(module.components) do
     links{ lib }
-    if module.lang ~= nil and module.lang == "C++" then 
+    if module.lang ~= nil and module.lang == "C++" then
       externalincludedirs { comp }
     end
   end
@@ -71,7 +71,7 @@ function ProcessProjectComponents(project)
   end
 end
 
-function ProcessDependency(configuration , lib_data) 
+function ProcessDependency(configuration , lib_data)
   local matches_config = true
 
   local target = FirstToUpper(os.target())
@@ -138,7 +138,7 @@ end
 function IncludeDependencies(configuration)
   local target = FirstToUpper(os.target())
 
-  for key, lib_data in OrderedPairs(configuration) do
+  for _, lib_data in OrderedPairs(configuration) do
     local matches_config = true
 
     if configuration ~= nil and lib_data.Configurations ~= nil then

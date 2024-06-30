@@ -183,10 +183,10 @@ function AddModule(project)
       project.defines()
     end
 
-    if project.language == "C++" then 
+    if project.language == "C++" then
       project.include_dirs()
     end
-    
+
     ProcessModuleComponents(project)
     ProcessModuleConfigurations(project)
 end
@@ -216,5 +216,4 @@ function AddProject(project)
     if project.post_build_commands ~= nil then
       project.post_build_commands()
     end
-      
 end

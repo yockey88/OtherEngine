@@ -12,11 +12,11 @@ def generate():
         )
         if (ret != 0):
             sys.exit(ret)
-
-    if project_settings.IsLinux():
-        ret = subprocess.call(["premake/premake5.linux", "gmake2"])
-
-    if project_settings.IsMac():
-        ret = subprocess.call(["premake/premake5", "gmake2"])
-        if ret == 0:
-            subprocess.call(["premake/premake5", "xcode4"])
+        ret = subprocess.call(
+            [
+                "cmd.exe", "/c",
+                "C:\\Yock\\gamedev\\Testbed\\premake\\premake5",
+                "vs2022",
+                "--file=C:\\Yock\\gamedev\\Testbed\\premake5.lua"
+            ]
+        )

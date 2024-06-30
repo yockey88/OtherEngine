@@ -24,10 +24,24 @@ namespace other {
     }) != loaded_modules.end();
   }
 
-  void LanguageModule::Update() {
-    for (auto& [id , mod] : loaded_modules) {
-      mod->Update();
+  const ScriptModuleInfo* LanguageModule::GetScriptModule(const std::string& name) const {
+    std::string case_insensitive_name;
+    std::transform(name.begin() , name.end() , std::back_inserter(case_insensitive_name) , ::toupper);
+    UUID id = FNV(case_insensitive_name);
+    return GetScriptModule(id);
+  }
+
+  const ScriptModuleInfo* LanguageModule::GetScriptModule(const UUID& id) const {
+    auto itr = loaded_modules_data.find(id);
+    if (itr != loaded_modules_data.end()) {
+      return &loaded_modules_data.at(id);
     }
+
+    return nullptr;
+  }
+      
+  const std::map<UUID , ScriptModule*>& LanguageModule::GetModules() const {
+    return loaded_modules;
   }
       
 } // namespace other

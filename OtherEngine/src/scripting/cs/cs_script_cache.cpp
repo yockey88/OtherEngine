@@ -75,6 +75,10 @@ namespace other {
     data.name = name;
     data.id = FNV(name);
 
+    if (class_data.find(data.id) != class_data.end()) {
+      return;
+    }
+
     uint32_t align = 0;
     data.size = mono_class_value_size(klass , &align);
     data.asm_class = klass;

@@ -4,11 +4,11 @@
 #ifndef LUA_MODULE_HPP
 #define LUA_MODULE_HPP
 
-#include <optional>
 #include <sol/sol.hpp>
 
 #include "scripting/language_module.hpp"
 #include "scripting/script_defines.hpp"
+#include "scripting/lua/lua_script.hpp"
 
 namespace other {
   
@@ -18,19 +18,7 @@ namespace other {
           : LanguageModule(LanguageModuleType::LUA_MODULE) {}
       virtual ~LuaModule() override {}
 
-      template <typename Ret , typename... Args>
-      Opt<Ret> CallLuaMethod(const std::string_view name , Args&&... args) {
-        sol::optional<sol::function> func = lua_state[name];
-        if (!func.has_value()) {
-          return std::nullopt;
-        }
-
-        if (!(*func).valid()) {
-          return std::nullopt;
-        }
-
-        return (*func)(std::forward<Args>(args)...);
-      }
+      LuaScript* GetRawScriptHandle(const std::string_view name);
 
       virtual bool Initialize() override;
       virtual void Shutdown() override;
@@ -46,8 +34,6 @@ namespace other {
 
     private:
       constexpr static std::string_view kLuaCorePath = "OtherEngine-ScriptCore/lua";
-
-      sol::state lua_state;
 
       std::vector<std::string> core_files;
   };

@@ -231,6 +231,8 @@ namespace other {
         obj->OnBehaviorUnload();
       }
     });
+
+    scene_object = nullptr;
   }
       
   void Scene::Refresh() {

@@ -50,9 +50,10 @@ namespace other {
 
 } // namespace other
 
-/// forwarded headers
+/// forwarded headers for the client (currently doesnt do anything)
 #include "application/app.hpp"
 
+/// defines the entry poing for clients 
 #define OE_APPLICATION(project_name) \
   namespace other { \
     Scope<App> NewApp(Engine* engine) { \

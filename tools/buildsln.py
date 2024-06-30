@@ -14,9 +14,7 @@ if (CONFIG == "debug"):
 if (CONFIG == "release"):
     CONFIG = "Release"
 
-print("Building {} in [{}] Configuration".format(
-    project_settings.EXE_NAME, CONFIG)
-)
+print("Building {} in [{}] Configuration".format(project_settings.EXE_NAME, CONFIG))
 print("\n")
 
 ret = 0
@@ -58,6 +56,13 @@ if project_settings.IsWindows():
     )
     if (ret != 0):
         sys.exit(ret)
+    ret = subprocess.call(
+        [
+            "cmd.exe", "/c", MSBUILD,
+            "C:\\Yock\\gamedev\\Testbed\\Testbed.sln",
+            "/property:Configuration={}".format(CONFIG)
+        ]
+    )
 
 if project_settings.IsLinux():
     ret = subprocess.call(["make", "config={}".format(CONFIG)])

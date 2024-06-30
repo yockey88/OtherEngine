@@ -8,13 +8,16 @@
 #include <glad/glad.h>
 #include <imgui/imgui.h>
 
-#include "core/config_keys.hpp"
 #include "core/engine.hpp"
 #include "core/errors.hpp"
 #include "core/logger.hpp"
 #include "core/filesystem.hpp"
+
 #include "event/event_queue.hpp"
 #include "event/core_events.hpp"
+#include "event/app_events.hpp"
+#include "event/event_handler.hpp"
+
 #include "parsing/ini_parser.hpp"
 #include "rendering/perspective_camera.hpp"
 #include "rendering/renderer.hpp"
@@ -91,7 +94,50 @@ namespace other {
   }
 
   void Editor::OnEvent(Event* event) {
+    EventHandler handler(event);
+    handler.Handle<ProjectDirectoryUpdateEvent>([this](ProjectDirectoryUpdateEvent& e) -> bool {
+      project_metadata->CreateScriptWatchers();
+
+      if (!project_metadata->RegenProjectFile()) {
+        OE_ERROR("Failed to generate project files! Project metadata corrupted!");
+        return false;
+      } 
+
+      ReloadScripts();
+
+      return true;
+    });
+
+    handler.Handle<ScriptReloadEvent>([this](ScriptReloadEvent& e) -> bool {
+      ReloadScripts();
+      return true;
+    });
+
     panel_manager->OnEvent(event);
+  }
+      
+  void Editor::EarlyUpdate(float dt) {
+    /// go through and trigger any events to dispatch in the next call
+    if (Renderer::IsWindowFocused() && lost_window_focus) {
+      lost_window_focus = false;
+
+      bool project_directories_changed = false;
+      if (project_metadata->EditorDirectoryChanged()) {
+        EventQueue::PushEvent<ProjectDirectoryUpdateEvent>(EDITOR_DIR);
+        project_directories_changed = true;
+      }
+
+      if (project_metadata->ScriptDirectoryChanged()) {
+        EventQueue::PushEvent<ProjectDirectoryUpdateEvent>(SCRIPT_DIR);
+        project_directories_changed = true;
+      }
+
+      if (!project_directories_changed && project_metadata->AnyScriptChanged()) {
+        EventQueue::PushEvent<ScriptReloadEvent>();
+      }
+    } else {
+      lost_window_focus = true;
+    }
   }
 
   void Editor::Update(float dt) {
@@ -106,7 +152,7 @@ namespace other {
     if (ImGui::BeginMainMenuBar()) {
       if (ImGui::BeginMenu("File")) {
         if (ImGui::MenuItem("Reload")) {
-          ScriptEngine::ReloadAllScripts();
+          ReloadScripts();
         }
 
         ImGui::EndMenu();

@@ -112,6 +112,12 @@ namespace detail {
         return Ref<U>(*this);
       }
 
+      template <typename U>
+      static Ref<U> Cast(Ref<T>& old_ref) {
+        static_assert(std::is_base_of_v<RefCounted , U> , "Cannot cast a reference to a non-refcounted object");
+        return Ref<U>((U*)old_ref.object);
+      }
+
       static Ref<T> Clone(const Ref<T>& old_ref) {
         return Ref<T>(old_ref);
       }

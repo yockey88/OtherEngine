@@ -3,7 +3,6 @@
  **/
 #include "scripting/cs/cs_script.hpp"
 
-#include <filesystem>
 #include <mono/metadata/assembly.h>
 #include <mono/metadata/blob.h>
 #include <mono/metadata/class.h>
@@ -12,10 +11,11 @@
 #include <mono/metadata/row-indexes.h>
 
 #include "core/filesystem.hpp"
-#include "core/platform.hpp"
+
 #include "application/app.hpp"
-#include "scripting/cs/cs_garbage_collector.hpp"
+
 #include "scripting/script_engine.hpp"
+#include "scripting/cs/cs_garbage_collector.hpp"
 
 namespace other {
       
@@ -37,7 +37,7 @@ namespace other {
 
     MonoImageOpenStatus status;
     assembly_image = mono_image_open_from_data_full(file_data.data() , static_cast<uint32_t>(file_data.size()) , 
-                                               true , &status , false);
+                                                    true , &status , false);
 
     if (status != MONO_IMAGE_OK) {
       OE_ERROR("Mono Script Module image could not open : {}" , assembly_path);
@@ -85,41 +85,6 @@ namespace other {
               asm_name , name , major_version , minor_version , patch_version , revision_version);
     }
 
-    App* app_ctx = ScriptEngine::GetAppContext();
-
-    /// since script-modules loaded from the .dll path and not the actual script we have to find the 
-    ///   original C# file to track with the filewatcher
-    if (assembly_path.find("OtherEngine-CsCore") == std::string::npos) {
-      Path assets_dir = app_ctx->GetProjectContext()->GetMetadata().assets_dir;
-      Path script_dir = assets_dir / "scripts";
-      Path editor_dir = assets_dir / "editor";
-
-      Path real_script_file;
-      for (auto entry : std::filesystem::directory_iterator(script_dir)) {
-        if (entry.is_regular_file() && entry.path().extension().string() == ".cs") {
-          Path p = entry.path();
-          std::string name = p.filename().string();
-          name = name.substr(0 , name.find_last_of('.'));
-
-          if (name == asm_name) {
-            SetPath(entry.path().string());
-          }
-        } 
-      }
-
-      for (auto& entry : std::filesystem::directory_iterator(editor_dir)) {
-        if (entry.is_regular_file() && entry.path().extension().string() == ".cs") {
-          Path p = entry.path();
-          std::string name = p.filename().string();
-          name = name.substr(0 , name.find_last_of('.'));
-
-          if (name == asm_name) {
-            SetPath(entry.path().string());
-          }
-        } 
-      }
-    }
-    
     valid = true;
 
     OE_DEBUG("Mono Script Module loaded : {}" , assembly_path);
@@ -145,23 +110,39 @@ namespace other {
   }
 
   void CsScript::Reload() {
-    App* app_ctx = ScriptEngine::GetAppContext();
-
-    Path project_dir = app_ctx->GetProjectContext()->GetMetadata().file_path.parent_path();
-    Path build_file = project_dir / Path{ assembly_path }.filename();
-    std::string real_file = build_file.string().substr(0 , build_file.string().find_last_of('.'));
-    real_file += ".csproj";
-
-    if (!Filesystem::FileExists(real_file)) {
-      return;
-    }
-
-    OE_DEBUG("Kicking off build for script {}" , assembly_path);
-
-    if (!PlatformLayer::BuildProject(real_file)) {
-      OE_ERROR("Failed to rebuild project file");
-    }
   }
+
+  bool CsScript::HasScript(UUID id) {
+    if (!valid) {
+      return false;
+    }
+
+    for (const auto& [cid , type] : cached_symbols.class_data) {
+      if (id == cid) {
+        return true;
+      }
+    }
+    
+    const MonoTableInfo* classes = mono_image_get_table_info(assembly_image , MONO_TABLE_TYPEDEF);
+    const uint32_t num_rows = mono_table_info_get_rows(classes);
+
+    for (auto i = 0; i < num_rows; ++i) {
+      uint32_t cols[MONO_TYPEDEF_SIZE];
+      mono_metadata_decode_row(classes , i , cols , MONO_TYPEDEF_SIZE);
+
+      std::string sname = mono_metadata_string_heap(assembly_image , cols[MONO_TYPEDEF_NAME]);
+      if (sname == "<Module>") {
+        continue;
+      }
+
+      if (id.Get() == FNV(sname)) {
+        return true; 
+      } 
+    }
+
+    return false;
+  }
+
       
   bool CsScript::HasScript(const std::string_view name , const std::string_view nspace) {
     if (!valid) {
@@ -174,12 +155,31 @@ namespace other {
       } else if (name == type.name) {
         return true;
       }
+    }
+    
+    const MonoTableInfo* classes = mono_image_get_table_info(assembly_image , MONO_TABLE_TYPEDEF);
+    const uint32_t num_rows = mono_table_info_get_rows(classes);
 
-      return false;
+    for (auto i = 0; i < num_rows; ++i) {
+      uint32_t cols[MONO_TYPEDEF_SIZE];
+      mono_metadata_decode_row(classes , i , cols , MONO_TYPEDEF_SIZE);
+
+      std::string sname = mono_metadata_string_heap(assembly_image , cols[MONO_TYPEDEF_NAME]);
+      if (sname == "<Module>") {
+        continue;
+      }
+      std::string sname_space = mono_metadata_string_heap(assembly_image , cols[MONO_TYPEDEF_NAMESPACE]);
+
+      if (name == sname && sname_space.empty() && nspace.empty()) {
+        return true; 
+      } else if (name == sname && !sname_space.empty() && !nspace.empty()) {
+        return sname_space == nspace; 
+      }
     }
 
+    return false;
   }
-      
+  
   ScriptObject* CsScript::GetScript(const std::string& name , const std::string& nspace) {
     if (!valid) {
       return nullptr;
@@ -214,7 +214,7 @@ namespace other {
     GcHandle gc_handle = CsGarbageCollector::NewHandle(object);
 
     auto& obj = loaded_objects[id] = CsObject(module_name , name , type_data , object , assembly_image , 
-                                  app_domain , class_id , &cached_symbols , nspace);
+                                              app_domain , class_id , &cached_symbols , nspace);
     obj.InitializeScriptMethods();
     obj.InitializeScriptFields();
 
@@ -226,6 +226,83 @@ namespace other {
     gc_handles[id] = gc_handle;
 
     return &loaded_objects[id];
+  }
+
+  std::vector<ScriptObjectTag> CsScript::GetObjectTags() {
+    auto app_ctx = ScriptEngine::GetAppContext();
+    auto& proj = app_ctx->GetProjectContext()->GetMetadata();
+
+    std::vector<ScriptObjectTag> object_names;
+    const MonoTableInfo* classes = mono_image_get_table_info(assembly_image , MONO_TABLE_TYPEDEF);
+    const uint32_t num_rows = mono_table_info_get_rows(classes);
+
+    for (auto i = 0; i < num_rows; ++i) {
+      uint32_t cols[MONO_TYPEDEF_SIZE];
+      mono_metadata_decode_row(classes , i , cols , MONO_TYPEDEF_SIZE);
+
+      std::string full_name;
+
+      std::string name = mono_metadata_string_heap(assembly_image , cols[MONO_TYPEDEF_NAME]);
+      if (name == "<Module>") {
+        continue;
+      }
+
+      full_name = name;
+
+      std::string name_space = mono_metadata_string_heap(assembly_image , cols[MONO_TYPEDEF_NAMESPACE]);
+      if (!name_space.empty()) {
+        full_name = name_space + "::" + name;
+      }
+
+      Path scripts_path = proj.assets_dir / "scripts";
+      Path editor_path = proj.assets_dir / "editor";
+
+      Path file_path = scripts_path / (name + ".cs");
+      Path editor_file_path = editor_path = editor_path / (name + "cs");
+      Path actual_path;
+
+      if (Filesystem::FileExists(file_path)) {
+        cs_files.push_back(file_path);
+        actual_path = file_path;
+      } else if (Filesystem::FileExists(editor_file_path)) {
+        editor_files.push_back(editor_file_path);
+        actual_path = editor_file_path;
+      }
+
+      object_names.push_back(ScriptObjectTag{
+        .object_id = FNV(name) ,
+        .name = name , 
+        .nspace = name_space ,
+        .path = (actual_path.filename() == (name + ".cs")) ?
+          actual_path.string() : "",
+        .lang_type = language ,
+      });
+    }
+
+    return object_names;
+  }
+
+  void CsScript::LoadCsFiles() {
+    cs_files.clear();
+    editor_files.clear();
+
+    auto app_ctx = ScriptEngine::GetAppContext();
+    auto& proj = app_ctx->GetProjectContext()->GetMetadata();
+
+    Path scripts_dir = proj.assets_dir / "scripts";
+    Path editor_dir = proj.assets_dir / "editor";
+
+    for (auto& entry : std::filesystem::recursive_directory_iterator(scripts_dir)) {
+      if (entry.is_regular_file() && entry.path().extension() == ".cs") {
+        cs_files.push_back(entry.path());
+      } 
+    }
+    
+    for (auto& entry : std::filesystem::recursive_directory_iterator(editor_dir)) {
+      if (entry.is_regular_file() && entry.path().extension() == ".cs") {
+        editor_files.push_back(entry.path());
+      } 
+    }
   }
 
   MonoClass* CsScript::GetClass(const std::string& name , const std::string& nspace) {
@@ -244,7 +321,7 @@ namespace other {
       }
     }
 
-    OE_DEBUG("Looking for {} in {}" , name , assembly_path);
+    OE_DEBUG("Looking for {}::{} in {}" , nspace , name , assembly_path);
 
     MonoClass* klass = mono_class_from_name(assembly_image , nspace.c_str() , name.c_str());
     if (klass == nullptr) {

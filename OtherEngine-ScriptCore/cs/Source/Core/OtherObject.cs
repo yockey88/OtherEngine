@@ -50,7 +50,11 @@ namespace Other {
       }
     }
 
-    public Transform Transform => object_transform;
+    /// might need to call into the native side to get/set the transform here
+    public Transform Transform {
+      get { return object_transform; }
+      set { object_transform = value; }
+    }
 
     public T CreateComponent<T>() where T : Component, new() {
       if (HasComponent<T>()) {

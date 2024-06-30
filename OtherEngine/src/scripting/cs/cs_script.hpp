@@ -19,7 +19,7 @@ namespace other {
   class CsScript : public ScriptModule {
     public:
       CsScript(MonoDomain* root_domain , MonoDomain* app_domain , const std::string& assembly_path)
-        : ScriptModule() , root_domain(root_domain) , app_domain(app_domain) , assembly_path(assembly_path) {}
+        : ScriptModule(LanguageModuleType::CS_MODULE) , root_domain(root_domain) , app_domain(app_domain) , assembly_path(assembly_path) {}
 
       MonoImage* GetImage() const;
       MonoAssembly* GetAsm() const;
@@ -27,8 +27,11 @@ namespace other {
       virtual void Initialize() override;
       virtual void Shutdown() override;
       virtual void Reload() override;
+      virtual bool HasScript(UUID id) override;
       virtual bool HasScript(const std::string_view name , const std::string_view nspace = "") override;
       virtual ScriptObject* GetScript(const std::string& name , const std::string& nspace = "") override;
+      
+      virtual std::vector<ScriptObjectTag> GetObjectTags() override;
 
     private:
       MonoDomain* root_domain = nullptr;
@@ -43,6 +46,9 @@ namespace other {
         std::string name_space;
         std::string name;
       };
+      
+      std::vector<Path> cs_files;
+      std::vector<Path> editor_files;
 
       std::map<UUID , ScriptSymbol> loaded_symbols;
       std::map<UUID , MonoClass*> classes;
@@ -52,6 +58,8 @@ namespace other {
       CsCache cached_symbols;
 
       std::string assembly_path;
+      
+      void LoadCsFiles();
 
       MonoClass* GetClass(const std::string& name , const std::string& nspace);
   };

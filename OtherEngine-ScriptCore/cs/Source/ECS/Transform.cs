@@ -16,6 +16,15 @@ namespace Other {
       set => Scene.SetScale(Object.ObjectID , ref value);
     }
 
+    public Vec3 half_extents {
+      get {
+        Vec3 scale = this.scale;
+        scale.x *= 0.5f;
+        scale.y *= 0.5f; 
+        return scale;
+      }
+    }
+
     public Vec3 position {
       get {
         Scene.GetPosition(Object.ObjectID , out Vec3 position);

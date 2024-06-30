@@ -25,7 +25,7 @@ namespace other {
     Ref<LanguageModule> module = nullptr;
   };
 
-  template <typename T> requires LangModule<T>
+  template <typename T> requires lang_module_t<T>
   LanguageModuleType ModuleTypeFromStaticType() {
     if constexpr (std::is_same_v<T , LuaModule>) {
       return LanguageModuleType::LUA_MODULE;
@@ -41,8 +41,6 @@ namespace other {
       static void Initialize(Engine* engine , const ConfigTable& config);
       static void Shutdown();
 
-      static void UpdateScripts();
-
       static std::string GetProjectAssemblyDir();
 
       static void ReloadAllScripts();
@@ -52,8 +50,9 @@ namespace other {
       static ScriptModule* GetScriptModule(const std::string_view name);
       static ScriptModule* GetScriptModule(UUID id);
 
-      // static ScriptObject* GetScriptObject(const std::string_view name , const std::string_view nspace = "" , const std::string_view mod_name = "");
-      // static ScriptObject* GetScriptObject(const std::string_view name , const std::string_view nspace = "" , ScriptModule* module = nullptr);
+      static ScriptObject* GetScriptObject(const std::string_view name);
+      static ScriptObject* GetScriptObject(const std::string_view name , const std::string_view nspace , const std::string_view mod_name = "");
+      static ScriptObject* GetScriptObject(const std::string_view name , const std::string_view nspace , ScriptModule* module);
       static const std::map<UUID , ScriptObject*>& ReadLoadedObjects();
 
       static void SetAppContext(App* app);
@@ -63,12 +62,17 @@ namespace other {
       static Ref<Scene> GetSceneContext();
 
       static std::map<UUID , LanguageModuleMetadata>& GetModules();
+      // static std::vector<std::string> GetLoadedEditorObjects();
+      // static std::vector<std::string> GetLoadedObjects();
+
+      static std::vector<ScriptObjectTag> GetLoadedEditorObjects();
+      static std::vector<ScriptObjectTag> GetLoadedObjects();
 
       /// because certain parts of the engine rely on specifically lua or c# scripts they need to be 
       ///   able to interface with those modules directly
       /// this is an unfortunate result of the fact that i am too lazy to write my own lua engine 
-      ///   and so am using sol, hopefully go away one day
-      template <typename T> requires LangModule<T>
+      ///   and so am using sol
+      template <typename T> requires lang_module_t<T>
       static Ref<T> GetModuleAs(LanguageModuleType type) {
         return Ref<T>(language_modules[type].module);
       }

@@ -12,6 +12,7 @@
 #include "event/event_queue.hpp"
 #include "event/app_events.hpp"
 #include "event/event_handler.hpp"
+#include "event/ui_events.hpp"
 
 #include "rendering/renderer.hpp"
 #include "rendering/ui/ui.hpp"
@@ -67,13 +68,14 @@ namespace other {
     ScriptEngine::Initialize(GetEngine() , config);
 
     OE_DEBUG("Loading C# script modules");
-    Ref<LanguageModule> cs_language_module = ScriptEngine::GetModule(LanguageModuleType::CS_MODULE);
+    Ref<LanguageModule> cs_language_module = ScriptEngine::GetModule(CS_MODULE);
     if (cs_language_module != nullptr) {
       std::string real_key = std::string{ kScriptingSection } + "." + std::string{ kCsModuleSection };
       auto cs_modules = config.Get(real_key , kPathsValue);
     
+      auto project_path = project_metadata->GetMetadata().file_path.parent_path();
       for (const auto& cs_mod : cs_modules) {
-        Path path = cs_mod;
+        Path path = project_path / "bin" / "Debug" / cs_mod; 
         std::string name = path.filename().string().substr(0 , path.filename().string().find_last_of('.'));
 
         cs_language_module->LoadScriptModule({
@@ -84,13 +86,14 @@ namespace other {
     }
 
     OE_DEBUG("Loading Lua script modules");
-    Ref<LanguageModule> lua_language_module = ScriptEngine::GetModule(LanguageModuleType::LUA_MODULE);
+    Ref<LanguageModule> lua_language_module = ScriptEngine::GetModule(LUA_MODULE);
     if (lua_language_module != nullptr) {
       std::string real_key = std::string{ kScriptingSection } + "." + std::string{ kLuaModuleSection };
       auto lua_modules = config.Get(real_key , kPathsValue);
 
+      auto assets_path = project_metadata->GetMetadata().assets_dir;
       for (const auto& lua_mod : lua_modules) {
-        Path path = lua_mod;
+        Path path = assets_path / "scripts" / lua_mod;
         std::string name = path.filename().string().substr(0 , path.filename().string().find_last_of('.'));
 
         lua_language_module->LoadScriptModule({
@@ -106,41 +109,22 @@ namespace other {
   void App::Run() {
     Attach();
 
-    ///> TODO: experiment and see if we want to use delta time or frame rate enforcer
-    time::FrameRateEnforcer<60> frame_rate_enforcer;
     time::DeltaTime delta_time;
     delta_time.Start();
     while (!GetEngine()->exit_code.has_value()) {
       float dt = delta_time.Get();
-      // float dt = frame_rate_enforcer.TimeStep();
       
       // updates mouse/keyboard/any connected controllers
       IO::Update();
       CHECKGL();
 
-      /// go through and trigger any events to dispatch in the next call
-      if (Renderer::IsWindowFocused() && lost_window_focus) {
-        lost_window_focus = false;
-
-        if (project_metadata->EditorDirectoryChanged()) {
-          EventQueue::PushEvent<ProjectDirectoryUpdateEvent>(EDITOR_DIR);
-        }
-
-        if (project_metadata->ScriptDirectoryChanged()) {
-          EventQueue::PushEvent<ProjectDirectoryUpdateEvent>(SCRIPT_DIR);
-        }
-
-        /// update script watchers
-        ScriptEngine::UpdateScripts();
-      } else {
-        lost_window_focus = true;
+      if (Renderer::IsWindowFocused()) {
+        DoEarlyUpdate(dt); 
       }
 
       /// physics step
       
-      /// process any other updates that might trigger events here
-      
-      /// process all events queued from updating
+      /// process all events queued from io/early update/physics steps
       EventQueue::Poll(GetEngine() , this);
 
       /// process any updates that are the result of events here
@@ -157,9 +141,6 @@ namespace other {
 
       DoRenderUI();
       Renderer::SwapBuffers();
-
-
-      frame_rate_enforcer.Enforce();
     } 
 
     Detach();
@@ -183,7 +164,7 @@ namespace other {
     }
     
     OE_DEBUG("Unloading Lua script modules");
-    Ref<LanguageModule> lua_language_module = ScriptEngine::GetModule(LanguageModuleType::LUA_MODULE);
+    Ref<LanguageModule> lua_language_module = ScriptEngine::GetModule(LUA_MODULE);
     if (lua_language_module != nullptr) {
       std::string real_key = std::string{ kScriptingSection } + "." + std::string{ kLuaModuleSection };
       auto lua_modules = config.Get(real_key , kPathsValue);
@@ -199,7 +180,7 @@ namespace other {
     }
     
     OE_DEBUG("Unloading C# script modules");
-    Ref<LanguageModule> cs_language_module = ScriptEngine::GetModule(LanguageModuleType::CS_MODULE);
+    Ref<LanguageModule> cs_language_module = ScriptEngine::GetModule(CS_MODULE);
     if (cs_language_module != nullptr) {
       std::string real_key = std::string{ kScriptingSection } + "." + std::string{ kCsModuleSection };
       auto cs_modules = config.Get(real_key , kPathsValue);
@@ -260,27 +241,18 @@ namespace other {
   }
 
   void App::ProcessEvent(Event* event) {
-    EventHandler handler(event);
-    handler.Handle<ProjectDirectoryUpdateEvent>([this](ProjectDirectoryUpdateEvent& e) -> bool {
-      if (!is_editor) {
-        /// if not in the editor don't change project file
-        return false;
-      } else if (!project_metadata->RegenProjectFile()) {
-        OE_ERROR("Failed to generate project files! Project metadata corrupted!");
-        return false;
-      } 
-
-      ReloadScripts();
-
-      return true;
-    });
-
-    handler.Handle<ScriptReloadEvent>([this](ScriptReloadEvent& e) -> bool {
-      if (!is_editor) {
+    EventHandler event_handler(event);
+    event_handler.Handle<UIWindowClosed>([this] (UIWindowClosed& event) -> bool {
+      UUID id = event.GetWindowId(); 
+      auto itr = ui_windows.find(id);
+      if (itr == ui_windows.find(id)) {
         return false;
       }
 
-      ReloadScripts();
+      auto& window = ui_windows[id];
+      window->OnDetach();
+
+      ui_windows.erase(itr);
       return true;
     });
 
@@ -346,24 +318,26 @@ namespace other {
 
   bool App::RemoveUIWindow(const std::string& name) {
     UUID id = FNV(name);
-    if (ui_windows.find(id) == ui_windows.end()) {
+    auto itr = ui_windows.find(id);
+    if (itr == ui_windows.end()) {
       return false;
     }
 
     ui_windows[id]->OnDetach();
     ui_windows[id] = nullptr;
-    ui_windows.erase(id);
+    ui_windows.erase(itr);
     return true;
   }
 
   bool App::RemoveUIWindow(UUID id) {
-    if (ui_windows.find(id) == ui_windows.end()) {
+    auto itr = ui_windows.find(id);
+    if (itr == ui_windows.end()) {
       return false;
     }
 
     ui_windows[id]->OnDetach();
     ui_windows[id] = nullptr;
-    ui_windows.erase(id);
+    ui_windows.erase(itr);
     return true;
   }
   
@@ -442,6 +416,11 @@ namespace other {
     OnAttach();
   }
 
+  /// TODO: add early update to layers and scene
+  void App::DoEarlyUpdate(float dt) {
+    EarlyUpdate(dt);  
+  }
+
   void App::DoUpdate(float dt) {
     // update all layers
     for (size_t i = 0; i < layer_stack->Size(); ++i) {
@@ -457,16 +436,8 @@ namespace other {
     /// update the ui windows, closing any that need to be closed 
     auto itr = ui_windows.begin();
     while (itr != ui_windows.end()) {
-      if (itr->second == nullptr) {
-        itr = ui_windows.erase(itr);
-      } else if (!itr->second->IsOpen()) {
-        itr->second->OnDetach();
-        itr->second = nullptr;
-        itr = ui_windows.erase(itr);
-      } else {
-        itr->second->OnUpdate(dt);
-        ++itr;
-      }
+      itr->second->OnUpdate(dt);
+      ++itr;
     }
   }
 

@@ -3,11 +3,15 @@
 */
 #include "scripting/cs/cs_module.hpp"
 
+#include <filesystem>
 #include <mono/jit/jit.h>
 #include <mono/metadata/assembly.h>
 #include <mono/metadata/threads.h>
 
 #include "core/filesystem.hpp"
+#include "core/platform.hpp"
+#include "application/app.hpp"
+#include "scripting/script_engine.hpp"
 #include "scripting/cs/cs_script.hpp"
 #include "scripting/cs/cs_script_bindings.hpp"
 #include "scripting/cs/cs_garbage_collector.hpp"
@@ -107,12 +111,31 @@ namespace other {
     mono_domain_unload(app_domain);
 
     OE_DEBUG("Reloading Mono Runtime");
+    
+    App* app_ctx = ScriptEngine::GetAppContext();
+
+    auto proj = app_ctx->GetProjectContext();
+    auto script_file = proj->GetMetadata().cs_project_file;
 
     for (auto& [id, module] : loaded_modules) {
-      module->Reload();
+      module->Shutdown(); 
       delete module;
     }
     loaded_modules.clear();
+    
+    OE_DEBUG("Kicking off build for scripts {}" , script_file);
+
+    if (!PlatformLayer::BuildProject(script_file)) {
+      OE_ERROR("Failed to rebuild project scripts");
+    }
+    
+    auto editor_file = proj->GetMetadata().cs_editor_project_file;
+
+    OE_DEBUG("Kicking off build for scripts {}" , editor_file);
+
+    if (!PlatformLayer::BuildProject(editor_file)) {
+      OE_ERROR("Failed to rebuild editor scripts");
+    }
 
     char* app_domain_name = const_cast<char*>(kAppDomainName.data());
     app_domain = mono_domain_create_appdomain(app_domain_name , nullptr);
@@ -205,5 +228,5 @@ namespace other {
     delete loaded_modules[id];
     loaded_modules.erase(id);
   }
-
+      
 } // namespace other
