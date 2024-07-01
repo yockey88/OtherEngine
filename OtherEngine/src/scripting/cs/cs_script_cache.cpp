@@ -69,7 +69,9 @@ namespace other {
     if (klass == nullptr) {
       OE_WARN("Attempting to cache null C# class {}" , name);
       return;
-    } 
+    } else {
+      OE_DEBUG("Attempting to cache C# class {}" , name);
+    }
     
     CsTypeData data{};
     data.name = name;
@@ -77,15 +79,20 @@ namespace other {
 
     if (class_data.find(data.id) != class_data.end()) {
       return;
+    } else {
+      OE_DEBUG("Did not find class {}, continuing to cache" , name);
     }
 
     uint32_t align = 0;
     data.size = mono_class_value_size(klass , &align);
     data.asm_class = klass;
 
-    CsTypeData& td = class_data[data.id] = data;
-    td.name_space = std::string{ mono_class_get_namespace(data.asm_class) };
+    OE_DEBUG("C# class value size {} = {}" , name , data.size);
 
+    CsTypeData& td = class_data[data.id] = data;
+    OE_DEBUG("Caching C# class {}" , name);
+    td.name_space = std::string{ mono_class_get_namespace(data.asm_class) };
+    OE_DEBUG("Caching C# class {}::{}" , td.name_space , td.name);
     td.attr_info = mono_custom_attrs_from_class(td.asm_class);
 
     OE_DEBUG("Caching C# class {}::{}" , td.name_space , td.name);

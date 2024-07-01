@@ -31,8 +31,6 @@ namespace other {
 
       bool HasScene(const Path& path);
       bool HasActiveScene() const;
-      
-      void RefreshScenes();
 
       SceneMetadata* ActiveScene() const;
       void SaveActiveScene();

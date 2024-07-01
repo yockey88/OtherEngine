@@ -5,12 +5,14 @@
 #define OTHER_ENGINE_ASSET_SERIALIZER_HPP
 
 #include "core/ref.hpp"
+#include "core/serializer.hpp"
+
 #include "asset/asset.hpp"
 #include "asset/asset_metadata.hpp"
 
 namespace other {
 
-  class AssetSerializer {
+  class AssetSerializer : public Serializer {
     public:
       virtual ~AssetSerializer() {}
 

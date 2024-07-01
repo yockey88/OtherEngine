@@ -40,6 +40,11 @@ namespace other {
         editor->RegisterCallback(this);
       }
 
+      ~ScriptZepWrapper() {
+        editor->UnRegisterCallback(this);
+        editor = nullptr;
+      }
+
       virtual Zep::ZepEditor& GetEditor() const override { 
         return *editor; 
       }
@@ -49,13 +54,8 @@ namespace other {
         message_callback(message);
       }
 
-      virtual void HandleInput() {
+      void HandleInput() {
         editor->HandleInput();
-      }
-
-      virtual void Destroy() {
-        editor->UnRegisterCallback(this);
-        editor = nullptr;
       }
 
     private:
@@ -66,6 +66,9 @@ namespace other {
   class ScriptEditor : public UIWindow {
     public:
       ScriptEditor(Opt<std::string> window_name = std::nullopt);
+      virtual ~ScriptEditor() override {
+        OE_DEBUG("Some reason destroying Script Editor window");
+      }
 
       void AddEditor(const ScriptObjectTag& obj_tag , const std::string& script_path);
 
@@ -89,8 +92,13 @@ namespace other {
         void HandleMessage(Zep::MessagePtr);
       };
 
+      bool close_after_editor_close = false;
+      bool grab_focus = false;
+
       std::vector<UUID> ids_to_clear;
       std::map<UUID , TextBuffer> active_editors;
+
+      void DrawTabBar();
   };
 
 

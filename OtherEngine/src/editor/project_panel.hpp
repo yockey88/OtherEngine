@@ -14,6 +14,7 @@
 
 #include "project/project.hpp"
 
+#include "scripting/script_module.hpp"
 #include "rendering/ui/ui_window_map.hpp"
 
 #include "editor/editor_panel.hpp"
@@ -35,19 +36,19 @@ namespace other {
 
     private:
       const std::map<UUID , std::string_view> tags {
-        { FNV("editor")    , "editor"    } ,
-        { FNV("materials") , "materials" } ,
-        { FNV("scenes")    , "scenes"    } ,
-        { FNV("scripts")   , "scripts"   } ,
-        { FNV("shaders")   , "shaders"   }
+        { kEditorDirNameHash    , kEditorDirName    } ,
+        { kMaterialsDirNameHash , kMaterialsDirName } ,
+        { kScenesDirNameHash    , kScenesDirName    } ,
+        { kScriptsDirNameHash   , kScriptsDirName   } ,
+        { kShadersDirNameHash   , kShadersDirName   }
       };
       
       const std::map<UUID , std::string_view> drag_drop_tags {
-        { FNV("editor")    , "project-editor-folder"    } ,
-        { FNV("materials") , "project-materials-folder" } ,
-        { FNV("scenes")    , "project-scenes-folder"    } ,
-        { FNV("scripts")   , "project-scripts-folder"   } ,
-        { FNV("shaders")   , "project-shaders-folder"   }
+        { kEditorDirNameHash    , "project-editor-folder"    } ,
+        { kMaterialsDirNameHash , "project-materials-folder" } ,
+        { kScenesDirNameHash    , "project-scenes-folder"    } ,
+        { kScriptsDirNameHash   , "project-scripts-folder"   } ,
+        { kShadersDirNameHash   , "project-shaders-folder"   }
       };
 
       std::vector<Ref<Directory>> project_directories;
@@ -72,8 +73,11 @@ namespace other {
 
       void RenderContents(const Path& path);
       void RenderScriptContents();
-      void RenderEditorFiles() const;
+      void RenderEditorFiles();
       void RenderPathContents(const Path& path) const;
+
+      void RenderScriptObjectContextMenu(const ScriptObjectTag& tag);
+      void ScriptObjectDragDropSource(UUID dir_tag , const ScriptObjectTag& tag);
 
       std::string GetContextMenuTagFromSelection() const;
       void RenderContextMenu();

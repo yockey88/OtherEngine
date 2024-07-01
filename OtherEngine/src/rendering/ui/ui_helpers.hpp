@@ -179,8 +179,11 @@ namespace ui {
     const ImVec2& item_spacing = ImVec2(8.f , 8.f) , 
     const ImVec2& frame_pading = ImVec2(4.f , 4.f)
   );
-  
+
   void EndPropertyGrid();
+
+  bool Selectable(const std::string& label , bool selected = false , bool* is_hovered = nullptr , 
+                  ImGuiSelectableFlags flags = 0 , const ImVec2& size = ImVec2(0, 0));
 
   bool OpenPopup(const std::string& str_id , ImGuiWindowFlags flags = 0);
   void EndPopup();

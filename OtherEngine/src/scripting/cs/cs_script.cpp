@@ -16,6 +16,7 @@
 
 #include "scripting/script_engine.hpp"
 #include "scripting/cs/cs_garbage_collector.hpp"
+#include "scripting/script_module.hpp"
 
 namespace other {
       
@@ -213,10 +214,8 @@ namespace other {
     
     GcHandle gc_handle = CsGarbageCollector::NewHandle(object);
 
-    auto& obj = loaded_objects[id] = CsObject(module_name , name , type_data , object , assembly_image , 
-                                              app_domain , class_id , &cached_symbols , nspace);
-    obj.InitializeScriptMethods();
-    obj.InitializeScriptFields();
+    loaded_objects[id] = CsObject(module_name , name , type_data , object , assembly_image , 
+                                  app_domain , class_id , &cached_symbols , nspace);
 
     loaded_symbols[id] = {
       .name_space = nspace , 
@@ -258,24 +257,27 @@ namespace other {
       Path editor_path = proj.assets_dir / "editor";
 
       Path file_path = scripts_path / (name + ".cs");
-      Path editor_file_path = editor_path = editor_path / (name + "cs");
-      Path actual_path;
+      Path editor_file_path = editor_path / (name + ".cs");
 
-      if (Filesystem::FileExists(file_path)) {
-        cs_files.push_back(file_path);
-        actual_path = file_path;
-      } else if (Filesystem::FileExists(editor_file_path)) {
-        editor_files.push_back(editor_file_path);
-        actual_path = editor_file_path;
+      if (!Filesystem::FileExists(file_path) && !Filesystem::FileExists(editor_file_path)) {
+        continue;
+      }
+
+      Path actual_path = file_path;
+
+      ScriptModuleType type = ScriptModuleType::SCENE_SCRIPT;
+      if (Filesystem::FileExists(editor_file_path)) {
+        actual_path = editor_file_path; 
+        type = ScriptModuleType::EDITOR_SCRIPT;
       }
 
       object_names.push_back(ScriptObjectTag{
         .object_id = FNV(name) ,
         .name = name , 
         .nspace = name_space ,
-        .path = (actual_path.filename() == (name + ".cs")) ?
-          actual_path.string() : "",
+        .path = actual_path.string() ,
         .lang_type = language ,
+        .type = type ,
       });
     }
 
@@ -327,7 +329,9 @@ namespace other {
     if (klass == nullptr) {
       OE_ERROR("Mono class not found : {}" , name);
       return nullptr;
-    } 
+    } else {
+      OE_DEBUG("Mono class found : {}" , name);
+    }
 
     mono_class_init(klass);
 

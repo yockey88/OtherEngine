@@ -152,6 +152,7 @@ namespace other {
       tags.push_back({
         .name = table ,
         .nspace = "" ,
+        .path = path ,
         .lang_type = language ,
       });
     }

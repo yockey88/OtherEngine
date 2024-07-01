@@ -16,8 +16,8 @@ namespace other {
 
   class LuaScript : public ScriptModule {
     public:
-      LuaScript(const std::string& path) 
-        : ScriptModule(LanguageModuleType::LUA_MODULE) , path(path) {}
+      LuaScript(const std::string& path , const std::string& module_name) 
+        : ScriptModule(LanguageModuleType::LUA_MODULE , module_name) , path(path) {}
       virtual ~LuaScript() override {}
       
       template <typename Ret , typename... Args>

@@ -6,11 +6,16 @@
 
 #include <array>
 #include <string_view>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "core/defines.hpp"
 #include "core/uuid.hpp"
+#include "core/ref.hpp"
 
 namespace other {
+
+  class Asset;
 
   struct AssetHandle {
     UUID id;
@@ -43,20 +48,18 @@ namespace other {
 
   enum AssetType : uint16_t {
     BLANK_ASSET = 0 ,
-    // SCENE ,
+    SCENE ,
     // PREFAB ,
-    // MESH ,
+    MESH ,
     SHADER ,
     // MATERIAL ,
-    TEXTURE2D ,
-    CUBE_MAP_TEXTURE ,
+    TEXTURE ,
     // ENVMAP ,
     // AUDIO ,
     // SOUNDCONFIG ,
     // SPATIALIZATIONCONFIG ,
     // FONT ,
-    SCRIPT ,
-    // SCRIPTFILE ,
+    SCRIPTFILE ,
     // MESHCOLLIDER , 
     // SOUNDGRAPHSOUND ,
     // SKELETON ,
@@ -66,24 +69,26 @@ namespace other {
     NUM_ASSET_TYPES ,
     INVALID_ASSET = 0xFFFF
   };
+  
+  using AssetSet = std::unordered_set<AssetHandle>;
+  using AssetMap = std::unordered_map<AssetHandle, Ref<Asset>>;
 
 namespace util {
+  
 
   inline AssetType AssetTypeFromString(std::string_view asset_str) {
-    // if (asset_str == "SCENE") return AssetType::SCENE;
+    if (asset_str == "SCENE") return AssetType::SCENE;
     // if (asset_str == "PREFAB") return AssetType::PREFAB;
-    // if (asset_str == "MESH") return AssetType::MESH;
+    if (asset_str == "MESH") return AssetType::MESH;
     if (asset_str == "SHADER") return AssetType::SHADER;
     // if (asset_str == "MATERIAL") return AssetType::MATERIAL;  
-    if (asset_str == "TEXTURE2D") return AssetType::TEXTURE2D;
-    if (asset_str == "CUBE_MAP_TEXTURE") return AssetType::CUBE_MAP_TEXTURE;
+    if (asset_str == "TEXTURE") return AssetType::TEXTURE;
     // if (asset_str == "ENV-MAP") return AssetType::ENVMAP;
     // if (asset_str == "AUDIO") return AssetType::AUDIO;
     // if (asset_str == "SOUND-CONFIG") return AssetType::SOUNDCONFIG;
     // if (asset_str == "SPATIALIZATION-CONFIG") return AssetType::SPATIALIZATIONCONFIG;
     // if (asset_str == "FONT") return AssetType::FONT;
-    if (asset_str == "SCRIPT") return AssetType::SCRIPT;
-    // if (asset_str == "SCRIPT-FILE") return AssetType::SCRIPTFILE;
+    if (asset_str == "SCRIPT-FILE") return AssetType::SCRIPTFILE;
     // if (asset_str == "MESH-COLLIDER") return AssetType::MESHCOLLIDER;
     // if (asset_str == "SOUND-GRAPH-SOUND") return AssetType::SOUNDGRAPHSOUND;
     // if (asset_str == "SKELETON") return AssetType::SKELETON;
@@ -96,18 +101,16 @@ namespace util {
   constexpr static std::array<std::string_view , kNumAssetTypes> kAssetTypeStrings = {
     "SCENE" , 
     // "PREFAB" , 
-    // "MESH" , 
+    "MESH" , 
     "SHADER" , 
     //"MATERIAL" , 
-    "TEXTURE2D" , 
-    "CUBE_MAP_TEXTURE" ,
+    "TEXTURE" , 
     // "ENV-MAP" , 
     // "AUDIO" , 
     // "SOUND-CONFIG" , 
     // "SPATIALIZATION-CONFIG" , 
     // "FONT" , 
-    "SCRIPT" , 
-    // "SCRIPT-FILE" , 
+    "SCRIPT-FILE" , 
     // "MESH-COLLIDER" , 
     // "SOUND-GRAPH-SOUND" , 
     // "SKELETON" , 

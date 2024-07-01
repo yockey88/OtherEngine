@@ -1,9 +1,13 @@
 /**
  * \file sandbox/main.cpp
  **/
+#include <imgui/backends/imgui_impl_opengl3.h>
+#include <imgui/backends/imgui_impl_sdl2.h>
+#include <iostream>
+
 #include <SDL_video.h>
 #include <glad/glad.h>
-#include <iostream>
+#include <imgui/imgui.h>
 
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/ext/matrix_transform.hpp>
@@ -123,6 +127,18 @@ int main() {
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA , GL_ONE_MINUS_SRC_ALPHA);
+    
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+
+    ImGui::StyleColorsDark();
+
+    ImGui_ImplSDL2_InitForOpenGL(context.window, context.context);
+    ImGui_ImplOpenGL3_Init("#version 460 core");
  
     int success;
 
@@ -261,23 +277,24 @@ int main() {
             }
           break;
         }
+
+        ImGui_ImplSDL2_ProcessEvent(&event);
       }
-
-      world.Step(1.f / 60.f , 6 , 2);
-
-      position.x = body->GetPosition().x;
-      position.y = body->GetPosition().y;
-
-      model = glm::mat4(1.f);
-      model = glm::translate(model , position);
 
       glClearColor(0.2f , 0.3f , 0.3f , 1.f);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-      glUseProgram(shader);
-      glUniformMatrix4fv(model_loc , 1 , GL_FALSE , glm::value_ptr(model));
-      glBindVertexArray(vao);
-      glDrawArrays(GL_TRIANGLES , 0 , 3);
+      ImGui_ImplOpenGL3_NewFrame();
+      ImGui_ImplSDL2_NewFrame(context.window);
+      ImGui::NewFrame();
+
+      ImGui::ShowDemoWindow();
+
+      ImGui::Render();
+      ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+      ImGui::UpdatePlatformWindows();
+      ImGui::RenderPlatformWindowsDefault();
 
       SDL_GL_MakeCurrent(context.window , context.context);
       SDL_GL_SwapWindow(context.window);

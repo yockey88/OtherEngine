@@ -7,6 +7,7 @@
 #include "core/time.hpp"  
 #include "core/engine.hpp"
 #include "core/config_keys.hpp"
+#include "editor/editor_asset_handler.hpp"
 #include "input/io.hpp"
 
 #include "event/event_queue.hpp"
@@ -18,6 +19,8 @@
 #include "rendering/ui/ui.hpp"
 #include "layers/core_layer.hpp"
 #include "layers/debug_layer.hpp"
+
+#include "asset/runtime_asset_handler.hpp"
 
 #include "scripting/script_defines.hpp"
 #include "scripting/script_engine.hpp"
@@ -42,7 +45,13 @@ namespace other {
     project_metadata = Ref<Project>::Create(cmdline , config);
 
     layer_stack = NewScope<LayerStack>();
-    asset_handler = NewScope<AssetHandler>();
+    
+    if (is_editor) {
+      asset_handler = NewScope<EditorAssetHandler>();
+      /// register editor console sink
+    } else {
+      asset_handler = NewScope<RuntimeAssetHandler>();
+    }
 
     scene_manager = NewScope<SceneManager>();
 
@@ -57,11 +66,6 @@ namespace other {
 
       Ref<Layer> debug_layer = NewRef<DebugLayer>(this);
       PushLayer(debug_layer);
-    }
-     
-    /// return because the editor will have already loaded all of this stuff already
-    if (in_editor) {
-      return;
     }
     
     ScriptEngine::SetAppContext(this);
@@ -243,17 +247,7 @@ namespace other {
   void App::ProcessEvent(Event* event) {
     EventHandler event_handler(event);
     event_handler.Handle<UIWindowClosed>([this] (UIWindowClosed& event) -> bool {
-      UUID id = event.GetWindowId(); 
-      auto itr = ui_windows.find(id);
-      if (itr == ui_windows.find(id)) {
-        return false;
-      }
-
-      auto& window = ui_windows[id];
-      window->OnDetach();
-
-      ui_windows.erase(itr);
-      return true;
+      return RemoveUIWindow(event.GetWindowId());
     });
 
     for (auto& window : ui_windows) {
@@ -504,6 +498,7 @@ namespace other {
 
   void App::SetInEditor() {
     in_editor = true;
+    is_editor = false;
   }
       
   void App::ReloadScripts() {

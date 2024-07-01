@@ -119,6 +119,18 @@ namespace other {
     OE_WARN("Could not find executable in path : {}", bin_path);
     return Path();
   }
+      
+  bool Filesystem::AttemptDelete(const std::string& path) {
+    return AttemptDelete(Path{ path });
+  }
+
+  bool Filesystem::AttemptDelete(const std::string_view path) {
+    return AttemptDelete(Path{ path });
+  }
+
+  bool Filesystem::AttemptDelete(const Path& path) {
+    return std::filesystem::remove(path);
+  }
 
   Path Filesystem::GetWorkingDirectory() {
     return std::filesystem::current_path();

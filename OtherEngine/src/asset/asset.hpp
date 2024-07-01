@@ -33,10 +33,8 @@ namespace other {
       bool CheckFlag(AssetFlag flag) const;
       void SetFlag(AssetFlag flag , bool val = true);
 
-      // friend class EditorAssetManager;
-      friend class MeshLoader;
-      friend class TextureSerializer;
-      friend class AssetHandler;
+      friend class EditorAssetHandler;
+      friend class RuntimeAssetHandler;
   };
 
 } // namespace other

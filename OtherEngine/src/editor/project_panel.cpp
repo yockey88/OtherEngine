@@ -25,6 +25,7 @@
 
 #include "rendering/ui/ui_helpers.hpp"
 #include "rendering/ui/ui_colors.hpp"
+#include "rendering/ui/confirmation_window.hpp"
 
 #include "editor/editor.hpp"
 #include "editor/script_window.hpp"
@@ -34,6 +35,8 @@ namespace other {
       
   void ProjectPanel::OnAttach() {
     OE_ASSERT(active_proj != nullptr , "Project Panel Project context is nullptr");
+
+    ui_windows[FNV("Script Editor")] = Ref<ScriptEditor>::Create(); 
   }
 
   void ProjectPanel::OnGuiRender(bool& is_open) {
@@ -85,7 +88,6 @@ namespace other {
         ImGui::PopStyleVar();
 
         ImGui::Separator();
-
 
         ImGui::BeginChild("Scrolling");
         {
@@ -347,40 +349,23 @@ namespace other {
   }
       
   void ProjectPanel::RenderScriptContents() {
-    std::string drag_drop_tag = drag_drop_tags.at(FNV("scripts")).data();
     auto loaded_script_objects = ScriptEngine::GetLoadedObjects();
 
     for (auto& obj : loaded_script_objects) {
       ImGui::PushID(("##" + obj.name).c_str());
 
-      if (ImGui::Selectable(obj.name.c_str())) {
-        Ref<UIWindow> script_editor = nullptr;
-        auto script_editor_itr = ui_windows.find(FNV("Script Editor")); 
-        if (script_editor_itr == ui_windows.end()) {
-          script_editor = NewRef<ScriptEditor>();
-          ui_windows[FNV(script_editor->Title())] = script_editor;
-        } else {
-          script_editor = Ref<ScriptEditor>(script_editor_itr->second);
-        }
+      if (ui::Selectable(obj.name)) {
+        ImGui::OpenPopup((obj.name + "-context-menu").c_str());
+      } 
 
-        Ref<ScriptEditor> editor = Ref<UIWindow>::Cast<ScriptEditor>(script_editor);
-        editor->AddEditor(obj , obj.path);
-      }
-
-      ImGuiDragDropFlags dd_flags = 0; // ImGuiDragDropFlags_SourceNoDisableHover;
-      if (ImGui::BeginDragDropSource(dd_flags)) {
-        ImGui::Text("%s" , obj.name.c_str());
-        ImGui::SetDragDropPayload(drag_drop_tag.c_str() , obj.name.c_str() , obj.name.length() + 1);
-        ImGui::EndDragDropSource();
-      }
+      RenderScriptObjectContextMenu(obj);
+      ScriptObjectDragDropSource(kScriptsDirNameHash , obj);
 
       ImGui::PopID();
     }
   }
       
-  void ProjectPanel::RenderEditorFiles() const {
-    std::string drag_drop_tag = drag_drop_tags.at(FNV("editor")).data();
-
+  void ProjectPanel::RenderEditorFiles() {
     /// other things
 
     if (ImGui::TreeNode("Editor Scripts")) {
@@ -389,19 +374,19 @@ namespace other {
       for (auto& obj : editor_scripts) {
         ImGui::PushID(("##" + obj.name).c_str());
 
-        ImGui::Selectable(obj.name.c_str());
+        if (ui::Selectable(obj.name)) {
+          ImGui::OpenPopup((obj.name + "-context-menu").c_str());
+        } 
 
-        ImGuiDragDropFlags dd_flags = 0; // ImGuiDragDropFlags_SourceNoDisableHover;
-        if (ImGui::BeginDragDropSource(dd_flags)) {
-          ImGui::Text("%s" , obj.name.c_str());
-          ImGui::SetDragDropPayload(drag_drop_tag.c_str() , obj.name.c_str() , obj.name.length() + 1);
-          ImGui::EndDragDropSource();
-        }
+        RenderScriptObjectContextMenu(obj);
+        ScriptObjectDragDropSource(kEditorDirNameHash , obj);
 
         ImGui::PopID();
       }
+      ImGui::TreePop();
+    }
 
-
+    if (ImGui::TreeNode("Editor Settings")) {
       ImGui::TreePop();
     }
   }
@@ -441,6 +426,52 @@ namespace other {
       }
 
       ImGui::PopID();
+    }
+  }
+      
+  void ProjectPanel::RenderScriptObjectContextMenu(const ScriptObjectTag& tag) {
+    if (ImGui::BeginPopupContextWindow((tag.name + "-context-menu").c_str())) {
+      if (ImGui::BeginMenu("Options")) {
+        if (ImGui::MenuItem(("Delete " + tag.name).c_str())) {
+          Ref<UIWindow> confirmation_window = Ref<ConfirmationWindow>::Create(
+            /* window name and warning msg */ 
+            "Confirm File Deletion" , fmtstr("This action is destructive and irreversible!\n Are you sure you want to delete {}" , tag.path),
+            /* action on confirmation */
+            [object = tag]() {
+              if (!Filesystem::AttemptDelete(object.path)) {
+                OE_ERROR("Failed to delete script {} : {}" , object.name , object.path);
+              }
+            }
+          );
+          GetEditor().PushUIWindow(confirmation_window);
+          ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndMenu();
+      }
+
+      if (ImGui::MenuItem("Open In Editor")) {
+        auto script_editor_itr = ui_windows.find(FNV("Script Editor")); 
+        if (script_editor_itr != ui_windows.end()) {
+          Ref<ScriptEditor> editor = Ref<UIWindow>::Cast<ScriptEditor>(script_editor_itr->second);
+          editor->AddEditor(tag , tag.path);
+        } else {
+          OE_ERROR("Failed to create script editor for {}" , tag.name);
+        }
+
+        ImGui::CloseCurrentPopup();
+      }
+
+      ImGui::EndPopup();
+    }
+  }
+      
+  void ProjectPanel::ScriptObjectDragDropSource(UUID dir_tag , const ScriptObjectTag& tag) {
+    std::string dd_tag = drag_drop_tags.at(dir_tag).data();
+    ImGuiDragDropFlags dd_flags = ImGuiDragDropFlags_SourceNoDisableHover;
+    if (ImGui::BeginDragDropSource(dd_flags)) {
+      ImGui::Text("%s" , tag.name.c_str());
+      ImGui::SetDragDropPayload(dd_tag.c_str() , tag.name.c_str() , tag.name.length() + 1);
+      ImGui::EndDragDropSource();
     }
   }
       

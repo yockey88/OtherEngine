@@ -23,13 +23,14 @@
 #include "rendering/renderer.hpp"
 #include "layers/debug_layer.hpp"
 #include "layers/editor_core.hpp"
-#include "scripting/script_engine.hpp"
 
 namespace other {
   
   Editor::Editor(Engine* engine , Scope<App>& app)
       : App(engine) , cmdline(engine->cmd_line) , engine_config(engine->config) , 
         app(std::move(app)) {
+    is_editor = true;
+    in_editor = false;
   } 
       
   void Editor::SaveActiveScene() {
@@ -76,10 +77,9 @@ namespace other {
     Ref<Layer> editor_layer = NewRef<EditorCore>(this);
     PushLayer(editor_layer);
 
-    /// here we want to load the application but not attach it
-    ///   i.e. we want the app to be prepared for the mock 'runtime' but not
-    ///   fully running
-    is_editor = true;
+    /// tell the application we are holding we are in the editor
+    /// NOTE: this only sets a flag, does nothing else yet, but will be nice in the future when 
+    ///   running simulations and such
     app->SetInEditor();
 
     panel_manager->Attach(engine_config);

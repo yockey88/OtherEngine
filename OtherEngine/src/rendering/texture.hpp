@@ -45,6 +45,8 @@ namespace other {
 
   class Texture : public Asset {
     public:
+      OE_ASSET(TEXTURE);
+
       Texture(const Path& file_path);
       Texture(const glm::ivec2& size , const Buffer& data , ChannelType channels = RGB ,
               TargetType = TEX_2D);
@@ -58,8 +60,6 @@ namespace other {
 
   class Texture2D : public Texture {
     public:
-      OE_ASSET(TEXTURE2D);
-
       Texture2D(const Path& file_path);
       Texture2D(const glm::ivec2& size , const Buffer& data , ChannelType channels = RGB ,
               TargetType = TEX_2D);
@@ -71,18 +71,15 @@ namespace other {
       Buffer pixel_data;
   };
 
-  // class CubeMapTexture : public Texture {
-  //   public:
-  //     CubeMapTexture(const Path& file_path);
-  //     CubeMapTexture(const glm::ivec2& size , const Buffer& data , ChannelType channels = RGB ,
-  //                    TargetType = TEX_2D);
-  //     virtual ~CubeMapTexture() override {}
-  //     
-  //     static AssetType GetStaticType();
-  //     virtual AssetType GetAssetType() const override;
+  class CubeMapTexture : public Texture {
+    public:
+      CubeMapTexture(const Path& file_path);
+      CubeMapTexture(const glm::ivec2& size , const Buffer& data , ChannelType channels = RGB ,
+                     TargetType = TEX_CUBE_MAP);
+      virtual ~CubeMapTexture() override {}
 
-  //   private:
-  // };
+    private:
+  };
 
 } // namespace other
 

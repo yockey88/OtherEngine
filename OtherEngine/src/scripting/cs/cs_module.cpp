@@ -199,7 +199,10 @@ namespace other {
       return loaded_modules[id];
     } 
 
-    CsScript* script = new CsScript(root_domain , app_domain , module_info.paths[0]);
+    Path module_path = module_info.paths[0];
+    std::string mod_path_str = module_path.filename().string();
+    std::string mod_name = mod_path_str.substr(0 , mod_path_str.find_last_of('.'));
+    CsScript* script = new CsScript(root_domain , app_domain , module_info.paths[0] , mod_name);
     loaded_modules[id] = script;
     loaded_modules[id]->Initialize();
 

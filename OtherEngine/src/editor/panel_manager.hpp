@@ -22,6 +22,8 @@ namespace other {
       void Load(Editor* editor , const Ref<Project>& context);
       void Attach(const ConfigTable& editor_config);
 
+      void AddPanel(const Ref<EditorPanel>& panel) {}
+
       void OnEvent(Event* event);
       void Update(float dt);
       void Render();

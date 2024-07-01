@@ -65,6 +65,9 @@ namespace other {
 
     registry.view<Script , Tag>().each([](Script& script , Tag& tag) {
       for (auto& [id , obj] : script.scripts) {
+        obj->InitializeScriptFields();
+        obj->InitializeScriptMethods();
+
         obj->SetEntityId(tag.id);
         obj->OnBehaviorLoad();
         obj->Initialize();
@@ -78,11 +81,9 @@ namespace other {
   void Scene::Start() {
     OE_ASSERT(initialized , "Starting scene without initialization");
 
-    if (physics_type == PHYSICS_2D) {
-      registry.view<RigidBody2D , Tag , Transform>().each([&](RigidBody2D& body , const Tag& tag , const Transform& transform) {
-        Initialize2DRigidBody(physics_world_2d , body , tag , transform);
-      });
-    }
+    registry.view<RigidBody2D , Tag , Transform>().each([&](RigidBody2D& body , const Tag& tag , const Transform& transform) {
+      Initialize2DRigidBody(physics_world_2d , body , tag , transform);
+    });
     
     registry.view<Script>().each([](const Script& script) {
       for (auto& [id , s] : script.scripts) {
@@ -112,12 +113,10 @@ namespace other {
       return;
     }
 
-    if (physics_type == PhysicsType::PHYSICS_2D) {
-      OE_ASSERT(physics_world_2d != nullptr , "Can not step physics world with null scene (2D)!");
+    OE_ASSERT(physics_world_2d != nullptr , "Can not step physics world with null scene (2D)!");
 
-      /// TODO: fix these to customizeable
-      physics_world_2d->Step(dt , 32 , 2);
-    }
+    /// TODO: fix these to customizeable
+    physics_world_2d->Step(dt , 32 , 2);
 
     registry.view<RigidBody2D , Transform>().each([](RigidBody2D& body , Transform& transform) {
       if (body.physics_body == nullptr) {
@@ -233,35 +232,6 @@ namespace other {
     });
 
     scene_object = nullptr;
-  }
-      
-  void Scene::Refresh() {
-    /// no refresh tag
-    /// refresh transform
-    /// refresh relationships?
-    /// rebuild meshes
-
-    registry.view<Script>().each([](Script& script) {
-      script.scripts.clear();
-
-      for (auto& [id , data] : script.data) {
-        ScriptModule* mod = ScriptEngine::GetScriptModule(data.module);
-        if (mod == nullptr) {
-          OE_ERROR("Unable to reload script {}::{} : Failed to get Module" , data.module , data.obj_name);
-          continue;
-        }
-
-        OE_DEBUG("Retrieving {} from {}" , data.obj_name , data.module);
-
-        ScriptObject* inst = mod->GetScript(data.obj_name);
-        if (inst == nullptr) {
-          OE_ERROR("Unable to reload script {}::{} : Failed to get Object" , data.module , data.obj_name);
-          continue;
-        }
-
-        script.scripts[id] = inst;
-      }
-    });
   }
       
   entt::registry& Scene::Registry() {

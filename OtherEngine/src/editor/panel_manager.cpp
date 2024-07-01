@@ -42,17 +42,19 @@ namespace other {
   }
 
   void PanelManager::Attach(const ConfigTable& editor_config) {
-    LoadEditorScripts(editor_config);
+    // LoadEditorScripts(editor_config);
 
-    for (const auto& [id , script] : editor_scripts.scripts) {
-      script->OnBehaviorLoad();
-      script->Initialize();
-      script->Start();
-    }
+    // for (const auto& [id , script] : editor_scripts.scripts) {
+    //   script->OnBehaviorLoad();
+    //   script->Initialize();
+    //   script->Start();
+    // }
 
     for (auto& [id , panel] : active_panels) {
       panel.panel->OnAttach();
     }
+
+    OE_DEBUG("Panel Manager attached");
   }
 
   void PanelManager::OnEvent(Event* event) {
@@ -66,15 +68,15 @@ namespace other {
   void PanelManager::Update(float dt) {
     active_panels[kPropertiesPanelId].panel_open = SelectionManager::HasSelection();
     
-    for (const auto& [id , script] : editor_scripts.scripts) {
-      script->Update(dt);
-    }
+    //for (const auto& [id , script] : editor_scripts.scripts) {
+    //  script->Update(dt);
+    //}
   }
   
   void PanelManager::Render() {
-    for (const auto& [id , script] : editor_scripts.scripts) {
-      script->Render();
-    }
+    // for (const auto& [id , script] : editor_scripts.scripts) {
+    //   script->Render();
+    // }
   }
 
   void PanelManager::RenderUI() {
@@ -85,17 +87,17 @@ namespace other {
       }
     }
     
-    for (const auto& [id , script] : editor_scripts.scripts) {
-      script->RenderUI();
-    }
+    // for (const auto& [id , script] : editor_scripts.scripts) {
+    //   script->RenderUI();
+    // }
   }
 
   void PanelManager::Detach() {
-    for (const auto& [id , script] : editor_scripts.scripts) {
-      script->Stop();
-      script->Shutdown();
-      script->OnBehaviorUnload();
-    }
+    // for (const auto& [id , script] : editor_scripts.scripts) {
+    //   script->Stop();
+    //   script->Shutdown();
+    //   script->OnBehaviorUnload();
+    // }
     editor_scripts.scripts.clear();
   }
 

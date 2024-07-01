@@ -6,7 +6,6 @@
 
 #include <SDL_video.h>
 
-#include "core/logger.hpp"
 #include "core/config_keys.hpp"
 
 namespace other {
@@ -23,32 +22,27 @@ namespace {
     auto blend = config.GetVal<bool>(kRendererSection , kBlendValue).value_or(true);
 
     if (depth_test) {
-      OE_DEBUG("Enabling Depth Test");
       glEnable(GL_DEPTH_TEST);
       glDepthFunc(GL_LESS);
       flags |= GL_DEPTH_BUFFER_BIT;
     }
 
     if (stencil_test) {
-      OE_DEBUG("Enabling Stencil Test");
       glEnable(GL_STENCIL_TEST);
       flags |= GL_STENCIL_BUFFER_BIT;
     }
 
     if (cull_face) {
-      OE_DEBUG("Enabling Cull Face");
       glEnable(GL_CULL_FACE);
       glCullFace(GL_BACK);
       glFrontFace(GL_CCW);
     }
 
     if (multisample) {
-      OE_DEBUG("Enabling Multisample");
       glEnable(GL_MULTISAMPLE);
     }
 
     if (blend) {
-      OE_DEBUG("Enabling Blend");
       glEnable(GL_BLEND);
       glBlendFunc(GL_SRC_ALPHA , GL_ONE_MINUS_SRC_ALPHA);
     }
@@ -242,7 +236,7 @@ namespace {
         }
       }
       err_str += other::fmtstr(" - using default clear color : {}" , col);
-      OE_WARN(err_str);
+      println(err_str);
     }
   
     cfg.color = col;
@@ -253,17 +247,13 @@ namespace {
   Result<Scope<Window>> Window::GetWindow(WindowConfig& config , const ConfigTable& cfg_table) {
     if (SDL_InitSubSystem(SDL_INIT_VIDEO) < 0) {
       return Result<Scope<Window>>{ std::nullopt , other::fmtstr("Failed to initialize SDL" , SDL_GetError()) };
-    } else {
-      OE_INFO("SDL initialized successfully");
-    }
+    } 
   
     WindowContext context;
     context.window = SDL_CreateWindow(config.title.c_str() , config.pos.x , config.pos.y , config.size.x , config.size.y , config.flags);
     if (context.window == nullptr) {
       return { std::nullopt , other::fmtstr("Failed to create window : {}" , SDL_GetError()) };
-    } else {
-      OE_INFO("Window created successfully");
-    }
+    } 
   
     EnableSdlGlSettings(cfg_table);
   
@@ -272,17 +262,13 @@ namespace {
       std::string err_str{ SDL_GetError() };
       SDL_DestroyWindow(context.window);
       return { std::nullopt , other::fmtstr("Failed to create OpenGL context: {}", err_str) };
-    } else {
-      OE_INFO("OpenGL context created successfully");
-    }
+    } 
   
     if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
       SDL_GL_DeleteContext(context.context);
       SDL_DestroyWindow(context.window);
       return { std::nullopt , "Failed to initialize GLAD" };
-    } else {
-      OE_INFO("GLAD initialized successfully");
-    }
+    } 
   
     config.clear_flags = EnableGlSettings(cfg_table);
   

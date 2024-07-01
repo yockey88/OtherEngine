@@ -172,6 +172,13 @@ void RegisterSyntaxProviders(ZepEditor& editor)
     editor.RegisterSyntaxFactory({ ".cpp", ".cxx", ".hpp", ".h", ".c" }, SyntaxProvider{ "cpp", tSyntaxFactory([](ZepBuffer* pBuffer) {
                                                                                             return std::make_shared<ZepSyntax>(*pBuffer, cpp_keywords, cpp_identifiers);
                                                                                         }) });
+        
+/// BEGIN Other Engine specific changes
+///     added lua syntax highlighting
+    editor.RegisterSyntaxFactory({ ".lua" } , SyntaxProvider{ "lua" , tSyntaxFactory([](ZepBuffer* pBuffer) {
+        return std::make_shared<ZepSyntax>(*pBuffer, lua_keywords, lua_identifiers);
+    }) });
+/// END Other Engine specific changes
 
     editor.RegisterSyntaxFactory({ ".lisp", ".lsp" }, SyntaxProvider{ "lisp", tSyntaxFactory([](ZepBuffer* pBuffer) {
                                                                          return std::make_shared<ZepSyntax>(*pBuffer, lisp_keywords, lisp_identifiers, ZepSyntaxFlags::LispLike);

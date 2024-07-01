@@ -34,7 +34,6 @@ namespace other {
   constexpr static uint64_t kErrorKey = FNV(kErrorStr);
   constexpr static uint64_t kCriticalKey = FNV(kCriticalStr);
 
-
   constexpr static std::string_view kLoggerName = "OTHER-ENGINE-LOG";
   /// just a default
   constexpr static std::string_view kDefaultLogFilePath = "other.log";
@@ -130,6 +129,27 @@ namespace other {
     }
 
     thread_names[std::this_thread::get_id()] = name;
+  }
+      
+  void Logger::RegisterTarget(const LoggerTargetData& target) {
+    if (target.sink_factory == nullptr) {
+      return;
+    }
+
+    target_strings.push_back(target.target_name);
+    
+    std::string case_ins_name;
+    std::transform(target.target_name.begin() , target.target_name.end() , std::back_inserter(case_ins_name) , ::toupper);
+
+    sink_hashes.push_back(FNV(case_ins_name));
+
+    auto sink = target.sink_factory();
+    sinks.push_back(sink);
+
+    logger->sinks().push_back(sink);
+
+    sink_levels.push_back(target.level);
+    sink_patterns.push_back(target.log_format);
   }
 
   void Logger::SetCorePattern(CoreTarget target , const std::string& pattern) {

@@ -27,9 +27,9 @@ namespace other {
   void Engine::LoadApp(Scope<App>& app) {
     OE_ASSERT(app != nullptr , "Attempting to load a null application");
 
-    OE_DEBUG("Loading application");
+    println("Loading application");
     if (cmd_line.HasFlag("--editor")) {
-      OE_DEBUG("Loading editor");
+      println("Loading editor");
       auto editor_app = NewScope<Editor>(this , app);
       active_app = std::move(editor_app);
     } else {
@@ -37,6 +37,7 @@ namespace other {
     }
 
     active_app->Load();
+    /// now allowed to use logger
   }
 
   void Engine::UnloadApp() {

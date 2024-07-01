@@ -9,9 +9,9 @@
 
 #include <entt/entt.hpp>
 
-#include "core/ref.hpp"
-#include "core/ref_counted.hpp"
 #include "core/uuid.hpp"
+#include "core/ref.hpp"
+#include "asset/asset.hpp"
 
 #include "scene/octree.hpp"
 
@@ -26,8 +26,10 @@ namespace other {
 
   class Entity;
 
-  class Scene : public RefCounted {
+  class Scene : public Asset {
     public:
+      OE_ASSET(SCENE);
+
       Scene();
       ~Scene();
 
@@ -41,8 +43,6 @@ namespace other {
 
       void Stop(); 
       void Shutdown();
-
-      void Refresh();
 
       entt::registry& Registry();
 

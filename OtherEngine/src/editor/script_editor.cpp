@@ -4,12 +4,13 @@
 #include "editor/script_editor.hpp"
 
 #include <imgui/imgui.h>
+#include <zep/buffer.h>
+#include <zep/editor.h>
 #include <zep/syntax.h>
 
 #include "core/defines.hpp"
 #include "core/logger.hpp"
 #include "core/filesystem.hpp"
-#include "rendering/ui/ui_helpers.hpp"
 #include "rendering/ui/text_editor.hpp"
 #include "scripting/script_defines.hpp"
 
@@ -49,61 +50,11 @@ namespace other {
     "Circle" , "Sphere" , "Capsule" , "Cylinder" , 
     "Color" , "Renderer" , "UI" , "Vertex" , 
   };
-  
-  static StdRef<Zep::ZepSyntax> GetCSBufferSyntax(Zep::ZepBuffer* buffer) {
-    return NewStdRef<Zep::ZepSyntax>(*buffer , cs_keywords , cs_identifiers);
-  }
 
   ScriptEditor::ScriptEditor(Opt<std::string> window_name)
           : UIWindow("Script Editor" + (window_name.has_value() ?
-                        (" : " + window_name.value()) : "")) {
-    
-    PushRenderFunction([this]() {
-      ImGui::BeginTabBar("Script-Editor-Tab-Bar" , ImGuiTabBarFlags_DockNode);
-      for (auto& editor : active_editors) {
-        ImGui::PushID(editor.first.Get());
-        Path file_path = editor.second.text_buffer->GetFilePath();
-
-        ImGui::BeginTabItem(file_path.filename().string().c_str() , &editor.second.tab_open);
-
-        const bool has_focus = ImGui::IsWindowFocused();
-        auto min = ImGui::GetCursorScreenPos();
-        auto max = ImGui::GetContentRegionAvail();
-
-        if (max.x <= 0) { 
-          max.x = 1; 
-        } 
-
-        if (max.y <= 0) { 
-          max.y = 1; 
-        } 
-
-        max.x = min.x + max.x;
-        max.y = min.y + max.y;
-
-        ImGui::InvisibleButton("EditorContainer" , max);
-
-        for (const auto& [id , buffer] : active_editors) {
-          buffer.zep->GetEditor().SetDisplayRegion(Zep::NVec2f(min.x , min.y) , Zep::NVec2f(max.x , max.y));
-          buffer.zep->GetEditor().Display();
-          buffer.zep->HandleInput();
-        }
-
-
-        if (has_focus) {
-          uint32_t focus = 0;
-          if (focus++ < 2) {
-            ImGui::SetWindowFocus();
-          }
-        }
-
-        ImGui::EndTabItem();
-
-        ImGui::PopID();
-      } 
-
-      ImGui::EndTabBar();
-    });
+                        (" : " + window_name.value()) : "")) , close_after_editor_close(window_name.has_value()) {
+    PushRenderFunction(UI_FUNC(ScriptEditor::DrawTabBar));
   }
 
   void ScriptEditor::AddEditor(const ScriptObjectTag& obj_tag , const std::string& script_path) {
@@ -112,7 +63,7 @@ namespace other {
 
     OE_DEBUG("script editor config path : {}" , zep_config.string());
 
-    auto& new_editor = active_editors[obj_tag.object_id] = TextBuffer{}; 
+    auto& new_editor = active_editors[obj_tag.object_id]; 
     new_editor.id = obj_tag.object_id;
     new_editor.editor = this;
 
@@ -131,10 +82,14 @@ namespace other {
     new_editor.zep->GetEditor().GetTheme().SetThemeType(Zep::ThemeType::Dark);
     new_editor.text_buffer = new_editor.zep->GetEditor().InitWithFile(script_path);
 
+    /// no built in syntax for C# so have to register our own provider if C# script
     if (obj_tag.lang_type == LanguageModuleType::CS_MODULE) {
       Zep::SyntaxProvider cs_syntax{
         .syntaxID = ".cs" ,
-        .factory = GetCSBufferSyntax ,
+        .factory = Zep::tSyntaxFactory([&obj_tag](Zep::ZepBuffer* buffer) -> StdRef<Zep::ZepSyntax> {
+          cs_identifiers.insert(obj_tag.name);
+          return NewStdRef<Zep::ZepSyntax>(*buffer , cs_keywords , cs_identifiers);
+        }) ,
       };
 
       std::vector<std::string> mappings = {
@@ -143,9 +98,19 @@ namespace other {
 
       new_editor.zep->GetEditor().RegisterSyntaxFactory(mappings , cs_syntax);
       new_editor.zep->GetEditor().SetBufferSyntax(*new_editor.text_buffer);
+    
+    /// changed zep source code in zep/syntax_providers.cpp to auto-register lua
+    } else {
+      /// TODO: register custom lua keywords/important engine identifiers
     }
+
+    /// for some reason syntax highlighting only appears after inserting characters
+    Zep::ChangeRecord temp_record;
+    new_editor.text_buffer->Insert(new_editor.text_buffer->End() , "" , temp_record);
     
     new_editor.tab_open = true;
+
+    grab_focus = true;
   }
       
   void ScriptEditor::OnUpdate(float dt) {
@@ -169,9 +134,7 @@ namespace other {
       active_editors.erase(itr);
     }
 
-    if (active_editors.size() == 0) {
-      Close();
-    }
+    ids_to_clear.clear();
   }
 
   void ScriptEditor::TextBuffer::HandleMessage(Zep::MessagePtr message) {
@@ -179,13 +142,15 @@ namespace other {
       return;
     }
 
-    if (message->messageId == Zep::Msg::RequestQuit || message->str == ":wq") {
+    if (message->messageId == Zep::Msg::RequestQuit || message->str == ":wq" || message->str == ":q") {
       zep->GetEditor().SaveBuffer(*text_buffer);
+      if (editor->close_after_editor_close) {
+        editor->Close();
+      }
+      
       editor->ids_to_clear.push_back(id);
       message->handled = true;
-    } else if (message->str == ":Ex") {
-      zep->GetEditor().RequestQuit();
-      message->handled = true;
+
     } else if (message->messageId == Zep::Msg::ToolTip) {
       auto tip_msg = std::static_pointer_cast<Zep::ToolTipMessage>(message); 
       if (!tip_msg->location.Valid() || tip_msg->pBuffer == nullptr) {
@@ -204,12 +169,51 @@ namespace other {
       } else if (syntax->GetSyntaxAt(tip_msg->location).foreground == Zep::ThemeColor::Keyword) {
         marker->SetDescription("Keyword");
         marker->SetHighlightColor(Zep::ThemeColor::Keyword);
-      }
+      } 
         
       marker->SetTextColor(Zep::ThemeColor::Text);
       tip_msg->spMarker = marker;
       tip_msg->handled = true;
     }
+  }
+      
+  void ScriptEditor::DrawTabBar() {
+    if (grab_focus) {
+      ImGui::SetWindowFocus();
+      grab_focus = false;
+    }
+
+    ImGui::BeginTabBar("Script-Editor-Tab-Bar" , ImGuiTabBarFlags_None);
+    for (auto& editor : active_editors) {
+      Path file_path = editor.second.text_buffer->GetFilePath();
+      if (!ImGui::BeginTabItem(file_path.filename().string().c_str() , &editor.second.tab_open)) {
+        continue;
+      }
+
+      auto min = ImGui::GetCursorScreenPos();
+      auto max = ImGui::GetContentRegionAvail();
+
+      if (max.x <= 0) { 
+        max.x = 1; 
+      } 
+
+      if (max.y <= 0) { 
+        max.y = 1; 
+      } 
+
+      max.x = min.x + max.x;
+      max.y = min.y + max.y;
+
+      ImGui::InvisibleButton("EditorContainer" , max);
+
+      editor.second.zep->GetEditor().SetDisplayRegion(Zep::NVec2f(min.x , min.y) , Zep::NVec2f(max.x , max.y));
+      editor.second.zep->GetEditor().Display();
+      editor.second.zep->HandleInput();
+
+      ImGui::EndTabItem();
+    } 
+
+    ImGui::EndTabBar();
   }
 
 } // namespace other

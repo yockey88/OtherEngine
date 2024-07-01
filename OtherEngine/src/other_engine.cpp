@@ -83,7 +83,7 @@ namespace other {
       ec = ExitCode::FAILURE;
     } catch (...) {
       OE_CRITICAL("Caught unknow error!");
-      ec =ExitCode::FAILURE;
+      ec = ExitCode::FAILURE;
     }
 
     if (!driver.engine_unloaded) {

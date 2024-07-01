@@ -111,12 +111,6 @@ namespace other {
   bool SceneManager::HasActiveScene() const {
     return active_scene != nullptr && active_scene->scene != nullptr;
   }
-      
-  void SceneManager::RefreshScenes() {
-    for (auto& [id , scene] : loaded_scenes) {
-      scene.scene->Refresh();
-    } 
-  }
 
   SceneMetadata* SceneManager::ActiveScene() const { 
     if (!HasActiveScene()) {

@@ -39,8 +39,8 @@ namespace other {
   
   class ScriptModule {
     public:
-      ScriptModule(LanguageModuleType language) 
-          : language(language){}
+      ScriptModule(LanguageModuleType language , const std::string& module_name) 
+          : language(language) , module_name(module_name) {}
       virtual ~ScriptModule() {}
 
       LanguageModuleType GetLanguage() const {

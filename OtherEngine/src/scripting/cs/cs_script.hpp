@@ -18,8 +18,9 @@ namespace other {
 
   class CsScript : public ScriptModule {
     public:
-      CsScript(MonoDomain* root_domain , MonoDomain* app_domain , const std::string& assembly_path)
-        : ScriptModule(LanguageModuleType::CS_MODULE) , root_domain(root_domain) , app_domain(app_domain) , assembly_path(assembly_path) {}
+      CsScript(MonoDomain* root_domain , MonoDomain* app_domain , const std::string& assembly_path , const std::string& module_name)
+        : ScriptModule(LanguageModuleType::CS_MODULE , module_name) , root_domain(root_domain) , 
+          app_domain(app_domain) , assembly_path(assembly_path) {}
 
       MonoImage* GetImage() const;
       MonoAssembly* GetAsm() const;
