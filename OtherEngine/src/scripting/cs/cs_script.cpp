@@ -13,8 +13,8 @@
 #include "core/filesystem.hpp"
 
 #include "application/app.hpp"
+#include "application/app_state.hpp"
 
-#include "scripting/script_engine.hpp"
 #include "scripting/cs/cs_garbage_collector.hpp"
 #include "scripting/script_module.hpp"
 
@@ -228,8 +228,7 @@ namespace other {
   }
 
   std::vector<ScriptObjectTag> CsScript::GetObjectTags() {
-    auto app_ctx = ScriptEngine::GetAppContext();
-    auto& proj = app_ctx->GetProjectContext()->GetMetadata();
+    auto& proj = AppState::ProjectContext()->GetMetadata();
 
     std::vector<ScriptObjectTag> object_names;
     const MonoTableInfo* classes = mono_image_get_table_info(assembly_image , MONO_TABLE_TYPEDEF);
@@ -288,8 +287,7 @@ namespace other {
     cs_files.clear();
     editor_files.clear();
 
-    auto app_ctx = ScriptEngine::GetAppContext();
-    auto& proj = app_ctx->GetProjectContext()->GetMetadata();
+    auto& proj = AppState::ProjectContext()->GetMetadata();
 
     Path scripts_dir = proj.assets_dir / "scripts";
     Path editor_dir = proj.assets_dir / "editor";

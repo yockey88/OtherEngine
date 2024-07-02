@@ -5,6 +5,5 @@
 
 namespace other {
 
-   
 
 } // namespace other

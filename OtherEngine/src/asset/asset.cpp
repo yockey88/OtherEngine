@@ -14,7 +14,7 @@ namespace other {
   }
 
   bool Asset::operator==(const Asset& other) const { 
-    return asset_handle == other.asset_handle; 
+    return handle == other.handle; 
   }
 
   bool Asset::operator!=(const Asset& other) const { 

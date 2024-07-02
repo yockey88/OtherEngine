@@ -13,6 +13,9 @@
 
 #include "editor/editor.hpp"
 
+#include "application/app_state.hpp"
+
+
 namespace other {
 
   Engine::Engine(const CmdLine& cmdline , const ConfigTable& config , const std::string& config_path) 
@@ -35,8 +38,10 @@ namespace other {
     } else {
       active_app = std::move(app);
     }
-
+      
     active_app->Load();
+    AppState::Initialize(active_app.get() , active_app->layer_stack , active_app->scene_manager , 
+                         active_app->asset_handler , active_app->project_metadata);
     /// now allowed to use logger
   }
 

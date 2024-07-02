@@ -122,6 +122,7 @@ namespace other {
   void DrawRelationship(Entity* ent);
   void DrawScript(Entity* ent); 
   void DrawMesh(Entity* ent);
+  void DrawStaticMesh(Entity* ent);
   void DrawCamera(Entity* ent);
   void DrawRigidBody2D(Entity* ent);
   void DrawCollider2D(Entity* ent);

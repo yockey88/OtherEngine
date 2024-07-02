@@ -7,6 +7,8 @@
 #include <glad/glad.h>
 
 #include "core/defines.hpp"
+#include "core/ref_counted.hpp"
+
 #include "math/vecmath.hpp"
 #include "rendering/color.hpp"
 
@@ -51,7 +53,7 @@ namespace other {
     }
   };
 
-  class VertexBuffer { 
+  class VertexBuffer : public RefCounted { 
     public:
       VertexBuffer(BufferType type , size_t capacity);
       VertexBuffer(const void* data , uint32_t size , BufferUsage usage = STATIC_DRAW , BufferType type = ARRAY_BUFFER);

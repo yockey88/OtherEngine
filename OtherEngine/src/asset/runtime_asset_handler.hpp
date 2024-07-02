@@ -16,19 +16,19 @@ namespace other {
 
       virtual AssetType GetAssetType(AssetHandle handle) override { return AssetType::INVALID_ASSET; }
       virtual Ref<Asset> GetAsset(AssetHandle handle) override { return nullptr; }
-      virtual void AddMemoryOnlyAsset(Ref<Asset> asset) override {}
+      virtual void AddMemOnly(Ref<Asset> asset) override {}
       virtual bool ReloadData(AssetHandle handle) override { return false; }
 
-      virtual bool IsAssetHandleValid(AssetHandle handle) override { return false; }
-      virtual bool IsMemoryAsset(AssetHandle handle) override { return false; }
-      virtual bool IsAssetLoaded(AssetHandle handle) override { return false; }
-      virtual bool IsAssetValid(AssetHandle handle) override { return false; }
-      virtual bool IsAssetMissing(AssetHandle handle) override { return false; }
+      virtual bool IsHandleValid(AssetHandle handle) override { return false; }
+      virtual bool IsMemOnly(AssetHandle handle) override { return false; }
+      virtual bool IsLoaded(AssetHandle handle) override { return false; }
+      virtual bool IsValid(AssetHandle handle) override { return false; }
+      virtual bool IsMissing(AssetHandle handle) override { return false; }
 
-      virtual void RemoveAsset(AssetHandle handle) override {}
+      virtual void Remove(AssetHandle handle) override {}
 
-      virtual AssetSet GetAllAssetsOfType(AssetType type) override { return {}; }
-      virtual AssetMap& GetAllAssets() override { return TEMP; }
+      virtual AssetSet GetAllOfType(AssetType type) override { return {}; }
+      virtual AssetMap& GetAll() override { return TEMP; }
 
     private:
       AssetMap TEMP;

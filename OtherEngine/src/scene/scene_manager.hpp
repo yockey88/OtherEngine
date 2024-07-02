@@ -23,6 +23,9 @@ namespace other {
 
   class SceneManager {
     public:
+      SceneManager() {}
+      ~SceneManager() {}
+
       bool LoadScene(const Path& scenepath);
       void SetAsActive(const Path& name);
 

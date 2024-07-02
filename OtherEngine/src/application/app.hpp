@@ -8,11 +8,12 @@
 #include "core/layer.hpp"
 #include "core/layer_stack.hpp"
 #include "project/project.hpp"
-#include "parsing/cmd_line_parser.hpp"
+
 #include "asset/asset_handler.hpp"
+#include "scene/scene_manager.hpp"
+
 #include "rendering/ui/ui_window.hpp"
 #include "rendering/ui/ui_window_map.hpp"
-#include "scene/scene_manager.hpp"
 
 namespace other {
 
@@ -81,30 +82,33 @@ namespace other {
       ///   wont be reloaded
       virtual void OnScriptReload() {}
 
-      Engine* GetEngine() { return engine_handle; }
+      Engine* engine_handle = nullptr;
 
       const CmdLine& cmdline;
       const ConfigTable& config;
 
-    private:
       Ref<Project> project_metadata;
+      Ref<AssetHandler> asset_handler = nullptr;
 
       Scope<LayerStack> layer_stack = nullptr;
-      Scope<AssetHandler> asset_handler = nullptr;
       Scope<SceneManager> scene_manager = nullptr;
 
       UIWindowMap ui_windows;
-
-      Engine* engine_handle = nullptr;
 
       bool is_editor = false;
       bool in_editor = false;
       bool lost_window_focus = false;
 
+      friend class Engine;
+      friend class AppState;
       friend class Editor;
+
       void SetInEditor();
 
       void ReloadScripts();
+
+    private:
+      Engine* GetEngine() const { return engine_handle; }
   };
 
 } // namespace other

@@ -23,6 +23,7 @@ namespace other {
     []() -> Scope<ComponentSerializer> { return NewScope<TransformSerializer>(); } ,
     []() -> Scope<ComponentSerializer> { return NewScope<RelationshipSerializer>(); } ,
     []() -> Scope<ComponentSerializer> { return NewScope<MeshSerializer>(); } ,
+    []() -> Scope<ComponentSerializer> { return NewScope<StaticMeshSerializer>(); } ,
     []() -> Scope<ComponentSerializer> { return NewScope<ScriptSerializer>(); } ,
     []() -> Scope<ComponentSerializer> { return NewScope<CameraSerializer>(); } , 
     []() -> Scope<ComponentSerializer> { return NewScope<RigidBody2DSerializer>(); } ,

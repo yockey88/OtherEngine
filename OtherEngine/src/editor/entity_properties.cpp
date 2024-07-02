@@ -22,7 +22,6 @@
 #include "ecs/systems/component_gui.hpp"
 
 #include "scripting/script_engine.hpp"
-#include "physics/phyics_engine.hpp"
 #include "rendering/texture.hpp"
 #include "rendering/ui/ui_colors.hpp"
 #include "rendering/ui/ui_helpers.hpp"
@@ -273,6 +272,7 @@ namespace other {
 
             DrawAddComponentButton<Script>("Script");
             DrawAddComponentButton<Mesh>("Mesh");
+            DrawAddComponentButton<StaticMesh>("Static Mesh");
             DrawAddComponentButton<Camera>("Camera");
             switch (active_scene->ActivePhysicsType()) {
               case PHYSICS_2D:
@@ -356,6 +356,7 @@ namespace other {
     DrawComponent<Relationship>("Scene Relationships" , DrawRelationship);
     DrawComponent<Script>("Script" , DrawScript);
     DrawComponent<Mesh>("Mesh" , DrawMesh);
+    DrawComponent<StaticMesh>("Static Mesh" , DrawStaticMesh);
     DrawComponent<Camera>("Camera" , DrawCamera);
     DrawComponent<RigidBody2D>("Rigid Body 2D" , DrawRigidBody2D);
     DrawComponent<Collider2D>("Collider 2D" , DrawCollider2D);

@@ -10,13 +10,16 @@
 #include "core/errors.hpp"
 #include "core/engine.hpp"
 #include "core/config.hpp"
+#include "core/config_keys.hpp"
 #include "parsing/cmd_line_parser.hpp"
 #include "parsing/ini_parser.hpp"
+#include "project/project.hpp"
+
 #include "event/event_queue.hpp"
 #include "input/io.hpp"
 #include "rendering/renderer.hpp"
 #include "rendering/ui/ui.hpp"
-#include "project/project.hpp"
+#include "scripting/script_engine.hpp"
 
 namespace other { 
 
@@ -198,6 +201,7 @@ namespace other {
     EventQueue::Initialize(current_config);
     Renderer::Initialize(current_config);
     UI::Initialize(current_config , Renderer::GetWindow());
+    ScriptEngine::Initialize(current_config);
   }
 
   ExitCode OE::Run() {
@@ -206,50 +210,65 @@ namespace other {
     do {
       engine_unloaded = false;
       full_shutdown = false;
-
-      Launch();
+      
+      /// launch the application and load its main data
       {
         auto app = NewApp(&engine);
         engine.LoadApp(app);
       }
 
+      /// launch the engine, initializing subsystems
+      Launch();
+
+      /// run the app
       engine.ActiveApp()->Run();
-      engine.UnloadApp();
-      engine_unloaded = true;
+
 
       auto exit_code = engine.exit_code.value();
       switch (exit_code) {
         case ExitCode::FAILURE:
           OE_CRITICAL("Application RUN failure");
+          should_quit = true;
+          break;
         case ExitCode::SUCCESS:
           should_quit = true;
           break;
         case ExitCode::LOAD_NEW_PROJECT:
         case ExitCode::RELOAD_PROJECT:
           /// TODO: there is a better way to do this
+          
+          /// Full Shutdown
           Shutdown();
           CoreShutdown();
 
+          /// Reload configuration
           if (!LoadConfig()) {
             println("Failed to load configuration");
             return ExitCode::FAILURE;
           }
 
+          /// begin again
           CoreInit();
-
           continue;
         default:
           break;
       }
 
+      /// shutdown the engine, closing and offloading main subsystems
       Shutdown();
       full_shutdown = true;
+      
+      /// unload the app, offloading core data and pushing app out of scope to call destructor 
+      engine.UnloadApp();
+      engine_unloaded = true;
     } while (!should_quit);
 
     return engine.exit_code.value();
   }
 
   void OE::Shutdown() {
+    ScriptEngine::Shutdown();
+
     UI::Shutdown();
     Renderer::Shutdown();
     EventQueue::Shutdown();

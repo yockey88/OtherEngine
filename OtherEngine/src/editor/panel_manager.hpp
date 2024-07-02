@@ -6,8 +6,6 @@
 
 #include "scene/scene_manager.hpp"
 
-#include "ecs/components/script.hpp"
-
 #include "editor/editor_panel.hpp"
 
 namespace other {
@@ -41,11 +39,7 @@ namespace other {
       Ref<Project> project_context = nullptr;
       SceneMetadata* scene_context = nullptr;
 
-      Script editor_scripts;
-
       std::map<UUID , Panel> active_panels;
-
-      void LoadEditorScripts(const ConfigTable& editor_config);
   };
 
 } // namespace other

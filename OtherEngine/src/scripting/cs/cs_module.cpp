@@ -10,8 +10,7 @@
 
 #include "core/filesystem.hpp"
 #include "core/platform.hpp"
-#include "application/app.hpp"
-#include "scripting/script_engine.hpp"
+#include "application/app_state.hpp"
 #include "scripting/cs/cs_script.hpp"
 #include "scripting/cs/cs_script_bindings.hpp"
 #include "scripting/cs/cs_garbage_collector.hpp"
@@ -112,9 +111,8 @@ namespace other {
 
     OE_DEBUG("Reloading Mono Runtime");
     
-    App* app_ctx = ScriptEngine::GetAppContext();
 
-    auto proj = app_ctx->GetProjectContext();
+    auto proj = AppState::ProjectContext();
     auto script_file = proj->GetMetadata().cs_project_file;
 
     for (auto& [id, module] : loaded_modules) {

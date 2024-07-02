@@ -6,13 +6,13 @@
 #include <spdlog/cfg/helpers.h>
 
 #include "core/logger.hpp"
-#include "core/engine.hpp"
+#include "core/config_keys.hpp"
+
 #include "scripting/script_defines.hpp"
 
-namespace other {
+#include "application/app_state.hpp"
 
-  Engine* ScriptEngine::engine_handle = nullptr;
-  App* ScriptEngine::app_context = nullptr;
+namespace other {
 
   ConfigTable ScriptEngine::config;
 
@@ -27,24 +27,87 @@ namespace other {
     []() -> Ref<LanguageModule> { return Ref<LuaModule>::Create(); } ,
   };
 
-  void ScriptEngine::Initialize(Engine* engine , const ConfigTable& cfg) {
+  void ScriptEngine::Initialize(const ConfigTable& cfg) {
     OE_DEBUG("ScriptEngine::Initialize: Initializing ScriptEngine");
 
     config = cfg;
-    engine_handle = engine;
     
     LoadModule(CS_MODULE);
     LoadModule(LUA_MODULE);
 
-    auto assets_dir = GetAppContext()->GetProjectContext()->GetMetadata().assets_dir;  
-    auto script_dir = assets_dir / "scripts";
-    auto editor_dir = assets_dir / "editor";
+    auto project_metadata = AppState::ProjectContext();
+    
+    OE_DEBUG("Loading C# script modules");
+    Ref<LanguageModule> cs_language_module = ScriptEngine::GetModule(CS_MODULE);
+    if (cs_language_module != nullptr) {
+      std::string real_key = std::string{ kScriptingSection } + "." + std::string{ kCsModuleSection };
+      auto cs_modules = cfg.Get(real_key , kPathsValue);
+    
+      auto project_path = project_metadata->GetMetadata().file_path.parent_path();
+      for (const auto& cs_mod : cs_modules) {
+        Path path = project_path / "bin" / "Debug" / cs_mod; 
+        std::string name = path.filename().string().substr(0 , path.filename().string().find_last_of('.'));
 
-    /// use the lua module to build the scripts
-    Ref<LuaModule> lua = GetModuleAs<LuaModule>(LUA_MODULE);
+        cs_language_module->LoadScriptModule({
+          .name = name ,
+          .paths = { path.string() } ,
+        });    
+      }
+    }
+
+    OE_DEBUG("Loading Lua script modules");
+    Ref<LanguageModule> lua_language_module = ScriptEngine::GetModule(LUA_MODULE);
+    if (lua_language_module != nullptr) {
+      std::string real_key = std::string{ kScriptingSection } + "." + std::string{ kLuaModuleSection };
+      auto lua_modules = cfg.Get(real_key , kPathsValue);
+
+      auto assets_path = project_metadata->GetMetadata().assets_dir;
+      for (const auto& lua_mod : lua_modules) {
+        Path path = assets_path / "scripts" / lua_mod;
+        std::string name = path.filename().string().substr(0 , path.filename().string().find_last_of('.'));
+
+        lua_language_module->LoadScriptModule({
+          .name = name ,
+          .paths = { path.string() } ,
+        });
+      }
+    }
   }
 
   void ScriptEngine::Shutdown() {
+    OE_DEBUG("Unloading Lua script modules");
+    Ref<LanguageModule> lua_language_module = ScriptEngine::GetModule(LUA_MODULE);
+    if (lua_language_module != nullptr) {
+      std::string real_key = std::string{ kScriptingSection } + "." + std::string{ kLuaModuleSection };
+      auto lua_modules = config.Get(real_key , kPathsValue);
+
+      for (const auto& lua_mod : lua_modules) {
+        Path path = lua_mod;
+        std::string name = path.filename().string().substr(0 , path.filename().string().find_last_of('.'));
+
+        lua_language_module->UnloadScriptModule(name);
+      }
+    } else {
+      OE_ERROR("Failed to load lua script modules!");
+    }
+    
+    OE_DEBUG("Unloading C# script modules");
+    Ref<LanguageModule> cs_language_module = ScriptEngine::GetModule(CS_MODULE);
+    if (cs_language_module != nullptr) {
+      std::string real_key = std::string{ kScriptingSection } + "." + std::string{ kCsModuleSection };
+      auto cs_modules = config.Get(real_key , kPathsValue);
+    
+      for (const auto& cs_mod : cs_modules) {
+        Path path = cs_mod;
+        std::string name = path.filename().string().substr(0 , path.filename().string().find_last_of('.'));
+
+        OE_DEBUG(" > Unloading C# script module {}" , name);
+        cs_language_module->UnloadScriptModule(name);
+      }
+    } else {
+      OE_ERROR("Failed to load C# script modules!");
+    }
+
     for (auto& [id , mod] : language_modules) {
       mod.module->Shutdown();
       mod.module = nullptr;
@@ -52,7 +115,7 @@ namespace other {
   }
 
   std::string ScriptEngine::GetProjectAssemblyDir() {
-    auto project_ctx = app_context->GetProjectContext();
+    auto project_ctx = AppState::ProjectContext();
     OE_DEBUG("{}/bin/{}" , project_ctx->GetFilePath() , "Debug");
 
     return "";
@@ -272,14 +335,6 @@ namespace other {
     return objects;
   }
 
-  void ScriptEngine::SetAppContext(App* app) {
-    app_context = app;
-  }
-
-  App* ScriptEngine::GetAppContext() {
-    return app_context;
-  }
-      
   void ScriptEngine::SetSceneContext(const Ref<Scene>& scene) {
     scene_context = scene;
   }

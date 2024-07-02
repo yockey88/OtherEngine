@@ -10,6 +10,9 @@
 
 #include <glm/glm.hpp>
 
+#include "core/uuid.hpp"
+#include "asset/asset_types.hpp"
+
 namespace other {
 
   class Serializer {
@@ -18,6 +21,62 @@ namespace other {
       void SerializeValue(std::ostream& stream , const std::string_view name , T val) const {
         stream << name << " = " << val << "\n";
       }
+      
+      template <>
+      void SerializeValue(std::ostream& stream , const std::string_view name , UUID val) const {
+        stream << name << " = " << val.Get() << "\n";
+      }
+      
+      template <>
+      void SerializeValue(std::ostream& stream , const std::string_view name , AssetHandle val) const {
+        stream << name << " = " << val.Get() << "\n";
+      }
+
+      template <typename T>
+      void SerializeList(std::ostream& stream , const std::string_view name , const std::vector<T>& values) const {
+        stream << name << " = {\n  ";
+        for (auto& v : values) {
+          stream << v;
+          if (v != values.end()) {
+            stream << " , ";
+          } else {
+            stream << "\n";
+          }
+        }
+        stream << "}\n";
+      }
+      
+      template <>
+      void SerializeList(std::ostream& stream , const std::string_view name , const std::vector<UUID>& values) const {
+        stream << name << " = {\n  ";
+        for (uint32_t i = 0; i < values.size(); ++i) {
+          stream << values[i].Get();
+          if (i < values.size() - 1) {
+            stream << " , ";
+          } else {
+            stream << "\n";
+          }
+        }
+        stream << "}\n";
+      }
+      
+      template <>
+      void SerializeList(std::ostream& stream , const std::string_view name , const std::vector<AssetHandle>& values) const {
+        stream << name << " = {\n  ";
+        for (uint32_t i = 0; i < values.size(); ++i) {
+          stream << values[i].Get();
+          if (i < values.size() - 1) {
+            stream << " , ";
+          } else {
+            stream << "\n";
+          }
+        }
+        stream << "}\n";
+      }
+
+      // template <size_t N , typename... Args>
+      // void SerializeItems(std::ostream& stream , const std::array<std::string_view , N> names , Args&&... items) const {
+      // }
 
       template <>
       void SerializeValue(std::ostream& stream , const std::string_view name , bool val) const {

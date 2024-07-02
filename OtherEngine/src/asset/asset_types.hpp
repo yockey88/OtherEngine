@@ -50,6 +50,8 @@ namespace other {
     BLANK_ASSET = 0 ,
     SCENE ,
     // PREFAB ,
+    MODEL_SOURCE , 
+    MODEL ,
     MESH ,
     SHADER ,
     // MATERIAL ,
@@ -79,6 +81,8 @@ namespace util {
   inline AssetType AssetTypeFromString(std::string_view asset_str) {
     if (asset_str == "SCENE") return AssetType::SCENE;
     // if (asset_str == "PREFAB") return AssetType::PREFAB;
+    if (asset_str == "MODEL-SOURCE") return AssetType::MODEL_SOURCE;
+    if (asset_str == "MODEL") return AssetType::MODEL;
     if (asset_str == "MESH") return AssetType::MESH;
     if (asset_str == "SHADER") return AssetType::SHADER;
     // if (asset_str == "MATERIAL") return AssetType::MATERIAL;  
@@ -101,6 +105,8 @@ namespace util {
   constexpr static std::array<std::string_view , kNumAssetTypes> kAssetTypeStrings = {
     "SCENE" , 
     // "PREFAB" , 
+    "MODEL-SOURCE" ,
+    "MODEL" ,
     "MESH" , 
     "SHADER" , 
     //"MATERIAL" , 

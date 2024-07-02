@@ -9,9 +9,11 @@
 #include "core/layer.hpp"
 #include "parsing/cmd_line_parser.hpp"
 #include "application/app.hpp"
-#include "rendering/camera_base.hpp"
-#include "editor/panel_manager.hpp"
 
+#include "rendering/camera_base.hpp"
+#include "ecs/components/script.hpp"
+
+#include "editor/panel_manager.hpp"
 
 namespace other {
 
@@ -28,7 +30,10 @@ namespace other {
       /// TODO: find a better way to manage state than this
       bool playing = false;
 
+      Script editor_scripts;
+
       Scope<App> app;
+
       Ref<CameraBase> editor_camera = nullptr;
 
       Scope<PanelManager> panel_manager = nullptr;
@@ -52,6 +57,8 @@ namespace other {
       virtual void OnSceneUnload() override;
 
       virtual void OnScriptReload() override;
+      
+      void LoadEditorScripts(const ConfigTable& editor_config);
   };
 
 } // namespace other

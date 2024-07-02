@@ -8,9 +8,13 @@
 #include "event/event_queue.hpp"
 #include "event/app_events.hpp"
 
+#include "application/app_state.hpp"
+
 #include "rendering/camera_base.hpp"
 #include "rendering/perspective_camera.hpp"
 #include "rendering/orthographic_camera.hpp"
+#include "rendering/model.hpp"
+#include "rendering/model_factory.hpp"
 #include "rendering/ui/ui_helpers.hpp"
 #include "rendering/ui/ui_widgets.hpp"
 
@@ -415,7 +419,86 @@ namespace other {
     }
   }
   
-  void DrawMesh(Entity* ent) {}
+  void DrawMesh(Entity* ent) {
+    auto& mesh = ent->GetComponent<Mesh>();
+
+    if (mesh.handle == 0) {
+      /// display other meshes
+      return;
+    } 
+
+    Ref<Model> model = AppState::Assets()->GetAsset(mesh.handle);
+    if (model == nullptr) {
+      ScopedColor red_text(ImGuiCol_Text , ui::theme::red);
+      ImGui::Text("Mesh [{}] invalid");
+      return;
+    }
+
+    ImGui::Text("Rendering Mesh");
+  }
+  
+  void DrawStaticMesh(Entity* ent) {
+    auto& mesh = ent->GetComponent<StaticMesh>();
+
+    const char* options[] = {
+      "Empty" , "Cube" , "Sphere" , "Capsule"
+    };
+
+    if (ui::PropertyDropdown("Primitive Meshes" , options, 4 , mesh.primitive_selection)) {
+      /// set mesh to correct one 
+    }
+    
+    ImGui::SameLine();
+
+    if (mesh.primitive_selection != mesh.primitive_id && mesh.primitive_selection != 0 &&
+        ImGui::Button("Confirm Change")) {
+      switch (mesh.primitive_selection) {
+        case 1:
+        case 2:
+        case 3: {
+          OE_INFO("Assigning cube until implementations for others available!");
+          auto& scale = ent->ReadComponent<Transform>().scale;
+          mesh.handle = ModelFactory::CreateBox(scale);
+        } break;
+        case 0:
+        default:
+          /// could be non-primitive static mesh
+          break;
+      }
+
+      mesh.primitive_id = mesh.primitive_selection;
+    }
+
+    if (mesh.handle == 0) {
+      mesh.primitive_id = 0;
+      return;
+    }
+      
+    bool valid = AppState::Assets()->IsHandleValid(mesh.handle);
+    if (!valid) {
+      ScopedColor red_text(ImGuiCol_Text , ui::theme::red);
+      ImGui::Text("Static Mesh handle [{}] invalid");
+      return;
+    }
+
+    valid = AppState::Assets()->IsValid(mesh.handle);
+    if (!valid) {
+      ScopedColor red_text(ImGuiCol_Text , ui::theme::red);
+      ImGui::Text("Static Mesh [{}] invalid");
+      return;
+    }
+
+    Ref<StaticModel> model = AppState::Assets()->GetAsset(mesh.handle);
+    if (model == nullptr) {
+      ScopedColor red_text(ImGuiCol_Text , ui::theme::red);
+      ImGui::Text("Unknown error retrievieng Static Mesh [{}] from asset handler");
+      return;
+    }
+
+    //// draw selection and settings 
+
+    ImGui::Text("Rendering Mesh");
+  }
   
   void DrawCamera(Entity* ent) {
     auto& camera = ent->GetComponent<Camera>();

@@ -114,6 +114,8 @@ namespace other {
 
       app->ProcessEvent(event);
       
+      /// engine always last to handle events
+      ///   reserved for engine events
       if (!event->handled) {
         engine->ProcessEvent(event);
       }

@@ -38,7 +38,7 @@ namespace other {
 
   class ScriptEngine {
     public:
-      static void Initialize(Engine* engine , const ConfigTable& config);
+      static void Initialize(const ConfigTable& config);
       static void Shutdown();
 
       static std::string GetProjectAssemblyDir();
@@ -54,9 +54,6 @@ namespace other {
       static ScriptObject* GetScriptObject(const std::string_view name , const std::string_view nspace , const std::string_view mod_name = "");
       static ScriptObject* GetScriptObject(const std::string_view name , const std::string_view nspace , ScriptModule* module);
       static const std::map<UUID , ScriptObject*>& ReadLoadedObjects();
-
-      static void SetAppContext(App* app);
-      static App* GetAppContext();
 
       static void SetSceneContext(const Ref<Scene>& scene);
       static Ref<Scene> GetSceneContext();
@@ -78,8 +75,6 @@ namespace other {
       }
 
     private:
-      static Engine* engine_handle;
-      static App* app_context;
       static ConfigTable config;
 
       static Ref<Scene> scene_context;

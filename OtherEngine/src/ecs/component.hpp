@@ -18,16 +18,17 @@
 
 namespace other {
 
-  constexpr static size_t kNumComponents = 8;
+  constexpr static size_t kNumComponents = 9;
 
   constexpr static int32_t kTagIndex = 0;
   constexpr static int32_t kTransformIndex = 1;
   constexpr static int32_t kRelationshipIndex = 2;
   constexpr static int32_t kMeshIndex = 3;
-  constexpr static int32_t kScriptIndex = 4;
-  constexpr static int32_t kCameraIndex = 5;
-  constexpr static int32_t kRigidBody2DIndex = 6;
-  constexpr static int32_t kCollider2DIndex = 7;
+  constexpr static int32_t kStaticMeshIndex = 4;
+  constexpr static int32_t kScriptIndex = 5;
+  constexpr static int32_t kCameraIndex = 6;
+  constexpr static int32_t kRigidBody2DIndex = 7;
+  constexpr static int32_t kCollider2DIndex = 8;
 
   using ComponentTagPair = std::pair<std::string_view , size_t>;
   constexpr static std::array<ComponentTagPair , kNumComponents> kComponentTags = {
@@ -35,6 +36,7 @@ namespace other {
     ComponentTagPair{ "TRANSFORM" , kTransformIndex } , 
     ComponentTagPair{ "RELATIONSHIP" , kRelationshipIndex } ,
     ComponentTagPair{ "MESH" , kMeshIndex } ,
+    ComponentTagPair{ "STATIC-MESH" , kStaticMeshIndex } ,
     ComponentTagPair{ "SCRIPT" , kScriptIndex } ,
     ComponentTagPair{ "CAMERA" , kCameraIndex } ,
     ComponentTagPair{ "RIGID-BODY-2D" , kRigidBody2DIndex } ,

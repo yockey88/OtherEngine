@@ -3,31 +3,29 @@
 */
 #include "asset/asset_loader.hpp"
 
+#include "core/logger.hpp"
+
 namespace other {
 
   std::unordered_map<AssetType , Scope<AssetSerializer>> AssetLoader::asset_loaders;
 
-  void AssetLoader::Initialize(const ConfigTable& config) {
-  }
-
   void AssetLoader::Serialize(const Ref<Asset>& asset) {
-    if (asset_loaders.find(asset->GetAssetType()) != asset_loaders.end()) {
-      asset_loaders[asset->GetAssetType()]->Serialize(asset);
-    }  
+    OE_ASSERT(false , "AssetLoader::Serialize unimplemented");
   }
 
   void AssetLoader::Serialize(const AssetMetadata& metadata , const Ref<Asset>& asset) {
-    if (asset_loaders.find(metadata.type) != asset_loaders.end()) {
-      asset_loaders[metadata.type]->Serialize(metadata , asset);
-    }
+    OE_ASSERT(false , "AssetLoader::Serialize unimplemented");
   }
 
   bool AssetLoader::Load(const AssetMetadata& metadata , Ref<Asset>& asset) {
-    if (asset_loaders.find(metadata.type) != asset_loaders.end()) {
-      return asset_loaders[metadata.type]->Load(metadata , asset);
-    }
+    OE_ASSERT(false , "AssetLoader::Load unimplemented");
     return false;
   }
+
+  bool AssetLoader::TryLoad(const AssetMetadata& metadata , Ref<Asset>& asset) {
+    OE_ASSERT(false , "AssetLoader::TryLoad unimplemented");
+    return false;
+  } 
 
 
 

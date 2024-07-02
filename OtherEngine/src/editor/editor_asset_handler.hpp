@@ -20,19 +20,19 @@ namespace other {
 
       virtual AssetType GetAssetType(AssetHandle handle) override;
       virtual Ref<Asset> GetAsset(AssetHandle handle) override;
-      virtual void AddMemoryOnlyAsset(Ref<Asset> asset) override;
+      virtual void AddMemOnly(Ref<Asset> asset) override;
       virtual bool ReloadData(AssetHandle handle) override;
 
-      virtual bool IsAssetHandleValid(AssetHandle handle) override;
-      virtual bool IsMemoryAsset(AssetHandle handle) override;
-      virtual bool IsAssetLoaded(AssetHandle handle) override;
-      virtual bool IsAssetValid(AssetHandle handle) override;
-      virtual bool IsAssetMissing(AssetHandle handle) override;
+      virtual bool IsHandleValid(AssetHandle handle) override;
+      virtual bool IsMemOnly(AssetHandle handle) override;
+      virtual bool IsLoaded(AssetHandle handle) override;
+      virtual bool IsValid(AssetHandle handle) override;
+      virtual bool IsMissing(AssetHandle handle) override;
 
-      virtual void RemoveAsset(AssetHandle handle) override;
+      virtual void Remove(AssetHandle handle) override;
 
-      virtual AssetSet GetAllAssetsOfType(AssetType type) override;
-      virtual AssetMap& GetAllAssets() override;
+      virtual AssetSet GetAllOfType(AssetType type) override;
+      virtual AssetMap& GetAll() override;
 
     private:
       AssetMap assets;

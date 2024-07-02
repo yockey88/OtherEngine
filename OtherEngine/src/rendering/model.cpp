@@ -1,0 +1,182 @@
+/**
+ * \file rendering/model.cpp
+ **/
+#include "rendering/model.hpp"
+
+namespace other {
+
+  ModelSource::ModelSource(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, const glm::mat4& transform) {
+    handle = {};
+    
+    SubMesh submesh;
+    submesh.base_vertex = 0;
+    submesh.base_idx = 0;
+    submesh.idx_cnt = static_cast<uint32_t>(indices.size());
+    submesh.transform = transform;
+    sub_meshes.push_back(submesh);
+
+    BuildVertexBuffer(vertices);
+    index_buffer = Ref<VertexBuffer>::Create(indices.data() , vertices.size());
+  }
+
+  ModelSource::ModelSource(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, const std::vector<SubMesh>& submeshes) {
+    handle = {};
+    
+    BuildVertexBuffer(vertices);
+    index_buffer = Ref<VertexBuffer>::Create(indices.data() , vertices.size());
+
+    /// set submeshes
+  }
+
+  void ModelSource::DumpVertexBuffer() {
+    
+  }
+
+  const std::vector<Vertex>& ModelSource::Vertices() const {
+    return vertices;
+  }
+
+  const std::vector<Index>& ModelSource::Indices() const {
+    return indices;
+  }
+      
+  void ModelSource::BuildVertexBuffer(const std::vector<Vertex>& vertices) {
+    std::vector<float> real_verts;
+    for (auto& v : vertices) {
+      real_verts.push_back(v.position.x);
+      real_verts.push_back(v.position.y);
+      real_verts.push_back(v.position.z);
+
+      real_verts.push_back(v.color.x);
+      real_verts.push_back(v.color.y);
+      real_verts.push_back(v.color.z);
+
+      if (v.normal.has_value()) {
+        real_verts.push_back(v.normal.value().x);
+        real_verts.push_back(v.normal.value().y);
+        real_verts.push_back(v.normal.value().z);
+      } else {
+        real_verts.push_back(0);
+        real_verts.push_back(0);
+        real_verts.push_back(0);
+      }
+      
+      if (v.tangent.has_value()) {
+        real_verts.push_back(v.tangent.value().x);
+        real_verts.push_back(v.tangent.value().y);
+        real_verts.push_back(v.tangent.value().z);
+      } else {
+        real_verts.push_back(0);
+        real_verts.push_back(0);
+        real_verts.push_back(0);
+      }
+      
+      if (v.bitangent.has_value()) {
+        real_verts.push_back(v.bitangent.value().x);
+        real_verts.push_back(v.bitangent.value().y);
+        real_verts.push_back(v.bitangent.value().z);
+      } else {
+        real_verts.push_back(0);
+        real_verts.push_back(0);
+        real_verts.push_back(0);
+      }
+      
+      if (v.uv_coord.has_value()) {
+        real_verts.push_back(v.uv_coord.value().x);
+        real_verts.push_back(v.uv_coord.value().y);
+      } else {
+        real_verts.push_back(0);
+        real_verts.push_back(0);
+      }
+    }
+
+    vertex_buffer = Ref<VertexBuffer>::Create(real_verts.data() , real_verts.size());
+  }
+
+  Model::Model(Ref<ModelSource> model_source) 
+      : model_source(model_source) {
+    handle = {};
+
+    SetSubMeshes({});
+
+    /// build materials
+  }
+
+  Model::Model(Ref<ModelSource> model_src , const std::vector<uint32_t>& sub_meshes) 
+      : model_source(model_src) {
+    handle = {};
+
+    SetSubMeshes(sub_meshes);
+
+    /// build materials
+  }
+
+  Model::Model(const Ref<Model>& other) 
+      : model_source(other->model_source) /* materials */ {
+    SetSubMeshes(other->sub_meshes);
+  }
+  
+  const std::vector<uint32_t>& Model::SubMeshes() const {
+    return sub_meshes;
+  }
+
+  void Model::SetSubMeshes(const std::vector<uint32_t>& sms) {
+    sub_meshes = sms;
+  }
+
+  Ref<ModelSource> Model::GetModelSource() {
+    return Ref<ModelSource>::Clone(model_source);
+  }
+
+  Ref<ModelSource> Model::GetModelSource() const {
+    return Ref<ModelSource>::Clone(model_source);
+  }
+
+  void Model::SetModelAsset(Ref<ModelSource> mesh_src) {
+    /// idk
+  }
+  
+  StaticModel::StaticModel(Ref<ModelSource> model_source) 
+      : model_source(model_source) {
+    handle = {};
+
+    SetSubMeshes({});
+
+    /// build materials
+  }
+
+  StaticModel::StaticModel(Ref<ModelSource> model_src , const std::vector<uint32_t>& sub_meshes) 
+      : model_source(model_src) {
+    handle = {};
+
+    SetSubMeshes(sub_meshes);
+
+    /// build materials
+  }
+
+  StaticModel::StaticModel(const Ref<StaticModel>& other) 
+      : model_source(other->model_source) /* materials */ {
+    SetSubMeshes(other->sub_meshes);
+  }
+  
+  const std::vector<uint32_t>& StaticModel::SubMeshes() const {
+    return sub_meshes;
+  }
+
+  void StaticModel::SetSubMeshes(const std::vector<uint32_t>& sms) {
+    sub_meshes = sms;
+  }
+
+  Ref<ModelSource> StaticModel::GetModelSource() {
+    return Ref<ModelSource>::Clone(model_source);
+  }
+
+  Ref<ModelSource> StaticModel::GetModelSource() const {
+    return nullptr;
+  }
+
+  void StaticModel::SetModelAsset(Ref<ModelSource> mesh_src) {
+    /// idk
+  }
+
+} // namespace other

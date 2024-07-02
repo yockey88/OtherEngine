@@ -11,7 +11,7 @@ namespace other {
   static AssetMetadata null_metadata;
 
   AssetType EditorAssetHandler::GetAssetType(AssetHandle handle) {
-    if (IsAssetHandleValid(handle)) {
+    if (IsHandleValid(handle)) {
       return GetAsset(handle)->GetAssetType();
     }
     return AssetType::BLANK_ASSET;
@@ -20,40 +20,55 @@ namespace other {
   Ref<Asset> EditorAssetHandler::GetAsset(AssetHandle handle) {
     Ref<Asset> asset = nullptr;
 
-    if (IsMemoryAsset(handle)) {
+    if (IsMemOnly(handle)) {
       asset = memory_assets[handle];
     } else {
-      // auto& metadata = GetMetadata(handle);
-      // if (metadata.IsValid()) {
-      //   if (!metadata.loaded) {
-      //     LoadAsset(handle);
-      //   }
+      auto& metadata = GetMetadata(handle);
+      if (!metadata.IsValid()) {
+        OE_ERROR("Asset [{}] not valid!");
+        return nullptr;
+      }
 
-      // } else {
-      //   OE_ERROR("Asset not found: {0}" , handle);
-      // }
+      Ref<Asset> asset = nullptr;
+      if (!metadata.loaded) {
+        metadata.loaded = AssetLoader::TryLoad(metadata , asset);
+        LoadAsset(handle);
+        // loaded_assets[handle] = asset;
+      } else {
+        OE_ASSERT(false , "Asset loading not implemented yet");
+        /// asset = loaded_assets[handle];
+      }
     }
 
     return asset;
   }
 
-  void EditorAssetHandler::AddMemoryOnlyAsset(Ref<Asset> asset) {
-    if (asset) {
-      memory_assets[asset->asset_handle] = asset;
+  void EditorAssetHandler::AddMemOnly(Ref<Asset> asset) {
+    if (asset == nullptr) {
+      OE_ERROR("Attempting to add null memory-only asset!");
+      return;
     }
+
+    AssetMetadata metadata;
+    metadata.handle = asset->handle;
+    metadata.loaded = true;
+    metadata.type = asset->GetAssetType();
+    metadata.memory_asset = true;
+    registry[asset->handle] = metadata;
+    memory_assets[asset->handle] = asset;
   }
 
   bool EditorAssetHandler::ReloadData(AssetHandle handle) {
-    if (IsAssetHandleValid(handle)) {
+    if (IsHandleValid(handle)) {
     }
     return false;
   }
 
-  bool EditorAssetHandler::IsAssetHandleValid(AssetHandle handle) {
+  bool EditorAssetHandler::IsHandleValid(AssetHandle handle) {
     return assets.find(handle) != assets.end();
   }
 
-  bool EditorAssetHandler::IsMemoryAsset(AssetHandle handle) {
+  bool EditorAssetHandler::IsMemOnly(AssetHandle handle) {
     return memory_assets.find(handle) != memory_assets.end();
   }
 
@@ -71,8 +86,8 @@ namespace other {
   //  return false;
   //}
 
-  bool EditorAssetHandler::IsAssetMissing(AssetHandle handle) {
-    if (IsAssetHandleValid(handle)) {
+  bool EditorAssetHandler::IsMissing(AssetHandle handle) {
+    if (IsHandleValid(handle)) {
       return GetAsset(handle)->CheckFlag(AssetFlag::MISSING);
     }
     return false;
@@ -85,27 +100,27 @@ namespace other {
   //   return false;
   // }
 
-  bool EditorAssetHandler::IsAssetValid(AssetHandle handle) {
-    if (IsAssetHandleValid(handle)) {
+  bool EditorAssetHandler::IsValid(AssetHandle handle) {
+    if (IsHandleValid(handle)) {
       return GetAsset(handle)->IsValid();
     }
     return false;
   }
   
-  bool EditorAssetHandler::IsAssetLoaded(AssetHandle handle) {
-    if (IsAssetHandleValid(handle)) {
+  bool EditorAssetHandler::IsLoaded(AssetHandle handle) {
+    if (IsHandleValid(handle)) {
       return assets[handle]->CheckFlag(AssetFlag::ASSET_LOADED);
     }
     return false;
   }
 
-  void EditorAssetHandler::RemoveAsset(AssetHandle handle) {
-    if (IsAssetHandleValid(handle)) {
+  void EditorAssetHandler::Remove(AssetHandle handle) {
+    if (IsHandleValid(handle)) {
       assets.erase(assets.find(handle));
     }
   }
 
-  AssetSet EditorAssetHandler::GetAllAssetsOfType(AssetType type) {
+  AssetSet EditorAssetHandler::GetAllOfType(AssetType type) {
     AssetSet result;
     for (auto& asset : assets) {
       if (asset.second->GetAssetType() == type) {
@@ -115,14 +130,14 @@ namespace other {
     return result;
   }
 
-  AssetMap& EditorAssetHandler::GetAllAssets() {
+  AssetMap& EditorAssetHandler::GetAll() {
     return assets;
   }
 
   Ref<Asset> EditorAssetHandler::FindAsset(AssetHandle handle) {
     Ref<Asset> asset = nullptr;
 
-    if (IsMemoryAsset(handle)) {
+    if (IsMemOnly(handle)) {
       asset = memory_assets[handle];
       return asset;
     } 

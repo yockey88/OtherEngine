@@ -28,10 +28,12 @@
 #include "physics/phyics_engine.hpp"
 
 namespace other {
+namespace {
+
+} /// anonymous namespace
 
   App::App(Engine* engine) 
-    :  cmdline(engine->cmd_line) , config(engine->config) , engine_handle(engine) {
-  }
+      : engine_handle(engine) , cmdline(engine->cmd_line) , config(engine->config) {}
 
   App::~App() {}
       
@@ -41,72 +43,21 @@ namespace other {
 
   void App::Load() {
     OE_DEBUG("Loading application");
-
-    project_metadata = Ref<Project>::Create(cmdline , config);
+    
+    OE_DEBUG("Loading Core Systems");
 
     layer_stack = NewScope<LayerStack>();
-    
+
+    project_metadata = Ref<Project>::Create(cmdline , config);
     if (is_editor) {
-      asset_handler = NewScope<EditorAssetHandler>();
+      asset_handler = NewRef<EditorAssetHandler>();
       /// register editor console sink
     } else {
-      asset_handler = NewScope<RuntimeAssetHandler>();
+      asset_handler = NewRef<RuntimeAssetHandler>();
     }
 
     scene_manager = NewScope<SceneManager>();
-
-    {
-      Ref<Layer> core_layer = NewRef<CoreLayer>(this);
-      PushLayer(core_layer);
-    }
-
-    auto debug = config.GetVal<bool>(kProjectSection , kDebugValue);
-    if (debug.has_value() && debug.value()) {
-      OE_DEBUG("Pushing debug layer");
-
-      Ref<Layer> debug_layer = NewRef<DebugLayer>(this);
-      PushLayer(debug_layer);
-    }
-    
-    ScriptEngine::SetAppContext(this);
-    ScriptEngine::Initialize(GetEngine() , config);
-
-    OE_DEBUG("Loading C# script modules");
-    Ref<LanguageModule> cs_language_module = ScriptEngine::GetModule(CS_MODULE);
-    if (cs_language_module != nullptr) {
-      std::string real_key = std::string{ kScriptingSection } + "." + std::string{ kCsModuleSection };
-      auto cs_modules = config.Get(real_key , kPathsValue);
-    
-      auto project_path = project_metadata->GetMetadata().file_path.parent_path();
-      for (const auto& cs_mod : cs_modules) {
-        Path path = project_path / "bin" / "Debug" / cs_mod; 
-        std::string name = path.filename().string().substr(0 , path.filename().string().find_last_of('.'));
-
-        cs_language_module->LoadScriptModule({
-          .name = name ,
-          .paths = { path.string() } ,
-        });    
-      }
-    }
-
-    OE_DEBUG("Loading Lua script modules");
-    Ref<LanguageModule> lua_language_module = ScriptEngine::GetModule(LUA_MODULE);
-    if (lua_language_module != nullptr) {
-      std::string real_key = std::string{ kScriptingSection } + "." + std::string{ kLuaModuleSection };
-      auto lua_modules = config.Get(real_key , kPathsValue);
-
-      auto assets_path = project_metadata->GetMetadata().assets_dir;
-      for (const auto& lua_mod : lua_modules) {
-        Path path = assets_path / "scripts" / lua_mod;
-        std::string name = path.filename().string().substr(0 , path.filename().string().find_last_of('.'));
-
-        lua_language_module->LoadScriptModule({
-          .name = name ,
-          .paths = { path.string() } ,
-        });
-      }
-    }
-
+ 
     OnLoad();
   }
 
@@ -115,7 +66,7 @@ namespace other {
 
     time::DeltaTime delta_time;
     delta_time.Start();
-    while (!GetEngine()->exit_code.has_value()) {
+    while (!GetEngine()->ShouldQuit()) {
       float dt = delta_time.Get();
       
       // updates mouse/keyboard/any connected controllers
@@ -157,51 +108,14 @@ namespace other {
 
     OnUnload();
     
+    scene_manager = nullptr;
     asset_handler = nullptr;
-
-    layer_stack->Clear(); 
     layer_stack = nullptr;
 
     if (is_editor) {
       OE_DEBUG(" > Editor unloaded");
       return;
     }
-    
-    OE_DEBUG("Unloading Lua script modules");
-    Ref<LanguageModule> lua_language_module = ScriptEngine::GetModule(LUA_MODULE);
-    if (lua_language_module != nullptr) {
-      std::string real_key = std::string{ kScriptingSection } + "." + std::string{ kLuaModuleSection };
-      auto lua_modules = config.Get(real_key , kPathsValue);
-
-      for (const auto& lua_mod : lua_modules) {
-        Path path = lua_mod;
-        std::string name = path.filename().string().substr(0 , path.filename().string().find_last_of('.'));
-
-        lua_language_module->UnloadScriptModule(name);
-      }
-    } else {
-      OE_ERROR("Failed to load lua script modules!");
-    }
-    
-    OE_DEBUG("Unloading C# script modules");
-    Ref<LanguageModule> cs_language_module = ScriptEngine::GetModule(CS_MODULE);
-    if (cs_language_module != nullptr) {
-      std::string real_key = std::string{ kScriptingSection } + "." + std::string{ kCsModuleSection };
-      auto cs_modules = config.Get(real_key , kPathsValue);
-    
-      for (const auto& cs_mod : cs_modules) {
-        Path path = cs_mod;
-        std::string name = path.filename().string().substr(0 , path.filename().string().find_last_of('.'));
-
-        OE_DEBUG(" > Unloading C# script module {}" , name);
-        cs_language_module->UnloadScriptModule(name);
-      }
-    } else {
-      OE_ERROR("Failed to load C# script modules!");
-    }
-
-    OE_DEBUG("Shutting down script engine");
-    ScriptEngine::Shutdown();
 
     OE_DEBUG(" > Application unloaded");
   }
@@ -403,8 +317,18 @@ namespace other {
 
   void App::Attach() {
     OE_DEBUG("Attaching application");
-    for (auto itr = layer_stack->begin(); itr != layer_stack->end(); ++itr) {
-      (*itr)->Attach();
+    OE_DEBUG("Pushing Core Layers");
+    {
+      Ref<Layer> core_layer = NewRef<CoreLayer>(this);
+      PushLayer(core_layer);
+    }
+
+    auto debug = config.GetVal<bool>(kProjectSection , kDebugValue);
+    if (debug.has_value() && debug.value()) {
+      OE_DEBUG("Pushing debug layer");
+
+      Ref<Layer> debug_layer = NewRef<DebugLayer>(this);
+      PushLayer(debug_layer);
     }
     
     OnAttach();

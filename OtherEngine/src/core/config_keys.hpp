@@ -316,6 +316,24 @@ namespace other {
   constexpr static std::string_view kFrictionValue = "FRICTION";
   constexpr static uint64_t kFrictionValueHash = FNV(kFrictionValue);
 
+  constexpr static std::string_view kMeshValue = "MESH";
+  constexpr static uint64_t kMeshValueHash = FNV(kMeshValue);
+  
+  constexpr static std::string_view kVisibleValue = "VISIBLE";
+  constexpr static uint64_t kVisibleValueHash = FNV(kVisibleValue);
+  
+  constexpr static std::string_view kHandleValue = "HANDLE";
+  constexpr static uint64_t kHandleValueHash = FNV(kHandleValue);
+  
+  constexpr static std::string_view kStaticMeshValue = "STATIC-MESH";
+  constexpr static uint64_t kStaticMeshValueHash = FNV(kStaticMeshValue);
+  
+  constexpr static std::string_view kIsPrimitiveValue = "IS-PRIMITIVE";
+  constexpr static uint64_t kIsPrimitiveValueHash = FNV(kIsPrimitiveValue);
+  
+  constexpr static std::string_view kPrimitiveValue = "PRIMITIVE";
+  constexpr static uint64_t kPrimitiveValueHash = FNV(kPrimitiveValue);
+
 } // namespace other 
 
 #endif // !OTHER_ENGINE_CONFIG_KEYS_HPP

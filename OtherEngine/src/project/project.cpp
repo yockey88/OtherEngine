@@ -94,12 +94,15 @@ namespace {
     Path editor_path = metadata.assets_dir / kEditorDirName;
     Path scripts_path = metadata.assets_dir / kScriptsDirName;
 
+    OE_DEBUG("Creating Directory Watchers for Reloading");
+
     metadata.cs_editor_watcher = NewScope<DirectoryWatcher>(editor_path.string() , ".cs");
     metadata.cs_scripts_watcher = NewScope<DirectoryWatcher>(scripts_path.string() , ".cs");
     
     metadata.lua_editor_watcher = NewScope<DirectoryWatcher>(editor_path.string() , ".lua");
     metadata.lua_scripts_watcher = NewScope<DirectoryWatcher>(scripts_path.string() , ".lua");
 
+    OE_DEBUG("Creating Script Watches");
     CreateScriptWatchers();
   }
 

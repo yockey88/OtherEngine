@@ -6,9 +6,10 @@
 #include <fstream>
 
 #include "core/logger.hpp"
-#include "application/app.hpp"
+
+#include "application/app_state.hpp"
+
 #include "scripting/script_defines.hpp"
-#include "scripting/script_engine.hpp"
 #include "rendering/ui/ui_helpers.hpp"
 
 #include "editor/script_editor.hpp"
@@ -60,7 +61,6 @@ namespace other {
         WriteSource();
         OE_ASSERT(path.has_value() , "Did not assign path value after writing script source!");
         
-        auto app_ctx = ScriptEngine::GetAppContext();
         auto script_editor = NewRef<ScriptEditor>(name);
         script_editor->AddEditor({
           .object_id = FNV(name) ,
@@ -71,7 +71,7 @@ namespace other {
         }, path.value().string());
 
         OE_DEBUG("Pushing script editor");
-        app_ctx->PushUIWindow(script_editor);
+        AppState::PushUIWindow(script_editor);
         
         Close();
       }
@@ -110,7 +110,7 @@ namespace other {
 
     source = ss.str();
           
-    auto project = ScriptEngine::GetAppContext()->GetProjectContext();
+    auto project = AppState::ProjectContext();
     auto dir = (editor_script) ?
       "editor" : "scripts";
     std::string script_path = (project->GetMetadata().assets_dir / dir).string();

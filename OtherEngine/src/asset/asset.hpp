@@ -24,7 +24,7 @@ namespace other {
       virtual bool operator==(const Asset& other) const;
       virtual bool operator!=(const Asset& other) const;
 
-      AssetHandle asset_handle = 0;
+      AssetHandle handle = 0;
       uint16_t flags = AssetFlag::NO_ASSET_FLAGS;
 
     private:
@@ -36,6 +36,9 @@ namespace other {
       friend class EditorAssetHandler;
       friend class RuntimeAssetHandler;
   };
+
+  template <typename T>
+  concept asset_t = std::is_base_of<Asset , T>::value;
 
 } // namespace other
 
