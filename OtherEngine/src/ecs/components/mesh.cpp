@@ -31,7 +31,7 @@ namespace other {
   }
   
   void StaticMeshSerializer::Serialize(std::ostream& stream , Entity* entity , const Ref<Scene>& scene) const {
-    SerializeComponentSection(stream , entity , "mesh");
+    SerializeComponentSection(stream , entity , "static-mesh");
     /// need to retrieve the path from the asset handler, this is temporary
     auto& mesh = entity->GetComponent<StaticMesh>();
     SerializeValue(stream , "handle" , mesh.handle);

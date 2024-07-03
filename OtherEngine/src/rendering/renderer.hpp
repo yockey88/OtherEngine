@@ -6,16 +6,16 @@
 
 #include <array>
 #include <span>
+#include <queue>
 
 #include "core/ref.hpp"
 #include "scene/scene.hpp"
-#include "rendering/vertex.hpp"
+
 #include "rendering/window.hpp"
 #include "rendering/camera_base.hpp"
 #include "rendering/framebuffer.hpp"
-#include "rendering/render_batch.hpp"
-#include "rendering/primitives.hpp"
-#include "rendering/color.hpp"
+
+#include "rendering/model.hpp"
 
 namespace other {
 
@@ -24,10 +24,6 @@ namespace other {
   constexpr static uint32_t kTriangleBatchIndex = 1;
   constexpr static uint32_t kRectBatchIndex = 2;
   
-  void CheckGlError(const char* file , int line);
-
-  #define CHECKGL() do { other::CheckGlError(__FILE__ , __LINE__); } while (false)
-
   struct RenderData {
     /// global data
     Scope<Window> window;
@@ -41,8 +37,22 @@ namespace other {
     Ref<Scene> scene_ctx;
     Ref<CameraBase> active_camera;
 
-    std::vector<Batch> scene_batches = {};
-    std::array<Batch , kNumPrimitives> primitive_batches = {};
+    std::queue<StaticModel> model_queue;
+  };
+
+  struct UniformBuffer {
+    UUID hash;
+    std::string name;
+    /// DataType type;
+  };
+
+  struct RenderPass {
+  };
+  
+  class Pipeline {
+    Ref<CameraBase> frame_viewpoint;
+    Ref<Framebuffer> target = nullptr;
+    std::map<UUID , RenderPass> passes;
   };
 
   class Renderer {
@@ -54,6 +64,7 @@ namespace other {
 
       static void BeginFrame();
 
+      /*
       static void DrawLine(const Point& start , const Point& end , const RgbColor& color);
       static void DrawLine(const Vertex& start , const Vertex& end);
       static void DrawLine(const Line& line , const RgbColor& color);
@@ -66,7 +77,8 @@ namespace other {
       static void DrawRect(const std::span<Vertex , 4>& corners);
       static void DrawRect(const Rect& rect , const RgbColor& color);
 
-      /*
+      static void DrawStaticModel(Ref<StaticModel> cube_model);
+
       static void DrawCube(const Point& position , const glm::vec3& half_extents);
       static void DrawCube(const std::span<Vertex , 8>& corners);
       static void DrawCube(const Cube& cube , const RgbColor& color);
@@ -81,8 +93,6 @@ namespace other {
 
       static void DrawCylinder(const Cylinder& cylinder , const RgbColor& color);
       */
-
-      static void DrawVertices(const std::span<Vertex>& vertices);
 
       static void EndFrame();
       static void SwapBuffers();
@@ -102,12 +112,13 @@ namespace other {
     private:
       static RenderData render_data;
 
-      static void WriteVertexToBatch(Batch& batch , const Vertex& vert);
+      // static void WriteVertexToBatch(Batch& batch , const Vertex& vert);
       static void WriteRectIndices();
 
-      static void RenderBatch(Batch& batch);
-
-      static void CreateRenderBatch(const BatchData& data , uint32_t idx , bool internal = false);
+      // static void RenderBatch(Batch& batch);
+      
+      // static void CreateRenderBatch(const BatchData& data , uint32_t idx , bool internal = false);
+      // static Batch CreateRenderBatch(const BatchData& data);
 
       static void CreatePrimitiveBatches();
       static void DestroyPrimitiveBatches();

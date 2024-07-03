@@ -25,6 +25,7 @@ namespace other {
       bool Empty() const { return assets.empty(); }
       void Clear() { assets.clear(); }
 
+      auto find(AssetHandle handle) { return assets.find(handle); }
       auto begin() { return assets.begin(); }
       auto end() { return assets.end(); }
       auto cbegin() const { return assets.cbegin(); }

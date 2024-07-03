@@ -444,21 +444,23 @@ namespace other {
       "Empty" , "Cube" , "Sphere" , "Capsule"
     };
 
-    if (ui::PropertyDropdown("Primitive Meshes" , options, 4 , mesh.primitive_selection)) {
-      /// set mesh to correct one 
-    }
-    
-    ImGui::SameLine();
+    if (ui::PropertyDropdown("Primitive Meshes" , options, 4 , mesh.primitive_selection)) {}
 
-    if (mesh.primitive_selection != mesh.primitive_id && mesh.primitive_selection != 0 &&
-        ImGui::Button("Confirm Change")) {
+    if (mesh.primitive_id != mesh.primitive_selection && ImGui::Button("Confirm Change")) {
+      bool change = false;
       switch (mesh.primitive_selection) {
         case 1:
         case 2:
+          OE_WARN("Assigning cube until implementations for others available!");
+          [[ fallthrough ]];
         case 3: {
-          OE_INFO("Assigning cube until implementations for others available!");
           auto& scale = ent->ReadComponent<Transform>().scale;
           mesh.handle = ModelFactory::CreateBox(scale);
+          if (mesh.handle == 0) {
+            OE_ERROR("Failed to Create Cube Static Mesh");
+          } else {
+            change = true; 
+          }
         } break;
         case 0:
         default:
@@ -466,18 +468,22 @@ namespace other {
           break;
       }
 
-      mesh.primitive_id = mesh.primitive_selection;
+      if (change) {
+        mesh.primitive_id = mesh.primitive_selection;
+        if (mesh.primitive_id != 0) {
+          mesh.is_primitive = true;
+        }
+      }
     }
 
-    if (mesh.handle == 0) {
-      mesh.primitive_id = 0;
+    if (mesh.primitive_id == 0) {
       return;
     }
       
     bool valid = AppState::Assets()->IsHandleValid(mesh.handle);
     if (!valid) {
       ScopedColor red_text(ImGuiCol_Text , ui::theme::red);
-      ImGui::Text("Static Mesh handle [{}] invalid");
+      ImGui::Text("Static Mesh handle [%lld] invalid" , mesh.handle.Get());
       return;
     }
 

@@ -195,8 +195,6 @@ namespace other {
   }
 
   void OE::Launch() {
-    engine = Engine::Create(cmd_line , current_config , config_path.string());
-
     IO::Initialize();
     EventQueue::Initialize(current_config);
     Renderer::Initialize(current_config);
@@ -206,6 +204,8 @@ namespace other {
 
   ExitCode OE::Run() {
     bool should_quit = false;
+
+    engine = Engine::Create(cmd_line, current_config, config_path.string());
 
     do {
       engine_unloaded = false;
@@ -235,8 +235,6 @@ namespace other {
           break;
         case ExitCode::LOAD_NEW_PROJECT:
         case ExitCode::RELOAD_PROJECT:
-          /// TODO: there is a better way to do this
-          
           /// Full Shutdown
           Shutdown();
           CoreShutdown();

@@ -30,6 +30,9 @@ namespace other {
     AssetHandle(uint64_t uid) {
       id = uid;
     }
+
+    AssetHandle(UUID id) 
+      : id(id) {}
   };
 
   inline bool operator==(const AssetHandle& lhs , const AssetHandle& rhs) {

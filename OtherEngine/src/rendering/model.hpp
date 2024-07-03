@@ -77,6 +77,9 @@ namespace other {
 
       virtual ~ModelSource() {}
 
+      std::vector<SubMesh>& SubMeshes();
+      const std::vector<SubMesh>& SubMeshes() const;
+
       void DumpVertexBuffer();
 
       const std::vector<Vertex>& Vertices() const;
@@ -85,6 +88,7 @@ namespace other {
       std::vector<SubMesh> sub_meshes;
 
     private:
+      std::vector<SubMesh> submeshes;
 
       Ref<VertexBuffer> vertex_buffer;
       Ref<VertexBuffer> index_buffer;

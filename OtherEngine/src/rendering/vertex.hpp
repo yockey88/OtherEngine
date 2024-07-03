@@ -4,44 +4,23 @@
 #include <cstdint>
 #include <vector>
 
-#include <glad/glad.h>
-
 #include "core/defines.hpp"
 #include "core/ref_counted.hpp"
 
 #include "math/vecmath.hpp"
+
+#include "rendering/rendering_defines.hpp"
 #include "rendering/color.hpp"
 
 namespace other {
 
-  enum BufferUsage {
-    STATIC_DRAW = GL_STATIC_DRAW ,
-    DYNAMIC_DRAW = GL_DYNAMIC_DRAW ,
-    STREAM_DRAW = GL_STREAM_DRAW ,
-  };
-  
-  enum BufferType {
-    ARRAY_BUFFER = GL_ARRAY_BUFFER ,
-    ELEMENT_ARRAY_BUFFER = GL_ELEMENT_ARRAY_BUFFER ,
-  };
-
-  enum DrawMode {
-    TRIANGLES = GL_TRIANGLES ,
-    TRIANGLE_STRIP = GL_TRIANGLE_STRIP ,
-    TRIANGLE_FAN = GL_TRIANGLE_FAN ,
-    LINES = GL_LINES ,
-    LINE_STRIP = GL_LINE_STRIP ,
-    LINE_LOOP = GL_LINE_LOOP ,
-    POINTS = GL_POINTS ,
-  };
-
   struct Vertex {
-    Point position;
-    RgbColor color;
-    Opt<glm::vec3> normal = std::nullopt;
-    Opt<glm::vec3> tangent = std::nullopt;
-    Opt<glm::vec3> bitangent = std::nullopt;
-    Opt<glm::vec2> uv_coord = std::nullopt;
+    Point position{ 0.f , 0.f , 0.f };
+    RgbColor color{ 0.f , 0.f , 0.f };
+    glm::vec3 normal{ 0.f , 0.f , 0.f };
+    glm::vec3 tangent{ 0.f , 0.f , 0.f };
+    glm::vec3 bitangent{ 0.f , 0.f , 0.f };
+    glm::vec2 uv_coord{ 0.f , 0.f };
 
     /// DO NOT FORGET TO CHANGE BOTH OF THESE FUNCTIONS IF YOU CHANGE ONE
     constexpr static std::vector<uint32_t> Layout() {

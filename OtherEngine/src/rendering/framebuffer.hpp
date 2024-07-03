@@ -6,17 +6,20 @@
 
 #include <cstdint>
 
+#include <glm/glm.hpp>
+
 #include "core/ref_counted.hpp"
-#include "rendering/vertex.hpp"
+
+#include "rendering/rendering_defines.hpp"
 
 namespace other {
 
   class Framebuffer : public RefCounted {
     public:
       Framebuffer();
+      Framebuffer(const FramebufferSpec& spec);
       ~Framebuffer();
 
-      uint32_t Texture() const;
       bool Valid() const;
 
       void Resize(const glm::vec2& size);
@@ -25,21 +28,24 @@ namespace other {
       void UnbindFrame();
 
       void Draw() const;
+      
+      uint32_t depth_attachment = 0;
+      uint32_t color_attachment = 0;
+
+      uint32_t texture = 0;
 
     private:
-      glm::vec2 size;
-
       uint32_t fbo = 0;
       uint32_t rbo = 0;
       uint32_t framebuffer = 0;
 
       uint32_t intermediate_fbo = 0;
 
-      uint32_t color_attachment = 0;
-
       bool fb_complete = false;
 
-      Scope<VertexArray> mesh = nullptr;
+      uint32_t clear_flags = 0;
+
+      FramebufferSpec spec = {};
 
       void CreateFramebuffer();
       void DestroyFramebuffer();

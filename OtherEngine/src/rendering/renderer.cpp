@@ -10,43 +10,6 @@
 
 namespace other {
 
-  void CheckGlError(const char* file , int line) {
-    GLenum err = glGetError();
-    while (err != GL_NO_ERROR) {
-      switch (err) {
-        case GL_INVALID_ENUM: 
-          OE_ERROR("OpenGL Error INVALID_ENUM : [{} | {}]" , file , line);
-        break;
-        case GL_INVALID_VALUE:
-          OE_ERROR("OpenGL Error INVALID_VALUE : [{} | {}]" , file , line);
-        break;
-        case GL_INVALID_OPERATION:
-          OE_ERROR("OpenGL Error INVALID_OPERATION : [{} | {}]" , file , line);
-        break;
-        case GL_STACK_OVERFLOW:
-          OE_ERROR("OpenGL Error STACK_OVERFLOW : [{} | {}]" , file , line);
-        break;
-        case GL_STACK_UNDERFLOW:
-          OE_ERROR("OpenGL Error STACK_UNDERFLOW : [{} | {}]" , file , line);
-        break;
-        case GL_OUT_OF_MEMORY:
-          OE_ERROR("OpenGL Error OUT_OF_MEMORY : [{} | {}]" , file , line);
-        break;
-        case GL_INVALID_FRAMEBUFFER_OPERATION:
-          OE_ERROR("OpenGL Error INVALID_FRAMEBUFFER_OPERATION : [{} | {}]" , file , line);
-        break;
-        case GL_CONTEXT_LOST:
-          OE_ERROR("OpenGL Error CONTEXT_LOST : [{} | {}]" , file , line);
-        break;
-        case GL_TABLE_TOO_LARGE:
-          OE_ERROR("OpenGL Error TABLE_TOO_LARGE : [{} | {}]" , file , line);
-        break;
-        default: break;
-      }
-      err = glGetError();
-    }
-  }
-
   RenderData Renderer::render_data;
 
   void Renderer::Initialize(const ConfigTable& config) {
@@ -58,33 +21,9 @@ namespace other {
 
     render_data.window = std::move(win_res.Unwrap());
     render_data.frame = Ref<Framebuffer>::Create();
-    CreatePrimitiveBatches();
   }
       
   void Renderer::SetSceneContext(const Ref<Scene>& scene) {
-    render_data.scene_ctx = scene;
-    
-    DestroyBatches();
-    
-    CHECKGL();
-
-    if (render_data.scene_ctx == nullptr) {
-      return;
-    }
-    
-    const auto batch_data = scene->GetRenderBatchData();
-    render_data.scene_batches.resize(batch_data.size());
-  
-    uint32_t batch_idx = 0;
-    for (auto& bd : batch_data) {
-      CreateRenderBatch(bd , batch_idx);
-      ++batch_idx;
-    }
-    
-    CHECKGL();
-
-    /// unbind all
-    glBindVertexArray(0);
   }
   
   void Renderer::BindCamera(Ref<CameraBase>& camera) {
@@ -92,10 +31,13 @@ namespace other {
   }
 
   void Renderer::BeginFrame() {
-    render_data.frame->BindFrame();
-    render_data.window->Clear();
+    // render_data.window->Clear();
+    // render_data.frame->BindFrame();
+
+    CHECKGL();
   }
   
+#if 0
   void Renderer::DrawLine(const Point& start , const Point& end , const RgbColor& color) {
     Vertex s , e;
     s.position = start;
@@ -203,22 +145,16 @@ namespace other {
   void Renderer::DrawRect(const Rect& rect , const RgbColor& color) {
     DrawRect(rect.position , rect.half_extents , color);    
   }
-
-  void Renderer::DrawVertices(const std::span<Vertex>& vertices) {
+      
+  void Renderer::DrawStaticModel(Ref<StaticModel> cube_model) {
+     
   }
 
+#endif
+
   void Renderer::EndFrame() {
-    for (auto& batch : render_data.primitive_batches) {
-      RenderBatch(batch);
-    }
-
-    for (auto& batch : render_data.scene_batches) {
-      RenderBatch(batch);
-    }
-
+    // render_data.frame->UnbindFrame();
     CHECKGL();
-
-    render_data.frame->UnbindFrame();
   }
       
   void Renderer::SwapBuffers() {
@@ -266,6 +202,7 @@ namespace other {
     render_data.window->SetClearColor(color); 
   }
 
+#if 0
   void Renderer::WriteVertexToBatch(Batch& batch , const Vertex& vert) {
     batch.vertices.push_back(vert.position.x);
     batch.vertices.push_back(vert.position.y);
@@ -313,65 +250,59 @@ namespace other {
       batch.vertices.push_back(0);
     }
   }
-      
+#endif 
+
   void Renderer::WriteRectIndices() {
-    uint32_t start_index = render_data.primitive_batches[kRectBatchIndex].vertices.size();
-    
-    render_data.primitive_batches[kRectBatchIndex].indices.push_back(start_index);
-    render_data.primitive_batches[kRectBatchIndex].indices.push_back(start_index + 1);
-    render_data.primitive_batches[kRectBatchIndex].indices.push_back(start_index + 3);
-    render_data.primitive_batches[kRectBatchIndex].indices.push_back(start_index + 1);
-    render_data.primitive_batches[kRectBatchIndex].indices.push_back(start_index + 2);
-    render_data.primitive_batches[kRectBatchIndex].indices.push_back(start_index + 3);
   }
-      
+
+#if 0
   void Renderer::RenderBatch(Batch& batch) {
     /// display some sort of text to screen about no camera to use
-    if (render_data.active_camera == nullptr) {
-      return;
-    }
-    
-    if (batch.corrupt || batch.vertices.size() == 0) {
-      return;
-    }
-
-
-    if (batch.shader == nullptr || batch.vertex_buffer == nullptr || 
-        (batch.has_indices && batch.index_buffer == nullptr)) { 
-      batch.corrupt = true;
-      return;
-    } 
-    
-    const glm::mat4& camera_matrix = render_data.active_camera->GetMatrix();
-
-    batch.shader->Bind();
-    batch.shader->SetUniform("ucamera" , camera_matrix);
-    
-    batch.vertex_buffer->Bind();
-    batch.vertex_buffer->BufferData(batch.vertices.data() , batch.vertices.size() * sizeof(float));
-    
-    /// 
-    // if (batch.has_indices && batch.index_buffer != nullptr) {
-    //   batch.index_buffer->Bind();
-    //   batch.index_buffer->BufferData(batch.indices.data() , batch.indices.size() * sizeof(uint32_t));
+    // if (render_data.active_camera == nullptr) {
+    //   return;
+    // }
+    // 
+    // if (batch.corrupt || batch.vertices.size() == 0) {
+    //   return;
     // }
 
-    glBindVertexArray(batch.renderer_id);
-    if (batch.has_indices) {
-      // glDrawElements(batch.draw_mode , batch.indices.size() , GL_UNSIGNED_INT , 0);
-    } else {
-      glDrawArrays(batch.draw_mode , 0 , batch.vertices.size() / batch.stride);
-    }
 
-    batch.vertex_buffer->ClearBuffer();
-    batch.vertices.clear();
-    batch.indices.clear();
-    
-    if (batch.index_buffer != nullptr) {
-      batch.index_buffer->ClearBuffer();
-    }
+    // if (batch.shader == nullptr || batch.vertex_buffer == nullptr || 
+    //     (batch.has_indices && batch.index_buffer == nullptr)) { 
+    //   batch.corrupt = true;
+    //   return;
+    // } 
+    // 
+    // const glm::mat4& camera_matrix = render_data.active_camera->GetMatrix();
+
+    // batch.shader->Bind();
+    // batch.shader->SetUniform("ucamera" , camera_matrix);
+    // 
+    // batch.vertex_buffer->Bind();
+    // batch.vertex_buffer->BufferData(batch.vertices.data() , batch.vertices.size() * sizeof(float));
+    // 
+    // /// 
+    // // if (batch.has_indices && batch.index_buffer != nullptr) {
+    // //   batch.index_buffer->Bind();
+    // //   batch.index_buffer->BufferData(batch.indices.data() , batch.indices.size() * sizeof(uint32_t));
+    // // }
+
+    // glBindVertexArray(batch.renderer_id);
+    // if (batch.has_indices) {
+    //   // glDrawElements(batch.draw_mode , batch.indices.size() , GL_UNSIGNED_INT , 0);
+    // } else {
+    //   glDrawArrays(batch.draw_mode , 0 , batch.vertices.size() / batch.stride);
+    // }
+
+    // batch.vertex_buffer->ClearBuffer();
+    // batch.vertices.clear();
+    // batch.indices.clear();
+    // 
+    // if (batch.index_buffer != nullptr) {
+    //   batch.index_buffer->ClearBuffer();
+    // }
   }
-      
+
   void Renderer::CreateRenderBatch(const BatchData& data , uint32_t idx , bool internal) {
     auto& batch = internal ? 
       render_data.primitive_batches[idx] : 
@@ -402,64 +333,21 @@ namespace other {
       attr_count++;
       offset += attr;
     }
-
-    batch.shader = NewScope<Shader>(data.vertex_shader , data.fragment_shader , data.geometry_shader);
-    if (!batch.shader->IsValid()) {
-      OE_ERROR("Render batch corrupted! Shader is invalid: \n  {}\n  {}\n  {}" ,
-                data.vertex_shader , data.fragment_shader , 
-                data.geometry_shader.has_value() ? 
-                  data.geometry_shader.value() : "No geometry");
-      batch.corrupt = true;
-    }
   }
+      
+  Batch Renderer::CreateRenderBatch(const BatchData& data) {
+
+    return Batch{}; 
+  }
+#endif
 
   void Renderer::CreatePrimitiveBatches() {
-    /// <Install-Directory>/OtherEngine/assets
-    Path engine_core = Filesystem::GetEngineCoreDir() / "OtherEngine";
-    Path default_vert = engine_core / "assets" / "shaders" / "default.vert"; 
-    Path default_frag = engine_core / "assets" / "shaders" / "default.frag"; 
-
-    bool internal = true;
-    BatchData primitive_batch {
-      .buffer_cap = 2 * 1000 * sizeof(float) * Vertex::Stride() , 
-      .buffer_layout = Vertex::Layout() ,
-      .vertex_shader = default_vert , 
-      .fragment_shader = default_frag 
-    };
-
-    CreateRenderBatch(primitive_batch , kLineBatchIndex , internal);
-    render_data.primitive_batches[kLineBatchIndex].draw_mode = DrawMode::LINES;
-    
-    primitive_batch.buffer_cap = 3 * 1000 * sizeof(float) * Vertex::Stride();
-    CreateRenderBatch(primitive_batch , kTriangleBatchIndex , internal);
-
-    // primitive_batch.has_indices = true;
-    primitive_batch.buffer_cap = 4 * 1000 * sizeof(float) * Vertex::Stride();
-    CreateRenderBatch(primitive_batch , kRectBatchIndex , internal);
   }
 
   void Renderer::DestroyPrimitiveBatches() {
-    for (auto& b : render_data.primitive_batches) {
-      /// force destruction before clearing
-      b.corrupt = false;
-      b.index_buffer = nullptr; 
-      b.vertex_buffer = nullptr; 
-      glDeleteVertexArrays(1 , &b.renderer_id);
-      b.renderer_id = 0;
-      b = Batch{};
-    }
   }
       
   void Renderer::DestroyBatches() {
-    for (auto& b : render_data.scene_batches) {
-      b.corrupt = false;
-      b.index_buffer = nullptr; 
-      b.vertex_buffer = nullptr; 
-      glDeleteVertexArrays(1 , &b.renderer_id);
-      b.renderer_id = 0;
-      b = Batch{};
-    }
-    render_data.scene_batches.clear();
   }
 
 } // namespace other

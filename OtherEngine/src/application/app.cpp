@@ -64,6 +64,8 @@ namespace {
   void App::Run() {
     Attach();
 
+    CHECKGL();
+
     time::DeltaTime delta_time;
     delta_time.Start();
     while (!GetEngine()->ShouldQuit()) {
@@ -71,7 +73,6 @@ namespace {
       
       // updates mouse/keyboard/any connected controllers
       IO::Update();
-      CHECKGL();
 
       if (Renderer::IsWindowFocused()) {
         DoEarlyUpdate(dt); 
@@ -89,13 +90,26 @@ namespace {
         DoUpdate(dt);
         DoLateUpdate(dt);
       }
+
+      /// TODO: redo rendering stage
+      ///   ideal workflow:
+      ///     RenderPass pass1 = ...
+      ///     Renderer::RenderFrame({ camera , framebuffer , pass1 });
+      ///
+      ///     std::vector<RenderPass> passes = ....
+      ///     Renderer::RenderFrame({ camera , framebuffer , passes });
+      ///
         
       Renderer::BeginFrame();
       DoRender();
       Renderer::EndFrame();
+      
+      CHECKGL();
 
       DoRenderUI();
       Renderer::SwapBuffers();
+      
+      CHECKGL();
     } 
 
     Detach();

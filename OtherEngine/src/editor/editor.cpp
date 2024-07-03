@@ -26,6 +26,9 @@
 #include "layers/debug_layer.hpp"
 #include "layers/editor_core.hpp"
 
+#include "rendering/ui/ui_helpers.hpp"
+#include "rendering/ui/ui_colors.hpp"
+
 namespace other {
   
   Editor::Editor(Engine* engine , Scope<App>& app)
@@ -46,6 +49,7 @@ namespace other {
 
   void Editor::OnLoad() {
     panel_manager = NewScope<PanelManager>();
+    panel_manager->Load(this , GetProjectContext());
   }
       
   void Editor::OnAttach() {
@@ -214,10 +218,10 @@ namespace other {
 
         ImGui::SetCursorPos(cursor_pos);
 
-
-        uint32_t tex_id = Renderer::Viewport()->Texture();
+        uint32_t tex_id = Renderer::Viewport()->color_attachment;
         ImGui::Image((void*)(uintptr_t)tex_id , size , ImVec2(0 , 1) , ImVec2(1 , 0)); 
       } else {
+        ScopedColor red_text(ImGuiCol_Text , ui::theme::red);
         ImGui::Text("No Viewport Generated");
       }
     }

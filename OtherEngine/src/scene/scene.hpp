@@ -15,8 +15,6 @@
 
 #include "scene/octree.hpp"
 
-#include "rendering/render_batch.hpp"
-
 #include "scripting/script_object.hpp"
 
 #include "physics/physics_defines.hpp"
@@ -55,8 +53,6 @@ namespace other {
 
       bool EntityExists(UUID id) const;
       bool EntityExists(const std::string& name) const;
-
-      std::vector<BatchData> GetRenderBatchData() const;
 
       size_t NumCameras() const;
 

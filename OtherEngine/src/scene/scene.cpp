@@ -8,10 +8,13 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/euler_angles.hpp>
 
+
+#include "application/app_state.hpp"
+
 #include "ecs/components/collider_2d.hpp"
+
 #include "physics/physics_defines.hpp"
 #include "scripting/script_engine.hpp"
-
 #include "rendering/renderer.hpp"
 
 #include "ecs/entity.hpp"
@@ -138,11 +141,6 @@ namespace other {
       transform.model_transform = glm::scale(transform.model_transform , transform.scale);
     });
 
-    registry.view<Script>().each([&dt](const Script& script) {
-      for (auto& [id , s] : script.scripts) {
-        s->Update(dt);
-      }
-    });
 
     /// because every entity has a transform this is equivalent to view<Camera>
     registry.view<Camera, Transform>().each([](Camera& camera , Transform& transform) {
@@ -153,6 +151,22 @@ namespace other {
       } else {
         camera.camera->CalculateMatrix();
       }
+    });
+    
+    registry.view<Script>().each([&dt](const Script& script) {
+      for (auto& [id , s] : script.scripts) {
+        s->Update(dt);
+        // s->LateUpdate(dt);
+      }
+    });
+
+    /// apply model transforms to meshes
+    registry.view<Mesh , Transform>().each([](const Mesh& mesh , const Transform& transform) {
+      
+    });
+    
+    registry.view<StaticMesh , Transform>().each([](const StaticMesh& mesh , const Transform& transform) {
+      
     });
 
     OnUpdate(dt);
@@ -165,15 +179,41 @@ namespace other {
     }
 
   }
+
+  /**
+   * first we'll have to set up the pipeline data for the scene
+   *    void Scene:PreRender() {
+   *      if (pipeline specs changed) {
+   *        /// build pipeline specs
+   *      }
+   *    }
+   *
+   **/
       
-  void Scene::Render() {
-    /// push active camera to bind UBOs
-    /// set shader unidorms
-
-    // registry.view<RenderedText>().each([](const RenderedText& mesh) {});
-
+  void Scene::Render(/* Ref<SceneRenderer> renderer */) {
+    /**
+     * renderer->SubmitPipelineSpecifications({ spec1 , spec2 , .... });
+     * renderer->SubmitRenderPasses({
+     *  { spec_idx , std::vector<Ref<RenderPass>> } ,
+     *  ...
+     * });
+     **/
     registry.view<Mesh>().each([](const Mesh& mesh) {
-      /// submit mesh to correct batch
+      auto model = AppState::Assets()->GetAsset(mesh.handle);
+      if (model == nullptr) {
+        return;
+      }
+
+      /// renderer->SubmitModel(model);
+    });
+
+    registry.view<StaticMesh>().each([](const StaticMesh& mesh) {
+      auto model = AppState::Assets()->GetAsset(mesh.handle);
+      if (model == nullptr) {
+        return;
+      }
+
+      // renderer->SubmitModel(model);
     });
     
     registry.view<Script>().each([](const Script& script) {
@@ -268,10 +308,6 @@ namespace other {
     return std::find_if(entities.begin() , entities.end() , [&name](const auto& ent_pair) ->bool {
       return name == ent_pair.second->Name(); 
     }) != entities.end();
-  }
-      
-  std::vector<BatchData> Scene::GetRenderBatchData() const {
-    return {};
   }
 
   size_t Scene::NumCameras() const {

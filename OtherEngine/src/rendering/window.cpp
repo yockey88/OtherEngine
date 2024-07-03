@@ -8,6 +8,8 @@
 
 #include "core/config_keys.hpp"
 
+#include "rendering/rendering_defines.hpp"
+
 namespace other {
 
 namespace {
@@ -147,7 +149,9 @@ namespace {
 
   void Window::Clear() {
     glClearColor(config.color.r , config.color.g , config.color.b , config.color.a);
+    CHECKGL();
     glClear(config.clear_flags);
+    CHECKGL();
   }
       
   float Window::AspectRatio() const {
