@@ -18,7 +18,10 @@ namespace other {
       start = (*state)[script_name]["OnStart"];
       stop = (*state)[script_name]["OnStop"];
 
+      early_update = (*state)[script_name]["EarlyUpdate"];
       update = (*state)[script_name]["Update"];
+      late_update = (*state)[script_name]["LateUpdate"];
+
       render = (*state)[script_name]["Render"];
       render_ui = (*state)[script_name]["RenderUI"];
     }
@@ -65,10 +68,22 @@ namespace other {
         stop.call();
       }
     }
-
+    
+    void LuaObject::EarlyUpdate(float dt) {
+      if (early_update.valid()) {
+        early_update.call(dt);
+      }
+    }
+    
     void LuaObject::Update(float dt) {
       if (update.valid()) {
         update.call(dt);
+      }
+    }
+
+    void LuaObject::LateUpdate(float dt) {
+      if (late_update.valid()) {
+        late_update.call(dt);
       }
     }
 

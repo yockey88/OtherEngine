@@ -104,6 +104,34 @@ namespace other {
     running = true;
   }
 
+  void Scene::EarlyUpdate(float dt) {
+    OE_ASSERT(initialized , "Updating scene without initialization");
+    if (!running) {
+      return;
+    }
+    
+    /// prepare scene update
+    if (corrupt) {
+      Stop();
+      return;
+    }
+
+    registry.view<Script>().each([&dt](const Script& script) {
+      for (auto& [id , s] : script.scripts) {
+        s->EarlyUpdate(dt);
+      }
+    });
+    
+    OnEarlyUpdate(dt);
+    
+    /// finish scene update
+    /// checks the case the scene become corrupt on client update
+    if (corrupt) {
+      Stop();
+      return;
+    }
+  }
+
   void Scene::Update(float dt) {
     OE_ASSERT(initialized , "Updating scene without initialization");
     if (!running) {
@@ -156,7 +184,6 @@ namespace other {
     registry.view<Script>().each([&dt](const Script& script) {
       for (auto& [id , s] : script.scripts) {
         s->Update(dt);
-        // s->LateUpdate(dt);
       }
     });
 
@@ -178,6 +205,34 @@ namespace other {
       return;
     }
 
+  }
+  
+  void Scene::LateUpdate(float dt) {
+    OE_ASSERT(initialized , "Updating scene without initialization");
+    if (!running) {
+      return;
+    }
+    
+    /// prepare scene update
+    if (corrupt) {
+      Stop();
+      return;
+    }
+
+    registry.view<Script>().each([&dt](const Script& script) {
+      for (auto& [id , s] : script.scripts) {
+        s->LateUpdate(dt);
+      }
+    });
+    
+    OnLateUpdate(dt);
+    
+    /// finish scene update
+    /// checks the case the scene become corrupt on client update
+    if (corrupt) {
+      Stop();
+      return;
+    }
   }
 
   /**
@@ -227,9 +282,6 @@ namespace other {
     // registry.view<UI>().each([](const UI& ui) {}); 
   }
       
-  void Scene::LateUpdate(float dt) {
-  }
-
   void Scene::Stop() {
     OE_ASSERT(initialized , "Updating scene without initialization");
     if (!running) {

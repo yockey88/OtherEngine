@@ -25,13 +25,18 @@ namespace other {
       inline const UUID GetUUID() const { return uuid; }
 
       void Attach();
+      void EarlyUpdate(float dt);
       void Update(float dt);
+      void LateUpdate(float dt);
       void Render();
       void UIRender();
       void ProcessEvent(Event* event);
       void Detach();
 
       void LoadScene(const SceneMetadata* metadata);
+      void UnloadScene();
+
+      void ReloadScripts();
 
     protected:
       const std::string debug_name;
@@ -44,12 +49,17 @@ namespace other {
 
       virtual void OnAttach() {}
       virtual void OnDetach() {}
+      virtual void OnEarlyUpdate(float dt) {}
       virtual void OnUpdate(float dt) {}
+      virtual void OnLateUpdate(float dt) {}
       virtual void OnRender() {}
       virtual void OnUIRender() {}
       virtual void OnEvent(Event* event) {}
 
       virtual void OnSceneLoad(const SceneMetadata* metadata) {}
+      virtual void OnSceneUnload() {}
+
+      virtual void OnScriptReload() {}
   };
 
 } // namespace other

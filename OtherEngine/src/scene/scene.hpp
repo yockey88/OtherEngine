@@ -34,10 +34,12 @@ namespace other {
       void Initialize();
       void Start(); 
 
+      void EarlyUpdate(float dt);
       void Update(float dt);
+      void LateUpdate(float dt);
+
       void Render();
       void RenderUI();
-      void LateUpdate(float dt);
 
       void Stop(); 
       void Shutdown();
@@ -80,10 +82,12 @@ namespace other {
       virtual void OnInit() {}
       virtual void OnStart() {}
 
+      virtual void OnEarlyUpdate(float dt) {}
       virtual void OnUpdate(float dt) {}
+      virtual void OnLateUpdate(float dt) {}
+
       virtual void OnRender() {}
       virtual void OnRenderUI() {}
-      virtual void OnLateUpdate(float dt) {}
 
       virtual void OnStop() {}
       virtual void OnShutdown() {}

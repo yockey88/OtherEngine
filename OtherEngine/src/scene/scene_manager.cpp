@@ -19,6 +19,8 @@
 namespace other {
 
   bool SceneManager::LoadScene(const Path& scenepath) {
+    OE_DEBUG("Loading scene {}" , scenepath);
+
     UUID id = FNV(scenepath.string());
     if (auto scn = loaded_scenes.find(id); scn != loaded_scenes.end()) {
       return true;
@@ -46,6 +48,8 @@ namespace other {
   }
 
   void SceneManager::SetAsActive(const Path& path) {
+    OE_DEBUG("Attempting to set scene {} to active" , path);
+
     UUID id = FNV(path.string());
     auto find_scene = loaded_scenes.find(id);
     if (find_scene == loaded_scenes.end()) {
@@ -179,6 +183,14 @@ namespace other {
       
   const std::map<UUID , SceneMetadata>& SceneManager::GetScenes() const {
     return loaded_scenes;
+  }
+      
+  void SceneManager::EarlyUpdateScene(float dt) {
+    if (!HasActiveScene()) {
+      return;
+    }
+
+    active_scene->scene->EarlyUpdate(dt);
   }
 
   void SceneManager::UpdateScene(float dt) {

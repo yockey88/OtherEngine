@@ -52,14 +52,13 @@ namespace other {
       void UnloadScene();
 
     protected:
-      bool InEditor() const;
-      
       void Attach();
+      /// this is seperate because this triggers events which need to be polled while update
+      ///  responds to process events
       void DoEarlyUpdate(float dt);
       void DoUpdate(float dt);
       void DoRender();
       void DoRenderUI();
-      void DoLateUpdate(float dt);
       void Detach();
 
       virtual void OnLoad() {}
@@ -82,6 +81,8 @@ namespace other {
       ///   wont be reloaded
       virtual void OnScriptReload() {}
 
+      virtual Ref<AssetHandler> CreateAssetHandler();
+
       Engine* engine_handle = nullptr;
 
       const CmdLine& cmdline;
@@ -95,15 +96,11 @@ namespace other {
 
       UIWindowMap ui_windows;
 
-      bool is_editor = false;
-      bool in_editor = false;
       bool lost_window_focus = false;
 
       friend class Engine;
       friend class AppState;
       friend class Editor;
-
-      void SetInEditor();
 
       void ReloadScripts();
 

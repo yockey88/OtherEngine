@@ -52,18 +52,16 @@ namespace Other {
     public abstract void OnBehaviorUnload();
 
     public virtual void OnInitialize() {}
-
     public virtual void OnStart() {}
 
+    public virtual void EarlyUpdate(float dt) {}
     public virtual void Update(float dt) {}
     public virtual void LateUpdate(float dt) {}
 
     public virtual void RenderObject() {}
-
     public virtual void RenderUI() {}
 
     public virtual void OnStop() {}
-
     public virtual void OnShutdown() {}
 
     public override bool Equals(object obj) => obj is OtherBehavior other && Equals(other);

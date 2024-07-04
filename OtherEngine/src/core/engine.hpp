@@ -24,6 +24,7 @@ namespace other {
 
       /// this takes ownership of the application pointer
       void LoadApp(Scope<App>& app);
+      void PushCoreLayer();
 
       Scope<App>& ActiveApp() { return active_app; }
       void UnloadApp();
@@ -41,6 +42,7 @@ namespace other {
 
       Ref<Project> project_metadata;
 
+      bool in_editor = false;
       Scope<App> active_app;
       Scope<AssetHandler> asset_handler;
   };

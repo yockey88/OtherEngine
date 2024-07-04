@@ -71,7 +71,10 @@ namespace other {
       virtual void Start() = 0;
       virtual void Stop() = 0;
 
+      virtual void EarlyUpdate(float dt) = 0;
       virtual void Update(float dt) = 0;
+      virtual void LateUpdate(float dt) = 0;
+
       virtual void Render() = 0;
       virtual void RenderUI() = 0;
     

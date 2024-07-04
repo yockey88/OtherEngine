@@ -16,10 +16,8 @@
 namespace other {
 
   void LauncherApp::OnAttach() {
-    {
-      Ref<Layer> layer = NewRef<LauncherLayer>(this);
-      PushLayer(layer);
-    }
+    Ref<Layer> layer = NewRef<LauncherLayer>(this);
+    PushLayer(layer);
   }
 
   void LauncherApp::OnEvent(Event* event) {

@@ -33,7 +33,10 @@ namespace other {
       virtual void Start() override;
       virtual void Stop() override;
 
+      virtual void EarlyUpdate(float dt) override;
       virtual void Update(float dt) override;
+      virtual void LateUpdate(float dt) override;
+
       virtual void Render() override;
       virtual void RenderUI() override;
 
@@ -48,7 +51,10 @@ namespace other {
       sol::function start;
       sol::function stop;
 
+      sol::function early_update;
       sol::function update;
+      sol::function late_update;
+
       sol::function render;
       sol::function render_ui;
     

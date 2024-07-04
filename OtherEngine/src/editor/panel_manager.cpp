@@ -16,7 +16,7 @@ namespace other {
   constexpr UUID kScenePanelId = FNV("ScenePanel");
   constexpr UUID kPropertiesPanelId = FNV("PropertiesPanel");
 
-  void PanelManager::Load(Editor* editor , const Ref<Project>& context) {
+  void PanelManager::Attach(Editor* editor , const Ref<Project>& context , const ConfigTable& editor_config) {
     OE_ASSERT(editor != nullptr , "Loading editor panel manager with a null editor!");
     OE_ASSERT(context != nullptr , "Loading editor panel manager with null project context!");
 
@@ -35,9 +35,6 @@ namespace other {
 
     props_panel.panel_open = true;
     props_panel.panel = Ref<EntityProperties>::Create(*editor); 
-  }
-
-  void PanelManager::Attach(const ConfigTable& editor_config) {
     for (auto& [id , panel] : active_panels) {
       panel.panel->OnAttach();
     }
@@ -71,9 +68,6 @@ namespace other {
   }
 
   void PanelManager::Detach() {
-  }
-
-  void PanelManager::Unload() {
     for (auto& [id , panel] : active_panels) {
       panel.panel_open = false;
       panel.panel = nullptr;

@@ -17,8 +17,7 @@ namespace other {
 
   class PanelManager {
     public:
-      void Load(Editor* editor , const Ref<Project>& context);
-      void Attach(const ConfigTable& editor_config);
+      void Attach(Editor* editor , const Ref<Project>& context , const ConfigTable& editor_config);
 
       void AddPanel(const Ref<EditorPanel>& panel) {}
 
@@ -28,7 +27,6 @@ namespace other {
       void RenderUI();
 
       void Detach();
-      void Unload();
 
       void OnSceneLoad(const SceneMetadata* scene_metadata); 
       void OnSceneUnload();

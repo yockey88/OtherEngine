@@ -6,9 +6,9 @@
 #include "core/logger.hpp"
 #include "core/time.hpp"  
 #include "core/engine.hpp"
-#include "core/config_keys.hpp"
-#include "editor/editor_asset_handler.hpp"
 #include "input/io.hpp"
+
+#include "asset/runtime_asset_handler.hpp"
 
 #include "event/event_queue.hpp"
 #include "event/app_events.hpp"
@@ -18,10 +18,6 @@
 #include "rendering/renderer.hpp"
 #include "rendering/rendering_defines.hpp"
 #include "rendering/ui/ui.hpp"
-#include "layers/core_layer.hpp"
-#include "layers/debug_layer.hpp"
-
-#include "asset/runtime_asset_handler.hpp"
 
 #include "scripting/script_defines.hpp"
 #include "scripting/script_engine.hpp"
@@ -44,22 +40,18 @@ namespace {
 
   void App::Load() {
     OE_DEBUG("Loading application");
-    
-    OE_DEBUG("Loading Core Systems");
+    OE_DEBUG(" > Loading Core Systems");
 
     layer_stack = NewScope<LayerStack>();
 
     project_metadata = Ref<Project>::Create(cmdline , config);
-    if (is_editor) {
-      asset_handler = NewRef<EditorAssetHandler>();
-      /// register editor console sink
-    } else {
-      asset_handler = NewRef<RuntimeAssetHandler>();
-    }
+    asset_handler = CreateAssetHandler();
 
     scene_manager = NewScope<SceneManager>();
  
     OnLoad();
+
+    OE_DEBUG("Application loaded");
   }
 
   void App::Run() {
@@ -89,7 +81,6 @@ namespace {
       /// if the window is focuseed we update the application and then the scene
       if (Renderer::IsWindowFocused()) {
         DoUpdate(dt);
-        DoLateUpdate(dt);
       }
 
       /// TODO: redo rendering stage
@@ -111,11 +102,10 @@ namespace {
        *    - execute contstructed pipelines
        **/
 
-      Renderer::BeginFrame();
+      Renderer::GetWindow()->Clear();
       DoRender();
-      Renderer::EndFrame();
       DoRenderUI();
-      Renderer::SwapBuffers();
+      Renderer::GetWindow()->SwapBuffers();
       
       CHECKGL();
     } 
@@ -133,11 +123,6 @@ namespace {
     scene_manager = nullptr;
     asset_handler = nullptr;
     layer_stack = nullptr;
-
-    if (is_editor) {
-      OE_DEBUG(" > Editor unloaded");
-      return;
-    }
 
     OE_DEBUG(" > Application unloaded");
   }
@@ -181,6 +166,10 @@ namespace {
   }
 
   void App::ProcessEvent(Event* event) {
+    if (!event->handled) {
+      OnEvent(event);
+    }
+
     EventHandler event_handler(event);
     event_handler.Handle<UIWindowClosed>([this] (UIWindowClosed& event) -> bool {
       return RemoveUIWindow(event.GetWindowId());
@@ -196,10 +185,6 @@ namespace {
       if (event->handled) {
         itr = layer_stack->begin();
       }
-    }
-
-    if (!event->handled) {
-      OnEvent(event);
     }
   }
 
@@ -293,8 +278,8 @@ namespace {
     }
 
     /// propogate scene loading through layers
-    for (size_t i = 0; i < layer_stack->Size(); ++i) {
-      (*layer_stack)[i]->LoadScene(scn_metadata);
+    for (auto& l : *layer_stack) {
+      l->LoadScene(scn_metadata);
     }
 
     ScriptEngine::SetSceneContext(scn_metadata->scene);
@@ -317,6 +302,7 @@ namespace {
       return;
     }
 
+    /// Do we need to save before we offload
     // scene_manager->SaveActiveScene();
     
     /// alert client app about scene unload
@@ -324,62 +310,46 @@ namespace {
 
     OE_DEBUG("Unloading scene : {}" , ActiveScene()->path);
     scene_manager->UnloadActive();
-
-    /// propogate scene unload through layers
-    for (size_t i = 0; i < layer_stack->Size(); ++i) {
-      (*layer_stack)[i]->LoadScene(nullptr);
+    
+    /// propogate scene loading through layers
+    for (auto& l : *layer_stack) {
+      l->UnloadScene();
     }
 
     OE_DEBUG("Scene Unloaded");
   }
-      
-  bool App::InEditor() const {
-    return in_editor;
-  }
 
   void App::Attach() {
-    OE_DEBUG("Attaching application");
-    OE_DEBUG("Pushing Core Layers");
-
-    {
-      Ref<Layer> core_layer = NewRef<CoreLayer>(this);
-      PushLayer(core_layer);
-    }
-
-    auto debug = config.GetVal<bool>(kProjectSection , kDebugValue);
-    if (debug.has_value() && debug.value()) {
-      OE_DEBUG("Pushing debug layer");
-
-      Ref<Layer> debug_layer = NewRef<DebugLayer>(this);
-      PushLayer(debug_layer);
-    }
-
-    
     OnAttach();
   }
 
   /// TODO: add early update to layers and scene
   void App::DoEarlyUpdate(float dt) {
     EarlyUpdate(dt);  
+
+    for (auto& l : *layer_stack) {
+      l->EarlyUpdate(dt);
+    }
   }
 
   void App::DoUpdate(float dt) {
-    // update all layers
-    for (size_t i = 0; i < layer_stack->Size(); ++i) {
-      (*layer_stack)[i]->Update(dt);
-    }
-
     Update(dt);
-    
-    if (!in_editor) {
-      scene_manager->UpdateScene(dt);
+
+    // update all layers
+    for (auto& l : *layer_stack) {
+      l->Update(dt);
     }
     
-    /// update the ui windows, closing any that need to be closed 
     auto itr = ui_windows.begin();
     while (itr != ui_windows.end()) {
       itr->second->OnUpdate(dt);
       ++itr;
+    }
+    
+    LateUpdate(dt);
+    
+    for (auto& l : *layer_stack) {
+      l->LateUpdate(dt);
     }
   }
 
@@ -388,11 +358,9 @@ namespace {
 
     CHECKGL();
     
-    for (size_t i = 0; i < layer_stack->Size(); ++i) {
-      (*layer_stack)[i]->Render();
+    for (auto& l : *layer_stack) {
+      l->Render();
     }
-
-    scene_manager->RenderScene();
   }
 
   void App::DoRenderUI() {
@@ -401,24 +369,16 @@ namespace {
       
       RenderUI();
       
-      for (size_t i = 0; i < layer_stack->Size(); ++i) {
-        (*layer_stack)[i]->UIRender();
+      for (auto& l : *layer_stack) {
+        l->UIRender();
       }
       
       for (auto& [id , window] : ui_windows) {
         window->Render();
       }
 
-      scene_manager->RenderSceneUI();
-
       UI::EndFrame();
     }
-  }
-      
-  void App::DoLateUpdate(float dt) {
-    LateUpdate(dt);
-
-    scene_manager->LateUpdateScene(dt); 
   }
 
   void App::Detach() {
@@ -436,17 +396,12 @@ namespace {
     }
     ui_windows.clear();
 
-    for (auto itr = layer_stack->begin(); itr != layer_stack->end(); ++itr) {
-      (*itr)->Detach();
+    for (auto& l : *layer_stack) {
+      l->Detach();
     }
     layer_stack->Clear();
 
     OE_DEBUG("Application detached");
-  }
-
-  void App::SetInEditor() {
-    in_editor = true;
-    is_editor = false;
   }
       
   void App::ReloadScripts() {
@@ -459,11 +414,19 @@ namespace {
     scene_manager->ClearScenes();
     ScriptEngine::ReloadAllScripts();
 
+    for (auto& l : *layer_stack) {
+      l->ReloadScripts();
+    }
+
     OnScriptReload();
 
     if (active_path.has_value()) {
       LoadScene(active_path.value());
     }
+  }
+      
+  Ref<AssetHandler> App::CreateAssetHandler() {
+    return NewRef<RuntimeAssetHandler>();
   }
 
 } // namespace other

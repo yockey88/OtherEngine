@@ -4,8 +4,6 @@
 #ifndef OTHER_ENGINE_RENDERER_HPP
 #define OTHER_ENGINE_RENDERER_HPP
 
-#include <array>
-#include <span>
 #include <queue>
 
 #include "core/ref.hpp"
@@ -62,8 +60,6 @@ namespace other {
       static void SetSceneContext(const Ref<Scene>& scene);
       static void BindCamera(Ref<CameraBase>& camera);
 
-      static void BeginFrame();
-
       /*
       static void DrawLine(const Point& start , const Point& end , const RgbColor& color);
       static void DrawLine(const Vertex& start , const Vertex& end);
@@ -93,9 +89,6 @@ namespace other {
 
       static void DrawCylinder(const Cylinder& cylinder , const RgbColor& color);
       */
-
-      static void EndFrame();
-      static void SwapBuffers();
 
       static glm::ivec2 WindowSize();
       static void HandleWindowResize(const glm::ivec2& size);

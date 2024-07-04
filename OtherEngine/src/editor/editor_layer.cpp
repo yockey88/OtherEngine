@@ -1,67 +1,40 @@
 /**
- * \file editor/editor.cpp
-*/
-#include "editor/editor.hpp"
-
-#include <filesystem>
-
-#include <glad/glad.h>
-#include <imgui/imgui.h>
+ * \file editor/editor_layer.cpp
+ **/
+#include "editor/editor_layer.hpp"
 
 #include "core/config_keys.hpp"
-#include "core/engine.hpp"
-#include "core/errors.hpp"
 #include "core/logger.hpp"
+#include "core/errors.hpp"
 #include "core/filesystem.hpp"
+
+#include "application/app_state.hpp"
+
 #include "parsing/ini_parser.hpp"
 
-#include "event/event_queue.hpp"
 #include "event/core_events.hpp"
 #include "event/app_events.hpp"
 #include "event/event_handler.hpp"
+#include "event/event_queue.hpp"
 
 #include "scripting/script_engine.hpp"
-#include "rendering/perspective_camera.hpp"
-#include "rendering/renderer.hpp"
-#include "layers/debug_layer.hpp"
-#include "layers/editor_core.hpp"
 
+#include "rendering/renderer.hpp"
 #include "rendering/ui/ui_helpers.hpp"
-#include "rendering/ui/ui_colors.hpp"
+
+#include "editor/editor.hpp"
 
 namespace other {
-  
-  Editor::Editor(Engine* engine , Scope<App>& app)
-      : App(engine) , cmdline(engine->cmd_line) , engine_config(engine->config) , 
-        app(std::move(app)) {
-    is_editor = true;
-    in_editor = false;
-  } 
-      
-  void Editor::SaveActiveScene() {
-    OE_ASSERT(ActiveScene() != nullptr , "Attempting save a null scene");
-    Path p = ActiveScene()->path;
 
-    scene_manager->SaveActiveScene();
-    UnloadScene();
-    LoadScene(p);
-  }
-
-  void Editor::OnLoad() {
-    panel_manager = NewScope<PanelManager>();
-    panel_manager->Load(this , GetProjectContext());
-  }
-      
-  void Editor::OnAttach() {
-    if (app == nullptr) {
-      OE_ERROR("Attempting to attach a null application to the editor");
-      EventQueue::PushEvent<ShutdownEvent>(ExitCode::FAILURE);
-      return;
-    }
-
+  void EditorLayer::OnAttach() {
+    // editor_camera = Ref<PerspectiveCamera>::Create();
+    // editor_camera->SetPosition({ 0.f , 0.f , 3.f });
+    // editor_camera->SetDirection({ 0.f , 0.f , -1.f });
+    // editor_camera->SetUp({ 0.f , 1.f , 0.f });
+    
     try {
       /// needs to be a better way to find the editor config file
-      Path p = Filesystem::FindCoreFile(std::filesystem::path("editor.other"));
+      Path p = Filesystem::FindCoreFile(Path("editor.other"));
       IniFileParser parser(p.string());
       editor_config = parser.Parse();
 
@@ -72,21 +45,8 @@ namespace other {
       return;
     }
     
-
     Renderer::GetWindow()->ForceResize({ 1920 , 1080 });
 
-    /// editor should always push debug layer to allow for debug control 
-    Ref<Layer> debug_layer = NewRef<DebugLayer>(this);
-    PushLayer(debug_layer);
-
-    Ref<Layer> editor_layer = NewRef<EditorCore>(this);
-    PushLayer(editor_layer);
-
-    /// tell the application we are holding we are in the editor
-    /// NOTE: this only sets a flag, does nothing else yet, but will be nice in the future when 
-    ///   running simulations and such
-    app->SetInEditor();
-    
     LoadEditorScripts(editor_config);
 
     for (const auto& [id , script] : editor_scripts.scripts) {
@@ -95,58 +55,37 @@ namespace other {
       script->Start();
     }
 
-
-    panel_manager->Attach(engine_config);
-
-    editor_camera = Ref<PerspectiveCamera>::Create();
-    editor_camera->SetPosition({ 0.f , 0.f , 3.f });
-    editor_camera->SetDirection({ 0.f , 0.f , -1.f });
-    editor_camera->SetUp({ 0.f , 1.f , 0.f });
-    Renderer::BindCamera(editor_camera);
-
-    OE_DEBUG("Editor attached");
+    panel_manager = NewScope<PanelManager>();
+    panel_manager->Attach((Editor*)ParentApp() , AppState::ProjectContext() , editor_config);
   }
 
-  void Editor::OnEvent(Event* event) {
-    EventHandler handler(event);
-    handler.Handle<ProjectDirectoryUpdateEvent>([this](ProjectDirectoryUpdateEvent& e) -> bool {
-      project_metadata->CreateScriptWatchers();
-
-      if (!project_metadata->RegenProjectFile()) {
-        OE_ERROR("Failed to generate project files! Project metadata corrupted!");
-        return false;
-      } 
-
-      ReloadScripts();
-
-      return true;
-    });
-
-    handler.Handle<ScriptReloadEvent>([this](ScriptReloadEvent& e) -> bool {
-      ReloadScripts();
-      return true;
-    });
-
-    panel_manager->OnEvent(event);
+  void EditorLayer::OnDetach() {
+    for (const auto& [id , script] : editor_scripts.scripts) {
+      script->Stop();
+      script->Shutdown();
+      script->OnBehaviorUnload();
+    }
+    editor_scripts.scripts.clear();
+    panel_manager->Detach();
   }
       
-  void Editor::EarlyUpdate(float dt) {
+  void EditorLayer::OnEarlyUpdate(float dt) {
     /// go through and trigger any events to dispatch in the next call
     if (Renderer::IsWindowFocused() && lost_window_focus) {
       lost_window_focus = false;
 
       bool project_directories_changed = false;
-      if (project_metadata->EditorDirectoryChanged()) {
+      if (AppState::ProjectContext()->EditorDirectoryChanged()) {
         EventQueue::PushEvent<ProjectDirectoryUpdateEvent>(EDITOR_DIR);
         project_directories_changed = true;
       }
 
-      if (project_metadata->ScriptDirectoryChanged()) {
+      if (AppState::ProjectContext()->ScriptDirectoryChanged()) {
         EventQueue::PushEvent<ProjectDirectoryUpdateEvent>(SCRIPT_DIR);
         project_directories_changed = true;
       }
 
-      if (!project_directories_changed && project_metadata->AnyScriptChanged()) {
+      if (!project_directories_changed && AppState::ProjectContext()->AnyScriptChanged()) {
         EventQueue::PushEvent<ScriptReloadEvent>();
       }
     } else {
@@ -154,23 +93,21 @@ namespace other {
     }
   }
 
-  void Editor::Update(float dt) {
-    panel_manager->Update(dt);
-    
+  void EditorLayer::OnUpdate(float dt) {
     for (const auto& [id , script] : editor_scripts.scripts) {
       script->Update(dt);
     }
+    panel_manager->Update(dt);
   }
 
-  void Editor::Render() {
-    panel_manager->Render();
-    
+  void EditorLayer::OnRender() {
     for (const auto& [id , script] : editor_scripts.scripts) {
       script->Render();
     }
+    panel_manager->Render();
   }
 
-  void Editor::RenderUI() {
+  void EditorLayer::OnUIRender() {
     if (ImGui::BeginMainMenuBar()) {
       if (ImGui::BeginMenu("File")) {
         if (ImGui::MenuItem("Reload")) {
@@ -227,70 +164,60 @@ namespace other {
     }
     ImGui::End();
 
-    if (ImGui::Begin("Inspector") && scene_manager->HasActiveScene()) {
+    if (ImGui::Begin("Inspector") /* && scene_manager->HasActiveScene() */) {
       if (!playing && ImGui::Button("Play")) {
-        scene_manager->StartScene();
+        // scene_manager->StartScene();
         playing = true; 
       } else if (playing && ImGui::Button("Stop Scene")) {
-        scene_manager->StopScene();
+        // scene_manager->StopScene();
         playing = false;
-
-        Renderer::BindCamera(editor_camera);
       }
 
       if (ImGui::Button("Save Scene")) {
         SaveActiveScene();
       }
     }
+    ImGui::End();
 
-    panel_manager->RenderUI();
-    
     for (const auto& [id , script] : editor_scripts.scripts) {
       script->RenderUI();
     }
 
-    ImGui::End();
-  }
-      
-  void Editor::LateUpdate(float dt) {
-    if (!HasActiveScene()) {
-      return;
-    }
+    panel_manager->RenderUI();
   }
 
-  void Editor::OnDetach() {
-    OE_DEBUG("Detaching editor");
+  void EditorLayer::OnEvent(Event* event) {
+    EventHandler handler(event);
+    handler.Handle<ProjectDirectoryUpdateEvent>([this](ProjectDirectoryUpdateEvent& e) -> bool {
+        AppState::ProjectContext()->CreateScriptWatchers();
 
-    panel_manager->Detach();
+      if (!AppState::ProjectContext()->RegenProjectFile()) {
+        OE_ERROR("Failed to generate project files! Project metadata corrupted!");
+        return false;
+      } 
+
+      ReloadScripts();
+
+      return true;
+    });
+
+    handler.Handle<ScriptReloadEvent>([this](ScriptReloadEvent& e) -> bool {
+      ReloadScripts();
+      return true;
+    });
     
-    for (const auto& [id , script] : editor_scripts.scripts) {
-      script->Stop();
-      script->Shutdown();
-      script->OnBehaviorUnload();
-    }
-    editor_scripts.scripts.clear();
-
-    OE_DEBUG("Editor detached");
+    panel_manager->OnEvent(event);
   }
 
-  void Editor::OnUnload() {
-    panel_manager->Unload();
-  }
-
-  void Editor::OnSceneLoad(const SceneMetadata* metadata) {
-    OE_DEBUG("Editor::OnSceneLoad({})" , metadata->path);
-
+  void EditorLayer::OnSceneLoad(const SceneMetadata* metadata) {
     panel_manager->OnSceneLoad(metadata);
   }
-      
-  void Editor::OnSceneUnload() {
-    panel_manager->OnSceneUnload();
 
-    playing = false;
-    OE_DEBUG("Scene Context Unloaded");
+  void EditorLayer::OnSceneUnload() {
+    panel_manager->OnSceneUnload();
   }
 
-  void Editor::OnScriptReload() {
+  void EditorLayer::OnScriptReload() {
     editor_scripts.scripts.clear();
     for (const auto& [id , info] : editor_scripts.data) {
       ScriptModule* mod = ScriptEngine::GetScriptModule(info.module);
@@ -323,8 +250,19 @@ namespace other {
       }
     }
   }
+
+  void EditorLayer::SaveActiveScene() {
+    OE_ASSERT(AppState::Scenes()->ActiveScene() != nullptr , "Attempting to save null scene!");
+
+    auto& scenes = AppState::Scenes();
+    Path p = scenes->ActiveScene()->path;
+
+    ParentApp()->UnloadScene();
+    ParentApp()->LoadScene(p);
+
+  }
   
-  void Editor::LoadEditorScripts(const ConfigTable& editor_config) {
+  void EditorLayer::LoadEditorScripts(const ConfigTable& editor_config) {
     OE_DEBUG("Retrieving scripting modules");
 
     Ref<LanguageModule> cs_lang_mod = ScriptEngine::GetModule(LanguageModuleType::CS_MODULE);
@@ -344,8 +282,8 @@ namespace other {
     std::string script_key = std::string{ kEditorSection } + "." + std::string{ kScriptValue };
     auto script_objs = editor_config.GetKeys(script_key);
 
-    auto project_path = GetProjectContext()->GetMetadata().file_path.parent_path();
-    auto assets_dir = GetProjectContext()->GetMetadata().assets_dir;
+    auto project_path = AppState::ProjectContext()->GetMetadata().file_path.parent_path();
+    auto assets_dir = AppState::ProjectContext()->GetMetadata().assets_dir;
 
     OE_DEBUG("Loading Editor Scripts");
     for (auto& mod : script_paths) {

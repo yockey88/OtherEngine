@@ -218,7 +218,7 @@ namespace {
   
     cfg.flags = ProcessFlags(config);
   
-    glm::vec4 col = { 0.1f , 0.3f , 0.3f , 1.0f };
+    glm::vec4 col = { 0.1f , 0.3f , 0.5f , 1.0f };
     const auto color = config.Get(kWindowSection , kClearColorValue);
   
     if (color.size() == 4) {
@@ -241,10 +241,7 @@ namespace {
       }
       err_str += other::fmtstr(" - using default clear color : {}" , col);
       println(err_str);
-    } else if (color.size() == 0) {
-      println("no clear color defaulting to [0,0,1,1]");
-      col = { 0.f , 0.f , 1.f , 1.f };
-    }
+    } 
   
     cfg.color = col;
   

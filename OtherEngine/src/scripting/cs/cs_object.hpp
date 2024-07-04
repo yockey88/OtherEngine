@@ -40,7 +40,10 @@ namespace other {
       virtual void Start() override;
       virtual void Stop() override; 
 
+      virtual void EarlyUpdate(float dt) override;
       virtual void Update(float dt) override;
+      virtual void LateUpdate(float dt) override;
+
       virtual void Render() override;
       virtual void RenderUI() override;
 
@@ -66,7 +69,10 @@ namespace other {
       MonoMethod* on_start = nullptr;
       MonoMethod* on_stop = nullptr;
 
+      MonoMethod* early_update_method = nullptr;
       MonoMethod* update_method = nullptr;
+      MonoMethod* late_update_method = nullptr;
+
       MonoMethod* render_method = nullptr;
       MonoMethod* render_ui_method = nullptr;
 

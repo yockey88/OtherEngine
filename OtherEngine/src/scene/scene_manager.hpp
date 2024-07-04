@@ -44,6 +44,7 @@ namespace other {
       const std::vector<std::string>& ScenePaths() const; 
       const std::map<UUID , SceneMetadata>& GetScenes() const;
 
+      void EarlyUpdateScene(float dt);
       void UpdateScene(float dt);
       void RenderScene();
       void RenderSceneUI();

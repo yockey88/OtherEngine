@@ -213,19 +213,19 @@ namespace other {
     do {
       engine_unloaded = false;
       full_shutdown = false;
-      
+       
       /// launch the application and load its main data
       {
         auto app = NewApp(&engine);
         engine.LoadApp(app);
       }
-
+      
       /// launch the engine, initializing subsystems
       Launch();
 
       /// run the app
+      engine.PushCoreLayer();
       engine.ActiveApp()->Run();
-
 
       auto exit_code = engine.exit_code.value();
       switch (exit_code) {

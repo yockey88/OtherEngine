@@ -25,7 +25,7 @@ namespace other {
     } else {
       auto& metadata = GetMetadata(handle);
       if (!metadata.IsValid()) {
-        OE_ERROR("Asset [{}] not valid!");
+        OE_ERROR("Asset [{}] not valid!" , handle);
         return nullptr;
       }
 

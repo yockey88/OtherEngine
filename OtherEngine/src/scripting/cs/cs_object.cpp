@@ -23,21 +23,33 @@ namespace other {
 
     constexpr auto load_hash = FNV("OnBehaviorLoad"); 
     constexpr auto init_hash = FNV("OnInitialize"); 
+
     constexpr auto shutd_hash = FNV("OnShutdown"); 
     constexpr auto unload_hash = FNV("OnBehaviorUnload"); 
+
     constexpr auto start_hash = FNV("OnStart"); 
     constexpr auto stop_hash = FNV("OnStop"); 
+
+    constexpr auto early_update_hash = FNV("EarlyUpdate"); 
     constexpr auto update_hash = FNV("Update"); 
+    constexpr auto late_update_hash = FNV("LateUpdate"); 
+
     constexpr auto render_hash = FNV("RenderObject"); 
     constexpr auto ui_hash = FNV("RenderUI"); 
 
     auto load_itr = type_data->methods.find(load_hash);
     auto init_itr = type_data->methods.find(init_hash);
+
     auto shutd_itr = type_data->methods.find(shutd_hash);
     auto unload_itr = type_data->methods.find(unload_hash);
+
     auto start_itr = type_data->methods.find(start_hash);
     auto stop_itr = type_data->methods.find(stop_hash);
+
+    auto early_update_itr = type_data->methods.find(early_update_hash);
     auto update_itr = type_data->methods.find(update_hash);
+    auto late_update_itr = type_data->methods.find(late_update_hash);
+
     auto render_itr = type_data->methods.find(render_hash);
     auto ui_itr = type_data->methods.find(ui_hash);
 
@@ -65,8 +77,16 @@ namespace other {
       on_stop = mono_object_get_virtual_method(instance , stop_itr->second.asm_method);
     }
     
+    if (early_update_itr != type_data->methods.end()) {
+      early_update_method = mono_object_get_virtual_method(instance , early_update_itr->second.asm_method);
+    }
+    
     if (update_itr != type_data->methods.end()) {
       update_method = mono_object_get_virtual_method(instance , update_itr->second.asm_method);
+    }
+    
+    if (late_update_itr != type_data->methods.end()) {
+      late_update_method = mono_object_get_virtual_method(instance , late_update_itr->second.asm_method);
     }
 
     if (render_itr != type_data->methods.end()) {
@@ -204,7 +224,17 @@ namespace other {
       CallMonoMethod(on_stop);
     }
   }
-
+  
+  void CsObject::EarlyUpdate(float dt) {
+    if (early_update_method != nullptr) {
+      Parameter arg = {
+        .handle = &dt ,
+        .type = ValueType::FLOAT ,
+      };
+      CallMonoMethod(early_update_method , 1 , &arg);
+    }
+  }
+  
   void CsObject::Update(float dt) {
     if (update_method != nullptr) {
       Parameter arg = {
@@ -212,6 +242,16 @@ namespace other {
         .type = ValueType::FLOAT ,
       };
       CallMonoMethod(update_method , 1 , &arg);
+    }
+  }
+
+  void CsObject::LateUpdate(float dt) {
+    if (late_update_method != nullptr) {
+      Parameter arg = {
+        .handle = &dt ,
+        .type = ValueType::FLOAT ,
+      };
+      CallMonoMethod(late_update_method , 1 , &arg);
     }
   }
 

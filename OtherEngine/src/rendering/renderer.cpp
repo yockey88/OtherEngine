@@ -38,13 +38,6 @@ namespace other {
   void Renderer::BindCamera(Ref<CameraBase>& camera) {
     render_data.active_camera = camera;
   }
-
-  void Renderer::BeginFrame() {
-    render_data.window->Clear();
-    render_data.frame->BindFrame();
-
-    CHECKGL();
-  }
   
 #if 0
   void Renderer::DrawLine(const Point& start , const Point& end , const RgbColor& color) {
@@ -160,14 +153,6 @@ namespace other {
   }
 
 #endif
-
-  void Renderer::EndFrame() {
-    render_data.frame->UnbindFrame();
-  }
-      
-  void Renderer::SwapBuffers() {
-    render_data.window->SwapBuffers();
-  }
 
   glm::ivec2 Renderer::WindowSize() {
     return render_data.window->Size();
