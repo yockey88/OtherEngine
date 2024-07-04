@@ -16,7 +16,6 @@ namespace other {
 
   class Framebuffer : public RefCounted {
     public:
-      Framebuffer();
       Framebuffer(const FramebufferSpec& spec);
       ~Framebuffer();
 
@@ -49,6 +48,9 @@ namespace other {
 
       void CreateFramebuffer();
       void DestroyFramebuffer();
+
+      void CreateWithOldTextures();
+      void DestroyKeepTextures();
   };
 
 } // namespace other

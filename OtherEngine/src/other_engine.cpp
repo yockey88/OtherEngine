@@ -10,7 +10,6 @@
 #include "core/errors.hpp"
 #include "core/engine.hpp"
 #include "core/config.hpp"
-#include "core/config_keys.hpp"
 #include "parsing/cmd_line_parser.hpp"
 #include "parsing/ini_parser.hpp"
 #include "project/project.hpp"
@@ -18,6 +17,7 @@
 #include "event/event_queue.hpp"
 #include "input/io.hpp"
 #include "rendering/renderer.hpp"
+#include "rendering/rendering_defines.hpp"
 #include "rendering/ui/ui.hpp"
 #include "scripting/script_engine.hpp"
 
@@ -89,11 +89,11 @@ namespace other {
       ec = ExitCode::FAILURE;
     }
 
-    if (!driver.engine_unloaded) {
-      driver.engine.UnloadApp();
-    }
     if (!driver.full_shutdown) {
       driver.Shutdown();
+    }
+    if (!driver.engine_unloaded) {
+      driver.engine.UnloadApp();
     }
     CoreShutdown();
     return ec;
@@ -197,7 +197,10 @@ namespace other {
   void OE::Launch() {
     IO::Initialize();
     EventQueue::Initialize(current_config);
+
     Renderer::Initialize(current_config);
+    CHECKGL();
+
     UI::Initialize(current_config , Renderer::GetWindow());
     ScriptEngine::Initialize(current_config);
   }
@@ -279,7 +282,7 @@ namespace other {
     // shutdown allocators
 
     // close logger
-    OE_INFO("Core shutdown complete");
+    OE_INFO("Core shutdown complete, closing logger");
     Logger::Shutdown();
   }
 

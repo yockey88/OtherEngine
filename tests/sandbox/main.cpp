@@ -1,6 +1,7 @@
 /**
  * \file sandbox/main.cpp
  **/
+#include <SDL_events.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <imgui/backends/imgui_impl_sdl2.h>
 #include <iostream>
@@ -15,11 +16,15 @@
 
 #include <box2d/box2d.h>
 #include <box2d/b2_world.h>
+#include <rendering/renderer.hpp>
+#include <rendering/rendering_defines.hpp>
 
 #include "core/logger.hpp"
 #include "core/errors.hpp"
+#include "core/ref.hpp"
 #include "parsing/ini_parser.hpp"
 #include "rendering/window.hpp"
+#include "rendering/framebuffer.hpp"
 
 float vertices[] = {
   -0.5f , -0.5f , 0.0f , 1.f , 0.f , 0.f  ,
@@ -61,9 +66,12 @@ void CheckGlError(int line);
 
 #define CHECK() do { CheckGlError(__LINE__); } while (false)
 
-int main() {
+constexpr static uint32_t win_w = 800;
+constexpr static uint32_t win_h = 600;
+
+int main(int argc , char* argv[]) {
   try {
-    other::IniFileParser parser("./tests/sandbox/sandbox.other");
+    other::IniFileParser parser("C:/Yock/code/OtherEngine/tests/sandbox/sandbox.other");
     auto config = parser.Parse(); 
 
     other::Logger::Open(config);
@@ -77,7 +85,7 @@ int main() {
   
     other::WindowContext context;
     context.window = SDL_CreateWindow("Sandbox" , SDL_WINDOWPOS_CENTERED , SDL_WINDOWPOS_CENTERED , 
-                                      800, 600 , SDL_WINDOW_OPENGL);
+                                      win_w , win_h , SDL_WINDOW_OPENGL);
     if (context.window == nullptr) {
       throw std::runtime_error("Failed to create sdl window");
     } else {
@@ -139,6 +147,8 @@ int main() {
 
     ImGui_ImplSDL2_InitForOpenGL(context.window, context.context);
     ImGui_ImplOpenGL3_Init("#version 460 core");
+
+    OE_INFO("ImGui Initialized successfully");
  
     int success;
 
@@ -185,6 +195,8 @@ int main() {
     glDeleteShader(frag);
     
     CHECK();
+
+    OE_INFO("Shaders Compiled");
     
     uint32_t vao = 0 , vbo = 0;
     glGenVertexArrays(1, &vao);
@@ -203,9 +215,11 @@ int main() {
     glBindVertexArray(0);
     
     CHECK();
+
+    OE_INFO("VAO created");
     
     glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    glm::mat4 proj = glm::perspective(glm::radians(70.0f), 800.0f / 600.0f, 0.1f, 100.0f);
+    glm::mat4 proj = glm::perspective(glm::radians(70.0f), (float)win_w / (float)win_h, 0.1f, 100.0f);
     glm::mat4 model = glm::mat4(1.0f);
 
     int32_t view_loc = glGetUniformLocation(shader , "u_view");
@@ -229,41 +243,54 @@ int main() {
     
     CHECK();
 
-    b2World world(b2Vec2(0 , -9.8f));
+    OE_INFO("Uniforms applied");
 
-    b2BodyDef body_def;
-    body_def.type = b2BodyType::b2_dynamicBody;
-    body_def.position = b2Vec2(0.f , 0.f);
-    body_def.angle = 0.f; 
-    body_def.linearVelocity = b2Vec2(0.f , 0.f);
-    body_def.angularVelocity = 0.f;
-    body_def.angularVelocity = 0.f;
-    body_def.linearDamping = 0.f;
-    body_def.angularDamping = 0.f;
-    body_def.allowSleep = false; 
-    body_def.awake = true; 
-    body_def.fixedRotation = false; 
-    body_def.bullet = false; 
-    body_def.enabled = true;
-    body_def.gravityScale = 1.f;
+    // b2World world(b2Vec2(0 , -9.8f));
 
-    // b2PolygonShape shape;
-    // shape.SetAsBox(1.f , 1.f);
+    // b2BodyDef body_def;
+    // body_def.type = b2BodyType::b2_dynamicBody;
+    // body_def.position = b2Vec2(0.f , 0.f);
+    // body_def.angle = 0.f; 
+    // body_def.linearVelocity = b2Vec2(0.f , 0.f);
+    // body_def.angularVelocity = 0.f;
+    // body_def.angularVelocity = 0.f;
+    // body_def.linearDamping = 0.f;
+    // body_def.angularDamping = 0.f;
+    // body_def.allowSleep = false; 
+    // body_def.awake = true; 
+    // body_def.fixedRotation = false; 
+    // body_def.bullet = false; 
+    // body_def.enabled = true;
+    // body_def.gravityScale = 1.f;
 
-    // b2FixtureDef fixture_def;
-    // fixture_def.shape = &shape;
-    // fixture_def.density = 1.f;
-    // fixture_def.friction = 0.3f;
+    // // b2PolygonShape shape;
+    // // shape.SetAsBox(1.f , 1.f);
 
-    b2Body* body = world.CreateBody(&body_def);
-    // body->CreateFixture(&fixture_def);
+    // // b2FixtureDef fixture_def;
+    // // fixture_def.shape = &shape;
+    // // fixture_def.density = 1.f;
+    // // fixture_def.friction = 0.3f;
 
-    b2MassData mass_data = body->GetMassData();
-    mass_data.mass = 1.f;
+    // b2Body* body = world.CreateBody(&body_def);
+    // // body->CreateFixture(&fixture_def);
 
-    body->SetMassData(&mass_data);
+    // if (body != nullptr) {
+    //   b2MassData mass_data = body->GetMassData();
+    //   mass_data.mass = 1.f;
+
+
+    //   body->SetMassData(&mass_data);
+    // }
       
-    glm::vec3 position = { 0.f , 0.f , 0.f };
+    // glm::vec3 position = { 0.f , 0.f , 0.f };
+
+    other::FramebufferSpec fb_spec {
+      .size = { win_w , win_h }
+    };
+
+    other::Ref<other::Framebuffer> fb = other::NewRef<other::Framebuffer>(fb_spec);
+
+    OE_INFO("Running");
 
     bool running = true;
     while (running) {
@@ -274,8 +301,19 @@ int main() {
           case SDL_WINDOWEVENT:
             switch (event.window.event) {
               case SDL_WINDOWEVENT_CLOSE: running = false; break; 
+              default:
+                break;
             }
           break;
+          case SDL_KEYDOWN:
+            switch (event.key.keysym.sym) {
+              case SDLK_ESCAPE: running = false; break;
+              default:
+                break;
+            }
+          break;
+          default:
+            break;
         }
 
         ImGui_ImplSDL2_ProcessEvent(&event);
@@ -284,11 +322,40 @@ int main() {
       glClearColor(0.2f , 0.3f , 0.3f , 1.f);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
+      fb->BindFrame();
+      fb->UnbindFrame();
+
       ImGui_ImplOpenGL3_NewFrame();
       ImGui_ImplSDL2_NewFrame(context.window);
       ImGui::NewFrame();
 
       ImGui::ShowDemoWindow();
+
+      if (ImGui::Begin("Test Window")) {
+        ImVec2 curr_win_size = ImGui::GetWindowSize();
+        float aspect_ratio = 16.f / 9.f;
+
+        ImVec2 size{};
+        size.x = fb_spec.size.y * aspect_ratio;
+        size.y = fb_spec.size.x / aspect_ratio;
+
+        if (curr_win_size.y >= size.y) {
+          size.y = curr_win_size.x;
+        } else {
+          size.y = curr_win_size.y;
+        }
+
+        fb->Resize({ size.x , size.y });
+
+        ImVec2 cursor_pos = {
+          (curr_win_size.x - size.x) * 0.5f ,
+          ((curr_win_size.y - size.y) * 0.5f) + 7.f
+        };
+        ImGui::SetCursorPos(cursor_pos);
+
+        ImGui::Image((void*)(uintptr_t)fb->texture , size , ImVec2(0 , 1) , ImVec2(1 , 0)); 
+      }
+      ImGui::End();
 
       ImGui::Render();
       ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -303,13 +370,10 @@ int main() {
     glDeleteVertexArrays(1 , &vao);
     glDeleteBuffers(1 , &vbo);
     glDeleteProgram(shader);
-
   } catch (const other::IniException& e) {
     std::cout << "caught ini error : " << e.what() << "\n";
-    return 1;
-  } catch (const std::exception& e) {
+  } catch(const std::exception& e) {
     std::cout << "caught std error : " << e.what() << "\n";
-    return 1;
   } catch (...) {
     std::cout << "unknown error" << "\n";
     return 1;

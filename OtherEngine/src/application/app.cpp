@@ -16,6 +16,7 @@
 #include "event/ui_events.hpp"
 
 #include "rendering/renderer.hpp"
+#include "rendering/rendering_defines.hpp"
 #include "rendering/ui/ui.hpp"
 #include "layers/core_layer.hpp"
 #include "layers/debug_layer.hpp"
@@ -100,12 +101,19 @@ namespace {
       ///     Renderer::RenderFrame({ camera , framebuffer , passes });
       ///
         
+      /**
+       * rendering workflow
+       *  - for all things that need rendering
+       *    - give them the correct renderer
+       *    - submit all models
+       *
+       *  - for all renderers
+       *    - execute contstructed pipelines
+       **/
+
       Renderer::BeginFrame();
       DoRender();
       Renderer::EndFrame();
-      
-      CHECKGL();
-
       DoRenderUI();
       Renderer::SwapBuffers();
       
@@ -332,6 +340,7 @@ namespace {
   void App::Attach() {
     OE_DEBUG("Attaching application");
     OE_DEBUG("Pushing Core Layers");
+
     {
       Ref<Layer> core_layer = NewRef<CoreLayer>(this);
       PushLayer(core_layer);
@@ -344,6 +353,7 @@ namespace {
       Ref<Layer> debug_layer = NewRef<DebugLayer>(this);
       PushLayer(debug_layer);
     }
+
     
     OnAttach();
   }

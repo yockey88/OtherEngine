@@ -5,8 +5,7 @@
 
 #include <glad/glad.h>
 
-#include "core/filesystem.hpp"
-#include "core/logger.hpp"
+#include "rendering/rendering_defines.hpp"
 
 namespace other {
 
@@ -15,12 +14,22 @@ namespace other {
   void Renderer::Initialize(const ConfigTable& config) {
     auto win_cfg = Window::ConfigureWindow(config);
     auto win_res = Window::GetWindow(win_cfg, config);
+
+    CHECKGL();
+
     if (win_res.IsErr()) {
       throw std::runtime_error("Failed to create engine window!"); 
     }
 
     render_data.window = std::move(win_res.Unwrap());
-    render_data.frame = Ref<Framebuffer>::Create();
+
+    FramebufferSpec fb_spec {
+      .clear_color = render_data.window->ClearColor() ,
+      .size = { WindowSize().x , WindowSize().y } ,
+    };
+    render_data.frame = Ref<Framebuffer>::Create(fb_spec);
+
+    CHECKGL();
   }
       
   void Renderer::SetSceneContext(const Ref<Scene>& scene) {
@@ -31,8 +40,8 @@ namespace other {
   }
 
   void Renderer::BeginFrame() {
-    // render_data.window->Clear();
-    // render_data.frame->BindFrame();
+    render_data.window->Clear();
+    render_data.frame->BindFrame();
 
     CHECKGL();
   }
@@ -153,8 +162,7 @@ namespace other {
 #endif
 
   void Renderer::EndFrame() {
-    // render_data.frame->UnbindFrame();
-    CHECKGL();
+    render_data.frame->UnbindFrame();
   }
       
   void Renderer::SwapBuffers() {
