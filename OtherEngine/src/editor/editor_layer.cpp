@@ -20,6 +20,7 @@
 #include "scripting/script_engine.hpp"
 
 #include "rendering/renderer.hpp"
+#include "rendering/perspective_camera.hpp"
 #include "rendering/ui/ui_helpers.hpp"
 
 #include "editor/editor.hpp"
@@ -27,10 +28,10 @@
 namespace other {
 
   void EditorLayer::OnAttach() {
-    // editor_camera = Ref<PerspectiveCamera>::Create();
-    // editor_camera->SetPosition({ 0.f , 0.f , 3.f });
-    // editor_camera->SetDirection({ 0.f , 0.f , -1.f });
-    // editor_camera->SetUp({ 0.f , 1.f , 0.f });
+    editor_camera = Ref<PerspectiveCamera>::Create();
+    editor_camera->SetPosition({ 0.f , 0.f , 3.f });
+    editor_camera->SetDirection({ 0.f , 0.f , -1.f });
+    editor_camera->SetUp({ 0.f , 1.f , 0.f });
     
     try {
       /// needs to be a better way to find the editor config file
@@ -57,6 +58,8 @@ namespace other {
 
     panel_manager = NewScope<PanelManager>();
     panel_manager->Attach((Editor*)ParentApp() , AppState::ProjectContext() , editor_config);
+
+    viewport_renderer = NewRef<SceneRenderer>();
   }
 
   void EditorLayer::OnDetach() {
@@ -105,6 +108,8 @@ namespace other {
       script->Render();
     }
     panel_manager->Render();
+
+    viewport = AppState::Scenes()->RenderScene(viewport_renderer , editor_camera);
   }
 
   void EditorLayer::OnUIRender() {
@@ -133,7 +138,7 @@ namespace other {
     }
 
     if (ImGui::Begin("Viewport")) {
-      if (Renderer::Viewport() != nullptr && Renderer::Viewport()->Valid()) {
+      if (viewport != nullptr && viewport->Valid()) {
         ImVec2 curr_win_size = ImGui::GetWindowSize();
         float aspect_ratio = Renderer::GetWindow()->AspectRatio();
         ImVec2 size{};
@@ -155,7 +160,8 @@ namespace other {
 
         ImGui::SetCursorPos(cursor_pos);
 
-        uint32_t tex_id = Renderer::Viewport()->color_attachment;
+        viewport->Resize({ size.x , size.y });
+        uint32_t tex_id = viewport->texture; 
         ImGui::Image((void*)(uintptr_t)tex_id , size , ImVec2(0 , 1) , ImVec2(1 , 0)); 
       } else {
         ScopedColor red_text(ImGuiCol_Text , ui::theme::red);
@@ -211,6 +217,9 @@ namespace other {
 
   void EditorLayer::OnSceneLoad(const SceneMetadata* metadata) {
     panel_manager->OnSceneLoad(metadata);
+
+    SceneRenderSpec render_spec = metadata->scene->GetRenderingSpec();
+    viewport_renderer = NewRef<SceneRenderer>(render_spec);
   }
 
   void EditorLayer::OnSceneUnload() {

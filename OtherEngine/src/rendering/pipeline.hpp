@@ -5,7 +5,6 @@
 #define OTHER_ENGINE_PIPELINE_HPP
 
 #include <functional>
-#include <map>
 
 #include "core/ref.hpp"
 #include "core/ref_counted.hpp"
@@ -14,7 +13,6 @@
 #include "rendering/vertex.hpp"
 #include "rendering/camera_base.hpp"
 #include "rendering/framebuffer.hpp"
-#include "rendering/render_pass.hpp"
 #include "rendering/model.hpp"
 
 namespace other {
@@ -34,7 +32,7 @@ namespace std {
 
   template <>
   struct std::less<other::MeshKey> {
-    bool operator()(const other::MeshKey& lhs , const other::MeshKey& rhs) {
+    bool operator()(const other::MeshKey& lhs , const other::MeshKey& rhs) const {
       if (lhs.model_handle.Get() < rhs.model_handle.Get()) {
         return true;
       }
@@ -68,6 +66,8 @@ namespace std {
 } // namespace std
 
 namespace other {
+
+  class RenderPass;
   
   struct DrawCommand {
     Ref<Model> model;
@@ -93,12 +93,11 @@ namespace other {
       Pipeline(const PipelineSpec& spec);
       virtual ~Pipeline() override {}
 
+      /// Add materials to model submission
       void SubmitModel(Ref<Model> model , const glm::mat4& transform);
       void SubmitStaticModel(Ref<StaticModel> model , const glm::mat4& transform);
 
-      /// really this should take in a handle to a uniform buffer
-      void BeginRenderPass(Ref<CameraBase> camera , Ref<RenderPass> render_pass);
-      Ref<Framebuffer> EndRenderPass();
+      Ref<Framebuffer> Render(Ref<CameraBase> camera , Ref<RenderPass> render_pass);
 
     private:
       PipelineSpec spec{};
@@ -107,7 +106,8 @@ namespace other {
       Ref<CameraBase> viewpoint = nullptr;
       Ref<Framebuffer> target = nullptr;
 
-      Ref<RenderPass> current_pass = nullptr;
+      uint32_t curr_buffer_offset = 0;
+      uint32_t curr_idx_buffer_offset = 0;
 
       uint32_t vao_id = 0;
       uint32_t vbo_id = 0;

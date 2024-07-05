@@ -20,6 +20,8 @@
 #include "physics/physics_defines.hpp"
 #include "physics/2D/physics_world_2d.hpp"
 
+#include "rendering/scene_renderer.hpp"
+
 namespace other {
 
   class Entity;
@@ -38,13 +40,15 @@ namespace other {
       void Update(float dt);
       void LateUpdate(float dt);
 
-      void Render();
+      void Render(Ref<SceneRenderer> scene_renderer);
       void RenderUI();
 
       void Stop(); 
       void Shutdown();
 
       entt::registry& Registry();
+
+      SceneRenderSpec GetRenderingSpec() const;
 
       PhysicsType ActivePhysicsType() const;
       Ref<PhysicsWorld2D> Get2DPhysicsWorld() const;

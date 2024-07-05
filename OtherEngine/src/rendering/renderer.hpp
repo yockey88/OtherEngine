@@ -44,15 +44,6 @@ namespace other {
     /// DataType type;
   };
 
-  struct RenderPass {
-  };
-  
-  class Pipeline {
-    Ref<CameraBase> frame_viewpoint;
-    Ref<Framebuffer> target = nullptr;
-    std::map<UUID , RenderPass> passes;
-  };
-
   class Renderer {
     public:
       static void Initialize(const ConfigTable& config);

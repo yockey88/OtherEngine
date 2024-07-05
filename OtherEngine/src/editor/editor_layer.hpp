@@ -10,6 +10,7 @@
 #include "ecs/components/script.hpp"
 
 #include "rendering/camera_base.hpp"
+#include "rendering/scene_renderer.hpp"
 
 #include "editor/panel_manager.hpp"
 
@@ -46,6 +47,9 @@ namespace other {
 
       Ref<CameraBase> editor_camera = nullptr;
       Scope<PanelManager> panel_manager = nullptr;
+
+      Ref<SceneRenderer> viewport_renderer = nullptr;
+      Ref<Framebuffer> viewport = nullptr;
       
       /// TODO: move this somewhere else
       void SaveActiveScene();

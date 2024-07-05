@@ -4,23 +4,42 @@
 #include "rendering/model.hpp"
 
 namespace other {
+  ModelSource::ModelSource(std::vector<float>& verts , std::vector<Index>& idxs , const glm::mat4& transform , 
+                           std::vector<uint32_t>& layout) {
+    vertices.swap(verts);
+    indices.swap(idxs);
+    layout.swap(layout);
 
-  ModelSource::ModelSource(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, const glm::mat4& transform) {
+    vertex_buffer = Ref<VertexBuffer>::Create(vertices.data() , vertices.size());
+    index_buffer = Ref<VertexBuffer>::Create(indices.data() , indices.size());
+  }
+
+  ModelSource::ModelSource(std::vector<Vertex>& verts, std::vector<Index>& idxs, const glm::mat4& transform) {
     SubMesh submesh;
     submesh.base_vertex = 0;
     submesh.base_idx = 0;
     submesh.idx_cnt = static_cast<uint32_t>(indices.size());
     submesh.transform = transform;
     sub_meshes.push_back(submesh);
-    
+
+    OE_DEBUG("Submeshes for model source : {}" , sub_meshes.size());
+
+    BuildVertexBuffer(verts);
+
     vertex_buffer = Ref<VertexBuffer>::Create(vertices.data() , vertices.size());
     index_buffer = Ref<VertexBuffer>::Create(indices.data() , indices.size());
+
+    layout = Vertex::Layout();
   }
 
-  ModelSource::ModelSource(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, const std::vector<SubMesh>& submeshes) {
-    index_buffer = Ref<VertexBuffer>::Create(indices.data() , vertices.size());
-
+  ModelSource::ModelSource(std::vector<Vertex>& verts, std::vector<Index>& indices, std::vector<SubMesh>& submeshes) {
     /// set submeshes
+   
+    BuildVertexBuffer(verts);
+
+    index_buffer = Ref<VertexBuffer>::Create(indices.data() , vertices.size());
+    layout = Vertex::Layout();
+
   }
 
   std::vector<SubMesh>& ModelSource::SubMeshes() {
@@ -34,7 +53,7 @@ namespace other {
   void ModelSource::DumpVertexBuffer() {
   }
 
-  const std::vector<Vertex>& ModelSource::Vertices() const {
+  const std::vector<float>& ModelSource::Vertices() const {
     return vertices;
   }
 
@@ -42,7 +61,35 @@ namespace other {
     return indices;
   }
       
-  void ModelSource::BuildVertexBuffer(const std::vector<Vertex>& vertices) {
+  void ModelSource::BuildVertexBuffer(const std::vector<Vertex>& verts) {
+    for (auto& v : verts) {
+      vertices.push_back(v.position.x);
+      vertices.push_back(v.position.y);
+      vertices.push_back(v.position.z);
+      
+      vertices.push_back(v.color.x);
+      vertices.push_back(v.color.y);
+      vertices.push_back(v.color.z);
+      
+      vertices.push_back(v.normal.x);
+      vertices.push_back(v.normal.y);
+      vertices.push_back(v.normal.z);
+      
+      vertices.push_back(v.tangent.x);
+      vertices.push_back(v.tangent.y);
+      vertices.push_back(v.tangent.z);
+      
+      vertices.push_back(v.tangent.x);
+      vertices.push_back(v.tangent.y);
+      vertices.push_back(v.tangent.z);
+      
+      vertices.push_back(v.bitangent.x);
+      vertices.push_back(v.bitangent.y);
+      vertices.push_back(v.bitangent.z);
+      
+      vertices.push_back(v.uv_coord.x);
+      vertices.push_back(v.uv_coord.y);
+    }
   }
 
   Model::Model(Ref<ModelSource> model_source) 

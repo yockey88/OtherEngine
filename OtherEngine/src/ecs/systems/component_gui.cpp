@@ -449,11 +449,11 @@ namespace other {
     if (mesh.primitive_id != mesh.primitive_selection && ImGui::Button("Confirm Change")) {
       bool change = false;
       switch (mesh.primitive_selection) {
-        case 1:
         case 2:
+        case 3:
           OE_WARN("Assigning cube until implementations for others available!");
           [[ fallthrough ]];
-        case 3: {
+        case 1: {
           auto& scale = ent->ReadComponent<Transform>().scale;
           mesh.handle = ModelFactory::CreateBox(scale);
           if (mesh.handle == 0) {
@@ -462,8 +462,12 @@ namespace other {
             change = true; 
           }
         } break;
+
         case 0:
+          break;
+
         default:
+          /// load non-primitive static mesh
           /// could be non-primitive static mesh
           break;
       }

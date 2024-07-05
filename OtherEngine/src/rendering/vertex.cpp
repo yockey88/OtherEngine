@@ -2,6 +2,54 @@
 #include <glad/glad.h>
 
 namespace other {
+  
+  uint32_t VertexBufferElement::GetComponentCount() {
+    switch (type) {
+      case VEC2:
+        return 2;
+      case VEC3:
+        return 3;
+      case VEC4:
+        return 4;
+      
+      case MAT3:
+        return 3 * 3;
+      case MAT4:
+        return 4 * 4;
+
+      case EMPTY:
+        return 0;
+
+      default:
+        return 1;
+    }
+  }
+      
+  Layout::Layout(const std::initializer_list<VertexBufferElement>& elements)
+      : elements(elements) {
+    CalculateOffsetAndStride();
+  }
+      
+  uint32_t Layout::Stride() const {
+    return stride;
+  }
+
+  const std::vector<VertexBufferElement> Layout::Elements() const {
+    return elements;
+  }
+  
+  uint32_t Layout::Count() const {
+    return elements.size();
+  }
+    
+  void Layout::CalculateOffsetAndStride() {
+    uint32_t offset = 0;
+    for (auto& e : elements) {
+      e.offset = offset;
+      offset += e.GetComponentCount();
+      stride += e.GetComponentCount();
+    }
+  }
 
   VertexBuffer::VertexBuffer(BufferType type , size_t capacity) 
       : buffer_type(type) , buffer_usage(BufferUsage::DYNAMIC_DRAW) , 

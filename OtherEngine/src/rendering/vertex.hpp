@@ -31,7 +31,7 @@ namespace other {
       return 17;
     }
   };
-
+  
   class VertexBuffer : public RefCounted { 
     public:
       VertexBuffer(BufferType type , size_t capacity);

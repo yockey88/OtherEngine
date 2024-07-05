@@ -6,6 +6,8 @@
 
 #include "core/layer.hpp"
 
+#include "rendering/scene_renderer.hpp"
+
 namespace other {
 
   class RuntimeLayer : public Layer {
@@ -29,6 +31,8 @@ namespace other {
 
     private:
       const ConfigTable& config;
+
+      Ref<SceneRenderer> scene_renderer = nullptr;
   }; 
 
 } // namespace other

@@ -8,6 +8,7 @@
 
 #include <glm/glm.hpp>
 
+#include "core/defines.hpp"
 #include "core/buffer.hpp"
 #include "asset/asset_types.hpp"
 
@@ -21,69 +22,10 @@ namespace other {
   typedef void* MethodHandle;
   typedef void* PropertyHandle;
   
-  enum ValueType {
-    EMPTY , // Void , null , nil ,etc...
-            
-    /// primitive types
-    BOOL , CHAR ,
-    INT8 , INT16 , INT32 , INT64 ,
-    UINT8 , UINT16 , UINT32 , UINT64 ,
-    FLOAT , DOUBLE ,
-    STRING ,
-
-    /// engine types
-    VEC2 , VEC3 , VEC4 , 
-    ASSET , ENTITY ,
-
-    /// user types
-    USER_TYPE ,
-  };
-
   struct Parameter {
     ParamHandle handle;
     ValueType type;
   };
-
-  template <typename T>
-  static constexpr ValueType GetValueType() {
-    if constexpr (std::is_same_v<T , bool>) {
-      return ValueType::BOOL;
-    } else if constexpr (std::is_same_v<T , char>) {
-      return ValueType::CHAR;
-    } else if constexpr (std::is_same_v<T , int8_t>) {
-      return ValueType::INT8;
-    } else if constexpr (std::is_same_v<T, int16_t>) {
-      return ValueType::INT16;
-    } else if constexpr (std::is_same_v<T, int32_t>) {
-      return ValueType::INT32;
-    } else if constexpr (std::is_same_v<T, int64_t>) {
-      return ValueType::INT64;
-    } else if constexpr (std::is_same_v<T, uint8_t>) {
-      return ValueType::UINT8;
-    } else if constexpr (std::is_same_v<T, uint16_t>) {
-      return ValueType::UINT16;
-    } else if constexpr (std::is_same_v<T, uint32_t>) {
-      return ValueType::UINT32;
-    } else if constexpr (std::is_same_v<T, uint64_t>) {
-      return ValueType::UINT64;
-    } else if constexpr (std::is_same_v<T, float>) {
-      return ValueType::FLOAT;
-    } else if constexpr (std::is_same_v<T, double>) {
-      return ValueType::DOUBLE;
-    } else if constexpr (std::is_same_v<T , glm::vec2>) {
-      return ValueType::VEC2;
-    } else if constexpr (std::is_same_v<T , glm::vec3>) {
-      return ValueType::VEC3;
-    } else if constexpr (std::is_same_v<T , glm::vec4>) {
-      return ValueType::VEC4;
-    } else if constexpr (std::is_same_v<T , AssetHandle>) {
-      return ValueType::ASSET;
-    } else if constexpr (std::is_same_v<T , UUID>) {
-      return ValueType::ENTITY;
-    } else {
-      return ValueType::EMPTY;
-    }
-  }
 
   class Value {
     public:

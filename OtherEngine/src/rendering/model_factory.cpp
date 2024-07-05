@@ -47,9 +47,12 @@ namespace other {
     indices[10] = { 3, 2, 6 };
     indices[11] = { 6, 7, 3 };
 
-    AssetHandle mesh_source_handle = AssetManager::CreateMemOnly<ModelSource>(vertices , indices , glm::mat4(0.f));
+    AssetHandle mesh_source_handle = AssetManager::CreateMemOnly<ModelSource>(vertices , indices , glm::mat4(1.f));
     Ref<ModelSource> mesh_source = AssetManager::GetAsset<ModelSource>(mesh_source_handle);
-    return AssetManager::CreateMemOnly<StaticModel>(mesh_source);
+
+    AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>(mesh_source);
+    OE_DEBUG("Created cube mesh [{}]" , handle);
+    return handle; 
   }
   
   AssetHandle ModelFactory::CreateSphere(float radius) {

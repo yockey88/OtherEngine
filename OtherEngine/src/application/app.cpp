@@ -276,6 +276,9 @@ namespace {
       OE_ERROR("Failed to load scene : {}" , path);
       return;
     }
+    
+    /// alert the client app new scene is loaded 
+    OnSceneLoad(ActiveScene());
 
     /// propogate scene loading through layers
     for (auto& l : *layer_stack) {
@@ -284,9 +287,6 @@ namespace {
 
     ScriptEngine::SetSceneContext(scn_metadata->scene);
     PhysicsEngine::SetSceneContext(scn_metadata->scene);
-    
-    /// alert the client app new scene is loaded 
-    OnSceneLoad(ActiveScene());
   }
       
   bool App::HasActiveScene() {

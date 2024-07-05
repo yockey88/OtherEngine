@@ -4,7 +4,6 @@
 #ifndef OTHER_ENGINE_DEFINES_HPP
 #define OTHER_ENGINE_DEFINES_HPP
 
-#include <concepts>
 #include <string_view>
 #include <cstdint>
 #include <memory>
@@ -34,6 +33,110 @@ namespace other {
     FAILURE = NUM_EXIT_CODES ,
     INVALID = FAILURE
   };
+  
+  enum ValueType {
+    EMPTY , // Void , null , nil ,etc...
+            
+    /// primitive types
+    BOOL , CHAR ,
+    INT8 , INT16 , INT32 , INT64 ,
+    UINT8 , UINT16 , UINT32 , UINT64 ,
+    FLOAT , DOUBLE ,
+    STRING ,
+
+    /// engine types
+    VEC2 , VEC3 , VEC4 , 
+    
+    MAT3 , MAT4 ,
+
+    ASSET , ENTITY ,
+
+    /// user types
+    USER_TYPE ,
+  };
+  
+  template <typename T>
+  static constexpr ValueType GetValueType() {
+    if constexpr (std::is_same_v<T , bool>) {
+      return ValueType::BOOL;
+    } else if constexpr (std::is_same_v<T , char>) {
+      return ValueType::CHAR;
+    } else if constexpr (std::is_same_v<T , int8_t>) {
+      return ValueType::INT8;
+    } else if constexpr (std::is_same_v<T, int16_t>) {
+      return ValueType::INT16;
+    } else if constexpr (std::is_same_v<T, int32_t>) {
+      return ValueType::INT32;
+    } else if constexpr (std::is_same_v<T, int64_t>) {
+      return ValueType::INT64;
+    } else if constexpr (std::is_same_v<T, uint8_t>) {
+      return ValueType::UINT8;
+    } else if constexpr (std::is_same_v<T, uint16_t>) {
+      return ValueType::UINT16;
+    } else if constexpr (std::is_same_v<T, uint32_t>) {
+      return ValueType::UINT32;
+    } else if constexpr (std::is_same_v<T, uint64_t>) {
+      return ValueType::UINT64;
+    } else if constexpr (std::is_same_v<T, float>) {
+      return ValueType::FLOAT;
+    } else if constexpr (std::is_same_v<T, double>) {
+      return ValueType::DOUBLE;
+    } else if constexpr (std::is_same_v<T , glm::vec2>) {
+      return ValueType::VEC2;
+    } else if constexpr (std::is_same_v<T , glm::vec3>) {
+      return ValueType::VEC3;
+    } else if constexpr (std::is_same_v<T , glm::vec4>) {
+      return ValueType::VEC4;
+    } else if constexpr (std::is_same_v<T , glm::mat3>) {
+      return ValueType::MAT3;
+    } else if constexpr (std::is_same_v<T , glm::mat4>) {
+      return ValueType::MAT4;
+    } else {
+      return ValueType::EMPTY;
+    }
+  }
+
+  static constexpr size_t GetValueSize(ValueType type) {
+    switch (type) {
+      case BOOL: 
+      case CHAR: 
+      case INT8: 
+      case UINT8: 
+        return 1;
+      
+      case INT16: 
+      case UINT16: 
+        return 2;
+      
+      case INT32: 
+      case UINT32: 
+      case FLOAT:
+        return 4;
+      
+      case INT64: 
+      case UINT64: 
+      case DOUBLE:
+        /// these are here because they are UUIDs which are uint64
+      case ASSET:
+      case ENTITY:
+        return 8;
+
+      case VEC2:
+        return 2 * 4;
+      case VEC3:
+        return 3 * 4;
+      case VEC4:
+        return 4 * 4;
+      
+      case MAT3:
+        return 3 * 3 * 4;
+      case MAT4:
+        return 4 * 4 * 4;
+
+      default:
+        return 0;
+    }
+  }
 
   template <typename T>
   using Scope = std::unique_ptr<T>;

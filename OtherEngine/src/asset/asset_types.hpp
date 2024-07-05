@@ -35,6 +35,11 @@ namespace other {
       : id(id) {}
   };
 
+  template <>
+  constexpr ValueType GetValueType<AssetHandle>() {
+    return ValueType::ASSET;
+  }
+
   inline bool operator==(const AssetHandle& lhs , const AssetHandle& rhs) {
     return lhs.id == rhs.id;
   }

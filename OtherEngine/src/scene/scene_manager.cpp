@@ -201,12 +201,21 @@ namespace other {
     active_scene->scene->Update(dt);
   }
 
-  void SceneManager::RenderScene() {
+  Ref<Framebuffer> SceneManager::RenderScene(Ref<SceneRenderer> scene_renderer , Ref<CameraBase> viewpoint) {
     if (!HasActiveScene()) {
-      return;
+      return nullptr;
     }
-
-    active_scene->scene->Render();
+    
+    if (viewpoint == nullptr) {
+      // viewpoint = active_scene->scene->GetPrimaryCamera();
+    }
+    
+    OE_ASSERT(viewpoint != nullptr , "Attempting to render camera with null viewpoint!");
+    
+    /// submit all models
+    active_scene->scene->Render(scene_renderer);
+    /// then render
+    return scene_renderer->RenderScene(viewpoint);
   }
       
   void SceneManager::RenderSceneUI() {

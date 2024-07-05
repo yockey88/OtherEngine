@@ -72,8 +72,10 @@ namespace other {
   class ModelSource : public Asset {
     public:
       ModelSource() {}
-      ModelSource(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, const glm::mat4& transform);
-      ModelSource(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, const std::vector<SubMesh>& submeshes);
+      ModelSource(std::vector<float>& vertices , std::vector<Index>& indices , const glm::mat4& transform , 
+                  std::vector<uint32_t>& layout);
+      ModelSource(std::vector<Vertex>& vertices, std::vector<Index>& indices, const glm::mat4& transform);
+      ModelSource(std::vector<Vertex>& vertices, std::vector<Index>& indices, std::vector<SubMesh>& submeshes);
 
       virtual ~ModelSource() {}
 
@@ -82,8 +84,10 @@ namespace other {
 
       void DumpVertexBuffer();
 
-      const std::vector<Vertex>& Vertices() const;
+      // const std::vector<Vertex>& Vertices() const;
+      const std::vector<float>& Vertices() const;
       const std::vector<Index>& Indices() const;
+      const std::vector<uint32_t> Layout() const;
       
       std::vector<SubMesh> sub_meshes;
 
@@ -94,8 +98,9 @@ namespace other {
       Ref<VertexBuffer> index_buffer;
       Ref<VertexBuffer> bone_infl_buffer;
 
-      std::vector<Vertex> vertices;
+      std::vector<float> vertices;
       std::vector<Index> indices;
+      std::vector<uint32_t> layout;
 
       std::vector<BoneInfl> bone_influences;
       std::vector<Bone> bones;

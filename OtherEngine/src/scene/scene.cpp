@@ -8,14 +8,13 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/euler_angles.hpp>
 
-
 #include "application/app_state.hpp"
 
-#include "ecs/components/collider_2d.hpp"
+#include "asset/asset_manager.hpp"
 
 #include "physics/physics_defines.hpp"
+#include "rendering/rendering_defines.hpp"
 #include "scripting/script_engine.hpp"
-#include "rendering/renderer.hpp"
 
 #include "ecs/entity.hpp"
 #include "ecs/components/tag.hpp"
@@ -25,7 +24,7 @@
 #include "ecs/components/script.hpp"
 #include "ecs/components/camera.hpp"
 #include "ecs/components/rigid_body_2d.hpp"
-
+#include "ecs/components/collider_2d.hpp"
 #include "ecs/systems/core_systems.hpp"
 
 namespace other {
@@ -91,12 +90,6 @@ namespace other {
     registry.view<Script>().each([](const Script& script) {
       for (auto& [id , s] : script.scripts) {
         s->Start();
-      }
-    });
-
-    registry.view<Camera>().each([](Camera& camera) {
-      if (camera.camera->IsPrimary()) {
-        Renderer::BindCamera(camera.camera);
       }
     });
 
@@ -245,30 +238,37 @@ namespace other {
    *
    **/
       
-  void Scene::Render(/* Ref<SceneRenderer> renderer */) {
+  void Scene::Render(Ref<SceneRenderer> renderer) {
     /**
+     * submitting the pipeline specification should not happen every frame
      * renderer->SubmitPipelineSpecifications({ spec1 , spec2 , .... });
      * renderer->SubmitRenderPasses({
      *  { spec_idx , std::vector<Ref<RenderPass>> } ,
      *  ...
      * });
      **/
-    registry.view<Mesh>().each([](const Mesh& mesh) {
-      auto model = AppState::Assets()->GetAsset(mesh.handle);
-      if (model == nullptr) {
-        return;
+    registry.view<Camera>().each([&renderer](Camera& camera) {
+      if (camera.camera->IsPrimary()) {
+        /// renderer->BindCamera(camera);
       }
-
-      /// renderer->SubmitModel(model);
     });
 
-    registry.view<StaticMesh>().each([](const StaticMesh& mesh) {
+    registry.view<Mesh , Transform>().each([&renderer](const Mesh& mesh , const Transform& transform) {
       auto model = AppState::Assets()->GetAsset(mesh.handle);
       if (model == nullptr) {
         return;
       }
 
-      // renderer->SubmitModel(model);
+      renderer->SubmitModel(model , transform.model_transform);
+    });
+
+    registry.view<StaticMesh , Transform>().each([&renderer](const StaticMesh& mesh , const Transform& transform) {
+      auto model = AppState::Assets()->GetAsset(mesh.handle);
+      if (model == nullptr) {
+        return;
+      }
+
+      renderer->SubmitStaticModel(model , transform.model_transform);
     });
     
     registry.view<Script>().each([](const Script& script) {
@@ -328,6 +328,15 @@ namespace other {
       
   entt::registry& Scene::Registry() {
     return registry;
+  }
+      
+  SceneRenderSpec Scene::GetRenderingSpec() const {
+    OE_ASSERT(initialized , "Attempting to retrieve rendering specification from uninitialized scene!");
+
+    /// TODO: contstruct rendering spec from renderable entities
+    ///     (how?)
+
+    return {}; 
   }
       
   PhysicsType Scene::ActivePhysicsType() const {

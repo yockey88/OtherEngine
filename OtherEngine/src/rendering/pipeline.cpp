@@ -6,6 +6,8 @@
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 
+#include "rendering/render_pass.hpp"
+
 namespace other {
 
   Pipeline::Pipeline(const PipelineSpec& spec) 
@@ -13,31 +15,35 @@ namespace other {
     glGenVertexArrays(1 , &vao_id);
     glBindVertexArray(vao_id);
 
+    CHECKGL();
+
     vertex_buffer = NewScope<VertexBuffer>(BufferType::ARRAY_BUFFER , spec.buffer_cap);
     if (spec.has_indices) {
       index_buffer = NewScope<VertexBuffer>(BufferType::ELEMENT_ARRAY_BUFFER , spec.buffer_cap);
     }
 
-    for (const auto& attr : spec.vertex_layout) {
-      stride += attr;
-    }
+    OE_DEBUG("Setting vertex attributes");
 
     uint32_t index = 0;
     uint32_t offset = 0;
+    uint32_t stride = spec.vertex_layout.Stride();
+  
+    OE_ASSERT(stride >= 0 , "Stride for pipeline [{}] is negative ({})" , spec.debug_name , stride);
+
     for (const auto& attr : spec.vertex_layout) {
       glEnableVertexAttribArray(index);
-      glVertexAttribPointer(index , attr , GL_FLOAT , GL_FALSE , stride * sizeof(float) , (void*)(offset * sizeof(float)));
+      glVertexAttribPointer(index , attr.size , GL_FLOAT , GL_FALSE , stride * sizeof(float) , (void*)(offset * sizeof(float)));
+      CHECKGL();
 
       ++index;
-      offset += attr;
+      offset += attr.size;
     }
+    
+    OE_DEBUG("Set vertex attributes");
 
     glBindVertexArray(0);
 
     target = Ref<Framebuffer>::Create(spec.framebuffer_spec);
-  }
-
-  void Pipeline::BeginRenderPass(Ref<CameraBase> camera , Ref<RenderPass> render_pass) {
   }
 
   void Pipeline::SubmitModel(Ref<Model> model , const glm::mat4& transform) {
@@ -57,11 +63,33 @@ namespace other {
       /// build mesh key and add to current_pass data
 
       /// submit shadow pass draw cmd
+      vertex_buffer->Bind();
+      vertex_buffer->BufferData(model_source->Vertices().data() , model_source->Vertices().size() * sizeof(float));
+      curr_buffer_offset += model_source->Vertices().size();
+
+      if (spec.has_indices) {
+        index_buffer->Bind();
+        index_buffer->BufferData(model_source->Indices().data() , model_source->Indices().size() * sizeof(uint32_t));
+        curr_idx_buffer_offset += model_source->Indices().size();
+      }
+
     } 
   }
 
-  Ref<Framebuffer> Pipeline::EndRenderPass() {
-    current_pass = nullptr;
+  Ref<Framebuffer> Pipeline::Render(Ref<CameraBase> camera , Ref<RenderPass> render_pass) {
+      glBindVertexArray(vao_id);
+      if (spec.has_indices) {
+        glDrawElements(spec.topology , index_buffer->Size() , GL_UNSIGNED_INT , 0);
+      } else {
+      }
+      glBindVertexArray(0);
+
+      vertex_buffer->ClearBuffer();
+      if (spec.has_indices) {
+        index_buffer->ClearBuffer();
+      }
+
+
     return nullptr;
   }
 

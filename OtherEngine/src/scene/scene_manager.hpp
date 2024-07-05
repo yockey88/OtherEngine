@@ -10,7 +10,10 @@
 #include "core/config.hpp"
 #include "core/uuid.hpp"
 #include "core/ref.hpp"
+
 #include "scene/scene.hpp"
+
+#include "rendering/scene_renderer.hpp"
 
 namespace other {
 
@@ -46,7 +49,7 @@ namespace other {
 
       void EarlyUpdateScene(float dt);
       void UpdateScene(float dt);
-      void RenderScene();
+      Ref<Framebuffer> RenderScene(Ref<SceneRenderer> scene_renderer , Ref<CameraBase> viewpoint = nullptr);
       void RenderSceneUI();
       void LateUpdateScene(float dt);
 

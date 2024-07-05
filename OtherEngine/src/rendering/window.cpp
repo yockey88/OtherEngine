@@ -149,9 +149,7 @@ namespace {
 
   void Window::Clear() {
     glClearColor(config.color.r , config.color.g , config.color.b , config.color.a);
-    CHECKGL();
     glClear(config.clear_flags);
-    CHECKGL();
   }
       
   float Window::AspectRatio() const {

@@ -45,11 +45,42 @@ namespace other {
     GREATER_EQUAL = GL_GEQUAL ,
     ALWAYS = GL_ALWAYS ,
   };
+  
+  struct VertexBufferElement {
+    std::string name = "";
+    ValueType type = ValueType::EMPTY;
+    uint32_t size = 0;
+    uint32_t offset = 0;
 
-  // struct VertexAttribute {
-  //   std::string name = "";
-  //   uint32_t count = 0;
-  // };
+    uint32_t GetComponentCount();
+
+    VertexBufferElement() {}
+    VertexBufferElement(ValueType type , const std::string& name)
+        : name(name) , type(type) , offset(0) {
+      size = GetComponentCount();
+    }
+  };
+
+  class Layout {
+    public:
+      Layout() {}
+      Layout(const std::initializer_list<VertexBufferElement>& elements);
+
+      uint32_t Stride() const;
+      const std::vector<VertexBufferElement> Elements() const;
+      uint32_t Count() const;
+
+      [[nodiscard]] std::vector<VertexBufferElement>::iterator begin() { return elements.begin(); }
+      [[nodiscard]] std::vector<VertexBufferElement>::iterator end() { return elements.end(); }
+      [[nodiscard]] std::vector<VertexBufferElement>::const_iterator begin() const { return elements.begin(); }
+      [[nodiscard]] std::vector<VertexBufferElement>::const_iterator end() const { return elements.end(); }
+
+    private:
+      uint32_t stride = 0;
+      std::vector<VertexBufferElement> elements;
+
+      void CalculateOffsetAndStride();
+  };
 
   struct FramebufferSpec {
     DepthFunction depth_func;
@@ -62,8 +93,9 @@ namespace other {
     bool stencil = true;
   };
 
+#define LAYOUT_CLASS 0
+
   struct PipelineSpec {
-    std::vector<uint32_t> vertex_layout = {};
     bool has_indices = false;
     uint32_t buffer_cap = 4096;
 
@@ -75,6 +107,7 @@ namespace other {
     float line_width = 1.f;
 
     FramebufferSpec framebuffer_spec {};
+    Layout vertex_layout;
 
     std::string debug_name;
   };

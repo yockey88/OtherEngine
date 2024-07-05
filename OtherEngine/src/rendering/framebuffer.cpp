@@ -63,18 +63,24 @@ namespace other {
   }
 
   void Framebuffer::CreateFramebuffer() {
+    CHECKGL();
+
     glGenFramebuffers(1 , &fbo);
     glBindFramebuffer(GL_FRAMEBUFFER , fbo);
 
     if (spec.depth) {
       glGenTextures(1 , &depth_attachment);
       glBindTexture(GL_TEXTURE_2D , depth_attachment);
+
+      CHECKGL();
       
       glTexImage2D(GL_TEXTURE_2D , 0 , GL_DEPTH_COMPONENT , spec.size.x , spec.size.y , 0 , GL_DEPTH_COMPONENT , GL_UNSIGNED_BYTE , nullptr);
       glTexParameteri(GL_TEXTURE_2D , GL_TEXTURE_WRAP_S , GL_REPEAT); 
       glTexParameteri(GL_TEXTURE_2D , GL_TEXTURE_WRAP_T , GL_REPEAT); 
       glTexParameteri(GL_TEXTURE_2D , GL_TEXTURE_MIN_FILTER , GL_LINEAR); 
       glTexParameteri(GL_TEXTURE_2D , GL_TEXTURE_MAG_FILTER , GL_LINEAR); 
+
+      CHECKGL();
 
       glBindTexture(GL_TEXTURE_2D , 0);
       glFramebufferTexture2D(GL_FRAMEBUFFER , GL_DEPTH_ATTACHMENT , GL_TEXTURE_2D , depth_attachment , 0);
