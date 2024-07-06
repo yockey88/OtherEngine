@@ -167,11 +167,6 @@ namespace other {
   }
 
   void Renderer::Shutdown() {
-    DestroyBatches();
-    DestroyPrimitiveBatches();
-    
-    CHECKGL();
-    
     render_data.window = nullptr;
   }
   

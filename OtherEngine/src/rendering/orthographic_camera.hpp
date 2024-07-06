@@ -10,8 +10,8 @@ namespace other {
 
   class OrthographicCamera : public CameraBase {
     public:
-      OrthographicCamera()
-          : CameraBase(CameraProjectionType::ORTHOGRAPHIC) {}
+      OrthographicCamera(const glm::ivec2& viewport_size)
+          : CameraBase(CameraProjectionType::ORTHOGRAPHIC , viewport_size) {}
       
       OrthographicCamera(const Ref<CameraBase>& other) 
           : CameraBase(other , CameraProjectionType::ORTHOGRAPHIC) {}

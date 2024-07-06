@@ -10,6 +10,54 @@
 
 namespace other {
 
+  AssetHandle ModelFactory::CreateTriangle(const glm::vec3& pos) {
+    std::vector<Vertex> vertices{};
+    vertices.resize(3);
+
+    vertices[0].position = { pos.x - 0.5f , pos.y - 0.5f , pos.z };
+    vertices[1].position = { pos.x + 0.5f , pos.y - 0.5f , pos.z };
+    vertices[2].position = { pos.x        , pos.y + 0.5f , pos.z };
+    
+    vertices[0].normal = { -1.f , -1.f , 0.f };
+    vertices[1].normal = {  1.f , -1.f , 0.f };
+    vertices[2].normal = {  0.f ,  1.f , 0.f };
+
+    std::vector<Index> indices;
+
+    AssetHandle source_handle = AssetManager::CreateMemOnly<ModelSource>(vertices , indices , glm::mat4(1.f));
+    Ref<ModelSource> source = AssetManager::GetAsset<ModelSource>(source_handle);
+
+    AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>(source);
+    return handle;
+  }
+      
+  AssetHandle ModelFactory::CreateRect(const glm::vec3& pos , const glm::vec2& half_extents) {
+    std::vector<Vertex> vertices{};
+    vertices.resize(6);
+
+    vertices[0].position = { pos.x + half_extents.x , pos.y + half_extents.y , pos.z };
+    vertices[1].position = { pos.x + half_extents.x , pos.y - half_extents.y , pos.z };
+    vertices[2].position = { pos.x - half_extents.x , pos.y - half_extents.y , pos.z };
+    vertices[3].position = { pos.x - half_extents.x , pos.y + half_extents.y , pos.z };
+    
+    vertices[0].normal = {  1.f ,  1.f , 0.f };
+    vertices[1].normal = {  1.f , -1.f , 0.f };
+    vertices[2].normal = { -1.f , -1.f , 0.f };
+    vertices[3].normal = { -1.f ,  1.f , 0.f };
+
+    std::vector<Index> indices;
+    indices.resize(2);
+
+    indices[0] = { 0 , 1 , 3 };
+    indices[1] = { 1 , 2 , 3 };
+
+    AssetHandle source_handle = AssetManager::CreateMemOnly<ModelSource>(vertices , indices , glm::mat4(1.f));
+    Ref<ModelSource> source = AssetManager::GetAsset<ModelSource>(source_handle);
+
+    AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>(source);
+    return handle;
+  }
+
   AssetHandle ModelFactory::CreateBox(const glm::vec3& size) {
     std::vector<Vertex> vertices;
     vertices.resize(8);

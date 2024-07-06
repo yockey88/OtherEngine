@@ -7,6 +7,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/euler_angles.hpp>
+#include <winbase.h>
 
 #include "application/app_state.hpp"
 
@@ -182,11 +183,9 @@ namespace other {
 
     /// apply model transforms to meshes
     registry.view<Mesh , Transform>().each([](const Mesh& mesh , const Transform& transform) {
-      
     });
     
     registry.view<StaticMesh , Transform>().each([](const StaticMesh& mesh , const Transform& transform) {
-      
     });
 
     OnUpdate(dt);
@@ -247,11 +246,17 @@ namespace other {
      *  ...
      * });
      **/
-    registry.view<Camera>().each([&renderer](Camera& camera) {
+    Ref<CameraBase> primary_cam = nullptr;
+    registry.view<Camera>().each([&primary_cam](Camera& camera) {
       if (camera.camera->IsPrimary()) {
-        /// renderer->BindCamera(camera);
+        primary_cam = camera.camera;
       }
     });
+
+    /// lights
+
+    // renderer->SetViewportSize();
+    renderer->BeginScene(primary_cam);
 
     registry.view<Mesh , Transform>().each([&renderer](const Mesh& mesh , const Transform& transform) {
       auto model = AppState::Assets()->GetAsset(mesh.handle);
@@ -276,6 +281,8 @@ namespace other {
         s->Render();
       }
     });
+
+    renderer->EndScene();
   }
       
   void Scene::RenderUI() {

@@ -16,19 +16,28 @@ namespace other {
 
   struct Vertex {
     Point position{ 0.f , 0.f , 0.f };
-    RgbColor color{ 0.f , 0.f , 0.f };
     glm::vec3 normal{ 0.f , 0.f , 0.f };
     glm::vec3 tangent{ 0.f , 0.f , 0.f };
     glm::vec3 bitangent{ 0.f , 0.f , 0.f };
     glm::vec2 uv_coord{ 0.f , 0.f };
 
     /// DO NOT FORGET TO CHANGE BOTH OF THESE FUNCTIONS IF YOU CHANGE ONE
-    constexpr static std::vector<uint32_t> Layout() {
-      return { 3 , 3 , 3 , 3 , 3 , 2 };
+    constexpr static std::vector<uint32_t> RawLayout() {
+      return { 3 , 3 , 3 , 3 , 2 };
     }
 
+    static Layout Layout() {
+      return {
+        { other::ValueType::VEC3 , "position" } ,
+        { other::ValueType::VEC3 , "normal" } ,
+        { other::ValueType::VEC3 , "tangent" } ,
+        { other::ValueType::VEC3 , "bitangent" } ,
+        { other::ValueType::VEC2 , "uvs" } ,
+      };
+    };
+
     constexpr static uint32_t Stride() {
-      return 17;
+      return 14;
     }
   };
   

@@ -23,7 +23,53 @@ sandbox.components = {}
 sandbox.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
 sandbox.components["gtest"] = "%{wks.location}/externals/gtest/googletest/include"
 
+
+sandbox.post_build_commands = function()
+  filter { "system:windows" , "configurations:Debug" }
+    postbuildcommands {
+      '{COPY} "C:/Yock/code/OtherEngine/externals/sdl2/lib/Debug/SDL2d.dll" "%{cfg.targetdir}"',
+      '{COPY} C:/Yock/code/OtherEngine/externals/mono/bin/mono-2.0-sgen.dll "%{cfg.targetdir}"',
+      '{COPY} C:/Yock/code/OtherEngine/externals/mono/bin/mono-2.0-sgen.pdb "%{cfg.targetdir}"',
+      '{COPY} C:/Yock/code/OtherEngine/externals/mono/bin/MonoPosixHelper.dll "%{cfg.targetdir}"',
+      '{COPY} C:/Yock/code/OtherEngine/externals/mono/bin/MonoPosixHelper.pdb "%{cfg.targetdir}"',
+    }
+
+  filter { "system:windows" , "configurations:Release" }
+    postbuildcommands {
+      '{COPY} "C:/Yock/code/OtherEngine/externals/sdl2/lib/Release/SDL2.dll" "%{cfg.targetdir}"',
+      '{COPY} C:/Yock/code/OtherEngine/externals/mono/bin/mono-2.0-sgen.dll "%{cfg.targetdir}"',
+      '{COPY} C:/Yock/code/OtherEngine/externals/mono/bin/MonoPosixHelper.dll "%{cfg.targetdir}"',
+    }
+end
+
 AddProject(sandbox)
+
+local gl_sandbox = {}
+
+gl_sandbox.name = "gl_sandbox"
+gl_sandbox.path = "./gl_sandbox"
+gl_sandbox.kind = "ConsoleApp"
+gl_sandbox.language = "C++"
+gl_sandbox.cppdialect = "C++latest"
+
+gl_sandbox.files = function()
+  files {
+    "./gl_sandbox/**.cpp",
+    "./gl_sandbox/**.hpp",
+  }
+end
+
+gl_sandbox.include_dirs = function()
+  includedirs {
+    "./gl_sandbox",
+  }
+end
+
+gl_sandbox.components = {}
+gl_sandbox.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
+gl_sandbox.components["gtest"] = "%{wks.location}/externals/gtest/googletest/include"
+
+AddProject(gl_sandbox)
 
 local OctreeTests = {}
 

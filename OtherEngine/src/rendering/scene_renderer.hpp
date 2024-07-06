@@ -30,7 +30,9 @@ namespace other {
       // void SubmitEnv(...)
       // void SubmitLighting(...)
       
-      Ref<Framebuffer> RenderScene(Ref<CameraBase>& camera);
+      void BeginScene(Ref<CameraBase>& camera);
+      void EndScene();
+      Ref<Framebuffer> GetRender();
 
     private:
       glm::ivec2 viewport_size;
@@ -68,12 +70,20 @@ namespace other {
       std::vector<Ref<Pipeline>> pipelines;
       std::vector<Ref<Framebuffer>> image_ir;
 
+      std::vector<float> vertices;
+      std::vector<uint32_t> idxs;
+
       std::map<MeshKey , Ref<Model>> models;
       std::map<MeshKey , Ref<StaticModel>> static_models;
+
+      uint32_t vao = 0;
+      Scope<VertexBuffer> vertex_buffer = nullptr;
+      Scope<VertexBuffer> index_buffer = nullptr;
 
       void Initialize();
       void Shutdown();
 
+      void FlushDrawList();
       Ref<Framebuffer> RenderFrame(Ref<Pipeline> pipeline);
   };
 

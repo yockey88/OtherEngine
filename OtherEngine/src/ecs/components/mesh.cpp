@@ -7,6 +7,8 @@
 
 #include "ecs/entity.hpp"
 
+#include "rendering/model_factory.hpp"
+
 namespace other {
 
   void MeshSerializer::Serialize(std::ostream& stream , Entity* entity , const Ref<Scene>& scene) const {
@@ -34,7 +36,6 @@ namespace other {
     SerializeComponentSection(stream , entity , "static-mesh");
     /// need to retrieve the path from the asset handler, this is temporary
     auto& mesh = entity->GetComponent<StaticMesh>();
-    SerializeValue(stream , "handle" , mesh.handle);
     /// serialize material table handle/data
     SerializeValue(stream , "visible" , mesh.visible);
     SerializeValue(stream , "is-primitive" , mesh.is_primitive);
@@ -45,16 +46,49 @@ namespace other {
 
   void StaticMeshSerializer::Deserialize(Entity* entity , const ConfigTable& scene_table , Ref<Scene>& scene) const {
     std::string key_value = GetComponentSectionKey(entity->Name(), std::string{ kStaticMeshValue });
-
+    
     auto& mesh = entity->AddComponent<StaticMesh>();
+    /// we dont deserialize the handle because CreateBox below will create a new one,
+    ///   because the old would be invalid anyways
     mesh.visible = scene_table.GetVal<bool>(key_value , kVisibleValue).value_or(false);
-    mesh.handle = scene_table.GetVal<uint64_t>(key_value , kHandleValue).value_or(0);
     mesh.is_primitive = scene_table.GetVal<bool>(key_value , kIsPrimitiveValue).value_or(false);
     if (mesh.is_primitive) {
-      mesh.primitive_id = scene_table.GetVal<uint32_t>(key_value , kPrimaryValue).value_or(0);
+      mesh.primitive_id = scene_table.GetVal<uint32_t>(key_value , kPrimitiveValue).value_or(0);
     }
 
     mesh.primitive_selection = mesh.primitive_id;
+
+    OE_DEBUG("Deserialized mesh {} {}" , key_value , mesh.primitive_id);
+
+    if (mesh.primitive_id == 0) {
+      return;
+    }
+
+    switch (mesh.primitive_id) {
+      case 1: {
+        auto& scale = entity->ReadComponent<Transform>().scale;
+        auto& pos = entity->ReadComponent<Transform>().position;
+        mesh.handle = ModelFactory::CreateRect(pos , { scale.x / 2 , scale.y / 2 });
+      } break;
+
+      case 2: {
+        auto& scale = entity->ReadComponent<Transform>().scale;
+        mesh.handle = ModelFactory::CreateBox(scale);
+      } break;
+
+      case 3:
+        // sphere
+        break;
+      
+      case 4:
+        // Capsule
+        break;
+
+      default:
+        OE_ERROR("Corrupted primitive id deserializing {}" , key_value);
+        mesh.primitive_id = 0;
+        break;
+    }
 
     /// material data
     /// paths/other metadata

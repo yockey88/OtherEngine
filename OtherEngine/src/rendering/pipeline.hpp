@@ -14,6 +14,7 @@
 #include "rendering/camera_base.hpp"
 #include "rendering/framebuffer.hpp"
 #include "rendering/model.hpp"
+#include "rendering/render_pass.hpp"
 
 namespace other {
 
@@ -22,6 +23,7 @@ namespace other {
   struct MeshKey {
     AssetHandle model_handle;
     // AssetHandle material_handle;
+    glm::mat4 transform = glm::mat4(1.f);
     uint32_t submesh_idx = 0;
     bool selected;
   };
@@ -67,52 +69,64 @@ namespace std {
 
 namespace other {
 
-  class RenderPass;
-  
-  struct DrawCommand {
-    Ref<Model> model;
-    uint32_t submesh_idx = 0;
-    // mat table and material
+  struct PipelineSpec {
+    bool has_indices = false;
+    uint32_t buffer_cap = 4096;
 
-    uint32_t inst_count = 0;
-    uint32_t inst_offset = 0;
-    bool rigged = false;
+    DrawMode topology = DrawMode::TRIANGLES;
+    bool back_face_culling = true;
+    bool depth_test = true;
+    bool depth_write = true;
+    bool wire_frame = false;
+    float line_width = 1.f;
+
+    std::map<UUID , Ref<UniformBuffer>> uniform_blocks; 
+    FramebufferSpec framebuffer_spec {};
+    Layout vertex_layout;
+
+    std::string debug_name;
   };
 
-  struct StaticDrawCommand {
-    Ref<StaticModel> model;
-    uint32_t submesh_idx = 0;
-    // mat table and material
-
-    uint32_t inst_count = 0;
-    uint32_t inst_offset = 0;
+  struct SceneRenderSpec {
+    std::vector<PipelineSpec> pipeline_descs;
   };
 
   class Pipeline : public RefCounted {
     public:
       Pipeline(const PipelineSpec& spec);
       virtual ~Pipeline() override {}
+      
+      void SubmitRenderPass(Ref<RenderPass> pass);
 
       /// Add materials to model submission
       void SubmitModel(Ref<Model> model , const glm::mat4& transform);
       void SubmitStaticModel(Ref<StaticModel> model , const glm::mat4& transform);
 
-      Ref<Framebuffer> Render(Ref<CameraBase> camera , Ref<RenderPass> render_pass);
-
+      void Render(Ref<CameraBase>& camera);
+      Ref<Framebuffer> GetOutput();
+      
     private:
+      uint32_t vao_id = 0;
       PipelineSpec spec{};
-      uint32_t stride;
-
-      Ref<CameraBase> viewpoint = nullptr;
+      
+      std::vector<float> vertices{};
+      std::vector<uint32_t> indices{};
+      
+      Scope<VertexBuffer> vertex_buffer = nullptr;
+      Scope<VertexBuffer> index_buffer = nullptr;
+      
+      std::map<MeshKey , Ref<Model>> models;
+      std::map<MeshKey , Ref<StaticModel>> static_models;
+      
       Ref<Framebuffer> target = nullptr;
+
+      std::vector<Ref<RenderPass>> passes;
 
       uint32_t curr_buffer_offset = 0;
       uint32_t curr_idx_buffer_offset = 0;
 
-      uint32_t vao_id = 0;
-      uint32_t vbo_id = 0;
-      Scope<VertexBuffer> vertex_buffer = nullptr;
-      Scope<VertexBuffer> index_buffer = nullptr;
+
+      void PerformPass(Ref<RenderPass> pass);
   };
 
 } // namespace other

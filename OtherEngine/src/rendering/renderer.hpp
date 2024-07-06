@@ -38,12 +38,6 @@ namespace other {
     std::queue<StaticModel> model_queue;
   };
 
-  struct UniformBuffer {
-    UUID hash;
-    std::string name;
-    /// DataType type;
-  };
-
   class Renderer {
     public:
       static void Initialize(const ConfigTable& config);

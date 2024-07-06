@@ -56,8 +56,9 @@ namespace other {
 
     VertexBufferElement() {}
     VertexBufferElement(ValueType type , const std::string& name)
-        : name(name) , type(type) , offset(0) {
+        : name(name) , type(type) {
       size = GetComponentCount();
+      offset = GetComponentCount();
     }
   };
 
@@ -91,29 +92,6 @@ namespace other {
     bool depth = true;
     bool color = true;
     bool stencil = true;
-  };
-
-#define LAYOUT_CLASS 0
-
-  struct PipelineSpec {
-    bool has_indices = false;
-    uint32_t buffer_cap = 4096;
-
-    DrawMode topology = DrawMode::TRIANGLES;
-    bool back_face_culling = true;
-    bool depth_test = true;
-    bool depth_write = true;
-    bool wire_frame = false;
-    float line_width = 1.f;
-
-    FramebufferSpec framebuffer_spec {};
-    Layout vertex_layout;
-
-    std::string debug_name;
-  };
-
-  struct SceneRenderSpec {
-    std::vector<PipelineSpec> pipeline_descs;
   };
   
   static void CheckGlError(const char* file , int line) {
@@ -152,9 +130,9 @@ namespace other {
       err = glGetError();
     }
   }
-  
-#define CHECKGL() do { other::CheckGlError(__FILE__ , __LINE__); } while (false)
 
 } // namespace other
+
+#define CHECKGL() do { other::CheckGlError(__FILE__ , __LINE__); } while (false)
 
 #endif // !OTHER_ENGINE_RENDERING_DEFINES_HPP

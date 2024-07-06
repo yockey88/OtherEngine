@@ -4,8 +4,6 @@
 #ifndef OTHER_ENGINE_ASSET_MANAGER_HPP
 #define OTHER_ENGINE_ASSET_MANAGER_HPP
 
-#include "core/rand.hpp"
-
 #include "application/app_state.hpp"
 
 namespace other {
@@ -15,8 +13,6 @@ namespace other {
       template <asset_t A , typename... Args>
       static AssetHandle CreateMemOnly(Args&&... args) {
         Ref<Asset> asset = Ref<A>::Create(std::forward<Args>(args)...);
-        asset->handle = Random::GenerateUUID();
-
         AppState::Assets()->AddMemOnly(asset);
         return asset->handle;
       }

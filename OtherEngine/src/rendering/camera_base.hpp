@@ -25,8 +25,8 @@ namespace other {
 
   class CameraBase : public RefCounted {
     public:
-      CameraBase(CameraProjectionType type) 
-        : projection_type(type) {}
+      CameraBase(CameraProjectionType type , const glm::ivec2& viewport_size) 
+        :  viewport_size(viewport_size) , projection_type(type) {}
       
       /// This is NOT a copy constructor because the type is Ref<CameraBase>
       CameraBase(const Ref<CameraBase>& other , CameraProjectionType type);
@@ -106,6 +106,8 @@ namespace other {
 
     protected:
       friend void DrawCamera(Entity* ent);
+
+      glm::ivec2 viewport_size = { 800 , 600 };
 
       glm::vec3 position = glm::vec3(0.0f , 0.0f , 3.0f);
       glm::vec3 direction = glm::vec3(0.0f , 0.0f , -1.0f);

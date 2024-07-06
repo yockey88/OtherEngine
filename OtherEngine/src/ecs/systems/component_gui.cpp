@@ -441,7 +441,7 @@ namespace other {
     auto& mesh = ent->GetComponent<StaticMesh>();
 
     const char* options[] = {
-      "Empty" , "Cube" , "Sphere" , "Capsule"
+      "Empty" , "Rect" , "Cube" , "Sphere" , "Capsule"
     };
 
     if (ui::PropertyDropdown("Primitive Meshes" , options, 4 , mesh.primitive_selection)) {}
@@ -449,11 +449,22 @@ namespace other {
     if (mesh.primitive_id != mesh.primitive_selection && ImGui::Button("Confirm Change")) {
       bool change = false;
       switch (mesh.primitive_selection) {
-        case 2:
+        case 1: {
+          auto& scale = ent->ReadComponent<Transform>().scale;
+          auto& pos = ent->ReadComponent<Transform>().position;
+          mesh.handle = ModelFactory::CreateRect(pos , { scale.x / 2 , scale.y / 2 });
+          if (mesh.handle == 0) {
+            OE_ERROR("Failed to Create Rect Static Mesh");
+          } else {
+            change = true; 
+          }
+        } break;
+
         case 3:
+        case 4:
           OE_WARN("Assigning cube until implementations for others available!");
           [[ fallthrough ]];
-        case 1: {
+        case 2: {
           auto& scale = ent->ReadComponent<Transform>().scale;
           mesh.handle = ModelFactory::CreateBox(scale);
           if (mesh.handle == 0) {

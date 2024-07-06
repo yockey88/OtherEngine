@@ -5,6 +5,7 @@
 
 #include "rendering/rendering_defines.hpp"
 #include "rendering/renderer.hpp"
+#include <glad/glad.h>
 
 namespace other {
 
@@ -18,65 +19,12 @@ namespace other {
   }
 
   void SceneRenderer::SetViewportSize(const glm::ivec2& size) {
-    pipelines.clear();
-
-    PipelineSpec spec = {
-      .framebuffer_spec = {
-        .depth_func = LESS_EQUAL ,
-        .clear_color = { 0.f , 1.f , 0.f , 1.f } ,
-        .size = size ,
-      } ,
-      .vertex_layout = {
-    	{ ValueType::VEC3, "position" },
-    	{ ValueType::VEC3, "normal" },
-    	{ ValueType::VEC3, "tangent" },
-    	{ ValueType::VEC3, "binormal" },
-    	{ ValueType::VEC2, "uvs" }
-      } ,
-      .debug_name = "Testing Pipeline" , 
-    };
-
-    pipelines.emplace_back(NewRef<Pipeline>(spec));
   }
   
   void SceneRenderer::SubmitModel(Ref<Model> model , const glm::mat4& transform) {
-    Ref<ModelSource> source = model->GetModelSource();
-    const auto& submeshes = source->SubMeshes();
-
-    for (uint32_t sm : model->SubMeshes()) {
-      // tform = transform * sm[sm].transform
-      //
-      // /* do material stuff */
-
-      MeshKey mk = {
-        model->handle , 
-        sm ,
-        false ,
-      };
-
-      models[mk] = model; 
-    }
   }
 
   void SceneRenderer::SubmitStaticModel(Ref<StaticModel> model , const glm::mat4& transform) {
-    Ref<ModelSource> source = model->GetModelSource();
-    const auto& submeshes = source->SubMeshes();
-
-    OE_DEBUG("Submitting mesh with {} submeshes ({} claimed)" , submeshes.size() , model->SubMeshes().size());
-    for (uint32_t sm : model->SubMeshes()) {
-      // tform = transform * sm[sm].transform
-      //
-      // /* do material stuff */
-
-      MeshKey mk = {
-        model->handle , 
-        sm ,
-        false ,
-      };
-
-      OE_DEBUG("Submitting [{}] for render" , model->handle);
-      static_models[mk] = model; 
-    }
   }
 
   /**
@@ -86,60 +34,27 @@ namespace other {
    *    for l in light
    *      passes.bind(l)
    **/
-
-  Ref<Framebuffer> SceneRenderer::RenderScene(Ref<CameraBase>& camera) {
+  void SceneRenderer::BeginScene(Ref<CameraBase>& camera) {
     viewpoint = camera;
 
-    /// for p in pipelines
-    ///   Clear()
-    ///
-    /// SetUniforms(camera , lighting)
-    ///
-    /// for p in pipelines begin(pipelines , pipeline_builder) {
-    ///   for m in models and static models {
-    ///     p.submit(m)
-    ///   }
-
-    /// need to be able to submit mesh to correct pipeline
-    ///   based on input
-
-    for (auto& p : pipelines) {
-      for (auto& [key , m] : models) {
-        p->SubmitModel(m , glm::mat4(1.f));
-      }  
-      for (auto& [key , m] : static_models) {
-        p->SubmitModel(m , glm::mat4(1.f));
-      }  
-    }
-
-    // wait for images
-    // geometry_pass->Input(...);
-    for (auto& p : pipelines) {
-      image_ir.push_back(RenderFrame(p)); 
-    }
-
-    if (image_ir.empty()) { 
-      OE_DEBUG("No image to draw");
-      return nullptr;
-    }
-
-    if (image_ir[0] == nullptr) {
-      return nullptr;
-    }
-
-
-    return image_ir[0]; 
-
-    /// frame = PostProcess(image_ir)
-    ///
-    /// return frame
+    /// set uniforms
   }
+  
+  void SceneRenderer::EndScene() {
+    FlushDrawList();
+  }
+
+  Ref<Framebuffer> SceneRenderer::GetRender() {
+    return image_ir[0];
+  }
+
 
   void SceneRenderer::Initialize() {
     PipelineSpec spec = {
+      // .has_indices = true ,
       .framebuffer_spec = {
         .depth_func = LESS_EQUAL ,
-        .clear_color = { 0.f , 1.f , 0.f , 1.f } ,
+        .clear_color = { 0.1f , 0.3f , 0.5f , 1.f } ,
         .size = Renderer::WindowSize() ,
       } ,
       .vertex_layout = {
@@ -152,24 +67,88 @@ namespace other {
       .debug_name = "Testing Pipeline" , 
     };
 
-    pipelines.emplace_back(NewRef<Pipeline>(spec));
+    // pipelines.emplace_back(NewRef<Pipeline>(spec));
+    
+    glGenVertexArrays(1 , &vao);
+    glBindVertexArray(vao);
+    
+    vertex_buffer = NewScope<VertexBuffer>(ARRAY_BUFFER , 4096 * sizeof(float));
+    index_buffer = NewScope<VertexBuffer>(ELEMENT_ARRAY_BUFFER , 4096 * sizeof(uint32_t));
+    
+    uint32_t index = 0;
+    uint32_t offset = 0;
+    uint32_t stride = spec.vertex_layout.Stride();
+  
+    OE_ASSERT(stride >= 0 , "Stride for pipeline [{}] is negative ({})" , spec.debug_name , stride);
+
+    for (const auto& attr : spec.vertex_layout) {
+      glEnableVertexAttribArray(index);
+      glVertexAttribPointer(index , attr.size , GL_FLOAT , GL_FALSE , stride * sizeof(float) , (void*)(offset * sizeof(float)));
+      CHECKGL();
+
+      ++index;
+      offset += attr.size;
+    }
+
+    glBindVertexArray(0);
   }
 
   void SceneRenderer::Shutdown() {
     pipelines.clear();
   }
       
+  void SceneRenderer::FlushDrawList() {
+    for (const auto& [mk , dc] : static_models) {
+      /// const glm::mat4& transform = ??? 
+
+      // auto& verts = dc->model_source->Vertices();
+      // vertices.insert(vertices.end() , verts.begin() , verts.end());
+
+      // auto& indices = dc->model_source->Indices();
+      // for (auto& i : indices) {
+      //   idxs.push_back(i.v1);
+      //   idxs.push_back(i.v2);
+      //   idxs.push_back(i.v3);
+      // }
+    }
+
+    vertex_buffer->Bind();
+
+    /// pre render
+    /// begin command buffer ?
+    ///
+    /// shadow map pass
+    /// spot shadow mapp pass
+    /// pre depth pass
+    /// hzb compute
+    /// pre integration
+    /// light culling
+    /// skybox pass
+
+    // begin pass
+    // end pass
+
+    /// GTAO compute
+    /// GTAO denoise compute
+    /// AO Composite
+    /// pre convolution compute
+    ///
+    /// jump flood
+    ///
+    /// ssr compute
+    /// ssr composite
+    /// edge detection
+    /// bloom compute 
+    /// composite pass
+    ///
+    /// end command buffer
+    /// submit command buffer
+  }
 
   Ref<Framebuffer> SceneRenderer::RenderFrame(Ref<Pipeline> pipeline) {
-    /**
-     *  output : framebuffer = undef
-     *  output = framebuffer.pass(geometry_pass);
-     *  ... more passes
-     *  output = framebuffer.pass(xpass);
-     *
-     *  return output;
-     **/
-    return pipeline->Render(viewpoint , geometry_pass);
+    // set uniforms
+    pipeline->Render(viewpoint);
+    return pipeline->GetOutput();
   }
       
 } // namespace other

@@ -212,10 +212,11 @@ namespace other {
     
     OE_ASSERT(viewpoint != nullptr , "Attempting to render camera with null viewpoint!");
     
-    /// submit all models
+    // configure renderer
+
     active_scene->scene->Render(scene_renderer);
     /// then render
-    return scene_renderer->RenderScene(viewpoint);
+    return scene_renderer->GetRender();
   }
       
   void SceneManager::RenderSceneUI() {

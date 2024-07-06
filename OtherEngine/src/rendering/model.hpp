@@ -10,6 +10,7 @@
 #include "math/aabb.hpp"
 #include "asset/asset.hpp"
 
+#include "rendering/rendering_defines.hpp"
 #include "rendering/vertex.hpp"
 
 namespace other {
@@ -72,8 +73,7 @@ namespace other {
   class ModelSource : public Asset {
     public:
       ModelSource() {}
-      ModelSource(std::vector<float>& vertices , std::vector<Index>& indices , const glm::mat4& transform , 
-                  std::vector<uint32_t>& layout);
+      ModelSource(std::vector<float>& vertices , std::vector<Index>& indices , const glm::mat4& transform , Layout& layout);
       ModelSource(std::vector<Vertex>& vertices, std::vector<Index>& indices, const glm::mat4& transform);
       ModelSource(std::vector<Vertex>& vertices, std::vector<Index>& indices, std::vector<SubMesh>& submeshes);
 
@@ -84,12 +84,16 @@ namespace other {
 
       void DumpVertexBuffer();
 
-      // const std::vector<Vertex>& Vertices() const;
+      void BindVertexBuffer();
+      void BindIndexBuffer();
+      
+      void UnbindVertexBuffer();
+      void UnbindIndexBuffer();
+
       const std::vector<float>& Vertices() const;
       const std::vector<Index>& Indices() const;
-      const std::vector<uint32_t> Layout() const;
-      
-      std::vector<SubMesh> sub_meshes;
+      const std::vector<uint32_t>& RawLayout() const;
+      const Layout& GetLayout() const;
 
     private:
       std::vector<SubMesh> submeshes;
@@ -100,7 +104,8 @@ namespace other {
 
       std::vector<float> vertices;
       std::vector<Index> indices;
-      std::vector<uint32_t> layout;
+      std::vector<uint32_t> raw_layout;
+      Layout layout;
 
       std::vector<BoneInfl> bone_influences;
       std::vector<Bone> bones;

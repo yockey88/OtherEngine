@@ -42,22 +42,16 @@ namespace other {
     }
 
     auto transform_serializer = EntitySerialization::GetComponentSerializer(kTransformIndex);
-    if (transform_serializer != nullptr) {
-      transform_serializer->Serialize(stream , entity , ctx);
-    }
+    OE_ASSERT(transform_serializer != nullptr , "Failed to retrive transffomr serializer!");
+    transform_serializer->Serialize(stream , entity , ctx);
     
     auto relationship_serializer = EntitySerialization::GetComponentSerializer(kRelationshipIndex);
-    if (relationship_serializer != nullptr) {
-      relationship_serializer->Serialize(stream , entity , ctx);
-    }
+    OE_ASSERT(relationship_serializer != nullptr , "Failed to retrive relationship serializer!");
+    relationship_serializer->Serialize(stream , entity , ctx);
 
     for (const auto& i : comp_idxs) {
       auto serializer = EntitySerialization::GetComponentSerializer(i);
-      if (serializer == nullptr) {
-        OE_ERROR("Component with index {} returned a null serializer");
-        continue;
-      }
-
+      OE_ASSERT(serializer != nullptr , "Component with index {} returned a null serializer");
       serializer->Serialize(stream , entity , ctx);
       stream << "\n";
     }
@@ -96,10 +90,7 @@ namespace other {
     std::transform(key_name.begin() , key_name.end() , key_name.begin() , ::toupper);
     for (auto& comp : components) {
       Scope<ComponentSerializer> comp_serializer = EntitySerialization::GetComponentSerializer(comp);
-      if (comp_serializer == nullptr) {
-        OE_ERROR("Failed to retrieve serializer for component : [{}.{}]" , entity->Name() , comp);
-        continue;
-      }
+      OE_ASSERT(comp_serializer != nullptr , "Failed to retrieve serializer for component : [{}.{}]" , entity->Name() , comp);
 
       comp_serializer->Deserialize(entity , scene_table , ctx);
     }

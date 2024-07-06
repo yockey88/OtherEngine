@@ -68,7 +68,6 @@ namespace other {
     return registry.find(handle) != registry.end() && 
            (assets.find(handle) != assets.end() || 
             memory_assets.find(handle) != memory_assets.end()); 
-           
   }
 
   bool EditorAssetHandler::IsMemOnly(AssetHandle handle) {

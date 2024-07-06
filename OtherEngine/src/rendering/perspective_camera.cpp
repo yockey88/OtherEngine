@@ -5,8 +5,6 @@
 
 #include <glm/ext/matrix_clip_space.hpp>
 
-#include "rendering/renderer.hpp"
-
 namespace other {
   
   std::string PerspectiveCamera::GetCameraTypeString() const {
@@ -14,9 +12,7 @@ namespace other {
   }
 
   void PerspectiveCamera::CalculateProjection() {
-    glm::ivec2 window_size = Renderer::WindowSize();
-    projection = glm::perspective(glm::radians(fov) , static_cast<float>(window_size.x) / window_size.y , 
-                                  clip.x , clip.y);
+    projection = glm::perspective(glm::radians(fov) , static_cast<float>(viewport_size.x) / viewport_size.y , clip.x , clip.y);
   }
 
 } // namespace other

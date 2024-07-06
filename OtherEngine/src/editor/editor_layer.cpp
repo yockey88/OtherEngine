@@ -28,7 +28,7 @@
 namespace other {
 
   void EditorLayer::OnAttach() {
-    editor_camera = Ref<PerspectiveCamera>::Create();
+    editor_camera = NewRef<PerspectiveCamera>(Renderer::WindowSize());
     editor_camera->SetPosition({ 0.f , 0.f , 3.f });
     editor_camera->SetDirection({ 0.f , 0.f , -1.f });
     editor_camera->SetUp({ 0.f , 1.f , 0.f });
@@ -163,6 +163,9 @@ namespace other {
         viewport->Resize({ size.x , size.y });
         uint32_t tex_id = viewport->texture; 
         ImGui::Image((void*)(uintptr_t)tex_id , size , ImVec2(0 , 1) , ImVec2(1 , 0)); 
+      } else if (viewport != nullptr && !viewport->Valid()) {
+        ScopedColor red_text(ImGuiCol_Text , ui::theme::red);
+        ImGui::Text("Generated Viewport is invalid!!");
       } else {
         ScopedColor red_text(ImGuiCol_Text , ui::theme::red);
         ImGui::Text("No Viewport Generated");
@@ -265,6 +268,8 @@ namespace other {
 
     auto& scenes = AppState::Scenes();
     Path p = scenes->ActiveScene()->path;
+
+    scenes->SaveActiveScene();
 
     ParentApp()->UnloadScene();
     ParentApp()->LoadScene(p);

@@ -50,6 +50,12 @@ namespace other {
       bool HasActiveScene();
       SceneMetadata* ActiveScene();
       void UnloadScene();
+      
+      Ref<Project> project_metadata;
+      Ref<AssetHandler> asset_handler = nullptr;
+
+      Scope<LayerStack> layer_stack = nullptr;
+      Scope<SceneManager> scene_manager = nullptr;
 
     protected:
       void Attach();
@@ -87,12 +93,6 @@ namespace other {
 
       const CmdLine& cmdline;
       const ConfigTable& config;
-
-      Ref<Project> project_metadata;
-      Ref<AssetHandler> asset_handler = nullptr;
-
-      Scope<LayerStack> layer_stack = nullptr;
-      Scope<SceneManager> scene_manager = nullptr;
 
       UIWindowMap ui_windows;
 

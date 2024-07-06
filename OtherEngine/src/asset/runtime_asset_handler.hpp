@@ -6,6 +6,9 @@
 
 #include "asset/asset_handler.hpp"
 
+#include "asset/asset_registry.hpp"
+#include "asset/asset_metadata.hpp"
+
 namespace other {
 
 
@@ -14,24 +17,33 @@ namespace other {
       RuntimeAssetHandler() {}
       virtual ~RuntimeAssetHandler() override {}
 
-      virtual AssetType GetAssetType(AssetHandle handle) override { return AssetType::INVALID_ASSET; }
-      virtual Ref<Asset> GetAsset(AssetHandle handle) override { return nullptr; }
-      virtual void AddMemOnly(Ref<Asset> asset) override {}
-      virtual bool ReloadData(AssetHandle handle) override { return false; }
+      virtual AssetType GetAssetType(AssetHandle handle) override;
+      virtual Ref<Asset> GetAsset(AssetHandle handle) override;
+      virtual void AddMemOnly(Ref<Asset> asset) override;
+      virtual bool ReloadData(AssetHandle handle) override;
 
-      virtual bool IsHandleValid(AssetHandle handle) override { return false; }
-      virtual bool IsMemOnly(AssetHandle handle) override { return false; }
-      virtual bool IsLoaded(AssetHandle handle) override { return false; }
-      virtual bool IsValid(AssetHandle handle) override { return false; }
-      virtual bool IsMissing(AssetHandle handle) override { return false; }
+      virtual bool IsHandleValid(AssetHandle handle) override;
+      virtual bool IsMemOnly(AssetHandle handle) override;
+      virtual bool IsLoaded(AssetHandle handle) override;
+      virtual bool IsValid(AssetHandle handle) override;
+      virtual bool IsMissing(AssetHandle handle) override;
 
-      virtual void Remove(AssetHandle handle) override {}
+      virtual void Remove(AssetHandle handle) override;
 
-      virtual AssetSet GetAllOfType(AssetType type) override { return {}; }
-      virtual AssetMap& GetAll() override { return TEMP; }
+      virtual AssetSet GetAllOfType(AssetType type) override;
+      virtual AssetMap& GetAll() override;
 
     private:
-      AssetMap TEMP;
+      AssetMap assets;
+      AssetMap memory_assets;
+
+      AssetRegistry registry;
+
+      Ref<Asset> FindAsset(AssetHandle handle);
+
+      AssetMetadata& GetMetadata(AssetHandle handle);
+
+      void LoadAsset(AssetHandle handle);
   }; 
 
 } // namespace other

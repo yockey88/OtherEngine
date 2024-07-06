@@ -26,6 +26,7 @@ namespace other {
     public:
       OE_ASSET(SHADER);
 
+      Shader(const std::vector<std::string>& src);
       Shader(const Path& vertex_path , const Path& fragment_path , const Opt<Path>& geometry_shader = std::nullopt);
       virtual ~Shader() override;
   
@@ -35,6 +36,8 @@ namespace other {
       const bool IsValid() const;
 
       const bool HasGeometry() const;
+
+      void BindToBlock(const std::string& name , uint32_t binding_point);
  
       void SetUniform(const std::string& name , const int32_t& value);
       void SetUniform(const std::string& name , const float& value);
@@ -59,6 +62,8 @@ namespace other {
       std::unordered_map<std::string , int32_t> uniform_locations;
   
       bool valid = false;
+
+      bool Compile(const char* vsrc , const char* fsrc , const char* gsrc = nullptr);
   
       bool CompileShader(uint32_t shader_piece , const char* src);
       bool LinkShader();

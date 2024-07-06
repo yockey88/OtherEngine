@@ -4,12 +4,9 @@ author = "Y"
 version = 0.0.1
 
 [window]
-width = 800
-height = 600
+width = 1200
+height = 800
 title = "Other Engine Sandbox"
-
-[renderer]
-cull-face = false
 
 [log]
 console-level = "Debug" 

@@ -45,52 +45,104 @@ namespace other {
 
     target = Ref<Framebuffer>::Create(spec.framebuffer_spec);
   }
+      
+  void Pipeline::SubmitRenderPass(Ref<RenderPass> pass) {
+    auto shader = pass->GetShader();
+    for (auto& [id , block] : spec.uniform_blocks) {
+      shader->BindToBlock(block->Name() , block->BindingPoint());
+    }
+
+    passes.push_back(pass);
+  }
 
   void Pipeline::SubmitModel(Ref<Model> model , const glm::mat4& transform) {
   }
 
   void Pipeline::SubmitStaticModel(Ref<StaticModel> model , const glm::mat4& transform) {
-    Ref<ModelSource> model_source = model->GetModelSource();
+    Ref<ModelSource> source = model->GetModelSource();
     // const auto& submesh_data = model_source->SubMeshes();
-    for (uint32_t idx : model->SubMeshes()) {
-      // glm::mat4 sub_mesh_transform = transform * submesh_data[idx].transform; 
-      // uint32_t mat_idx = submesh_data[idx].material;
 
-      /// save sub_mesh_transform to apply later?
-      
-      /// get material
+    for (uint32_t sm : model->SubMeshes()) {
+      MeshKey mk = {
+        .model_handle = model->handle , 
+        .transform = transform, // * sm[sm].transform ,
+        .submesh_idx = sm ,
+        .selected = false ,
+      };
 
-      /// build mesh key and add to current_pass data
-
-      /// submit shadow pass draw cmd
-      vertex_buffer->Bind();
-      vertex_buffer->BufferData(model_source->Vertices().data() , model_source->Vertices().size() * sizeof(float));
-      curr_buffer_offset += model_source->Vertices().size();
-
-      if (spec.has_indices) {
-        index_buffer->Bind();
-        index_buffer->BufferData(model_source->Indices().data() , model_source->Indices().size() * sizeof(uint32_t));
-        curr_idx_buffer_offset += model_source->Indices().size();
-      }
-
-    } 
+      static_models[mk] = Ref<StaticModel>::Clone(model);
+    }
   }
 
-  Ref<Framebuffer> Pipeline::Render(Ref<CameraBase> camera , Ref<RenderPass> render_pass) {
-      glBindVertexArray(vao_id);
+  void Pipeline::Render(Ref<CameraBase>& camera) {
+    auto itr = spec.uniform_blocks.find(FNV("Camera"));
+    if (itr != spec.uniform_blocks.end()) {
+      auto& [id , cam_block] = *itr;
+
+      cam_block->SetUniform("projection" , camera->ProjectionMatrix());
+      cam_block->SetUniform("view" , camera->ViewMatrix());
+    }
+
+    // vertex_buffer->Bind();
+    // vertex_buffer->BufferData(vertices.data() , vertices.size() * sizeof(float));
+
+    // if (spec.has_indices) {
+    //   index_buffer->Bind();
+    //   index_buffer->BufferData(indices.data() , indices.size() * sizeof(uint32_t));
+    // }
+
+    // CHECKGL();
+
+    target->BindFrame();
+
+    glBindVertexArray(vao_id);
+    for (const auto& p : passes) {
+      PerformPass(p);
+    }
+    glBindVertexArray(0);
+
+    target->UnbindFrame();
+
+    CHECKGL();
+
+    // vertex_buffer->ClearBuffer();
+    // if (spec.has_indices) {
+    //   index_buffer->ClearBuffer();
+    // }
+    // 
+    // vertices.clear();
+    // indices.clear();
+
+    CHECKGL();
+  }
+
+  Ref<Framebuffer> Pipeline::GetOutput() {
+    return target;
+  }
+      
+  void Pipeline::PerformPass(Ref<RenderPass> pass) {
+    for (const auto& [mk , m] : static_models) {
+      Ref<ModelSource> source = m->GetModelSource();
+
+      source->BindVertexBuffer();
       if (spec.has_indices) {
-        glDrawElements(spec.topology , index_buffer->Size() , GL_UNSIGNED_INT , 0);
+        source->BindIndexBuffer();
+      }
+
+      pass->GetShader()->Bind();
+      pass->SetInput("u_model" , mk.transform);
+
+      if (spec.has_indices) {
+        glDrawElements(spec.topology , indices.size() , GL_UNSIGNED_INT , 0);
       } else {
+        glDrawArrays(spec.topology , 0 , vertices.size() / spec.vertex_layout.Stride()); 
       }
-      glBindVertexArray(0);
-
-      vertex_buffer->ClearBuffer();
+      
+      source->UnbindVertexBuffer();
       if (spec.has_indices) {
-        index_buffer->ClearBuffer();
+        source->UnbindIndexBuffer();
       }
-
-
-    return nullptr;
+    }
   }
 
 } // namespace other

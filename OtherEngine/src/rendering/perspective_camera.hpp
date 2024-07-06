@@ -10,8 +10,8 @@ namespace other {
 
   class PerspectiveCamera : public CameraBase {
     public:
-      PerspectiveCamera()
-          : CameraBase(CameraProjectionType::PERSPECTIVE) {}
+      PerspectiveCamera(const glm::ivec2& viewport_size)
+          : CameraBase(CameraProjectionType::PERSPECTIVE , viewport_size) {}
       
       PerspectiveCamera(const Ref<CameraBase>& other)
           : CameraBase(other , CameraProjectionType::PERSPECTIVE) {}

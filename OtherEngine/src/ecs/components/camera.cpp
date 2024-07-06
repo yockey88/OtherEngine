@@ -7,6 +7,8 @@
 #include "core/config_keys.hpp"
 #include "scene/scene.hpp"
 #include "ecs/entity.hpp"
+
+#include "rendering/renderer.hpp"
 #include "rendering/perspective_camera.hpp"
 #include "rendering/orthographic_camera.hpp"
 
@@ -52,11 +54,11 @@ namespace other {
 
     switch (FNV(uc_type)) {
       case kPerspectiveCamValueHash: 
-        camera.camera = Ref<PerspectiveCamera>::Create();
+        camera.camera = NewRef<PerspectiveCamera>(Renderer::WindowSize());
       break;
 
       case kOrthographicCamValueHash:
-        camera.camera = Ref<OrthographicCamera>::Create();
+        camera.camera = NewRef<OrthographicCamera>(Renderer::WindowSize());
       break;
 
       default:

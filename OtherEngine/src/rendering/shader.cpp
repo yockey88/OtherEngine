@@ -8,6 +8,7 @@
 
 #include "core/logger.hpp"
 #include "core/filesystem.hpp"
+#include "core/rand.hpp"
 
 namespace other {
       
@@ -18,9 +19,36 @@ namespace other {
   const bool Shader::HasGeometry() const {
     return geometry_path.has_value();
   }
+      
+  Shader::Shader(const std::vector<std::string>& src)
+      : vertex_path("") , fragment_path("") , geometry_path(std::nullopt) {
+    OE_ASSERT(src.size() == 2 || src.size() == 3 , "Incorrect number of source strings for shader {}" , src.size());
+    handle = Random::GenerateUUID();
+
+    vertex_src = src[0];
+    fragment_src = src[1];
+    if (src.size() == 3) {
+      geometry_src = src[2];
+      geometry_path = "";
+    }
+
+    const char* vsrc_ptr = vertex_src.c_str();
+    const char* fsrc_ptr = fragment_src.c_str();
+    const char* gsrc_ptr = nullptr;
+    if (HasGeometry()) {
+      gsrc_ptr = geometry_src.value().c_str();
+    }
+
+    if (!Compile(vsrc_ptr , fsrc_ptr , gsrc_ptr)) {
+      OE_ERROR("Failed to compile shader!");
+    }
+  }
 
   Shader::Shader(const Path& vertex_path , const Path& fragment_path , const Opt<Path>& geometry_path) 
       : vertex_path(vertex_path) , fragment_path(fragment_path) , geometry_path(geometry_path) {
+    // OE_DEBUG("Compiling shader from file\n  {}\n  {}\n  {}" , vertex_path , fragment_path , geometry_path.value_or("No Geometry"));
+    handle = Random::GenerateUUID();
+
     vertex_src = Filesystem::ReadFile(vertex_path);
     fragment_src = Filesystem::ReadFile(fragment_path);
     if (HasGeometry()) {
@@ -33,50 +61,10 @@ namespace other {
     if (HasGeometry()) {
       gsrc_ptr = geometry_src.value().c_str();
     }
-  
-    uint32_t vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    uint32_t fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    Opt<uint32_t> geometry_shader = std::nullopt;
-    if (HasGeometry()) {
-      geometry_shader = glCreateShader(GL_GEOMETRY_SHADER);
+    
+    if (!Compile(vsrc_ptr , fsrc_ptr , gsrc_ptr)) {
+      OE_ERROR("Failed to compile shader!");
     }
-  
-    glShaderSource(vertex_shader , 1 , &vsrc_ptr , nullptr);
-    glShaderSource(fragment_shader , 1 , &fsrc_ptr , nullptr);
-    if (HasGeometry()) {
-      glShaderSource(geometry_shader.value() , 1 , &gsrc_ptr , nullptr);
-    }
-  
-    if (!CompileShader(vertex_shader , vsrc_ptr)) {
-      return;
-    }
-  
-    if (!CompileShader(fragment_shader , fsrc_ptr)) {
-      return;
-    }
-
-    if (HasGeometry() && !CompileShader(geometry_shader.value() , gsrc_ptr)) {
-      return;
-    }
-  
-    renderer_id = glCreateProgram();
-    glAttachShader(renderer_id , vertex_shader);
-    glAttachShader(renderer_id , fragment_shader);
-    if (HasGeometry()) {
-      glAttachShader(renderer_id , geometry_shader.value());
-    }
-  
-    if (!LinkShader()) {
-      return;
-    }
-  
-    glDeleteShader(vertex_shader);
-    glDeleteShader(fragment_shader);
-    if (HasGeometry()) {
-      glDeleteShader(geometry_shader.value());
-    }
-  
-    valid = true;
   }
   
   Shader::~Shader() {
@@ -89,6 +77,11 @@ namespace other {
   
   void Shader::Unbind() const {
     glUseProgram(0);
+  }
+      
+  void Shader::BindToBlock(const std::string& name , uint32_t binding_point) {
+    uint32_t idx = glGetUniformBlockIndex(renderer_id , name.c_str());
+    glUniformBlockBinding(renderer_id , idx , binding_point);
   }
    
   void Shader::SetUniform(const std::string& name , const int32_t& value) {
@@ -129,6 +122,58 @@ namespace other {
   void Shader::SetUniform(const std::string& name , const glm::mat4& value) {
     uint32_t loc = GetUniformLocation(name);
     glUniformMatrix4fv(loc , 1 , GL_FALSE , glm::value_ptr(value));
+  }
+      
+  bool Shader::Compile(const char* vsrc , const char* fsrc , const char* gsrc) {
+    if (HasGeometry()) {
+      gsrc = geometry_src.value().c_str();
+    }
+  
+    uint32_t vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+    uint32_t fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    Opt<uint32_t> geometry_shader = std::nullopt;
+    if (HasGeometry()) {
+      geometry_shader = glCreateShader(GL_GEOMETRY_SHADER);
+    }
+  
+    glShaderSource(vertex_shader , 1 , &vsrc , nullptr);
+    glShaderSource(fragment_shader , 1 , &fsrc , nullptr);
+    if (HasGeometry()) {
+      glShaderSource(geometry_shader.value() , 1 , &gsrc , nullptr);
+    }
+  
+    if (!CompileShader(vertex_shader , vsrc)) {
+      return false;
+    }
+  
+    if (!CompileShader(fragment_shader , fsrc)) {
+      return false;
+    }
+
+    if (HasGeometry() && !CompileShader(geometry_shader.value() , gsrc)) {
+      return false;
+    }
+  
+    renderer_id = glCreateProgram();
+    glAttachShader(renderer_id , vertex_shader);
+    glAttachShader(renderer_id , fragment_shader);
+    if (HasGeometry()) {
+      glAttachShader(renderer_id , geometry_shader.value());
+    }
+  
+    if (!LinkShader()) {
+      return false;
+    }
+  
+    glDeleteShader(vertex_shader);
+    glDeleteShader(fragment_shader);
+    if (HasGeometry()) {
+      glDeleteShader(geometry_shader.value());
+    }
+  
+    valid = true;
+
+    return true;
   }
   
   bool Shader::CompileShader(uint32_t shader_piece , const char* src) {
