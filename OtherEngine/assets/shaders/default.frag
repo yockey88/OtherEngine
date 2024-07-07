@@ -1,13 +1,8 @@
 #version 460 core
 
-in vec4 fcolor;
-in vec3 fnorm;
-in vec3 ftan;
-in vec3 fbitan;
-in vec2 fuvs;
+in vec4 fcol;
+out vec4 frag_color;
 
-out vec4 FragColor;
-
-void main() {
-  FragColor = fcolor;
+void main () {
+  frag_color = fcol;
 }

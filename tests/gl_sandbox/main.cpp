@@ -31,10 +31,10 @@
 
 #if RECT
 const float vertices[] = {
-   0.5f ,  0.5f , 0.0f ,
-   0.5f , -0.5f , 0.0f ,
-  -0.5f , -0.5f , 0.0f ,
-  -0.5f ,  0.5f , 0.0f ,
+   0.5f ,  0.5f , 0.0f , 0.f ,
+   0.5f , -0.5f , 0.0f , 0.f ,
+  -0.5f , -0.5f , 0.0f , 0.f ,
+  -0.5f ,  0.5f , 0.0f , 0.f ,
 };
 
 const uint32_t indices[] = {
@@ -53,19 +53,22 @@ const float vertices[] = {
 static const char* vert1 = R"(
 #version 460 core
 
-layout(location = 0) in vec3 vpos;
+layout (location = 0) in vec3 vpos;
+layout (location = 1) in int model_id; 
 
 layout (std140) uniform Camera {
   mat4 projection;
   mat4 view;
 };
 
+layout (std430) buffer ModelData {
+  mat4 models[];
+};
+
 out vec4 fcol;
 
-uniform mat4 u_model;
-
 void main() {
-  gl_Position = projection * view * u_model * vec4(vpos , 1.0);
+  gl_Position = projection * view * models[model_id] * vec4(vpos , 1.0);
   fcol = vec4(vpos , 1.0);
 }
 )";
@@ -85,16 +88,19 @@ static const char* vert2 = R"(
 #version 460 core
 
 layout(location = 0) in vec3 vpos;
+layout (location = 1) in int model_id; 
 
 layout (std140) uniform Camera {
   mat4 projection;
   mat4 view;
 };
 
-uniform mat4 u_model;
+layout (std430) readonly buffer ModelData {
+  mat4 models[];
+};
 
 void main() {
-  gl_Position = projection * view * u_model * vec4(vpos , 1.0);
+  gl_Position = projection * view * models[model_id] * vec4(vpos , 1.0);
 }
 )";
 
@@ -286,8 +292,11 @@ int main(int argc , char* argv[]) {
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 #endif
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0 , 3 , GL_FLOAT , GL_FALSE , 4 * sizeof(float) , (void*)0);
     glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1 , 1 , GL_FLOAT , GL_FALSE , 4 * sizeof(float) , (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 
     glBindVertexArray(0);
     
@@ -300,11 +309,17 @@ int main(int argc , char* argv[]) {
 
     glUniformBlockBinding(shader1 , cam_idx_1 , 0);
     glUniformBlockBinding(shader2 , cam_idx_2 , 0);
+    
+    uint32_t model_idx_1 = glGetProgramResourceIndex(shader1 , GL_SHADER_STORAGE_BLOCK, "ModelData");
+    uint32_t model_idx_2 = glGetProgramResourceIndex(shader2 , GL_SHADER_STORAGE_BLOCK, "ModelData");
+
+    glShaderStorageBlockBinding(shader1 , model_idx_1 , 1);
+    glShaderStorageBlockBinding(shader2 , model_idx_2 , 1);
 
     uint32_t camera_ub = 0;
     glGenBuffers(1 , &camera_ub);
     glBindBuffer(GL_UNIFORM_BUFFER , camera_ub);
-    glBufferData(GL_UNIFORM_BUFFER , 2 * sizeof(glm::mat4) , nullptr , GL_STATIC_DRAW);
+    glBufferData(GL_UNIFORM_BUFFER , 2 * sizeof(glm::mat4) , nullptr , GL_DYNAMIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER , 0);
 
     glBindBufferRange(GL_UNIFORM_BUFFER , 0 , camera_ub , 0 , 2 * sizeof(glm::mat4));
@@ -317,20 +332,26 @@ int main(int argc , char* argv[]) {
     glBufferSubData(GL_UNIFORM_BUFFER , sizeof(glm::mat4) , sizeof(glm::mat4) , glm::value_ptr(view));
     glBindBuffer(GL_UNIFORM_BUFFER , 0);
 
-    glm::mat4 model1 = glm::mat4(1.0f);
-    glm::mat4 model2 = glm::translate(model1 , glm::vec3(0.3f , 0.1f , 0.f));
 
-    int32_t model_loc1 = glGetUniformLocation(shader1 , "u_model");
-    int32_t model_loc2 = glGetUniformLocation(shader2 , "u_model");
+    glm::mat4 model1 =  glm::mat4(1.0f); 
+    glm::mat4 model2 =  glm::mat4(1.f);
+    model2 = glm::translate(model1 , glm::vec3(0.3f , 0.1f , 0.f));
+
+    uint32_t model_ssbo = 0;
+    glGenBuffers(1 , &model_ssbo);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER , model_ssbo);
+    glBufferData(GL_SHADER_STORAGE_BUFFER , 2 * sizeof(glm::mat4) , nullptr , GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER , 0);
+
+    glBindBufferRange(GL_SHADER_STORAGE_BUFFER , 1 , model_ssbo , 0 , 2 * sizeof(glm::mat4));
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER , model_ssbo);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER , 0 , sizeof(glm::mat4) , glm::value_ptr(model1));
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER , sizeof(glm::mat4) , sizeof(glm::mat4) , glm::value_ptr(model2));
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER , 0);
+
     CHECK();
 
-    glUseProgram(shader1);
-    glUniformMatrix4fv(model_loc1, 1, GL_FALSE, glm::value_ptr(model1));
-    CHECK();
-
-    glUseProgram(shader2);
-    glUniformMatrix4fv(model_loc2, 1, GL_FALSE, glm::value_ptr(model2));
-    CHECK();
 
     glUseProgram(0);
 
@@ -380,11 +401,16 @@ int main(int argc , char* argv[]) {
       glBufferSubData(GL_UNIFORM_BUFFER , sizeof(glm::mat4) , sizeof(glm::mat4) , glm::value_ptr(view));
       glBindBuffer(GL_UNIFORM_BUFFER , 0);
 
+      /// update model data
+      glBindBuffer(GL_SHADER_STORAGE_BUFFER , model_ssbo);
+      glBufferSubData(GL_SHADER_STORAGE_BUFFER , 0 , sizeof(glm::mat4) , glm::value_ptr(model1));
+      glBufferSubData(GL_SHADER_STORAGE_BUFFER , sizeof(glm::mat4) , sizeof(glm::mat4) , glm::value_ptr(model2));
+      glBindBuffer(GL_SHADER_STORAGE_BUFFER , 0);
+
       fb->BindFrame();
 
 
       glUseProgram(shader1);
-      glUniformMatrix4fv(model_loc1, 1, GL_FALSE, glm::value_ptr(model1));
       glBindVertexArray(vao);
 #if RECT
       glDrawElements(GL_TRIANGLES , 6 , GL_UNSIGNED_INT , 0);

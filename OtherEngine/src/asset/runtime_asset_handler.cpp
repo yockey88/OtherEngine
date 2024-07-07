@@ -42,7 +42,7 @@ namespace other {
     return asset;
   }
   
-  void RuntimeAssetHandler::AddMemOnly(Ref<Asset> asset) {
+  void RuntimeAssetHandler::AddMemOnly(Ref<Asset>& asset) {
     if (asset == nullptr) {
       OE_ERROR("Attempting to add null memory-only asset!");
       return;

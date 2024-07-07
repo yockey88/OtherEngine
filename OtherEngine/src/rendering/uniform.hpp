@@ -12,21 +12,25 @@
 #include "core/ref_counted.hpp"
 
 #include "rendering/rendering_defines.hpp"
+#include "rendering/shader.hpp"
 
 namespace other {
 
   struct Uniform {
     std::string name = ""; 
     ValueType type;
+    uint32_t arr_length = 1;
   };
 
   class UniformBuffer : public RefCounted {
     public:
-      UniformBuffer(const std::string& name , const std::vector<Uniform> uniforms , uint32_t binding_point , BufferUsage usage = STATIC_DRAW);
+      UniformBuffer(const std::string& name , const std::vector<Uniform> uniforms , uint32_t binding_point , 
+                    BufferType type = BufferType::UNIFORM_BUFFER , BufferUsage usage = DYNAMIC_DRAW);
       ~UniformBuffer();
 
       const std::string& Name() const;
-      uint32_t BindingPoint() const;
+
+      void BindShader(Ref<Shader>& shader);
 
       bool Bound() const;
 
@@ -36,29 +40,30 @@ namespace other {
       void Bind();
       
       template <typename T>
-      void SetUniform(const std::string& name , const T& value) {
-        auto [id , u_data] = GetUniform(name , sizeof(T));
-
-        if (id.Get() == 0) {
-          OE_ERROR("Failed to find uniform {}" , name);
+      void SetUniform(const std::string& name , const T& value , uint32_t index = 0) {
+        auto [u_data , success , offset] = TryFind(name , index);
+        if (!success) {
           return;
         }
 
         Bind();
-        glBufferSubData(GL_UNIFORM_BUFFER , u_data.offset , u_data.size , &value);
+        glBufferSubData(type , offset , u_data.size , &value);
         Unbind();
+
+        CHECKGL();
       }
 
-      template <> void SetUniform<glm::mat4>(const std::string& name , const glm::mat4& value) {
-        auto [id , u_data] = GetUniform(name , sizeof(glm::mat4));
-        if (id.Get() == 0) {
-          OE_ERROR("Failed to find uniform {}" , name);
+      template <> void SetUniform<glm::mat4>(const std::string& name , const glm::mat4& value , uint32_t index) {
+        auto [u_data , success , offset] = TryFind(name , index);
+        if (!success) {
           return;
         }
 
         Bind();
-        glBufferSubData(GL_UNIFORM_BUFFER , u_data.offset , u_data.size , glm::value_ptr(value));
+        glBufferSubData(type , offset , u_data.size , glm::value_ptr(value));
         Unbind();
+
+        CHECKGL();
       }
 
       void Unbind();
@@ -76,12 +81,16 @@ namespace other {
       const std::string name;
       bool bound = false;
 
+      BufferType type;
       BufferUsage usage;
+
       uint32_t binding_point;
       uint32_t size = 0;
       uint32_t renderer_id = 0;
 
-      std::pair<UUID , UniformData> GetUniform(const std::string& name , size_t val_size);
+      uint32_t CalculateOffset(const UniformData& uniform , uint32_t index);
+      std::tuple<UniformData , bool , uint32_t> TryFind(const std::string& name , uint32_t index);
+      std::pair<UUID , UniformData> GetUniform(const std::string& name);
   };
 
 } // namespace other

@@ -4,11 +4,12 @@
 #ifndef OTHER_ENGINE_RENDER_PASS_HPP
 #define OTHER_ENGINE_RENDER_PASS_HPP
 
-#include <core/defines.hpp>
 #include <string>
+#include <vector>
 
 #include <glm/glm.hpp>
 
+#include "core/defines.hpp"
 #include "core/ref.hpp"
 #include "core/ref_counted.hpp"
 
@@ -27,11 +28,12 @@ namespace other {
 
   class RenderPass : public RefCounted {
     public:
-      RenderPass(RenderPassSpec spec) 
-        : spec(spec) {}
+      RenderPass(RenderPassSpec spec);
       virtual ~RenderPass() override {}
 
+      void Bind();
       Ref<Shader> GetShader();
+      void Unbind();
 
       void DefineInput(const Ref<UniformBuffer>& uniform_block);
       void DefineInput(Uniform uniform);

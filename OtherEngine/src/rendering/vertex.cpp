@@ -11,7 +11,7 @@ namespace other {
     glBufferData(type , dynamic_capacity.value() , nullptr , buffer_usage);
   }
 
-  VertexBuffer::VertexBuffer(const void* data , uint32_t size ,BufferUsage usage , BufferType type) 
+  VertexBuffer::VertexBuffer(const void* data , uint32_t size , BufferUsage usage , BufferType type) 
       : buffer_type(type) , buffer_usage(usage) , buffer_size(size) {
     glGenBuffers(1 , &renderer_id);
     glBindBuffer(type , renderer_id);

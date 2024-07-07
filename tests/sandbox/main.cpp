@@ -14,8 +14,10 @@
 #include "core/errors.hpp"
 #include "core/engine.hpp"
 #include "input/io.hpp"
-#include "parsing/ini_parser.hpp"
 #include "parsing/cmd_line_parser.hpp"
+#include "parsing/ini_parser.hpp"
+#include "parsing/shader_compiler.hpp"
+
 #include "application/app.hpp"
 #include "application/app_state.hpp"
 #include "asset/asset_manager.hpp"
@@ -46,18 +48,21 @@ layout (location = 1) in vec3 vnorm;
 layout (location = 2) in vec3 vtan;
 layout (location = 3) in vec3 vbitan;
 layout (location = 4) in vec2 vuvs;
-
+layout (location = 5) in int model_id;
+ 
 layout (std140) uniform Camera {
   mat4 projection;
   mat4 view;
 };
-
+ 
+layout (std430 , binding = 1) readonly buffer ModelData {
+  mat4 models[];
+};
+ 
 out vec4 fcol;
 
-uniform mat4 u_model;
-
 void main() {
-  gl_Position = projection * view * u_model * vec4(vpos , 1.0);
+  gl_Position = projection * view * models[model_id] * vec4(vpos , 1.0);
   fcol = vec4(vpos , 1.0);
 }
 )";
@@ -81,23 +86,26 @@ layout (location = 1) in vec3 vnorm;
 layout (location = 2) in vec3 vtan;
 layout (location = 3) in vec3 vbitan;
 layout (location = 4) in vec2 vuvs;
+layout (location = 5) in int model_id;
 
 layout (std140) uniform Camera {
   mat4 projection;
   mat4 view;
 };
 
+layout (std430 , binding = 2) readonly buffer ModelData {
+  mat4 models[];
+};
+
 out VOUT {
   vec3 normal;
 } vout;
 
-uniform mat4 u_model;
-
 void main() {
-  mat3 normal_mat = mat3(transpose(inverse(view * u_model)));
+  mat3 normal_mat = mat3(transpose(inverse(view * models[model_id])));
   vout.normal = normalize(vec3(vec4(normal_mat * vnorm , 0.0)));
 
-  gl_Position = view * u_model * vec4(vpos , 1.0);
+  gl_Position = view * models[model_id] * vec4(vpos , 1.0);
 }
 )";
 
@@ -154,7 +162,6 @@ using other::NewRef;
 using other::Scope;
 using other::NewScope;
 
-using other::VertexBuffer;
 using other::Shader;
 using other::CameraBase;
 using other::PerspectiveCamera;
@@ -221,6 +228,15 @@ int main(int argc , char* argv[]) {
 
     mock_engine.PushCoreLayer();
 
+    other::ShaderCompiler shader_compilerv1 = other::ShaderCompiler(other::VERTEX_SHADER , std::string(vert1));
+    other::ShaderCompiler shader_compilerf1 = other::ShaderCompiler(other::FRAGMENT_SHADER , std::string(frag1));
+
+    other::ShaderIr outputv1 = shader_compilerv1.Compile();
+    std::cout << outputv1.source << "\n--------\n";
+
+    other::ShaderIr outputf1 = shader_compilerf1.Compile();
+    std::cout << outputf1.source << "\n--------\n";
+
     {
       Ref<CameraBase> camera = NewRef<PerspectiveCamera>(glm::ivec2{ win_w , win_h });
 
@@ -244,19 +260,34 @@ int main(int argc , char* argv[]) {
       };
 
       Ref<RenderPass> pass1 = NewRef<RenderPass>(pass_spec1);
-      pass1->DefineInput({ "u_model" , other::ValueType::MAT4 });
-      
       Ref<RenderPass> pass2 = NewRef<RenderPass>(pass_spec2);
-      pass2->DefineInput({ "u_model" , other::ValueType::MAT4 });
+      
+      CHECK();
 
       uint32_t camera_binding_pnt = 0;
-      std::vector<Uniform> unis = {
+      std::vector<Uniform> cam_unis = {
         { "projection" , other::ValueType::MAT4 } ,
         { "view"       , other::ValueType::MAT4 } ,
       };
       
-      Ref<UniformBuffer> cam_uniforms = NewRef<UniformBuffer>("Camera" , unis , camera_binding_pnt);
+      Ref<UniformBuffer> cam_uniforms = NewRef<UniformBuffer>("Camera" , cam_unis , camera_binding_pnt);
       cam_uniforms->BindBase();
+      
+      uint32_t model_binding_pnt1 = 1;
+      uint32_t model_binding_pnt2 = 2;
+      std::vector<Uniform> model_unis = {
+        { "models" , other::ValueType::MAT4  , 2 } ,
+      };
+
+      Ref<UniformBuffer> model_storage1 = NewRef<UniformBuffer>("ModelData" , model_unis , model_binding_pnt1 , 
+                                                               other::SHADER_STORAGE , other::DYNAMIC_DRAW);
+      model_storage1->BindBase();
+      
+      Ref<UniformBuffer> model_storage2 = NewRef<UniformBuffer>("ModelData" , model_unis , model_binding_pnt2 , 
+                                                               other::SHADER_STORAGE , other::DYNAMIC_DRAW);
+      model_storage2->BindBase();
+      
+      CHECK();
 
       glm::mat4 model1 = glm::mat4(1.f);
       glm::mat4 model2 = glm::translate(model1 , glm::vec3(0.3f , 0.1f , 0.0f));
@@ -271,6 +302,7 @@ int main(int argc , char* argv[]) {
         .buffer_cap = 4096 * sizeof(float) ,
         .uniform_blocks = {
           { other::FNV("Camera") , cam_uniforms } ,
+          { other::FNV("ModelData") , model_storage1 } ,
         } ,
         .framebuffer_spec = {
           .depth_func = other::LESS_EQUAL ,
@@ -284,6 +316,28 @@ int main(int argc , char* argv[]) {
       Ref<Pipeline> pipeline1 = NewRef<Pipeline>(spec1);
       pipeline1->SubmitRenderPass(pass1);
       pipeline1->SubmitRenderPass(pass2);
+
+      CHECK();
+      
+      PipelineSpec spec2 = {
+        .has_indices = true ,
+        .buffer_cap = 4096 * sizeof(float) ,
+        .uniform_blocks = {
+          { other::FNV("Camera") , cam_uniforms } ,
+          { other::FNV("ModelData") , model_storage2 } ,
+        } ,
+        .framebuffer_spec = {
+          .depth_func = other::LESS_EQUAL ,
+          .clear_color = { 0.1f , 0.3f , 0.5f , 1.f } ,
+          .size = { win_w , win_h } ,
+        } ,
+        .vertex_layout = model_source->GetLayout() ,
+        .debug_name = "Testing Pipeline 2" , 
+      };
+
+      Ref<Pipeline> pipeline2 = NewRef<Pipeline>(spec2);
+
+      CHECK();
 
       OE_INFO("Running");
       bool running = true;
@@ -321,10 +375,8 @@ int main(int argc , char* argv[]) {
         CHECK();
 
         pipeline1->SubmitStaticModel(model , model1);
-        // pipeline2->SubmitStaticModel(model , model2);
 
         pipeline1->Render(camera);
-        // pipeline2->Render(camera);
 
         other::UI::BeginFrame();
 
@@ -357,6 +409,8 @@ int main(int argc , char* argv[]) {
     return 0;
   } catch (const other::IniException& e) {
     std::cout << "caught ini error : " << e.what() << "\n";
+  } catch (const other::ShaderException& e) {
+    std::cout << "caught shader error : " << e.what() << "\n";
   } catch(const std::exception& e) {
     std::cout << "caught std error : " << e.what() << "\n";
   } catch (...) {

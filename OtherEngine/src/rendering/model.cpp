@@ -7,28 +7,6 @@
 
 namespace other {
 
-  ModelSource::ModelSource(std::vector<float>& verts , std::vector<Index>& idxs , const glm::mat4& transform , Layout& lo) {
-    handle = Random::GenerateUUID();
-    
-    SubMesh submesh;
-    submesh.base_vertex = 0;
-    submesh.base_idx = 0;
-    submesh.idx_cnt = static_cast<uint32_t>(indices.size());
-    submesh.transform = transform;
-    submeshes.push_back(submesh);
-
-    vertices.swap(verts);
-    indices.swap(idxs);
-
-    raw_layout = Vertex::RawLayout();
-    layout = Vertex::Layout();
-
-    vertex_buffer = NewRef<VertexBuffer>(vertices.data() , vertices.size() * sizeof(float));
-    if (indices.size() > 0) {
-      index_buffer = NewRef<VertexBuffer>(indices.data() , vertices.size() * sizeof(uint32_t));
-    }
-  }
-
   ModelSource::ModelSource(std::vector<Vertex>& verts, std::vector<Index>& idxs, const glm::mat4& transform) {
     handle = Random::GenerateUUID();
 
@@ -49,6 +27,8 @@ namespace other {
 
     raw_layout = Vertex::RawLayout();
     layout = Vertex::Layout();
+    
+    OE_ASSERT(vertex_buffer != nullptr , "null vertex buffer after model creation!");
   }
 
   ModelSource::ModelSource(std::vector<Vertex>& verts, std::vector<Index>& idxs, std::vector<SubMesh>& submeshes) {
@@ -67,6 +47,8 @@ namespace other {
 
     raw_layout = Vertex::RawLayout();
     layout = Vertex::Layout();
+
+    OE_ASSERT(vertex_buffer != nullptr , "null vertex buffer after model creation!");
   }
 
   std::vector<SubMesh>& ModelSource::SubMeshes() {
@@ -81,6 +63,7 @@ namespace other {
   }
       
   void ModelSource::BindVertexBuffer() {
+    OE_ASSERT(vertex_buffer != nullptr , "trying to bind null vertex buffer after model creation!");
     vertex_buffer->Bind();
   }
 
@@ -135,16 +118,18 @@ namespace other {
     }
   }
 
-  Model::Model(Ref<ModelSource> model_source) 
+  Model::Model(Ref<ModelSource>& model_source) 
       : model_source(model_source) {
+    OE_ASSERT(model_source != nullptr , "Attempting construct model from null source!");
     handle = Random::GenerateUUID();
     SetSubMeshes({});
 
     /// build materials
   }
 
-  Model::Model(Ref<ModelSource> model_src , const std::vector<uint32_t>& sub_meshes) 
+  Model::Model(Ref<ModelSource>& model_src , const std::vector<uint32_t>& sub_meshes) 
       : model_source(model_src) {
+    OE_ASSERT(model_src != nullptr , "Attempting construct model from null source!");
     handle = Random::GenerateUUID();
     SetSubMeshes(sub_meshes);
 
@@ -185,7 +170,8 @@ namespace other {
     /// idk
   }
   
-  StaticModel::StaticModel(Ref<ModelSource> model_source) {
+  StaticModel::StaticModel(Ref<ModelSource>& model_source) {
+    OE_ASSERT(model_source != nullptr , "Attempting construct model from null source!");
     handle = Random::GenerateUUID();
 	this->model_source = Ref<ModelSource>::Clone(model_source);
     SetSubMeshes({});
@@ -193,7 +179,8 @@ namespace other {
     /// build materials
   }
 
-  StaticModel::StaticModel(Ref<ModelSource> model_src , const std::vector<uint32_t>& sub_meshes) {
+  StaticModel::StaticModel(Ref<ModelSource>& model_src , const std::vector<uint32_t>& sub_meshes) {
+    OE_ASSERT(model_src != nullptr , "Attempting construct model from null source!");
     handle = Random::GenerateUUID();
     this->model_source = Ref<ModelSource>::Clone(model_source);
     SetSubMeshes(sub_meshes);
@@ -226,15 +213,15 @@ namespace other {
   }
 
   Ref<ModelSource> StaticModel::GetModelSource() {
-    return Ref<ModelSource>::Clone(model_source);
+    OE_ASSERT(model_source != nullptr , "Static Model has null source!");
+    return model_source;
   }
 
   Ref<ModelSource> StaticModel::GetModelSource() const {
     return nullptr;
   }
 
-  void StaticModel::SetModelAsset(Ref<ModelSource> mesh_src) {
-    /// idk
+  void StaticModel::SetModelAsset(Ref<ModelSource>& mesh_src) {
   }
 
 } // namespace other

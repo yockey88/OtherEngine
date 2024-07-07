@@ -29,6 +29,8 @@ namespace other {
       Shader(const std::vector<std::string>& src);
       Shader(const Path& vertex_path , const Path& fragment_path , const Opt<Path>& geometry_shader = std::nullopt);
       virtual ~Shader() override;
+
+      uint32_t ID() const;
   
       void Bind() const;
       void Unbind() const;
@@ -36,8 +38,6 @@ namespace other {
       const bool IsValid() const;
 
       const bool HasGeometry() const;
-
-      void BindToBlock(const std::string& name , uint32_t binding_point);
  
       void SetUniform(const std::string& name , const int32_t& value);
       void SetUniform(const std::string& name , const float& value);

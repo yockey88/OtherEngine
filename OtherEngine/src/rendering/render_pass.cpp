@@ -4,9 +4,24 @@
 #include "rendering/render_pass.hpp"
 
 namespace other {
+      
+  RenderPass::RenderPass(RenderPassSpec spec) 
+      : spec(spec) {
+    for (auto& u : spec.uniforms) {
+      uniforms[other::FNV(u.name)] = u;
+    } 
+  }
+      
+  void RenderPass::Bind() {
+    spec.shader->Bind();
+  }
 
   Ref<Shader> RenderPass::GetShader() {
     return spec.shader;
+  }
+      
+  void RenderPass::Unbind() {
+    spec.shader->Unbind();
   }
       
   void RenderPass::DefineInput(const Ref<UniformBuffer>& uni_buffer) {
@@ -21,7 +36,7 @@ namespace other {
 
   void RenderPass::DefineInput(Uniform uniform) {
     auto hash = FNV(uniform.name);
-    if (uniform_blocks.find(hash) != uniform_blocks.end()) {
+    if (uniforms.find(hash) != uniforms.end()) {
       OE_ERROR("Can not redefine uniform block {}" , uniform.name);
       return;
     }

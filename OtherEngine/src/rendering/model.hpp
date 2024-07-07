@@ -73,7 +73,6 @@ namespace other {
   class ModelSource : public Asset {
     public:
       ModelSource() {}
-      ModelSource(std::vector<float>& vertices , std::vector<Index>& indices , const glm::mat4& transform , Layout& layout);
       ModelSource(std::vector<Vertex>& vertices, std::vector<Index>& indices, const glm::mat4& transform);
       ModelSource(std::vector<Vertex>& vertices, std::vector<Index>& indices, std::vector<SubMesh>& submeshes);
 
@@ -107,8 +106,8 @@ namespace other {
       std::vector<uint32_t> raw_layout;
       Layout layout;
 
-      std::vector<BoneInfl> bone_influences;
       std::vector<Bone> bones;
+      std::vector<BoneInfl> bone_influences;
       // mutable Scope<Skeleton> skeleton = nullptr;
 
       // std::vector<Ref<Material>> materials;
@@ -124,8 +123,8 @@ namespace other {
 
   class Model : public Asset {
     public:
-      explicit Model(Ref<ModelSource> mesh_source);
-      Model(Ref<ModelSource> mesh_src , const std::vector<uint32_t>& sub_meshes);
+      explicit Model(Ref<ModelSource>& mesh_source);
+      Model(Ref<ModelSource>& mesh_src , const std::vector<uint32_t>& sub_meshes);
       Model(const Ref<Model>& other);
       virtual ~Model() {}
 
@@ -147,8 +146,8 @@ namespace other {
 
   class StaticModel : public Asset {
     public:
-      explicit StaticModel(Ref<ModelSource> mesh_source);
-      StaticModel(Ref<ModelSource> mesh_src , const std::vector<uint32_t>& sub_meshes);
+      explicit StaticModel(Ref<ModelSource>& mesh_source);
+      StaticModel(Ref<ModelSource>& mesh_src , const std::vector<uint32_t>& sub_meshes);
       StaticModel(const Ref<StaticModel>& other);
       virtual ~StaticModel() {}
 
@@ -159,7 +158,7 @@ namespace other {
       Ref<ModelSource> GetModelSource();
       Ref<ModelSource> GetModelSource() const;
 
-      void SetModelAsset(Ref<ModelSource> mesh_src);
+      void SetModelAsset(Ref<ModelSource>& mesh_src);
 
       Ref<ModelSource> model_source;
       std::vector<uint32_t> sub_meshes;

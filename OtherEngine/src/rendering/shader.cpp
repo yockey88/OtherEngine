@@ -70,6 +70,10 @@ namespace other {
   Shader::~Shader() {
    glDeleteProgram(renderer_id);
   }
+
+  uint32_t Shader::ID() const {
+    return renderer_id;
+  }
   
   void Shader::Bind() const {
     glUseProgram(renderer_id);
@@ -77,11 +81,6 @@ namespace other {
   
   void Shader::Unbind() const {
     glUseProgram(0);
-  }
-      
-  void Shader::BindToBlock(const std::string& name , uint32_t binding_point) {
-    uint32_t idx = glGetUniformBlockIndex(renderer_id , name.c_str());
-    glUniformBlockBinding(renderer_id , idx , binding_point);
   }
    
   void Shader::SetUniform(const std::string& name , const int32_t& value) {

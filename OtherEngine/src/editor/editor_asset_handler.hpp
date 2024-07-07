@@ -20,7 +20,7 @@ namespace other {
 
       virtual AssetType GetAssetType(AssetHandle handle) override;
       virtual Ref<Asset> GetAsset(AssetHandle handle) override;
-      virtual void AddMemOnly(Ref<Asset> asset) override;
+      virtual void AddMemOnly(Ref<Asset>& asset) override;
       virtual bool ReloadData(AssetHandle handle) override;
 
       virtual bool IsHandleValid(AssetHandle handle) override;

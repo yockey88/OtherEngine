@@ -21,7 +21,7 @@ namespace other {
 
       virtual AssetType GetAssetType(AssetHandle assetHandle) = 0;
       virtual Ref<Asset> GetAsset(AssetHandle assetHandle) = 0;
-      virtual void AddMemOnly(Ref<Asset> asset) = 0;
+      virtual void AddMemOnly(Ref<Asset>& asset) = 0;
       virtual bool ReloadData(AssetHandle assetHandle) = 0;
 
       // the asset handle is valid (this says nothing about the asset itself)

@@ -24,6 +24,7 @@ namespace other {
     AssetHandle model_handle;
     // AssetHandle material_handle;
     glm::mat4 transform = glm::mat4(1.f);
+    uint32_t model_idx = 0;
     uint32_t submesh_idx = 0;
     bool selected;
   };
@@ -80,6 +81,7 @@ namespace other {
     bool wire_frame = false;
     float line_width = 1.f;
 
+    Ref<UniformBuffer> model_storage;
     std::map<UUID , Ref<UniformBuffer>> uniform_blocks; 
     FramebufferSpec framebuffer_spec {};
     Layout vertex_layout;
@@ -96,11 +98,11 @@ namespace other {
       Pipeline(const PipelineSpec& spec);
       virtual ~Pipeline() override {}
       
-      void SubmitRenderPass(Ref<RenderPass> pass);
+      void SubmitRenderPass(Ref<RenderPass>& pass);
 
       /// Add materials to model submission
-      void SubmitModel(Ref<Model> model , const glm::mat4& transform);
-      void SubmitStaticModel(Ref<StaticModel> model , const glm::mat4& transform);
+      void SubmitModel(Ref<Model>& model , const glm::mat4& transform);
+      void SubmitStaticModel(Ref<StaticModel>& model , const glm::mat4& transform);
 
       void Render(Ref<CameraBase>& camera);
       Ref<Framebuffer> GetOutput();
@@ -115,18 +117,14 @@ namespace other {
       Scope<VertexBuffer> vertex_buffer = nullptr;
       Scope<VertexBuffer> index_buffer = nullptr;
       
-      std::map<MeshKey , Ref<Model>> models;
-      std::map<MeshKey , Ref<StaticModel>> static_models;
+      uint32_t curr_model_idx = 0;
       
       Ref<Framebuffer> target = nullptr;
 
       std::vector<Ref<RenderPass>> passes;
 
-      uint32_t curr_buffer_offset = 0;
-      uint32_t curr_idx_buffer_offset = 0;
-
-
-      void PerformPass(Ref<RenderPass> pass);
+      uint32_t GetCurrentTransformIdx();
+      void PerformPass(Ref<RenderPass>& pass);
   };
 
 } // namespace other
