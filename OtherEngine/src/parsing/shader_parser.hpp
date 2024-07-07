@@ -12,8 +12,9 @@
 
 namespace other {
 
-  struct ShaderIr {
-    std::string source = ""; 
+  class ShaderAst {
+    public:
+      std::vector<Ref<AstNode>> nodes;
   };
 
   class ShaderParser {
@@ -21,7 +22,7 @@ namespace other {
       ShaderParser(const std::vector<Token>& tokens)
         : tokens(tokens) {}
 
-      ShaderIr Parse();
+      ShaderAst Parse();
 
     private:
       bool valid_input = false;
@@ -29,7 +30,7 @@ namespace other {
       size_t current = 0;
       std::vector<Token> tokens;
 
-      ShaderIr result;
+      ShaderAst result;
 
       struct Flags {
         bool initializer_valid = true;

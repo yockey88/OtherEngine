@@ -232,10 +232,10 @@ int main(int argc , char* argv[]) {
     other::ShaderCompiler shader_compilerf1 = other::ShaderCompiler(other::FRAGMENT_SHADER , std::string(frag1));
 
     other::ShaderIr outputv1 = shader_compilerv1.Compile();
-    std::cout << outputv1.source << "\n--------\n";
+    std::cout << outputv1.glsl_source << "\n--------\n";
 
     other::ShaderIr outputf1 = shader_compilerf1.Compile();
-    std::cout << outputf1.source << "\n--------\n";
+    std::cout << outputf1.glsl_source << "\n--------\n";
 
     {
       Ref<CameraBase> camera = NewRef<PerspectiveCamera>(glm::ivec2{ win_w , win_h });

@@ -4,9 +4,11 @@
 #ifndef OTHER_ENGIEN_SHADER_AST_NODE_HPP
 #define OTHER_ENGIEN_SHADER_AST_NODE_HPP
 
+#include <vector>
+
+#include "core/logger.hpp"
 #include "parsing/ast_node.hpp"
 #include "parsing/parsing_defines.hpp"
-#include <vector>
 
 namespace other {
 
@@ -17,6 +19,7 @@ namespace other {
       virtual ~VersionExpr() override {}
 
       virtual void Stream(std::ostream& stream) const override;
+      virtual void Accept(TreeWalker& walker) override;
 
       Token version_number;
       Token version_type;
@@ -28,6 +31,7 @@ namespace other {
         : AstExpr(LAYOUT_DESCRIPTOR) , type(type) , expr(expr) {}
 
       virtual void Stream(std::ostream& stream) const override;
+      virtual void Accept(TreeWalker& walker) override;
 
       Token type;
       Ref<AstExpr> expr;
@@ -38,21 +42,15 @@ namespace other {
       LayoutDecl(Token layout_rules , std::vector<Ref<AstExpr>>& dtors , const Ref<AstStmt>& data) 
           : AstStmt(LAYOUT_DECL_STMT) , layout_rules(layout_rules) , data(data) {
         descriptors.swap(dtors);
+        OE_DEBUG("Layout decl created with {} descriptors" , descriptors.size());
       }
 
       virtual void Stream(std::ostream& stream) const override;
+      virtual void Accept(TreeWalker& walker) override;
 
       Token layout_rules;
       std::vector<Ref<AstExpr>> descriptors;
       Ref<AstStmt> data;
-  };
-  
-  class LayoutStmt : public AstStmt {
-    public:
-      LayoutStmt()
-        : AstStmt(LAYOUT_STMT) {}
-
-      virtual void Stream(std::ostream& stream) const override;
   };
 
   class ShaderStorageStmt : public AstStmt {
@@ -61,6 +59,7 @@ namespace other {
         : AstStmt(SHADER_STORAGE_STMT) , type(type) , name(id) , body(body) {}
 
       virtual void Stream(std::ostream& stream) const override;
+      virtual void Accept(TreeWalker& walker) override;
 
       Token type;
       Token name;

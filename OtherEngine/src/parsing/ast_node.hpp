@@ -8,6 +8,7 @@
 #include "core/ref_counted.hpp"
 
 #include "parsing/parsing_defines.hpp"
+#include "parsing/tree_walker.hpp"
 
 
 namespace other {
@@ -21,7 +22,7 @@ namespace other {
         : type(type) {}
       virtual ~AstNode() = default;
       virtual void Stream(std::ostream& stream) const = 0;
-      // virtual void Accept(TreeWalker& walker) = 0;
+      virtual void Accept(TreeWalker& walker) = 0;
       // virtual std::vector<Instruction> Emit() = 0;
 
       inline AstNodeType GetType() const {
@@ -50,7 +51,7 @@ namespace other {
       virtual ~LiteralExpr() override {}
 
       virtual void Stream(std::ostream& stream) const override;
-      // void Accept(TreeWalker& walker) override;
+      void Accept(TreeWalker& walker) override;
       // std::vector<Instruction> Emit() override;
 
       Token value;
@@ -63,7 +64,7 @@ namespace other {
       virtual ~UnaryExpr() override {}
 
       virtual void Stream(std::ostream& stream) const override;
-      // void Accept(TreeWalker& walker) override;
+      void Accept(TreeWalker& walker) override;
       // std::vector<Instruction> Emit() override;
 
       Token op;
@@ -77,7 +78,7 @@ namespace other {
       virtual ~BinaryExpr() override {}
 
       virtual void Stream(std::ostream& stream) const override;
-      // void Accept(TreeWalker& walker) override;
+      void Accept(TreeWalker& walker) override;
       // std::vector<Instruction> Emit() override;
 
       Ref<AstExpr> left;
@@ -94,7 +95,7 @@ namespace other {
       virtual ~CallExpr() override {}
 
       virtual void Stream(std::ostream& stream) const override;
-      // void Accept(TreeWalker& walker) override;
+      void Accept(TreeWalker& walker) override;
       // std::vector<Instruction> Emit() override;
 
       Ref<AstExpr> callee;
@@ -108,7 +109,7 @@ namespace other {
       virtual ~GroupingExpr() override {}
 
       virtual void Stream(std::ostream& stream) const override;
-      // void Accept(TreeWalker& walker) override;
+      void Accept(TreeWalker& walker) override;
       // std::vector<Instruction> Emit() override;
 
       Ref<AstExpr> expr;
@@ -121,7 +122,7 @@ namespace other {
       virtual ~VarExpr() override {}
 
       virtual void Stream(std::ostream& stream) const override;
-      // void Accept(TreeWalker& walker) override;
+      void Accept(TreeWalker& walker) override;
       // std::vector<Instruction> Emit() override;
 
       Token name;
@@ -134,7 +135,7 @@ namespace other {
       virtual ~AssignExpr() override {}
 
       virtual void Stream(std::ostream& stream) const override;
-      // void Accept(TreeWalker& walker) override;
+      void Accept(TreeWalker& walker) override;
       // std::vector<Instruction> Emit() override;
 
       Token name;
@@ -150,7 +151,7 @@ namespace other {
       virtual ~ArrayExpr() override {}
 
       virtual void Stream(std::ostream& stream) const override;
-      // void Accept(TreeWalker& walker) override;
+      void Accept(TreeWalker& walker) override;
       // std::vector<Instruction> Emit() override;
 
       std::vector<Ref<AstExpr>> elements;
@@ -163,7 +164,7 @@ namespace other {
       virtual ~ArrayAccessExpr() override {}
 
       virtual void Stream(std::ostream& stream) const override;
-      // void Accept(TreeWalker& walker) override;
+      void Accept(TreeWalker& walker) override;
       // std::vector<Instruction> Emit() override;
 
       Ref<AstExpr> array;
@@ -179,7 +180,7 @@ namespace other {
       virtual ~ObjAccessExpr() override {}
 
       virtual void Stream(std::ostream& stream) const override;
-      // void Accept(TreeWalker& walker) override;
+      void Accept(TreeWalker& walker) override;
       // std::vector<Instruction> Emit() override;
 
       Ref<AstExpr> obj;
@@ -195,7 +196,7 @@ namespace other {
       virtual ~ExprStmt() override {}
 
       virtual void Stream(std::ostream& stream) const override;
-      // virtual void Accept(TreeWalker& walker) override;
+      virtual void Accept(TreeWalker& walker) override;
       // virtual std::vector<Instruction> Emit() override;
 
       Ref<AstExpr> expr = nullptr;
@@ -208,7 +209,7 @@ namespace other {
       virtual ~VarDecl() override {}
 
       virtual void Stream(std::ostream& stream) const override;
-      // virtual void Accept(TreeWalker& walker) override;
+      virtual void Accept(TreeWalker& walker) override;
       // virtual std::vector<Instruction> Emit() override;
 
       Token name;
@@ -224,7 +225,7 @@ namespace other {
       virtual ~ArrayDecl() override {}
 
       virtual void Stream(std::ostream& stream) const override;
-      // virtual void Accept(TreeWalker& walker) override;
+      virtual void Accept(TreeWalker& walker) override;
       // virtual std::vector<Instruction> Emit() override;
 
       Token name;
@@ -243,7 +244,7 @@ namespace other {
       }
 
       virtual void Stream(std::ostream& stream) const override;
-      // virtual void Accept(TreeWalker& walker) override;
+      virtual void Accept(TreeWalker& walker) override;
       // virtual std::vector<Instruction> Emit() override;
 
       std::vector<Ref<AstStmt>> statements;
@@ -257,7 +258,7 @@ namespace other {
       }
 
       virtual void Stream(std::ostream& stream) const override;
-      // virtual void Accept(TreeWalker& walker) override;
+      virtual void Accept(TreeWalker& walker) override;
       // virtual std::vector<Instruction> Emit() override;
 
       Ref<AstExpr> condition;
@@ -273,7 +274,7 @@ namespace other {
       }
 
       virtual void Stream(std::ostream& stream) const override;
-      // virtual void Accept(TreeWalker& walker) override;
+      virtual void Accept(TreeWalker& walker) override;
       // virtual std::vector<Instruction> Emit() override;
 
       Ref<AstExpr> condition;
@@ -287,7 +288,7 @@ namespace other {
       virtual ~ReturnStmt() override {}
 
       virtual void Stream(std::ostream& stream) const override;
-      // virtual void Accept(TreeWalker& walker) override;
+      virtual void Accept(TreeWalker& walker) override;
       // virtual std::vector<Instruction> Emit() override;
 
       Ref<AstStmt> stmt = nullptr;
@@ -301,7 +302,7 @@ namespace other {
       virtual ~FunctionStmt() override {}
 
       virtual void Stream(std::ostream& stream) const override;
-      // virtual void Accept(TreeWalker& walker) override;
+      virtual void Accept(TreeWalker& walker) override;
       // virtual std::vector<Instruction> Emit() override;
 
       Token name;
@@ -320,7 +321,7 @@ namespace other {
       }
 
       virtual void Stream(std::ostream& stream) const override;
-      // virtual void Accept(TreeWalker& walker) override;
+      virtual void Accept(TreeWalker& walker) override;
       // virtual std::vector<Instruction> Emit() override;
 
       Token name;

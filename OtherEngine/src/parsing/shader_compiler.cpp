@@ -3,12 +3,10 @@
  **/
 #include "parsing/shader_compiler.hpp"
 
-#include "core/errors.hpp"
-#include "core/filesystem.hpp"
-
 #include "parsing/shader_preprocessor.hpp"
 #include "parsing/shader_lexer.hpp"
 #include "parsing/shader_parser.hpp"
+#include "parsing/shader_glsl_transpiler.hpp"
 
 namespace other {
 
@@ -20,7 +18,14 @@ namespace other {
     auto tokens = lexer.Lex();
 
     ShaderParser parser(tokens);
-    return parser.Parse();
+    ShaderAst ast = parser.Parse();
+
+    ShaderGlslTranspiler transpiler(ast);
+    result.glsl_source = transpiler.Transpile();
+    std::cout << "transpiled source :\n" 
+              << result.glsl_source << "\n";
+
+    return result;
   }
 
 } // namespace other

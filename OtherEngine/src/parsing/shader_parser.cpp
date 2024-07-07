@@ -12,7 +12,7 @@
 
 namespace other {
       
-  ShaderIr ShaderParser::Parse() {
+  ShaderAst ShaderParser::Parse() {
     if (tokens.size() < 2) {
       return {};
     }
@@ -20,7 +20,6 @@ namespace other {
     current = 0;
     Consume(START_SRC , "Expected Start of File");
 
-    std::vector<Ref<AstStmt>> parsed_file{};
     while (!AtEnd()) {
       if (Check(END_SRC)) {
         break;
@@ -28,7 +27,7 @@ namespace other {
 
       Ref<AstStmt> s = ParseDecl();
       if (s != nullptr) {
-        parsed_file.push_back(s);
+        result.nodes.push_back(s);
       } else {
         throw Error(SYNTAX_ERROR , "Failed to parse declaration!");
       }
