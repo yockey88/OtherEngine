@@ -1,6 +1,4 @@
-vertex [
-  mesh : default ,
-] {
+vertex [mesh : default] {
    
   layout (std140 , binding = 0) uniform Camera {
     mat4 projection;

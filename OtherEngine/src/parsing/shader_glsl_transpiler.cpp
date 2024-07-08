@@ -5,7 +5,6 @@
 
 #include "core/errors.hpp"
 #include "parsing/shader_ast_node.hpp"
-#include "rendering/shader.hpp"
 
 namespace other {
       
