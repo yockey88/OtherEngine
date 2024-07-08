@@ -8,13 +8,22 @@
 
 #include "core/ref_counted.hpp"
 
-#include "rendering/rendering_defines.hpp"
 #include "rendering/camera_base.hpp"
 #include "rendering/model.hpp"
 #include "rendering/render_pass.hpp"
 #include "rendering/pipeline.hpp"
 
 namespace other {
+  
+  struct SceneRenderSpec {
+    Ref<UniformBuffer> camera_uniforms;
+    Ref<UniformBuffer> model_storage;
+
+    std::vector<RenderPassSpec> passes;
+    std::vector<PipelineSpec> pipelines;
+
+    std::map<UUID , std::vector<UUID>> pipeline_to_pass_map;
+  };
 
   class SceneRenderer : public RefCounted {
     public:
@@ -32,13 +41,11 @@ namespace other {
       
       void BeginScene(Ref<CameraBase>& camera);
       void EndScene();
-      Ref<Framebuffer> GetRender();
+      const std::map<UUID , Ref<Framebuffer>>& GetRender() const;
 
     private:
       glm::ivec2 viewport_size;
       SceneRenderSpec spec;
-
-      Ref<CameraBase> viewpoint;
 
       /// here go the passes
       ///  - bloom compute ?
@@ -65,26 +72,20 @@ namespace other {
       ///  - grid
       ///  - collider
       ///  - skybox
+      
+      uint32_t curr_model_idx = 0;
 
-      Ref<RenderPass> geometry_pass;
-      std::vector<Ref<Pipeline>> pipelines;
-      std::vector<Ref<Framebuffer>> image_ir;
+      std::map<UUID , Ref<RenderPass>> passes;
+      std::map<UUID , Ref<Pipeline>> pipelines;
 
-      std::vector<float> vertices;
-      std::vector<uint32_t> idxs;
-
-      std::map<MeshKey , Ref<Model>> models;
-      std::map<MeshKey , Ref<StaticModel>> static_models;
-
-      uint32_t vao = 0;
-      Scope<VertexBuffer> vertex_buffer = nullptr;
-      Scope<VertexBuffer> index_buffer = nullptr;
+      std::map<UUID , Ref<Framebuffer>> image_ir;
 
       void Initialize();
       void Shutdown();
 
       void FlushDrawList();
-      Ref<Framebuffer> RenderFrame(Ref<Pipeline> pipeline);
+      
+      uint32_t GetCurrentTransformIdx();
   };
 
 } // namespace other

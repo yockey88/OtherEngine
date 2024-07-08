@@ -58,8 +58,6 @@ namespace other {
 
     panel_manager = NewScope<PanelManager>();
     panel_manager->Attach((Editor*)ParentApp() , AppState::ProjectContext() , editor_config);
-
-    viewport_renderer = NewRef<SceneRenderer>();
   }
 
   void EditorLayer::OnDetach() {

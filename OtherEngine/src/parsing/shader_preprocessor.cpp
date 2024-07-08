@@ -7,7 +7,7 @@
 
 namespace other {
 
- ProcessedFile ShaderPreprocessor::Process() {
+ ShaderProcessedFile ShaderPreprocessor::Process() {
   while (CanContinue()) {
     if (Command()) {
       ConsumeCommand();

@@ -26,6 +26,7 @@ namespace other {
 
     uint32_t index = 0;
     uint32_t offset = 0;
+
     /// we always add an index into the end of the layout
     uint32_t stride = spec.vertex_layout.Stride() * sizeof(float) + sizeof(uint32_t);
   
@@ -51,36 +52,13 @@ namespace other {
   }
       
   void Pipeline::SubmitRenderPass(Ref<RenderPass>& pass) {
-    CHECKGL();
-
-    auto shader = pass->GetShader();
-    for (auto& [id , block] : spec.uniform_blocks) {
-      OE_DEBUG("Binding render pass to block {}" , block->Name());
-      block->BindShader(shader);
-      CHECKGL();
-    }
-      
-    CHECKGL();
-
     passes.push_back(pass);
   }
 
-  void Pipeline::SubmitModel(Ref<Model>& model , const glm::mat4& transform) {
+  void Pipeline::SubmitModel(Ref<Model>& model , uint32_t transform_idx) {
   }
 
-  void Pipeline::SubmitStaticModel(Ref<StaticModel>& model , const glm::mat4& transform) {
-    auto itr = spec.uniform_blocks.find(FNV("ModelData"));
-    if (itr == spec.uniform_blocks.end()) {
-      return;
-    }
-
-    uint32_t transform_idx = GetCurrentTransformIdx();
-
-    auto& [id , mdl] = *itr;
-    mdl->SetUniform("models" , transform , transform_idx);
-    
-    CHECKGL();
-    
+  void Pipeline::SubmitStaticModel(Ref<StaticModel>& model , uint32_t transform_idx) {
     Ref<ModelSource> source = model->GetModelSource();
     // const auto& submesh_data = model_source->SubMeshes();
     
@@ -103,17 +81,7 @@ namespace other {
     }
   }
 
-  void Pipeline::Render(Ref<CameraBase>& camera) {
-    auto itr = spec.uniform_blocks.find(FNV("Camera"));
-    if (itr != spec.uniform_blocks.end()) {
-      auto& [id , cam_block] = *itr;
-
-      cam_block->SetUniform("projection" , camera->ProjectionMatrix());
-      cam_block->SetUniform("view" , camera->ViewMatrix());
-    }
-
-    CHECKGL();
-
+  void Pipeline::Render() {
     vertex_buffer->Bind();
     vertex_buffer->BufferData(vertices.data() , vertices.size() * sizeof(float));
 
@@ -146,21 +114,13 @@ namespace other {
     vertices.clear();
     indices.clear();
 
-    curr_model_idx = 0;
-
     CHECKGL();
   }
 
   Ref<Framebuffer> Pipeline::GetOutput() {
     return target;
   }
-      
-  uint32_t Pipeline::GetCurrentTransformIdx() {
-    uint32_t idx = curr_model_idx;
-    ++curr_model_idx;
-    return idx;
-  }
-      
+        
   void Pipeline::PerformPass(Ref<RenderPass>& pass) {
     pass->Bind();
     CHECKGL();

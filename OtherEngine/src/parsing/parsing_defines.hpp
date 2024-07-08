@@ -6,7 +6,8 @@
 
 #include <string_view>
 #include <array>
-#include <map>
+#include <algorithm>
+#include <utility>
 
 #include "core/defines.hpp"
 
@@ -34,15 +35,23 @@ namespace other {
     FUNCTION_STMT , 
     STRUCT_STMT ,
     
-    /// shader exprs
-    LAYOUT_DESCRIPTOR ,
+    /// glsl shader exprs
     VERSION_EXPR ,
+    SHADER_ATTRIBUTE_EXPR ,
+    LAYOUT_DESCRIPTOR ,
 
-    /// shader stmts
+    /// glsl shader stmts
     LAYOUT_DECL_STMT ,
-    LAYOUT_STMT ,
+    LAYOUT_VAR_DECL_STMT ,
     SHADER_STORAGE_STMT ,
-    IN_OUT_BLOCK ,
+    IN_OUT_BLOCK_STMT,
+    UNIFORM_DECL_STMT ,
+
+    /// oshader exprs
+    
+
+    /// oshader stmts
+    SHADER_DECL_STMT ,
 
     NUM_AST_NODES ,
     INVALID_AST_NODES = NUM_AST_NODES ,
@@ -93,11 +102,15 @@ namespace other {
     FOR_KW ,
     RETURN_KW , 
     STRUCT_KW ,
+    CONST_KW ,
 
     CORE_KW ,
     LAYOUT_KW , 
     LOCATION_KW , 
     STDXXX_KW , 
+    TRIANGLES_KW ,
+    LINE_STRIP_KW ,
+    MAX_VERTICES_KW ,
     BINDING_KW , 
     UNIFORM_KW , 
     READONLY_KW , 
@@ -114,6 +127,13 @@ namespace other {
     MAT2_KW , 
     MAT3_KW , 
     MAT4_KW ,
+
+    /// oshader keywords
+    VERTEX_KW ,
+    FRAGMENT_KW ,
+    GEOMETRY_KW ,
+    
+    MESH_KW ,
 
     END_SRC ,
 
@@ -144,44 +164,48 @@ namespace other {
     "FUNCTION_STMT" , 
     "STRUCT_STMT" ,
     
-    "LAYOUT_DESCRIPTOR" ,
     "VERSION_EXPR" ,
+    "SHADER_ATTRIBUTE_EXPR"
+    "LAYOUT_DESCRIPTOR" ,
 
     "LAYOUT_DECL_STMT" ,
-    "LAYOUT_STMT" ,
-
+    "LAYOUT_VAR_DECL_STMT" ,
     "SHADER_STORAGE_STMT" ,
+    "IN_OUT_BLOCK_STMT" ,
     
-    "IN_OUT_BLOCK" ,
+    "SHADER_DECL_STMT" ,
     
     "INVALID_STMT" ,
   };
   
   constexpr static uint32_t kNumTokens = NUM_TOKENS + 1;
   constexpr static std::array<std::string_view , kNumTokens> kTokenStrings = {
-    "START_SRC" ,
+    "START_SRC = 0" ,
 
+    // identifiers
     "IDENTIFIER" ,
 
+    // literals 
     "INT_LIT" , 
     "FLOAT_LIT" ,
 
-    "OPEN_BRACE" ,
-    "CLOSE_BRACE" ,
+    // operators
     "OPEN_PAREN" ,
     "CLOSE_PAREN" ,
+    "OPEN_BRACE" ,
+    "CLOSE_BRACE" ,
     "OPEN_BRACKET" ,
     "CLOSE_BRACKET" ,
     "PLUS" ,
     "MINUS" ,
     "STAR" ,
     "F_SLASH" ,
-    "EQUAL" ,
+    "EQUAL_OP" ,
     "EQUAL_EQUAL" ,
-    "LESS" ,
-    "LESS_EQUAL" ,
-    "GREATER" ,
-    "GREATER_EQUAL" ,
+    "GREATER_OP" ,
+    "GREATER_EQUAL_OP" ,
+    "LESS_OP" ,
+    "LESS_EQUAL_OP" ,
     "BANG" ,
     "BANG_EQUAL" ,
     "LOGICAL_AND" ,
@@ -189,36 +213,50 @@ namespace other {
     "SEMICOLON" ,
     "COLON" ,
     "COMMA" ,
+    "QUOTE" ,
+    "DQUOTE" ,
     "DOT" ,
     "HASH" ,
 
-    "VOID " , 
-    "IF" ,
-    "WHILE" ,
-    "FOR" ,
-    "RETURN" , 
-    "STRUCT" ,
+    "VOID_KW" , 
+    "IF_KW" ,
+    "WHILE_KW" ,
+    "FOR_KW" ,
+    "RETURN_KW" , 
+    "STRUCT_KW" ,
+    "CONST_KW" ,
 
-    "CORE" ,
-    "LAYOUT" , 
-    "LOCATION" , 
-    "STDXXX" , 
-    "BINDING" ,
-    "UNIFORM" , 
-    "READONLY" , 
-    "BUFFER" , 
+    "CORE_KW" ,
+    "LAYOUT_KW" , 
+    "LOCATION_KW" , 
+    "STDXXX_KW" , 
+    "TRIANGLES_KW" ,
+    "LINE_STRIP_KW" ,
+    "MAX_VERTICES_KW" ,
+    "BINDING_KW" , 
+    "UNIFORM_KW" , 
+    "READONLY_KW" , 
+    "BUFFER_KW" ,
+
     "IN_KW" ,
     "OUT_KW" ,
 
-    "INT" , 
-    "FLOAT" , 
-    "VEC2" , 
-    "VEC3" , 
-    "VEC4" ,
-    "MAT2" , 
-    "MAT3" , 
-    "MAT4" , 
-    
+    "INT_KW" , 
+    "FLOAT_KW" , 
+    "VEC2_KW" , 
+    "VEC3_KW" , 
+    "VEC4_KW" , 
+    "MAT2_KW" , 
+    "MAT3_KW" , 
+    "MAT4_KW" ,
+
+    /// oshader keywords
+    "VERTEX_KW" ,
+    "FRAGMENT_KW" ,
+    "GEOMETRY_KW" ,
+
+    "MESH_KW" ,
+
     "END_SRC" ,
 
     "INVALID_KEYWORD" ,
@@ -226,33 +264,46 @@ namespace other {
 
   constexpr static uint32_t kNumKeywords = END_SRC - VOID_KW;
   constexpr static uint32_t kNumOperators = HASH - OPEN_BRACE - 3;
-  const static std::map<uint64_t , TokenType> kKeywordMap {
-    { FNV("void")     , VOID_KW     } , 
-    { FNV("if")       , IF_KW       } ,
-    { FNV("while")    , WHILE_KW    } ,
-    { FNV("for")      , FOR_KW      } ,
-    { FNV("return")   , RETURN_KW   } ,
-    { FNV("struct")   , STRUCT_KW   } ,
 
-    { FNV("core")     , CORE_KW     } ,
-    { FNV("layout")   , LAYOUT_KW   } ,
-    { FNV("location") , LOCATION_KW } ,
-    { FNV("std")      , STDXXX_KW   } ,
-    { FNV("binding")  , BINDING_KW  } ,
-    { FNV("uniform")  , UNIFORM_KW  } ,
-    { FNV("readonly") , READONLY_KW } ,
-    { FNV("buffer")   , BUFFER_KW   } ,
-    { FNV("in")       , IN_KW       } ,
-    { FNV("out")      , OUT_KW      } ,
+  using KeyWordPair = std::pair<uint64_t , TokenType>;
 
-    { FNV("int")      , INT_KW      } ,
-    { FNV("float")    , FLOAT_KW    } ,
-    { FNV("vec2")     , VEC2_KW     } ,
-    { FNV("vec3")     , VEC3_KW     } ,
-    { FNV("vec4")     , VEC4_KW     } ,
-    { FNV("mat2")     , MAT2_KW     } ,
-    { FNV("mat3")     , MAT3_KW     } ,
-    { FNV("mat4")     , MAT4_KW     } ,
+  constexpr static std::array<KeyWordPair , kNumKeywords> kKeywordMap {
+    KeyWordPair{ FNV("void")         , VOID_KW         } , 
+    KeyWordPair{ FNV("if")           , IF_KW           } ,
+    KeyWordPair{ FNV("while")        , WHILE_KW        } ,
+    KeyWordPair{ FNV("for")          , FOR_KW          } ,
+    KeyWordPair{ FNV("return")       , RETURN_KW       } ,
+    KeyWordPair{ FNV("struct")       , STRUCT_KW       } ,
+    KeyWordPair{ FNV("const")        , CONST_KW        } ,
+
+    KeyWordPair{ FNV("core")         , CORE_KW         } ,
+    KeyWordPair{ FNV("layout")       , LAYOUT_KW       } ,
+    KeyWordPair{ FNV("location")     , LOCATION_KW     } ,
+    KeyWordPair{ FNV("std")          , STDXXX_KW       } ,
+    KeyWordPair{ FNV("triangles")    , TRIANGLES_KW    } , 
+    KeyWordPair{ FNV("line_strip")   , LINE_STRIP_KW   } ,
+    KeyWordPair{ FNV("max_vertices") , MAX_VERTICES_KW },
+    KeyWordPair{ FNV("binding")      , BINDING_KW      } ,
+    KeyWordPair{ FNV("uniform")      , UNIFORM_KW      } ,
+    KeyWordPair{ FNV("readonly")     , READONLY_KW     } ,
+    KeyWordPair{ FNV("buffer")       , BUFFER_KW       } ,
+    KeyWordPair{ FNV("in")           , IN_KW           } ,
+    KeyWordPair{ FNV("out")          , OUT_KW          } ,
+
+    KeyWordPair{ FNV("int")          , INT_KW          } ,
+    KeyWordPair{ FNV("float")        , FLOAT_KW        } ,
+    KeyWordPair{ FNV("vec2")         , VEC2_KW         } ,
+    KeyWordPair{ FNV("vec3")         , VEC3_KW         } ,
+    KeyWordPair{ FNV("vec4")         , VEC4_KW         } ,
+    KeyWordPair{ FNV("mat2")         , MAT2_KW         } ,
+    KeyWordPair{ FNV("mat3")         , MAT3_KW         } ,
+    KeyWordPair{ FNV("mat4")         , MAT4_KW         } ,
+
+    KeyWordPair{ FNV("vertex")       , VERTEX_KW       } ,
+    KeyWordPair{ FNV("fragment")     , FRAGMENT_KW     } ,
+    KeyWordPair{ FNV("geometry")     , GEOMETRY_KW     } ,
+
+    KeyWordPair{ FNV("mesh")         , MESH_KW         } ,
   };  
 
   constexpr std::array<char, kNumOperators> kOperators = {
@@ -299,7 +350,9 @@ namespace other {
   }
 
   static inline bool IsKeyword(const std::string& str) {
-    return kKeywordMap.find(FNV(str)) != kKeywordMap.end();
+    return std::find_if(kKeywordMap.begin() , kKeywordMap.end() , [&str](const KeyWordPair& kw) -> bool { 
+      return FNV(str) == kw.first;
+    }) != kKeywordMap.end();
   }
 
   static inline bool IsOperator(char c) {

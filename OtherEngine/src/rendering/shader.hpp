@@ -10,24 +10,15 @@
 
 #include "core/defines.hpp"
 #include "asset/asset.hpp"
+#include "rendering/rendering_defines.hpp"
 
 namespace other {
-
-  enum ShaderType {
-    VERTEX_SHADER = GL_VERTEX_SHADER ,
-    FRAGMENT_SHADER = GL_FRAGMENT_SHADER ,
-    GEOMETRY_SHADER = GL_GEOMETRY_SHADER ,
-    TESS_CONTROL_SHADER = GL_TESS_CONTROL_SHADER ,
-    TESS_EVALUATION_SHADER = GL_TESS_EVALUATION_SHADER ,
-    COMPUTE_SHADER = GL_COMPUTE_SHADER ,
-  };
 
   class Shader : public Asset {    
     public:
       OE_ASSET(SHADER);
 
-      Shader(const std::vector<std::string>& src);
-      Shader(const Path& vertex_path , const Path& fragment_path , const Opt<Path>& geometry_shader = std::nullopt);
+      Shader(const ShaderIr& src);
       virtual ~Shader() override;
 
       uint32_t ID() const;
@@ -50,14 +41,8 @@ namespace other {
 
     private:
       uint32_t renderer_id;
-  
-      Path vertex_path;
-      Path fragment_path;
-      Opt<Path> geometry_path;
-  
-      std::string vertex_src;
-      std::string fragment_src;
-      Opt<std::string> geometry_src;
+
+      ShaderIr ir;
   
       std::unordered_map<std::string , int32_t> uniform_locations;
   
@@ -65,11 +50,14 @@ namespace other {
 
       bool Compile(const char* vsrc , const char* fsrc , const char* gsrc = nullptr);
   
-      bool CompileShader(uint32_t shader_piece , const char* src);
+      bool CompileShader(ShaderType type , uint32_t shader_piece , const char* src);
       bool LinkShader();
   
       uint32_t GetUniformLocation(const std::string& name);
   };
+
+  Ref<Shader> BuildShader(const Path& path);
+  Ref<Shader> BuildShader(const Path& vpath , const Path& fpath , const Opt<Path>& gpath = std::nullopt);
 
 } // namespace other 
 

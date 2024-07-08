@@ -7,8 +7,10 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "core/logger.hpp"
-#include "core/filesystem.hpp"
 #include "core/rand.hpp"
+#include "core/filesystem.hpp"
+
+#include "parsing/shader_compiler.hpp"
 
 namespace other {
       
@@ -17,51 +19,20 @@ namespace other {
   }
       
   const bool Shader::HasGeometry() const {
-    return geometry_path.has_value();
+    return ir.geom_source.has_value();
   }
       
-  Shader::Shader(const std::vector<std::string>& src)
-      : vertex_path("") , fragment_path("") , geometry_path(std::nullopt) {
-    OE_ASSERT(src.size() == 2 || src.size() == 3 , "Incorrect number of source strings for shader {}" , src.size());
+  Shader::Shader(const ShaderIr& src) 
+      : ir(src) {
     handle = Random::GenerateUUID();
 
-    vertex_src = src[0];
-    fragment_src = src[1];
-    if (src.size() == 3) {
-      geometry_src = src[2];
-      geometry_path = "";
-    }
-
-    const char* vsrc_ptr = vertex_src.c_str();
-    const char* fsrc_ptr = fragment_src.c_str();
+    const char* vsrc_ptr = ir.vert_source.c_str();
+    const char* fsrc_ptr = ir.frag_source.c_str();
     const char* gsrc_ptr = nullptr;
     if (HasGeometry()) {
-      gsrc_ptr = geometry_src.value().c_str();
+      gsrc_ptr = ir.geom_source.value().c_str();
     }
 
-    if (!Compile(vsrc_ptr , fsrc_ptr , gsrc_ptr)) {
-      OE_ERROR("Failed to compile shader!");
-    }
-  }
-
-  Shader::Shader(const Path& vertex_path , const Path& fragment_path , const Opt<Path>& geometry_path) 
-      : vertex_path(vertex_path) , fragment_path(fragment_path) , geometry_path(geometry_path) {
-    // OE_DEBUG("Compiling shader from file\n  {}\n  {}\n  {}" , vertex_path , fragment_path , geometry_path.value_or("No Geometry"));
-    handle = Random::GenerateUUID();
-
-    vertex_src = Filesystem::ReadFile(vertex_path);
-    fragment_src = Filesystem::ReadFile(fragment_path);
-    if (HasGeometry()) {
-      geometry_src = Filesystem::ReadFile(geometry_path.value());
-    }
-  
-    const char* vsrc_ptr = vertex_src.c_str();
-    const char* fsrc_ptr = fragment_src.c_str();
-    const char* gsrc_ptr = nullptr;
-    if (HasGeometry()) {
-      gsrc_ptr = geometry_src.value().c_str();
-    }
-    
     if (!Compile(vsrc_ptr , fsrc_ptr , gsrc_ptr)) {
       OE_ERROR("Failed to compile shader!");
     }
@@ -124,10 +95,6 @@ namespace other {
   }
       
   bool Shader::Compile(const char* vsrc , const char* fsrc , const char* gsrc) {
-    if (HasGeometry()) {
-      gsrc = geometry_src.value().c_str();
-    }
-  
     uint32_t vertex_shader = glCreateShader(GL_VERTEX_SHADER);
     uint32_t fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
     Opt<uint32_t> geometry_shader = std::nullopt;
@@ -141,15 +108,15 @@ namespace other {
       glShaderSource(geometry_shader.value() , 1 , &gsrc , nullptr);
     }
   
-    if (!CompileShader(vertex_shader , vsrc)) {
+    if (!CompileShader(VERTEX_SHADER , vertex_shader , vsrc)) {
       return false;
     }
   
-    if (!CompileShader(fragment_shader , fsrc)) {
+    if (!CompileShader(FRAGMENT_SHADER , fragment_shader , fsrc)) {
       return false;
     }
 
-    if (HasGeometry() && !CompileShader(geometry_shader.value() , gsrc)) {
+    if (HasGeometry() && !CompileShader(GEOMETRY_SHADER , geometry_shader.value() , gsrc)) {
       return false;
     }
   
@@ -175,7 +142,7 @@ namespace other {
     return true;
   }
   
-  bool Shader::CompileShader(uint32_t shader_piece , const char* src) {
+  bool Shader::CompileShader(ShaderType type , uint32_t shader_piece , const char* src) {
     int32_t check = 0;
     glCompileShader(shader_piece);
     glGetShaderiv(shader_piece , GL_COMPILE_STATUS , &check);
@@ -186,8 +153,15 @@ namespace other {
       glGetShaderInfoLog(shader_piece , length , &length , message.data());
   
       std::string error(message.begin() , message.end());
-      std::string type = shader_piece == VERTEX_SHADER ? "vertex" : "fragment";
-      OE_ERROR("Failed to compile {} shader: {}" , type , error);
+      std::string type_str = "UNKNOWN";
+      switch (type) {
+        case VERTEX_SHADER: type_str = "vertex"; break;
+        case FRAGMENT_SHADER: type_str = "fragment"; break;
+        case GEOMETRY_SHADER: type_str = "geometry"; break;
+        default:
+          break;
+      }
+      OE_ERROR("Failed to compile {} shader: {}" , type_str , error);
   
       return false;
     }
@@ -223,6 +197,54 @@ namespace other {
     uniform_locations[name] = location;
   
     return location;
+  }
+  
+  Ref<Shader> BuildShader(const Path& path) {
+    std::string src = Filesystem::ReadFile(path);
+    if (src.empty()) {
+      OE_ERROR("Failed to read shader file {}" , path);
+      return nullptr;
+    }
+
+    ShaderIr ir = ShaderCompiler::Compile(src);
+
+    // std::cout << "Transpile vertex source : \n\n" << ir.vert_source << "\n------------\n";
+    // std::cout << "Transpile fragment source : \n\n" << ir.frag_source << "\n------------\n";
+
+    // if (ir.geom_source.has_value()) {
+    //   std::cout << "Transpile geometry source : \n\n" << ir.geom_source.value() << "\n------------\n";
+    // }
+
+    return NewRef<Shader>(ir);
+  }
+  
+  Ref<Shader> BuildShader(const Path& vpath , const Path& fpath , const Opt<Path>& gpath) {
+    OE_ASSERT(false , "UNIMPLEMENTED");
+    // std::string vsrc = Filesystem::ReadFile(vpath);
+    // std::string fsrc = Filesystem::ReadFile(fpath);
+    // Opt<std::string> gsrc  = std::nullopt;
+
+    // if (gpath.has_value()) {
+    //   gsrc = Filesystem::ReadFile(gpath.value());
+    // }
+
+    // ShaderIr vert_ir = ShaderCompiler::Compile(VERTEX_SHADER , vsrc);
+    // ShaderIr frag_ir = ShaderCompiler::Compile(FRAGMENT_SHADER , fsrc);
+    // Opt<ShaderIr> geom_ir = std::nullopt;
+
+    // if (gsrc.has_value()) {
+    //   geom_ir = ShaderCompiler::Compile(GEOMETRY_SHADER , gsrc.value());
+    // }
+
+    // ShaderIr real_ir;
+    // real_ir.vert_source = vert_ir.vert_source;
+    // real_ir.frag_source = vert_ir.frag_source;
+
+    // if (geom_ir.has_value()) {
+    //   real_ir.geom_source = geom_ir.value().geom_source;
+    // }
+
+    // return NewRef<Shader>(real_ir);
   }
 
 } // namespace yockcraft

@@ -10,19 +10,24 @@
 
 #include "parsing/parsing_defines.hpp"
 
+#include "rendering/rendering_defines.hpp"
+
 namespace other {
   
-  struct ProcessedFile {
+  struct ShaderProcessedFile {
     std::string src = "";
     std::vector<std::string> imports{};
+    ShaderType shader_type;
   };
 
   class ShaderPreprocessor {
     public:
-      ShaderPreprocessor(const std::string& src)
-        : raw_src(src) {}
+      ShaderPreprocessor(const std::string& src , ShaderType shader_type)
+          : raw_src(src) {
+        result.shader_type = shader_type;
+      }
 
-      ProcessedFile Process();
+      ShaderProcessedFile Process();
 
     private:
       SourceLocation loc;
@@ -30,7 +35,7 @@ namespace other {
 
       std::string current_command;
 
-      ProcessedFile result;
+      ShaderProcessedFile result;
     
       void Consume();
       void ConsumeCommand();
@@ -56,7 +61,7 @@ namespace other {
       
       template <typename... Args>
       ShaderException Error(ShaderError error , std::string_view message, Args&&... args) const {
-        return ShaderException(fmtstr(message , std::forward<Args>(args)...) , error);
+        return ShaderException(fmtstr(message , std::forward<Args>(args)...) , error , loc.line , loc.column);
       }
   };
 

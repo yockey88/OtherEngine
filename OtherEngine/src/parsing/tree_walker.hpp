@@ -22,8 +22,8 @@ namespace other {
   class ObjAccessExpr;
 
   class ExprStmt;
-  class VarDeclStmt;
-  class ArrayDeclStmt;
+  class VarDecl;
+  class ArrayDecl;
   class BlockStmt;
   class PrintStmt;
   class IfStmt;
@@ -31,6 +31,19 @@ namespace other {
   class ReturnStmt;
   class FunctionStmt;
   class StructStmt;
+
+  /// for shaders
+  class VersionExpr;
+  class ShaderAttribute;
+  class LayoutDescriptor;
+
+  class LayoutDecl;
+  class LayoutVarDecl;
+  class ShaderStorageStmt;
+  class InOutBlockStmt;
+  class UniformDecl;
+
+  class ShaderDecl;
 
   class TreeWalker {
     public:
@@ -50,15 +63,26 @@ namespace other {
 
       // Statements
       virtual void Visit(ExprStmt& stmt) = 0;
-      virtual void Visit(VarDeclStmt& stmt) = 0;
-      virtual void Visit(ArrayDeclStmt& stmt) = 0;
+      virtual void Visit(VarDecl& stmt) = 0;
+      virtual void Visit(ArrayDecl& stmt) = 0;
       virtual void Visit(BlockStmt& stmt) = 0;
-      virtual void Visit(PrintStmt& stmt) = 0;
       virtual void Visit(IfStmt& stmt) = 0;
       virtual void Visit(WhileStmt& stmt) = 0;
       virtual void Visit(ReturnStmt& stmt) = 0;
       virtual void Visit(FunctionStmt& stmt) = 0;
       virtual void Visit(StructStmt& stmt) = 0;
+      
+      virtual void Visit(VersionExpr& expr) {}
+      virtual void Visit(ShaderAttribute& expr) {}
+      virtual void Visit(LayoutDescriptor& expr) {}
+
+      virtual void Visit(LayoutDecl& stmt) {}
+      virtual void Visit(LayoutVarDecl& stmt) {}
+      virtual void Visit(ShaderStorageStmt& stmt) {}
+      virtual void Visit(InOutBlockStmt& stmt) {}
+      virtual void Visit(UniformDecl& stmt) {}
+
+      virtual void Visit(ShaderDecl& stmt) {}
   };
 
 } // namespace other

@@ -6,12 +6,12 @@
 
 namespace other {
 
-  std::vector<Token> ShaderLexer::Lex() {
-    if (src.empty() || src == "") {
+  ShaderLexResult ShaderLexer::Lex() {
+    if (file_data.src.empty() || file_data.src == "") {
       return {};
     }
 
-    tokens.push_back(Token(loc ,TokenType::START_SRC , ""));
+    result.tokens.push_back(Token(loc ,TokenType::START_SRC , ""));
 
     loc.index = 0;
     loc.line = 1;
@@ -43,9 +43,9 @@ namespace other {
       throw Error(SYNTAX_ERROR , "Could not handle character : '{}'" , c);
     }
 
-    tokens.push_back(Token(loc , TokenType::END_SRC , ""));
+    result.tokens.push_back(Token(loc , TokenType::END_SRC , ""));
 
-    return tokens;
+    return result;
   }
 
   void ShaderLexer::HandleWhitespace() {
@@ -293,9 +293,8 @@ namespace other {
   }
       
   void ShaderLexer::HandleComment() {
-    SourceLocation start = loc;
+    // SourceLocation start = loc;
 
-    /// TODO: stream comments file/log
     if (Check('/')) {
       while (!Check('\n') && !AtEnd()) {
         Consume();
@@ -321,7 +320,7 @@ namespace other {
     DiscardToken();
   }
 void ShaderLexer::AddToken(TokenType type) {
-    tokens.push_back(Token(loc, type, current_token));
+    result.tokens.push_back(Token(loc, type, current_token));
     DiscardToken();
   }
 
@@ -339,7 +338,7 @@ void ShaderLexer::AddToken(TokenType type) {
   }
 
   void ShaderLexer::Advance() {
-    current_token += src[loc.index];
+    current_token += file_data.src[loc.index];
     Consume();
   }
 
@@ -348,21 +347,21 @@ void ShaderLexer::AddToken(TokenType type) {
   }
 
   bool ShaderLexer::AtEnd() const {
-    return loc.index >= src.size();
+    return loc.index >= file_data.src.size();
   }
 
   char ShaderLexer::Peek() const {
     if (AtEnd()) {
       return '\0';
     }
-    return src[loc.index];
+    return file_data.src[loc.index];
   }
 
   char ShaderLexer::PeekNext() const {
-    if (AtEnd() || loc.index + 1 >= src.size()) {
+    if (AtEnd() || loc.index + 1 >= file_data.src.size()) {
       return '\0';
     }
-    return src[loc.index + 1];
+    return file_data.src[loc.index + 1];
   }
 
   bool ShaderLexer::Check(char c) const {
@@ -383,7 +382,13 @@ void ShaderLexer::AddToken(TokenType type) {
       
   TokenType ShaderLexer::GetKeywordType(const std::string& str) const {
     try {
-      return kKeywordMap.at(FNV(str));
+      auto itr = std::find_if(kKeywordMap.begin() , kKeywordMap.end() , [&str](const KeyWordPair& kw) -> bool {
+        return FNV(str) == kw.first;
+      });
+      if (itr != kKeywordMap.end()) {
+        return itr->second;
+      }
+      return VOID_KW;
     } catch (...) {
       std::string msg = fmtstr("Unknown operator : '{}'" , str);
       throw Error(ShaderError::SYNTAX_ERROR , msg);

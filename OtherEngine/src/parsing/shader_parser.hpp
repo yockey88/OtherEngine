@@ -4,23 +4,50 @@
 #ifndef OTHER_ENGINE_SHADER_PARSER_HPP
 #define OTHER_ENGINE_SHADER_PARSER_HPP
 
+#include <stack>
+
 #include "core/defines.hpp"
 #include "core/errors.hpp"
+#include "core/logger.hpp"
 
 #include "parsing/parsing_defines.hpp"
 #include "parsing/ast_node.hpp"
+#include "parsing/shader_lexer.hpp"
 
 namespace other {
 
-  class ShaderAst {
-    public:
-      std::vector<Ref<AstNode>> nodes;
+  struct ShaderAst {
+    ShaderType type;
+    std::vector<Ref<AstNode>> vertex_nodes;
+    std::vector<Ref<AstNode>> fragment_nodes;
+    std::vector<Ref<AstNode>> geometry_nodes;
   };
 
   class ShaderParser {
     public:
-      ShaderParser(const std::vector<Token>& tokens)
-        : tokens(tokens) {}
+      ShaderParser(ShaderLexResult& shader_lex_result) {
+        tokens.swap(shader_lex_result.tokens);
+        result.type = shader_lex_result.shader_type;
+        OE_DEBUG("Shader Type {}" , result.type);
+        switch (result.type) {
+          case VERTEX_SHADER:
+            start_context = VERTEX_CTX;
+          break;
+          case FRAGMENT_SHADER:
+            start_context = FRAGMENT_CTX;
+          break;
+          case GEOMETRY_SHADER:
+            start_context = GEOMETRY_CTX;
+          break;
+          case OTHER_SHADER: 
+            start_context = VARIABLE_CTX; 
+          break;
+          default:
+            throw Error(INVALID_SHADER_TYPE , "Unsupported shader type being parsed!");
+        }
+
+        current_context = start_context;
+      }
 
       ShaderAst Parse();
 
@@ -33,33 +60,46 @@ namespace other {
       ShaderAst result;
 
       struct Flags {
-        bool initializer_valid = true;
+        std::stack<bool> initializer_blocker;
+        std::stack<bool> scoping;
       } flags;
 
-      std::string ProcessSource(const std::string& source);
+      enum ShaderTypeContext {
+        VERTEX_CTX ,
+        FRAGMENT_CTX , 
+        GEOMETRY_CTX ,
+        /// variable as in multiple shader types in one file
+        VARIABLE_CTX ,
+      } current_context;
+      ShaderTypeContext start_context;
+
+      ShaderType GetCurrentShaderType();
 
       Ref<AstStmt> ParseDecl();
-      Ref<AstStmt> ResolveDecl();
+
+      Ref<AstStmt> ParseShaderDecl();
 
       Ref<AstStmt> ParseLayoutDecl();
       Ref<AstStmt> ParseFunctionDecl(const Token& type , const Token& name);
       Ref<AstStmt> ParseStructDecl(const Token& name);
       
-      // const Token& name , const Token& type = Token(SourceLocation{} , INVALID_TOKEN , "")
-      Ref<AstStmt> ParseVarDecl(const Token& type , const Token& name);
-      Ref<AstStmt> ParseArrayDecl(const Token& type , const Token& name);
+      Ref<AstStmt> ParseUniformDecl();
+      Ref<AstStmt> ParseVarDecl();
+      Ref<AstStmt> ParseArrayDecl(const Token& type , const Token& name , bool is_const = false);
 
       Ref<AstStmt> ParseBufferDecl();
 
       Ref<AstStmt> ParseLayoutStmt();
 
       Ref<AstStmt> ParseStatement();
-      Ref<AstStmt> ParseInOutBlock(const Token& type);
+      Ref<AstStmt> ParseInOutBlock(const Token& type , const Token& tag);
       Ref<AstStmt> ParseBlock();                                                                          
       Ref<AstStmt> ParseIf();
       Ref<AstStmt> ParseWhile();
       Ref<AstStmt> ParseFor();
       Ref<AstStmt> ParseReturn();
+
+      Ref<AstExpr> ParseShaderAttribute();
 
       Ref<AstExpr> ParseLayoutDescriptor();
 
@@ -101,9 +141,12 @@ namespace other {
       bool MatchLiterals(bool advance = true);
       bool MatchTypes(bool advance = true);
 
+      void AddTopLevelNode(const Ref<AstStmt>& node);
+
       template <typename... Args>
       ShaderException Error(ShaderError error , std::string_view message, Args&&... args) const {
-        return ShaderException(fmtstr(message , std::forward<Args>(args)...) , error);
+        return ShaderException(fmtstr(message , std::forward<Args>(args)...) , error , 
+                               tokens[current].location.line , tokens[current].location.column);
       }
   }; 
 

@@ -11,7 +11,6 @@
 
 #include "rendering/rendering_defines.hpp"
 #include "rendering/vertex.hpp"
-#include "rendering/camera_base.hpp"
 #include "rendering/framebuffer.hpp"
 #include "rendering/model.hpp"
 #include "rendering/render_pass.hpp"
@@ -81,16 +80,10 @@ namespace other {
     bool wire_frame = false;
     float line_width = 1.f;
 
-    Ref<UniformBuffer> model_storage;
-    std::map<UUID , Ref<UniformBuffer>> uniform_blocks; 
     FramebufferSpec framebuffer_spec {};
     Layout vertex_layout;
 
     std::string debug_name;
-  };
-
-  struct SceneRenderSpec {
-    std::vector<PipelineSpec> pipeline_descs;
   };
 
   class Pipeline : public RefCounted {
@@ -101,10 +94,10 @@ namespace other {
       void SubmitRenderPass(Ref<RenderPass>& pass);
 
       /// Add materials to model submission
-      void SubmitModel(Ref<Model>& model , const glm::mat4& transform);
-      void SubmitStaticModel(Ref<StaticModel>& model , const glm::mat4& transform);
+      void SubmitModel(Ref<Model>& model , uint32_t transform_idx);
+      void SubmitStaticModel(Ref<StaticModel>& model , uint32_t transform_idx);
 
-      void Render(Ref<CameraBase>& camera);
+      void Render();
       Ref<Framebuffer> GetOutput();
       
     private:
@@ -116,14 +109,11 @@ namespace other {
       
       Scope<VertexBuffer> vertex_buffer = nullptr;
       Scope<VertexBuffer> index_buffer = nullptr;
-      
-      uint32_t curr_model_idx = 0;
-      
+       
       Ref<Framebuffer> target = nullptr;
 
       std::vector<Ref<RenderPass>> passes;
 
-      uint32_t GetCurrentTransformIdx();
       void PerformPass(Ref<RenderPass>& pass);
   };
 

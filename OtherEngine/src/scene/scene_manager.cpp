@@ -216,7 +216,7 @@ namespace other {
 
     active_scene->scene->Render(scene_renderer);
     /// then render
-    return scene_renderer->GetRender();
+    return nullptr; scene_renderer->GetRender();
   }
       
   void SceneManager::RenderSceneUI() {

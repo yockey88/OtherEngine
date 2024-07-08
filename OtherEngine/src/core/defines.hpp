@@ -47,7 +47,7 @@ namespace other {
     /// engine types
     VEC2 , VEC3 , VEC4 , 
     
-    MAT3 , MAT4 ,
+    MAT2 , MAT3 , MAT4 ,
 
     ASSET , ENTITY ,
 
@@ -87,6 +87,8 @@ namespace other {
       return ValueType::VEC3;
     } else if constexpr (std::is_same_v<T , glm::vec4>) {
       return ValueType::VEC4;
+    } else if constexpr (std::is_same_v<T , glm::mat2>) {
+      return ValueType::MAT2;
     } else if constexpr (std::is_same_v<T , glm::mat3>) {
       return ValueType::MAT3;
     } else if constexpr (std::is_same_v<T , glm::mat4>) {
@@ -128,6 +130,8 @@ namespace other {
       case VEC4:
         return 4 * 4;
       
+      case MAT2:
+        return 2 * 2 * 4;
       case MAT3:
         return 3 * 3 * 4;
       case MAT4:

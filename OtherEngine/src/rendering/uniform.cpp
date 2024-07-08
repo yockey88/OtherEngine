@@ -2,9 +2,10 @@
  * \file rendering/uniform.cpp
  **/
 #include "rendering/uniform.hpp"
-#include "rendering/rendering_defines.hpp"
 
 #include <glad/glad.h>
+
+#include "rendering/rendering_defines.hpp"
 
 namespace other {
 
@@ -44,7 +45,7 @@ namespace other {
     return name;
   }
 
-  void UniformBuffer::BindShader(Ref<Shader>& shader) {
+  void UniformBuffer::BindShader(const Ref<Shader>& shader) {
     switch (type) {
       case UNIFORM_BUFFER: {
         uint32_t idx = glGetUniformBlockIndex(shader->ID() , name.c_str());

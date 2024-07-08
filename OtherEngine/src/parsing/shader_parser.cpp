@@ -27,7 +27,7 @@ namespace other {
 
       Ref<AstStmt> s = ParseDecl();
       if (s != nullptr) {
-        result.nodes.push_back(s);
+        AddTopLevelNode(s);
       } else {
         throw Error(SYNTAX_ERROR , "Failed to parse declaration!");
       }
@@ -35,26 +35,57 @@ namespace other {
 
     Consume(END_SRC , "Expected End of File");
 
-    /// walk ast to produce ir
-
     return result; 
+  }
+      
+  ShaderType ShaderParser::GetCurrentShaderType() {
+    switch (current_context) {
+      case VERTEX_CTX:
+        return VERTEX_SHADER;
+      case FRAGMENT_CTX:
+        return FRAGMENT_SHADER;
+      break;
+      case GEOMETRY_CTX:
+        return GEOMETRY_SHADER;
+      default:
+        throw Error(INVALID_SHADER_TYPE , "Parser State is corrupted!");
+    }
+
+    throw Error(INVALID_SHADER_TYPE , "Parser State is corrupted!");
   }
 
   Ref<AstStmt> ShaderParser::ParseDecl() {
     bool no_advance = false;
+
+    /// if oshader parse special, otherwise don't do anything
+    if (Match({ VERTEX_KW , FRAGMENT_KW , GEOMETRY_KW } , false) && start_context == VARIABLE_CTX) {
+      if (Match({ VERTEX_KW })) {
+        current_context = VERTEX_CTX;
+      } else if (Match({ FRAGMENT_KW })) {
+        current_context = FRAGMENT_CTX;
+      } else if (Match({ GEOMETRY_KW })) {
+        current_context = GEOMETRY_CTX;
+      }
+
+      return ParseShaderDecl();
+    }
     
-    if (MatchTypes(no_advance)) {
-      return ResolveDecl();
+    if (MatchTypes(no_advance) || Match({ CONST_KW } , false)) {
+      return ParseVarDecl();
+    }
+
+    if (Match({ UNIFORM_KW })) {
+      return ParseUniformDecl();
     }
 
     if (Match({ IDENTIFIER } , false)) {
-      return ResolveDecl();
+      return NewRef<ExprStmt>(ParseExpression());
     }
 
     if (Match({ LAYOUT_KW })) {
-      flags.initializer_valid = false;
+      flags.initializer_blocker.push(true);
       Ref<AstStmt> stmt = ParseLayoutDecl();
-      flags.initializer_valid = true;
+      flags.initializer_blocker.pop();
       return stmt;
     }
 
@@ -63,79 +94,61 @@ namespace other {
       return ParseStructDecl(identifier);
     }
 
-    if (Match({ IN_KW })) {
-      Token type = ConsumeType(fmtstr("Expected type keyword after {}! found {}" , Previous().value , Peek().value));
-      Token identifier = Consume(IDENTIFIER , fmtstr("Expected identifier! found {}" , Peek().value));
-
-      flags.initializer_valid = false;
-      Ref<AstStmt> stmt = ParseVarDecl(type , identifier);
-      flags.initializer_valid = true;
-
-      return stmt;
-    }
-
-    if (Match({ OUT_KW })) {
-      if (Check(IDENTIFIER) && Peek().type == OPEN_BRACE) {
-        return ParseInOutBlock(Previous()); 
+    if (Match({ IN_KW , OUT_KW })) {
+      Token in_out = Previous();
+      if (Match({ IDENTIFIER })) {
+        return ParseInOutBlock(in_out , Previous()); 
       }
 
       Token type = ConsumeType(fmtstr("Expected type keyword after {}! found {}" , Previous().value , Peek().value));
       Token identifier = Consume(IDENTIFIER , fmtstr("Expected identifier! found {}" , Peek().value));
 
-      flags.initializer_valid = false;
-      Ref<AstStmt> stmt = ParseVarDecl(type , identifier);
-      flags.initializer_valid = true;
-
-      return stmt;
+      return NewRef<LayoutVarDecl>(in_out , type , identifier);
     }
 
     return ParseStatement();
   }
+      
+  Ref<AstStmt> ShaderParser::ParseShaderDecl() {
+    std::vector<Ref<AstExpr>> attributes;
 
-  Ref<AstStmt> ShaderParser::ResolveDecl() {
-    if (Match({ IDENTIFIER })) {
-      Token identifier = Previous();
-
-      if (Match({ EQUAL_OP })) {
-        Ref<AstExpr> initializer = ParseExpression();
-        Consume(SEMICOLON , fmtstr("Expected ';' to end assignment expression! found {}" , Peek().value));
-
-        /// we don't know the type here so static analysis later to verify whats happening here
-        Token type = Token({} , INVALID_TOKEN , "");
-        return NewRef<VarDecl>(type , identifier , initializer);
+    if (Match({ OPEN_BRACKET })) {
+      while (!Match({ CLOSE_BRACKET })) {
+        attributes.push_back(ParseShaderAttribute());
+        if (Match({ COMMA })) {
+          /// just consume, handle trailing commas
+        }
       }
-
-      // if dot
-      // if etc...
-
-      throw Error(SYNTAX_ERROR , fmtstr("Unable to resolve identifier {}! found {}" , identifier.value , Peek().value));
     }
 
-    Token type = ConsumeType(fmtstr("Expected type keyword! found {}" , Peek().value));
-    Token identifier = Consume(IDENTIFIER , fmtstr("Expected identifier! found {}" , Peek().value));
+    Consume(OPEN_BRACE , "Expected opening brace for shader declaration"); 
+    std::vector<Ref<AstStmt>> stmts;
 
-    /// if initializers are not valid then functions and function calls are not either
-    Ref<AstStmt> initializer;
-    if (flags.initializer_valid) {
-      if (Check(OPEN_PAREN)) {
-        return ParseFunctionDecl(type , identifier);
+    while (!Check(CLOSE_BRACE) && !AtEnd()) {
+      Ref<AstStmt> stmt = ParseDecl();
+      if (stmt != nullptr) {
+        stmts.push_back(stmt);
+      } else {
+        throw Error(SYNTAX_ERROR , "Failed to parse block");
       }
-
-    } else if (Match({ OPEN_BRACKET })) {
-      return ParseArrayDecl(type , identifier);
-    } else {
-      Consume(SEMICOLON , fmtstr("Expected semicolon! found {}" , Peek().value));
+      if (Match({ SEMICOLON })) {
+        /// do nothing just consume
+      }
     }
 
-    return NewRef<VarDecl>(type , identifier , initializer); 
+    Consume(CLOSE_BRACE , "Expected closing brace to close shader declaration");
+
+    return NewRef<ShaderDecl>(GetCurrentShaderType() , attributes , stmts);
   }
 
   Ref<AstStmt> ShaderParser::ParseLayoutDecl() {
     Consume(OPEN_PAREN , fmtstr("Expected open parathesis after 'layout'! found {}" , Peek().value));
 
+    /// fix this so that the order of the layout descriptors doesn't matter
+
     Token rules = Token({} , INVALID_TOKEN , "");
     std::vector<Ref<AstExpr>> descriptors;
-    if (Match({ STDXXX_KW })) {
+    if (Match({ STDXXX_KW , TRIANGLES_KW , LINE_STRIP_KW })) {
       rules = Previous();
       if (Match({ CLOSE_PAREN })) {
         Ref<AstStmt> layout = ParseLayoutStmt();
@@ -143,7 +156,7 @@ namespace other {
       }
 
       Consume(COMMA , fmtstr("Expected ',' or ')' in layout definition! found {}" , Peek().value));
-    }
+    } 
 
     while(!Check(CLOSE_PAREN)) {
       descriptors.push_back(ParseLayoutDescriptor()); 
@@ -160,22 +173,12 @@ namespace other {
   }
       
   Ref<AstStmt> ShaderParser::ParseFunctionDecl(const Token& type , const Token& name) { 
-    std::vector<Token> params;
+    std::vector<FunctionParam> params;
     if (Match({ OPEN_PAREN })) {
       while (!Check(CLOSE_PAREN) && !AtEnd()) {
-        Token param = Consume(IDENTIFIER , "Expected identifier for function parameter");
-        param.type = INVALID_TOKEN;
-
-        Consume(COLON , "Expected ':' after function parameter identifier");
-
-        Token type = ConsumeType("Expected type after ':' for function parameter");
-        param.type = type.type;
-
-        if (Match({ OPEN_BRACKET })) {
-          Consume(CLOSE_BRACKET , "Expected closing bracket for array type");
-        }
-
-        params.push_back(param);
+        Token type = ConsumeType(fmtstr("Expected type for function parameter! found {}" , Peek().value));
+        Token param = Consume(IDENTIFIER , fmtstr("Expected identifier for function parameter! found {}" , Peek().value));
+        params.push_back({ type , param });
         if (!Match({ COMMA })) {
           break;
         }
@@ -200,25 +203,46 @@ namespace other {
     return nullptr; 
   }
 
-  Ref<AstStmt> ShaderParser::ParseVarDecl(const Token& type , const Token& name) {
-    if (Match({ SEMICOLON })) {
-      return NewRef<VarDecl>(type , name);
-    } else if (Match({ OPEN_BRACKET })) {
-      return ParseArrayDecl(type , name);
-    }
+  Ref<AstStmt> ShaderParser::ParseUniformDecl() {
+    flags.initializer_blocker.push(true);
+    Ref<AstStmt> var = ParseVarDecl();
+    flags.initializer_blocker.pop();
 
-    Ref<AstExpr> initializer = nullptr;
-    if (flags.initializer_valid) {
-      initializer = ParseExpression();
-      Consume(SEMICOLON , fmtstr("Expected semicolon! found {}" , Peek().value));
-    } else {
-      Consume(SEMICOLON , "Initializer invalid in this context!");
-    }
-
-    return NewRef<VarDecl>(type , name , initializer);
+    return NewRef<UniformDecl>(var);  
   }
 
-  Ref<AstStmt> ShaderParser::ParseArrayDecl(const Token& type , const Token& name) { 
+  Ref<AstStmt> ShaderParser::ParseVarDecl() {
+    bool is_const = false;
+    if (Match({ CONST_KW })) {
+      is_const = true;
+    }
+
+    Token type = ConsumeType(fmtstr("Expected type keyword! found {}" , Peek().value));
+    Token identifier = Consume(IDENTIFIER , fmtstr("Expected identifier! found {}" , Peek().value));
+
+    /// if initializers are not valid then functions and function calls are not either
+    Ref<AstStmt> initializer;
+    if (flags.initializer_blocker.empty()) {
+      if (Match({ OPEN_PAREN } , false)) {
+        return ParseFunctionDecl(type , identifier);
+      } else if (Match({ EQUAL_OP })) {
+        initializer = ParseStatement();
+      }
+    } else if (Match({ OPEN_BRACKET })) {
+      return ParseArrayDecl(type , identifier , is_const);
+    } 
+
+    bool is_global = false;
+
+    /// if declaring variable at global scope, have to consume semicolon
+    if (flags.scoping.empty()) {
+      is_global = true;
+    }
+
+    return NewRef<VarDecl>(type , identifier , initializer , is_const , is_global); 
+  }
+
+  Ref<AstStmt> ShaderParser::ParseArrayDecl(const Token& type , const Token& name , bool is_const) { 
     Token size = Token({} , INT_LIT , "");
     if (Match({ INT_LIT })) {
       size = Consume(INT_LIT , fmtstr("Expected integer literal for array size! found {}" , Peek().type));
@@ -226,27 +250,24 @@ namespace other {
     Consume(CLOSE_BRACKET , fmtstr("Expected close bracket after array size! found {}" , Peek().type));
 
     Ref<AstExpr> initializer = nullptr;
-    if (flags.initializer_valid) {
+    if (flags.initializer_blocker.empty()) {
       if (Match({ EQUAL_OP })) {
         /// do nothing
       }
 
       initializer = ParseArrayExpr(size);
+    } 
 
-      Consume(SEMICOLON , fmtstr("Expected semicolon! found {}" , Peek().value));
-    } else {
-      Consume(SEMICOLON , "Initializer invalid in this context!");
-    }
-
-    return NewRef<ArrayDecl>(type , name , size , initializer);
+    return NewRef<ArrayDecl>(type , name , size , initializer , is_const);
   }
       
   Ref<AstStmt> ShaderParser::ParseBufferDecl() {
     Token buff_type = Token({} , INVALID_TOKEN , "");
-    if (Peek().type == READONLY_KW) {
-      Advance();
+    if (Match({ READONLY_KW })) {
+      Token readonly = Previous();
 
       buff_type = Consume(BUFFER_KW , fmtstr("Can only make Shader Storage Buffers read only! found {}" , Peek().value));
+      buff_type.value = readonly.value + " " + buff_type.value;
     } else {
       if (Match({ UNIFORM_KW , BUFFER_KW } , false)) {
         buff_type = Advance();
@@ -258,22 +279,24 @@ namespace other {
     Token identifier = Consume(IDENTIFIER , fmtstr("Expected identifier to name Shader Storage! found {}" , Peek().value));
 
     Ref<AstStmt> body = ParseBlock();
+    // Consume(SEMICOLON , fmtstr("Must close shader storage block with ';'! found {}" , Peek().value));
 
     return NewRef<ShaderStorageStmt>(buff_type , identifier , body);
   }
 
   Ref<AstStmt> ShaderParser::ParseLayoutStmt() {
-    if (Match({ IN_KW })) {
+    if (Match({ IN_KW , OUT_KW })) {
+      Token in_out = Previous();
+      if (Match({ SEMICOLON })) {
+        return NewRef<LayoutVarDecl>(in_out); 
+      }
+
       Token type = ConsumeType(fmtstr("Expected type keyword after {}! found {}" , Previous().value , Peek().value));
       Token identifier = Consume(IDENTIFIER , fmtstr("Expected identifier! found {}" , Peek().value));
 
-      flags.initializer_valid = false;
-      Ref<AstStmt> stmt = ParseVarDecl(type , identifier);
-      flags.initializer_valid = true;
-
-      return stmt;
+      return NewRef<LayoutVarDecl>(in_out , type , identifier);
     }
-
+    
     if (Match({ READONLY_KW , BUFFER_KW , UNIFORM_KW } , false)) {
       return ParseBufferDecl();
     }
@@ -292,52 +315,52 @@ namespace other {
     }
 
     Ref<ExprStmt> stmt = ParseExpression();
-    // Consume(SEMICOLON , fmtstr("Expected ';' to end statement! found {}" , Peek().value));
-    
     return stmt;
   }
 
-  Ref<AstStmt> ShaderParser::ParseInOutBlock(const Token& type) {
-    Token tag = Consume(IDENTIFIER , fmtstr("Expected tag for in/out block! found {}" , Peek().value));
-    
-    Consume(OPEN_BRACE , fmtstr("Expected open brace for in/out block! found {}" , Peek().value));
+  Ref<AstStmt> ShaderParser::ParseInOutBlock(const Token& type , const Token& tag) {
+    bool is_array = false;
 
-    std::vector<Ref<AstStmt>> var_decls;
-    flags.initializer_valid = false;
-    while (!Check(CLOSE_BRACE)) {
-      var_decls.push_back(ParseDecl());
+    flags.initializer_blocker.push(true);
+    Ref<AstStmt> body = ParseBlock();
+    flags.initializer_blocker.pop();
+
+    Token name = Consume(IDENTIFIER , fmtstr("Expected identifier for {} block {}! found {}" , type.value , tag.value , Peek().value));
+
+    if (Match({ OPEN_BRACKET })) {
+      is_array = true;
+
+      Consume(CLOSE_BRACKET , fmtstr("Unterminated array {} block found! Cant not define length of in/out block arrays! found {}" ,
+                                      type.value , Peek().value));
     }
-    flags.initializer_valid = true;
     
-    Consume(CLOSE_BRACE , fmtstr("Expected close brace for in/out block! found {}" , Peek().value));
+    // Consume(SEMICOLON , fmtstr("Expected semicolon after {} block {}! found {}" , type.value , tag.value , Peek().value));
 
-    return nullptr;
+    return NewRef<InOutBlockStmt>(type , tag , name , body , is_array);
   }
 
   Ref<AstStmt> ShaderParser::ParseBlock() {
-    Consume(TokenType::OPEN_BRACE , "Expected opening brace for function declaration"); 
+    Consume(OPEN_BRACE , "Expected opening brace for function declaration"); 
     std::vector<Ref<AstStmt>> stmts;
 
-    // current_scope++;
+    flags.scoping.push(true);
 
-    while (!Check(TokenType::CLOSE_BRACE) && !AtEnd()) {
+    while (!Check(CLOSE_BRACE) && !AtEnd()) {
       Ref<AstStmt> stmt = ParseDecl();
       if (stmt != nullptr) {
         stmts.push_back(stmt);
       } else {
         throw Error(SYNTAX_ERROR , "Failed to parse block");
       }
+      if (Match({ SEMICOLON })) {
+        /// do nothing just consume
+      }
+      // Consume(SEMICOLON , fmtstr("Expected ';' after statement in block! found {}" , Peek().value));
     }
 
-    Consume(TokenType::CLOSE_BRACE , "Expected closing brace");
-    if (Match({ TokenType::SEMICOLON })) {
-      // do nothing
-    }
-
-    // declarations[current_scope].types.clear();
-    // declarations[current_scope].vars.clear();
-    // declarations[current_scope].funcs.clear();
-    // current_scope--;
+    Consume(CLOSE_BRACE , "Expected closing brace");
+    
+    flags.scoping.pop();
 
     return NewRef<BlockStmt>(stmts);
   }
@@ -347,8 +370,19 @@ namespace other {
   Ref<AstStmt> ShaderParser::ParseFor() { return nullptr; }
   Ref<AstStmt> ShaderParser::ParseReturn() { return nullptr; }
       
+  Ref<AstExpr> ShaderParser::ParseShaderAttribute() {
+    if (Match({ MESH_KW })) {
+      Token type = Previous();
+      Consume(COLON , fmtstr("Expected ':' to define shader attribute! found {}" , Peek().value));
+      Token value = Consume(IDENTIFIER , fmtstr("Expected identifier to define shader attribute! found {}" , Peek().value));
+      return NewRef<ShaderAttribute>(type , value); 
+    }
+
+    throw Error(SYNTAX_ERROR , "Unknown shader attribute! found {}" , Peek().value);
+  }
+      
   Ref<AstExpr> ShaderParser::ParseLayoutDescriptor() {
-    if (Match({ BINDING_KW , LOCATION_KW })) {
+    if (Match({ BINDING_KW , LOCATION_KW , MAX_VERTICES_KW })) {
       Token type = Previous();
       Consume(EQUAL_OP , fmtstr("Expected '=' after layout decsriptor! found {}" , Peek().value));
       Ref<AstExpr> val = ParseExpression();
@@ -365,13 +399,14 @@ namespace other {
   Ref<AstExpr> ShaderParser::ParseAssignment() {
     auto expr = ParseOr();
 
-    if (Match({ TokenType::EQUAL_OP })) {
+    if (Match({ EQUAL_OP })) {
       /// Token('=') == Previous()
       Ref<AstExpr> right = ParseAssignment();
-      if (expr->GetType() == AstNodeType::VAR_EXPR) {
+      if (expr->GetType() == VAR_EXPR) {
         Ref<VarExpr> var = Ref<AstExpr>::Cast<VarExpr>(expr);
         return NewRef<AssignExpr>(var->name , right);
       }
+
       throw Error(SYNTAX_ERROR , fmtstr("Invalid assignment target {}" , expr->GetType()));
     }
 
@@ -532,10 +567,10 @@ namespace other {
       return NewRef<VarExpr>(Previous());
     }
 
+    /// here we assume ctor call 
     if (MatchTypes()) {
       Ref<AstExpr> var_expr = NewRef<VarExpr>(Previous());
       
-      /// if parentheses assume ctor call otherwise error out
       if (Match({ OPEN_PAREN })) {
         Ref<AstExpr> ctor_call = FinishCall(var_expr);
         return ctor_call;
@@ -558,7 +593,7 @@ namespace other {
       } while (Match({ TokenType::COMMA }));
     }
 
-    Consume(SEMICOLON , fmtstr("Expected closing bracket for array literal! found {}" , Peek().type));
+    // Consume(SEMICOLON , fmtstr("Expected closing bracket for array literal! found {}" , Peek().type));
 
     return NewRef<ArrayExpr>(elements);
   }
@@ -580,7 +615,6 @@ namespace other {
     
     if (Match({ EQUAL_OP })) {
       assignment = ParseExpression();
-      Consume(SEMICOLON , "Expected semicolon after assignment expression");
     }
 
     if (Match({ OPEN_BRACKET })) {
@@ -590,7 +624,6 @@ namespace other {
       assignment = nullptr;
       if (Match({ EQUAL_OP })) {
         assignment = ParseExpression();
-        Consume(SEMICOLON , "Expected semicolon after assignment expression");
       }
     }
 
@@ -696,6 +729,22 @@ namespace other {
       MAT3_KW ,
       MAT4_KW ,
     }, advance);
+  }
+
+  void ShaderParser::AddTopLevelNode(const Ref<AstStmt>& node) {
+    switch (current_context) {
+      case VERTEX_CTX:
+        result.vertex_nodes.push_back(node);
+      break;
+      case FRAGMENT_CTX:
+        result.fragment_nodes.push_back(node);
+      break;
+      case GEOMETRY_CTX:
+        result.geometry_nodes.push_back(node);
+      break;
+      default:
+        throw Error(INVALID_SHADER_CTX , "Parser state corrupted");
+    }
   }
 
 } // namespace other

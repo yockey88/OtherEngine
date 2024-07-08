@@ -18,9 +18,6 @@ namespace other {
       Ref<Layer> debug_layer = NewRef<DebugLayer>(ParentApp());
       ParentApp()->PushLayer(debug_layer);
     }
-
-    OE_DEBUG("Creating scene renderer");
-    scene_renderer = NewRef<SceneRenderer>();
   }
 
   void RuntimeLayer::OnEarlyUpdate(float dt) {

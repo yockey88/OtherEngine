@@ -35,6 +35,11 @@ namespace other {
     INVALID_VALUE ,
 
     INVALID_SHADER_DIRECTIVE ,
+    INVALID_SHADER_TYPE ,
+
+    INVALID_SHADER_CTX ,
+
+    SHADER_TRANSPILATION ,
 
     NUM_SHADER_ERRORS ,
   };
@@ -62,6 +67,13 @@ namespace other {
     "SYNTAX ERROR" ,
     "INVALID_VALUE" ,
 
+    "INVALID_SHADER_DIRECTIVE" ,
+    "INVALID_SHADER_TYPE" ,
+
+    "INVALID_CONTEXT" ,
+    
+    "SHADER_TRANSPILATION" ,
+
     "UNKNOWN ERROR"
   };
 
@@ -83,8 +95,8 @@ namespace other {
     public:
       ShaderException(const std::string_view message) 
         : std::runtime_error(message.data()) {}
-      ShaderException(const std::string_view message , ShaderError error) 
-        : std::runtime_error(fmterr("[ {} ] : {}" , message , kShaderErrStrings[error].data())){}
+      ShaderException(const std::string_view message , ShaderError error , uint32_t line , uint32_t col) 
+        : std::runtime_error(fmterr("[ {} ] : {} (at {}:{})" , message , kShaderErrStrings[error].data() , line , col)){}
   };
 
 } // namespace other

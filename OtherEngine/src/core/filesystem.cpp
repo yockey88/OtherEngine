@@ -296,11 +296,13 @@ namespace other {
 
   std::string Filesystem::ReadFile(const Path& path) {
     if (!FileExists(path)) {
+      OE_ERROR("Failed to find {}" , path);
       return "";
     }
 
     std::ifstream f(path);
     if (!f.is_open()) {
+      OE_ERROR("Failed to open {}" , path);
       return "";
     }
 

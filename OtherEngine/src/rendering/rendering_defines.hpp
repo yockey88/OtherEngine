@@ -6,11 +6,13 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 
 #include "core/logger.hpp"
+#include "core/uuid.hpp"
 
 namespace other {
 
@@ -46,6 +48,16 @@ namespace other {
     NOT_EQUAL = GL_NOTEQUAL ,
     GREATER_EQUAL = GL_GEQUAL ,
     ALWAYS = GL_ALWAYS ,
+  };
+  
+  enum ShaderType {
+    OTHER_SHADER  = 0 ,
+    VERTEX_SHADER = GL_VERTEX_SHADER ,
+    FRAGMENT_SHADER = GL_FRAGMENT_SHADER ,
+    GEOMETRY_SHADER = GL_GEOMETRY_SHADER ,
+    TESS_CONTROL_SHADER = GL_TESS_CONTROL_SHADER ,
+    TESS_EVALUATION_SHADER = GL_TESS_EVALUATION_SHADER ,
+    COMPUTE_SHADER = GL_COMPUTE_SHADER ,
   };
   
   struct VertexBufferElement {
@@ -94,6 +106,49 @@ namespace other {
     bool depth = true;
     bool color = true;
     bool stencil = true;
+  };
+  
+  struct Uniform {
+    std::string name = ""; 
+    ValueType type;
+    uint32_t arr_length = 1;
+  };
+  
+  struct MeshAttr {
+    std::string attr_name = "";
+    uint32_t idx = 0;
+    uint32_t size = 0;
+  };
+
+  struct MeshLayout {
+    bool override = false;
+
+    uint32_t curr_idx = 0;
+    std::string layout_name = "";
+    uint32_t stride = 0;
+    std::vector<MeshAttr> attrs;
+  };
+
+  enum ShaderStorageType {
+    STD140 , STD430 ,
+  };
+  
+  struct ShaderStorage {
+    ShaderStorageType type; 
+    uint32_t binding_point;
+    std::string name;
+    std::map<UUID , Uniform> uniforms;
+  };
+  
+  struct ShaderIr {
+    MeshLayout layout;
+
+    std::map<UUID , ShaderStorage> storages;
+    std::map<UUID , Uniform> uniforms;
+
+    std::string vert_source = ""; 
+    std::string frag_source = "";
+    Opt<std::string> geom_source = std::nullopt;
   };
   
   static void CheckGlError(const char* file , int line) {

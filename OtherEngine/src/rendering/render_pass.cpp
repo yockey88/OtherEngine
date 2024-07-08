@@ -13,6 +13,10 @@ namespace other {
   }
       
   void RenderPass::Bind() {
+    if (spec.shader == nullptr) {
+      return;
+    }
+
     spec.shader->Bind();
   }
 
@@ -21,6 +25,10 @@ namespace other {
   }
       
   void RenderPass::Unbind() {
+    if (spec.shader == nullptr) {
+      return;
+    }
+
     spec.shader->Unbind();
   }
       

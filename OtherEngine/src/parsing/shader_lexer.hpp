@@ -6,24 +6,34 @@
 
 #include "core/errors.hpp"
 
+#include <vector>
+
 #include "parsing/parsing_defines.hpp"
+#include "parsing/shader_preprocessor.hpp"
 
 namespace other {
 
+  struct ShaderLexResult {
+    std::vector<Token> tokens;
+    ShaderType shader_type;
+  };
+
   class ShaderLexer {
     public:
-      ShaderLexer(const std::string& src)
-        : src(src) {}
+      ShaderLexer(const ShaderProcessedFile& processed_file)
+          : file_data(processed_file) {
+        result.shader_type = processed_file.shader_type; 
+      }
       
-      std::vector<Token> Lex();
+      ShaderLexResult Lex();
 
     private:
-      std::string src;
+      ShaderProcessedFile file_data;
 
       std::string current_token;
       SourceLocation loc;
 
-      std::vector<Token> tokens;
+      ShaderLexResult result;
 
       struct Flags {
         bool sign = false;
@@ -58,7 +68,7 @@ namespace other {
 
       template <typename... Args>
       ShaderException Error(ShaderError error , std::string_view message, Args&&... args) const {
-        return ShaderException(fmtstr(message , std::forward<Args>(args)...) , error);
+        return ShaderException(fmtstr(message , std::forward<Args>(args)...) , error , loc.line , loc.column);
       }
   };
 

@@ -9,23 +9,23 @@
 #include "parsing/shader_glsl_transpiler.hpp"
 
 namespace other {
+      
+  ShaderIr ShaderCompiler::Compile(const std::string& src) {
+    return Compile(OTHER_SHADER , src);
+  }
 
-  ShaderIr ShaderCompiler::Compile() {
-    ShaderPreprocessor preprocessor(shader_src);
-    ProcessedFile processed_shader = preprocessor.Process();
+  ShaderIr ShaderCompiler::Compile(ShaderType type , const std::string& src) {
+    ShaderPreprocessor preprocessor(src , type);
+    ShaderProcessedFile processed_shader = preprocessor.Process();
 
-    ShaderLexer lexer(processed_shader.src);
-    auto tokens = lexer.Lex();
+    ShaderLexer lexer(processed_shader);
+    ShaderLexResult tokens = lexer.Lex();
 
     ShaderParser parser(tokens);
     ShaderAst ast = parser.Parse();
 
     ShaderGlslTranspiler transpiler(ast);
-    result.glsl_source = transpiler.Transpile();
-    std::cout << "transpiled source :\n" 
-              << result.glsl_source << "\n";
-
-    return result;
+    return transpiler.Transpile();
   }
 
 } // namespace other

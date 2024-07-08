@@ -3,9 +3,8 @@
  **/
 #include "rendering/scene_renderer.hpp"
 
-#include "rendering/rendering_defines.hpp"
-#include "rendering/renderer.hpp"
-#include <glad/glad.h>
+#include "core/defines.hpp"
+#include "rendering/uniform.hpp"
 
 namespace other {
 
@@ -15,7 +14,6 @@ namespace other {
   }
 
   SceneRenderer::~SceneRenderer() {
-  
   }
 
   void SceneRenderer::SetViewportSize(const glm::ivec2& size) {
@@ -25,6 +23,13 @@ namespace other {
   }
 
   void SceneRenderer::SubmitStaticModel(Ref<StaticModel> model , const glm::mat4& transform) {
+    uint32_t idx = GetCurrentTransformIdx();
+
+    spec.model_storage->SetUniform("models" , transform , idx);
+    /// decide which pipeline to submit model to
+    for (auto& [id , pl] : pipelines) {
+      pl->SubmitStaticModel(model , idx);
+    }
   }
 
   /**
@@ -35,62 +40,41 @@ namespace other {
    *      passes.bind(l)
    **/
   void SceneRenderer::BeginScene(Ref<CameraBase>& camera) {
-    viewpoint = camera;
-
-    /// set uniforms
+    spec.camera_uniforms->SetUniform("projection" , camera->ProjectionMatrix());
+    spec.camera_uniforms->SetUniform("view" , camera->ViewMatrix());
   }
   
   void SceneRenderer::EndScene() {
     FlushDrawList();
+
+    curr_model_idx = 0;
   }
 
-  Ref<Framebuffer> SceneRenderer::GetRender() {
-    return image_ir[0];
+  const std::map<UUID , Ref<Framebuffer>>& SceneRenderer::GetRender() const {
+    return image_ir;
   }
 
 
   void SceneRenderer::Initialize() {
-    PipelineSpec spec = {
-      // .has_indices = true ,
-      .framebuffer_spec = {
-        .depth_func = LESS_EQUAL ,
-        .clear_color = { 0.1f , 0.3f , 0.5f , 1.f } ,
-        .size = Renderer::WindowSize() ,
-      } ,
-      .vertex_layout = {
-    	{ ValueType::VEC3, "position" },
-    	{ ValueType::VEC3, "normal" },
-    	{ ValueType::VEC3, "tangent" },
-    	{ ValueType::VEC3, "binormal" },
-    	{ ValueType::VEC2, "uvs" }
-      } ,
-      .debug_name = "Testing Pipeline" , 
-    };
+    spec.camera_uniforms->BindBase();
+    spec.model_storage->BindBase();
 
-    // pipelines.emplace_back(NewRef<Pipeline>(spec));
-    
-    glGenVertexArrays(1 , &vao);
-    glBindVertexArray(vao);
-    
-    vertex_buffer = NewScope<VertexBuffer>(ARRAY_BUFFER , 4096 * sizeof(float));
-    index_buffer = NewScope<VertexBuffer>(ELEMENT_ARRAY_BUFFER , 4096 * sizeof(uint32_t));
-    
-    uint32_t index = 0;
-    uint32_t offset = 0;
-    uint32_t stride = spec.vertex_layout.Stride();
-  
-    OE_ASSERT(stride >= 0 , "Stride for pipeline [{}] is negative ({})" , spec.debug_name , stride);
-
-    for (const auto& attr : spec.vertex_layout) {
-      glEnableVertexAttribArray(index);
-      glVertexAttribPointer(index , attr.size , GL_FLOAT , GL_FALSE , stride * sizeof(float) , (void*)(offset * sizeof(float)));
-      CHECKGL();
-
-      ++index;
-      offset += attr.size;
+    for (auto& rp : spec.passes) {
+      passes[FNV(rp.name)] = NewRef<RenderPass>(rp);
     }
 
-    glBindVertexArray(0);
+    for (auto& pl : spec.pipelines) {
+      pipelines[FNV(pl.debug_name)] = NewRef<Pipeline>(pl);
+    }
+
+    for (auto& [pl , rps] : spec.pipeline_to_pass_map) {
+      auto& pline = pipelines[pl];
+
+      for (auto& p : rps) {
+        auto& pass = passes[p];
+        pline->SubmitRenderPass(pass);
+      }
+    }
   }
 
   void SceneRenderer::Shutdown() {
@@ -98,22 +82,6 @@ namespace other {
   }
       
   void SceneRenderer::FlushDrawList() {
-    for (const auto& [mk , dc] : static_models) {
-      /// const glm::mat4& transform = ??? 
-
-      // auto& verts = dc->model_source->Vertices();
-      // vertices.insert(vertices.end() , verts.begin() , verts.end());
-
-      // auto& indices = dc->model_source->Indices();
-      // for (auto& i : indices) {
-      //   idxs.push_back(i.v1);
-      //   idxs.push_back(i.v2);
-      //   idxs.push_back(i.v3);
-      // }
-    }
-
-    vertex_buffer->Bind();
-
     /// pre render
     /// begin command buffer ?
     ///
@@ -125,8 +93,10 @@ namespace other {
     /// light culling
     /// skybox pass
 
-    // begin pass
-    // end pass
+    for (auto& [id , pl] : pipelines) {
+      pl->Render();
+      image_ir[id] = pl->GetOutput();
+    }
 
     /// GTAO compute
     /// GTAO denoise compute
@@ -144,11 +114,11 @@ namespace other {
     /// end command buffer
     /// submit command buffer
   }
-
-  Ref<Framebuffer> SceneRenderer::RenderFrame(Ref<Pipeline> pipeline) {
-    // set uniforms
-    pipeline->Render(viewpoint);
-    return pipeline->GetOutput();
+  
+  uint32_t SceneRenderer::GetCurrentTransformIdx() {
+    uint32_t idx = curr_model_idx;
+    ++curr_model_idx;
+    return idx;
   }
       
 } // namespace other

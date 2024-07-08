@@ -1,0 +1,32 @@
+vertex [
+  mesh : default ,
+] {
+   
+  layout (std140 , binding = 0) uniform Camera {
+    mat4 projection;
+    mat4 view;
+  };
+   
+  layout (std430 , binding = 1) readonly buffer ModelData {
+    mat4 models[];
+  };
+   
+  out vec4 fcol;
+  
+  void main() {
+    gl_Position = projection * view * models[model_id] * vec4(vpos , 1.0);
+    fcol = vec4(vpos , 1.0);
+  };
+
+}
+
+fragment {
+  
+  in vec4 fcol;
+  out vec4 frag_color;
+  
+  void main () {
+    frag_color = fcol;
+  };
+
+}

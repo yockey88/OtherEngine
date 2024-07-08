@@ -16,12 +16,6 @@
 
 namespace other {
 
-  struct Uniform {
-    std::string name = ""; 
-    ValueType type;
-    uint32_t arr_length = 1;
-  };
-
   class UniformBuffer : public RefCounted {
     public:
       UniformBuffer(const std::string& name , const std::vector<Uniform> uniforms , uint32_t binding_point , 
@@ -30,7 +24,7 @@ namespace other {
 
       const std::string& Name() const;
 
-      void BindShader(Ref<Shader>& shader);
+      void BindShader(const Ref<Shader>& shader);
 
       bool Bound() const;
 
