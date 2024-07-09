@@ -4,6 +4,8 @@
 #include "core/defines.hpp"
 
 #include <SDL.h>
+#include <SDL_keyboard.h>
+#include <SDL_mouse.h>
 #include <glad/glad.h>
 #include <glm/ext/matrix_transform.hpp>
 #include <imgui/imgui.h>
@@ -14,6 +16,7 @@
 #include "core/errors.hpp"
 #include "core/engine.hpp"
 #include "core/filesystem.hpp"
+#include "core/time.hpp"
 #include "input/io.hpp"
 #include "parsing/cmd_line_parser.hpp"
 #include "parsing/ini_parser.hpp"
@@ -46,9 +49,10 @@ using other::NewRef;
 using other::Scope;
 using other::NewScope;
 
+using other::Shader;
+using other::VertexArray;
 using other::CameraBase;
 using other::PerspectiveCamera;
-using other::Framebuffer;
 using other::Uniform;
 using other::UniformBuffer;
 using other::ModelSource;
@@ -67,9 +71,6 @@ class TestApp : public other::App {
 
 #define CHECK() do { CheckGlError(__LINE__); } while (false)
 
-constexpr static uint32_t win_w = 800;
-constexpr static uint32_t win_h = 600;
-
 void LaunchMock(const other::ConfigTable& config) {
   other::IO::Initialize();
   other::EventQueue::Initialize(config);
@@ -85,6 +86,16 @@ void ShutdownMock() {
   other::EventQueue::Shutdown();
   other::IO::Shutdown();
 }
+
+std::vector<float> fb_verts = {
+   1.f ,  1.f , 1.f , 1.f ,
+  -1.f ,  1.f , 0.f , 1.f ,
+  -1.f , -1.f , 0.f , 0.f ,
+   1.f , -1.f , 1.f , 0.f
+};
+
+std::vector<uint32_t> fb_indices{ 0 , 1 , 3 , 1 , 2 , 3 };
+std::vector<uint32_t> fb_layout{ 2 , 2 };
 
 int main(int argc , char* argv[]) {
   try {
@@ -104,6 +115,7 @@ int main(int argc , char* argv[]) {
       mock_engine.LoadApp(app_handle);
     }
 
+
     LaunchMock(config);
     OE_DEBUG("Sandbox Launched");
 
@@ -111,9 +123,17 @@ int main(int argc , char* argv[]) {
     
     const other::Path shader1_path = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders" / "default.oshader";
     const other::Path shader2_path = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders" / "normals.oshader";
+    const other::Path fbshader_path = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders" / "fbshader.oshader";
+    
+    SDL_SetRelativeMouseMode(SDL_TRUE);
 
     {
-      Ref<CameraBase> camera = NewRef<PerspectiveCamera>(glm::ivec2{ win_w , win_h });
+      auto win_size = other::Renderer::WindowSize();
+      Ref<CameraBase> camera = NewRef<PerspectiveCamera>(glm::ivec2{ win_size.x , win_size.y });
+      camera->SetPosition({ 0.f , 0.f , 3.f });
+
+      Ref<Shader> fbshader = other::BuildShader(fbshader_path);
+      Scope<VertexArray> fb_mesh = NewScope<VertexArray>(fb_verts , fb_indices , fb_layout);
 
       glm::mat4 model1 = glm::mat4(1.f);
       glm::mat4 model2 = glm::mat4(1.f); // glm::translate(model1 , glm::vec3(0.3f , 0.1f , 0.0f));
@@ -196,7 +216,15 @@ int main(int argc , char* argv[]) {
       CHECK();
 
       OE_INFO("Running");
+
+      other::time::DeltaTime dt;
+      dt.Start();
+
       bool running = true;
+
+      bool camera_free = true;
+      other::Mouse::LockCursor();
+
       while (running) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
@@ -211,6 +239,15 @@ int main(int argc , char* argv[]) {
             case SDL_KEYDOWN:
               switch (event.key.keysym.sym) {
                 case SDLK_ESCAPE: running = false; break;
+                case SDLK_c: 
+                  if (!camera_free) {
+                    other::Mouse::LockCursor();
+                    camera_free = true;
+                  } else {
+                    other::Mouse::FreeCursor();
+                    camera_free = false;
+                  }
+                break;
                 default: break;
               }
             break;
@@ -221,8 +258,9 @@ int main(int argc , char* argv[]) {
           ImGui_ImplSDL2_ProcessEvent(&event);
         }
 
-        /// camera->KeyboardCallback();
-        /// camera->MouseCallback();
+        if (camera_free) {
+          other::DefaultUpdateCamera(camera);
+        }
 
         model1 = glm::rotate(model1 , glm::radians(5.f) , { 1.f , 1.f , 0.f });
 
@@ -230,16 +268,28 @@ int main(int argc , char* argv[]) {
 
         renderer->BeginScene(camera);
         renderer->SubmitStaticModel(model , model1);
-        /// more models....
         renderer->EndScene();
 
+#if 0
+        auto& frame = renderer->GetRender().at(FNV("Geometry"));
+
+        fbshader->Bind();
+        fbshader->SetUniform("screen_tex" , 0);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D , frame->texture);
+
+        fb_mesh->Draw(other::TRIANGLES);
+#else
         other::UI::BeginFrame();
 
-        auto RenderFrame = [](Ref<Framebuffer>& fb , const std::string& title) {
+        auto RenderFrame = [](Ref<other::Framebuffer>& fb , const std::string& title) {
           ImGui::PushID(("##" + title).c_str());
           ImGui::Text("%s" , title.c_str());
           ImGui::SameLine();
-          ImGui::Image((void*)(uintptr_t)fb->texture , { win_w , win_h } , ImVec2(0 , 1) , ImVec2(1 , 0));
+
+          glm::ivec2 size = other::Renderer::WindowSize();
+          ImGui::Image((void*)(uintptr_t)fb->texture , ImVec2(size.x , size.y) , ImVec2(0 , 1) , ImVec2(1 , 0));
           ImGui::PopID();
         };
 
@@ -249,8 +299,10 @@ int main(int argc , char* argv[]) {
           RenderFrame(frames[FNV("Debug")]    , "Pipeline 2");
         } 
         ImGui::End();
-
+        
         other::UI::EndFrame();
+#endif
+
         other::Renderer::GetWindow()->SwapBuffers();
       }
     }
@@ -308,4 +360,6 @@ void CheckGlError(int line) {
     }
     err = glGetError();
   }
+
 }
+  

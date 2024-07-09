@@ -1,0 +1,28 @@
+vertex {
+  
+  layout (location = 0) in vec2 pos;
+  layout (location = 1) in vec2 uvs;
+
+  out vec2 fuvs;
+
+  void main() {
+    gl_Position = vec4(pos , 0.0 , 1.0);
+    fuvs = uvs;
+  }
+
+}
+
+fragment {
+
+  in vec2 fuvs;
+
+  out vec4 FragColor;
+
+  uniform sampler2D screen_tex;
+
+  void main() {
+    vec3 col = texture(screen_tex , fuvs).rgb;
+    FragColor = vec4(col , 1.0);
+  }
+
+}
