@@ -669,6 +669,7 @@ namespace other {
       case MAT2_KW:
       case MAT3_KW:
       case MAT4_KW:
+      case SAMPLER2D_KW:
         return Advance();
       default:
         break;
@@ -728,6 +729,7 @@ namespace other {
       MAT2_KW ,
       MAT3_KW ,
       MAT4_KW ,
+      SAMPLER2D_KW ,
     }, advance);
   }
 

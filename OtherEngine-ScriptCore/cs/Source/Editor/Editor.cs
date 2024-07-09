@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace Other {
 
   public class Editor : OtherBehavior {
-      public override OtherBehavior Parent {
+    public override OtherBehavior Parent {
       get;
       set;
     }

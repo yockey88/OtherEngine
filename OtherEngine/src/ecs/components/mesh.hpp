@@ -18,6 +18,13 @@ namespace other {
 
     ECS_COMPONENT(Mesh , kMeshIndex);
   }; 
+
+  constexpr static uint32_t kEmptyIdx = 0;
+  constexpr static uint32_t kTriangleIdx = 1;
+  constexpr static uint32_t kRectIdx = 2;
+  constexpr static uint32_t kCubeIdx = 3;
+  constexpr static uint32_t kSphereIdx = 4;
+  constexpr static uint32_t kCapsuleIdx = 5;
   
   struct StaticMesh : public Component {
     AssetHandle handle; 

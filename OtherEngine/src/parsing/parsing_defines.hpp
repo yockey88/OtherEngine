@@ -127,6 +127,7 @@ namespace other {
     MAT2_KW , 
     MAT3_KW , 
     MAT4_KW ,
+    SAMPLER2D_KW ,
 
     /// oshader keywords
     VERTEX_KW ,
@@ -249,6 +250,7 @@ namespace other {
     "MAT2_KW" , 
     "MAT3_KW" , 
     "MAT4_KW" ,
+    "SAMPLER2D_KW" ,
 
     /// oshader keywords
     "VERTEX_KW" ,
@@ -298,6 +300,7 @@ namespace other {
     KeyWordPair{ FNV("mat2")         , MAT2_KW         } ,
     KeyWordPair{ FNV("mat3")         , MAT3_KW         } ,
     KeyWordPair{ FNV("mat4")         , MAT4_KW         } ,
+    KeyWordPair{ FNV("sampler2D")    , SAMPLER2D_KW    } ,
 
     KeyWordPair{ FNV("vertex")       , VERTEX_KW       } ,
     KeyWordPair{ FNV("fragment")     , FRAGMENT_KW     } ,

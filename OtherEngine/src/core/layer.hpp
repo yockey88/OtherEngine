@@ -44,6 +44,8 @@ namespace other {
 
       App* ParentApp() const { return parent_app; }
 
+      bool HasActiveScene() const;
+
     private:
       App* parent_app = nullptr;
 

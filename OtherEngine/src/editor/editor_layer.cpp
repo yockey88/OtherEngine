@@ -7,31 +7,46 @@
 #include "core/logger.hpp"
 #include "core/errors.hpp"
 #include "core/filesystem.hpp"
-
 #include "application/app_state.hpp"
-
+#include "asset/asset_manager.hpp"
+#include "event/mouse_events.hpp"
 #include "parsing/ini_parser.hpp"
+#include "input/keyboard.hpp"
 
 #include "event/core_events.hpp"
 #include "event/app_events.hpp"
+#include "event/key_events.hpp"
 #include "event/event_handler.hpp"
 #include "event/event_queue.hpp"
 
+#include "rendering/camera_base.hpp"
 #include "scripting/script_engine.hpp"
 
 #include "rendering/renderer.hpp"
+#include "rendering/model.hpp"
+#include "rendering/model_factory.hpp"
 #include "rendering/perspective_camera.hpp"
 #include "rendering/ui/ui_helpers.hpp"
 
 #include "editor/editor.hpp"
+#include <SDL_mouse.h>
 
 namespace other {
+
+std::vector<float> fb_verts = {
+   1.f ,  1.f , 1.f , 1.f ,
+  -1.f ,  1.f , 0.f , 1.f ,
+  -1.f , -1.f , 0.f , 0.f ,
+   1.f , -1.f , 1.f , 0.f
+};
+
+std::vector<uint32_t> fb_indices{ 0 , 1 , 3 , 1 , 2 , 3 };
+std::vector<uint32_t> fb_layout{ 2 , 2 };
 
   void EditorLayer::OnAttach() {
     editor_camera = NewRef<PerspectiveCamera>(Renderer::WindowSize());
     editor_camera->SetPosition({ 0.f , 0.f , 3.f });
     editor_camera->SetDirection({ 0.f , 0.f , -1.f });
-    editor_camera->SetUp({ 0.f , 1.f , 0.f });
     
     try {
       /// needs to be a better way to find the editor config file
@@ -47,6 +62,7 @@ namespace other {
     }
     
     Renderer::GetWindow()->ForceResize({ 1920 , 1080 });
+    editor_camera->SetViewport({ 1920 , 1080 });
 
     LoadEditorScripts(editor_config);
 
@@ -58,6 +74,16 @@ namespace other {
 
     panel_manager = NewScope<PanelManager>();
     panel_manager->Attach((Editor*)ParentApp() , AppState::ProjectContext() , editor_config);
+      
+    model_handle = ModelFactory::CreateBox({ 1.f , 1.f , 1.f });
+    model = AssetManager::GetAsset<StaticModel>(model_handle);
+    model_source = model->GetModelSource();
+
+    default_renderer = GetDefaultRenderer();
+
+    const Path fbshader_path = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders" / "fbshader.oshader";
+    fbshader = BuildShader(fbshader_path);
+    fb_mesh = NewScope<VertexArray>(fb_verts , fb_indices , fb_layout);
   }
 
   void EditorLayer::OnDetach() {
@@ -99,15 +125,41 @@ namespace other {
       script->Update(dt);
     }
     panel_manager->Update(dt);
+    
+    if (camera_free) {
+      DefaultUpdateCamera(editor_camera);
+    }
   }
 
   void EditorLayer::OnRender() {
-    for (const auto& [id , script] : editor_scripts.scripts) {
-      script->Render();
-    }
-    panel_manager->Render();
+    // for (const auto& [id , script] : editor_scripts.scripts) {
+    //   script->Render();
+    // }
+    // panel_manager->Render();
 
-    viewport = AppState::Scenes()->RenderScene(viewport_renderer , editor_camera);
+    // default_renderer->BeginScene(editor_camera);
+    // if (HasActiveScene()) {
+    //   auto active = ParentApp()->ActiveScene();
+    //   active->scene->Render(default_renderer);
+    // }
+    // default_renderer->EndScene();
+
+    default_renderer->BeginScene(editor_camera);
+    default_renderer->SubmitStaticModel(model , model1);
+    default_renderer->EndScene();
+
+#if 0
+    auto& frames = default_renderer->GetRender();
+    viewport = frames.at(FNV("GeometryPipeline"));
+
+    fbshader->Bind();
+    fbshader->SetUniform("screen_tex" , 0);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D , viewport->texture);
+
+    fb_mesh->Draw(TRIANGLES);
+#endif
   }
 
   void EditorLayer::OnUIRender() {
@@ -135,8 +187,15 @@ namespace other {
       ImGui::EndMainMenuBar();
     }
 
+#if 1
     if (ImGui::Begin("Viewport")) {
-      if (viewport != nullptr && viewport->Valid()) {
+      auto& frames = default_renderer->GetRender();
+      viewport = frames.at(FNV("GeometryPipeline"));
+
+      if (HasActiveScene() && viewport == nullptr) {
+        ScopedColor red_text(ImGuiCol_Text , ui::theme::red);
+        ImGui::Text("No Viewport Generated");
+      } else {
         ImVec2 curr_win_size = ImGui::GetWindowSize();
         float aspect_ratio = Renderer::GetWindow()->AspectRatio();
         ImVec2 size{};
@@ -149,8 +208,6 @@ namespace other {
           size.y = curr_win_size.y;
         }
 
-        Renderer::Viewport()->Resize({ size.x , size.y });
-
         ImVec2 cursor_pos = {
           (curr_win_size.x - size.x) * 0.5f ,
           ((curr_win_size.y - size.y) * 0.5f) + 7.f
@@ -158,16 +215,12 @@ namespace other {
 
         ImGui::SetCursorPos(cursor_pos);
 
+        editor_camera->SetViewport({ size.x , size.y });
         viewport->Resize({ size.x , size.y });
+
         uint32_t tex_id = viewport->texture; 
         ImGui::Image((void*)(uintptr_t)tex_id , size , ImVec2(0 , 1) , ImVec2(1 , 0)); 
-      } else if (viewport != nullptr && !viewport->Valid()) {
-        ScopedColor red_text(ImGuiCol_Text , ui::theme::red);
-        ImGui::Text("Generated Viewport is invalid!!");
-      } else {
-        ScopedColor red_text(ImGuiCol_Text , ui::theme::red);
-        ImGui::Text("No Viewport Generated");
-      }
+      } 
     }
     ImGui::End();
 
@@ -180,6 +233,12 @@ namespace other {
         playing = false;
       }
 
+      ImGui::Text("Camera Position :: [%f , %f , %f]" , 
+                  editor_camera->Position().x , editor_camera->Position().y , editor_camera->Position().z);
+      
+      ImGui::Text("Camera Direction :: [%f , %f , %f]" , 
+                  editor_camera->Direction().x , editor_camera->Direction().y , editor_camera->Direction().z);
+
       if (ImGui::Button("Save Scene")) {
         SaveActiveScene();
       }
@@ -191,6 +250,7 @@ namespace other {
     }
 
     panel_manager->RenderUI();
+#endif
   }
 
   void EditorLayer::OnEvent(Event* event) {
@@ -212,15 +272,36 @@ namespace other {
       ReloadScripts();
       return true;
     });
+
+    handler.Handle<KeyPressed>([this](KeyPressed& key) -> bool {
+      if (key.Key() == Keyboard::Key::OE_ESCAPE) {
+        if (camera_free) {
+          Mouse::FreeCursor();
+          camera_free = false;
+          return true;
+        }
+      } 
+
+      return false;
+    });
+
+    handler.Handle<MouseButtonPressed>([this](MouseButtonPressed& e) -> bool {
+      if (e.Button() == Mouse::MIDDLE) {
+        if (!camera_free) {
+          Mouse::LockCursor();
+          camera_free = true;
+          return true;
+        }
+      }
+
+      return false;
+    });
     
     panel_manager->OnEvent(event);
   }
 
   void EditorLayer::OnSceneLoad(const SceneMetadata* metadata) {
     panel_manager->OnSceneLoad(metadata);
-
-    SceneRenderSpec render_spec = metadata->scene->GetRenderingSpec();
-    viewport_renderer = NewRef<SceneRenderer>(render_spec);
   }
 
   void EditorLayer::OnSceneUnload() {
@@ -362,6 +443,62 @@ namespace other {
         }
       }
     }
+  }
+      
+  Ref<SceneRenderer> EditorLayer::GetDefaultRenderer() {
+    const other::Path shader1_path = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders" / "default.oshader";
+
+    uint32_t camera_binding_pnt = 0;
+    std::vector<Uniform> cam_unis = {
+      { "projection" , other::ValueType::MAT4 } ,
+      { "view"       , other::ValueType::MAT4 }
+    };
+    
+    uint32_t model_binding_pnt = 1;
+    std::vector<Uniform> model_unis = {
+      { "models" , other::ValueType::MAT4 , 100 } ,
+    };
+
+    glm::vec2 window_size = Renderer::WindowSize();
+
+    SceneRenderSpec spec{
+      .camera_uniforms = NewRef<UniformBuffer>("Camera" , cam_unis , camera_binding_pnt) ,
+      .model_storage = NewRef<UniformBuffer>("ModelData" , model_unis , model_binding_pnt , other::SHADER_STORAGE) ,
+      .passes = {
+        {
+          .name = "GeometryPass1" , 
+          .tag_col = { 1.f , 0.f , 0.f , 1.f } ,
+          .uniforms = {} ,
+          .shader = other::BuildShader(shader1_path) ,
+        } ,
+      } ,
+      .pipelines = {
+        {
+          .has_indices = true ,
+          .buffer_cap = 4096 * sizeof(float) ,
+          .framebuffer_spec = {
+            .depth_func = other::LESS_EQUAL ,
+            .clear_color = { 0.1f , 0.3f , 0.3f , 1.f } ,
+            .size =  {
+              window_size.x ,
+              window_size.y ,
+            },
+          } ,
+          .vertex_layout = {
+            { other::ValueType::VEC3 , "position" } ,
+            { other::ValueType::VEC3 , "normal"   } ,
+            { other::ValueType::VEC3 , "tangent"  } ,
+            { other::ValueType::VEC3 , "binormal" } ,
+            { other::ValueType::VEC2 , "uvs"      }
+          } ,
+          .debug_name = "GeometryPipeline" , 
+        } ,
+      } ,
+      .pipeline_to_pass_map = {
+        { FNV("GeometryPipeline") , { FNV("GeometryPass1") } } ,
+      } ,
+    }; 
+    return NewRef<SceneRenderer>(spec);
   }
 
 } // namespace other

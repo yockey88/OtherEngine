@@ -40,15 +40,15 @@ namespace other {
       void Update(float dt);
       void LateUpdate(float dt);
 
-      void Render(Ref<SceneRenderer> scene_renderer);
+      Ref<CameraBase> GetPrimaryCamera() const;
+
+      void Render(Ref<SceneRenderer> scene_renderer , Ref<CameraBase> camera = nullptr);
       void RenderUI();
 
       void Stop(); 
       void Shutdown();
 
       entt::registry& Registry();
-
-      SceneRenderSpec GetRenderingSpec() const;
 
       PhysicsType ActivePhysicsType() const;
       Ref<PhysicsWorld2D> Get2DPhysicsWorld() const;

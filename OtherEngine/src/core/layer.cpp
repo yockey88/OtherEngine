@@ -3,6 +3,8 @@
  */
 #include "core/layer.hpp"
 
+#include "application/app.hpp"
+
 namespace other {
 
   void Layer::Attach() {
@@ -47,6 +49,10 @@ namespace other {
 
   void Layer::ReloadScripts() {
     OnScriptReload();
+  }
+      
+  bool Layer::HasActiveScene() const {
+    return ParentApp() != nullptr && ParentApp()->HasActiveScene();
   }
 
 } // namespace other

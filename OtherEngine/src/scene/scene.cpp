@@ -7,14 +7,12 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/euler_angles.hpp>
-#include <winbase.h>
 
 #include "application/app_state.hpp"
-
 #include "asset/asset_manager.hpp"
 
 #include "physics/physics_defines.hpp"
-#include "rendering/rendering_defines.hpp"
+#include "rendering/model.hpp"
 #include "scripting/script_engine.hpp"
 
 #include "ecs/entity.hpp"
@@ -143,6 +141,7 @@ namespace other {
     /// TODO: fix these to customizeable
     physics_world_2d->Step(dt , 32 , 2);
 
+    /// apply physics simulation to transforms, before using transforms for anything else 
     registry.view<RigidBody2D , Transform>().each([](RigidBody2D& body , Transform& transform) {
       if (body.physics_body == nullptr) {
         return;
@@ -155,12 +154,13 @@ namespace other {
     });
 
     registry.view<Transform>().each([](Transform& transform) {
-      transform.erotation = glm::eulerAngles(transform.qrotation);
-      transform.model_transform = glm::translate(glm::mat4(1.f) , transform.position);
-      transform.model_transform = glm::eulerAngleYXZ(
-        transform.erotation.y , transform.erotation.x , transform.erotation.z
-      );
-      transform.model_transform = glm::scale(transform.model_transform , transform.scale);
+        transform.model_transform = glm::mat4(1.f);
+      // transform.erotation = glm::eulerAngles(transform.qrotation);
+      // transform.model_transform = glm::translate(glm::mat4(1.f) , transform.position);
+      // transform.model_transform = glm::eulerAngleYXZ(
+      //   transform.erotation.y , transform.erotation.x , transform.erotation.z
+      // );
+      // transform.model_transform = glm::scale(transform.model_transform , transform.scale);
     });
 
 
@@ -179,13 +179,6 @@ namespace other {
       for (auto& [id , s] : script.scripts) {
         s->Update(dt);
       }
-    });
-
-    /// apply model transforms to meshes
-    registry.view<Mesh , Transform>().each([](const Mesh& mesh , const Transform& transform) {
-    });
-    
-    registry.view<StaticMesh , Transform>().each([](const StaticMesh& mesh , const Transform& transform) {
     });
 
     OnUpdate(dt);
@@ -237,43 +230,43 @@ namespace other {
    *
    **/
       
-  void Scene::Render(Ref<SceneRenderer> renderer) {
-    /**
-     * submitting the pipeline specification should not happen every frame
-     * renderer->SubmitPipelineSpecifications({ spec1 , spec2 , .... });
-     * renderer->SubmitRenderPasses({
-     *  { spec_idx , std::vector<Ref<RenderPass>> } ,
-     *  ...
-     * });
-     **/
+  Ref<CameraBase> Scene::GetPrimaryCamera() const {
     Ref<CameraBase> primary_cam = nullptr;
-    registry.view<Camera>().each([&primary_cam](Camera& camera) {
+    registry.view<Camera>().each([&primary_cam](const Camera& camera) {
       if (camera.camera->IsPrimary()) {
         primary_cam = camera.camera;
       }
     });
 
+    return primary_cam;
+  }
+      
+  void Scene::Render(Ref<SceneRenderer> renderer , Ref<CameraBase> camera) {
     /// lights
-
-    // renderer->SetViewportSize();
-    renderer->BeginScene(primary_cam);
-
     registry.view<Mesh , Transform>().each([&renderer](const Mesh& mesh , const Transform& transform) {
-      auto model = AppState::Assets()->GetAsset(mesh.handle);
+      if (AppState::Assets()->IsValid(mesh.handle)) {
+        return;
+      }
+      
+      auto model = AssetManager::GetAsset<Model>(mesh.handle);
       if (model == nullptr) {
         return;
       }
 
-      renderer->SubmitModel(model , transform.model_transform);
+      renderer->SubmitModel(model , glm::mat4(1.f));
     });
 
     registry.view<StaticMesh , Transform>().each([&renderer](const StaticMesh& mesh , const Transform& transform) {
-      auto model = AppState::Assets()->GetAsset(mesh.handle);
+      if (AppState::Assets()->IsValid(mesh.handle)) {
+        return;
+      }
+      
+      auto model = AssetManager::GetAsset<Model>(mesh.handle);
       if (model == nullptr) {
         return;
       }
 
-      renderer->SubmitStaticModel(model , transform.model_transform);
+      renderer->SubmitStaticModel(model , glm::mat4(1.f));
     });
     
     registry.view<Script>().each([](const Script& script) {
@@ -281,8 +274,6 @@ namespace other {
         s->Render();
       }
     });
-
-    renderer->EndScene();
   }
       
   void Scene::RenderUI() {
@@ -335,15 +326,6 @@ namespace other {
       
   entt::registry& Scene::Registry() {
     return registry;
-  }
-      
-  SceneRenderSpec Scene::GetRenderingSpec() const {
-    OE_ASSERT(initialized , "Attempting to retrieve rendering specification from uninitialized scene!");
-
-    /// TODO: contstruct rendering spec from renderable entities
-    ///     (how?)
-
-    return {}; 
   }
       
   PhysicsType Scene::ActivePhysicsType() const {

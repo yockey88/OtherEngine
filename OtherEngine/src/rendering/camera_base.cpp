@@ -6,6 +6,10 @@
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/geometric.hpp>
+#include <SDL.h>
+
+#include "input/mouse.hpp"
+#include "input/keyboard.hpp"
 
 namespace other {
 
@@ -19,7 +23,7 @@ namespace other {
 
     SetOrientation(other->euler_angles);
 
-    SetViewport(other->viewport);
+    SetViewport(other->viewport_size);
     SetClip(other->clip);
 
     SetMousePos(other->mouse);
@@ -40,9 +44,22 @@ namespace other {
   }
       
   void CameraBase::CalculateMatrix() {
+    UpdateCoordinateFrame();
     CalculateView();
     CalculateProjection();
     mvp = projection * view;
+  }
+      
+  void CameraBase::UpdateCoordinateFrame() {
+    glm::vec3 new_dir; 
+    new_dir.x = cos(glm::radians(Yaw())) * cos(glm::radians(Pitch()));
+    new_dir.y = sin(glm::radians(Pitch()));
+    new_dir.z = sin(glm::radians(Yaw())) * cos(glm::radians(Pitch()));
+
+    SetDirection(glm::normalize(new_dir));
+    SetRight(glm::normalize(glm::cross(Direction(), WorldUp())));
+    SetUp(glm::normalize(glm::cross(Right(), Direction())));
+    SetPosition(Position());
   }
 
   const glm::mat4& CameraBase::GetMatrix() {
@@ -51,43 +68,41 @@ namespace other {
   }                
                    
   const glm::mat4& CameraBase::ViewMatrix() {
-    CalculateView();
-    mvp = projection * view;
+    CalculateMatrix();
     return view;
   }
 
   const glm::mat4& CameraBase::ProjectionMatrix() {
-    CalculateProjection();
-    mvp = projection * view;
+    CalculateMatrix();
     return projection;
   }
 
-  void CameraBase::MoveForward(float dt) { 
-    position += direction * speed * dt; 
+  void CameraBase::MoveForward() { 
+    position += speed * direction; 
   }
   
-  void CameraBase::MoveBackward(float dt) { 
-    position -= direction * speed * dt; 
+  void CameraBase::MoveBackward() { 
+    position -=  speed * direction; 
   }
   
-  void CameraBase::MoveLeft(float dt) { 
-    position -= right * speed * dt; 
+  void CameraBase::MoveLeft() { 
+    position -= speed * right;
   }
   
-  void CameraBase::MoveRight(float dt) { 
-    position += right * speed * dt; 
+  void CameraBase::MoveRight() { 
+    position += speed * right; 
   }
   
-  void CameraBase::MoveUp(float dt) { 
-    position += up * speed * dt; 
+  void CameraBase::MoveUp() { 
+    position += speed * up; 
   }
   
-  void CameraBase::MoveDown(float dt) { 
-    position -= up * speed * dt; 
+  void CameraBase::MoveDown() { 
+    position -= speed * up;
   }
   
-  void CameraBase::Move(const glm::vec3& direction , float dt) { 
-    position += direction * speed * dt; 
+  void CameraBase::Move(const glm::vec3& dir) { 
+    position += speed * dir; 
   }
 
   void CameraBase::SetPosition(const glm::vec3& position) { 
@@ -127,7 +142,7 @@ namespace other {
   }
 
   void CameraBase::SetViewport(const glm::ivec2& viewport) { 
-    this->viewport = viewport; 
+    viewport_size = viewport;
   }
   
   void CameraBase::SetClip(const glm::vec2& clip) { 
@@ -171,7 +186,7 @@ namespace other {
   }
   
   void CameraBase::CalculateView() {
-    view = glm::lookAt(position , glm::normalize(position) + direction , up);
+    view = glm::lookAt(position , position + direction , up);
   }
 
   const glm::vec3& CameraBase::Position() const {
@@ -211,7 +226,7 @@ namespace other {
   }
 
   const glm::ivec2& CameraBase::Viewport() const {
-    return viewport;
+    return viewport_size;
   }
 
   const glm::vec2& CameraBase::Clip() const {
@@ -252,6 +267,54 @@ namespace other {
 
   bool CameraBase::IsPrimary() const {
     return is_primary;
+  }
+
+  void DefaultUpdateCamera(Ref<CameraBase>& camera) {
+    if (Keyboard::Down(Keyboard::Key::OE_W)) {
+      camera->MoveForward();
+    }
+    if (Keyboard::Down(Keyboard::Key::OE_S)) {
+      camera->MoveBackward();
+    }
+    if (Keyboard::Down(Keyboard::Key::OE_A)) {
+      camera->MoveLeft();
+    }
+    if (Keyboard::Down(Keyboard::Key::OE_D)) {
+      camera->MoveRight();
+    }
+    if (Keyboard::Down(Keyboard::Key::OE_SPACE)) {
+      camera->MoveUp();
+    }
+    if (Keyboard::Down(Keyboard::Key::OE_LSHIFT)) {
+      camera->MoveDown();
+    }
+
+    glm::ivec2 mouse_pos = Mouse::GetPos(); 
+
+    camera->SetLastMouse(camera->Mouse());
+    camera->SetMousePos(mouse_pos);
+    camera->SetDeltaMouse({ 
+      camera->Mouse().x - camera->LastMouse().x ,
+      camera->LastMouse().y - camera->Mouse().y
+    });
+
+    glm::ivec2 rel_pos = Mouse::GetRelPos();
+
+    camera->SetYaw(camera->Yaw() + (rel_pos.x * camera->Sensitivity()));
+    camera->SetPitch(camera->Pitch() - (rel_pos.y * camera->Sensitivity()));
+
+    if (camera->ConstrainPitch()) {
+      if (camera->Pitch() > 89.0f) {
+        camera->SetPitch(89.0f);
+      }
+
+      if (camera->Pitch() < -89.0f) {
+        camera->SetPitch(-89.0f);
+      }
+    }
+
+    camera->UpdateCoordinateFrame();
+    camera->CalculateMatrix();
   }
 
 } // namespace other

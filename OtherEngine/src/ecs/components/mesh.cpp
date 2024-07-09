@@ -73,7 +73,7 @@ namespace other {
 
       case 2: {
         auto& scale = entity->ReadComponent<Transform>().scale;
-        mesh.handle = ModelFactory::CreateBox(scale);
+        mesh.handle = ModelFactory::CreateBox({ 1.f , 1.f , 1.f });
       } break;
 
       case 3:

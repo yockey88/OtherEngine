@@ -31,6 +31,7 @@ namespace other {
 
       struct MouseState {
         glm::ivec2 position = glm::ivec2(0 , 0);
+        glm::ivec2 rel_position = glm::ivec2(0 , 0);
         glm::ivec2 previous_position = glm::ivec2(0 , 0);
         bool in_window = false;
       };
@@ -57,6 +58,9 @@ namespace other {
       static void LockCursor();
 
       static ButtonState GetButtonState(Button button); 
+
+      static glm::ivec2 GetPos();
+      static glm::ivec2 GetRelPos();
 
       static uint32_t GetX();
       static uint32_t GetY();

@@ -26,7 +26,8 @@ namespace other {
   class CameraBase : public RefCounted {
     public:
       CameraBase(CameraProjectionType type , const glm::ivec2& viewport_size) 
-        :  viewport_size(viewport_size) , projection_type(type) {}
+          : viewport_size(viewport_size) , projection_type(type) {
+      }
       
       /// This is NOT a copy constructor because the type is Ref<CameraBase>
       CameraBase(const Ref<CameraBase>& other , CameraProjectionType type);
@@ -36,18 +37,19 @@ namespace other {
       CameraProjectionType GetCameraProjectionType() const;
 
       void CalculateMatrix();
+      void UpdateCoordinateFrame();
 
       const glm::mat4& GetMatrix();
       const glm::mat4& ViewMatrix();
       const glm::mat4& ProjectionMatrix();
 
-      void MoveForward(float dt);
-      void MoveBackward(float dt);
-      void MoveLeft(float dt);
-      void MoveRight(float dt);
-      void MoveUp(float dt);
-      void MoveDown(float dt);
-      void Move(const glm::vec3& direction , float dt);
+      void MoveForward();
+      void MoveBackward();
+      void MoveLeft();
+      void MoveRight();
+      void MoveUp();
+      void MoveDown();
+      void Move(const glm::vec3& direction);
 
       void SetPosition(const glm::vec3& position);
       void SetDirection(const glm::vec3& direction);
@@ -109,21 +111,20 @@ namespace other {
 
       glm::ivec2 viewport_size = { 800 , 600 };
 
-      glm::vec3 position = glm::vec3(0.0f , 0.0f , 3.0f);
-      glm::vec3 direction = glm::vec3(0.0f , 0.0f , -1.0f);
-      glm::vec3 up = glm::vec3(0.0f , 1.0f , 0.0f);
-      glm::vec3 right = glm::vec3(1.0f , 0.0f , 0.0f);
-      glm::vec3 world_up = glm::vec3(0.0f , 1.0f , 0.0f);
+      glm::vec3 position{ 0.f };
+      glm::vec3 direction{ 0.0f , 0.0f , -1.0f };
+      glm::vec3 up{ 0.0f , 1.0f , 0.0f };
+      glm::vec3 right{ 1.0f , 0.0f , 0.0f };
+      glm::vec3 world_up{ 0.0f , 1.0f , 0.0f };
 
       // roll , pitch , yaw 
-      glm::vec3 euler_angles = glm::vec3(-90.0f , 0.0f , 0.0f);
-      glm::ivec2 viewport = glm::ivec2(800 , 600);
+      glm::vec3 euler_angles{ -90.0f , 0.0f , 0.0f };
 
       // near clip , far clip
-      glm::vec2 clip = glm::vec2(0.1f , 100.0f);
-      glm::vec2 mouse = glm::vec2(0.0f , 0.0f);
-      glm::vec2 last_mouse = glm::vec2(0.0f , 0.0f);
-      glm::vec2 delta_mouse = glm::vec2(0.0f , 0.0f);
+      glm::vec2 clip{ 0.1f , 10000.0f };
+      glm::vec2 mouse{ 0.0f , 0.0f };
+      glm::vec2 last_mouse{ 0.0f , 0.0f };
+      glm::vec2 delta_mouse{ 0.0f , 0.0f };
 
       float speed = 0.1f;
       float sensitivity = 0.2f;
@@ -143,6 +144,8 @@ namespace other {
       void CalculateView(); 
       virtual void CalculateProjection() = 0;
   };
+
+  void DefaultUpdateCamera(Ref<CameraBase>& camera); 
 
 } // namespace other
 

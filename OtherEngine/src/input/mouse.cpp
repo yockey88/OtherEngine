@@ -43,22 +43,6 @@ namespace other {
       
       button_state.previous_state = button_state.current_state;
       
-      if (!(curr_state & SDL_BUTTON(b)) && button_state.current_state == State::BLOCKED) {
-        button_state.current_state = State::RELEASED;
-        button_state.frames_held = 0;
-
-        EventQueue::PushEvent<MouseButtonReleased>(button);
-        continue;
-      }
-      
-      if (!(curr_state & SDL_BUTTON(b)) && button_state.current_state == State::HELD) {
-        button_state.current_state = State::RELEASED;
-        button_state.frames_held = 0;
-
-        EventQueue::PushEvent<MouseButtonReleased>(button);
-        continue;
-      }
- 
       if (curr_state & SDL_BUTTON(b) && button_state.current_state == State::RELEASED) {
         button_state.current_state = State::PRESSED;
         button_state.frames_held = 1;
@@ -67,34 +51,37 @@ namespace other {
         continue;
       }
       
-      if (curr_state & SDL_BUTTON(b) && button_state.current_state == State::PRESSED &&
-          button_state.frames_held <= 22) {
+      if (curr_state & SDL_BUTTON(b) && (button_state.current_state == State::PRESSED ||
+          button_state.current_state == State::BLOCKED) && button_state.frames_held <= 22) {
         button_state.current_state = State::BLOCKED;
         ++button_state.frames_held;
 
+        EventQueue::PushEvent<MouseButtonPressed>(button , button_state.frames_held);
         continue;
       } 
-
-
-      if (curr_state & SDL_BUTTON(b) && button_state.current_state == State::BLOCKED &&
-          button_state.frames_held <= 22) {
-        ++button_state.frames_held;
-
-        continue;
-      }
-
-      if (curr_state & SDL_BUTTON(b) && button_state.current_state == State::BLOCKED && 
+      
+      if ((curr_state & SDL_BUTTON(b)) && button_state.current_state == State::BLOCKED && 
           button_state.frames_held > 22) {
         button_state.current_state = State::HELD;
         ++button_state.frames_held;
 
+        EventQueue::PushEvent<MouseButtonHeld>(button , button_state.frames_held);
         continue;
       }
-
+      
       if (curr_state & SDL_BUTTON(b) && button_state.current_state == State::HELD) {
         ++button_state.frames_held;
 
         EventQueue::PushEvent<MouseButtonHeld>(button , button_state.frames_held);
+        continue;
+      }
+      
+      if (!(curr_state & SDL_BUTTON(b)) && (button_state.current_state == State::BLOCKED ||
+          button_state.current_state == State::PRESSED || button_state.current_state == State::HELD)) {
+        button_state.current_state = State::RELEASED;
+        button_state.frames_held = 0;
+
+        EventQueue::PushEvent<MouseButtonReleased>(button);
         continue;
       }
     }
@@ -121,6 +108,28 @@ namespace other {
 
   Mouse::ButtonState Mouse::GetButtonState(Button button) { 
     return buttons[button]; 
+  }
+      
+  glm::ivec2 Mouse::GetPos() {
+    int x, y;
+    SDL_GetGlobalMouseState(&x, &y);
+
+    state.position = { 
+      x , y 
+    };
+
+    return state.position;
+  }
+
+  glm::ivec2 Mouse::GetRelPos() {
+    int rel_x, rel_y;
+    SDL_GetRelativeMouseState(&rel_x, &rel_y);
+
+    state.rel_position = {
+      rel_x , rel_y
+    };
+
+    return state.rel_position;
   }
 
   uint32_t Mouse::GetX() { 

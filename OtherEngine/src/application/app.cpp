@@ -361,6 +361,8 @@ namespace {
     for (auto& l : *layer_stack) {
       l->Render();
     }
+
+    CHECKGL();
   }
 
   void App::DoRenderUI() {

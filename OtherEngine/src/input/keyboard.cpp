@@ -93,9 +93,7 @@ namespace other {
   }
 
   bool Keyboard::Down(Key key) { 
-    return keys[key].current_state == State::PRESSED || 
-      keys[key].current_state == State::BLOCKED ||
-      keys[key].current_state == State::HELD; 
+    return keys[key].current_state != State::RELEASED; 
   }
 
   bool Keyboard::Released(Key key) {

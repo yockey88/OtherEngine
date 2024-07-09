@@ -5,6 +5,7 @@
 
 #include <imgui/imgui.h>
 
+#include "ecs/components/mesh.hpp"
 #include "event/event_queue.hpp"
 #include "event/app_events.hpp"
 
@@ -441,57 +442,54 @@ namespace other {
     auto& mesh = ent->GetComponent<StaticMesh>();
 
     const char* options[] = {
-      "Empty" , "Rect" , "Cube" , "Sphere" , "Capsule"
+      "Empty" , "Triangle" , "Rect" , "Cube" , "Sphere" , "Capsule"
     };
 
-    if (ui::PropertyDropdown("Primitive Meshes" , options, 4 , mesh.primitive_selection)) {}
+    if (ui::PropertyDropdown("Primitive Meshes" , options, 5 , mesh.primitive_selection)) {}
 
     if (mesh.primitive_id != mesh.primitive_selection && ImGui::Button("Confirm Change")) {
       bool change = false;
       switch (mesh.primitive_selection) {
-        case 1: {
+        case kTriangleIdx:
+        case kRectIdx: {
           auto& scale = ent->ReadComponent<Transform>().scale;
           auto& pos = ent->ReadComponent<Transform>().position;
           mesh.handle = ModelFactory::CreateRect(pos , { scale.x / 2 , scale.y / 2 });
-          if (mesh.handle == 0) {
+          if (!AppState::Assets()->IsValid(mesh.handle)) {
             OE_ERROR("Failed to Create Rect Static Mesh");
           } else {
             change = true; 
           }
         } break;
 
-        case 3:
-        case 4:
+        case kSphereIdx:
+        case kCapsuleIdx:
           OE_WARN("Assigning cube until implementations for others available!");
           [[ fallthrough ]];
-        case 2: {
+        case kCubeIdx: {
           auto& scale = ent->ReadComponent<Transform>().scale;
           mesh.handle = ModelFactory::CreateBox(scale);
-          if (mesh.handle == 0) {
+          if (!AppState::Assets()->IsValid(mesh.handle)) {
             OE_ERROR("Failed to Create Cube Static Mesh");
           } else {
             change = true; 
           }
         } break;
 
-        case 0:
-          break;
-
+        case kEmptyIdx:
         default:
-          /// load non-primitive static mesh
-          /// could be non-primitive static mesh
           break;
       }
 
       if (change) {
         mesh.primitive_id = mesh.primitive_selection;
-        if (mesh.primitive_id != 0) {
+        if (mesh.primitive_id != kEmptyIdx) {
           mesh.is_primitive = true;
         }
       }
     }
 
-    if (mesh.primitive_id == 0) {
+    if (mesh.primitive_id == kEmptyIdx) {
       return;
     }
       
