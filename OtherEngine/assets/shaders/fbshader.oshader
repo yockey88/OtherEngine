@@ -1,27 +1,25 @@
-vertex {
-  
-  layout (location = 0) in vec2 pos;
-  layout (location = 1) in vec2 uvs;
+vertex [mesh : textured_quad] {
 
-  out vec2 fuvs;
+  out vec2 foe_uvs;
 
   void main() {
-    gl_Position = vec4(pos , 0.0 , 1.0);
-    fuvs = uvs;
+    gl_Position = vec4(voe_position , 0.0 , 1.0);
+    foe_uvs = voe_uvs;
   }
 
 }
 
 fragment {
 
-  in vec2 fuvs;
+  in vec2 foe_uvs;
 
   out vec4 FragColor;
 
+  uniform sampler2D depth_tex;
   uniform sampler2D screen_tex;
 
   void main() {
-    vec3 col = texture(screen_tex , fuvs).rgb;
+    vec3 col = texture(screen_tex , foe_uvs).rgb;
     FragColor = vec4(col , 1.0);
   }
 

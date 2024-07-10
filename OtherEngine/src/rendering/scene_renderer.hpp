@@ -31,6 +31,13 @@ namespace other {
       SceneRenderer(SceneRenderSpec spec = SceneRenderSpec());
       virtual ~SceneRenderer() override;
 
+      template <typename T>
+      void SetUniform(const std::string_view pass , std::string_view name , const T& val) {
+        if (auto itr = passes.find(FNV(pass)); itr != passes.end()) {
+          itr->second->SetInput(name , val);
+        }
+      }
+
       void SetViewportSize(const glm::ivec2& size);
       
       void SubmitModel(Ref<Model> model , const glm::mat4& transform = glm::mat4(1.f));
@@ -41,6 +48,7 @@ namespace other {
       
       void BeginScene(Ref<CameraBase>& camera);
       void EndScene();
+
       const std::map<UUID , Ref<Framebuffer>>& GetRender() const;
 
     private:

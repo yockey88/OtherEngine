@@ -11,7 +11,9 @@
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <imgui/backends/imgui_impl_sdl2.h>
+#include <parsing/parsing_defines.hpp>
 
+#include "core/defines.hpp"
 #include "core/logger.hpp"
 #include "core/errors.hpp"
 #include "core/engine.hpp"
@@ -124,6 +126,7 @@ int main(int argc , char* argv[]) {
     const other::Path shader1_path = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders" / "default.oshader";
     const other::Path shader2_path = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders" / "normals.oshader";
     const other::Path fbshader_path = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders" / "fbshader.oshader";
+    const other::Path add_fog_shader_path = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders" / "fog.oshader";
     
     SDL_SetRelativeMouseMode(SDL_TRUE);
 
@@ -132,7 +135,12 @@ int main(int argc , char* argv[]) {
       Ref<CameraBase> camera = NewRef<PerspectiveCamera>(glm::ivec2{ win_size.x , win_size.y });
       camera->SetPosition({ 0.f , 0.f , 3.f });
 
+  #define FOGFB 0
+
       Ref<Shader> fbshader = other::BuildShader(fbshader_path);
+#if FOGFB
+      Ref<Shader> fog_shader = other::BuildShader(add_fog_shader_path);
+#endif
       Scope<VertexArray> fb_mesh = NewScope<VertexArray>(fb_verts , fb_indices , fb_layout);
 
       glm::mat4 model1 = glm::mat4(1.f);
@@ -145,7 +153,8 @@ int main(int argc , char* argv[]) {
       uint32_t camera_binding_pnt = 0;
       std::vector<Uniform> cam_unis = {
         { "projection" , other::ValueType::MAT4 } ,
-        { "view"       , other::ValueType::MAT4 }
+        { "view"       , other::ValueType::MAT4 } ,
+        { "viewpoint"  , other::ValueType::VEC3 } ,
       };
     
       uint32_t model_binding_pnt = 1;
@@ -165,10 +174,23 @@ int main(int argc , char* argv[]) {
           } ,
           {
             .name = "Draw Normals" , 
-            .tag_col = { 1.f , 0.f , 0.f , 1.f } ,
-            .uniforms = {} ,
+            .tag_col = { 0.f , 1.f , 0.f , 1.f } ,
+            .uniforms = {
+              { "magnitude" , other::FLOAT } ,
+            } ,
             .shader = other::BuildShader(shader2_path) ,
           } ,
+#if FOGFB
+          {
+            .name = "Add Fog" , 
+            .tag_col = { 0.f , 0.f , 1.f , 1.f } ,
+            .uniforms = {
+              { "depth_tex" , other::SAMPLER2D } ,
+              { "screen_tex" , other::SAMPLER2D } ,
+            } ,
+            .shader = other::BuildShader(add_fog_shader_path) ,
+          } ,
+#endif
         } ,
         .pipelines = {
           {
@@ -207,8 +229,16 @@ int main(int argc , char* argv[]) {
           } ,
         } , 
         .pipeline_to_pass_map = {
-          { FNV("Geometry") , { FNV("Draw Geometry") } } ,
-          { FNV("Debug")    , { FNV("Draw Geometry") , FNV("Draw Normals") } }
+          { FNV("Geometry") , { FNV("Draw Geometry") , 
+#if FOGFB
+                                FNV("Add Fog") 
+#endif
+          } } , 
+          { FNV("Debug")    , { FNV("Draw Geometry") , FNV("Draw Normals") , 
+#if FOGFB
+                                FNV("Add Fog") 
+#endif
+          } }
         } ,
       };
       Scope<SceneRenderer> renderer = NewScope<SceneRenderer>(render_spec);
@@ -224,6 +254,8 @@ int main(int argc , char* argv[]) {
 
       bool camera_free = true;
       other::Mouse::LockCursor();
+        
+      CHECKGL();
 
       while (running) {
         SDL_Event event;
@@ -267,41 +299,46 @@ int main(int argc , char* argv[]) {
         other::Renderer::GetWindow()->Clear();
 
         renderer->BeginScene(camera);
+        renderer->SetUniform("Draw Normals" , "magnitude" , 0.4f);
         renderer->SubmitStaticModel(model , model1);
         renderer->EndScene();
 
-#if 0
-        auto& frame = renderer->GetRender().at(FNV("Geometry"));
+        const auto& frames = renderer->GetRender(); 
 
-        fbshader->Bind();
-        fbshader->SetUniform("screen_tex" , 0);
+        const auto& vp = frames.at(FNV("Debug"));
 
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D , frame->texture);
-
+        glBindTexture(GL_TEXTURE_2D , vp->texture);
+        
+        fbshader->SetUniform("screen_tex" , 0);
         fb_mesh->Draw(other::TRIANGLES);
-#else
+
+#if FOGFB
+        fog_shader->SetUniform("screen_tex" , 0);
+        fog_shader->SetUniform("depth_tex" , 1);
+        fb_mesh->Draw(other::TRIANGLES);
+#endif
+
         other::UI::BeginFrame();
 
-        auto RenderFrame = [](Ref<other::Framebuffer>& fb , const std::string& title) {
+        auto RenderFrame = [](const Ref<other::Framebuffer>& fb , const std::string& title , ImVec2 size = ImVec2(800 , 600)) {
           ImGui::PushID(("##" + title).c_str());
           ImGui::Text("%s" , title.c_str());
           ImGui::SameLine();
 
-          glm::ivec2 size = other::Renderer::WindowSize();
           ImGui::Image((void*)(uintptr_t)fb->texture , ImVec2(size.x , size.y) , ImVec2(0 , 1) , ImVec2(1 , 0));
           ImGui::PopID();
         };
 
         if (ImGui::Begin("Frames")) {
-          auto frames = renderer->GetRender(); 
-          RenderFrame(frames[FNV("Geometry")] , "Pipeline 1");
-          RenderFrame(frames[FNV("Debug")]    , "Pipeline 2");
+          ImVec2 win_size = { (float)other::Renderer::WindowSize().x , (float)other::Renderer::WindowSize().y };
+          RenderFrame(frames.at(FNV("Geometry")) , "Pipeline 1" , win_size);
+          RenderFrame(frames.at(FNV("Debug"))    , "Pipeline 2" , win_size);
         } 
         ImGui::End();
+
         
         other::UI::EndFrame();
-#endif
 
         other::Renderer::GetWindow()->SwapBuffers();
       }

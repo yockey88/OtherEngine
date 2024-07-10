@@ -56,8 +56,6 @@ namespace other {
         Bind();
         glBufferSubData(type , offset , u_data.size , glm::value_ptr(value));
         Unbind();
-
-        CHECKGL();
       }
 
       void Unbind();

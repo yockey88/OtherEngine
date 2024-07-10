@@ -247,6 +247,14 @@ namespace other {
           AddToken(LESS_OP);
         }
       break;
+      case '>':
+        if (Check('=')) {
+          Advance();
+          AddToken(GREATER_EQUAL_OP);
+        } else {
+          AddToken(GREATER_OP);
+        }
+      break;
       case '!':
         if (Check('=')) {
           Advance();

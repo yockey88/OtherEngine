@@ -53,43 +53,48 @@ namespace other {
   void Shader::Unbind() const {
     glUseProgram(0);
   }
-   
-  void Shader::SetUniform(const std::string& name , const int32_t& value) {
+    
+  void Shader::InnerSetUniform(const std::string_view name , const int32_t& value) {
     uint32_t loc = GetUniformLocation(name);
+
+    CHECKGL();
+
     glUniform1i(loc , value);
+    
+    CHECKGL();
   }
   
-  void Shader::SetUniform(const std::string& name , const float& value) {
+  void Shader::InnerSetUniform(const std::string_view name , const float& value) {
     uint32_t loc = GetUniformLocation(name);
     glUniform1f(loc , value);
   }
   
-  void Shader::SetUniform(const std::string& name , const glm::vec2& value) {
+  void Shader::InnerSetUniform(const std::string_view name , const glm::vec2& value) {
     uint32_t loc = GetUniformLocation(name);
     glUniform2f(loc , value.x , value.y);
   }
   
-  void Shader::SetUniform(const std::string& name , const glm::vec3& value) {
+  void Shader::InnerSetUniform(const std::string_view name , const glm::vec3& value) {
     uint32_t loc = GetUniformLocation(name);
     glUniform3f(loc , value.x , value.y , value.z);
   }
   
-  void Shader::SetUniform(const std::string& name , const glm::vec4& value) {
+  void Shader::InnerSetUniform(const std::string_view name , const glm::vec4& value) {
     uint32_t loc = GetUniformLocation(name);
     glUniform4f(loc , value.x , value.y , value.z , value.w);
   }
   
-  void Shader::SetUniform(const std::string& name , const glm::mat2& value) {
+  void Shader::InnerSetUniform(const std::string_view name , const glm::mat2& value) {
     uint32_t loc = GetUniformLocation(name);
     glUniformMatrix2fv(loc , 1 , GL_FALSE , glm::value_ptr(value));
   }
   
-  void Shader::SetUniform(const std::string& name , const glm::mat3& value) {
+  void Shader::InnerSetUniform(const std::string_view name , const glm::mat3& value) {
     uint32_t loc = GetUniformLocation(name);
     glUniformMatrix3fv(loc , 1 , GL_FALSE , glm::value_ptr(value));
   }
   
-  void Shader::SetUniform(const std::string& name , const glm::mat4& value) {
+  void Shader::InnerSetUniform(const std::string_view name , const glm::mat4& value) {
     uint32_t loc = GetUniformLocation(name);
     glUniformMatrix4fv(loc , 1 , GL_FALSE , glm::value_ptr(value));
   }
@@ -188,13 +193,15 @@ namespace other {
     return true;
   }
   
-  uint32_t Shader::GetUniformLocation(const std::string& name) {
-    if (uniform_locations.find(name) != uniform_locations.end()) {
-      return uniform_locations[name];
+  uint32_t Shader::GetUniformLocation(const std::string_view name) {
+    auto hash = FNV(name);
+    if (uniform_locations.find(hash) != uniform_locations.end()) {
+      return uniform_locations[hash];
     }
   
-    int32_t location = glGetUniformLocation(renderer_id , name.c_str());
-    uniform_locations[name] = location;
+    std::string name_str = std::string{ name };
+    int32_t location = glGetUniformLocation(renderer_id , name_str.c_str());
+    uniform_locations[hash] = location;
   
     return location;
   }
@@ -208,12 +215,14 @@ namespace other {
 
     ShaderIr ir = ShaderCompiler::Compile(src);
 
-    // std::cout << "Transpile vertex source : \n\n" << ir.vert_source << "\n------------\n";
-    // std::cout << "Transpile fragment source : \n\n" << ir.frag_source << "\n------------\n";
+#if 1
+    std::cout << "Transpile vertex source : \n\n" << ir.vert_source << "\n------------\n";
+    std::cout << "Transpile fragment source : \n\n" << ir.frag_source << "\n------------\n";
 
-    // if (ir.geom_source.has_value()) {
-    //   std::cout << "Transpile geometry source : \n\n" << ir.geom_source.value() << "\n------------\n";
-    // }
+    if (ir.geom_source.has_value()) {
+      std::cout << "Transpile geometry source : \n\n" << ir.geom_source.value() << "\n------------\n";
+    }
+#endif
 
     return NewRef<Shader>(ir);
   }

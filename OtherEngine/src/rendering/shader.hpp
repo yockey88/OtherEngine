@@ -29,22 +29,19 @@ namespace other {
       const bool IsValid() const;
 
       const bool HasGeometry() const;
- 
-      void SetUniform(const std::string& name , const int32_t& value);
-      void SetUniform(const std::string& name , const float& value);
-      void SetUniform(const std::string& name , const glm::vec2& value);
-      void SetUniform(const std::string& name , const glm::vec3& value);
-      void SetUniform(const std::string& name , const glm::vec4& value);
-      void SetUniform(const std::string& name , const glm::mat2& value);
-      void SetUniform(const std::string& name , const glm::mat3& value);
-      void SetUniform(const std::string& name , const glm::mat4& value);
+    
+      template <typename T> 
+      void SetUniform(const std::string_view name , T&& value) {
+        Bind();
+        InnerSetUniform(name , std::forward<T>(value)); 
+      }
 
     private:
       uint32_t renderer_id;
 
       ShaderIr ir;
   
-      std::unordered_map<std::string , int32_t> uniform_locations;
+      std::unordered_map<UUID , int32_t> uniform_locations;
   
       bool valid = false;
 
@@ -53,7 +50,16 @@ namespace other {
       bool CompileShader(ShaderType type , uint32_t shader_piece , const char* src);
       bool LinkShader();
   
-      uint32_t GetUniformLocation(const std::string& name);
+      uint32_t GetUniformLocation(const std::string_view name);
+      
+      void InnerSetUniform(const std::string_view name , const int32_t& value);
+      void InnerSetUniform(const std::string_view name , const float& value);
+      void InnerSetUniform(const std::string_view name , const glm::vec2& value);
+      void InnerSetUniform(const std::string_view name , const glm::vec3& value);
+      void InnerSetUniform(const std::string_view name , const glm::vec4& value);
+      void InnerSetUniform(const std::string_view name , const glm::mat2& value);
+      void InnerSetUniform(const std::string_view name , const glm::mat3& value);
+      void InnerSetUniform(const std::string_view name , const glm::mat4& value);
   };
 
   Ref<Shader> BuildShader(const Path& path);

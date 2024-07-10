@@ -7,12 +7,15 @@
 
 #include "core/defines.hpp"
 #include "core/logger.hpp"
+#include "asset/asset_manager.hpp"
 
 #include "ecs/entity.hpp"
 
 #include "scene/scene_serializer.hpp"
 
 #include "rendering/renderer.hpp"
+#include "rendering/model.hpp"
+#include "rendering/model_factory.hpp"
 
 #include "scripting/script_engine.hpp"
 
@@ -43,6 +46,10 @@ namespace other {
     }
 
     scene_paths.push_back(scenepath.string());
+    
+    model_handle = ModelFactory::CreateBox({ 1.f , 1.f , 1.f });
+    model = AssetManager::GetAsset<StaticModel>(model_handle);
+    model_source = model->GetModelSource();
 
     return true;
   }
@@ -214,7 +221,12 @@ namespace other {
     }
     
     scene_renderer->BeginScene(viewpoint);
+#if 0
+    // scene_renderer->SubmitStaticModel(model , model1);
+#else
     active_scene->scene->Render(scene_renderer);
+#endif
+
     // debug rendering
     
     return true;

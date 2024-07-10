@@ -3,6 +3,7 @@
  **/
 #include "rendering/camera_base.hpp"
 
+#include <SDL_mouse.h>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/geometric.hpp>
@@ -10,6 +11,8 @@
 
 #include "input/mouse.hpp"
 #include "input/keyboard.hpp"
+
+#include "rendering/renderer.hpp"
 
 namespace other {
 
@@ -289,7 +292,10 @@ namespace other {
       camera->MoveDown();
     }
 
-    glm::ivec2 mouse_pos = Mouse::GetPos(); 
+    auto win_size = Renderer::WindowSize();
+    glm::ivec2 mouse_pos = Mouse::GetPos();
+  
+    SDL_WarpMouseInWindow(SDL_GetMouseFocus() , win_size.x / 2 , win_size.y / 2);
 
     camera->SetLastMouse(camera->Mouse());
     camera->SetMousePos(mouse_pos);

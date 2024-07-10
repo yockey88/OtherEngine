@@ -98,6 +98,7 @@ namespace other {
     /// keywords
     VOID_KW , 
     IF_KW ,
+    ELSE_KW ,
     WHILE_KW ,
     FOR_KW ,
     RETURN_KW , 
@@ -221,6 +222,7 @@ namespace other {
 
     "VOID_KW" , 
     "IF_KW" ,
+    "ELSE_KW" ,
     "WHILE_KW" ,
     "FOR_KW" ,
     "RETURN_KW" , 
@@ -272,6 +274,7 @@ namespace other {
   constexpr static std::array<KeyWordPair , kNumKeywords> kKeywordMap {
     KeyWordPair{ FNV("void")         , VOID_KW         } , 
     KeyWordPair{ FNV("if")           , IF_KW           } ,
+    KeyWordPair{ FNV("else")         , ELSE_KW         } ,
     KeyWordPair{ FNV("while")        , WHILE_KW        } ,
     KeyWordPair{ FNV("for")          , FOR_KW          } ,
     KeyWordPair{ FNV("return")       , RETURN_KW       } ,

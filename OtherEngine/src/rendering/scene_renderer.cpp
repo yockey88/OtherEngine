@@ -42,6 +42,7 @@ namespace other {
   void SceneRenderer::BeginScene(Ref<CameraBase>& camera) {
     spec.camera_uniforms->SetUniform("projection" , camera->ProjectionMatrix());
     spec.camera_uniforms->SetUniform("view" , camera->ViewMatrix());
+    spec.camera_uniforms->SetUniform("viewpoint" , camera->Position());
   }
   
   void SceneRenderer::EndScene() {
@@ -71,7 +72,11 @@ namespace other {
       auto& pline = pipelines[pl];
 
       for (auto& p : rps) {
-        auto& pass = passes[p];
+        auto itr = passes.find(p);
+        if (itr == passes.end()) {
+          continue;
+        }
+        const auto& pass = itr->second;
         pline->SubmitRenderPass(pass);
       }
     }

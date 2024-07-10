@@ -91,7 +91,7 @@ namespace other {
       Pipeline(const PipelineSpec& spec);
       virtual ~Pipeline() override {}
       
-      void SubmitRenderPass(Ref<RenderPass>& pass);
+      void SubmitRenderPass(const Ref<RenderPass>& pass);
 
       /// Add materials to model submission
       void SubmitModel(Ref<Model>& model , uint32_t transform_idx);

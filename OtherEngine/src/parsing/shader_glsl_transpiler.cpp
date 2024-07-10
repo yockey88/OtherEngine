@@ -363,9 +363,32 @@ namespace other {
         n->Accept(*this);   
       }
     }
-
-    
   }
+  
+  constexpr static uint64_t kDefaultMeshHash = FNV("default");
+  const static MeshLayout kDefaultMesh = {
+    .layout_name = "default" ,
+    .stride = 9 ,
+    .attrs = {
+      { .attr_name = "voe_position"     , .idx = 0 , .size = 3 },
+      { .attr_name = "voe_normal"    , .idx = 1 , .size = 3 },
+      { .attr_name = "voe_tangent"     , .idx = 2 , .size = 3 },
+      { .attr_name = "voe_bitangent"   , .idx = 3 , .size = 3 },
+      { .attr_name = "voe_uvs"     , .idx = 4 , .size = 2 },
+      { .attr_name = "voe_model_id" , .idx = 5 , .size = 1 },
+    } ,
+  };
+
+  constexpr static uint64_t kTexturedQuadMeshHash = FNV("textured_quad");
+  const static MeshLayout kTexturedQuadMesh = {
+    .layout_name = "textured_quad" ,
+    .stride = 5 , 
+    .attrs = {
+      { .attr_name = "voe_position" , .idx = 0 , .size = 2 } ,
+      { .attr_name = "voe_uvs" , .idx = 1 , .size = 2 } ,
+      { .attr_name = "voe_model_id" , .idx = 2 , .size = 1 },
+    } ,
+  };
       
   void ShaderGlslTranspiler::SetMeshLayout(const std::string& value) {
     if (context != VERTEX_SHADER) {
@@ -382,25 +405,20 @@ namespace other {
       OE_WARN("Overwriting provided input layout because mesh attribute {} was present in shader attributes" , value);
     }
 
-    if (value == "default") {
-      mesh_layout = MeshLayout{
-        .layout_name = value ,
-        .stride = 9 ,
-        .attrs = {
-          { .attr_name = "vpos"     , .idx = 0 , .size = 3 },
-          { .attr_name = "vnorm"    , .idx = 1 , .size = 3 },
-          { .attr_name = "vtan"     , .idx = 2 , .size = 3 },
-          { .attr_name = "vbitan"   , .idx = 3 , .size = 3 },
-          { .attr_name = "vuvs"     , .idx = 4 , .size = 2 },
-          { .attr_name = "model_id" , .idx = 5 , .size = 1 },
-        } ,
-      };  
+    switch (FNV(value)) {
+      case kDefaultMeshHash:
+        mesh_layout = kDefaultMesh;
+        break;
+      case kTexturedQuadMeshHash:
+        mesh_layout = kTexturedQuadMesh;
+        break;
+      default:
+        if (!mesh_layout.has_value()) {
+          OE_ERROR("Invalid mesh in vertex shader attibutes!");
+          return;
+        } 
+        break;
     }
-    
-    if (!mesh_layout.has_value()) {
-      OE_ERROR("Invalid mesh in vertex shader attibutes!");
-      return;
-    } 
 
     OE_INFO("Set mesh layout to {}" , value);
 

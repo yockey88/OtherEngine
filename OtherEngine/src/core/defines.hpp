@@ -49,6 +49,8 @@ namespace other {
     
     MAT2 , MAT3 , MAT4 ,
 
+    SAMPLER2D ,
+
     ASSET , ENTITY ,
 
     /// user types
@@ -113,6 +115,7 @@ namespace other {
       case INT32: 
       case UINT32: 
       case FLOAT:
+      case SAMPLER2D:
         return 4;
       
       case INT64: 

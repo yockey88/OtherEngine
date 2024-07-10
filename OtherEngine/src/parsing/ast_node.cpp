@@ -179,7 +179,20 @@ namespace other {
     walker.Visit(*this);
   }
 
-  void IfStmt::Stream(std::ostream& stream , TreeWalker& walker) const {}
+  void IfStmt::Stream(std::ostream& stream , TreeWalker& walker) const {
+    stream << "if (";
+    condition->Stream(stream , walker);
+    stream << ") {\n  ";
+    then_branch->Stream(stream , walker);
+    stream << "}";
+    if (else_branch != nullptr) {
+      stream << "else {\n  ";
+      else_branch->Stream(stream , walker);
+      stream << "}\n\n";
+    } else {
+      stream << "\n\n";
+    }
+  }
   
   void IfStmt::Accept(TreeWalker& walker) {
     walker.Visit(*this);
@@ -191,7 +204,15 @@ namespace other {
     walker.Visit(*this);
   }
   
-  void ReturnStmt::Stream(std::ostream& stream , TreeWalker& walker) const {}
+  void ReturnStmt::Stream(std::ostream& stream , TreeWalker& walker) const {
+    stream << "return";
+    if (stmt != nullptr) {
+      stream << " ";
+      stmt->Stream(stream , walker);
+    } else {
+      stream << ";";
+    }
+  }
   
   void ReturnStmt::Accept(TreeWalker& walker) {
     walker.Visit(*this);

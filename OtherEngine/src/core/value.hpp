@@ -10,7 +10,6 @@
 
 #include "core/defines.hpp"
 #include "core/buffer.hpp"
-#include "asset/asset_types.hpp"
 
 namespace other {
   

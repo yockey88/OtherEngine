@@ -56,7 +56,6 @@ namespace other {
       Ref<Shader> fbshader = nullptr;
       
       glm::mat4 model1 = glm::mat4(1.f);
-      glm::mat4 model2 = glm::mat4(1.f); // glm::translate(model1 , glm::vec3(0.3f , 0.1f , 0.0f));
 
       other::AssetHandle model_handle;
       Ref<StaticModel> model = nullptr;

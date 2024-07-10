@@ -9,6 +9,8 @@
 
 #include <glm/glm.hpp>
 
+#include "core/defines.hpp"
+
 namespace other {
 
   class Mouse {
@@ -47,6 +49,8 @@ namespace other {
 
       static MouseState state;
       static std::map<Button , ButtonState> buttons;
+
+      static Opt<MouseState> pre_free_state; // horrible name
 
     public:
       static void Initialize();

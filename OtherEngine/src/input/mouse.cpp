@@ -12,6 +12,7 @@ namespace other {
 
   Mouse::MouseState Mouse::state = {};
   std::map<Mouse::Button , Mouse::ButtonState> Mouse::buttons = {};
+  Opt<Mouse::MouseState> Mouse::pre_free_state = std::nullopt; 
 
   void Mouse::Initialize() {
     SDL_Window* window = SDL_GetMouseFocus();
@@ -99,10 +100,16 @@ namespace other {
   }
 
   void Mouse::FreeCursor() {
+    pre_free_state = state;
     SDL_SetRelativeMouseMode(SDL_FALSE);
   }
 
   void Mouse::LockCursor() {
+    if (pre_free_state.has_value()) {
+      SDL_Window* window = SDL_GetMouseFocus();
+      SDL_WarpMouseInWindow(window , pre_free_state.value().position.x , pre_free_state.value().position.y);
+    }
+
     SDL_SetRelativeMouseMode(SDL_TRUE);
   }
 

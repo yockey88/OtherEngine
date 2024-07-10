@@ -51,7 +51,7 @@ namespace other {
     target = Ref<Framebuffer>::Create(spec.framebuffer_spec);
   }
       
-  void Pipeline::SubmitRenderPass(Ref<RenderPass>& pass) {
+  void Pipeline::SubmitRenderPass(const Ref<RenderPass>& pass) {
     passes.push_back(pass);
   }
 

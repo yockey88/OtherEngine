@@ -39,7 +39,7 @@ namespace other {
       void DefineInput(Uniform uniform);
       
       template <typename T>
-      void SetInput(const std::string& block_name , const std::string& name , const T& val) {
+      void SetInput(const std::string_view block_name , const std::string_view name , const T& val) {
         uint64_t blck_hash = FNV(block_name);
 
         auto itr = uniform_blocks.find(blck_hash);
@@ -53,7 +53,7 @@ namespace other {
       }
 
       template <typename T>
-      void SetInput(const std::string& name , const T& val) {
+      void SetInput(const std::string_view name , const T& val) {
         uint64_t hash = FNV(name);
 
         auto itr = uniforms.find(hash);

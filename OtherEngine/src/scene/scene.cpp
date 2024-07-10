@@ -266,7 +266,7 @@ namespace other {
         return;
       }
 
-      renderer->SubmitStaticModel(model , glm::mat4(1.f));
+      renderer->SubmitStaticModel(model , transform.model_transform);
     });
     
     registry.view<Script>().each([](const Script& script) {

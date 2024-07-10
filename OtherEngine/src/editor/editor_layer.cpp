@@ -137,16 +137,16 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
     // }
     // panel_manager->Render();
 
-    // default_renderer->BeginScene(editor_camera);
-    // if (HasActiveScene()) {
-    //   auto active = ParentApp()->ActiveScene();
-    //   active->scene->Render(default_renderer);
-    // }
-    // default_renderer->EndScene();
-
-    default_renderer->BeginScene(editor_camera);
-    default_renderer->SubmitStaticModel(model , model1);
+    if (HasActiveScene()) {
+      AppState::Scenes()->RenderScene(default_renderer , editor_camera);
+    } else {
+      
+    }
     default_renderer->EndScene();
+
+    // default_renderer->BeginScene(editor_camera);
+    // default_renderer->SubmitStaticModel(model , model1);
+    // default_renderer->EndScene();
 
 #if 0
     auto& frames = default_renderer->GetRender();
@@ -216,7 +216,6 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
         ImGui::SetCursorPos(cursor_pos);
 
         editor_camera->SetViewport({ size.x , size.y });
-        viewport->Resize({ size.x , size.y });
 
         uint32_t tex_id = viewport->texture; 
         ImGui::Image((void*)(uintptr_t)tex_id , size , ImVec2(0 , 1) , ImVec2(1 , 0)); 
@@ -274,24 +273,21 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
     });
 
     handler.Handle<KeyPressed>([this](KeyPressed& key) -> bool {
-      if (key.Key() == Keyboard::Key::OE_ESCAPE) {
-        if (camera_free) {
-          Mouse::FreeCursor();
-          camera_free = false;
-          return true;
-        }
+      if (key.Key() == Keyboard::Key::OE_ESCAPE && camera_free) {
+        Mouse::FreeCursor();
+        camera_free = false;
+        return true;
       } 
 
       return false;
     });
 
     handler.Handle<MouseButtonPressed>([this](MouseButtonPressed& e) -> bool {
-      if (e.Button() == Mouse::MIDDLE) {
-        if (!camera_free) {
-          Mouse::LockCursor();
-          camera_free = true;
-          return true;
-        }
+      if (e.Button() == Mouse::MIDDLE && !camera_free) {
+        Mouse::LockCursor();
+        DefaultUpdateCamera(editor_camera);
+        camera_free = true;
+        return true;
       }
 
       return false;

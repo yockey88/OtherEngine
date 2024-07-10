@@ -106,6 +106,14 @@ namespace other {
       return NewRef<LayoutVarDecl>(in_out , type , identifier);
     }
 
+    if (Match({ RETURN_KW })) {
+      return ParseReturn(); 
+    }
+
+    if (Match({ IF_KW })) {
+      return ParseIf();
+    }
+
     return ParseStatement();
   }
       
@@ -365,10 +373,36 @@ namespace other {
     return NewRef<BlockStmt>(stmts);
   }
 
-  Ref<AstStmt> ShaderParser::ParseIf() { return nullptr; }
+  Ref<AstStmt> ShaderParser::ParseIf() { 
+    Consume(OPEN_PAREN , fmtstr("Expected '(' after 'if'! found {}" , Peek().value));
+
+    Ref<AstExpr> expr = ParseExpression();
+    
+    Consume(CLOSE_PAREN , fmtstr("Expected ')' after if condition! found {}" , Peek().value));
+
+    Ref<AstStmt> then_stmt = ParseDecl();
+
+    Ref<AstStmt> else_stmt = nullptr;
+    if (Match({ ELSE_KW })) {
+      else_stmt = ParseDecl();
+    }
+
+    return NewRef<IfStmt>(expr , then_stmt , else_stmt);
+  }
+
   Ref<AstStmt> ShaderParser::ParseWhile() { return nullptr; }
   Ref<AstStmt> ShaderParser::ParseFor() { return nullptr; }
-  Ref<AstStmt> ShaderParser::ParseReturn() { return nullptr; }
+
+  Ref<AstStmt> ShaderParser::ParseReturn() {
+    if (Match({ SEMICOLON })) {
+      return NewRef<ReturnStmt>();
+    }
+
+    Ref<ExprStmt> expr = NewRef<ExprStmt>(ParseExpression());
+    Consume(SEMICOLON , fmtstr("Expected ';' after return statement! found {}" , Peek().value));
+
+    return NewRef<ReturnStmt>(expr);
+  }
       
   Ref<AstExpr> ShaderParser::ParseShaderAttribute() {
     if (Match({ MESH_KW })) {
