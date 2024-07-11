@@ -380,7 +380,7 @@ namespace other {
     
     Consume(CLOSE_PAREN , fmtstr("Expected ')' after if condition! found {}" , Peek().value));
 
-    Ref<AstStmt> then_stmt = ParseDecl();
+    Ref<AstStmt> then_stmt = ParseBlock();
 
     Ref<AstStmt> else_stmt = nullptr;
     if (Match({ ELSE_KW })) {

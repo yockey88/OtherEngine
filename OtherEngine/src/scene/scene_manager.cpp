@@ -47,9 +47,11 @@ namespace other {
 
     scene_paths.push_back(scenepath.string());
     
+#if 0
     model_handle = ModelFactory::CreateBox({ 1.f , 1.f , 1.f });
     model = AssetManager::GetAsset<StaticModel>(model_handle);
     model_source = model->GetModelSource();
+#endif
 
     return true;
   }
@@ -222,7 +224,7 @@ namespace other {
     
     scene_renderer->BeginScene(viewpoint);
 #if 0
-    // scene_renderer->SubmitStaticModel(model , model1);
+    scene_renderer->SubmitStaticModel(model , model1);
 #else
     active_scene->scene->Render(scene_renderer);
 #endif

@@ -11,7 +11,6 @@
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <imgui/backends/imgui_impl_sdl2.h>
-#include <parsing/parsing_defines.hpp>
 
 #include "core/defines.hpp"
 #include "core/logger.hpp"
@@ -22,6 +21,7 @@
 #include "input/io.hpp"
 #include "parsing/cmd_line_parser.hpp"
 #include "parsing/ini_parser.hpp"
+#include "input/keyboard.hpp"
 
 #include "application/app.hpp"
 #include "application/app_state.hpp"
@@ -180,7 +180,7 @@ int main(int argc , char* argv[]) {
             } ,
             .shader = other::BuildShader(shader2_path) ,
           } ,
-#if FOGFB
+#if !FOGFB
           {
             .name = "Add Fog" , 
             .tag_col = { 0.f , 0.f , 1.f , 1.f } ,
@@ -229,16 +229,8 @@ int main(int argc , char* argv[]) {
           } ,
         } , 
         .pipeline_to_pass_map = {
-          { FNV("Geometry") , { FNV("Draw Geometry") , 
-#if FOGFB
-                                FNV("Add Fog") 
-#endif
-          } } , 
-          { FNV("Debug")    , { FNV("Draw Geometry") , FNV("Draw Normals") , 
-#if FOGFB
-                                FNV("Add Fog") 
-#endif
-          } }
+          { FNV("Geometry") , { FNV("Draw Geometry") } } , 
+          { FNV("Debug")    , { FNV("Draw Geometry") , FNV("Draw Normals") } }
         } ,
       };
       Scope<SceneRenderer> renderer = NewScope<SceneRenderer>(render_spec);
@@ -258,6 +250,9 @@ int main(int argc , char* argv[]) {
       CHECKGL();
 
       while (running) {
+        other::Mouse::Update();
+        other::Keyboard::Update();
+
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
           switch (event.type) {

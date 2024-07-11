@@ -445,12 +445,14 @@ namespace other {
       "Empty" , "Triangle" , "Rect" , "Cube" , "Sphere" , "Capsule"
     };
 
-    if (ui::PropertyDropdown("Primitive Meshes" , options, 5 , mesh.primitive_selection)) {}
+    if (ui::PropertyDropdown("Primitive Meshes" , options, kCapsuleIdx , mesh.primitive_selection)) {}
 
     if (mesh.primitive_id != mesh.primitive_selection && ImGui::Button("Confirm Change")) {
       bool change = false;
       switch (mesh.primitive_selection) {
         case kTriangleIdx:
+          OE_WARN("Assigning rect until implementations for others available!");
+          [[ fallthrough ]];
         case kRectIdx: {
           auto& scale = ent->ReadComponent<Transform>().scale;
           auto& pos = ent->ReadComponent<Transform>().position;

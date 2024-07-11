@@ -16,12 +16,24 @@
 
 namespace other {
 
+  using SystemFn = void(*)(entt::registry&,entt::entity);
+
+  // template <typename T>
+  // struct OeSystemCallback {
+  //   template <typename O>
+  //   OeSysCall (entt::registry& reg , SysFunc fn , O* obj) {
+  //   }
+  // };
+
 #define CORE_SYSTEM(name) \
   void name(entt::registry& context , entt::entity entt)
 
   CORE_SYSTEM(OnConstructEntity);
   CORE_SYSTEM(OnDestroyEntity);
   CORE_SYSTEM(OnCameraAddition);
+
+  CORE_SYSTEM(OnAddModel);
+  CORE_SYSTEM(OnAddStaticModel);
   
   void Initialize2DRigidBody(Ref<PhysicsWorld2D>& world , RigidBody2D& body , const Tag& tag , const Transform& transform);
   void Initialize2DCollider(Ref<PhysicsWorld2D>& world , RigidBody2D& body , Collider2D& collider , const Transform& transform);

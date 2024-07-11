@@ -11,10 +11,12 @@
 #include "ecs/components/script.hpp"
 #include "ecs/components/camera.hpp"
 #include "ecs/components/rigid_body_2d.hpp"
+#include "ecs/components/mesh.hpp"
 
 #include "physics/physics_defines.hpp"
 #include "rendering/perspective_camera.hpp"
 #include "rendering/renderer.hpp"
+#include "rendering/model_factory.hpp"
 
 #include "physics/phyics_engine.hpp"
 #include <box2d/b2_fixture.h>
@@ -39,20 +41,25 @@ namespace other {
   }
   
   CORE_SYSTEM(OnDestroyEntity) {
-    context.view<Script>().each([](Script& script) {
-      for (auto& [id , script] : script.scripts) {
-        if (script->IsInitialized()) {
-          script->Shutdown();
-        }
+    auto& script = context.get<Script>(entt);
+    for (auto& [id , script] : script.scripts) {
+      if (script->IsInitialized()) {
+        script->Shutdown();
       }
-      script.scripts.clear();
-    });
+    }
+    script.scripts.clear();
   }
 
   CORE_SYSTEM(OnCameraAddition) {
     Entity ent(context , entt);
     auto& camera = ent.GetComponent<Camera>();
     camera.camera = NewRef<PerspectiveCamera>(Renderer::WindowSize());
+  }
+  
+  CORE_SYSTEM(OnAddModel) {
+  }
+
+  CORE_SYSTEM(OnAddStaticModel) {
   }
 
   void Initialize2DRigidBody(Ref<PhysicsWorld2D>& world , RigidBody2D& body , const Tag& tag ,const Transform& transform) {

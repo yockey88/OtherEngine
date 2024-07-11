@@ -8,8 +8,6 @@
 
 #include "core/config_keys.hpp"
 
-#include "rendering/rendering_defines.hpp"
-
 namespace other {
 
 namespace {

@@ -54,6 +54,8 @@ namespace other {
     mesh.is_primitive = scene_table.GetVal<bool>(key_value , kIsPrimitiveValue).value_or(false);
     if (mesh.is_primitive) {
       mesh.primitive_id = scene_table.GetVal<uint32_t>(key_value , kPrimitiveValue).value_or(0);
+    } else {
+      return;
     }
 
     mesh.primitive_selection = mesh.primitive_id;
@@ -64,16 +66,15 @@ namespace other {
       return;
     }
 
+    auto& scale = entity->ReadComponent<Transform>().scale;
     switch (mesh.primitive_id) {
       case 1: {
-        auto& scale = entity->ReadComponent<Transform>().scale;
         auto& pos = entity->ReadComponent<Transform>().position;
         mesh.handle = ModelFactory::CreateRect(pos , { scale.x / 2 , scale.y / 2 });
       } break;
 
       case 2: {
-        auto& scale = entity->ReadComponent<Transform>().scale;
-        mesh.handle = ModelFactory::CreateBox({ 1.f , 1.f , 1.f });
+        mesh.handle = ModelFactory::CreateBox(scale);
       } break;
 
       case 3:

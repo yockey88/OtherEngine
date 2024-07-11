@@ -447,7 +447,8 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
     uint32_t camera_binding_pnt = 0;
     std::vector<Uniform> cam_unis = {
       { "projection" , other::ValueType::MAT4 } ,
-      { "view"       , other::ValueType::MAT4 }
+      { "view"       , other::ValueType::MAT4 } ,
+      { "viewpoint"  , other::ValueType::VEC3 } ,
     };
     
     uint32_t model_binding_pnt = 1;
@@ -457,6 +458,7 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
 
     glm::vec2 window_size = Renderer::WindowSize();
 
+    //// how tf do render passes work ??? 
     SceneRenderSpec spec{
       .camera_uniforms = NewRef<UniformBuffer>("Camera" , cam_unis , camera_binding_pnt) ,
       .model_storage = NewRef<UniformBuffer>("ModelData" , model_unis , model_binding_pnt , other::SHADER_STORAGE) ,

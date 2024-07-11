@@ -13,6 +13,7 @@
 
 #include "physics/physics_defines.hpp"
 #include "rendering/model.hpp"
+#include "rendering/model_factory.hpp"
 #include "scripting/script_engine.hpp"
 
 #include "ecs/entity.hpp"
@@ -28,6 +29,7 @@
 
 namespace other {
 
+  /// TODO: get rid of this in some nice ctor/dtor wrapper
   Scene::Scene() {
     registry.on_construct<entt::entity>().connect<&OnConstructEntity>();
     registry.on_destroy<entt::entity>().connect<&OnDestroyEntity>();
@@ -36,9 +38,15 @@ namespace other {
 
     registry.on_construct<RigidBody2D>().connect<&Scene::OnAddRigidBody2D>(this);
     registry.on_update<RigidBody2D>().connect<&OnRigidBody2DUpdate>();
+
+    registry.on_construct<Mesh>().connect<&OnAddModel>();
+    registry.on_construct<StaticMesh>().connect<&OnAddStaticModel>();
   }
 
   Scene::~Scene() {
+    registry.on_construct<StaticMesh>().disconnect<&OnAddStaticModel>();
+    registry.on_construct<Mesh>().disconnect<&OnAddModel>();
+
     registry.on_update<RigidBody2D>().disconnect();
     registry.on_construct<RigidBody2D>().disconnect(this);
 
@@ -77,6 +85,10 @@ namespace other {
 
     OnInit(); 
     initialized = true;
+    
+    model_handle = ModelFactory::CreateBox({ 1.f , 1.f , 1.f });
+    model = AssetManager::GetAsset<StaticModel>(model_handle);
+    model_source = model->GetModelSource();
   }
 
   void Scene::Start() {
@@ -154,13 +166,13 @@ namespace other {
     });
 
     registry.view<Transform>().each([](Transform& transform) {
-        transform.model_transform = glm::mat4(1.f);
-      // transform.erotation = glm::eulerAngles(transform.qrotation);
-      // transform.model_transform = glm::translate(glm::mat4(1.f) , transform.position);
-      // transform.model_transform = glm::eulerAngleYXZ(
-      //   transform.erotation.y , transform.erotation.x , transform.erotation.z
-      // );
-      // transform.model_transform = glm::scale(transform.model_transform , transform.scale);
+      transform.model_transform = glm::mat4(1.f);
+      transform.erotation = glm::eulerAngles(transform.qrotation);
+      transform.model_transform = glm::translate(glm::mat4(1.f) , transform.position);
+      transform.model_transform = glm::eulerAngleYXZ(
+        transform.erotation.y , transform.erotation.x , transform.erotation.z
+      );
+      transform.model_transform = glm::scale(transform.model_transform , transform.scale);
     });
 
 
@@ -256,12 +268,14 @@ namespace other {
       renderer->SubmitModel(model , glm::mat4(1.f));
     });
 
-    registry.view<StaticMesh , Transform>().each([&renderer](const StaticMesh& mesh , const Transform& transform) {
-      if (AppState::Assets()->IsValid(mesh.handle)) {
+    const auto& reg = registry.view<StaticMesh , Transform>();
+
+    reg.each([&renderer](const StaticMesh& mesh , const Transform& transform) {
+      if (!AppState::Assets()->IsValid(mesh.handle)) {
         return;
       }
       
-      auto model = AssetManager::GetAsset<Model>(mesh.handle);
+      auto model = AssetManager::GetAsset<StaticModel>(mesh.handle);
       if (model == nullptr) {
         return;
       }

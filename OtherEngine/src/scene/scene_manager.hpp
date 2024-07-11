@@ -60,10 +60,6 @@ namespace other {
       std::map<UUID , SceneMetadata> loaded_scenes;
       
       glm::mat4 model1 = glm::mat4(1.f);
-
-      other::AssetHandle model_handle;
-      Ref<StaticModel> model = nullptr;
-      Ref<ModelSource> model_source = nullptr;
   };
 
 } // namespace other

@@ -35,10 +35,10 @@ namespace other {
     std::vector<Vertex> vertices{};
     vertices.resize(6);
 
-    vertices[0].position = { pos.x + half_extents.x , pos.y + half_extents.y , pos.z };
-    vertices[1].position = { pos.x + half_extents.x , pos.y - half_extents.y , pos.z };
-    vertices[2].position = { pos.x - half_extents.x , pos.y - half_extents.y , pos.z };
-    vertices[3].position = { pos.x - half_extents.x , pos.y + half_extents.y , pos.z };
+    vertices[0].position = { 0.5 + half_extents.x , 0.5 + half_extents.y , pos.z };
+    vertices[1].position = { 0.5 + half_extents.x , 0.5 - half_extents.y , pos.z };
+    vertices[2].position = { 0.5 - half_extents.x , 0.5 - half_extents.y , pos.z };
+    vertices[3].position = { 0.5 - half_extents.x , 0.5 + half_extents.y , pos.z };
     
     vertices[0].normal = {  1.f ,  1.f , 0.f };
     vertices[1].normal = {  1.f , -1.f , 0.f };

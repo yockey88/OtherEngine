@@ -81,8 +81,6 @@ namespace other {
   void EventQueue::Dispatch(Engine* engine , App* app) {
     OE_ASSERT(event_buffer != nullptr , "Event buffer not initialized");
     OE_ASSERT(cursor != nullptr , "Event buffer cursor not initialized");
-    OE_ASSERT(engine != nullptr , "null engine can not dispatch events");
-    OE_ASSERT(app != nullptr , "null application data can not dispatch events");
 
     uint8_t* tmp_cursor = event_buffer;
 
@@ -105,18 +103,21 @@ namespace other {
         continue;
       }
 
-      /// only reload scripts once per frame at most
+      /// only reload scripts once per frame at most (ideally significantly less
+      ///     because it take WAAY longer than a frame to change a script and write the changes to file)
       if (event->Type() == EventType::SCRIPT_RELOAD) {
         tmp_cursor += event->Size();
         reload_scripts = true;
         continue;
       } 
 
-      app->ProcessEvent(event);
+      if (app != nullptr && !event->handled) {
+        app->ProcessEvent(event);
+      }
       
       /// engine always last to handle events
       ///   reserved for engine events
-      if (!event->handled) {
+      if (engine != nullptr && !event->handled) {
         engine->ProcessEvent(event);
       }
 

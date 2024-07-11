@@ -80,6 +80,10 @@ namespace other {
       void OrphanEntity(UUID id);
 
     protected:
+      other::AssetHandle model_handle;
+      Ref<StaticModel> model = nullptr;
+      Ref<ModelSource> model_source = nullptr;
+
       void OnAddRigidBody2D(entt::registry& context , entt::entity ent);
       void OnAddCollider2D(entt::registry& context , entt::entity ent);
 

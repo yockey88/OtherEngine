@@ -16,6 +16,7 @@
 
 #include "editor/editor.hpp"
 #include "editor/editor_layer.hpp"
+#include "event/event_queue.hpp"
 
 namespace other {
 
