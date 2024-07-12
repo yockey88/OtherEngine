@@ -78,8 +78,12 @@ namespace other {
   void ModelSource::UnbindIndexBuffer() {
     index_buffer->Bind();
   }
+      
+  const std::vector<float>& ModelSource::RawVertices() const {
+    return fvertices;
+  }
 
-  const std::vector<float>& ModelSource::Vertices() const {
+  const std::vector<Vertex>& ModelSource::Vertices() const {
     return vertices;
   }
 
@@ -97,24 +101,24 @@ namespace other {
       
   void ModelSource::BuildVertexBuffer(const std::vector<Vertex>& verts) {
     for (auto& v : verts) {
-      vertices.push_back(v.position.x);
-      vertices.push_back(v.position.y);
-      vertices.push_back(v.position.z);
+      fvertices.push_back(v.position.x);
+      fvertices.push_back(v.position.y);
+      fvertices.push_back(v.position.z);
        
-      vertices.push_back(v.normal.x);
-      vertices.push_back(v.normal.y);
-      vertices.push_back(v.normal.z);
+      fvertices.push_back(v.normal.x);
+      fvertices.push_back(v.normal.y);
+      fvertices.push_back(v.normal.z);
        
-      vertices.push_back(v.tangent.x);
-      vertices.push_back(v.tangent.y);
-      vertices.push_back(v.tangent.z);
+      fvertices.push_back(v.tangent.x);
+      fvertices.push_back(v.tangent.y);
+      fvertices.push_back(v.tangent.z);
       
-      vertices.push_back(v.bitangent.x);
-      vertices.push_back(v.bitangent.y);
-      vertices.push_back(v.bitangent.z);
+      fvertices.push_back(v.bitangent.x);
+      fvertices.push_back(v.bitangent.y);
+      fvertices.push_back(v.bitangent.z);
       
-      vertices.push_back(v.uv_coord.x);
-      vertices.push_back(v.uv_coord.y);
+      fvertices.push_back(v.uv_coord.x);
+      fvertices.push_back(v.uv_coord.y);
     }
   }
 

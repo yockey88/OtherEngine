@@ -7,15 +7,12 @@
 
 #include "core/defines.hpp"
 #include "core/logger.hpp"
-#include "asset/asset_manager.hpp"
 
 #include "ecs/entity.hpp"
 
 #include "scene/scene_serializer.hpp"
 
 #include "rendering/renderer.hpp"
-#include "rendering/model.hpp"
-#include "rendering/model_factory.hpp"
 
 #include "scripting/script_engine.hpp"
 
@@ -46,12 +43,6 @@ namespace other {
     }
 
     scene_paths.push_back(scenepath.string());
-    
-#if 0
-    model_handle = ModelFactory::CreateBox({ 1.f , 1.f , 1.f });
-    model = AssetManager::GetAsset<StaticModel>(model_handle);
-    model_source = model->GetModelSource();
-#endif
 
     return true;
   }
@@ -97,6 +88,9 @@ namespace other {
     }
     
     active_scene->scene->Stop();
+
+#if 0 /// how to dynamically serialize scenes to only remember whats needed for undo/redo and 
+      /// also things that result from only manual changes and not scene update (to preserve 'initial' scene state)
     active_scene->scene->Shutdown();
 
     Path path = active_scene->path;
@@ -114,7 +108,7 @@ namespace other {
     }
     active_scene->scene->Initialize();
     SetAsActive(path);
-
+#endif
   }
 
   bool SceneManager::HasScene(const Path& path) {
@@ -209,6 +203,14 @@ namespace other {
 
     active_scene->scene->Update(dt);
   }
+  
+  void SceneManager::LateUpdateScene(float dt) {
+    if (!HasActiveScene()) {
+      return;
+    }
+
+    active_scene->scene->LateUpdate(dt);
+  }
 
   bool SceneManager::RenderScene(Ref<SceneRenderer> scene_renderer , Ref<CameraBase> viewpoint) {
     if (!HasActiveScene()) {
@@ -223,11 +225,7 @@ namespace other {
     }
     
     scene_renderer->BeginScene(viewpoint);
-#if 0
-    scene_renderer->SubmitStaticModel(model , model1);
-#else
     active_scene->scene->Render(scene_renderer);
-#endif
 
     // debug rendering
     
@@ -240,14 +238,6 @@ namespace other {
     }
 
     active_scene->scene->RenderUI();
-  }
-      
-  void SceneManager::LateUpdateScene(float dt) {
-    if (!HasActiveScene()) {
-      return;
-    }
-
-    active_scene->scene->LateUpdate(dt);
-  }
+  }      
 
 } // namespace other

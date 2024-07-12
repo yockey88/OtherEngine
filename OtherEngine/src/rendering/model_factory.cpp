@@ -53,8 +53,8 @@ namespace other {
 
     AssetHandle source_handle = AssetManager::CreateMemOnly<ModelSource>(vertices , indices , glm::mat4(1.f));
     Ref<ModelSource> source = AssetManager::GetAsset<ModelSource>(source_handle);
-
     AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>(source);
+
     return handle;
   }
 
@@ -97,8 +97,8 @@ namespace other {
 
     AssetHandle mesh_source_handle = AssetManager::CreateMemOnly<ModelSource>(vertices , indices , glm::mat4(1.f));
     Ref<ModelSource> mesh_source = AssetManager::GetAsset<ModelSource>(mesh_source_handle);
-
     AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>(mesh_source);
+
     OE_DEBUG("Created cube mesh [{}]" , handle);
     return handle; 
   }

@@ -52,15 +52,23 @@ namespace other {
       auto& component = ent->GetComponent<Transform>();
       
       ImGui::TableNextRow();
-      ui::widgets::DrawVec3Control("Translation" , component.position , translation_manually_edited);
+      ui::widgets::DrawVec3Control("Translation" , component.position , translation_manually_edited , 0.f , /// replace this value from redo/undo stack
+                                    100.f , ui::VectorAxis::ZERO , glm::zero<glm::vec3>() , glm::zero<glm::vec3>() , 0.1f);
 
       ImGui::TableNextRow();
-      if (ui::widgets::DrawVec3Control("Rotation" , component.erotation , rotation_manually_edited)) {
-        /// recalculate quaternion
+      if (ui::widgets::DrawVec3Control("Rotation" , component.erotation , rotation_manually_edited , 0.f , /// replace this value from redo/undo stack
+                                    100.f , ui::VectorAxis::ZERO , glm::zero<glm::vec3>() , glm::zero<glm::vec3>() , 0.1f)) {
+        component.qrotation = glm::quat(component.erotation);
       }
 
       ImGui::TableNextRow();
-      ui::widgets::DrawVec3Control("Scale" , component.scale , scale_manually_edited , 1.f);
+      ui::widgets::DrawVec3Control("Scale" , component.scale , scale_manually_edited , 1.f , /// replace this value from redo/undo stack
+                                    100.f , ui::VectorAxis::ZERO , glm::zero<glm::vec3>() , glm::zero<glm::vec3>() , 0.1f);
+      
+      if (translation_manually_edited || rotation_manually_edited || scale_manually_edited) {
+        component.CalcMatrix();
+        OE_DEBUG("Transform calculated : {}" , component.model_transform);
+      }
     }
 
     ImGui::EndTable();
@@ -80,9 +88,9 @@ namespace other {
       ImGui::Text("Parent Entity > [ %lld ]" , relations.parent.value().Get());
     }
 
-    ImGui::Text("Put options related to how parents and children interact");
-    ImGui::Text(" > have children inherit parent position? ");
-    ImGui::Text(" > other things...");
+    // ImGui::Text("Put options related to how parents and children interact");
+    // ImGui::Text(" > have children inherit parent position? ");
+    // ImGui::Text(" > other things...");
   }
 
   template <typename T>
@@ -130,7 +138,7 @@ namespace other {
 
     char v = field->value.Get<char>();
     static std::array<char , 52> chars = {
-      'a' , 'b' , 'c' , 'd' , 'e' , 'f' , 'g' , 'h' , 'i' ,'j' , 'k' , 'l' , 'm' , 'n' , 
+      'a' , 'b' , 'c' , 'd' , 'e' , 'f' , 'g' , 'h' , 'i' , 'j' , 'k' , 'l' , 'm' , 'n' , 
             'o' , 'p' , 'q' , 'r' , 's' , 't' , 'u' , 'v' , 'w' , 'x' , 'y' , 'z' ,
       'A' , 'B' , 'C' , 'D' , 'E' , 'F' , 'G' , 'H' , 'I' , 'J' , 'K' , 'L' , 'M' , 'N' ,
             'O' , 'P' , 'Q' , 'R' , 'S' , 'T' , 'U' , 'V' , 'W' , 'X' , 'Y' , 'Z'

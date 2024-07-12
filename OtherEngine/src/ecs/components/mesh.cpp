@@ -1,4 +1,4 @@
-/**
+/**mesh.c
  * \file ecs/comopnents/mesh.cpp
  **/
 #include "ecs/components/mesh.hpp"
@@ -68,20 +68,18 @@ namespace other {
 
     auto& scale = entity->ReadComponent<Transform>().scale;
     switch (mesh.primitive_id) {
-      case 1: {
+      case kTriangleIdx:
+      case kRectIdx: {
         auto& pos = entity->ReadComponent<Transform>().position;
         mesh.handle = ModelFactory::CreateRect(pos , { scale.x / 2 , scale.y / 2 });
       } break;
 
-      case 2: {
+      case kCubeIdx: {
         mesh.handle = ModelFactory::CreateBox(scale);
       } break;
 
-      case 3:
-        // sphere
-        break;
-      
-      case 4:
+      case kSphereIdx:
+      case kCapsuleIdx:
         // Capsule
         break;
 

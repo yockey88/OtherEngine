@@ -3,6 +3,7 @@
  **/
 #include "scene/scene.hpp"
 
+#include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -150,8 +151,12 @@ namespace other {
 
     OE_ASSERT(physics_world_2d != nullptr , "Can not step physics world with null scene (2D)!");
 
+    /// TODO: check if simulating or just playing
+
     /// TODO: fix these to customizeable
     physics_world_2d->Step(dt , 32 , 2);
+
+    /// TODO: add 3d physics update here
 
     /// apply physics simulation to transforms, before using transforms for anything else 
     registry.view<RigidBody2D , Transform>().each([](RigidBody2D& body , Transform& transform) {
@@ -165,14 +170,9 @@ namespace other {
       transform.erotation.z = body.physics_body->GetAngle(); 
     });
 
-    registry.view<Transform>().each([](Transform& transform) {
-      transform.model_transform = glm::mat4(1.f);
-      transform.erotation = glm::eulerAngles(transform.qrotation);
-      transform.model_transform = glm::translate(glm::mat4(1.f) , transform.position);
-      transform.model_transform = glm::eulerAngleYXZ(
-        transform.erotation.y , transform.erotation.x , transform.erotation.z
-      );
-      transform.model_transform = glm::scale(transform.model_transform , transform.scale);
+    /// dont reupdate the transforms of things with physics
+    registry.view<Transform>(entt::exclude<RigidBody2D , Collider2D>).each([](Transform& transform) {
+      transform.CalcMatrix();
     });
 
 
@@ -187,16 +187,18 @@ namespace other {
       }
     });
     
+    /// update client app if they have custom logic
+    OnUpdate(dt);
+    
+    /// scripts updated last to give most accurate view of updated state 
     registry.view<Script>().each([&dt](const Script& script) {
       for (auto& [id , s] : script.scripts) {
         s->Update(dt);
       }
     });
-
-    OnUpdate(dt);
     
     /// finish scene update
-    /// checks the case the scene become corrupt on client update
+    /// checks if the scene become corrupt on client update
     if (corrupt) {
       Stop();
       return;
@@ -256,7 +258,7 @@ namespace other {
   void Scene::Render(Ref<SceneRenderer> renderer , Ref<CameraBase> camera) {
     /// lights
     registry.view<Mesh , Transform>().each([&renderer](const Mesh& mesh , const Transform& transform) {
-      if (AppState::Assets()->IsValid(mesh.handle)) {
+      if (!AppState::Assets()->IsValid(mesh.handle)) {
         return;
       }
       
@@ -265,7 +267,7 @@ namespace other {
         return;
       }
 
-      renderer->SubmitModel(model , glm::mat4(1.f));
+      renderer->SubmitModel(model , transform.model_transform);
     });
 
     const auto& reg = registry.view<StaticMesh , Transform>();
@@ -320,7 +322,7 @@ namespace other {
       return;
     }
 
-    // scene_object->CallMethod("ClearObjects");
+    scene_object->CallMethod("ClearObjects");
   }
 
   void Scene::Shutdown() {

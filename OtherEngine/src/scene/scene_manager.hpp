@@ -49,17 +49,15 @@ namespace other {
 
       void EarlyUpdateScene(float dt);
       void UpdateScene(float dt);
+      void LateUpdateScene(float dt);
       bool RenderScene(Ref<SceneRenderer> scene_renderer , Ref<CameraBase> viewpoint = nullptr);
       void RenderSceneUI();
-      void LateUpdateScene(float dt);
 
     private:
       SceneMetadata* active_scene = nullptr;
 
       std::vector<std::string> scene_paths;
       std::map<UUID , SceneMetadata> loaded_scenes;
-      
-      glm::mat4 model1 = glm::mat4(1.f);
   };
 
 } // namespace other

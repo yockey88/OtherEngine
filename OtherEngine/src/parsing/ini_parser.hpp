@@ -11,6 +11,22 @@
 
 namespace other {
 
+#define READ_INI_INTO(name , table , path) \
+    try { \
+      Path p = Filesystem::FindCoreFile(Path(path)); \
+      IniFileParser parser(p.string()); \
+      table = parser.Parse(); \
+      OE_DEBUG("loaded " #name " config from {}" , p.string()); \
+    } catch (const IniException& e) { \
+      OE_ERROR("Failed to parse " #name " configuration file : {}", e.what()); \
+      EventQueue::PushEvent<ShutdownEvent>(ExitCode::FAILURE); \
+      return; \
+    } catch (...) { \
+      OE_ERROR("Caught unknown exception parsing " #name " configuration file"); \
+      EventQueue::PushEvent<ShutdownEvent>(ExitCode::FAILURE); \
+      return; \
+    }
+
   class IniFileParser {
     public:
       IniFileParser(const std::string& file_path) 

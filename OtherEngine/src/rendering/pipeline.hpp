@@ -83,19 +83,21 @@ namespace other {
     FramebufferSpec framebuffer_spec {};
     Layout vertex_layout;
 
+    Ref<UniformBuffer> model_storage;
+
     std::string debug_name;
   };
 
   class Pipeline : public RefCounted {
     public:
-      Pipeline(const PipelineSpec& spec);
+      Pipeline(PipelineSpec& spec);
       virtual ~Pipeline() override {}
       
       void SubmitRenderPass(const Ref<RenderPass>& pass);
 
       /// Add materials to model submission
-      void SubmitModel(Ref<Model>& model , uint32_t transform_idx);
-      void SubmitStaticModel(Ref<StaticModel>& model , uint32_t transform_idx);
+      void SubmitModel(Ref<Model>& model , const glm::mat4& transform);
+      void SubmitStaticModel(Ref<StaticModel>& model , const glm::mat4& transform);
 
       void Render();
       Ref<Framebuffer> GetOutput();
@@ -106,6 +108,9 @@ namespace other {
       
       std::vector<float> vertices{};
       std::vector<uint32_t> indices{};
+
+      uint32_t curr_transform_idx = 0;
+      uint32_t idx_offset = 0;
       
       Scope<VertexBuffer> vertex_buffer = nullptr;
       Scope<VertexBuffer> index_buffer = nullptr;
@@ -113,6 +118,8 @@ namespace other {
       Ref<Framebuffer> target = nullptr;
 
       std::vector<Ref<RenderPass>> passes;
+
+      void AddIndices(const Index& idxs); 
 
       void PerformPass(Ref<RenderPass>& pass);
   };

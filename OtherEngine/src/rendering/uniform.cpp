@@ -82,7 +82,7 @@ namespace other {
   }
       
   uint32_t UniformBuffer::CalculateOffset(const UniformData& uniform , uint32_t index) {
-    return uniform.offset; // + index * uniform.size;
+    return uniform.offset + index * uniform.size;
   }
       
   std::tuple<UniformBuffer::UniformData , bool , uint32_t> UniformBuffer::TryFind(const std::string& name , uint32_t index) {

@@ -340,16 +340,16 @@ namespace {
       l->Update(dt);
     }
     
-    auto itr = ui_windows.begin();
-    while (itr != ui_windows.end()) {
-      itr->second->OnUpdate(dt);
-      ++itr;
-    }
-    
     LateUpdate(dt);
     
     for (auto& l : *layer_stack) {
       l->LateUpdate(dt);
+    }
+    
+    auto itr = ui_windows.begin();
+    while (itr != ui_windows.end()) {
+      itr->second->OnUpdate(dt);
+      ++itr;
     }
   }
 

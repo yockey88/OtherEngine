@@ -17,7 +17,6 @@ namespace other {
   
   struct SceneRenderSpec {
     Ref<UniformBuffer> camera_uniforms;
-    Ref<UniformBuffer> model_storage;
 
     std::vector<RenderPassSpec> passes;
     std::vector<PipelineSpec> pipelines;
@@ -37,6 +36,8 @@ namespace other {
           itr->second->SetInput(name , val);
         }
       }
+
+      void ToggleWireframe();
 
       void SetViewportSize(const glm::ivec2& size);
       
@@ -80,8 +81,12 @@ namespace other {
       ///  - grid
       ///  - collider
       ///  - skybox
-      
-      uint32_t curr_model_idx = 0;
+
+      enum RenderStateType {
+        FILL = GL_FILL ,
+        WIREFRAME = GL_LINE ,
+        POINT = GL_POINT ,
+      } render_state;
 
       std::map<UUID , Ref<RenderPass>> passes;
       std::map<UUID , Ref<Pipeline>> pipelines;
@@ -91,9 +96,8 @@ namespace other {
       void Initialize();
       void Shutdown();
 
+      void PreRenderSettings();
       void FlushDrawList();
-      
-      uint32_t GetCurrentTransformIdx();
   };
 
 } // namespace other

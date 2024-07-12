@@ -89,7 +89,8 @@ namespace other {
       void UnbindVertexBuffer();
       void UnbindIndexBuffer();
 
-      const std::vector<float>& Vertices() const;
+      const std::vector<float>& RawVertices() const;
+      const std::vector<Vertex>& Vertices() const;
       const std::vector<Index>& Indices() const;
       const std::vector<uint32_t>& RawLayout() const;
       const Layout& GetLayout() const;
@@ -101,7 +102,8 @@ namespace other {
       Ref<VertexBuffer> index_buffer;
       Ref<VertexBuffer> bone_infl_buffer;
 
-      std::vector<float> vertices;
+      std::vector<float> fvertices;
+      std::vector<Vertex> vertices;
       std::vector<Index> indices;
       std::vector<uint32_t> raw_layout;
       Layout layout;

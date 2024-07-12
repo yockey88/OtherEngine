@@ -5,15 +5,15 @@
 
 #include "core/config_keys.hpp"
 #include "core/logger.hpp"
-#include "core/errors.hpp"
 #include "core/filesystem.hpp"
+#include "core/config.hpp"
+#include "core/errors.hpp"
 #include "application/app_state.hpp"
 #include "asset/asset_manager.hpp"
 #include "event/mouse_events.hpp"
 #include "parsing/ini_parser.hpp"
 #include "input/keyboard.hpp"
 
-#include "event/core_events.hpp"
 #include "event/app_events.hpp"
 #include "event/key_events.hpp"
 #include "event/event_handler.hpp"
@@ -29,7 +29,6 @@
 #include "rendering/ui/ui_helpers.hpp"
 
 #include "editor/editor.hpp"
-#include <SDL_mouse.h>
 
 namespace other {
 
@@ -48,18 +47,7 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
     editor_camera->SetPosition({ 0.f , 0.f , 3.f });
     editor_camera->SetDirection({ 0.f , 0.f , -1.f });
     
-    try {
-      /// needs to be a better way to find the editor config file
-      Path p = Filesystem::FindCoreFile(Path("editor.other"));
-      IniFileParser parser(p.string());
-      editor_config = parser.Parse();
-
-      OE_DEBUG("loaded editor config from {}" , p.string());
-    } catch (const IniException& e) {
-      OE_ERROR("Failed to parse editor configuration file : {}", e.what());
-      EventQueue::PushEvent<ShutdownEvent>(ExitCode::FAILURE);
-      return;
-    }
+    READ_INI_INTO(editor , editor_config , "editor.other");
     
     Renderer::GetWindow()->ForceResize({ 1920 , 1080 });
     editor_camera->SetViewport({ 1920 , 1080 });
@@ -118,17 +106,40 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
     } else {
       lost_window_focus = true;
     }
+
+    panel_manager->EarlyUpdate(dt);
+
+    AppState::Scenes()->EarlyUpdateScene(dt);
   }
 
   void EditorLayer::OnUpdate(float dt) {
-    for (const auto& [id , script] : editor_scripts.scripts) {
-      script->Update(dt);
-    }
-    panel_manager->Update(dt);
-    
     if (camera_free) {
       DefaultUpdateCamera(editor_camera);
     }
+    
+    panel_manager->Update(dt);
+
+    /// after all early updates, update client and script
+    for (const auto& [id , script] : editor_scripts.scripts) {
+      script->Update(dt);
+    }
+
+    AppState::Scenes()->UpdateScene(dt);
+  }
+  
+void EditorLayer::OnLateUpdate(float dt) {
+    if (camera_free) {
+      // DefaultLateUpdateCamera(editor_camera);
+    }
+    
+    panel_manager->LateUpdate(dt);
+
+    /// after all early updates, update client and script
+    for (const auto& [id , script] : editor_scripts.scripts) {
+      script->LateUpdate(dt);
+    }
+
+    AppState::Scenes()->LateUpdateScene(dt);
   }
 
   void EditorLayer::OnRender() {
@@ -225,10 +236,10 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
 
     if (ImGui::Begin("Inspector") /* && scene_manager->HasActiveScene() */) {
       if (!playing && ImGui::Button("Play")) {
-        // scene_manager->StartScene();
+        AppState::Scenes()->StartScene();
         playing = true; 
       } else if (playing && ImGui::Button("Stop Scene")) {
-        // scene_manager->StopScene();
+        AppState::Scenes()->StopScene();
         playing = false;
       }
 
@@ -278,6 +289,10 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
         camera_free = false;
         return true;
       } 
+
+      if (Keyboard::LCtrlLayer() && key.Key() == Keyboard::Key::OE_W) {
+        default_renderer->ToggleWireframe();
+      }
 
       return false;
     });
@@ -461,7 +476,6 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
     //// how tf do render passes work ??? 
     SceneRenderSpec spec{
       .camera_uniforms = NewRef<UniformBuffer>("Camera" , cam_unis , camera_binding_pnt) ,
-      .model_storage = NewRef<UniformBuffer>("ModelData" , model_unis , model_binding_pnt , other::SHADER_STORAGE) ,
       .passes = {
         {
           .name = "GeometryPass1" , 
@@ -489,6 +503,7 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
             { other::ValueType::VEC3 , "binormal" } ,
             { other::ValueType::VEC2 , "uvs"      }
           } ,
+          .model_storage = NewRef<UniformBuffer>("ModelData" , model_unis , model_binding_pnt , other::SHADER_STORAGE) ,
           .debug_name = "GeometryPipeline" , 
         } ,
       } ,

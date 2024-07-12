@@ -10,7 +10,7 @@
 
 namespace other {
 
-  Pipeline::Pipeline(const PipelineSpec& spec) 
+  Pipeline::Pipeline(PipelineSpec& spec) 
       : spec(spec) {
     glGenVertexArrays(1 , &vao_id);
     glBindVertexArray(vao_id);
@@ -49,36 +49,42 @@ namespace other {
     glBindVertexArray(0);
 
     target = Ref<Framebuffer>::Create(spec.framebuffer_spec);
+    spec.model_storage->BindBase();
   }
       
   void Pipeline::SubmitRenderPass(const Ref<RenderPass>& pass) {
     passes.push_back(pass);
   }
 
-  void Pipeline::SubmitModel(Ref<Model>& model , uint32_t transform_idx) {
+  void Pipeline::SubmitModel(Ref<Model>& model , const glm::mat4& transform) {
   }
 
-  void Pipeline::SubmitStaticModel(Ref<StaticModel>& model , uint32_t transform_idx) {
+  void Pipeline::SubmitStaticModel(Ref<StaticModel>& model , const glm::mat4& transform) {
     Ref<ModelSource> source = model->GetModelSource();
     // const auto& submesh_data = model_source->SubMeshes();
     
-    auto& verts = source->Vertices();
+    auto& verts = source->RawVertices();
     auto& idxs = source->Indices();
 
-    for (uint32_t i = 0; i < verts.size();) {
-      for (uint32_t j = 0; j < spec.vertex_layout.Stride(); ++j) {
+    uint32_t floats_added = 0;
+    for (uint32_t i = 0; i < verts.size(); ++floats_added) {
+      for (uint32_t j = 0; j < spec.vertex_layout.Stride(); ++j, ++floats_added) {
         vertices.push_back(verts[i]);
         ++i;
       }
 
-      vertices.push_back(transform_idx);
+      vertices.push_back(curr_transform_idx);
     }
 
     for (auto& i : idxs) {
-      indices.push_back(i.v1);
-      indices.push_back(i.v2);
-      indices.push_back(i.v3);
+      AddIndices(i);
     }
+    
+    spec.model_storage->SetUniform("models" , transform , curr_transform_idx);
+
+    ++curr_transform_idx;
+    idx_offset += floats_added; 
+    
   }
 
   void Pipeline::Render() {
@@ -114,11 +120,20 @@ namespace other {
     vertices.clear();
     indices.clear();
 
+    curr_transform_idx = 0;
+    idx_offset = 0;
+
     CHECKGL();
   }
 
   Ref<Framebuffer> Pipeline::GetOutput() {
     return target;
+  }
+      
+  void Pipeline::AddIndices(const Index& idx) {
+    indices.push_back(idx_offset + idx.v1);
+    indices.push_back(idx_offset + idx.v2);
+    indices.push_back(idx_offset + idx.v3); 
   }
         
   void Pipeline::PerformPass(Ref<RenderPass>& pass) {

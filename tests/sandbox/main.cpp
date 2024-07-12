@@ -144,11 +144,15 @@ int main(int argc , char* argv[]) {
       Scope<VertexArray> fb_mesh = NewScope<VertexArray>(fb_verts , fb_indices , fb_layout);
 
       glm::mat4 model1 = glm::mat4(1.f);
-      glm::mat4 model2 = glm::mat4(1.f); // glm::translate(model1 , glm::vec3(0.3f , 0.1f , 0.0f));
+      glm::mat4 model2 = glm::mat4(1.f); 
 
       other::AssetHandle model_handle = other::ModelFactory::CreateBox({ 1.f , 1.f , 1.f });
       Ref<StaticModel> model = other::AssetManager::GetAsset<StaticModel>(model_handle);
       Ref<ModelSource> model_source = model->GetModelSource();
+      
+      other::AssetHandle floor_handle = other::ModelFactory::CreateBox({ 1.f , 1.f , 1.f });
+      Ref<StaticModel> floor = other::AssetManager::GetAsset<StaticModel>(floor_handle);
+      Ref<ModelSource> floor_source = floor->GetModelSource();
     
       uint32_t camera_binding_pnt = 0;
       std::vector<Uniform> cam_unis = {
@@ -164,7 +168,6 @@ int main(int argc , char* argv[]) {
         
       SceneRenderSpec render_spec {
         .camera_uniforms = NewRef<UniformBuffer>("Camera" , cam_unis , camera_binding_pnt) ,
-        .model_storage = NewRef<UniformBuffer>("ModelData" , model_unis , model_binding_pnt , other::SHADER_STORAGE) ,
         .passes = {
           {
             .name = "Draw Geometry" , 
@@ -180,7 +183,7 @@ int main(int argc , char* argv[]) {
             } ,
             .shader = other::BuildShader(shader2_path) ,
           } ,
-#if !FOGFB
+#if FOGFB
           {
             .name = "Add Fog" , 
             .tag_col = { 0.f , 0.f , 1.f , 1.f } ,
@@ -208,28 +211,11 @@ int main(int argc , char* argv[]) {
               { other::ValueType::VEC3 , "binormal" } ,
               { other::ValueType::VEC2 , "uvs"      }
             } ,
-            .debug_name = "Geometry" , 
-          } ,
-          {
-            .has_indices = true ,
-            .buffer_cap = 4096 * sizeof(float) ,
-            .framebuffer_spec = {
-              .depth_func = other::LESS_EQUAL ,
-              .clear_color = { 0.1f , 0.3f , 0.5f , 1.f } ,
-              .size = other::Renderer::WindowSize() ,
-            } ,
-            .vertex_layout = {
-              { other::ValueType::VEC3 , "position" } ,
-              { other::ValueType::VEC3 , "normal"   } ,
-              { other::ValueType::VEC3 , "tangent"  } ,
-              { other::ValueType::VEC3 , "binormal" } ,
-              { other::ValueType::VEC2 , "uvs"      }
-            } ,
+            .model_storage = NewRef<UniformBuffer>("ModelData" , model_unis , model_binding_pnt , other::SHADER_STORAGE) ,
             .debug_name = "Debug" , 
           } ,
         } , 
         .pipeline_to_pass_map = {
-          { FNV("Geometry") , { FNV("Draw Geometry") } } , 
           { FNV("Debug")    , { FNV("Draw Geometry") , FNV("Draw Normals") } }
         } ,
       };
@@ -248,6 +234,9 @@ int main(int argc , char* argv[]) {
       other::Mouse::LockCursor();
         
       CHECKGL();
+
+      model2 = glm::translate(glm::mat4(1.f) , glm::vec3(0 , -2.f , 0)) *
+               glm::scale(glm::mat4(1.f) , glm::vec3(10 , 1 , 10));
 
       while (running) {
         other::Mouse::Update();
@@ -289,6 +278,7 @@ int main(int argc , char* argv[]) {
           other::DefaultUpdateCamera(camera);
         }
 
+
         model1 = glm::rotate(model1 , glm::radians(5.f) , { 1.f , 1.f , 0.f });
 
         other::Renderer::GetWindow()->Clear();
@@ -296,6 +286,7 @@ int main(int argc , char* argv[]) {
         renderer->BeginScene(camera);
         renderer->SetUniform("Draw Normals" , "magnitude" , 0.4f);
         renderer->SubmitStaticModel(model , model1);
+        renderer->SubmitStaticModel(floor , model2);
         renderer->EndScene();
 
         const auto& frames = renderer->GetRender(); 

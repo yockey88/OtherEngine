@@ -213,7 +213,7 @@ namespace widgets {
           bool was_temp_input_active = ImGui::TempInputIsActive(ImGui::GetID(("##" + label).c_str()));
           changed |= DragFloat(("##" + label).c_str() , &value , speed , v_min , v_max , format , flags);
 
-          if (changed && Keyboard::Pressed(Keyboard::Key::OE_TAB)) {
+          if (changed) { // && Keyboard::Pressed(Keyboard::Key::OE_TAB)) {
             edited = true;
           }
 

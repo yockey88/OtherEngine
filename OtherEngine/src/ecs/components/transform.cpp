@@ -56,6 +56,8 @@ namespace other {
         transform.scale.z = 1;
       }
     }
+
+    transform.CalcMatrix();
   }
 
 } // namespace other

@@ -22,7 +22,9 @@ namespace other {
       void AddPanel(const Ref<EditorPanel>& panel) {}
 
       void OnEvent(Event* event);
+      void EarlyUpdate(float dt) {}
       void Update(float dt);
+      void LateUpdate(float dt) {}
       void Render();
       void RenderUI();
 

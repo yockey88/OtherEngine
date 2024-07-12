@@ -3,6 +3,8 @@
  **/
 #include "rendering/scene_renderer.hpp"
 
+#include <glad/glad.h>
+
 #include "core/defines.hpp"
 #include "rendering/uniform.hpp"
 
@@ -15,6 +17,11 @@ namespace other {
 
   SceneRenderer::~SceneRenderer() {
   }
+      
+  void SceneRenderer::ToggleWireframe() {
+    render_state = (render_state == WIREFRAME) ?
+      FILL : WIREFRAME;
+  }
 
   void SceneRenderer::SetViewportSize(const glm::ivec2& size) {
   }
@@ -23,12 +30,9 @@ namespace other {
   }
 
   void SceneRenderer::SubmitStaticModel(Ref<StaticModel> model , const glm::mat4& transform) {
-    uint32_t idx = GetCurrentTransformIdx();
-
-    spec.model_storage->SetUniform("models" , transform , idx);
     /// decide which pipeline to submit model to
     for (auto& [id , pl] : pipelines) {
-      pl->SubmitStaticModel(model , idx);
+      pl->SubmitStaticModel(model , transform);
     }
   }
 
@@ -46,9 +50,8 @@ namespace other {
   }
   
   void SceneRenderer::EndScene() {
+    PreRenderSettings();
     FlushDrawList();
-
-    curr_model_idx = 0;
   }
 
   const std::map<UUID , Ref<Framebuffer>>& SceneRenderer::GetRender() const {
@@ -58,7 +61,6 @@ namespace other {
 
   void SceneRenderer::Initialize() {
     spec.camera_uniforms->BindBase();
-    spec.model_storage->BindBase();
 
     for (auto& rp : spec.passes) {
       passes[FNV(rp.name)] = NewRef<RenderPass>(rp);
@@ -84,6 +86,23 @@ namespace other {
 
   void SceneRenderer::Shutdown() {
     pipelines.clear();
+  }
+ 
+  void SceneRenderer::PreRenderSettings() {
+    switch (render_state) {
+      case POINT:
+        glPolygonMode(GL_FRONT_AND_BACK , FILL);
+        break;
+
+      case WIREFRAME:
+        glPolygonMode(GL_FRONT_AND_BACK , WIREFRAME);
+        break;
+
+      case FILL:
+      default:
+        glPolygonMode(GL_FRONT_AND_BACK , FILL);
+        break;
+    }
   }
       
   void SceneRenderer::FlushDrawList() {
@@ -120,10 +139,4 @@ namespace other {
     /// submit command buffer
   }
   
-  uint32_t SceneRenderer::GetCurrentTransformIdx() {
-    uint32_t idx = curr_model_idx;
-    ++curr_model_idx;
-    return idx;
-  }
-      
 } // namespace other

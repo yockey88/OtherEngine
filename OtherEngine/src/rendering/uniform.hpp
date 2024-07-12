@@ -47,6 +47,32 @@ namespace other {
         CHECKGL();
       }
 
+#if 0
+      /// how to do this, get weird linker errors
+      template <glm_t GT> 
+      void SetUniform(const std::string& name , const GT& value , uint32_t index) {
+        auto [u_data , success , offset] = TryFind(name , index);
+        if (!success) {
+          return;
+        }
+
+        Bind();
+        glBufferSubData(type , offset , u_data.size , glm::value_ptr(value));
+        Unbind();
+      }
+#endif
+      
+      template <> void SetUniform<glm::vec3>(const std::string& name , const glm::vec3& value , uint32_t index) {
+        auto [u_data , success , offset] = TryFind(name , index);
+        if (!success) {
+          return;
+        }
+
+        Bind();
+        glBufferSubData(type , offset , u_data.size , glm::value_ptr(value));
+        Unbind();
+      }
+
       template <> void SetUniform<glm::mat4>(const std::string& name , const glm::mat4& value , uint32_t index) {
         auto [u_data , success , offset] = TryFind(name , index);
         if (!success) {

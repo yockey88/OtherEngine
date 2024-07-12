@@ -5,6 +5,7 @@
 #define OTHER_ENGINE_TRANSFORM_HPP
 
 #include <glm/ext/matrix_transform.hpp>
+#include <mono/metadata/appdomain.h>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -27,6 +28,14 @@ namespace other {
       : Component(kTransformIndex) , position(glm::vec3(p)) {}
     Transform(float x, float y, float z) 
       : Component(kTransformIndex) , position(glm::vec3(x, y, z)) {}
+
+    [[ maybe_unused ]] const glm::mat4& CalcMatrix() {
+      qrotation = glm::quat(erotation);
+      model_transform = glm::translate(glm::mat4(1.f) , position) *
+                        glm::toMat4(qrotation) *
+                        glm::scale(glm::mat4(1.f) , scale);
+      return model_transform;
+    }
 
     ECS_COMPONENT(Transform , kTransformIndex);
   };
