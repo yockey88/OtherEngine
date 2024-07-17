@@ -85,6 +85,8 @@ namespace other {
 
       void BindVertexBuffer();
       void BindIndexBuffer();
+
+      void DrawMesh(DrawMode mode);
       
       void UnbindVertexBuffer();
       void UnbindIndexBuffer();

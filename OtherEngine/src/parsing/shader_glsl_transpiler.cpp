@@ -5,6 +5,7 @@
 
 #include "core/errors.hpp"
 #include "parsing/shader_ast_node.hpp"
+#include "rendering/rendering_defines.hpp"
 
 namespace other {
       
@@ -337,6 +338,10 @@ namespace other {
         stream << a.attr_name << ";\n";
       }
       stream << "\n";
+    }
+
+    if (context == VERTEX_SHADER) {
+      stream << "uniform mat4 voe_model;\n\n";
     }
 
     for (auto& n : nodes) {

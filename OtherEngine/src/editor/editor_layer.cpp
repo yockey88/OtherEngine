@@ -7,7 +7,6 @@
 #include "core/logger.hpp"
 #include "core/filesystem.hpp"
 #include "core/config.hpp"
-#include "core/errors.hpp"
 #include "application/app_state.hpp"
 #include "asset/asset_manager.hpp"
 #include "event/mouse_events.hpp"

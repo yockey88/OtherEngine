@@ -7,7 +7,9 @@
 #include <string>
 #include <optional>
 
+#include "core/defines.hpp"
 #include "core/config.hpp"
+#include "core/errors.hpp"
 
 namespace other {
 
@@ -38,8 +40,8 @@ namespace other {
     private:
       std::string file_path;
 
-      std::optional<std::string> current_section = "";
-      std::optional<std::string> current_key = "";
+      Opt<std::string> current_section = "";
+      Opt<std::string> current_key = "";
 
       size_t index = 0;
 

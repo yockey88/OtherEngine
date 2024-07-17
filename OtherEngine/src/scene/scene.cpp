@@ -424,6 +424,14 @@ namespace other {
     }
 
     UUID id = FNV(real_name);
+    auto itr = entities.find(id);
+    if (itr != entities.end()) {
+      do {
+        id = id.Get() + 1;
+        itr = entities.find(id);
+      } while (itr != entities.end());
+    }
+
     return CreateEntity(real_name , id);
   }
 
@@ -444,6 +452,28 @@ namespace other {
     tag.name = name;
 
     return ent;
+  }
+
+  void Scene::DestroyEntity(Entity* ent) {
+    auto& relations = ent->GetComponent<Relationship>();
+    for (auto& i : relations.children) {
+      OrphanEntity(i);
+    }
+
+    auto& tag = ent->GetComponent<Tag>();
+    OrphanEntity(tag.id);
+
+    FixRoots(); 
+
+    auto itr = entities.find(tag.id);
+    OE_ASSERT(itr != entities.end() , "Somehow deleting non-existent entity {} [{}]" , tag.name , tag.id);
+
+    entities.erase(itr);
+
+    auto itr2 = root_entities.find(tag.id);
+    if (itr2 != root_entities.end()) {
+      root_entities.erase(itr2);
+    }
   }
       
   void Scene::RenameEntity(UUID curr_id , UUID new_id , const std::string_view name) {

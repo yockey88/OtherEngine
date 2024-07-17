@@ -74,6 +74,8 @@ namespace other {
       Entity* CreateEntity(const std::string& name = "");
       Entity* CreateEntity(const std::string& name , UUID id);
 
+      void DestroyEntity(Entity* ent);
+
       void RenameEntity(UUID curr_id , UUID new_id , const std::string_view name);
 
       void ParentEntity(UUID id , UUID parent_id);

@@ -7,9 +7,6 @@
 #include "scene/octree.hpp"
 
 #include "ecs/components/tag.hpp"
-#include "ecs/components/script.hpp"
-#include "ecs/components/mesh.hpp"
-#include "ecs/components/camera.hpp"
 
 namespace other {
 

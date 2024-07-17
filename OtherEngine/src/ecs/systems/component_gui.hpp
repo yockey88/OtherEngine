@@ -63,7 +63,7 @@ namespace other {
     ImGui::SameLine(avail_region.x - line_height - 5.f);
     ui::ShiftCursorY(line_height / 4.f);
     
-    if (ImGui::InvisibleButton("##options" , ImVec2{ line_height , line_height }) || right_clicked) {
+    if (ImGui::InvisibleButton("##component-options" , ImVec2{ line_height , line_height }) || right_clicked) {
       ImGui::OpenPopup("##component_settings");
     }
 

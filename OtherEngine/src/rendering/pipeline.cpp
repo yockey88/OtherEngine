@@ -67,7 +67,7 @@ namespace other {
     auto& idxs = source->Indices();
 
     uint32_t floats_added = 0;
-    for (uint32_t i = 0; i < verts.size(); ++floats_added) {
+    for (uint32_t i = 0; i < verts.size();) {
       for (uint32_t j = 0; j < spec.vertex_layout.Stride(); ++j, ++floats_added) {
         vertices.push_back(verts[i]);
         ++i;
@@ -82,9 +82,11 @@ namespace other {
     
     spec.model_storage->SetUniform("models" , transform , curr_transform_idx);
 
+    // meshes.push_back(source);
+    // transforms.push_back(transform);
+
     ++curr_transform_idx;
     idx_offset += floats_added; 
-    
   }
 
   void Pipeline::Render() {
@@ -119,6 +121,8 @@ namespace other {
     
     vertices.clear();
     indices.clear();
+    // meshes.clear();
+    // transforms.clear();
 
     curr_transform_idx = 0;
     idx_offset = 0;
@@ -139,6 +143,12 @@ namespace other {
   void Pipeline::PerformPass(Ref<RenderPass>& pass) {
     pass->Bind();
     CHECKGL();
+
+    // for (uint32_t i = 0; i < meshes.size(); ++i) {
+    //   pass->SetInput("voe_model" , transforms[i]);
+    //   meshes[i]->BindVertexBuffer();
+    //   meshes[i]->DrawMesh(TRIANGLES);
+    // }
 
     if (spec.has_indices) {
       glDrawElements(spec.topology , indices.size() , GL_UNSIGNED_INT , 0);

@@ -105,6 +105,9 @@ namespace other {
     private:
       uint32_t vao_id = 0;
       PipelineSpec spec{};
+
+      std::vector<Ref<ModelSource>> meshes{};
+      std::vector<glm::mat4> transforms{};
       
       std::vector<float> vertices{};
       std::vector<uint32_t> indices{};

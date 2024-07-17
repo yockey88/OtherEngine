@@ -15,10 +15,10 @@ vertex [mesh : default] {
   out vec4 foe_color;
   
   void main() {
-    gl_Position = projection * view * models[voe_model_id] * vec4(voe_position , 1.0);
+    gl_Position = projection * view * voe_model * vec4(voe_position , 1.0);
 
     fviewpoint = viewpoint;
-    foe_position = vec3(view * models[voe_model_id] * vec4(voe_position , 1.0))
+    foe_position = vec3(view * voe_model * vec4(voe_position , 1.0))
     foe_color = vec4(voe_position , 1.0);
   };
 

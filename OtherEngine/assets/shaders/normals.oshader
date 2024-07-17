@@ -14,10 +14,10 @@ vertex [mesh : default] {
   } vout;
   
   void main() {
-    mat3 normal_mat = mat3(transpose(inverse(view * models[voe_model_id])));
+    mat3 normal_mat = mat3(transpose(inverse(view * voe_model)));
     vout.normal = normalize(vec3(vec4(normal_mat * voe_normal , 0.0)));
   
-    gl_Position = view * models[voe_model_id] * vec4(voe_position , 1.0);
+    gl_Position = view * voe_model * vec4(voe_position , 1.0);
   }
 
 }

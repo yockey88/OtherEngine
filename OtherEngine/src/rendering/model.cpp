@@ -70,6 +70,14 @@ namespace other {
   void ModelSource::BindIndexBuffer() {
     index_buffer->Bind();
   }
+      
+  void ModelSource::DrawMesh(DrawMode mode) {
+    if (index_buffer != nullptr) {
+      glDrawElements(mode , indices.size() , GL_UNSIGNED_INT , 0);
+    } else {
+      glDrawArrays(mode , 0 , vertices.size() / Vertex::Stride()); 
+    }
+  }
   
   void ModelSource::UnbindVertexBuffer() {
     vertex_buffer->Unbind();

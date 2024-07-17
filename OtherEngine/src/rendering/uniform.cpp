@@ -70,7 +70,6 @@ namespace other {
 
   void UniformBuffer::BindRange(size_t offset , size_t size) {
     OE_ASSERT(false , "unimplemented");
-    glBindBufferBase(type , binding_point , renderer_id);
   }
 
   void UniformBuffer::Bind() {
@@ -88,11 +87,11 @@ namespace other {
   std::tuple<UniformBuffer::UniformData , bool , uint32_t> UniformBuffer::TryFind(const std::string& name , uint32_t index) {
     auto [id , u_data] = GetUniform(name);
     if (id.Get() == 0) {
-      return { {} , false  , 0};
+      return { {} , false  , 0 };
     }
     
     uint32_t offset = CalculateOffset(u_data , index); 
-     return { u_data , true , offset };
+    return { u_data , true , offset };
   }
       
   std::pair<UUID , UniformBuffer::UniformData> UniformBuffer::GetUniform(const std::string& name) {
