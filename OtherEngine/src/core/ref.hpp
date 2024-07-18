@@ -4,6 +4,9 @@
 #ifndef OTHER_ENGINE_REF_HPP
 #define OTHER_ENGINE_REF_HPP
 
+#include <concepts>
+
+#include "core/errors.hpp"
 #include "core/ref_counted.hpp"
 
 namespace other {
@@ -118,8 +121,13 @@ namespace detail {
         return Ref<U>((U*)old_ref.object);
       }
 
-      static Ref<T> Clone(const Ref<T>& old_ref) {
-        return Ref<T>(old_ref);
+      template <typename U>
+      static Ref<T> Clone(const Ref<U>& old_ref) {
+        if constexpr (std::same_as<T , U>) {
+          return Ref<T>(old_ref);
+        } else {
+          throw InvalidRefCast(typeid(T) , typeid(U));
+        }
       }
 
       template <typename... Args>

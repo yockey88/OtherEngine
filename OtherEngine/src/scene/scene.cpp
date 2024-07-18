@@ -256,7 +256,9 @@ namespace other {
   }
       
   void Scene::Render(Ref<SceneRenderer> renderer , Ref<CameraBase> camera) {
-    /// lights
+    /// environment (set pipeline inputs) 
+
+    /// models
     registry.view<Mesh , Transform>().each([&renderer](const Mesh& mesh , const Transform& transform) {
       if (!AppState::Assets()->IsValid(mesh.handle)) {
         return;
@@ -270,9 +272,7 @@ namespace other {
       renderer->SubmitModel(model , transform.model_transform);
     });
 
-    const auto& reg = registry.view<StaticMesh , Transform>();
-
-    reg.each([&renderer](const StaticMesh& mesh , const Transform& transform) {
+    registry.view<StaticMesh , Transform>().each([&renderer](const StaticMesh& mesh , const Transform& transform) {
       if (!AppState::Assets()->IsValid(mesh.handle)) {
         return;
       }
@@ -454,26 +454,35 @@ namespace other {
     return ent;
   }
 
-  void Scene::DestroyEntity(Entity* ent) {
+  void Scene::DestroyEntity(UUID id) {
+    auto ent_itr = entities.find(id);
+    OE_ASSERT(ent_itr != entities.end() , "Somehow deleting non-existent entity [{}]" , id);
+
+    auto& [eid , ent] = *ent_itr;
+
+    /// TODO: make all children children of this entity's parents
     auto& relations = ent->GetComponent<Relationship>();
     for (auto& i : relations.children) {
       OrphanEntity(i);
     }
 
-    auto& tag = ent->GetComponent<Tag>();
-    OrphanEntity(tag.id);
-
+    OrphanEntity(id);
+    
     FixRoots(); 
+    
+    entt::entity handle = ent->handle;
+    delete ent;
+    ent = nullptr;
 
-    auto itr = entities.find(tag.id);
-    OE_ASSERT(itr != entities.end() , "Somehow deleting non-existent entity {} [{}]" , tag.name , tag.id);
+    entities.erase(ent_itr);
 
-    entities.erase(itr);
-
-    auto itr2 = root_entities.find(tag.id);
+    auto itr2 = root_entities.find(id);
     if (itr2 != root_entities.end()) {
       root_entities.erase(itr2);
     }
+    
+
+    registry.destroy(handle);
   }
       
   void Scene::RenameEntity(UUID curr_id , UUID new_id , const std::string_view name) {

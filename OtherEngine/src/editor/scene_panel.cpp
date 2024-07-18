@@ -425,7 +425,7 @@ namespace other {
     }    
 
     if (remove_entity) {
-      active_scene->DestroyEntity(entity);
+      active_scene->DestroyEntity(id);
       return false;
     }
 

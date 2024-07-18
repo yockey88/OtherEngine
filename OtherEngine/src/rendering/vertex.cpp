@@ -67,16 +67,14 @@ namespace other {
   
     vertex_buffer = NewScope<VertexBuffer>(vertices.data() , vertices.size() * sizeof(float));
     
-    if (indices.size() == 0) {
-      SetLayout();
-    } else {
+    if (indices.size() != 0) {
       index_buffer = NewScope<VertexBuffer>(
         indices.data() , indices.size() * sizeof(uint32_t) , 
         STATIC_DRAW , ELEMENT_ARRAY_BUFFER
       );
-  
-      SetLayout();
     }
+      
+    SetLayout();
 
     Unbind();
   }
@@ -105,7 +103,7 @@ namespace other {
   
   void VertexArray::SetLayout() {
     if (layout.size() == 0) {
-      layout = { 3 };
+      layout = Vertex::RawLayout();
     }
   
     uint32_t stride = 0;

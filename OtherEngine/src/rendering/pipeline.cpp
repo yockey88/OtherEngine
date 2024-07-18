@@ -62,45 +62,52 @@ namespace other {
   void Pipeline::SubmitStaticModel(Ref<StaticModel>& model , const glm::mat4& transform) {
     Ref<ModelSource> source = model->GetModelSource();
     // const auto& submesh_data = model_source->SubMeshes();
-    
+     
     auto& verts = source->RawVertices();
     auto& idxs = source->Indices();
 
-    uint32_t floats_added = 0;
-    for (uint32_t i = 0; i < verts.size();) {
-      for (uint32_t j = 0; j < spec.vertex_layout.Stride(); ++j, ++floats_added) {
-        vertices.push_back(verts[i]);
-        ++i;
-      }
+    // uint32_t floats_added = 0;
+    // for (uint32_t i = 0; i < verts.size();) {
+    //   for (uint32_t j = 0; j < spec.vertex_layout.Stride(); ++j, ++floats_added) {
+    //     vertices.push_back(verts[i]);
+    //     ++i;
+    //   }
 
-      vertices.push_back(curr_transform_idx);
+    //   vertices.push_back(curr_transform_idx);
+    // }
+
+    // for (auto& i : idxs) {
+    //   AddIndices(i);
+    // }
+    // 
+    // spec.model_storage->SetUniform("models" , transform , curr_transform_idx);
+
+    // ++curr_transform_idx;
+    // idx_offset += floats_added; 
+
+    std::vector<uint32_t> indices{};
+    for (const auto& i : idxs) {
+      indices.push_back(i.v1);
+      indices.push_back(i.v2);
+      indices.push_back(i.v3);
     }
 
-    for (auto& i : idxs) {
-      AddIndices(i);
-    }
-    
-    spec.model_storage->SetUniform("models" , transform , curr_transform_idx);
-
-    // meshes.push_back(source);
-    // transforms.push_back(transform);
-
-    ++curr_transform_idx;
-    idx_offset += floats_added; 
+    meshes.emplace_back(NewRef<VertexArray>(verts , indices));
+    transforms.push_back(transform);
   }
 
   void Pipeline::Render() {
-    vertex_buffer->Bind();
-    vertex_buffer->BufferData(vertices.data() , vertices.size() * sizeof(float));
+    // vertex_buffer->Bind();
+    // vertex_buffer->BufferData(vertices.data() , vertices.size() * sizeof(float));
 
-    CHECKGL();
+    // CHECKGL();
 
-    if (spec.has_indices) {
-      index_buffer->Bind();
-      index_buffer->BufferData(indices.data() , indices.size() * sizeof(uint32_t));
-    }
+    // if (spec.has_indices) {
+    //   index_buffer->Bind();
+    //   index_buffer->BufferData(indices.data() , indices.size() * sizeof(uint32_t));
+    // }
 
-    CHECKGL();
+    // CHECKGL();
 
     target->BindFrame();
 
@@ -114,20 +121,20 @@ namespace other {
 
     CHECKGL();
 
-    vertex_buffer->ClearBuffer();
-    if (spec.has_indices) {
-      index_buffer->ClearBuffer();
-    }
-    
-    vertices.clear();
-    indices.clear();
-    // meshes.clear();
-    // transforms.clear();
+    // vertex_buffer->ClearBuffer();
+    // if (spec.has_indices) {
+    //   index_buffer->ClearBuffer();
+    // }
+    // 
+    // vertices.clear();
+    // indices.clear();
+    meshes.clear();
+    transforms.clear();
 
-    curr_transform_idx = 0;
-    idx_offset = 0;
+    // curr_transform_idx = 0;
+    // idx_offset = 0;
 
-    CHECKGL();
+    // CHECKGL();
   }
 
   Ref<Framebuffer> Pipeline::GetOutput() {
@@ -144,17 +151,16 @@ namespace other {
     pass->Bind();
     CHECKGL();
 
-    // for (uint32_t i = 0; i < meshes.size(); ++i) {
-    //   pass->SetInput("voe_model" , transforms[i]);
-    //   meshes[i]->BindVertexBuffer();
-    //   meshes[i]->DrawMesh(TRIANGLES);
-    // }
-
-    if (spec.has_indices) {
-      glDrawElements(spec.topology , indices.size() , GL_UNSIGNED_INT , 0);
-    } else {
-      glDrawArrays(spec.topology , 0 , vertices.size() / spec.vertex_layout.Stride()); 
+    for (uint32_t i = 0; i < meshes.size(); ++i) {
+      pass->SetInput("voe_model" , transforms[i]);
+      meshes[i]->Draw(spec.topology);
     }
+
+    // if (spec.has_indices) {
+    //   glDrawElements(spec.topology , indices.size() , GL_UNSIGNED_INT , 0);
+    // } else {
+    //   glDrawArrays(spec.topology , 0 , vertices.size() / spec.vertex_layout.Stride()); 
+    // }
 
     CHECKGL();
   }

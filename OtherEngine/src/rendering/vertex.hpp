@@ -65,7 +65,7 @@ namespace other {
       uint32_t buffer_size;
   };
   
-  class VertexArray { 
+  class VertexArray : public RefCounted { 
     public:
       VertexArray();
       VertexArray(

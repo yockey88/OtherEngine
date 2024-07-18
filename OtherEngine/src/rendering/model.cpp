@@ -65,6 +65,7 @@ namespace other {
   void ModelSource::BindVertexBuffer() {
     OE_ASSERT(vertex_buffer != nullptr , "trying to bind null vertex buffer after model creation!");
     vertex_buffer->Bind();
+    CHECKGL();
   }
 
   void ModelSource::BindIndexBuffer() {
@@ -72,11 +73,15 @@ namespace other {
   }
       
   void ModelSource::DrawMesh(DrawMode mode) {
+    CHECKGL();
+
     if (index_buffer != nullptr) {
       glDrawElements(mode , indices.size() , GL_UNSIGNED_INT , 0);
     } else {
       glDrawArrays(mode , 0 , vertices.size() / Vertex::Stride()); 
     }
+    
+    CHECKGL();
   }
   
   void ModelSource::UnbindVertexBuffer() {
@@ -185,7 +190,7 @@ namespace other {
   StaticModel::StaticModel(Ref<ModelSource>& model_source) {
     OE_ASSERT(model_source != nullptr , "Attempting construct model from null source!");
     handle = Random::GenerateUUID();
-	this->model_source = Ref<ModelSource>::Clone(model_source);
+    this->model_source = Ref<ModelSource>::Clone(model_source);
     SetSubMeshes({});
 
     /// build materials

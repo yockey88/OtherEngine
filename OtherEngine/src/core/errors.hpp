@@ -44,6 +44,13 @@ namespace other {
     NUM_SHADER_ERRORS ,
   };
 
+  enum CoreErrors {
+    INVALID_REF_CAST ,
+
+    NUM_CORE_ERRORS , 
+    INVALID_CORE_ERROR = NUM_CORE_ERRORS ,
+  };
+
   constexpr uint32_t kNumIniErrors = IniError::NUM_INI_ERRORS + 1;
   constexpr std::array<std::string_view , kNumIniErrors> kIniErrStrings = {
     "FILE NOT FOUND" ,
@@ -97,6 +104,13 @@ namespace other {
         : std::runtime_error(message.data()) {}
       ShaderException(const std::string_view message , ShaderError error , uint32_t line , uint32_t col) 
         : std::runtime_error(fmterr("[ {} ] : {} (at {}:{})" , message , kShaderErrStrings[error].data() , line , col)){}
+  };
+
+  class InvalidRefCast : public std::runtime_error {
+    public:
+      InvalidRefCast(const std::type_info& t1 , const std::type_info& t2)
+        : std::runtime_error(fmterr("Invalid Ref Cast : {} -> {}" , t1.name() , t2.name())) {}
+
   };
 
 } // namespace other

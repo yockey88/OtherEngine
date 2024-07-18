@@ -235,6 +235,7 @@ int main(int argc , char* argv[]) {
         
       CHECKGL();
 
+      bool rendering_floor = false;
       model2 = glm::translate(glm::mat4(1.f) , glm::vec3(0 , -2.f , 0)) *
                glm::scale(glm::mat4(1.f) , glm::vec3(10 , 1 , 10));
 
@@ -255,13 +256,13 @@ int main(int argc , char* argv[]) {
             case SDL_KEYDOWN:
               switch (event.key.keysym.sym) {
                 case SDLK_ESCAPE: running = false; break;
+                case SDLK_f: rendering_floor = !rendering_floor; break;
                 case SDLK_c: 
+                  camera_free = !camera_free;
                   if (!camera_free) {
                     other::Mouse::LockCursor();
-                    camera_free = true;
                   } else {
                     other::Mouse::FreeCursor();
-                    camera_free = false;
                   }
                 break;
                 default: break;
@@ -286,7 +287,9 @@ int main(int argc , char* argv[]) {
         renderer->BeginScene(camera);
         renderer->SetUniform("Draw Normals" , "magnitude" , 0.4f);
         renderer->SubmitStaticModel(model , model1);
-        renderer->SubmitStaticModel(floor , model2);
+        if (rendering_floor) {
+          renderer->SubmitStaticModel(floor , model2);
+        }
         renderer->EndScene();
 
         const auto& frames = renderer->GetRender(); 
@@ -318,8 +321,8 @@ int main(int argc , char* argv[]) {
 
         if (ImGui::Begin("Frames")) {
           ImVec2 win_size = { (float)other::Renderer::WindowSize().x , (float)other::Renderer::WindowSize().y };
-          RenderFrame(frames.at(FNV("Geometry")) , "Pipeline 1" , win_size);
-          RenderFrame(frames.at(FNV("Debug"))    , "Pipeline 2" , win_size);
+          // RenderFrame(frames.at(FNV("Geometry")) , "Pipeline 1" , win_size);
+          RenderFrame(frames.at(FNV("Debug"))    , "Debug" , win_size);
         } 
         ImGui::End();
 

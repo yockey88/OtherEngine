@@ -106,7 +106,9 @@ namespace other {
       uint32_t vao_id = 0;
       PipelineSpec spec{};
 
-      std::vector<Ref<ModelSource>> meshes{};
+      std::vector<Ref<VertexArray>> meshes;
+
+      // std::vector<Ref<ModelSource>> meshes{};
       std::vector<glm::mat4> transforms{};
       
       std::vector<float> vertices{};
@@ -117,6 +119,7 @@ namespace other {
       
       Scope<VertexBuffer> vertex_buffer = nullptr;
       Scope<VertexBuffer> index_buffer = nullptr;
+
        
       Ref<Framebuffer> target = nullptr;
 

@@ -10,6 +10,10 @@ namespace other {
     for (auto& u : spec.uniforms) {
       uniforms[other::FNV(u.name)] = u;
     } 
+
+    uniforms[other::FNV("voe_model")] = Uniform {
+      "voe_model" , other::ValueType::MAT4 
+    };
   }
       
   void RenderPass::Bind() {

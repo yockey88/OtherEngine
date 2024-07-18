@@ -8,6 +8,7 @@
 #include "ecs/entity.hpp"
 
 #include "rendering/model_factory.hpp"
+#include <glm/ext/matrix_transform.hpp>
 
 namespace other {
 
@@ -66,7 +67,8 @@ namespace other {
       return;
     }
 
-    auto& scale = entity->ReadComponent<Transform>().scale;
+    /// will be replaced during scene update
+    auto scale = glm::vec3(1.f);
     switch (mesh.primitive_id) {
       case kTriangleIdx:
       case kRectIdx: {
