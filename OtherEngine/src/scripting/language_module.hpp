@@ -6,23 +6,38 @@
 #define OTHER_ENGINE_LANGUAGE_MODULE_HPP
 
 #include <map>
+#include <type_traits>
 
-#include "core/engine.hpp"
 #include "core/uuid.hpp"
-#include "plugin/plugin.hpp"
+#include "core/ref_counted.hpp"
 #include "scripting/script_module.hpp"
 
 namespace other {
 
-  class LanguageModule : public Plugin {
+  class LanguageModule;
+
+  template <typename T>
+  concept lang_module_t = requires {
+    std::is_base_of_v<LanguageModule , T>;
+  };
+
+  class LanguageModule : public RefCounted {
     public: 
-      LanguageModule(Engine* engine)
-        : Plugin(engine) {}
-      virtual ~LanguageModule() override {}
+      LanguageModule(LanguageModuleType type) 
+          : lang_type(type) {}
+      virtual ~LanguageModule() {}
+
+      LanguageModuleType GetLanguageType() const;
+
+      bool HasScriptModule(const std::string_view name) const;
+      bool HasScriptModule(UUID id) const;
+      
+      const ScriptModuleInfo* GetScriptModule(const std::string& name) const;
+      const ScriptModuleInfo* GetScriptModule(const UUID& id) const;
 
       virtual bool Initialize() = 0;
-      virtual bool Reinitialize() = 0;
       virtual void Shutdown() = 0;
+      virtual void Reload() = 0;
       virtual ScriptModule* GetScriptModule(const std::string& name) = 0;
       virtual ScriptModule* GetScriptModule(const UUID& id) = 0;
       virtual ScriptModule* LoadScriptModule(const ScriptModuleInfo& module_info) = 0;
@@ -31,8 +46,13 @@ namespace other {
       virtual std::string_view GetModuleName() const = 0;
       virtual std::string_view GetModuleVersion() const = 0;
 
+      const std::map<UUID , ScriptModule*>& GetModules() const;
+
     protected:
+      LanguageModuleType lang_type;
+
       std::map<UUID , ScriptModule*> loaded_modules;
+      std::map<UUID , ScriptModuleInfo> loaded_modules_data;
 
       bool load_success = false;
   };

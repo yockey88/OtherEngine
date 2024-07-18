@@ -12,12 +12,14 @@
 #include "core/config.hpp"
 #include "parsing/cmd_line_parser.hpp"
 #include "parsing/ini_parser.hpp"
+#include "project/project.hpp"
+
 #include "event/event_queue.hpp"
 #include "input/io.hpp"
 #include "rendering/renderer.hpp"
+#include "rendering/rendering_defines.hpp"
 #include "rendering/ui/ui.hpp"
 #include "scripting/script_engine.hpp"
-#include "project/project.hpp"
 
 namespace other { 
 
@@ -67,24 +69,34 @@ namespace other {
       return ExitCode::FAILURE;
     }
 
+    ExitCode ec = ExitCode::SUCCESS;
+
+    OE driver;
     try {
       CoreInit();
 
       /* main engine entry point */ {
-        OE driver;
         ExitCode run_code = driver.Run();
         if (run_code != ExitCode::SUCCESS) {
           std::cerr << "Failed to run application" << std::endl;
         }
       }
-
-      CoreShutdown();
-    } catch (other::IniException& e) {
-      OE_CRITICAL("{}", e.what());
-      return ExitCode::FAILURE;
+    } catch (const std::exception& e) {
+      OE_CRITICAL("Fatal Error Caught : {}", e.what());
+      ec = ExitCode::FAILURE;
+    } catch (...) {
+      OE_CRITICAL("Caught unknow error!");
+      ec = ExitCode::FAILURE;
     }
 
-    return ExitCode::SUCCESS;
+    if (!driver.full_shutdown) {
+      driver.Shutdown();
+    }
+    if (!driver.engine_unloaded) {
+      driver.engine.UnloadApp();
+    }
+    CoreShutdown();
+    return ec;
   }
       
   void OE::Help() {
@@ -158,7 +170,7 @@ namespace other {
     }
 
     println("Using configuration : {}", ini_file);
-    // TODO: clean up finding config file
+
     config_path = ini_file;
 
     try {
@@ -170,11 +182,6 @@ namespace other {
     }
 
     auto config_table_str = current_config.TableString();
-
-    /// Create project metadata
-
-    /// process core config parts of table
-    ///  language modules to load
 
     return true;
   }
@@ -188,54 +195,73 @@ namespace other {
   }
 
   void OE::Launch() {
-    engine = Engine::Create(cmd_line , current_config , config_path.string());
-
     IO::Initialize();
     EventQueue::Initialize(current_config);
-    Renderer::Initialize(current_config);
-    UI::Initialize(current_config , Renderer::GetWindow());
 
-    ScriptEngine::Initialize(&engine , current_config);
+    Renderer::Initialize(current_config);
+    CHECKGL();
+
+    UI::Initialize(current_config , Renderer::GetWindow());
+    ScriptEngine::Initialize(current_config);
   }
 
   ExitCode OE::Run() {
     bool should_quit = false;
+
+    engine = Engine::Create(cmd_line, current_config, config_path.string());
+
     do {
-      Launch();
+      engine_unloaded = false;
+      full_shutdown = false;
+       
+      /// launch the application and load its main data
       {
         auto app = NewApp(&engine);
         engine.LoadApp(app);
       }
+      
+      /// launch the engine, initializing subsystems
+      Launch();
 
+      /// run the app
+      engine.PushCoreLayer();
       engine.ActiveApp()->Run();
-      engine.UnloadApp();
 
       auto exit_code = engine.exit_code.value();
       switch (exit_code) {
         case ExitCode::FAILURE:
           OE_CRITICAL("Application RUN failure");
+          should_quit = true;
+          break;
         case ExitCode::SUCCESS:
           should_quit = true;
           break;
         case ExitCode::LOAD_NEW_PROJECT:
         case ExitCode::RELOAD_PROJECT:
-          /// TODO: there is a better way to do this
+          /// Full Shutdown
           Shutdown();
           CoreShutdown();
 
+          /// Reload configuration
           if (!LoadConfig()) {
             println("Failed to load configuration");
             return ExitCode::FAILURE;
           }
 
+          /// begin again
           CoreInit();
-
           continue;
         default:
           break;
       }
 
+      /// shutdown the engine, closing and offloading main subsystems
       Shutdown();
+      full_shutdown = true;
+      
+      /// unload the app, offloading core data and pushing app out of scope to call destructor 
+      engine.UnloadApp();
+      engine_unloaded = true;
     } while (!should_quit);
 
     return engine.exit_code.value();
@@ -254,8 +280,9 @@ namespace other {
 
   void OE::CoreShutdown() {
     // shutdown allocators
+
     // close logger
-    OE_INFO("Core shutdown complete");
+    OE_INFO("Core shutdown complete, closing logger");
     Logger::Shutdown();
   }
 

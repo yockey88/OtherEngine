@@ -75,6 +75,10 @@ namespace other {
   Keyboard::KeyState Keyboard::GetKeyState(Key key) { 
     return keys[key]; 
   }
+    
+  int32_t Keyboard::FramesHeld(Key key) {
+    return keys[key].frames_held;
+  }
 
   bool Keyboard::Pressed(Key key) { 
     return keys[key].current_state == State::PRESSED; 
@@ -88,10 +92,8 @@ namespace other {
     return keys[key].current_state == State::HELD; 
   }
 
-  bool Keyboard::KeyDown(Key key) { 
-    return keys[key].current_state == State::PRESSED || 
-      keys[key].current_state == State::BLOCKED ||
-      keys[key].current_state == State::HELD; 
+  bool Keyboard::Down(Key key) { 
+    return keys[key].current_state != State::RELEASED; 
   }
 
   bool Keyboard::Released(Key key) {

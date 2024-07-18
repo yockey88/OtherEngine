@@ -12,6 +12,7 @@
 
 namespace other {
   
+  /// TODO: make this be the install directory at buildtime
   constexpr static std::string_view kEngineCoreDir = "C:/Yock/code/OtherEngine";
 
   class Filesystem {
@@ -35,6 +36,10 @@ namespace other {
       static Path FindExecutableIn(const std::string& path);
       static Path FindExecutableIn(const std::string_view path);
       static Path FindExecutableIn(const Path& path);
+
+      static bool AttemptDelete(const std::string& path);
+      static bool AttemptDelete(const std::string_view path);
+      static bool AttemptDelete(const Path& path);
 
       static Path GetWorkingDirectory();
 

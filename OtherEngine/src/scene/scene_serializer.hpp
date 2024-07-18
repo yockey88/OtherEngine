@@ -5,7 +5,9 @@
 #define OTHER_ENGINE_SCENE_SERIALIZER_HPP
 
 #include "core/ref.hpp"
-#include "ecs/entity_serializer.hpp"
+#include "core/config.hpp"
+#include "core/serializer.hpp"
+
 #include "scene/scene.hpp"
 
 namespace other {
@@ -16,12 +18,12 @@ namespace other {
     std::string name = "[ Empty Scene ]";
   };
 
-  class SceneSerializer {
+  class SceneSerializer : public Serializer {
     public: 
       SceneSerializer() {}
       ~SceneSerializer() {}
 
-      void Serialize(const std::string_view scene_name , Ref<Scene>& scene) const;
+      void Serialize(const std::string_view scene_name , std::ostream& stream , const Ref<Scene>& scene) const;
       DeserializedScene Deserialize(const std::string_view scn_path) const;
 
     private:

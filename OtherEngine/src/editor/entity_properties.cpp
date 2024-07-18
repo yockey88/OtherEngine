@@ -7,114 +7,25 @@
 
 #include <imgui/imgui.h>
 
+#include "ecs/components/collider_2d.hpp"
+#include "ecs/components/rigid_body_2d.hpp"
 #include "input/keyboard.hpp"
+
 #include "ecs/entity.hpp"
 #include "ecs/components/transform.hpp"
-#include "ecs/components/relationship.hpp"
 #include "ecs/components/mesh.hpp"
-#include "editor/selection_manager.hpp"
+#include "ecs/components/script.hpp"
+#include "ecs/components/camera.hpp"
+#include "ecs/systems/component_gui.hpp"
+
+#include "scripting/script_engine.hpp"
 #include "rendering/ui/ui_colors.hpp"
 #include "rendering/ui/ui_helpers.hpp"
-#include "rendering/ui/ui_widgets.hpp"
+
+#include "editor/selection_manager.hpp"
 
 namespace other {
   
-  template <component_type C , typename Func>
-  void DrawComponent(const std::string& name , Func ui_function) {
-    // bool should_draw = true;
-
-    Entity* selection = SelectionManager::ActiveSelection();
-    if (selection == nullptr) {
-      return;
-    }
-
-    ImGui::PushID((void*)typeid(C).hash_code());
-    ImVec2 avail_region = ImGui::GetContentRegionAvail();
-
-    ImGuiTreeNodeFlags tree_flags = ImGuiTreeNodeFlags_Framed |
-      ImGuiTreeNodeFlags_SpanAvailWidth |
-      ImGuiTreeNodeFlags_AllowItemOverlap |
-      ImGuiTreeNodeFlags_FramePadding;
-
-    const float frame_paddingx = 6.f;
-    const float frame_paddingy = 6.f;
-
-    bool open = false;
-    {
-      ScopedStyle header_rounding(ImGuiStyleVar_FrameRounding , 0.f);
-      ScopedStyle header_padding_and_height(ImGuiStyleVar_FramePadding , ImVec2{ frame_paddingx , frame_paddingy });
-      open = ImGui::TreeNodeEx(name.c_str() , tree_flags);
-    }
-    bool right_clicked = ImGui::IsItemClicked(ImGuiMouseButton_Right);
-
-    float line_height = ImGui::GetItemRectMax().y - ImGui::GetItemRectMin().y;
-    float item_padding = 4.f;
-
-    bool reset_values = false;
-    bool remove_comp = false;
-
-    ImGui::SameLine(avail_region.x - line_height - 5.f);
-    ui::ShiftCursorY(line_height / 4.f);
-    
-    if (ImGui::InvisibleButton("##options" , ImVec2{ line_height , line_height }) || right_clicked) {
-      ImGui::OpenPopup("##component_settings");
-    }
-
-    if (ui::OpenPopup("##component_settings")) {
-      /// this should really be submesh?
-      if constexpr (!std::is_same_v<C , Mesh>) {
-        ui::ShiftCursorX(item_padding);
-        if (ImGui::MenuItem("Copy")) {
-          /// copy component
-        }
-
-        ui::ShiftCursorX(item_padding);
-        if (ImGui::MenuItem("Paste")) {
-          /// paste copied component
-        }
-      }
-
-      ui::ShiftCursorX(item_padding);
-      if (ImGui::MenuItem("Reset")) {
-        reset_values = true;
-      }
-
-      ui::ShiftCursorX(item_padding);                /// should also be submesh
-      if constexpr (!std::is_same_v<C , Transform> && !std::is_same_v<C , Relationship> && !std::is_same_v<C , Mesh>) {
-        if (ImGui::MenuItem("Remove Component")) {
-          remove_comp = true;
-        }
-      }
-
-      ui::EndPopup();
-    }
-
-    if (open) {
-      ui_function(selection);
-      ImGui::TreePop();
-    }
-
-    if (remove_comp && selection->HasComponent<C>()) {
-      selection->RemoveComponent<C>();
-    }
-
-    if (reset_values) {      /// also should be submesh
-      if constexpr (std::is_same_v<C , Mesh>) {
-
-      } else {
-        selection->RemoveComponent<C>();
-        selection->AddComponent<C>();
-        /// if actually mesh 
-      }
-    }
-
-    if (!open) {
-      ui::ShiftCursorY(-(ImGui::GetStyle().ItemSpacing.y + 1.f));
-    }
-
-    ImGui::PopID();
-  }
-
   void EntityProperties::OnGuiRender(bool& is_open) {
     is_open = SelectionManager::HasSelection();
     if (!is_open) {
@@ -170,15 +81,43 @@ namespace other {
           ImGui::SetKeyboardFocusHere();
         }
 
-        if (ImGui::InputText("##tag" , buffer.data() , buffer.size())) {
+        if (ImGui::InputText("##entity-tag" , buffer.data() , buffer.size())) {
           if (buffer[0] == 0) {
             buffer = { "[ Unnamed Entity ]" }; 
           }
 
-          /// set empty name
+          if (ImGui::IsKeyPressed(ImGuiKey_Enter)) {
+            /// copy buffer into string
+            UUID old_id = selection->ReadComponent<Tag>().id;
+
+            bool name_valid = true;
+            std::string name;
+
+            for (auto& c : buffer) {
+              if (c == 0) {
+                break;
+              }
+              name += c;
+            }
+
+            if (name.empty()) {
+              OE_WARN("Can not give entity an empty name!");
+              name_valid = false;
+            }
+            
+            UUID id = FNV(name);
+            if (name_valid && active_scene->GetEntity(id) != nullptr) {
+              OE_WARN("Can not give entity the same name as another entity");
+              name_valid = false;
+            }
+
+            if (name_valid) {
+              active_scene->RenameEntity(old_id , id , name);
+            }
+          }
         }
 
-        // ui::DrawItemActivityOutline(ui::OutlineFlags_NoOutlineInactive);
+        ui::DrawItemActivityOutline(ui::OutlineFlags_NoOutlineInactive);
       
         hovering_id = ImGui::IsItemHovered();
 
@@ -243,6 +182,22 @@ namespace other {
           if (ImGui::BeginTable("##add_component_table" , 2 , ImGuiTableFlags_SizingStretchSame)) {
             ImGui::TableSetupColumn("icon" , ImGuiTableColumnFlags_WidthFixed , add_comp_panel_w * 0.15f);
             ImGui::TableSetupColumn("component names" , ImGuiTableColumnFlags_WidthFixed , add_comp_panel_w * 0.85f);
+
+            DrawAddComponentButton<Script>("Script");
+            DrawAddComponentButton<Mesh>("Mesh");
+            DrawAddComponentButton<StaticMesh>("Static Mesh");
+            DrawAddComponentButton<Camera>("Camera");
+            switch (active_scene->ActivePhysicsType()) {
+              case PHYSICS_2D:
+                DrawAddComponentButton<RigidBody2D>("Rigid Body 2D");
+                DrawAddComponentButton<Collider2D>("Collider 2D");
+              break;
+              case PHYSICS_3D: { 
+                ui::DrawTodoReminder("3D PHYSICS COMPONENT ADDERS");
+              } break;
+              default:
+                break;
+            }
             
             ImGui::EndTable();
           }
@@ -252,6 +207,45 @@ namespace other {
       }
 
       DrawSelectionComponents(selection);
+
+      ImRect win_rect = { ImGui::GetWindowContentRegionMin() , ImGui::GetWindowContentRegionMax() }; 
+      ImGui::Dummy(win_rect.GetSize());
+
+      if (ImGui::BeginDragDropTarget()) {
+        const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("project-scripts-folder" , ImGuiDragDropFlags_AcceptNoDrawDefaultRect);
+        if (payload != nullptr) {
+          std::string script_name{ static_cast<const char*>(payload->Data) };
+
+
+          ScriptObject* script = ScriptEngine::GetScriptObject(script_name);
+          if (selection->HasComponent<Script>()) {
+            auto& scripts = selection->GetComponent<Script>();
+
+            bool exists = false;
+            for (auto& [id , s] : scripts.scripts) {
+              if (script == s) {
+                exists = true; 
+              } 
+            }
+
+            if (!exists) {
+              std::string case_ins_name;
+              std::transform(script_name.begin() , script_name.end() , std::back_inserter(case_ins_name) , ::toupper);
+
+              UUID id = FNV(case_ins_name);
+              scripts.data[id] = ScriptObjectData{
+                .module = "" , 
+                .obj_name = script_name ,
+              };
+              scripts.scripts[id] = script;
+            } else {
+              OE_WARN("Script {} already attached to object" , script_name);
+            }
+          }
+        }
+
+        ImGui::EndDragDropTarget();
+      }
     }
     ImGui::End();
   }
@@ -263,48 +257,22 @@ namespace other {
   }
 
   void EntityProperties::SetSceneContext(const Ref<Scene>& scene) {
-    OE_ASSERT(scene != nullptr , "Setting null scene context in entity properties panel");
     active_scene = scene;
+    if (active_scene == nullptr) {
+      SelectionManager::ClearSelection();
+    }
   }
       
   void EntityProperties::DrawSelectionComponents(Entity* entity) {
-    DrawComponent<Transform>("Transform" , [](Entity* selection) {
-      ScopedStyle spacing(ImGuiStyleVar_ItemSpacing , ImVec2(8.f , 8.f));
-      ScopedStyle padding(ImGuiStyleVar_FramePadding , ImVec2(4.f , 4.f));
-
-      ImGui::BeginTable("Transform Component" , 2 , ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_NoClip);
-      ImGui::TableSetupColumn("label_col" , 0 , 100.f);
-      ImGui::TableSetupColumn("value_col" , ImGuiTableColumnFlags_IndentEnable | ImGuiTableColumnFlags_NoClip , ImGui::GetContentRegionAvail().x - 100.f);
-
-      bool translation_manually_edited = false;
-      bool rotation_manually_edited = false;
-      bool scale_manually_edited = false;
-
-      /// replace with this input parameter
-      bool multi_edit = false;
-      if (multi_edit) {
-      } else {
-        auto& component = selection->GetComponent<Transform>();
-        
-        ImGui::TableNextRow();
-        ui::widgets::DrawVec3Control("Translation" , component.position , translation_manually_edited);
-
-        ImGui::TableNextRow();
-        if (ui::widgets::DrawVec3Control("Rotation" , component.erotation , rotation_manually_edited)) {
-          /// recalculate quaternion
-        }
-
-        ImGui::TableNextRow();
-        ui::widgets::DrawVec3Control("Scale" , component.scale , scale_manually_edited , 1.f);
-      }
-
-      ImGui::EndTable();
-
-      ui::ShiftCursorY(-8.f);
-      ui::Underline();
-
-      ui::ShiftCursorY(18.f);
-    });
+    // DrawComponent<Tag>("Tag" , DrawTag);
+    DrawComponent<Transform>("Transform" , DrawTransform);
+    // DrawComponent<Relationship>("Scene Relationships" , DrawRelationship);
+    DrawComponent<Script>("Script" , DrawScript);
+    DrawComponent<Mesh>("Mesh" , DrawMesh);
+    DrawComponent<StaticMesh>("Static Mesh" , DrawStaticMesh);
+    DrawComponent<Camera>("Camera" , DrawCamera);
+    DrawComponent<RigidBody2D>("Rigid Body 2D" , DrawRigidBody2D);
+    DrawComponent<Collider2D>("Collider 2D" , DrawCollider2D);
   }
 
 } // namespace other

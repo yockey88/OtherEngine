@@ -28,6 +28,7 @@ OtherEngine.windows_configuration = function()
     "./platform",
   }
   systemversion "latest"
+  buildoptions { "/EHsc" , "/Zc:preprocessor" , "/Zc:__cplusplus" }
 end
 
 OtherEngine.post_build_commands = function()

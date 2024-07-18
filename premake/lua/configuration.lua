@@ -4,7 +4,7 @@ local function ProcessWindowsConfigurations(config)
       config.windows_configuration()
     else
       print(" -- Default windows configuration")
-      buildoptions { "/EHsc" , "/Zc:preprocessor" , "/Zc:__cplusplus" }
+      buildoptions { "/EHsc" , "/Zc:preprocessor" , "/Zc:__cplusplus" , "/m:4" }
     end
 
   filter { "system:windows" , "configurations:Debug" }
@@ -13,8 +13,6 @@ local function ProcessWindowsConfigurations(config)
     else
       print(" -- Default windows debug configuration")
       editandcontinue "Off"
-      -- sanitize { "Address" } -- address sanitizer seems to be broken on my machine :/
-      flags { "NoRuntimeChecks" }
       defines { "NOMINMAX" }
     end
 

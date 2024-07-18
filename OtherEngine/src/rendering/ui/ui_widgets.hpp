@@ -22,12 +22,32 @@ namespace ui {
 
 namespace widgets {
 
+  bool DrawVec2Control(const std::string_view label , glm::vec2& , bool& edited , 
+                       float reset_val = 0.f , float col_w = 100.f , VectorAxis axes = VectorAxis::ZERO , 
+                       const glm::vec2& v_min = glm::zero<glm::vec2>() , const glm::vec2& v_max = glm::zero<glm::vec2>() ,
+                       float speed = 1.f);
+  
+  bool EditVec2(const std::string_view label , ImVec2 size , float reset_val , bool& edited , glm::vec2& value ,
+                VectorAxis axes , float speed = 1.f , const glm::vec2& v_min = glm::zero<glm::vec2>() , 
+                const glm::vec2& v_max = glm::zero<glm::vec2>() , const char* format = "%.2f" , ImGuiSliderFlags flags = 0);
+
   bool DrawVec3Control(const std::string_view label , glm::vec3& value , bool& edited , 
-                       float reset_val = 0.f , float col_w = 100.f , VectorAxis axes = VectorAxis::ZERO);
+                       float reset_val = 0.f , float col_w = 100.f , VectorAxis axes = VectorAxis::ZERO , 
+                       const glm::vec3& v_min = glm::zero<glm::vec3>() , const glm::vec3& v_max = glm::zero<glm::vec3>() ,
+                       float speed = 1.f);
   
   bool EditVec3(const std::string_view label , ImVec2 size , float reset_val , bool& edited , glm::vec3& value ,
                 VectorAxis axes , float speed = 1.f , const glm::vec3& v_min = glm::zero<glm::vec3>() , 
                 const glm::vec3& v_max = glm::zero<glm::vec3>() , const char* format = "%.2f" , ImGuiSliderFlags flags = 0);
+  
+  bool DrawVec4Control(const std::string_view label , glm::vec4& , bool& edited , 
+                       float reset_val = 0.f , float col_w = 100.f , VectorAxis axes = VectorAxis::ZERO , 
+                       const glm::vec4& v_min = glm::zero<glm::vec4>() , const glm::vec4& v_max = glm::zero<glm::vec4>() ,
+                       float speed = 1.f);
+  
+  bool EditVec4(const std::string_view label , ImVec2 size , float reset_val , bool& edited , glm::vec4& value ,
+                VectorAxis axes , float speed = 1.f , const glm::vec4& v_min = glm::zero<glm::vec4>() , 
+                const glm::vec4& v_max = glm::zero<glm::vec4>() , const char* format = "%.2f" , ImGuiSliderFlags flags = 0);
 
 } // namespace widgets 
 } // namespace ui

@@ -16,29 +16,35 @@ namespace other {
     const auto& relationship = entity->ReadComponent<Relationship>();
     
     stream << "[" << entity->Name() << ".relationship]\n";
-    stream << "children = { ";
-    for (auto itr = relationship.children.begin(); itr != relationship.children.end(); ++itr) {
+    stream << "children = {";
+    if (relationship.children.empty()) {
+      stream << "}\n\n";
+      return;
+    }
+    stream << "\n";
+
+    for (auto itr = relationship.children.begin(); itr != relationship.children.end();) {
       auto* child = scene->GetEntity(*itr);
       if (child == nullptr) {
         OE_ERROR("{} has invalid child with id : {}" , entity->Name() , itr->Get());
         continue;
       }
 
-      stream << child->Name();
+      stream << "  \"" << child->Name() << "\"";
+
+      ++itr;
 
       if (itr != relationship.children.end()) {
         stream << " , ";
       }
+      stream << "\n";
     }
-    stream << " }";
+    stream << "}\n\n";
   } 
 
   void RelationshipSerializer::Deserialize(Entity* entity , const ConfigTable& scene_table , Ref<Scene>& scene) const {
-    std::string key_name = entity->Name();
-    std::transform(key_name.begin() , key_name.end() , key_name.begin() , ::toupper);
-    
+    std::string key_name = GetComponentSectionKey(entity->Name() , std::string{ kRelationshipSection });
 
-    key_name += "." + std::string{ kRelationshipSection };
     auto children = scene_table.Get(key_name , kChildrenValue);
     if (children.empty()) {
       return;
@@ -54,7 +60,19 @@ namespace other {
       if (std::find_if(loaded_ents.begin() , loaded_ents.end() , [c](const auto& ent) -> bool {
         return c == ent.second->Name();
       }) != loaded_ents.end()) {
-        continue;
+        /// entity already loaded, so now we add it as a child of this one
+        Entity* child = scene->GetEntity(c);
+        
+        /// double check we loaded it, this should never not be true, if it is
+        ///  we can attempt to load it again outside of this if case below
+        if (child != nullptr) {
+          auto& relation = entity->GetComponent<Relationship>();
+          auto& crelation = child->GetComponent<Relationship>();
+
+          crelation.parent = entity->ReadComponent<Tag>().id;
+          relation.children.insert(child->GetComponent<Tag>().id);
+          continue;
+        }
       }
       OE_DEBUG("Deserializing entity child {}" , c);
 
@@ -62,7 +80,7 @@ namespace other {
       Entity* child = scene->GetEntity(child_id);
 
       child->GetComponent<Relationship>().parent = entity->GetComponent<Tag>().id;
-      entity->GetComponent<Relationship>().children.push_back(child_id);
+      entity->GetComponent<Relationship>().children.insert(child_id);
 
       OE_DEBUG("   > Parent = {} | Child = {}" , child->ReadComponent<Relationship>().parent.value().Get() , child_id.Get());
     }

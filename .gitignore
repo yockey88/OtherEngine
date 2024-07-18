@@ -1,7 +1,6 @@
 ## Project files
 bin/
 bin_obj/
-tools/
 .cache/
 
 # Prerequisites
@@ -48,9 +47,11 @@ tools/
 *.vcxproj
 *.vcxproj.user
 *.vcxproj.filters
+*.csproj
+*.csproj.user
 
 ## Pycache
-__pycache__/
+tools/__pycache__/
 
 ## Editor directories and files
 .idea/

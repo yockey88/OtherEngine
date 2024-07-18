@@ -106,9 +106,10 @@ namespace other {
     auto sec_hash = FNV(sec);
     auto key_hash = FNV(k);
 
-    if (table.find(sec_hash) != table.end()) {
-      if (table.at(sec_hash).find(key_hash) != table.at(sec_hash).end()) {
-        std::vector<std::string> ret = table.at(sec_hash).at(key_hash);
+    auto itr = table.find(sec_hash);
+    if (itr != table.end()) {
+      if (auto itr2 = itr->second.find(key_hash); itr2 != itr->second.end()) {
+        std::vector<std::string> ret = itr->second.at(key_hash);
         return ret;
       }
 
@@ -210,7 +211,7 @@ namespace other {
     try {
       return std::stoul(ret_str.at(0));
     } catch (std::exception& e) {
-      OE_ERROR("Invalid value for key : {}" , key);
+      OE_ERROR("Invalid value for key {} : {}" , key , ret_str.at(0));
       return std::nullopt;
     }
   }

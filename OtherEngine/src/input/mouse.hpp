@@ -9,18 +9,19 @@
 
 #include <glm/glm.hpp>
 
+#include "core/defines.hpp"
+
 namespace other {
 
   class Mouse {
     public:
-      enum class Button : uint8_t {
-        FIRST = 0 ,
-        LEFT = FIRST ,
-        MIDDLE = 1 ,
-        RIGHT = 2 ,
-        X1 = 3 ,
-        X2 = 4 ,
-        LAST = X2
+      enum Button : uint8_t {
+        LEFT = 1 ,
+        MIDDLE = 2 ,
+        RIGHT = 3 ,
+        X1 = 4 ,
+        /// not sure what button this is?
+        X2 = 5 ,
       };
       
       enum class State : uint8_t {
@@ -32,6 +33,7 @@ namespace other {
 
       struct MouseState {
         glm::ivec2 position = glm::ivec2(0 , 0);
+        glm::ivec2 rel_position = glm::ivec2(0 , 0);
         glm::ivec2 previous_position = glm::ivec2(0 , 0);
         bool in_window = false;
       };
@@ -48,31 +50,38 @@ namespace other {
       static MouseState state;
       static std::map<Button , ButtonState> buttons;
 
+      static Opt<MouseState> pre_free_state; // horrible name
+
     public:
       static void Initialize();
       static void Update();
+
       static void SnapToCenter();
+
       static void FreeCursor();
-      static void HideCursor();
+      static void LockCursor();
 
-      static inline ButtonState GetButtonState(Button button) { return buttons[button]; }
+      static ButtonState GetButtonState(Button button); 
 
-      static inline uint32_t X() { return state.position.x; }
-      static inline uint32_t Y() { return state.position.y; }
+      static glm::ivec2 GetPos();
+      static glm::ivec2 GetRelPos();
+
+      static uint32_t GetX();
+      static uint32_t GetY();
       
-      static inline uint32_t PreviousX() { return state.previous_position.x; }
-      static inline uint32_t PreviousY() { return state.previous_position.y; }
+      static uint32_t PreviousX(); 
+      static uint32_t PreviousY(); 
 
-      static inline uint32_t DX() { return state.position.x - state.previous_position.x; }
-      static inline uint32_t DY() { return state.position.y - state.previous_position.y; }
+      static uint32_t GetDX(); 
+      static uint32_t GetDY(); 
 
-      static inline bool InWindow() { return state.in_window; }
+      static bool InWindow(); 
 
-      static inline uint32_t FramesHeld(Button button) { return buttons[button].frames_held; }
-      static inline bool Pressed(Button button) { return buttons[button].current_state == State::PRESSED; }
-      static inline bool Blocked(Button button) { return buttons[button].current_state == State::BLOCKED; }
-      static inline bool Held(Button button) { return buttons[button].current_state == State::HELD; }
-      static inline bool Released(Button button) { return buttons[button].current_state == State::RELEASED; }
+      static uint32_t FramesHeld(Button button);
+      static bool Pressed(Button button);
+      static bool Blocked(Button button);
+      static bool Held(Button button);
+      static bool Released(Button button);
   };
 
 } // namespace other

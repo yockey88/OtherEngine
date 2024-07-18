@@ -10,7 +10,10 @@
 #include "core/config.hpp"
 #include "core/uuid.hpp"
 #include "core/ref.hpp"
+
 #include "scene/scene.hpp"
+
+#include "rendering/scene_renderer.hpp"
 
 namespace other {
 
@@ -23,18 +26,32 @@ namespace other {
 
   class SceneManager {
     public:
+      SceneManager() {}
+      ~SceneManager() {}
+
       bool LoadScene(const Path& scenepath);
       void SetAsActive(const Path& name);
 
-      bool HasScene(const Path& path);
+      void StartScene();
+      void StopScene();
 
-      const SceneMetadata* ActiveScene() const;
+      bool HasScene(const Path& path);
+      bool HasActiveScene() const;
+
+      SceneMetadata* ActiveScene() const;
+      void SaveActiveScene();
       void UnloadActive();
+
+      void ClearScenes();
 
       const std::vector<std::string>& ScenePaths() const; 
       const std::map<UUID , SceneMetadata>& GetScenes() const;
 
+      void EarlyUpdateScene(float dt);
       void UpdateScene(float dt);
+      void LateUpdateScene(float dt);
+      bool RenderScene(Ref<SceneRenderer> scene_renderer , Ref<CameraBase> viewpoint = nullptr);
+      void RenderSceneUI();
 
     private:
       SceneMetadata* active_scene = nullptr;

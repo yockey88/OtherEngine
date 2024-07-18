@@ -6,13 +6,14 @@
 
 #include "core/config.hpp"
 #include "core/ref.hpp"
+#include "core/serializer.hpp"
 
 namespace other {
 
   class Entity;
   class Scene;
 
-  class ComponentSerializer {
+  class ComponentSerializer : public Serializer {
     public:
       virtual ~ComponentSerializer() {}
 
@@ -20,20 +21,13 @@ namespace other {
       virtual void Deserialize(Entity* entity , const ConfigTable& scn_table , Ref<Scene>& scene) const = 0;
 
     protected:
-      void SerializeVec2(std::ostream& stream , const std::string_view name , const glm::vec2& vec) const;
-      void DeserializeVec2(const std::vector<std::string>& values , glm::vec2& vec) const;
+      std::string GetComponentSectionKey(const std::string& name , const std::string& section_key) const;
       
-      void SerializeVec3(std::ostream& stream , const std::string_view name , const glm::vec3& vec) const;
-      void DeserializeVec3(const std::vector<std::string>& values , glm::vec3& vec) const;
-      
-      void SerializeVec4(std::ostream& stream , const std::string_view name , const glm::vec4& vec) const;
-      void DeserializeVec4(const std::vector<std::string>& values , glm::vec4& vec) const;
-
-      void SerializeQuat(std::ostream& stream , const std::string_view name , const glm::quat& vec) const;
-      void DeserializeQuat(const std::vector<std::string>& values , glm::quat& vec) const;
+      void SerializeComponentSection(std::ostream& stream , Entity* owner , const std::string_view tag) const;
   };
 
 #define COMPONENT_SERIALIZERS(name) \
+  virtual ~name##Serializer() override {} \
   const std::string GetSerializerName() const { return "ComponentSerializer[" #name "Serializer]"; } \
   virtual void Serialize(std::ostream& stream , Entity* entity , const Ref<Scene>& scene) const override; \
   virtual void Deserialize(Entity* entity , const ConfigTable& scene_table , Ref<Scene>& scene) const override;

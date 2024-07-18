@@ -1119,7 +1119,7 @@ bool ZepBuffer::Insert(const GlyphIterator& startIndex, const std::string& str, 
 
     // abcdef\r\nabc<insert>dfdf\r\n
     auto itrLine = std::lower_bound(m_lineEnds.begin(), m_lineEnds.end(), startIndex.Index());
-    ;
+    
     if (itrLine != m_lineEnds.end() && *itrLine <= startIndex.Index())
     {
         itrLine++;

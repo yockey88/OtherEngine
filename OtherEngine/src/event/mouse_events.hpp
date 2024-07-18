@@ -68,7 +68,7 @@ namespace other {
 
     public:
       inline Mouse::Button Button() const { return button; }
-
+      
       EVENT_CATEGORY(MOUSE_BUTTON_EVENT | MOUSE_EVNT | INPUT_EVENT);
   };
 

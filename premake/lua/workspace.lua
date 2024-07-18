@@ -92,6 +92,7 @@ function CppWorkspace(config)
   print("[ Creating workspace ] : " .. config.wks_name)
   WorkspaceHeader(config)
     if not Configure(config) then
+      print("Workspace configuration failed")
       print("=====================================")
       return
     end

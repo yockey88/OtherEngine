@@ -11,7 +11,7 @@ namespace other {
 
 class Keyboard {
   public:
-    enum class Key {
+    enum class Key : uint32_t {
       OE_UNKNOWN = 0 ,
       OE_UNKNOWN1 = 1 ,
       OE_UNKNOWN2 = 2 ,
@@ -307,10 +307,11 @@ class Keyboard {
 
     static KeyState GetKeyState(Key key);
 
+    static int32_t FramesHeld(Key key);
     static bool Pressed(Key key);
     static bool Blocked(Key key);
     static bool Held(Key key);
-    static bool KeyDown(Key key);
+    static bool Down(Key key);
     static bool Released(Key key);
 
     static inline bool LCtrlLayer() { 

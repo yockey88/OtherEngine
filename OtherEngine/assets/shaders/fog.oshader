@@ -1,0 +1,66 @@
+vertex [mesh : default] {
+  
+  layout (std140 , binding = 0) uniform Camera {
+    mat4 projection;
+    mat4 view;
+    vec3 viewpoint;
+  };
+   
+  layout (std430 , binding = 1) readonly buffer ModelData {
+    mat4 models[];
+  };
+
+  out vec3 fviewpoint;
+  out vec3 foe_position;
+  out vec4 foe_color;
+
+  void main() {
+    /// output gl_Position in projection space
+    gl_Position = projection * view * voe_model * vec4(voe_position , 1.0);
+
+    fviewpoint = viewpoint;
+
+    /// fog position is in view space
+    foe_position = vec3(view * voe_model * vec4(voe_position , 1.0));
+    foe_color = vec4(voe_position , 1.0);
+  }
+
+}
+
+fragment {
+
+  in vec3 fviewpoint;
+  in vec3 foe_position;
+  in vec4 foe_color;
+  
+  const float fog_start = 0.0;
+  const float fog_end = 0.1;
+
+  float fog_factor(float d , float scalar , float near_plane , float far_plane) {
+    float fog_max = 1.0f * far_plane;
+    float fog_min = scalar * far_plane;
+    if (d >= fog_max) {
+      return 1.0f;
+    }
+
+    if (d <= fog_min) {
+      return 0.0f;
+    }
+
+    return 1.0f - (fog_max - d) / (fog_max - fog_min);
+  }
+  
+  out vec4 FragColor;
+
+  const vec3 fog_color = vec3(1.0 , 1.0 , 1.0);
+  
+  void main () {
+    float d = distance(fviewpoint , foe_position);
+    // float factor = fog_factor(d , 0.5f , 2 , 10);
+    // float alpha = fog_factor(d , 0.7f , 2 , 10);
+    // FragColor = mix(foe_color , vec4(fog_color , 1.f) , factor);
+    // FragColor.a = 1-alpha;
+    FragColor = vec4(1 / d); 
+  };
+
+}

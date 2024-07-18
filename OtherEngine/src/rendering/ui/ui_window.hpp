@@ -16,6 +16,12 @@
 
 namespace other {
 
+#define UI_FUNC(name) \
+  std::bind_front((&name) , this)
+
+#define BIND_FUNC(name , obj) \
+  std::bind_front((&name) , obj)
+
   class UIWindow : public RefCounted {
     public:
       UIWindow(const std::string& title , ImGuiWindowFlags flags = 0 , bool open = true , bool pinned = false) 
@@ -35,8 +41,8 @@ namespace other {
       const std::string& Title() const { return title; }
       inline bool IsOpen() const { return window_open; }
       inline bool Pinned() const { return pinned; }
-      inline void Open() { window_open = true; }
-      inline void Close() { window_open = false; }
+      void Open(); 
+      void Close();
       inline void Pin() { pinned = true; }
 
       inline uint64_t ID() const { return id; }
@@ -50,8 +56,11 @@ namespace other {
       bool window_open;
       bool pinned;
 
+      bool render_function_popped = false;
+
       ImGuiWindowFlags flags;
 
+      void PopFrontFunction();
       void RenderAllChildren();
   };
 

@@ -3,16 +3,24 @@
  */
 #include "core/layer.hpp"
 
-#include "core/logger.hpp"
+#include "application/app.hpp"
 
 namespace other {
 
   void Layer::Attach() {
     OnAttach();
   }
+      
+  void Layer::EarlyUpdate(float dt) {
+    OnEarlyUpdate(dt);
+  }
 
   void Layer::Update(float dt) {
     OnUpdate(dt);
+  }
+  
+  void Layer::LateUpdate(float dt) {
+    OnLateUpdate(dt);
   }
 
   void Layer::Render() {
@@ -32,8 +40,19 @@ namespace other {
   }
       
   void Layer::LoadScene(const SceneMetadata* metadata) {
-    OE_ASSERT(metadata != nullptr , "Attempting to pass null scene metadata into layer");
     OnSceneLoad(metadata);
+  }
+
+  void Layer::UnloadScene() {
+    OnSceneUnload();
+  }
+
+  void Layer::ReloadScripts() {
+    OnScriptReload();
+  }
+      
+  bool Layer::HasActiveScene() const {
+    return ParentApp() != nullptr && ParentApp()->HasActiveScene();
   }
 
 } // namespace other
