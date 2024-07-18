@@ -10,9 +10,12 @@
 #include "core/filesystem.hpp"
 #include "rendering/ui/ui_helpers.hpp"
 #include "rendering/ui/ui_colors.hpp"
+
 #include "ecs/entity.hpp"
 #include "ecs/components/tag.hpp"
 #include "ecs/components/relationship.hpp"
+#include "ecs/components/camera.hpp"
+
 #include "editor/editor.hpp"
 #include "editor/selection_manager.hpp"
 
@@ -32,7 +35,7 @@ namespace other {
       ImGui::Dummy(win_rect.GetSize());
 
       if (ImGui::BeginDragDropTarget()) { 
-        const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("project_content_folder" , ImGuiDragDropFlags_AcceptNoDrawDefaultRect);
+        const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("project-scenes-folder" , ImGuiDragDropFlags_AcceptNoDrawDefaultRect);
         if (payload == nullptr) {
           ImGui::EndDragDropTarget();
           ImGui::End();
@@ -56,6 +59,12 @@ namespace other {
         ImGui::EndDragDropTarget();
       }
     } else {
+      if (ImGui::Button("Unload Active scene")) {
+        GetEditor().UnloadScene();
+        ImGui::End();
+        return;
+      }
+
       ImGuiTableFlags table_flags = ImGuiTableFlags_NoPadInnerX |
         ImGuiTableFlags_Reorderable | 
         ImGuiTableFlags_ScrollY;
@@ -71,7 +80,7 @@ namespace other {
 
       const int32_t num_columns = 2;
       if (ImGui::BeginTable("##scene_entities" , num_columns , table_flags , ImVec2(ImGui::GetContentRegionAvail()))) {
-        ImGui::TableSetupColumn("ID | Children");
+        ImGui::TableSetupColumn("Num Children");
         ImGui::TableSetupColumn("Objects");
 
         /// headers 
@@ -108,18 +117,26 @@ namespace other {
             ImGuiCol_HeaderActive , IM_COL32_DISABLE
           );
 
-          for (auto& [id , entity] : active_scene->RootEntities()) {
-            RenderEntity(id , entity);
-          }
+          auto ents = active_scene->RootEntities();
+          for (auto itr = ents.begin(); itr != ents.end();) {
+            auto& [id , entity] = *itr;
+            if (!RenderEntity(id , entity)) {
+              /// TODO: fix this bc it causes flicker of all ents when deleting one;
+              break;
+            }
 
-          // if () {
-            /// DrawCreateMenu()
-            /// EndPopup();
-          // }
+            ++itr;
+          }
         }
       } else {
         ImGui::Text("Failed to draw entity hierarchy");
       }
+
+      if (ImGui::BeginPopupContextWindow(nullptr , ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
+        RenderCreateEntity();
+        ImGui::EndPopup();
+      }
+
       ImGui::EndTable();
     }
 
@@ -133,7 +150,11 @@ namespace other {
   }
 
   void ScenePanel::SetSceneContext(const Ref<Scene>& scene) {
-    OE_ASSERT(scene != nullptr , "Attempting to set null scene context in ScenePanel");
+    if (scene == nullptr) {
+      OE_DEBUG("Unloading scene");
+      active_scene = nullptr;
+      return;
+    }
 
     OE_DEBUG("ScenePanel::SetSceneContext(entities = {})" , scene->SceneEntities().size());
     active_scene = scene;
@@ -143,7 +164,38 @@ namespace other {
     }
   }
       
-  void ScenePanel::RenderEntity(const UUID& id , Entity* entity) {
+  void ScenePanel::RenderCreateEntity(Entity* parent) {
+    const bool child_entity = parent != nullptr;
+
+    if (!ImGui::BeginMenu("Create")) {
+      return;
+    }
+
+    Entity* entity = nullptr;
+    if (ImGui::MenuItem("Empty Object")) {
+      entity = active_scene->CreateEntity(); 
+    }
+
+    if (ImGui::MenuItem("Camera")) {
+      entity = active_scene->CreateEntity(fmtstr("camera {}" , active_scene->NumCameras())); 
+      entity->AddComponent<Camera>();
+    }
+
+    if (entity == nullptr) {
+      ImGui::EndMenu();
+      return;
+    }
+
+    const auto& tag = entity->GetComponent<Tag>();
+
+    if (child_entity) {
+      active_scene->ParentEntity(tag.id , parent->GetComponent<Tag>().id); 
+    }
+
+    ImGui::EndMenu();
+  }
+      
+  bool ScenePanel::RenderEntity(const UUID& id , Entity* entity) {
     OE_ASSERT(entity != nullptr , "DRAWING NULL ENTITY IN HIERARCHY");
 
     auto& tag = entity->GetComponent<Tag>();
@@ -160,7 +212,7 @@ namespace other {
 
     ImGui::TableSetColumnIndex(0);
     
-    ImGui::Text("  [%lld | %lld]" , tag.id.Get() , relationships.children.size());
+    ImGui::Text("  [%lld]" , relationships.children.size());
 
     ImGui::TableSetColumnIndex(1);
 
@@ -176,8 +228,7 @@ namespace other {
       tag.id == SelectionManager::ActiveSelection()->ReadComponent<Tag>().id :
       false;
 
-    ImGuiTreeNodeFlags flags = (active_selection ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow;
-    flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
+    ImGuiTreeNodeFlags flags = (active_selection ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_SpanAvailWidth;
 
     // if has_child_matching_search
     //    flags |= ImGuiTreeNodeFlags_DefaultOpen;
@@ -185,8 +236,6 @@ namespace other {
     if (relationships.children.empty()) {
       flags |= ImGuiTreeNodeFlags_Leaf;
     }
-
-    // const std::string ent_str_id = fmt::format(fmt::runtime("{}.{}") , tag.name , tag.id);
 
     ImGui::PushClipRect(row_area_min , row_area_max , false);
     bool is_row_hovered , held;
@@ -298,44 +347,60 @@ namespace other {
       /// count selections
     }
 
-    const std::string right_click_popup = fmt::format(kCtxMenuFmtStr , tag.name);
+    float line_height = ImGui::GetItemRectMax().y - ImGui::GetItemRectMin().y;
 
-    bool entity_deleted = false;
-    if (ImGui::BeginPopupContextItem(right_click_popup.c_str())) {
-      /// entity context menu
-      ImGui::EndPopup();
+    auto avail_region = ImGui::GetContentRegionAvail();
+
+    ImGui::SameLine(avail_region.x - line_height - 5.f);
+    ui::ShiftCursorY(line_height / 4.f);
+    
+    bool remove_entity = false;
+    if (ImGui::InvisibleButton("##entity-options" , ImVec2{ line_height , line_height }) || right_clicked) {
+      ImGui::OpenPopup("##entity-settings");
+    }
+    
+    if (ui::OpenPopup("##entity-settings")) {
+      /// pop the background dark for the text so the menu is visible
+      if (active_selection) {
+        ImGui::PopStyleColor();
+      }
+
+      if (ImGui::MenuItem("Destroy Entity")) {
+        remove_entity = true;
+      }
+
+      if (active_selection) {
+        ImGui::PushStyleColor(ImGuiCol_Text , ui::theme::background_dark);
+      }
+      ui::EndPopup();
     }
 
-    if (is_row_clicked) {
-      if (right_clicked) {
-        ImGui::OpenPopup(right_click_popup.c_str());
-      } else {
-        /// bool ctrl_down
-        /// bool shift_down
-        /// if (shift_down && SelectionManager::SelectionCount() > 0) {
-        ///   SelectionManager::DeselectAll();
-        ///
-        ///   if (row_idx < first_row_selected) {
-        ///     last_row_selected = first_row_selected;
-        ///     first_row_selected = row_idx;
-        ///   } else {
-        ///     last_row_selected = row_idx;
-        ///   }
-        ///
-        ///   shift_selection_running
-        /// } else if (!ctrl_down || shift_down) {
-        ///   SelectionManager::DeselectAll();
-        ///   SelectManager::Select(entity);
-        ///   first_row_selected = row_idx;
-        ///   last_row_selected = -1;
-        /// } else 
+    if (is_row_clicked && !right_clicked) {
+      /// bool ctrl_down
+      /// bool shift_down
+      /// if (shift_down && SelectionManager::SelectionCount() > 0) {
+      ///   SelectionManager::DeselectAll();
+      ///
+      ///   if (row_idx < first_row_selected) {
+      ///     last_row_selected = first_row_selected;
+      ///     first_row_selected = row_idx;
+      ///   } else {
+      ///     last_row_selected = row_idx;
+      ///   }
+      ///
+      ///   shift_selection_running
+      /// } else if (!ctrl_down || shift_down) {
+      ///   SelectionManager::DeselectAll();
+      ///   SelectManager::Select(entity);
+      ///   first_row_selected = row_idx;
+      ///   last_row_selected = -1;
+      /// } else 
 
-        if (active_selection) {
-          SelectionManager::ClearSelection();
-        } else {
-          SelectionManager::Select(entity);
-        }
-      } 
+      if (active_selection) {
+        SelectionManager::ClearSelection();
+      } else {
+        SelectionManager::Select(entity);
+      }
 
       ImGui::FocusWindow(ImGui::GetCurrentWindow());
     }
@@ -357,11 +422,14 @@ namespace other {
       }
 
       ImGui::TreePop();
+    }    
+
+    if (remove_entity) {
+      active_scene->DestroyEntity(id);
+      return false;
     }
 
-    if (entity_deleted) {
-      /// delete entity
-    }
+    return true;
   }
 
 } // namespace other 

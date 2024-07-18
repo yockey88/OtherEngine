@@ -1,0 +1,26 @@
+vertex [mesh : textured_quad] {
+
+  out vec2 foe_uvs;
+
+  void main() {
+    gl_Position = vec4(voe_position , 0.0 , 1.0);
+    foe_uvs = voe_uvs;
+  }
+
+}
+
+fragment {
+
+  in vec2 foe_uvs;
+
+  out vec4 FragColor;
+
+  uniform sampler2D depth_tex;
+  uniform sampler2D screen_tex;
+
+  void main() {
+    vec3 col = texture(screen_tex , foe_uvs).rgb;
+    FragColor = vec4(col , 1.0);
+  }
+
+}

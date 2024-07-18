@@ -1,58 +1,44 @@
 /**
- * \file asset\asset_handler.hpp
-*/
+ * \file asset/asset_handler.hpp
+ **/
 #ifndef OTHER_ENGINE_ASSET_HANDLER_HPP
 #define OTHER_ENGINE_ASSET_HANDLER_HPP
 
-#include <unordered_map>
-#include <unordered_set>
-
+#include "core/ref_counted.hpp"
 #include "core/ref.hpp"
-#include "asset/asset_types.hpp"
+
 #include "asset/asset.hpp"
-#include "asset/asset_registry.hpp"
+#include "asset/asset_types.hpp"
 
 namespace other {
 
-  using AssetSet = std::unordered_set<AssetHandle>;
-  using AssetMap = std::unordered_map<AssetHandle, Ref<Asset>>;
+  class AssetHandler;
 
-  class AssetHandler {
+  class AssetHandler : public RefCounted {
     public:
       AssetHandler() {}
-      ~AssetHandler() {}
+      virtual ~AssetHandler() {}
 
-      AssetType GetType(AssetHandle handle);
-      Ref<Asset> GetAsset(AssetHandle handle);
+      virtual AssetType GetAssetType(AssetHandle assetHandle) = 0;
+      virtual Ref<Asset> GetAsset(AssetHandle assetHandle) = 0;
+      virtual void AddMemOnly(Ref<Asset>& asset) = 0;
+      virtual bool ReloadData(AssetHandle assetHandle) = 0;
 
-      void AddMemoryOnlyAsset(Ref<Asset> asset);
-      bool ReloadData(AssetHandle handle);
+      // the asset handle is valid (this says nothing about the asset itself)
+      virtual bool IsHandleValid(AssetHandle assetHandle) = 0; 
+      // asset exists in memory only, there is no backing file
+      virtual bool IsMemOnly(AssetHandle handle) = 0;           
+      // asset has been loaded from file (it could still be invalid)
+      virtual bool IsLoaded(AssetHandle handle) = 0;           
+      // asset file was loaded, but is invalid for some reason (e.g. corrupt file)
+      virtual bool IsValid(AssetHandle handle) = 0;            
+      // asset file is missing
+      virtual bool IsMissing(AssetHandle handle) = 0;          
 
-      bool IsAssetHandleValid(AssetHandle handle);
-      bool IsMemoryAsset(AssetHandle handle);
-      bool IsAssetReadOnly(AssetHandle handle);
-      bool IsAssetReadWrite(AssetHandle handle);
-      bool IsAssetMissing(AssetHandle handle);
-      bool IsAssetDirty(AssetHandle handle);
-      bool IsAssetValid(AssetHandle handle);
-      bool IsAssetLoaded(AssetHandle handle);
-
-      void RemoveAsset(AssetHandle handle);
-
-      AssetSet GetAllAssetsOfType(AssetType type);
-      AssetMap& GetAllAssets();
-
-    private:
-      AssetMap assets;
-      AssetMap memory_assets;
-
-      AssetRegistry registry;
-
-      Ref<Asset> FindAsset(AssetHandle handle);
-
-      AssetMetadata& GetMetadata(AssetHandle handle);
-
-      void LoadAsset(AssetHandle handle);
+      virtual void Remove(AssetHandle handle) = 0;
+      
+      virtual AssetSet GetAllOfType(AssetType type) = 0;
+      virtual const AssetMap& GetAll() = 0;
   };
 
 } // namespace other

@@ -6,56 +6,64 @@
 #include <unordered_map>
 
 #include <glm/glm.hpp>
-
 #include <glad/glad.h>
+
+#include "core/defines.hpp"
+#include "asset/asset.hpp"
+#include "rendering/rendering_defines.hpp"
 
 namespace other {
 
-    enum ShaderType {
-        VERTEX_SHADER = GL_VERTEX_SHADER ,
-        FRAGMENT_SHADER = GL_FRAGMENT_SHADER ,
-        GEOMETRY_SHADER = GL_GEOMETRY_SHADER ,
-        TESS_CONTROL_SHADER = GL_TESS_CONTROL_SHADER ,
-        TESS_EVALUATION_SHADER = GL_TESS_EVALUATION_SHADER ,
-        COMPUTE_SHADER = GL_COMPUTE_SHADER ,
-    };
+  class Shader : public Asset {    
+    public:
+      OE_ASSET(SHADER);
 
-    class Shader {
-        uint32_t renderer_id;
+      Shader(const ShaderIr& src);
+      virtual ~Shader() override;
+
+      uint32_t ID() const;
+  
+      void Bind() const;
+      void Unbind() const;
+  
+      const bool IsValid() const;
+
+      const bool HasGeometry() const;
     
-        std::string vertex_path;
-        std::string fragment_path;
-    
-        std::string vertex_src;
-        std::string fragment_src;
-    
-        std::unordered_map<std::string , int32_t> uniform_locations;
-    
-        bool valid = false;
-    
-        bool CompileShader(uint32_t shader_piece , const char* src);
-        bool LinkShader();
-    
-        uint32_t GetUniformLocation(const std::string& name);
-    
-        public:
-            Shader(const std::string& vertex_path , const std::string& fragment_path);
-            ~Shader();
-    
-            void Bind() const;
-            void Unbind() const;
-    
-            inline const bool IsValid() const { return valid; }
-    
-            void SetUniform(const std::string& name , const int32_t& value);
-            void SetUniform(const std::string& name , const float& value);
-            void SetUniform(const std::string& name , const glm::vec2& value);
-            void SetUniform(const std::string& name , const glm::vec3& value);
-            void SetUniform(const std::string& name , const glm::vec4& value);
-            void SetUniform(const std::string& name , const glm::mat2& value);
-            void SetUniform(const std::string& name , const glm::mat3& value);
-            void SetUniform(const std::string& name , const glm::mat4& value);
-    };
+      template <typename T> 
+      void SetUniform(const std::string_view name , T&& value) {
+        Bind();
+        InnerSetUniform(name , std::forward<T>(value)); 
+      }
+
+    private:
+      uint32_t renderer_id;
+
+      ShaderIr ir;
+  
+      std::unordered_map<UUID , int32_t> uniform_locations;
+  
+      bool valid = false;
+
+      bool Compile(const char* vsrc , const char* fsrc , const char* gsrc = nullptr);
+  
+      bool CompileShader(ShaderType type , uint32_t shader_piece , const char* src);
+      bool LinkShader();
+  
+      uint32_t GetUniformLocation(const std::string_view name);
+      
+      void InnerSetUniform(const std::string_view name , const int32_t& value);
+      void InnerSetUniform(const std::string_view name , const float& value);
+      void InnerSetUniform(const std::string_view name , const glm::vec2& value);
+      void InnerSetUniform(const std::string_view name , const glm::vec3& value);
+      void InnerSetUniform(const std::string_view name , const glm::vec4& value);
+      void InnerSetUniform(const std::string_view name , const glm::mat2& value);
+      void InnerSetUniform(const std::string_view name , const glm::mat3& value);
+      void InnerSetUniform(const std::string_view name , const glm::mat4& value);
+  };
+
+  Ref<Shader> BuildShader(const Path& path);
+  Ref<Shader> BuildShader(const Path& vpath , const Path& fpath , const Opt<Path>& gpath = std::nullopt);
 
 } // namespace other 
 

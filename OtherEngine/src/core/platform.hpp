@@ -5,9 +5,10 @@
 #define OTHER_ENGINE_PLATFORM_HPP
 
 #include <array>
-#include <filesystem>
 
 #include "core/defines.hpp"
+#include "core/directory_watcher.hpp"
+#include "plugin/plugin_loader.hpp"
 
 #ifdef _WIN32
   #define OE_WINDOWS
@@ -82,11 +83,14 @@ namespace other {
 
   class PlatformLayer {
     public:
+      static Scope<PluginLoader> GetPluginLoader(const std::string_view path);
+
       static PlatformType CurrentPlatform();
 
       static bool LaunchProject(const Path& path , LaunchType type);
       static bool LaunchProcess(const Path& path , const Path& working_dir , 
                                 const std::string& args_str = "");
+      static bool BuildProject(const Path& project_file);
   };
 
 } // namespace other

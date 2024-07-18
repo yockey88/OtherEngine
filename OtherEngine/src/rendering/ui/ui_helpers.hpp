@@ -6,9 +6,14 @@
 
 #include <cstdint>
 #include <utility>
+#include <string>
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/constants.hpp>
+
+#include "rendering/ui/ui_colors.hpp"
 
 #define UI_COLOR(r , g , b , a) ImVec4(r / 255.0f , g / 255.0f , b / 255.0f , a / 255.0f)
 
@@ -86,6 +91,35 @@ namespace other {
 
 namespace ui {
 
+  typedef int32_t OutlineFlags;
+  enum OutlineFlags_ {
+    OutlineFlags_None            = 0 ,
+    OutlineFlags_WhenHovered     = 1 << 1 ,
+    OutlineFlags_WhenActive      = 1 << 2 ,
+    OutlineFlags_WhenInactive    = 1 << 3 ,
+    OutlineFlags_HighlightActive = 1 << 4,
+    OutlineFlags_NoHighlightActive = OutlineFlags_WhenHovered | OutlineFlags_WhenActive | OutlineFlags_WhenInactive ,
+    OutlineFlags_NoOutlineInactive = OutlineFlags_WhenHovered | OutlineFlags_WhenActive | OutlineFlags_HighlightActive ,
+    OutlineFlags_All = OutlineFlags_WhenHovered | OutlineFlags_WhenActive | OutlineFlags_WhenInactive | OutlineFlags_HighlightActive ,
+  };
+
+  void DrawTodoReminder(const std::string& item);
+
+  bool IsItemDisabled();
+  ImRect GetItemRect();
+
+  void DrawItemActivityOutline(OutlineFlags flags = OutlineFlags_All , ImColor color_highlight = theme::accent , float rounding = GImGui->Style.FrameRounding);
+
+  inline ImRect RectExpanded(const ImRect& rect , float x , float y) {
+    return ImRect(
+      ImVec2(rect.Min.x - x , rect.Min.y - y) ,
+      ImVec2(rect.Max.x + x , rect.Max.y + y)
+    );
+  }
+
+  void PushId();
+  void PopId();
+
   void ShiftCursor(float x , float y);
   void ShiftCursorX(float x);
   void ShiftCursorY(float y);
@@ -98,7 +132,37 @@ namespace ui {
   bool ColoredButton(
     const char* label , const ImVec4& background , 
     const ImVec4& foreground , ImVec2 size
-  );    
+  );
+
+  bool DragInt8(const char* label , int8_t* v , float v_speed = 1.f , int8_t v_min = 0.f , int8_t v_max = 0.f , 
+                 const char* format = "%d" , ImGuiSliderFlags flags = 0);
+  
+  bool DragUInt8(const char* label , uint8_t* v , float v_speed = 1.f , uint8_t v_min = 0.f , uint8_t v_max = 0.f , 
+                 const char* format = "%d" , ImGuiSliderFlags flags = 0);
+
+  bool DragInt16(const char* label , int16_t* v , float v_speed = 1.f , int16_t v_min = 0.f , int16_t v_max = 0.f , 
+                 const char* format = "%d" , ImGuiSliderFlags flags = 0);
+  
+  bool DragUInt16(const char* label , uint16_t* v , float v_speed = 1.f , uint16_t v_min = 0.f , uint16_t v_max = 0.f , 
+                 const char* format = "%d" , ImGuiSliderFlags flags = 0);
+
+  bool DragInt32(const char* label , int32_t* v , float v_speed = 1.f , int32_t v_min = 0.f , int32_t v_max = 0.f , 
+                 const char* format = "%d" , ImGuiSliderFlags flags = 0);
+  
+  bool DragUInt32(const char* label , uint32_t* v , float v_speed = 1.f , uint32_t v_min = 0.f , uint32_t v_max = 0.f , 
+                 const char* format = "%d" , ImGuiSliderFlags flags = 0);
+
+  bool DragInt64(const char* label , int64_t* v , float v_speed = 1.f , int64_t v_min = 0.f , int64_t v_max = 0.f , 
+                 const char* format = "%d" , ImGuiSliderFlags flags = 0);
+  
+  bool DragUInt64(const char* label , uint64_t* v , float v_speed = 1.f , uint64_t v_min = 0.f , uint64_t v_max = 0.f , 
+                 const char* format = "%d" , ImGuiSliderFlags flags = 0);
+
+  bool DragFloat(const char* label , float* v , float v_speed = 1.f , float v_min = 0.f , float v_max = 0.f , 
+                 const char* format = "%.3f" , ImGuiSliderFlags flags = 0);
+  
+  bool DragDouble(const char* label , double* v , float v_speed = 1.f , double v_min = 0.f , double v_max = 0.f , 
+                 const char* format = "%.3f" , ImGuiSliderFlags flags = 0);
   
   bool TableRowClickable(const char* id, float rowHeight);
   
@@ -107,14 +171,49 @@ namespace ui {
   bool IsWindowFocused(const char* window_name, const bool check_root_window);
   
   void HelpMarker(const char* desc);
+
+  bool Checkbox(const char* label , bool* value);
   
   void BeginPropertyGrid(
-    uint32_t columns , 
+    uint32_t columns = 2 , 
     const ImVec2& item_spacing = ImVec2(8.f , 8.f) , 
     const ImVec2& frame_pading = ImVec2(4.f , 4.f)
   );
-  
+
   void EndPropertyGrid();
+
+  bool Selectable(const std::string& label , bool selected = false , bool* is_hovered = nullptr , 
+                  ImGuiSelectableFlags flags = 0 , const ImVec2& size = ImVec2(0, 0));
+
+  bool OpenPopup(const std::string& str_id , ImGuiWindowFlags flags = 0);
+  void EndPopup();
+
+  bool BeginCombo(const char* label , const char* preview_value , ImGuiComboFlags flags = 0);
+  void EndCombo();
+
+  bool PropertyDropdown(const char* label , const char** options , int32_t option_count , uint32_t& selected , const char* help_text = "");
+
+  void BeginProperty(const char* label , const char* help_text = "");
+  void EndProperty();
+
+  bool Property(const char* label , bool* value , const char* help_text = "");
+  bool Property(const char* label , int8_t* value , int8_t min = 0 , int8_t max = 0 , const char* help_text = "");
+  bool Property(const char* label , uint8_t* value , uint8_t min = 0 , uint8_t max = 0 , const char* help_text = "");
+  bool Property(const char* label , int16_t* value , int16_t min = 0 , int16_t max = 0 , const char* help_text = "");
+  bool Property(const char* label , uint16_t* value , uint16_t min = 0 , uint16_t max = 0 , const char* help_text = "");
+  bool Property(const char* label , int32_t* value , int32_t min = 0 , int32_t max = 0 , const char* help_text = "");
+  bool Property(const char* label , uint32_t* value , uint32_t min = 0 , uint32_t max = 0 , const char* help_text = "");
+  bool Property(const char* label , int64_t* value , int64_t min = 0 , int64_t max = 0 , const char* help_text = "");
+  bool Property(const char* label , uint64_t* value , uint64_t min = 0 , uint64_t max = 0 , const char* help_text = "");
+  bool Property(const char* label , float* value , float min = 0 , float max = 0 , const char* help_text = "");
+  bool Property(const char* label , double* value , double min = 0 , double max = 0 , const char* help_text = "");
+  bool Property(const char* label , glm::vec2* value , glm::vec2 min = glm::zero<glm::vec2>(), 
+                glm::vec2 max = glm::zero<glm::vec2>() , const char* help_text = "");
+  bool Property(const char* label , glm::vec3* value , glm::vec3 min = glm::zero<glm::vec3>(), 
+                glm::vec3 max = glm::zero<glm::vec3>() , const char* help_text = "");
+  bool Property(const char* label , glm::vec4* value , glm::vec4 min = glm::zero<glm::vec4>(), 
+                glm::vec4 max = glm::zero<glm::vec4>() , const char* help_text = "");
+
 
 } // namespace ui
 } // namespace other

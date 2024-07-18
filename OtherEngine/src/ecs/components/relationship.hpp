@@ -4,7 +4,7 @@
 #ifndef OTHER_ENGINE_RELATIONSHIP_HPP
 #define OTHER_ENGINE_RELATIONSHIP_HPP
 
-#include <vector>
+#include <set>
 
 #include "core/defines.hpp"
 #include "core/uuid.hpp"
@@ -15,15 +15,13 @@ namespace other {
 
   struct Relationship : public Component {
     Opt<UUID> parent;
-    std::vector<UUID> children;
+    std::set<UUID> children;
 
-    ECS_COMPONENT(Relationship);
+    ECS_COMPONENT(Relationship , kRelationshipIndex);
   };
   
   class RelationshipSerializer : public ComponentSerializer {
     public:
-      virtual ~RelationshipSerializer() override {}
-
       COMPONENT_SERIALIZERS(Relationship);
   };
 

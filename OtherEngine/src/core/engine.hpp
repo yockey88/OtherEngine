@@ -4,7 +4,6 @@
 #define OTHER_ENGINE_ENGINE_HPP
 
 #include "core/defines.hpp"
-#include "core/layer_stack.hpp"
 #include "parsing/cmd_line_parser.hpp"
 #include "event/event_queue.hpp"
 #include "application/app.hpp"
@@ -21,7 +20,12 @@ namespace other {
 
       static Engine Create(const CmdLine& cmd_line , const ConfigTable& config , const std::string& config_path);
 
+      bool ShouldQuit() const { return exit_code.has_value(); } 
+
+      /// this takes ownership of the application pointer
       void LoadApp(Scope<App>& app);
+      void PushCoreLayer();
+
       Scope<App>& ActiveApp() { return active_app; }
       void UnloadApp();
 
@@ -38,6 +42,7 @@ namespace other {
 
       Ref<Project> project_metadata;
 
+      bool in_editor = false;
       Scope<App> active_app;
       Scope<AssetHandler> asset_handler;
   };

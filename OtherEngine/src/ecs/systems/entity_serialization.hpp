@@ -14,6 +14,7 @@ namespace other {
       ~EntitySerialization() {}
 
       static Scope<ComponentSerializer> GetComponentSerializer(const std::string_view tag);
+      static Scope<ComponentSerializer> GetComponentSerializer(uint32_t idx);
   };
 
 } // namespace other

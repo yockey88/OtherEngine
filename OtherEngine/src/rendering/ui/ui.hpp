@@ -76,6 +76,7 @@ namespace other {
     UITheme(const std::string& name , ImVec4 colors[UI_THEME_INDEX_COUNT]);
   };
 
+  /// TODO: remember why I made wrote this????
   struct WindowRef {
     const Scope<Window>& main_window;
 

@@ -5,6 +5,7 @@
 #define OTHER_ENGINE_TRANSFORM_HPP
 
 #include <glm/ext/matrix_transform.hpp>
+#include <mono/metadata/appdomain.h>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -22,19 +23,25 @@ namespace other {
     glm::mat4 model_transform = glm::identity<glm::mat4>();
 
     Transform(const glm::vec3& position) 
-      : position(position) {}
+      : Component(kTransformIndex) , position(position) {}
     Transform(float p) 
-      : position(glm::vec3(p)) {}
+      : Component(kTransformIndex) , position(glm::vec3(p)) {}
     Transform(float x, float y, float z) 
-      : position(glm::vec3(x, y, z)) {}
+      : Component(kTransformIndex) , position(glm::vec3(x, y, z)) {}
 
-    ECS_COMPONENT(Transform);
+    [[ maybe_unused ]] const glm::mat4& CalcMatrix() {
+      qrotation = glm::quat(erotation);
+      model_transform = glm::translate(glm::mat4(1.f) , position) *
+                        glm::toMat4(qrotation) *
+                        glm::scale(glm::mat4(1.f) , scale);
+      return model_transform;
+    }
+
+    ECS_COMPONENT(Transform , kTransformIndex);
   };
 
   class TransformSerializer : public ComponentSerializer {
     public:
-      virtual ~TransformSerializer() override {}
-
       COMPONENT_SERIALIZERS(Transform);
   };
 

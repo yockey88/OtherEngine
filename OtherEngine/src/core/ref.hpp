@@ -4,6 +4,9 @@
 #ifndef OTHER_ENGINE_REF_HPP
 #define OTHER_ENGINE_REF_HPP
 
+#include <concepts>
+
+#include "core/errors.hpp"
 #include "core/ref_counted.hpp"
 
 namespace other {
@@ -66,14 +69,6 @@ namespace detail {
       	object = (T*)other.object;
       	other.object = nullptr;
       }
-
-      template <typename... Args>
-      Ref(Args&&... args) noexcept {
-        static_assert(std::is_constructible_v<T , Args...> , "Cannot construct a reference from given arguments");
-        static_assert(std::is_base_of_v<RefCounted , T> , "Cannot construct a reference from a non-RefCounted type");
-        object = new T(std::forward<Args>(args)...);
-        IncRef();
-      }
       
       virtual ~Ref() {
         DecRef();
@@ -120,8 +115,19 @@ namespace detail {
         return Ref<U>(*this);
       }
 
-      static Ref<T> Clone(const Ref<T>& old_ref) {
-        return Ref<T>(old_ref);
+      template <typename U>
+      static Ref<U> Cast(Ref<T>& old_ref) {
+        static_assert(std::is_base_of_v<RefCounted , U> , "Cannot cast a reference to a non-refcounted object");
+        return Ref<U>((U*)old_ref.object);
+      }
+
+      template <typename U>
+      static Ref<T> Clone(const Ref<U>& old_ref) {
+        if constexpr (std::same_as<T , U>) {
+          return Ref<T>(old_ref);
+        } else {
+          throw InvalidRefCast(typeid(T) , typeid(U));
+        }
       }
 
       template <typename... Args>

@@ -4,8 +4,6 @@
 #ifndef OTHER_ENGINE_HPP
 #define OTHER_ENGINE_HPP
 
-#include <filesystem>
-
 #include "core/engine.hpp"
 #include "parsing/cmd_line_parser.hpp"
 
@@ -42,6 +40,9 @@ namespace other {
 
       Opt<ExitCode> exit_code = std::nullopt;
 
+      bool engine_unloaded = false;
+      bool full_shutdown = false;
+
       static void HandleExit(ExitCode code);
 
       static void CoreShutdown();
@@ -49,6 +50,10 @@ namespace other {
 
 } // namespace other
 
+/// forwarded headers for the client (currently doesnt do anything)
+#include "application/app.hpp"
+
+/// defines the entry poing for clients 
 #define OE_APPLICATION(project_name) \
   namespace other { \
     Scope<App> NewApp(Engine* engine) { \

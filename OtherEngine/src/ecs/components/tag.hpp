@@ -15,11 +15,11 @@ namespace other {
     UUID id = 0;
 
     Tag(const std::string& name)
-      : name(name) , id(FNV(name)) {}
+      : Component(kTagIndex) , name(name) , id(FNV(name)) {}
     Tag(const std::string& name , UUID id)
-      : name(name) , id(id) {}
+      : Component(kTagIndex) , name(name) , id(id) {}
 
-    ECS_COMPONENT(Tag); 
+    ECS_COMPONENT(Tag , kTagIndex); 
   };  
 
 } // namespace other

@@ -18,8 +18,11 @@ namespace other {
     /// \todo these events are not implemented yet
         WINDOW_FOCUS , WINDOW_LOST_FOCUS , WINDOW_MOVED ,
 
+    UI_WINDOW_CLOSE , 
+
     // application events
     APP_TICK , APP_UPDATE , APP_RENDER , APP_LAYER ,
+    SCRIPT_RELOAD , PROJECT_DIR_UPDATE ,
     
     // input events
     KEY_PRESSED , KEY_RELEASED , KEY_TYPED , KEY_HELD ,
@@ -35,18 +38,19 @@ namespace other {
     SHUTDOWN , ENGINE_LAYER , 
   };
 
-  enum EventCategory {
+  enum EventCategory : uint64_t {
     NONE = 0 ,
-    APPLICATION_EVENT  = bit(0) ,
-    WINDOW_EVENT       = bit(1) ,
-    INPUT_EVENT        = bit(2) ,
-    KEYBOARD_EVENT     = bit(3) ,
-    MOUSE_EVNT         = bit(4) ,
-    MOUSE_BUTTON_EVENT = bit(5) ,
-    SCENE_EVENT        = bit(6) ,
-    EDITOR_EVENT       = bit(7) ,
-    SHUTDOWN_EVENT     = bit(8) ,
-    CORE_EVENT         = bit(9)
+    APPLICATION_EVENT  = bit(0)   ,
+    WINDOW_EVENT       = bit(1)   ,
+    INPUT_EVENT        = bit(2)   ,
+    KEYBOARD_EVENT     = bit(3)   ,
+    MOUSE_EVNT         = bit(4)   ,
+    MOUSE_BUTTON_EVENT = bit(5)   ,
+    SCENE_EVENT        = bit(6)   ,
+    EDITOR_EVENT       = bit(7)   ,
+    SHUTDOWN_EVENT     = bit(8)   ,
+    CORE_EVENT         = bit(9)   ,
+    UI_EVENT           = bit(10) , 
   };
 
 #define EVENT_TYPE(type) static EventType GetStaticType() { return EventType::type; }  \

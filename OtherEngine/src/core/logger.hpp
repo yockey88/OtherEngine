@@ -6,42 +6,25 @@
 
 #include <map>
 #include <source_location>
+#include <spdlog/common.h>
 #include <thread>
-#include <filesystem>
 
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/fmt.h>
 
 #include "core/config.hpp"
 
-#define VA_ARGS(...) , ##__VA_ARGS__
-
-#define LOG_ARGS(level , fmt) other::Logger::Level::level , fmt , std::source_location::current() , std::this_thread::get_id()
-#define LOG_INSTANCE() other::Logger::Instance()
-#define OE_LOG(level , fmt , ...) \
-  do { \
-    LOG_INSTANCE()->Log(LOG_ARGS(level , fmt) VA_ARGS(__VA_ARGS__)); \
-  } while(false)
-
-#define OE_TRACE(fmt , ...) OE_LOG(TRACE , fmt , __VA_ARGS__)
-#define OE_DEBUG(fmt , ...) OE_LOG(DEBUG , fmt , __VA_ARGS__)
-#define OE_INFO(fmt , ...) OE_LOG(INFO , fmt , __VA_ARGS__)
-#define OE_WARN(fmt , ...) OE_LOG(WARN , fmt , __VA_ARGS__)
-#define OE_ERROR(fmt , ...) OE_LOG(ERR , fmt , __VA_ARGS__)
-#define OE_CRITICAL(fmt , ...) OE_LOG(CRITICAL , fmt , __VA_ARGS__)
-
-#define OE_ASSERT(x , fmt , ...) \
-  do { \
-    if ((x)) {} else { \
-      OE_CRITICAL(fmt , __VA_ARGS__); \
-      std::abort(); \
-    } \
-  } while(false)
-
 namespace other {
   
   constexpr static std::string_view kConsoleFmt = "%^[ OTHER ENGINE -- %l ]%$ %v";
   constexpr static std::string_view kFileFmt = "%^[ %l ]%$ %v [%Y/%m/%d %H:%M:%S %z]";
+
+  struct LoggerTargetData {
+    std::string target_name;
+    spdlog::level::level_enum level;
+    std::string log_format;
+    std::function<spdlog::sink_ptr()> sink_factory = nullptr;
+  };
 
   class Logger {
     public:
@@ -66,12 +49,22 @@ namespace other {
       /// not typical 'get' function, this will throw if Open has not been called
       static Logger* Instance();
 
+      /// called by plugin loaders to set the global logging state on the other side of the DLL boundary
+      static void SetLoggerInstance(Logger* instance);
+
       StdRef<spdlog::logger> GetLogger() { return logger; }
 
       void Configure(const ConfigTable& config);
       
+      /// runtime/release build logging
       template <typename... Args>
       void Log(Level l , const std::string_view format, std::source_location src_pos , std::thread::id thread_id , Args&&... args) {
+#ifdef OE_RELEASE_BUILD
+        /// during release build we only log info or higher
+        if (l < Level::INFO) {
+          return;
+        }
+#endif
         std::string file = src_pos.file_name();
 
         std::string func = src_pos.function_name();
@@ -98,6 +91,7 @@ namespace other {
       }
 
       void RegisterThread(const std::string& name); 
+      void RegisterTarget(const LoggerTargetData& target);
 
       void SetCorePattern(CoreTarget target , const std::string& pattern);
 
@@ -124,16 +118,22 @@ namespace other {
       constexpr static std::array<Level , kNumCoreTargets> kCoreTargetLevels = { 
         Level::INFO , Level::TRACE 
       };
-      constexpr static std::array<std::string_view , kNumCoreTargets> kTargetStrings = {
+      std::vector<std::string_view> target_strings = {
         "console" , "file"
       }; 
-      constexpr static std::array<uint64_t , kNumCoreTargets> kSinkHashes = {
+      std::vector<uint64_t> sink_hashes = {
         FNV("CONSOLE") , FNV("FILE")
       };
 
-      std::vector<spdlog::sink_ptr> sinks = { nullptr , nullptr };
-      std::vector<spdlog::level::level_enum> sink_levels = { spdlog::level::info , spdlog::level::trace };
-      std::vector<std::string> sink_patterns = { kConsoleFmt.data() , kFileFmt.data() };
+      std::vector<spdlog::sink_ptr> sinks = { 
+        nullptr , nullptr 
+      };
+      std::vector<spdlog::level::level_enum> sink_levels = { 
+        spdlog::level::info , spdlog::level::trace 
+      };
+      std::vector<std::string> sink_patterns = { 
+        kConsoleFmt.data() , kFileFmt.data() 
+      };
 
       StdRef<spdlog::logger> logger;
 
@@ -152,5 +152,31 @@ struct fmt::formatter<other::Path> : fmt::formatter<std::string_view> {
     return fmt::formatter<std::string_view>::format(p.string() , ctx);
   }
 };
+
+#define VA_ARGS(...) , ##__VA_ARGS__
+
+#define LOG_ARGS(level , fmt) other::Logger::Level::level , fmt , std::source_location::current() , std::this_thread::get_id()
+#define LOG_INSTANCE() other::Logger::Instance()
+
+#define OE_LOG(level , fmt , ...) \
+  do { \
+    LOG_INSTANCE()->Log(LOG_ARGS(level , fmt) VA_ARGS(__VA_ARGS__)); \
+  } while(false)
+
+
+#define OE_ASSERT(x , fmt , ...) \
+  do { \
+    if ((x)) {} else { \
+      OE_CRITICAL(fmt , __VA_ARGS__); \
+      std::abort(); \
+    } \
+  } while(false)
+
+#define OE_TRACE(fmt , ...) OE_LOG(TRACE , fmt , __VA_ARGS__)
+#define OE_DEBUG(fmt , ...) OE_LOG(DEBUG , fmt , __VA_ARGS__)
+#define OE_INFO(fmt , ...) OE_LOG(INFO , fmt , __VA_ARGS__)
+#define OE_WARN(fmt , ...) OE_LOG(WARN , fmt , __VA_ARGS__)
+#define OE_ERROR(fmt , ...) OE_LOG(ERR , fmt , __VA_ARGS__)
+#define OE_CRITICAL(fmt , ...) OE_LOG(CRITICAL , fmt , __VA_ARGS__)
 
 #endif // !OTHER_ENGINE_LOGGER_HPP

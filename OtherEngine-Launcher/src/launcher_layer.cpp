@@ -8,13 +8,18 @@
 #include "core/defines.hpp"
 #include "core/logger.hpp"
 #include "core/filesystem.hpp"
+
 #include "event/event_queue.hpp"
 #include "event/event.hpp"
 #include "event/core_events.hpp"
 #include "event/app_events.hpp"
+#include "event/event_handler.hpp"
+
 #include "rendering/ui/file_explorer.hpp"
 #include "rendering/ui/ui_components.hpp"
+
 #include "application/app.hpp"
+
 #include "project/project.hpp"
 
 #include "project_cache.hpp"
@@ -112,13 +117,14 @@ namespace other {
   }
 
   void LauncherLayer::OnEvent(Event* event) {
-    if (event->Type() == EventType::APP_LAYER) {
-      auto* layer_event = Cast<AppLayerEvent>(event);
-      std::string layer_name = layer_event->LayerName();
-      if (layer_event != nullptr && layer_event->IsPop() && layer_event->LayerID() == kCreateProjectLayerUUID) { 
+    EventHandler handler(event);
+    handler.Handle<AppLayerEvent>([this](AppLayerEvent& app_event) -> bool {
+      if (app_event.IsPop() && app_event.LayerID() == kCreateProjectLayerUUID) {
         render_state = RenderState::MAIN;
+        return true;
       }
-    }
+      return false;
+    });
   }
 
   void LauncherLayer::OnDetach() {

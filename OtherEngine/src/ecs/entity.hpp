@@ -10,8 +10,14 @@
 #include "core/logger.hpp"
 #include "core/uuid.hpp"
 #include "core/ref.hpp"
+
 #include "scene/scene.hpp"
+
 #include "ecs/component.hpp"
+#include "ecs/components/tag.hpp"
+#include "ecs/components/transform.hpp"
+#include "ecs/components/relationship.hpp"
+#include "ecs/components/serialization_data.hpp"
 
 namespace other {
 
@@ -36,14 +42,14 @@ namespace other {
       const entt::entity& Handle() const { return handle; }
 
       const UUID& GetUUID() const { return uuid; }
-      const std::string& Name() const { return name; }
+      const std::string Name() const { return GetComponent<Tag>().name; }
 
       operator bool() const { return handle != entt::null; }
       operator entt::entity() const { return handle; }
       
-      template <component_type T>
+      template <component_type... T>
       inline bool HasComponent() const { 
-        return registry.try_get<T>(handle) != nullptr; 
+        return registry.try_get<T...>(handle) != nullptr; 
       }
 
       template <component_type T>
@@ -68,13 +74,27 @@ namespace other {
           return GetComponent<T>();
         }
 
+        /// default components, no need to add these to serialization data
+        if constexpr (std::is_same_v<T , Tag> || std::is_same_v<T , Transform> || 
+                      std::is_same_v<T , Relationship> || std::is_same_v<T , SerializationData>) {
+          return registry.emplace<T>(handle , std::forward<Args>(args)...);
+        }
+        
+        auto comp_idx = T().component_idx;
+        auto& sdata = GetComponent<SerializationData>();
+        sdata.entity_components.insert(comp_idx);
+
         return registry.emplace<T>(handle , std::forward<Args>(args)...);
       }
 
       template<component_type T , typename... Args>
         requires std::constructible_from<T , Args...>
       inline T& AddOrReplace(Args&&... args) {
-        return registry.emplace_or_replace<T>(handle , std::forward<Args>(args)...);
+        if (!HasComponent<T>()) {
+          return AddComponent<T>(std::forward<Args>(args)...);
+        } else {
+          return registry.replace<T>(handle , std::forward<Args>(args)...);
+        }
       }
 
       template<component_type T , typename... Args>
@@ -90,6 +110,28 @@ namespace other {
           return;
         }
         registry.remove<T>(handle);
+
+        auto comp_idx = T().component_idx;
+        auto& sdata = GetComponent<SerializationData>();
+
+        auto itr = std::find(sdata.entity_components.begin() , sdata.entity_components.end() , comp_idx);
+
+        /// just to be safe, should be impossible here
+        if (itr == sdata.entity_components.end()) {
+          return;
+        }
+
+        sdata.entity_components.erase(itr);
+      }
+
+      template <component_type T>
+      inline void UpdateComponent(const T& component) {
+        if (!HasComponent<T>()) {
+          auto& c = AddComponent<T>();
+          c = component;
+        } else {
+          registry.patch<T>(handle , [&](auto& comp) { comp = component; });
+        }
       }
 
       inline entt::entity GetEntity() const { return handle; }

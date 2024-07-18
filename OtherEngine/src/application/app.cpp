@@ -7,15 +7,126 @@
 #include "core/time.hpp"  
 #include "core/engine.hpp"
 #include "input/io.hpp"
+
+#include "asset/runtime_asset_handler.hpp"
+
 #include "event/event_queue.hpp"
 #include "event/app_events.hpp"
+#include "event/event_handler.hpp"
+#include "event/ui_events.hpp"
+
 #include "rendering/renderer.hpp"
+#include "rendering/rendering_defines.hpp"
 #include "rendering/ui/ui.hpp"
-#include "layers/core_layer.hpp"
-#include "layers/debug_layer.hpp"
+
+#include "scripting/script_defines.hpp"
+#include "scripting/script_engine.hpp"
+
+#include "physics/phyics_engine.hpp"
 
 namespace other {
+namespace {
 
+} /// anonymous namespace
+
+  App::App(Engine* engine) 
+      : engine_handle(engine) , cmdline(engine->cmd_line) , config(engine->config) {}
+
+  App::~App() {}
+      
+  Ref<Project> App::GetProjectContext() {
+    return Ref<Project>::Clone(project_metadata);
+  }
+
+  void App::Load() {
+    OE_DEBUG("Loading application");
+    OE_DEBUG(" > Loading Core Systems");
+
+    layer_stack = NewScope<LayerStack>();
+
+    project_metadata = Ref<Project>::Create(cmdline , config);
+    asset_handler = CreateAssetHandler();
+
+    scene_manager = NewScope<SceneManager>();
+ 
+    OnLoad();
+
+    OE_DEBUG("Application loaded");
+  }
+
+  void App::Run() {
+    Attach();
+
+    CHECKGL();
+
+    time::DeltaTime delta_time;
+    delta_time.Start();
+    while (!GetEngine()->ShouldQuit()) {
+      float dt = delta_time.Get();
+      
+      // updates mouse/keyboard/any connected controllers
+      IO::Update();
+
+      if (Renderer::IsWindowFocused()) {
+        DoEarlyUpdate(dt); 
+      }
+
+      /// physics step
+      
+      /// process all events queued from io/early update/physics steps
+      EventQueue::Poll(GetEngine() , this);
+
+      /// process any updates that are the result of events here
+      
+      /// if the window is focuseed we update the application and then the scene
+      if (Renderer::IsWindowFocused()) {
+        DoUpdate(dt);
+      }
+
+      /// TODO: redo rendering stage
+      ///   ideal workflow:
+      ///     RenderPass pass1 = ...
+      ///     Renderer::RenderFrame({ camera , framebuffer , pass1 });
+      ///
+      ///     std::vector<RenderPass> passes = ....
+      ///     Renderer::RenderFrame({ camera , framebuffer , passes });
+      ///
+        
+      /**
+       * rendering workflow
+       *  - for all things that need rendering
+       *    - give them the correct renderer
+       *    - submit all models
+       *
+       *  - for all renderers
+       *    - execute contstructed pipelines
+       **/
+
+      Renderer::GetWindow()->Clear();
+      DoRender();
+      DoRenderUI();
+      Renderer::GetWindow()->SwapBuffers();
+      
+      CHECKGL();
+    } 
+
+    Detach();
+
+    OE_DEBUG("Application successfully attached");
+  }
+
+  void App::Unload() {
+    OE_DEBUG("Unloading application");
+
+    OnUnload();
+    
+    scene_manager = nullptr;
+    asset_handler = nullptr;
+    layer_stack = nullptr;
+
+    OE_DEBUG(" > Application unloaded");
+  }
+  
   void App::PushLayer(Ref<Layer>&  layer) {
     layer->Attach();
     layer_stack->PushLayer(layer);
@@ -55,6 +166,15 @@ namespace other {
   }
 
   void App::ProcessEvent(Event* event) {
+    if (!event->handled) {
+      OnEvent(event);
+    }
+
+    EventHandler event_handler(event);
+    event_handler.Handle<UIWindowClosed>([this] (UIWindowClosed& event) -> bool {
+      return RemoveUIWindow(event.GetWindowId());
+    });
+
     for (auto& window : ui_windows) {
       window.second->OnEvent(event);
     }
@@ -66,110 +186,6 @@ namespace other {
         itr = layer_stack->begin();
       }
     }
-
-    if (!event->handled) {
-      OnEvent(event);
-    }
-  }
-
-  App::App(Engine* engine) 
-    :  cmdline(engine->cmd_line) , config(engine->config) , engine_handle(engine) {
-  }
-
-  App::~App() {}
-
-  void App::LoadMetadata(const Ref<Project>& metadata) {
-    project_metadata = metadata;
-  }
-
-  void App::OnLoad() {
-    layer_stack = NewScope<LayerStack>();
-    asset_handler = NewScope<AssetHandler>();
-
-    scene_manager = NewScope<SceneManager>();
-
-    {
-      Ref<Layer> core_layer = NewRef<CoreLayer>(this);
-      PushLayer(core_layer);
-    }
-
-    auto debug = config.GetVal<bool>("PROJECT" , "DEBUG");
-    if (debug.has_value() && debug.value()) {
-      Ref<Layer> debug_layer = NewRef<DebugLayer>(this);
-      PushLayer(debug_layer);
-    }
-  }
-
-  void App::Run() {
-    Attach();
-
-    ///> TODO: experiment and see if we want to use delta time or frame rate enforcer
-    time::FrameRateEnforcer<60> frame_rate_enforcer;
-    time::DeltaTime delta_time;
-    delta_time.Start();
-    while (!GetEngine()->exit_code.has_value()) {
-      float dt = delta_time.Get();
-      // float dt = frame_rate_enforcer.TimeStep();
-
-      // updates mouse/keyboard/any connected controllers
-      IO::Update();
-      EventQueue::Poll(GetEngine() , this);
-      
-      // update all layers
-      for (size_t i = 0; i < layer_stack->Size(); ++i) {
-        (*layer_stack)[i]->Update(dt);
-      }
-
-      DoUpdate(dt);
-
-      // if (scene_context != nullptr) {
-      //   scene_context->Update(dt);
-      // }
-
-      Renderer::BeginFrame();
-
-      // if (scene_context != nullptr) {
-      //   scene_context->Render();
-      // }
-
-      DoRender();
-
-      // if (GetEngine()->window->FramebufferAttached()) {
-      //   GetEngine()->window->DrawFramebuffer();
-      // }
-
-      if (UI::Enabled()) {
-        UI::BeginFrame();
-
-        // client ui render
-        DoRenderUI();
-
-        // if (scene_context != nullptr) {
-        //   scene_context->RenderUI();
-        // }
-
-        { // render all layers
-          for (size_t i = 0; i < layer_stack->Size(); ++i) {
-            (*layer_stack)[i]->UIRender();
-          }
-        }
-
-        UI::EndFrame();
-      }
-
-      Renderer::EndFrame();
-
-      frame_rate_enforcer.Enforce();
-    } 
-
-    Detach();
-  }
-
-  void App::OnUnload() {
-    asset_handler = nullptr;
-
-    layer_stack->Clear(); 
-    layer_stack = nullptr;
   }
 
   static Ref<UIWindow> null_window = nullptr;
@@ -217,114 +233,202 @@ namespace other {
 
   bool App::RemoveUIWindow(const std::string& name) {
     UUID id = FNV(name);
-    if (ui_windows.find(id) == ui_windows.end()) {
+    auto itr = ui_windows.find(id);
+    if (itr == ui_windows.end()) {
       return false;
     }
 
     ui_windows[id]->OnDetach();
     ui_windows[id] = nullptr;
-    ui_windows.erase(id);
+    ui_windows.erase(itr);
     return true;
   }
 
   bool App::RemoveUIWindow(UUID id) {
-    if (ui_windows.find(id) == ui_windows.end()) {
+    auto itr = ui_windows.find(id);
+    if (itr == ui_windows.end()) {
       return false;
     }
 
     ui_windows[id]->OnDetach();
     ui_windows[id] = nullptr;
-    ui_windows.erase(id);
+    ui_windows.erase(itr);
     return true;
   }
   
   void App::LoadScene(const Path& path) {
-    if (scene_manager->HasScene(path)) {
-      scene_manager->SetAsActive(path);
-    } else {
-      if (!scene_manager->LoadScene(path)) {
-        OE_ERROR("Failed to load scene : {}" , path);
-        return;
-      }
-      UnloadScene();
-      
-      scene_manager->SetAsActive(path);
-      if (scene_manager->ActiveScene() == nullptr) {
-        OE_ERROR("Failed to load scene : {}" , path);
-        return;
-      }
-
-      /// propogate scene loading through layers
-      for (size_t i = 0; i < layer_stack->Size(); ++i) {
-        (*layer_stack)[i]->LoadScene(scene_manager->ActiveScene());
-      }
-      
-      /// alert the client app new scene is loaded 
-      OnSceneLoad(scene_manager->ActiveScene());
+    if (HasActiveScene() && ActiveScene()->path == path) {
+      return;
     }
+      
+    if (HasActiveScene()) {
+      UnloadScene();
+    }
+
+    if (!scene_manager->HasScene(path) && !scene_manager->LoadScene(path)) {
+      OE_ERROR("Failed to load scene : {}" , path);
+      return;
+    }
+      
+    scene_manager->SetAsActive(path);
+    const SceneMetadata* scn_metadata = ActiveScene();
+    if (scn_metadata == nullptr) {
+      OE_ERROR("Failed to load scene : {}" , path);
+      return;
+    }
+    
+    /// alert the client app new scene is loaded 
+    OnSceneLoad(ActiveScene());
+
+    /// propogate scene loading through layers
+    for (auto& l : *layer_stack) {
+      l->LoadScene(scn_metadata);
+    }
+
+    ScriptEngine::SetSceneContext(scn_metadata->scene);
+    PhysicsEngine::SetSceneContext(scn_metadata->scene);
+  }
+      
+  bool App::HasActiveScene() {
+    return scene_manager->ActiveScene() != nullptr;
   }
 
-  Ref<Scene> App::ActiveScene() {
-    return scene_manager->ActiveScene()->scene;
+  SceneMetadata* App::ActiveScene() {
+    return scene_manager->ActiveScene();
   }
 
   void App::UnloadScene() {
-    if (scene_manager->ActiveScene() == nullptr) {
+    if (ActiveScene() == nullptr) {
       return;
     }
 
-    OE_DEBUG("Unloading scene : {}" , scene_manager->ActiveScene()->path);
+    /// Do we need to save before we offload
+    // scene_manager->SaveActiveScene();
+    
+    /// alert client app about scene unload
+    OnSceneUnload();
+
+    OE_DEBUG("Unloading scene : {}" , ActiveScene()->path);
     scene_manager->UnloadActive();
+    
+    /// propogate scene loading through layers
+    for (auto& l : *layer_stack) {
+      l->UnloadScene();
+    }
+
+    OE_DEBUG("Scene Unloaded");
   }
 
   void App::Attach() {
     OnAttach();
   }
 
+  /// TODO: add early update to layers and scene
+  void App::DoEarlyUpdate(float dt) {
+    EarlyUpdate(dt);  
+
+    for (auto& l : *layer_stack) {
+      l->EarlyUpdate(dt);
+    }
+  }
+
   void App::DoUpdate(float dt) {
+    Update(dt);
+
+    // update all layers
+    for (auto& l : *layer_stack) {
+      l->Update(dt);
+    }
+    
+    LateUpdate(dt);
+    
+    for (auto& l : *layer_stack) {
+      l->LateUpdate(dt);
+    }
+    
     auto itr = ui_windows.begin();
     while (itr != ui_windows.end()) {
-      if (itr->second == nullptr) {
-        itr = ui_windows.erase(itr);
-      } else if (!itr->second->IsOpen()) {
-        itr->second->OnDetach();
-        itr->second = nullptr;
-        itr = ui_windows.erase(itr);
-      } else {
-        itr->second->OnUpdate(dt);
-        ++itr;
-      }
+      itr->second->OnUpdate(dt);
+      ++itr;
     }
-    Update(dt);
   }
 
   void App::DoRender() {
     Render();
+
+    CHECKGL();
     
-    if (scene_manager->ActiveScene() != nullptr) {
-      //scene_manager->ActiveScene()->Render();
+    for (auto& l : *layer_stack) {
+      l->Render();
     }
 
-    for (size_t i = 0; i < layer_stack->Size(); ++i) {
-      (*layer_stack)[i]->Render();
-    }
+    CHECKGL();
   }
 
   void App::DoRenderUI() {
-    RenderUI();
-    for (auto& [id , window] : ui_windows) {
-      window->Render();
+    if (UI::Enabled()) {
+      UI::BeginFrame();
+      
+      RenderUI();
+      
+      for (auto& l : *layer_stack) {
+        l->UIRender();
+      }
+      
+      for (auto& [id , window] : ui_windows) {
+        window->Render();
+      }
+
+      UI::EndFrame();
     }
   }
 
   void App::Detach() {
+    OE_DEBUG("Detaching application");
+    
     OnDetach();
+
+    if (HasActiveScene()) {
+      UnloadScene();
+    }
 
     for (auto& [id , window] : ui_windows) {
       window->OnDetach();
       window = nullptr;
     }
     ui_windows.clear();
+
+    for (auto& l : *layer_stack) {
+      l->Detach();
+    }
+    layer_stack->Clear();
+
+    OE_DEBUG("Application detached");
+  }
+      
+  void App::ReloadScripts() {
+    Opt<Path> active_path = std::nullopt;
+    if (scene_manager->ActiveScene() != nullptr) {
+      active_path = scene_manager->ActiveScene()->path;
+      UnloadScene();
+    } 
+      
+    scene_manager->ClearScenes();
+    ScriptEngine::ReloadAllScripts();
+
+    for (auto& l : *layer_stack) {
+      l->ReloadScripts();
+    }
+
+    OnScriptReload();
+
+    if (active_path.has_value()) {
+      LoadScene(active_path.value());
+    }
+  }
+      
+  Ref<AssetHandler> App::CreateAssetHandler() {
+    return NewRef<RuntimeAssetHandler>();
   }
 
 } // namespace other

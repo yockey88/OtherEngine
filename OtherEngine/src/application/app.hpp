@@ -8,11 +8,12 @@
 #include "core/layer.hpp"
 #include "core/layer_stack.hpp"
 #include "project/project.hpp"
-#include "parsing/cmd_line_parser.hpp"
+
 #include "asset/asset_handler.hpp"
-#include "rendering/ui/ui_window.hpp"
-#include "scene/scene.hpp"
 #include "scene/scene_manager.hpp"
+
+#include "rendering/ui/ui_window.hpp"
+#include "rendering/ui/ui_window_map.hpp"
 
 namespace other {
 
@@ -23,11 +24,11 @@ namespace other {
       App(Engine* engine);
       virtual ~App();
 
-      void LoadMetadata(const Ref<Project>& project);
+      Ref<Project> GetProjectContext();
     
-      void OnLoad();
+      void Load();
       void Run();
-      void OnUnload();
+      void Unload();
 
       void PushLayer(Ref<Layer>& layer);
       void PushOverlay(Ref<Layer>& overlay);
@@ -46,44 +47,65 @@ namespace other {
       bool RemoveUIWindow(UUID id);
 
       void LoadScene(const Path& path);
-      Ref<Scene> ActiveScene();
+      bool HasActiveScene();
+      SceneMetadata* ActiveScene();
       void UnloadScene();
+      
+      Ref<Project> project_metadata;
+      Ref<AssetHandler> asset_handler = nullptr;
+
+      Scope<LayerStack> layer_stack = nullptr;
+      Scope<SceneManager> scene_manager = nullptr;
 
     protected:
-      
       void Attach();
+      /// this is seperate because this triggers events which need to be polled while update
+      ///  responds to process events
+      void DoEarlyUpdate(float dt);
       void DoUpdate(float dt);
       void DoRender();
       void DoRenderUI();
       void Detach();
 
-      virtual void OnAttach() = 0; 
-      virtual void OnEvent(Event* event) = 0;
-      virtual void Update(float dt) = 0;
-      virtual void Render() = 0;
-      virtual void RenderUI() = 0;
-      virtual void OnDetach() = 0;
+      virtual void OnLoad() {}
+      virtual void OnAttach() {} 
+
+      virtual void OnEvent(Event* event) {}
+      virtual void EarlyUpdate(float dt) {}
+      virtual void Update(float dt) {}
+      virtual void Render() {}
+      virtual void RenderUI() {}
+      virtual void LateUpdate(float dt) {}
+
+      virtual void OnDetach() {}
+      virtual void OnUnload() {}
 
       virtual void OnSceneLoad(const SceneMetadata* path) {}
+      virtual void OnSceneUnload() {}
 
-      Engine* GetEngine() { return engine_handle; }
+      /// will only ever be called if editor is active because otherwise the scripts
+      ///   wont be reloaded
+      virtual void OnScriptReload() {}
+
+      virtual Ref<AssetHandler> CreateAssetHandler();
+
+      Engine* engine_handle = nullptr;
 
       const CmdLine& cmdline;
       const ConfigTable& config;
 
-    private:
-      Ref<Project> project_metadata;
+      UIWindowMap ui_windows;
 
-      Scope<LayerStack> layer_stack = nullptr;
-      Scope<AssetHandler> asset_handler = nullptr;
+      bool lost_window_focus = false;
 
-      Scope<SceneManager> scene_manager = nullptr;
-
-      std::map<UUID , Ref<UIWindow>> ui_windows;
-
-      Engine* engine_handle = nullptr;
-
+      friend class Engine;
+      friend class AppState;
       friend class Editor;
+
+      void ReloadScripts();
+
+    private:
+      Engine* GetEngine() const { return engine_handle; }
   };
 
 } // namespace other

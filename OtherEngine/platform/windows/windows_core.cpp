@@ -3,10 +3,20 @@
  **/
 #include "core/platform.hpp"
 
+#include <ShlObj.h>
+#include <minwinbase.h>
+#include <processthreadsapi.h>
+#include <winbase.h>
+
 #include "core/logger.hpp"
 #include "core/filesystem.hpp"
+#include "windows/windows_plugin_loader.hpp"
 
 namespace other {
+
+  Scope<PluginLoader> PlatformLayer::GetPluginLoader(const std::string_view path) {
+    return NewScope<WindowsPluginLoader>(path);
+  }
 
   PlatformType PlatformLayer::CurrentPlatform() {
     return PlatformType::WINDOWS;
@@ -105,6 +115,28 @@ namespace other {
     }
 
     return result;
+  }
+      
+  bool PlatformLayer::BuildProject(const Path& project_file) {
+    if (!Filesystem::FileExists(project_file)) {
+      OE_ERROR("Failed to build project file : {}" , project_file);
+      return false;
+    } 
+
+    TCHAR program_files_path_buffer[MAX_PATH];
+    SHGetSpecialFolderPath(0 , program_files_path_buffer , CSIDL_PROGRAM_FILES , FALSE);
+
+    Path ms_build = std::filesystem::path(program_files_path_buffer) /
+      "Microsoft Visual Studio" / "2022" / "Community" / 
+      "Msbuild" / "Current" / "Bin" / "MSBuild.exe";
+
+    std::string project_file_str = project_file.string();
+    std::replace(project_file_str.begin() , project_file_str.end() , '/' , '\\');
+
+    /// replace configuration in the future
+    std::string cmd = fmt::format(fmt::runtime("\"\"{}\" \"{}\" /p:Configuration=Debug\"") , ms_build.string(), project_file_str);
+
+    return system(cmd.c_str()) == 0;
   }
 
 } // namespace other

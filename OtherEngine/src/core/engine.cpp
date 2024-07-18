@@ -6,9 +6,17 @@
 #include "core/defines.hpp"
 #include "core/logger.hpp"
 #include "core/config.hpp"
+
 #include "event/event.hpp"
 #include "event/core_events.hpp"
+#include "event/event_handler.hpp"
+
+#include "application/app_state.hpp"
+#include "application/runtime_layer.hpp"
+
 #include "editor/editor.hpp"
+#include "editor/editor_layer.hpp"
+#include "event/event_queue.hpp"
 
 namespace other {
 
@@ -23,31 +31,39 @@ namespace other {
 
   void Engine::LoadApp(Scope<App>& app) {
     OE_ASSERT(app != nullptr , "Attempting to load a null application");
-
-    OE_DEBUG("Loading application");
-    project_metadata = Project::Create(cmd_line , config);
-    app->LoadMetadata(project_metadata);
-
-    if (cmd_line.HasFlag("--editor")) {
-      OE_DEBUG("Loading editor");
-
-      auto editor_app = NewScope<Editor>(this , app);
+    println("Loading application");
+    
+    in_editor = cmd_line.HasFlag("--editor");
+    if (in_editor) {
+      auto editor_app = NewScope<Editor>(this);
       active_app = std::move(editor_app);
-      active_app->OnLoad();
-
-      return;
     } else {
       active_app = std::move(app);
-      active_app->OnLoad();
     }
-
+      
+    active_app->Load(); 
+    AppState::Initialize(active_app.get() , active_app->layer_stack , active_app->scene_manager , 
+                         active_app->asset_handler , active_app->project_metadata);
+  }
+      
+  void Engine::PushCoreLayer() {
+    Ref<Layer> core_layer = nullptr;
+    if (in_editor) {
+      core_layer = NewRef<EditorLayer>(active_app.get());
+    } else {
+      core_layer = NewRef<RuntimeLayer>(active_app.get() , active_app->config);
+    }
+    active_app->PushLayer(core_layer);
+    /// now allowed to use logger
   }
 
   void Engine::UnloadApp() {
     OE_ASSERT(active_app != nullptr , "Attempting to unload a null application");
 
-    active_app->OnUnload();
+    active_app->Unload();
     active_app = nullptr;
+
+    OE_DEBUG("Engine unloaded");
   }
 
   void Engine::ProcessEvent(Event* event) {
@@ -57,12 +73,11 @@ namespace other {
       return;
     }
 
-    if (event->Type() == EventType::SHUTDOWN) {
-      ShutdownEvent* sd = Cast<ShutdownEvent>(event);
-      if (sd != nullptr) {
-        exit_code = sd->GetExitCode();
-      }
-    }
+    EventHandler handler(event);
+    handler.Handle<ShutdownEvent>([this](ShutdownEvent& sd) -> bool { 
+      exit_code = sd.GetExitCode(); 
+      return true;
+    });
   }
 
 } // namespace other

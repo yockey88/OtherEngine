@@ -7,13 +7,37 @@
 
 #include "core/logger.hpp"
 #include "core/filesystem.hpp"
+
 #include "application/app.hpp"
+
 #include "event/event.hpp"
 #include "event/key_events.hpp"
 #include "event/event_queue.hpp"
+#include "event/event_handler.hpp"
+
 #include "rendering/ui/ui_helpers.hpp"
 
 namespace other {
+
+  /// generate folders
+  ///   - logs/
+  ///   - <Project-Name>/
+  ///     - <Project-Name>/assets/
+  ///       - <Project-Name>/assets/editor
+  ///       - <Project-Name>/assets/materials
+  ///       - <Project-Name>/assets/scenes
+  ///       - <Project-Name>/assets/scripts
+  ///       - <Project-Name>/assets/shaders
+  ///     - <Project-Name>/src/
+  ///   - <project-name>.other
+  ///
+  /// copy over premake dir and ymake.lua
+  /// create premake5.lua
+  ///
+  /// create <Project-Name>/premake5.lua
+  ///
+  /// create <Project-Name>/src/<project-name>.cpp
+  /// create <Project-Name>/src/<project-name>.hpp
   
   void CreateProjectLayer::OnAttach() {
     OE_ASSERT(!project_path.empty() , "Project path is empty");
@@ -32,64 +56,66 @@ namespace other {
       return;
     }
 
-    if (project_name.has_value()) {
-      if (project_name.value().empty()) {
-        OE_WARN("Project name can not be an empty string");
-        project_name = std::nullopt;
-      }
+    if (!project_name.has_value()) {
+      return;
+    }
 
-      OE_INFO("Project name: {}" , project_name.value());
-      final_name = project_name.value();
-
-      if (!Filesystem::CreateDir(project_path + "/" + project_name.value())) {
-        OE_WARN("Failed to create project: {}" , project_name.value());
-        project_name = std::nullopt;
-      }
-
-      std::string cfg_file = project_name.value() + ".cfg";
-
-      project_dir = std::filesystem::absolute(std::filesystem::path(project_path)) / project_name.value();
-      project_file = project_dir / cfg_file;
-
-      std::ofstream file(project_file);
-      if (!file.is_open()) {
-        OE_WARN("Failed to create project file: {}" , project_name.value());
-        project_name = std::nullopt;
-      }
-
-
-      project_dir_contents.clear();
-      for (const auto& entry : std::filesystem::directory_iterator(project_dir)) {
-        project_dir_contents.push_back(entry.path());
-      }
-
-      render_state = RenderState::CREATING_PROJECT;
-
-      // write project metadata
-      file << "[project]\n";
-      file << "name = " << project_name.value() << "\n";
-      file << "path = " << project_dir.string() << "\n";
-
-      // write project settings
-      // write bare minimum engine settings
-      // create project directory structure
-      // write build scripts
-      
-      ParentApp()->PushUIWindow(NewRef<TextEditor>("Project Editor" , "." , project_file.string()));
-
+    if (project_name.value().empty()) {
+      OE_WARN("Project name can not be an empty string");
       project_name = std::nullopt;
     }
+
+    OE_INFO("Project name: {}" , project_name.value());
+    final_name = project_name.value();
+
+    if (!Filesystem::CreateDir(project_path + "/" + project_name.value())) {
+      OE_WARN("Failed to create project: {}" , project_name.value());
+      project_name = std::nullopt;
+    }
+
+    std::string cfg_file = project_name.value() + ".other";
+
+    project_dir = std::filesystem::absolute(std::filesystem::path(project_path)) / project_name.value();
+    project_file = project_dir / cfg_file;
+
+    std::ofstream file(project_file);
+    if (!file.is_open()) {
+      OE_WARN("Failed to create project file: {}" , project_name.value());
+      project_name = std::nullopt;
+    }
+
+
+    project_dir_contents.clear();
+    for (const auto& entry : std::filesystem::directory_iterator(project_dir)) {
+      project_dir_contents.push_back(entry.path());
+    }
+
+    render_state = RenderState::CREATING_PROJECT;
+
+    // write project metadata
+    file << "[project]\n";
+    file << "name = " << project_name.value() << "\n";
+    file << "path = " << project_dir.string() << "\n";
+
+    // write project settings
+    // write bare minimum engine settings
+    // create project directory structure
+    // write build scripts
+    
+    ParentApp()->PushUIWindow(NewRef<TextEditor>("Project Editor" , "." , project_file.string()));
+
+    project_name = std::nullopt;
   }
 
   void CreateProjectLayer::OnEvent(Event* event) {
-    if (event->Type() == EventType::KEY_PRESSED) {
-      auto* key_event = Cast<KeyPressed>(event);
-      if (key_event != nullptr) {
-        if (key_event->Key() == Keyboard::Key::OE_RETURN && render_state == RenderState::MAIN) {
-          project_name = CaptureBuffer(project_name_buffer);
-        } 
-      }
-    }
+    EventHandler handler(event);
+    handler.Handle<KeyPressed>([this](KeyPressed& key_event) -> bool {
+      if (key_event.Key() == Keyboard::Key::OE_RETURN && render_state == RenderState::MAIN) {
+        project_name = CaptureBuffer(project_name_buffer);
+        return true;
+      } 
+      return false;
+    });
   }
 
   void CreateProjectLayer::OnUIRender() {
@@ -122,14 +148,12 @@ namespace other {
       return;
     }
 
-    RenderDirContents();
-
     ImGui::Text("Project Path: %s" , project_path.c_str());
 
     ui::Underline();
     ImGui::Separator();
 
-    if (text_editor_id != UUID{ 0 }) {
+    if (text_editor_id.Get() != 0) {
       ImGui::End();
       return;
     }
@@ -158,16 +182,16 @@ namespace other {
     ui::Underline();
     ImGui::Separator();
 
-    // auto item = [&](Opt<std::string>& out , const std::string& label , std::array<char , kBufferSize>& buffer) {
-    //   if (ImGui::Button("Confirm")) {
-    //     out = CaptureBuffer(buffer);
-    //   }
-    //   ImGui::SameLine();
-    //   ImGui::InputText(label.c_str() , buffer.data() , kBufferSize);
-    // };
+    auto item = [&](Opt<std::string>& out , const std::string& label , std::array<char , kBufferSize>& buffer) {
+      if (ImGui::Button("Confirm")) {
+        out = CaptureBuffer(buffer);
+      }
+      ImGui::SameLine();
+      ImGui::InputText(label.c_str() , buffer.data() , kBufferSize);
+    };
 
-    // item(author , "Author" , author_buffer);
-    // item(description , "Description" , description_buffer);
+    item(author , "Author" , author_buffer);
+    item(description , "Description" , description_buffer);
 
     ImGui::End();
   }

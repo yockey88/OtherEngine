@@ -4,9 +4,9 @@
 #ifndef OTHER_ENGINE_EVENT_QUEUE_HPP
 #define OTHER_ENGINE_EVENT_QUEUE_HPP
 
+#include "core/config.hpp"
 #include "core/logger.hpp"
 #include "event/event.hpp"
-#include "core/config.hpp"
 
 namespace other {
 
@@ -21,6 +21,7 @@ namespace other {
 
       template<event_t T , typename... Args>
       static void PushEvent(Args&&... args) {
+        // OE_ASSERT(std::is_trivially_copyable_v<T> , "Event type [{}] is not trivially copyable" , typeid(T).name());
         OE_ASSERT(sizeof(T) + buffer_offset < buffer_size , "Event buffer overflow");
 
         T event(std::forward<Args>(args)...);

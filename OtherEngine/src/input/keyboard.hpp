@@ -11,7 +11,7 @@ namespace other {
 
 class Keyboard {
   public:
-    enum class Key {
+    enum class Key : uint32_t {
       OE_UNKNOWN = 0 ,
       OE_UNKNOWN1 = 1 ,
       OE_UNKNOWN2 = 2 ,
@@ -302,96 +302,97 @@ class Keyboard {
       uint32_t frames_blocked = 0;
     };
 
-    void Initialize();
-    void Update();
+    static void Initialize();
+    static void Update();
 
-    KeyState GetKeyState(Key key);
+    static KeyState GetKeyState(Key key);
 
-    bool Pressed(Key key);
-    bool Blocked(Key key);
-    bool Held(Key key);
-    bool KeyDown(Key key);
-    bool Released(Key key);
+    static int32_t FramesHeld(Key key);
+    static bool Pressed(Key key);
+    static bool Blocked(Key key);
+    static bool Held(Key key);
+    static bool Down(Key key);
+    static bool Released(Key key);
 
-    inline bool LCtrlLayer() { 
+    static inline bool LCtrlLayer() { 
       return Blocked(Key::OE_LCTRL) || Held(Key::OE_LCTRL);
     }
-    inline bool RCtrlLayer() { 
+    static inline bool RCtrlLayer() { 
       return Blocked(Key::OE_RCTRL) || Held(Key::OE_RCTRL);
     }
 
-    inline bool LAltLayer() { 
+    static inline bool LAltLayer() { 
       return Blocked(Key::OE_LALT) || Held(Key::OE_LALT);
     }
-    inline bool RAltLayer() { 
+    static inline bool RAltLayer() { 
       return Blocked(Key::OE_RALT) || Held(Key::OE_RALT);
     }
 
-    inline bool LCtrlShiftLayer() { 
+    static inline bool LCtrlShiftLayer() { 
       return LCtrlLayer() && (Blocked(Key::OE_LSHIFT) || Held(Key::OE_LSHIFT));
     }
-    inline bool RCtrlShiftLayer() { 
+    static inline bool RCtrlShiftLayer() { 
       return RCtrlLayer() && (Blocked(Key::OE_RSHIFT) || Held(Key::OE_RSHIFT));
     }
 
-    inline bool LCtrlAltLayer() { 
+    static inline bool LCtrlAltLayer() { 
       return LCtrlLayer() && (Blocked(Key::OE_LALT) || Held(Key::OE_LALT));
     }
-    inline bool RCtrlAltLayer() { 
+    static inline bool RCtrlAltLayer() { 
       return RCtrlLayer() && (Blocked(Key::OE_RALT) || Held(Key::OE_RALT));
     }
 
-    inline bool LCtrlAltShiftLayer() { 
+    static inline bool LCtrlAltShiftLayer() { 
       return LCtrlLayer() && LAltLayer() && (Blocked(Key::OE_LSHIFT) || Held(Key::OE_LSHIFT));
     }
-    inline bool RCtrlAltShiftLayer() { 
+    static inline bool RCtrlAltShiftLayer() { 
       return RCtrlLayer() && RAltLayer() && (Blocked(Key::OE_RSHIFT) || Held(Key::OE_RSHIFT));
     }
 
-    inline bool LCtrlLayerKey(Key key) { 
+    static inline bool LCtrlLayerKey(Key key) { 
       return LCtrlLayer() && Pressed(key);
     }
-    inline bool RCtrlLayerKey(Key key)  { 
+    static inline bool RCtrlLayerKey(Key key)  { 
       return RCtrlLayer() && Pressed(key); 
     }
 
-    inline bool LAltLayerKey(Key key) { 
+    static inline bool LAltLayerKey(Key key) { 
       return LAltLayer() && Pressed(key);
     }   
-    inline bool RAltLayerKey(Key key) { 
+    static inline bool RAltLayerKey(Key key) { 
       return RAltLayer() && Pressed(key);
     }
 
-    inline bool LCtrlShiftLayerKey(Key key) { 
+    static inline bool LCtrlShiftLayerKey(Key key) { 
       return LCtrlShiftLayer() && Pressed(key); 
     }
-    inline bool RCtrlShiftLayerKey(Key key) { 
+    static inline bool RCtrlShiftLayerKey(Key key) { 
       return RCtrlShiftLayer() && Pressed(key);
     }
 
-    inline bool LCtrlAltLayerKey(Key key) { 
+    static inline bool LCtrlAltLayerKey(Key key) { 
       return LCtrlAltLayer() && Pressed(key);
     }
-    inline bool RCtrlAltLayerKey(Key key) { 
+    static inline bool RCtrlAltLayerKey(Key key) { 
       return RCtrlAltLayer() && Pressed(key);
     }
     
-    inline bool LCtrlAltShiftLayerKey(Key key) { 
+    static inline bool LCtrlAltShiftLayerKey(Key key) { 
       return LCtrlAltShiftLayer() && Pressed(key);
     }
 
-    inline bool RCtrlAltShiftLayerKey(Key key) { 
+    static inline bool RCtrlAltShiftLayerKey(Key key) { 
       return RCtrlAltShiftLayer() && Pressed(key);
     }
 
   private:
-    const uint16_t kKeyCount = 287;
+    constexpr static uint16_t kKeyCount = 287;
     /// TODO: find some way to make this configurable
-    const uint32_t key_block_length = 5000;
-    const uint32_t key_repeat_length = 1000;
+    constexpr static uint32_t key_block_length = 5000;
+    constexpr static uint32_t key_repeat_length = 1000;
     
-    const uint8_t* state = nullptr;
-    std::map<Key , KeyState> keys;
+    static uint8_t* state;
+    static std::map<Key , KeyState> keys;
   };
 
 } // namespace other

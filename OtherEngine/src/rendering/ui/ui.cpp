@@ -112,7 +112,7 @@ namespace other {
     ImGui::StyleColorsDark();
 
     ImGui_ImplSDL2_InitForOpenGL(win_handle , ctx_handle);
-    ImGui_ImplOpenGL3_Init("#version 460");
+    ImGui_ImplOpenGL3_Init("#version 460 core");
 
     ui_context = ImGui::GetCurrentContext();
 
@@ -259,6 +259,7 @@ namespace other {
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
     ImGui::UpdatePlatformWindows();
     ImGui::RenderPlatformWindowsDefault();
 

@@ -1,0 +1,60 @@
+require("ymake")
+
+local config = {}
+config.wks_name = "@projectname"
+config.architecture = "x64"
+config.start_project = "@projectname"
+config.cpp_dialect = "C++latest"
+config.static_runtime = "on"
+config.target_dir = "%{wks.location}/bin/%{cfg.buildcfg}/%{prj.name}"
+config.obj_dir = "%{wks.location}/bin_obj/%{cfg.buildcfg}/%{prj.name}"
+
+config.build_configurations = { "Debug" , "Relase" }
+config.platforms = { "Windows" }
+
+CppWorkspace(config)
+
+local @projectname = {}
+
+@projectname.name = "@projectname"
+@projectname.path = "."
+@projectname.kind = "ConsoleApp"
+@projectname.language = "C++"
+@projectname.cppdialect = "C++latest"
+
+@projectname.files = function()
+  files { "./src/**.cpp" , "./src/**.hpp" }
+end
+
+@projectname.include_dirs = function()
+  includedirs { "./src" }
+end
+
+@projectname.defines = function()
+  defines { "OE_MODULE" }
+end
+
+@projectname.components = {}
+@projectname.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
+
+@projectname.window_configuration = function() end
+
+@projectname.post_build_commands = function()
+  filter { "system:windows" , "configurations:Debug" }
+    postbuildcommands {
+      '{COPY} "%{wks.location}/externals/sdl2/lib/Debug/SDL2d.dll" "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/mono-2.0-sgen.dll "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/mono-2.0-sgen.pdb "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/MonoPosixHelper.dll "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/MonoPosixHelper.pdb "%{cfg.targetdir}"',
+    }
+
+  filter { "system:windows" , "configurations:Release" }
+    postbuildcommands {
+      '{COPY} "%{wks.location}/externals/sdl2/lib/Release/SDL2.dll" "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/mono-2.0-sgen.dll "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/MonoPosixHelper.dll "%{cfg.targetdir}"',
+    }
+end
+
+AddProject(@projectname)
