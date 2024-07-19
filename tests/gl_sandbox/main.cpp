@@ -1,14 +1,13 @@
 /**
  * \file gl_sandbox/main.cpp
  **/
-#include <SDL_events.h>
-#include <imgui/backends/imgui_impl_opengl3.h>
-#include <imgui/backends/imgui_impl_sdl2.h>
 #include <iostream>
 
-#include <SDL_video.h>
-#include <glad/glad.h>
+#include <SDL.h>
 #include <imgui/imgui.h>
+#include <imgui/backends/imgui_impl_opengl3.h>
+#include <imgui/backends/imgui_impl_sdl2.h>
+#include <glad/glad.h>
 
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/ext/matrix_transform.hpp>
@@ -16,7 +15,6 @@
 
 #include <box2d/box2d.h>
 #include <box2d/b2_world.h>
-
 
 #include "core/logger.hpp"
 #include "core/errors.hpp"

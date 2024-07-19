@@ -230,3 +230,46 @@ reflection_testing.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
 reflection_testing.components["gtest"] = "%{wks.location}/externals/gtest/googletest/include"
 
 AddProject(reflection_testing)
+
+local node_editor_tests = {}
+node_editor_tests.name = "node_editor_tests"
+node_editor_tests.path = "./node_editor_tests"
+node_editor_tests.kind = "ConsoleApp"
+node_editor_tests.language = "C++"
+node_editor_tests.cppdialect = "C++latest"
+
+node_editor_tests.files = function()
+  files {
+    "./node_editor_tests/main.cpp"
+  }
+end
+
+node_editor_tests.include_dirs = function()
+  includedirs {
+    "./node_editor_tests",
+  }
+end
+
+node_editor_tests.post_build_commands = function()
+  filter { "system:windows" , "configurations:Debug" }
+    postbuildcommands {
+      '{COPY} "%{wks.location}/externals/sdl2/lib/Debug/SDL2d.dll" "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/mono-2.0-sgen.dll "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/mono-2.0-sgen.pdb "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/MonoPosixHelper.dll "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/MonoPosixHelper.pdb "%{cfg.targetdir}"',
+    }
+
+  filter { "system:windows" , "configurations:Release" }
+    postbuildcommands {
+      '{COPY} "%{wks.location}/externals/sdl2/lib/Release/SDL2.dll" "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/mono-2.0-sgen.dll "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/MonoPosixHelper.dll "%{cfg.targetdir}"',
+    }
+end
+
+node_editor_tests.components = {}
+node_editor_tests.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
+node_editor_tests.components["gtest"] = "%{wks.location}/externals/gtest/googletest/include"
+
+AddProject(node_editor_tests)

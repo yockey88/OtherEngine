@@ -5,7 +5,7 @@ imgui.kind = "StaticLib"
 imgui.language = "C++"
 imgui.cppdialect = "C++20"
 
-imgui.files = function() 
+imgui.files = function()
   files {
     "./imgui/*.cpp" ,
     "./imgui/*.h" ,
@@ -20,7 +20,7 @@ imgui.files = function()
   }
 end
 
-imgui.include_dirs = function() 
+imgui.include_dirs = function()
   includedirs {
     ".",
     "./imgui" ,
@@ -29,13 +29,13 @@ imgui.include_dirs = function()
   }
 end
 
-imgui.externalincludedirs = function() 
+imgui.externalincludedirs = function()
   externalincludedirs {
     "../sdl2/SDL2" ,
   }
 end
 
-imgui.defines = function() 
+imgui.defines = function()
   defines { "IMGUI_DEFINE_MATH_OPERATORS" }
 end
 

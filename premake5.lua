@@ -52,6 +52,13 @@ imgui.include_dir = "%{wks.location}/externals/imgui"
 imgui.lib_name = "imgui"
 imgui.lib_dir = "%{wks.location}/bin/Debug/imgui"
 
+local imgui_node_editor = {}
+imgui_node_editor.name = "imgui-node-editor"
+imgui_node_editor.path = "./externals/imgui-node-editor"
+imgui_node_editor.include_dir = "%{wks.location}/externals/imgui-node-editor"
+imgui_node_editor.lib_name = "imgui_node_editor"
+imgui_node_editor.lib_dir = "%{wks.location}/bin/Debug/imgui_node_editor"
+
 local magic_enum = {}
 magic_enum.name = "magic_enum"
 magic_enum.include_dir = "%{wks.location}/externals/magic_enum/magic_enum"
@@ -108,6 +115,7 @@ AddDependency(glad)
 AddDependency(glm)
 AddDependency(gtest)
 AddDependency(imgui)
+AddDependency(imgui_node_editor)
 AddDependency(magic_enum)
 AddDependency(nativefiledialog)
 AddDependency(sdl2)

@@ -107,6 +107,19 @@ namespace other {
       Buffer value;
   };
 
+  class ValueList {
+    public:
+      ValueList(const std::vector<Value>& vals)
+        : vals(vals) {}
+      ~ValueList() { vals.clear(); }
+
+      Value& operator[](size_t i) { return vals[i]; }
+
+    private:
+      /// TODO: does this feel horribly slow?
+      std::vector<Value> vals;
+  };
+
 } // namespace other
 
 #endif // !OTHER_ENGINE_VALUE_HPP

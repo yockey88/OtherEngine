@@ -6,7 +6,6 @@
 #include <sol/sol.hpp>
 
 #include "core/defines.hpp"
-#include "core/filesystem.hpp"
 
 using other::Path;
 
@@ -30,7 +29,6 @@ int main(int argc , char* argv[]) {
 
   lua.open_libraries(sol::lib::io , sol::lib::string);
 
-#if 0 // enum and statuc function tests
   lua["Number"] = lua.create_table_with(
     "Zero" , C::Number::ZERO , 
     "One" , C::Number::ONE , 
@@ -50,53 +48,6 @@ int main(int argc , char* argv[]) {
       print("Hell ya!");
     end
   )");
-#else
-  // std::vector<Path> premake_paths;
-  // Path premake_dir = "./OtherEngine-ScriptCore/lua/premake";
-  // Path vstudio_dir = "./OtherEngine-ScriptCore/lua/vstudio";
-  // Path main_file;
-  // for (auto entry : std::filesystem::recursive_directory_iterator(premake_dir)) {
-  //   if (!entry.is_regular_file()) {
-  //     continue;
-  //   }
-
-  //   if (entry.path().filename().string() == "_premake_main.lua") {
-  //     main_file = entry.path();
-  //     continue;
-  //   } else if (entry.path().extension().string() != ".lua") {
-  //     continue;
-  //   } 
-
-  //   lua.load_file(entry.path().string());
-  // }
-  // for (auto entry : std::filesystem::recursive_directory_iterator(vstudio_dir)) {
-  //   lua.load_file(entry.path().string());
-  // }
-
-  // lua["getEmbeddedResources"] = [](lua_State* L) {
-  //   const char* filename = luaL_checkstring(L , 1);
-  //   const buildin_mapping* chunk = premake_find_embedded_script(filename);
-  //   if (chunk == nullptr) {
-  //     return 0;
-  //   }
-
-  //   lua_pushlstring(L , (const char*)chunk->bytecode , chunk->length);
-  //   return 1;
-  // };
-
-  const char* args[] = {
-    "premake" , "vs2022"
-  };
-
-  // Path premake_path = other::Filesystem::GetEngineCoreDir() / "premake" / "premake5.exe";
-  // std::string cmd = other::fmtstr("{} vs2022" , premake_path.string());
-  // std::replace(cmd.begin() , cmd.begin() , '/' , '\\');
-
-  // std::cout << cmd << std::endl;
-
-  // system(cmd.c_str());
-
-#endif 
 
   return 0;
 }
