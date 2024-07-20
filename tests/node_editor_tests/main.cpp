@@ -10,6 +10,7 @@
 #include <imgui/backends/imgui_impl_sdl2.h>
 #include <imgui_node_editor/imgui_node_editor.h>
 #include <imgui_node_editor/imgui_node_editor_internal.h>
+#include <imflow/ImNodeFlow.h>
 
 #include "core/logger.hpp"
 #include "core/errors.hpp"
@@ -99,7 +100,9 @@ int main() {
     ImGui_ImplSDL2_InitForOpenGL(context.window, context.context);
     ImGui_ImplOpenGL3_Init("#version 460 core");
 
-    /// init objects
+    ImFlow::ImNodeFlow editor;
+    // editor.addNode<TestNode>(ImVec2(0 , 0));
+
     ax::NodeEditor::Config ne_config;
     ne_config.SettingsFile = "";
 
@@ -140,7 +143,7 @@ int main() {
         }
 
         auto GetUID = []() -> uint64_t {
-          static uint64_t uid = 0;
+          static uint64_t uid = 1;
           return uid++;
         };
 
@@ -157,86 +160,26 @@ int main() {
         ImGui::DockSpaceOverViewport();
 
         ax::NodeEditor::SetCurrentEditor(gui_ctx);
+        ax::NodeEditor::Begin("Node-Editor");
 
-        /// ui here
-          ax::NodeEditor::NodeId na = GetUID();
-          ax::NodeEditor::PinId paa = GetUID();
-          ax::NodeEditor::PinId pab = GetUID();
+        ax::NodeEditor::BeginNode(GetUID());
+  
+        ImGui::Text("Node A");
 
-          if (first_frame) {
-            ax::NodeEditor::SetNodePosition(na , ImVec2(10 , 10));
-          }
-          
-          ax::NodeEditor::Begin("Editor" , ImVec2(0.f , 0.f));
+        ax::NodeEditor::BeginPin(GetUID() , ax::NodeEditor::PinKind::Input);
+        ImGui::Text(" -> I ");
+        ax::NodeEditor::EndPin();
+        
+        ax::NodeEditor::BeginPin(GetUID() , ax::NodeEditor::PinKind::Output);
+        ImGui::Text(" O -> ");
+        ax::NodeEditor::EndPin();
 
-          ax::NodeEditor::BeginNode(na);
+        ax::NodeEditor::EndNode();
 
-          ImGui::Text("Disa isa my noda");
-
-          ax::NodeEditor::BeginPin(paa , ax::NodeEditor::PinKind::Input);
-          ImGui::Text("disa goes in");
-          ax::NodeEditor::EndPin();
-          
-          ax::NodeEditor::BeginPin(pab , ax::NodeEditor::PinKind::Output);
-          ImGui::Text("disa goes out");
-          ax::NodeEditor::EndPin();
-
-          ax::NodeEditor::EndNode();
-          
-          ax::NodeEditor::NodeId nb = GetUID();
-          ax::NodeEditor::PinId pba = GetUID();
-          ax::NodeEditor::PinId pbb = GetUID();
-          
-          ax::NodeEditor::BeginNode(nb);
-
-          ImGui::Text("Disa isa my other noda");
-
-          ax::NodeEditor::BeginPin(pba , ax::NodeEditor::PinKind::Input);
-          ImGui::Text("disa goes in");
-          ax::NodeEditor::EndPin();
-          
-          ax::NodeEditor::BeginPin(pbb , ax::NodeEditor::PinKind::Output);
-          ImGui::Text("disa goes out");
-          ax::NodeEditor::EndPin();
-
-          ax::NodeEditor::EndNode();
-
-          for (auto& l : links) {
-            ax::NodeEditor::Link(l.id , l.in_id , l.out_id);
-          }
-
-          if (ax::NodeEditor::BeginCreate()) {
-            ax::NodeEditor::PinId inid , outid;
-
-            if (ax::NodeEditor::QueryNewLink(&inid , &outid)) {
-              if ((inid && outid) && ax::NodeEditor::AcceptNewItem()) {
-                links.push_back({ ax::NodeEditor::LinkId(GetUID()) , inid , outid });
-                ax::NodeEditor::Link(links.back().id , links.back().in_id , links.back().out_id);
-              }
-            }
-          }
-          ax::NodeEditor::EndCreate();
-
-
-          if (ax::NodeEditor::BeginDelete()) {
-            ax::NodeEditor::LinkId dlid;
-
-            while (ax::NodeEditor::QueryDeletedLink(&dlid)) {
-              if (ax::NodeEditor::AcceptDeletedItem()) {
-                for (auto itr = links.begin(); itr != links.end(); ++itr) {
-                  if (itr->id  == dlid) {
-                    links.erase(itr);
-                    break;
-                  }
-                }
-              }
-            }
-          }
-          ax::NodeEditor::EndDelete();
-
-          ax::NodeEditor::End();
-
+        ax::NodeEditor::End();
         ax::NodeEditor::SetCurrentEditor(nullptr);
+
+        // editor.update();
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -245,12 +188,8 @@ int main() {
       
         SDL_GL_MakeCurrent(context.window , context.context);
         SDL_GL_SwapWindow(context.window);
-
-        first_frame = false;
       }
     }
-
-    ax::NodeEditor::DestroyEditor(gui_ctx);
 
   } catch (const other::IniException& e) {
   } catch (...) {

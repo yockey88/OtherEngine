@@ -59,6 +59,13 @@ imgui_node_editor.include_dir = "%{wks.location}/externals/imgui-node-editor"
 imgui_node_editor.lib_name = "imgui_node_editor"
 imgui_node_editor.lib_dir = "%{wks.location}/bin/Debug/imgui_node_editor"
 
+local imflow = {}
+imflow.name = "imflow"
+imflow.path = "./externals/imflow"
+imflow.include_dir = "%{wks.location}/externals/imflow"
+imflow.lib_name = "imflow"
+imflow.lib_dir = "%{wks.location}/bin/Debug/imflow"
+
 local magic_enum = {}
 magic_enum.name = "magic_enum"
 magic_enum.include_dir = "%{wks.location}/externals/magic_enum/magic_enum"
@@ -116,6 +123,7 @@ AddDependency(glm)
 AddDependency(gtest)
 AddDependency(imgui)
 AddDependency(imgui_node_editor)
+AddDependency(imflow)
 AddDependency(magic_enum)
 AddDependency(nativefiledialog)
 AddDependency(sdl2)
