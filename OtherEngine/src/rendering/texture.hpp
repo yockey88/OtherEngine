@@ -9,76 +9,84 @@
 #include "core/buffer.hpp"
 #include "asset/asset.hpp"
 
+#include "rendering/rendering_defines.hpp"
+
 namespace other {
 
-  enum FilterType {
-    NEAREST = GL_NEAREST ,
-    LINEAR = GL_LINEAR
+  template <typename T>
+  struct TexParam {
+    union {
+      T s_val;
+      T min;
+    };
+
+    union {
+      T t_val;
+      T mag;
+    };
+
+    T r_val;
   };
 
-  enum TextureType {
-    DIFFUSE , 
-    SPECULAR ,
-    NORMAL ,
-    HEIGHT
-  };
-  
-  enum ChannelType {
-    RED = GL_RED ,
-    RGB = GL_RGB ,
-    RGBA = GL_RGBA
-  };
-  
-  enum TargetType {
-    TEX_1D = GL_TEXTURE_1D ,
-    TEX_2D = GL_TEXTURE_2D ,
-    TEX_3D = GL_TEXTURE_3D ,
-    TEX_1D_ARR = GL_TEXTURE_1D_ARRAY ,
-    TEX_2D_ARR = GL_TEXTURE_2D_ARRAY ,
-    TEX_RECT = GL_TEXTURE_RECTANGLE ,
-    TEX_CUBE_MAP = GL_TEXTURE_CUBE_MAP ,
-    TEX_CUBE_MAP_ARR = GL_TEXTURE_CUBE_MAP_ARRAY ,
-    TEX_BUFFER = GL_TEXTURE_BUFFER ,
-    TEX_2D_MULTISAMPLE = GL_TEXTURE_2D_MULTISAMPLE ,
-    TEX_2D_MULTISAMPLE_ARR = GL_TEXTURE_2D_MULTISAMPLE_ARRAY
+  struct TextureSpecification {
+    ChannelType channels;
+    TargetType type;
+
+    glm::ivec2 size;
+
+    TexParam<FilterType> filters;
+    TexParam<TextureWrap> wrap;
+
+    bool generate_mipmaps = false;
+    bool srgb = false;
+    bool storag = false;
+    bool store_locally = false;
+
+    std::string name;
   };
 
   class Texture : public Asset {
     public:
       OE_ASSET(TEXTURE);
 
-      Texture(const Path& file_path);
-      Texture(const glm::ivec2& size , const Buffer& data , ChannelType channels = RGB ,
-              TargetType = TEX_2D);
+      Texture(TargetType type , const Path& path , const TextureSpecification& spec);
       virtual ~Texture() override {}
 
       void Bind(uint32_t texture_slot = 0) const; 
       void Unbind() const;
 
-    private:
+      uint32_t GetRendererId() const;
+      
+      Buffer PixelData();
+      
+    protected:
+      TargetType type;
+      TextureSpecification spec;
+      uint32_t renderer_id = 0;
+      
+      Buffer pixel_data;
+
+      void SetData(uint8_t* pixels , const glm::vec2& size , int32_t format);
+
+      virtual void OnLoad() {}
   };
 
   class Texture2D : public Texture {
     public:
-      Texture2D(const Path& file_path);
-      Texture2D(const glm::ivec2& size , const Buffer& data , ChannelType channels = RGB ,
-              TargetType = TEX_2D);
+      Texture2D(const Path& path , const TextureSpecification& spec);
       virtual ~Texture2D() override {}
 
-      Buffer PixelData();
-
     private:
-      Buffer pixel_data;
+      virtual void OnLoad() override;
   };
 
   class CubeMapTexture : public Texture {
     public:
-      CubeMapTexture(const Path& file_path);
-      CubeMapTexture(const glm::ivec2& size , const Buffer& data , ChannelType channels = RGB ,
-                     TargetType = TEX_CUBE_MAP);
+      CubeMapTexture(const Path& path , const TextureSpecification& spec);
       virtual ~CubeMapTexture() override {}
 
     private:
+      virtual void OnLoad() override {}
   };
 
 } // namespace other

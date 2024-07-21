@@ -28,6 +28,7 @@
 #include "rendering/ui/ui_helpers.hpp"
 
 #include "editor/editor.hpp"
+#include "editor/editor_images.hpp"
 
 namespace other {
 
@@ -42,6 +43,9 @@ std::vector<uint32_t> fb_indices{ 0 , 1 , 3 , 1 , 2 , 3 };
 std::vector<uint32_t> fb_layout{ 2 , 2 };
 
   void EditorLayer::OnAttach() {
+    /// load editor icons and data
+    EditorImages::Initialize();
+
     editor_camera = NewRef<PerspectiveCamera>(Renderer::WindowSize());
     editor_camera->SetPosition({ 0.f , 0.f , 3.f });
     editor_camera->SetDirection({ 0.f , 0.f , -1.f });

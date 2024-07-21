@@ -4,14 +4,14 @@
 #ifndef OTHER_ENGINE_ASSET_REGISTRY_HPP
 #define OTHER_ENGINE_ASSET_REGISTRY_HPP
 
-#include <unordered_map>
+#include <map>
 
 #include "asset/asset_types.hpp"
 #include "asset/asset_metadata.hpp"
 
 namespace other {
 
-  using AssetDataMap = std::unordered_map<AssetHandle, AssetMetadata>;
+  using AssetDataMap = std::map<AssetHandle, AssetMetadata>;
 
   class AssetRegistry {
     public:

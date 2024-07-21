@@ -73,7 +73,13 @@ namespace {
         metadata.cs_project_file = p; 
       }
     }
+  }
 
+  Ref<Project> Project::Create(const CmdLine& cmdline , const ConfigTable& data) {
+    return NewRef<Project>(cmdline , data);
+  }
+      
+  void Project::LoadFiles() {
     auto dirs = GetAllDirectories(metadata.project_directory);
     for (auto& d : dirs) {
       auto stem = d->path.stem();
@@ -104,10 +110,6 @@ namespace {
 
     OE_DEBUG("Creating Script Watches");
     CreateScriptWatchers();
-  }
-
-  Ref<Project> Project::Create(const CmdLine& cmdline , const ConfigTable& data) {
-    return NewRef<Project>(cmdline , data);
   }
  
   bool Project::RegenProjectFile() {

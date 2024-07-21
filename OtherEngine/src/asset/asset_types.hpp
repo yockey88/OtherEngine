@@ -152,6 +152,13 @@ namespace std {
       return hash<other::UUID>{}(handle.id);
     }
   };
+  
+  template<>
+  struct less<other::AssetHandle> {
+    size_t operator()(const other::AssetHandle& lhs , const other::AssetHandle& rhs) const {
+      return lhs.Get() < rhs.Get();
+    }
+  };
 
 } // namespace std
 

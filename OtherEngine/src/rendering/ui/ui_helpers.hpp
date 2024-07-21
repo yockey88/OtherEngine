@@ -13,6 +13,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
 
+#include "rendering/texture.hpp"
 #include "rendering/ui/ui_colors.hpp"
 
 #define UI_COLOR(r , g , b , a) ImVec4(r / 255.0f , g / 255.0f , b / 255.0f , a / 255.0f)
@@ -116,6 +117,13 @@ namespace ui {
       ImVec2(rect.Max.x + x , rect.Max.y + y)
     );
   }
+  
+  inline ImRect RectOffset(const ImRect& rect , float x , float y) {
+    return ImRect(
+      ImVec2(rect.Min.x + x , rect.Min.y + y) ,
+      ImVec2(rect.Max.x + x , rect.Max.y + y)
+    );
+  }
 
   void PushId();
   void PopId();
@@ -214,6 +222,12 @@ namespace ui {
   bool Property(const char* label , glm::vec4* value , glm::vec4 min = glm::zero<glm::vec4>(), 
                 glm::vec4 max = glm::zero<glm::vec4>() , const char* help_text = "");
 
+  void DrawButtonImage(const Ref<Texture2D>& image_normal, const Ref<Texture2D>& image_hovered, const Ref<Texture2D>& image_pressed,
+  	               ImU32 tint_normal, ImU32 tint_hovered, ImU32 tint_pressed, ImVec2 rect_min, ImVec2 rect_max);
+  
+  void DrawButtonImage(const Ref<Texture2D>& image, ImU32 tint_normal, ImU32 tint_hovered, ImU32 tint_pressed, ImRect rect);
+  void DrawButtonImage(const Ref<Texture2D>& image, ImU32 tint_normal, ImU32 tint_hovered, ImU32 tint_pressed, 
+                       ImVec2 rect_min, ImVec2 rect_max);
 
 } // namespace ui
 } // namespace other

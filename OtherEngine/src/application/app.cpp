@@ -320,6 +320,7 @@ namespace {
   }
 
   void App::Attach() {
+    GetProjectContext()->LoadFiles();
     OnAttach();
   }
 

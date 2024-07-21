@@ -10,7 +10,6 @@
 
 #include <spdlog/fmt/fmt.h>
 
-#include "core/logger.hpp"
 #include "rendering/ui/ui_colors.hpp"
 #include "rendering/ui/ui_widgets.hpp"
 
@@ -774,6 +773,27 @@ namespace {
 
   bool Property(const char* label , glm::vec4* value , glm::vec4 min , glm::vec4 max , const char* help_text) {
     return false; 
+  }
+
+  void DrawButtonImage(const Ref<Texture2D>& image_normal, const Ref<Texture2D>& image_hovered, const Ref<Texture2D>& image_pressed,
+  	                   ImU32 tint_normal, ImU32 tint_hovered, ImU32 tint_pressed, ImVec2 rect_min, ImVec2 rect_max) {
+    auto* drawList = ImGui::GetWindowDrawList();
+    if (ImGui::IsItemActive()) {
+      drawList->AddImage((void*)(uintptr_t)image_pressed->GetRendererId() , rect_min, rect_max, ImVec2(0, 0), ImVec2(1, 1), tint_pressed);
+    } else if (ImGui::IsItemHovered()) {
+      drawList->AddImage((void*)(uintptr_t)image_hovered->GetRendererId() , rect_min, rect_max, ImVec2(0, 0), ImVec2(1, 1), tint_hovered);
+    } else {
+      drawList->AddImage((void*)(uintptr_t)image_normal->GetRendererId() , rect_min, rect_max, ImVec2(0, 0), ImVec2(1, 1), tint_normal);
+    }
+  };
+  
+  void DrawButtonImage(const Ref<Texture2D>& image, ImU32 tint_normal, ImU32 tint_hovered, ImU32 tint_pressed, ImRect rect) {
+    DrawButtonImage(image , image , image , tint_normal , tint_hovered , tint_pressed , rect.Min , rect.Max);
+  }
+  
+  void DrawButtonImage(const Ref<Texture2D>& image, ImU32 tint_normal, ImU32 tint_hovered, ImU32 tint_pressed, 
+                       ImVec2 rect_min, ImVec2 rect_max) {
+    DrawButtonImage(image , image , image , tint_normal , tint_hovered , tint_pressed , rect_min , rect_max);
   }
 
 } // namespace ui
