@@ -10,19 +10,21 @@
 
 namespace other {
 
-  AssetHandle ModelFactory::CreateTriangle(const glm::vec3& pos) {
+  AssetHandle ModelFactory::CreateTriangle(const glm::vec2& half_extents) {
     std::vector<Vertex> vertices{};
     vertices.resize(3);
 
-    vertices[0].position = { pos.x - 0.5f , pos.y - 0.5f , pos.z };
-    vertices[1].position = { pos.x + 0.5f , pos.y - 0.5f , pos.z };
-    vertices[2].position = { pos.x        , pos.y + 0.5f , pos.z };
+    vertices[0].position = { -half_extents.x , -half_extents.y , 0.f };
+    vertices[1].position = { +half_extents.x , -half_extents.y , 0.f };
+    vertices[2].position = { 0.f             ,  half_extents.y , 0.f };
     
     vertices[0].normal = { -1.f , -1.f , 0.f };
     vertices[1].normal = {  1.f , -1.f , 0.f };
     vertices[2].normal = {  0.f ,  1.f , 0.f };
 
     std::vector<Index> indices;
+    indices.resize(1);
+    indices[0] = { 0 , 1 , 2 };
 
     AssetHandle source_handle = AssetManager::CreateMemOnly<ModelSource>(vertices , indices , glm::mat4(1.f));
     Ref<ModelSource> source = AssetManager::GetAsset<ModelSource>(source_handle);
@@ -31,14 +33,14 @@ namespace other {
     return handle;
   }
       
-  AssetHandle ModelFactory::CreateRect(const glm::vec3& pos , const glm::vec2& half_extents) {
+  AssetHandle ModelFactory::CreateRect(const glm::vec2& half_extents) {
     std::vector<Vertex> vertices{};
     vertices.resize(6);
 
-    vertices[0].position = { 0.5 + half_extents.x , 0.5 + half_extents.y , pos.z };
-    vertices[1].position = { 0.5 + half_extents.x , 0.5 - half_extents.y , pos.z };
-    vertices[2].position = { 0.5 - half_extents.x , 0.5 - half_extents.y , pos.z };
-    vertices[3].position = { 0.5 - half_extents.x , 0.5 + half_extents.y , pos.z };
+    vertices[0].position = { +half_extents.x , +half_extents.y , 0.f };
+    vertices[1].position = { +half_extents.x , -half_extents.y , 0.f };
+    vertices[2].position = { -half_extents.x , -half_extents.y , 0.f };
+    vertices[3].position = { -half_extents.x , +half_extents.y , 0.f };
     
     vertices[0].normal = {  1.f ,  1.f , 0.f };
     vertices[1].normal = {  1.f , -1.f , 0.f };
@@ -55,6 +57,7 @@ namespace other {
     Ref<ModelSource> source = AssetManager::GetAsset<ModelSource>(source_handle);
     AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>(source);
 
+    OE_DEBUG("Created rect mesh : [{}]" , handle);
     return handle;
   }
 

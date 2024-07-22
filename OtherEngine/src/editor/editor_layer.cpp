@@ -28,6 +28,7 @@
 #include "rendering/ui/ui_helpers.hpp"
 
 #include "editor/editor.hpp"
+#include "editor/editor_settings.hpp"
 #include "editor/editor_images.hpp"
 
 namespace other {
@@ -57,11 +58,10 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
 
     LoadEditorScripts(editor_config);
 
-    for (const auto& [id , script] : editor_scripts.scripts) {
-      script->OnBehaviorLoad();
-      script->Initialize();
-      script->Start();
-    }
+    // for (const auto& [id , script] : editor_scripts.scripts) {
+    //   script->Initialize();
+    //   script->Start();
+    // }
 
     panel_manager = NewScope<PanelManager>();
     panel_manager->Attach((Editor*)ParentApp() , AppState::ProjectContext() , editor_config);
@@ -85,6 +85,8 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
     }
     editor_scripts.scripts.clear();
     panel_manager->Detach();
+
+    EditorImages::Shutdown();
   }
       
   void EditorLayer::OnEarlyUpdate(float dt) {
@@ -130,7 +132,7 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
     AppState::Scenes()->UpdateScene(dt);
   }
   
-void EditorLayer::OnLateUpdate(float dt) {
+  void EditorLayer::OnLateUpdate(float dt) {
     if (camera_free) {
       // DefaultLateUpdateCamera(editor_camera);
     }
@@ -181,6 +183,10 @@ void EditorLayer::OnLateUpdate(float dt) {
       if (ImGui::BeginMenu("File")) {
         if (ImGui::MenuItem("Reload")) {
           ReloadScripts();
+        }
+
+        if (ImGui::MenuItem("Settings")) {
+          LaunchSettingsWindow();
         }
 
         ImGui::EndMenu();
@@ -354,12 +360,20 @@ void EditorLayer::OnLateUpdate(float dt) {
         obj->Start();
       }
     }
+
+    panel_manager->OnScriptReload();
   }
 
   void EditorLayer::SaveActiveScene() {
     OE_ASSERT(AppState::Scenes()->ActiveScene() != nullptr , "Attempting to save null scene!");
 
     auto& scenes = AppState::Scenes();
+    bool is_playing = scenes->IsPlaying();
+
+    if (is_playing) {
+      scenes->StopScene();
+    }
+
     Path p = scenes->ActiveScene()->path;
 
     scenes->SaveActiveScene();
@@ -367,6 +381,9 @@ void EditorLayer::OnLateUpdate(float dt) {
     ParentApp()->UnloadScene();
     ParentApp()->LoadScene(p);
 
+    if (is_playing) {
+      scenes->StartScene();
+    }
   }
   
   void EditorLayer::LoadEditorScripts(const ConfigTable& editor_config) {
@@ -515,6 +532,11 @@ void EditorLayer::OnLateUpdate(float dt) {
       } ,
     }; 
     return NewRef<SceneRenderer>(spec);
+  }
+      
+  void EditorLayer::LaunchSettingsWindow() {
+    Ref<UIWindow> settings_window = NewRef<SettingsWindow>();
+    ParentApp()->PushUIWindow(settings_window);
   }
 
 } // namespace other

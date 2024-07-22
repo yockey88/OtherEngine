@@ -92,6 +92,7 @@ namespace {
       /// check if this is our assets dir
       if (stem == "assets") {
         metadata.assets_dir = d->path;
+        OE_DEBUG("project assets directory {}" , metadata.assets_dir);
       }
 
       metadata.directories[FNV(stem.string())] = d;
@@ -108,7 +109,7 @@ namespace {
     metadata.lua_editor_watcher = NewScope<DirectoryWatcher>(editor_path.string() , ".lua");
     metadata.lua_scripts_watcher = NewScope<DirectoryWatcher>(scripts_path.string() , ".lua");
 
-    OE_DEBUG("Creating Script Watches");
+    OE_DEBUG("Creating Script Watchers");
     CreateScriptWatchers();
   }
  
@@ -159,8 +160,10 @@ namespace {
 
   void Project::CreateFileWatchers(const Path& dirpath) {
     if (!Filesystem::PathExists(dirpath)) {
+      OE_ERROR("Creating file watchers for non-existent directory {}" , dirpath);
       return;
     } else if (!Filesystem::IsDirectory(dirpath)) {
+      OE_ERROR("CreateFileWatchers param must be a directory. {} is a file." , dirpath);
       return;
     }
 

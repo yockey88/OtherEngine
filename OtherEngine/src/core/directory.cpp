@@ -38,10 +38,8 @@ namespace other {
         continue;
       }
 
-      if (entry.path().extension() == ".cs") {
-        auto handle = AppState::Assets().As<EditorAssetHandler>()->ImportAsset(entry.path());
-        assets.insert(handle);
-      }
+      auto handle = AppState::Assets().As<EditorAssetHandler>()->ImportAsset(entry.path());
+      assets.insert(handle);
     } 
   }
 

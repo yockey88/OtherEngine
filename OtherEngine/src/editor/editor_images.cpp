@@ -14,14 +14,50 @@ namespace other {
   void EditorImages::Initialize() {
     folder_icon = LoadTexture("folder.png");
 
+    default_file_icon = LoadTexture("default_file.png");
+
     cs_file_icon = LoadTexture("cs_file.png");
     extension_map[FNV(".cs")] = cs_file_icon;
+
+    lua_file_icon = LoadTexture("lua_file.png");
+    extension_map[FNV(".lua")] = lua_file_icon;
+
+    shader_file_icon = LoadTexture("shader_file.png");
+    extension_map[FNV(".glsl")] = shader_file_icon;
+    extension_map[FNV(".vert")] = shader_file_icon;
+    extension_map[FNV(".frag")] = shader_file_icon;
+    extension_map[FNV(".geom")] = shader_file_icon;
+    extension_map[FNV(".oshader")] = shader_file_icon;
+    
+    scene_file_icon = LoadTexture("scene_file.png");
+    extension_map[FNV(".yscn")] = scene_file_icon;
+    extension_map[FNV(".yscene")] = scene_file_icon;
+
+    hpp_file_icon = LoadTexture("hpp_file.png");
+    extension_map[FNV(".h")] = hpp_file_icon;
+    extension_map[FNV(".hpp")] = hpp_file_icon;
+
+    cpp_file_icon = LoadTexture("cpp_file.png");
+    extension_map[FNV(".cpp")] = cpp_file_icon;
+  }
+    
+  void EditorImages::Shutdown() {
+    /// this has to happen otherwise these will be destroyed during static destructor calling which is bad
+    extension_map.clear();
+    folder_icon = nullptr;
+    default_file_icon = nullptr;
+    cs_file_icon = nullptr;
+    lua_file_icon = nullptr;
+    shader_file_icon = nullptr;
+    scene_file_icon = nullptr;
+    hpp_file_icon = nullptr;
+    cpp_file_icon = nullptr;
   }
     
   Ref<Texture2D> EditorImages::GetIconFromExtension(const std::string_view ext) {
     auto itr = extension_map.find(FNV(ext));
     if (itr == extension_map.end()) {
-      return nullptr;
+      return default_file_icon;
     }
 
     return itr->second;

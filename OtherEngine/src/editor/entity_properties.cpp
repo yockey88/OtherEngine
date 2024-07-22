@@ -104,12 +104,13 @@ namespace other {
               OE_WARN("Can not give entity an empty name!");
               name_valid = false;
             }
-            
-            UUID id = FNV(name);
-            if (name_valid && active_scene->GetEntity(id) != nullptr) {
-              OE_WARN("Can not give entity the same name as another entity");
+
+            if (active_scene->HasEntity(name)) {
+              OE_ERROR("Cannot have two entities with the same name!");
               name_valid = false;
             }
+
+            UUID id = FNV(name);
 
             if (name_valid) {
               active_scene->RenameEntity(old_id , id , name);

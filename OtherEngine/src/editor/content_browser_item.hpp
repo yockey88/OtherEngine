@@ -96,6 +96,7 @@ namespace other {
 
       void Deselect() {
         selected = false;
+        dragging = false;
       }
 
       void Rename(const std::string& name) {
@@ -119,6 +120,8 @@ namespace other {
       virtual void OnRenamed(const std::string& new_name) { filename = new_name; }
       virtual void RenderCustomContextItems() {}
       virtual void UpdateDrop(CBActionResult& result) {}
+
+      virtual std::string OverrideDisplayName(const std::string& new_name) { return new_name; };
 
     private:
       Type type;
@@ -171,6 +174,7 @@ namespace other {
 
     private:
       virtual void OnRenamed(const std::string& name) override;
+      virtual std::string OverrideDisplayName(const std::string& new_name) override;
 
       AssetMetadata asset_metadata;
   };

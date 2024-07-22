@@ -20,7 +20,6 @@
 #include "application/app_state.hpp"
 #include "project/project.hpp"
 
-#include "scripting/script_engine.hpp"
 #include "rendering/ui/ui_helpers.hpp"
 #include "rendering/ui/ui_colors.hpp"
 #include "rendering/ui/confirmation_window.hpp"
@@ -206,6 +205,27 @@ namespace other {
 
   void ProjectPanel::SetSceneContext(const Ref<Scene>& scene) {
   }
+
+  void ProjectPanel::OnScriptReload() {
+    /// reset assets dir
+    project_folders.assets = nullptr;
+    project_folders.assets = NewRef<CBDirectory>(NewRef<Directory>(project_folders.root->directory->path / "assets"));
+
+    project_folders.asset_folders.clear();
+
+    for (auto& entry : std::filesystem::directory_iterator(project_folders.assets->directory->path)) {
+      if (!entry.is_directory()) {
+        return;
+      }
+
+      Ref<Directory> child_dir = NewRef<Directory>(entry.path()); 
+      project_folders.asset_folders[child_dir->handle] = NewRef<CBDirectory>(child_dir);
+    }
+
+    if (selection_item.has_value()) {
+      current_items = LoadItems(selection_item.value());
+    }
+  }
       
   void ProjectPanel::RenderTopBar(float height) const {
     ImGui::BeginChild("##project_directory_contents_top_bar" , ImVec2(0.f , height));
@@ -236,12 +256,22 @@ namespace other {
     ImGui::EndChild();
   }
       
+  bool ProjectPanel::TreeNode(const std::string& id , const std::string& label , ImGuiTreeNodeFlags flags , const Ref<Texture2D>& icon) {
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    if (window->SkipItems) {
+      return false;
+    }
+
+    return ui::TreeNodeWithIcon(icon , window->GetID(id.c_str()) , flags , label.c_str() , nullptr);
+  }
+      
   void ProjectPanel::RenderDirectoryTree(const Ref<CBDirectory>& dir) {
     ImGui::PushID(dir->directory->path.string().c_str());
     auto non_absolute = dir->directory->path.stem();
     auto files = Filesystem::GetSubDirs(dir->directory->path);
 
-    ImGuiID node_id = ImGui::GetID(non_absolute.string().c_str());
+    std::string id_str = non_absolute.string();
+    ImGuiID node_id = ImGui::GetID(id_str.c_str());
     bool prev_state = ImGui::TreeNodeBehaviorIsOpen(node_id);
 
     auto* window = ImGui::GetCurrentWindow();
@@ -299,6 +329,9 @@ namespace other {
     const bool is_active_dir = IsDirSelected(dir->directory);
 
     ImGuiTreeNodeFlags flags = (is_active_dir ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_SpanFullWidth;
+    if (dir->directory->children.size() == 0) {
+      flags |= ImGuiTreeNodeFlags_Leaf;
+    }
     
     if (item_clicked) {
       SetSelectionContext(dir);
@@ -318,6 +351,7 @@ namespace other {
     }
 
     bool open = ImGui::TreeNodeEx(non_absolute.string().c_str() , flags);
+    // bool open = TreeNode(id_str , non_absolute.string() , flags , EditorImages::folder_icon);
 
     if (is_active_dir || item_clicked) {
       ImGui::PopStyleColor();
@@ -476,7 +510,6 @@ namespace other {
     selection_item = dir;
     selection = dir->directory;
     current_items = LoadItems(selection_item.value());
-    OE_DEBUG("current items : {}" , current_items.size());
 
     selection_item.value()->Select();
   }
@@ -484,6 +517,9 @@ namespace other {
   void ProjectPanel::ActivateAsset(const Ref<CBItem>& asset) {
     const AssetMetadata& asset_md = AppState::Assets().As<EditorAssetHandler>()->GetMetadata(asset->GetHandle());
     switch (asset_md.type) {
+      case SCENE: {
+        GetEditor().LoadScene(asset_md.path);
+      } break;
       case SCRIPTFILE: {
         auto script_editor_itr = ui_windows.find(FNV("Script Editor")); 
         if (script_editor_itr != ui_windows.end()) {
@@ -496,15 +532,16 @@ namespace other {
         ImGui::CloseCurrentPopup();
       } break;
       default:
-        OE_ASSERT(false , "Invalid asset type");
+        OE_DEBUG("Implement asset activation {}" , asset_md.type);
+      break;
     }
   }
       
   void ProjectPanel::RenderItems() {
-    bool set_selection_ctx = false;
-    bool asset_activated = false;
-
     for (auto& itm : current_items) {
+      bool set_selection_ctx = false;
+      bool asset_activated = false;
+
       itm->OnRenderBegin();
 
       CBActionResult result = itm->Render();
@@ -534,18 +571,11 @@ namespace other {
 
       itm->OnRenderEnd();
 
-      if (set_selection_ctx) {
-        if (itm->GetType() == ContentBrowserItem::Type::DIRECTORY) {
-          SetSelectionContext(itm.As<CBDirectory>());
-
-          /// have to return here because loop iterator invalidated
-          return;
-        } else {
-          ActivateAsset(itm.As<CBItem>());
-          return;
-        }
+      if (set_selection_ctx && itm->GetType() == ContentBrowserItem::Type::DIRECTORY) {
+        SetSelectionContext(itm.As<CBDirectory>());
+        return;
       } else if (asset_activated) {
-        
+        ActivateAsset(itm.As<CBItem>());
       }
     }
   }
@@ -559,11 +589,8 @@ namespace other {
 
     for (auto& handle : dir->directory->assets) {
       const AssetMetadata& asset_md = AppState::Assets().As<EditorAssetHandler>()->GetMetadata(handle);
-      if (asset_md.type != AssetType::SCRIPTFILE) {
-        continue;
-      }
-
       if (asset_md.path.empty()) {
+        items.push_back(NewRef<CBItem>(asset_md , EditorImages::default_file_icon));
         continue;
       }
 

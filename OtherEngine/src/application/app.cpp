@@ -318,9 +318,33 @@ namespace {
 
     OE_DEBUG("Scene Unloaded");
   }
+  
+  void App::ReloadScripts() {
+    bool scene_playing = false;
+    Opt<Path> active_path = std::nullopt;
+    if (scene_manager->ActiveScene() != nullptr) {
+      scene_playing = scene_manager->IsPlaying();
+      active_path = scene_manager->ActiveScene()->path;
+      UnloadScene();
+    } 
+      
+    scene_manager->ClearScenes();
+    ScriptEngine::ReloadAllScripts();
+
+    OnScriptReload();
+
+    if (active_path.has_value()) {
+      LoadScene(active_path.value());
+    }
+
+    if (scene_playing) {
+      scene_manager->StartScene();
+    }
+  }
 
   void App::Attach() {
     GetProjectContext()->LoadFiles();
+    ScriptEngine::LoadProjectModules();
     OnAttach();
   }
 
@@ -404,30 +428,11 @@ namespace {
     }
     layer_stack->Clear();
 
+    ScriptEngine::UnloadProjectModules();
+
     OE_DEBUG("Application detached");
   }
-      
-  void App::ReloadScripts() {
-    Opt<Path> active_path = std::nullopt;
-    if (scene_manager->ActiveScene() != nullptr) {
-      active_path = scene_manager->ActiveScene()->path;
-      UnloadScene();
-    } 
-      
-    scene_manager->ClearScenes();
-    ScriptEngine::ReloadAllScripts();
-
-    for (auto& l : *layer_stack) {
-      l->ReloadScripts();
-    }
-
-    OnScriptReload();
-
-    if (active_path.has_value()) {
-      LoadScene(active_path.value());
-    }
-  }
-      
+       
   Ref<AssetHandler> App::CreateAssetHandler() {
     return NewRef<RuntimeAssetHandler>();
   }

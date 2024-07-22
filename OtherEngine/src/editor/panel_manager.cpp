@@ -89,6 +89,9 @@ namespace other {
   }
 
   void PanelManager::OnScriptReload() {
+    for (auto& [id , panel] : active_panels) {
+      panel.panel->OnScriptReload();
+    }
   }
 
 } // namespace other

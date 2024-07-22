@@ -1,8 +1,9 @@
 /**
  * \file ecs/systems/component_gui.cpp
  **/
-#include "ecs/systems//component_gui.hpp"
+#include "ecs/systems/component_gui.hpp"
 
+#include <algorithm>
 #include <imgui/imgui.h>
 
 #include "ecs/components/mesh.hpp"
@@ -18,6 +19,7 @@
 #include "rendering/model_factory.hpp"
 #include "rendering/ui/ui_helpers.hpp"
 #include "rendering/ui/ui_widgets.hpp"
+#include "scripting/script_engine.hpp"
 
 #include "ecs/components/transform.hpp"
 #include "ecs/components/relationship.hpp"
@@ -328,13 +330,65 @@ namespace other {
   void DrawScript(Entity* ent) {
     auto& script = ent->GetComponent<Script>();
 
+    auto& loaded_script_objs = ScriptEngine::GetLoadedObjects();
+    std::vector<const char*> options = {};
+
+    for (auto& tag : loaded_script_objs) {
+      options.push_back(tag.name.c_str());
+    }
+
+    static uint32_t slctn = 0;
+    if (ui::PropertyDropdown("Attach Script" , options.data() , options.size() , slctn)) {
+    }
+
+    auto contains = [&](const std::pair<UUID , ScriptObject*>& obj_pair) -> bool {
+      return obj_pair.first == loaded_script_objs[slctn].object_id;
+    };
+
+    bool has_script_attached = std::ranges::find_if(script.scripts , contains) != script.scripts.end();
+    if (!has_script_attached && ImGui::Button("Confirm")) {
+      auto id = loaded_script_objs[slctn].object_id;
+      auto name = loaded_script_objs[slctn].name;
+      auto mod_name = loaded_script_objs[slctn].mod_name;
+
+      Opt<std::string> nspace = loaded_script_objs[slctn].nspace.empty() ?
+        Opt<std::string>{ std::nullopt } : Opt<std::string>{ loaded_script_objs[slctn].nspace };
+
+      ScriptObject* inst = nullptr;
+      if (nspace.has_value()) {
+        inst = ScriptEngine::GetScriptObject(nspace.value() + "::" + name);
+      } else {
+        inst = ScriptEngine::GetScriptObject(name);
+      }
+
+      if (inst == nullptr) {
+        OE_ERROR("Failed to retrieve selection script object {} [{}]" , name , id);
+      } else {
+        script.data[id] = {
+          .module = mod_name ,
+          .obj_name = name ,
+        };
+
+        auto& tag = ent->GetComponent<Tag>();
+
+        script.scripts[id] = inst;
+        inst->SetEntityId(tag.id);
+        inst->Initialize();
+      }
+    }
+
+    if (script.scripts.size() == 0) {
+      return;
+    }
+
     std::vector<UUID> scripts_to_remove;
- 
+
     for (auto& [id , s] : script.scripts) {
       ImGui::PushID(id.Get());
 
       bool is_error = s->IsCorrupt();
       if (is_error) {
+        ScopedColor red(ImGuiCol_Text , ui::theme::red);
         ImGui::Text("%s corrupt, recompile or reload" , s->Name().c_str());
 
         if (ImGui::Button("Rebuild Scripts")) {
@@ -394,6 +448,7 @@ namespace other {
       }
 
       if (ImGui::Button("Remove Script")) {
+        OE_INFO("Removing script {} [{}]" , s->Name() , id);
         scripts_to_remove.push_back(id);
       }
       
@@ -421,8 +476,16 @@ namespace other {
 
       ImGui::PopID();
     }
+    
+    auto& scenes = AppState::Scenes();
 
     for (const auto& id : scripts_to_remove) {
+      OE_DEBUG("Removing object from scene [{}]" , id);
+      {
+        auto& object = script.scripts[id];
+        object->Shutdown();
+      }
+
       script.scripts.erase(script.scripts.find(id));
       script.data.erase(script.data.find(id));
     }
@@ -458,13 +521,19 @@ namespace other {
     if (mesh.primitive_id != mesh.primitive_selection && ImGui::Button("Confirm Change")) {
       bool change = false;
       switch (mesh.primitive_selection) {
-        case kTriangleIdx:
-          OE_WARN("Assigning rect until implementations for others available!");
-          [[ fallthrough ]];
+        case kTriangleIdx: {
+          auto& scale = ent->ReadComponent<Transform>().scale;
+          mesh.handle = ModelFactory::CreateTriangle({ scale.x / 2 , scale.y / 2 });
+          if (!AppState::Assets()->IsValid(mesh.handle)) {
+            OE_ERROR("Failed to Create Rect Static Mesh");
+          } else {
+            change = true; 
+          }
+        } break;
+
         case kRectIdx: {
           auto& scale = ent->ReadComponent<Transform>().scale;
-          auto& pos = ent->ReadComponent<Transform>().position;
-          mesh.handle = ModelFactory::CreateRect(pos , { scale.x / 2 , scale.y / 2 });
+          mesh.handle = ModelFactory::CreateRect({ scale.x / 2 , scale.y / 2 });
           if (!AppState::Assets()->IsValid(mesh.handle)) {
             OE_ERROR("Failed to Create Rect Static Mesh");
           } else {

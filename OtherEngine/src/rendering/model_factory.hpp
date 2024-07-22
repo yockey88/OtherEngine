@@ -10,8 +10,8 @@ namespace other {
 
   class ModelFactory {
     public:
-      static AssetHandle CreateTriangle(const glm::vec3& pos);
-      static AssetHandle CreateRect(const glm::vec3& pos , const glm::vec2& half_extents);
+      static AssetHandle CreateTriangle(const glm::vec2& half_extents);
+      static AssetHandle CreateRect(const glm::vec2& half_extents);
 
       static AssetHandle CreateBox(const glm::vec3& size);
       static AssetHandle CreateSphere(float radius);

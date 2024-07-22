@@ -35,6 +35,8 @@ namespace other {
       void StartScene();
       void StopScene();
 
+      bool IsPlaying() const;
+
       bool HasScene(const Path& path);
       bool HasActiveScene() const;
 
@@ -54,6 +56,7 @@ namespace other {
       void RenderSceneUI();
 
     private:
+      bool playing_scene = false;
       SceneMetadata* active_scene = nullptr;
 
       std::vector<std::string> scene_paths;

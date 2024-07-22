@@ -19,16 +19,17 @@ namespace other {
     /// prefabs
 
     /// mesh/animations
-    { FNV(".fbx") , AssetType::MESH } ,
-    { FNV(".gltf") , AssetType::MESH } ,
-    { FNV(".glb") , AssetType::MESH } ,
-    { FNV(".obj") , AssetType::MESH } ,
+    { FNV(".fbx") , AssetType::MODEL } ,
+    { FNV(".gltf") , AssetType::MODEL } ,
+    { FNV(".glb") , AssetType::MODEL } ,
+    { FNV(".obj") , AssetType::MODEL } ,
 
     /// shaders
-    { FNV(".glsl") , AssetType::SHADER } ,
-    { FNV(".vert") , AssetType::SHADER } ,
-    { FNV(".frag") , AssetType::SHADER } ,
-    { FNV(".geom") , AssetType::SHADER } ,
+    { FNV(".glsl")    , AssetType::SHADER } ,
+    { FNV(".vert")    , AssetType::SHADER } ,
+    { FNV(".frag")    , AssetType::SHADER } ,
+    { FNV(".geom")    , AssetType::SHADER } ,
+    { FNV(".oshader") , AssetType::SHADER } ,
 
     /// materials
 
@@ -47,6 +48,11 @@ namespace other {
     /// scripts
     { FNV(".cs") , AssetType::SCRIPTFILE } , 
     { FNV(".lua") , AssetType::SCRIPTFILE } ,
+
+    // source 
+    { FNV(".h") , AssetType::SOURCE_FILE } ,
+    { FNV(".hpp") , AssetType::SOURCE_FILE } ,
+    { FNV(".cpp") , AssetType::SOURCE_FILE } ,
   };
 
 } // nmamespace other

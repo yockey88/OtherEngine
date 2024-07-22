@@ -36,6 +36,8 @@ namespace other {
       virtual void OnProjectChange(const Ref<Project>& project) override;
       virtual void SetSceneContext(const Ref<Scene>& scene) override;
 
+      virtual void OnScriptReload() override; 
+
     private:
       const std::map<UUID , std::string_view> tags {
         { kEditorDirNameHash    , kEditorDirName    } ,
@@ -79,6 +81,8 @@ namespace other {
       /// Render functions
       void RenderTopBar(float height) const;
       void RenderBottomBar(float height) const;
+
+      bool TreeNode(const std::string& id , const std::string& label , ImGuiTreeNodeFlags flags = 0 , const Ref<Texture2D>& icon = nullptr);
       void RenderDirectoryTree(const Ref<CBDirectory>& dir);
 
       void RenderScriptObjectContextMenu(const ScriptObjectTag& tag);

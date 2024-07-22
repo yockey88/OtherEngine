@@ -28,6 +28,8 @@ namespace other {
       virtual void SetSceneContext(const Ref<Scene>& scene) {}
       virtual void OnDetach() {}
 
+      virtual void OnScriptReload() {}
+
     protected:
       Editor& GetEditor() const { return editor; }
 

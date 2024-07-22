@@ -6,8 +6,8 @@
 
 #include <array>
 #include <string_view>
-#include <unordered_map>
-#include <unordered_set>
+#include <map>
+#include <set>
 
 #include "core/defines.hpp"
 #include "core/uuid.hpp"
@@ -60,7 +60,6 @@ namespace other {
     // PREFAB ,
     MODEL_SOURCE , 
     MODEL ,
-    MESH ,
     SHADER ,
     // MATERIAL ,
     TEXTURE ,
@@ -75,13 +74,14 @@ namespace other {
     // SKELETON ,
     // ANIMATION , 
     // ANIMATIONGRAPH ,
+    SOURCE_FILE ,
 
     NUM_ASSET_TYPES ,
     INVALID_ASSET = 0xFFFF
   };
   
-  using AssetSet = std::unordered_set<AssetHandle>;
-  using AssetMap = std::unordered_map<AssetHandle, Ref<Asset>>;
+  using AssetSet = std::set<AssetHandle>;
+  using AssetMap = std::map<AssetHandle, Ref<Asset>>;
 
 namespace util {
   
@@ -91,7 +91,6 @@ namespace util {
     // if (asset_str == "PREFAB") return AssetType::PREFAB;
     if (asset_str == "MODEL-SOURCE") return AssetType::MODEL_SOURCE;
     if (asset_str == "MODEL") return AssetType::MODEL;
-    if (asset_str == "MESH") return AssetType::MESH;
     if (asset_str == "SHADER") return AssetType::SHADER;
     // if (asset_str == "MATERIAL") return AssetType::MATERIAL;  
     if (asset_str == "TEXTURE") return AssetType::TEXTURE;
@@ -106,16 +105,17 @@ namespace util {
     // if (asset_str == "SKELETON") return AssetType::SKELETON;
     // if (asset_str == "ANIMATION") return AssetType::ANIMATION;
     // if (asset_str == "ANIMATION-GRAPH") return AssetType::ANIMATIONGRAPH;
+    if (asset_str == "SOURCE-FILE") return AssetType::SOURCE_FILE;
     return AssetType::INVALID_ASSET;
   }
 
-  constexpr static uint16_t kNumAssetTypes = AssetType::NUM_ASSET_TYPES; 
+  constexpr static uint16_t kNumAssetTypes = AssetType::NUM_ASSET_TYPES + 1; 
   constexpr static std::array<std::string_view , kNumAssetTypes> kAssetTypeStrings = {
+    "EMPTY_ASSET" ,
     "SCENE" , 
     // "PREFAB" , 
     "MODEL-SOURCE" ,
     "MODEL" ,
-    "MESH" , 
     "SHADER" , 
     //"MATERIAL" , 
     "TEXTURE" , 
@@ -130,12 +130,21 @@ namespace util {
     // "SKELETON" , 
     // "ANIMATION" , 
     // "ANIMATION-GRAPH" ,
+    "SOURCE-FILE" ,
 
-    // "INVALID"
+    "INVALID"
   };
 
 } // namespace util
 } // namespace other
+
+template <>
+struct fmt::formatter<other::AssetType> : public fmt::formatter<std::string_view> {
+  auto format(other::AssetType type , fmt::format_context& ctx) {
+    constexpr std::string_view fmt_str = "{}";
+    return fmt::formatter<std::string_view>::format(fmt::format(fmt_str , other::util::kAssetTypeStrings[type]) , ctx);
+  }
+};
 
 template <>
 struct fmt::formatter<other::AssetHandle> : public fmt::formatter<std::string_view> {

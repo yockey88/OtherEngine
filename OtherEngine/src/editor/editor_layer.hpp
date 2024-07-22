@@ -65,6 +65,8 @@ namespace other {
       void SaveActiveScene();
       void LoadEditorScripts(const ConfigTable& editor_config);
 
+      void LaunchSettingsWindow();
+
       Ref<SceneRenderer> GetDefaultRenderer();
   };
 

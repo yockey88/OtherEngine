@@ -6,6 +6,11 @@
 #include <mono/metadata/object.h>
 #include <mono/metadata/reflection.h>
 
+#include <glm/gtc/quaternion.hpp>
+#include <glm/ext/quaternion_trigonometric.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
+#include <glm/ext/quaternion_common.hpp>
+
 #include "ecs/entity.hpp"
 
 #include "ecs/components/tag.hpp"
@@ -22,8 +27,9 @@ namespace cs_script_bindings {
   template <typename Ret , typename Fn>
   Ret NativeDoThing(uint64_t entity_id , Fn thing) {
     Ref<Scene> ctx = ScriptEngine::GetSceneContext(); 
-    OE_ASSERT(ctx != nullptr , "Scripts active without active scene context!");
-    OE_ASSERT(ctx->HasEntity(entity_id) , "Attempting to access entity from C# bindings that does not exist {}" , entity_id);
+    OE_ASSERT(ctx != nullptr , "Scripts active without active scene context! (program metadata {})" , typeid(Fn).name());
+    OE_ASSERT(ctx->HasEntity(entity_id) , "Attempting to access entity from C# bindings that does not exist {} (program metadata {})" , entity_id ,
+              typeid(Fn).name());
 
     Entity* entity = ctx->GetEntity(entity_id);
     
@@ -266,6 +272,13 @@ namespace cs_script_bindings {
       auto& t = ent->GetComponent<Transform>();
       t.erotation = *rotation;
       /// t.CalcQuat(); 
+    });
+  }
+
+  void NativeRotateObject(uint64_t id , float angle , glm::vec3* axis) {
+    NativeDoThing<void>(id , [&angle , &axis](Entity* ent) {
+      auto& t = ent->GetComponent<Transform>();
+      t.Rotate(angle , *axis);
     });
   }
 

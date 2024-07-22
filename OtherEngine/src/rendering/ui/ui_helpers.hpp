@@ -222,12 +222,20 @@ namespace ui {
   bool Property(const char* label , glm::vec4* value , glm::vec4 min = glm::zero<glm::vec4>(), 
                 glm::vec4 max = glm::zero<glm::vec4>() , const char* help_text = "");
 
+  void Image(const Ref<Texture2D>& texture , const ImVec2& size , const ImVec2& uv0 = ImVec2(0 , 0) , const ImVec2& uv1 = ImVec2(1 , 1),  
+             const ImVec4& tint_col  = ImVec4(1 , 1 , 1 , 1), const ImVec4& border_col = ImVec4(0 , 0 , 0 , 0));
+
   void DrawButtonImage(const Ref<Texture2D>& image_normal, const Ref<Texture2D>& image_hovered, const Ref<Texture2D>& image_pressed,
   	               ImU32 tint_normal, ImU32 tint_hovered, ImU32 tint_pressed, ImVec2 rect_min, ImVec2 rect_max);
   
   void DrawButtonImage(const Ref<Texture2D>& image, ImU32 tint_normal, ImU32 tint_hovered, ImU32 tint_pressed, ImRect rect);
   void DrawButtonImage(const Ref<Texture2D>& image, ImU32 tint_normal, ImU32 tint_hovered, ImU32 tint_pressed, 
                        ImVec2 rect_min, ImVec2 rect_max);
+
+  bool TreeNodeWithIcon(const Ref<Texture2D>& icon , ImGuiID id , ImGuiTreeNodeFlags flags , const char* label , 
+                        const char* label_end , ImColor icon_tint = IM_COL32_WHITE);
+  bool TreeNodeWithIcon(const Ref<Texture2D>& icon , void* id_ptr , ImGuiTreeNodeFlags flags , ImColor icon_tint , const char* fmt , ...);
+  bool TreeNodeWithIcon(const Ref<Texture2D>& icon , const char* label , ImGuiTreeNodeFlags flags , ImColor icon_tint = IM_COL32_WHITE);
 
 } // namespace ui
 } // namespace other

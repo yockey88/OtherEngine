@@ -33,7 +33,7 @@ namespace other {
         OE_ERROR("Failed to deserialize scene : {}" , scenepath.string());
         return false;
       }
-
+      
       loaded_scenes[id] = SceneMetadata{
         .name = loaded_scene.name ,
         .path = scenepath,
@@ -73,6 +73,10 @@ namespace other {
     } 
 
     active_scene->scene->Start();
+  }
+
+  bool SceneManager::IsPlaying() const {
+    return active_scene->scene->IsRunning();
   }
   
   /// TODO: create state system so we don't have to reload the scene each time we stop it to reset

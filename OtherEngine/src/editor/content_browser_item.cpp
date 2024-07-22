@@ -13,6 +13,7 @@
 #include "rendering/ui/ui_colors.hpp"
 #include "rendering/ui/ui_helpers.hpp"
 
+#include "editor/editor_settings.hpp"
 #include "editor/editor_asset_handler.hpp"
 
 namespace other {
@@ -24,8 +25,8 @@ namespace other {
 
   CBActionResult ContentBrowserItem::Render() {
     CBActionResult result;
-    // const auto& editor_settings
-    const float thumbnail_size = 128;
+    const auto& editor_settings = EditorSettings::Get();
+    const float thumbnail_size = editor_settings.thumbnail_size;
     const bool display_asset_type = false;
 
     SetDisplayName();
@@ -48,7 +49,6 @@ namespace other {
     };
 
     const bool focused = ImGui::IsWindowFocused();
-    // const bool is_selected = selection
 
     if (type == Type::DIRECTORY) {
       draw_shadow(top_l , bot_r , false);
@@ -77,7 +77,7 @@ namespace other {
         renaming = false;
         SetDisplayName();
         result.Set(CBAction::RENAMED , true);
-      };
+      }
     };
 
     ui::ShiftCursor(edge_offset , edge_offset);
@@ -129,7 +129,9 @@ namespace other {
         ImGui::BeginHorizontal("asset-type" , ImVec2(0.f , 0.f));
         ImGui::Spring();
         {
-          // const AssetMetadata& metadata = AppState::Assets().As<EditorAssetHandler>()->GetMetadata(handle);
+          const AssetMetadata& metadata = AppState::Assets().As<EditorAssetHandler>()->GetMetadata(handle);
+          using namespace std::string_view_literals;
+          ImGui::Text("%s" , fmt::format("{}"sv , metadata.type).c_str());
           // std::string asset_type = 
         }
         ImGui::EndHorizontal();
@@ -141,11 +143,11 @@ namespace other {
     ui::ShiftCursor(-edge_offset , -edge_offset);
 
     if (!renaming) {
-      if (Keyboard::Down(Keyboard::Key::OE_F2) && selected && focused) {
+      if (Keyboard::Down(Keyboard::Key::OE_F2) && ImGui::IsItemHovered()) {
         StartRenaming();
       }
     }
-
+    
     ImGui::PopStyleVar();
     ImGui::EndGroup();
 
@@ -154,7 +156,7 @@ namespace other {
       auto* drawlist = ImGui::GetWindowDrawList();
 
       if (selected) {
-        const bool mouse_down = ImGui::IsMouseDown(ImGuiMouseButton_Left && ImGui::IsItemHovered());
+        const bool mouse_down = ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsItemHovered();
         ImColor col_transition = ui::theme::ColorWithMultiplier(ui::theme::selection , 0.8f);
         drawlist->AddRect(rect.Min , rect.Max , mouse_down ? ImColor(col_transition) : ImColor(ui::theme::selection) , 6.f ,
                           type == Type::DIRECTORY ? 0 : ImDrawFlags_RoundCornersBottom , 1.f);
@@ -164,10 +166,19 @@ namespace other {
     }
 
     UpdateDrop(result);
-
-    bool dragging = ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID);
-    if (dragging) {
+    
+    bool start_dragging = false;
+    if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
+      start_dragging = true;
       dragging = true;
+
+      OE_DEBUG("started dragging");
+
+      void* tex_id = (void*)(uintptr_t)icon->GetRendererId();
+      ImGui::Image(tex_id , ImVec2(20 , 20) , ImVec2(0 , 0) , ImVec2(1 , 1) , ImVec4(1 , 1 , 1 , 1) , ImVec4(0 , 0 , 0 , 0));
+      ImGui::TextUnformatted(filename.c_str());
+
+      ImGui::SetDragDropPayload("asset-payload" , &handle , sizeof(AssetHandle));
 
       result.Set(CBAction::SELECTED , true);
       ImGui::EndDragDropSource();
@@ -180,13 +191,11 @@ namespace other {
         result.Set(CBAction::ACTIVATED , true);
       } else {
         bool action = ImGui::IsMouseClicked(ImGuiMouseButton_Left);
-        bool skip_bc_dragging = this->dragging && selected;
+        bool skip_bc_dragging = dragging && selected;
         if (action && !skip_bc_dragging) {
           if (just_selected) {
             just_selected = false;
           }
-
-          if (selected && Keyboard::Down(Keyboard::Key::OE_LCTRL) && !just_selected) {}
 
           if (!selected) {
             result.Set(CBAction::SELECTED , true);
@@ -204,8 +213,7 @@ namespace other {
     }
     ImGui::PopStyleVar();
 
-    /// outline
-    this->dragging = dragging;
+    dragging = start_dragging;
 
     return result; 
   }
@@ -235,16 +243,17 @@ namespace other {
   }
       
   void ContentBrowserItem::SetDisplayName() {
-    // const auto& editor_settings = 
-    const float thumbnail_size = 128;
+    const auto& editor_settings = EditorSettings::Get(); 
 
-    int32_t max_chars = 0.001525875f * (thumbnail_size * thumbnail_size);
+    int32_t max_chars = 0.001525875f * (editor_settings.thumbnail_size * editor_settings.thumbnail_size);
 
     if (filename.size() > max_chars) {
       display_name = filename.substr(0 , max_chars) + "...";
     } else {
       display_name = filename;
     }
+
+    display_name = OverrideDisplayName(display_name);
   }
 
   void CBDirectory::Delete() {
@@ -258,13 +267,22 @@ namespace other {
   }
 
   void CBDirectory::UpdateDrop(CBActionResult& result) {
+    if (ImGui::BeginDragDropTarget()) {
+    //   const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("asset-payload");
+
+    //   if (payload != nullptr) {
+    //   }
+
+    //   ImGui::EndDragDropTarget();
+    }
   }
 
   void CBDirectory::UpdateDirectoryPath(Ref<Directory> directory , const Path& new_parent , const Path& new_name) {
   }
   
   CBItem::CBItem(const AssetMetadata& metadata , const Ref<Texture2D>& texture) 
-      : ContentBrowserItem(Type::FILE , metadata.handle, metadata.path.filename().string() , texture) {
+      : ContentBrowserItem(Type::FILE , metadata.handle, metadata.path.filename().string() , texture) ,
+        asset_metadata(metadata) {
   }
 
   void CBItem::Delete() {
@@ -275,6 +293,13 @@ namespace other {
   }
 
   void CBItem::OnRenamed(const std::string& name) {
+  }
+      
+  std::string CBItem::OverrideDisplayName(const std::string& new_name) {
+    if (asset_metadata.type == SOURCE_FILE) {
+      return new_name;
+    }
+    return new_name.substr(0 , new_name.find_first_of('.'));
   }
     
   size_t CBItemList::size() {
