@@ -56,12 +56,12 @@ namespace other {
     }
   }
 
-  void ProjectPanel::OnGuiRender(bool& is_open) {
+  bool ProjectPanel::OnGuiRender(bool& is_open) {
     ImGui::SetNextWindowSize(ImVec2(200.f , ImGui::GetContentRegionAvail().y));
     if (!ImGui::Begin("Project" , &is_open , ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar) || 
         active_proj == nullptr) {
       ImGui::End();
-      return;
+      return false;
     }
 
     ImGuiTableFlags table_flags = ImGuiTableFlags_Resizable 
@@ -176,6 +176,8 @@ namespace other {
     for (auto& [id , window] : ui_windows) {
       window->Render(); 
     }
+
+    return false;
   }
       
   void ProjectPanel::OnUpdate(float dt) {

@@ -58,10 +58,10 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
 
     LoadEditorScripts(editor_config);
 
-    // for (const auto& [id , script] : editor_scripts.scripts) {
-    //   script->Initialize();
-    //   script->Start();
-    // }
+    for (const auto& [id , script] : editor_scripts.scripts) {
+      script->Initialize();
+      script->Start();
+    }
 
     panel_manager = NewScope<PanelManager>();
     panel_manager->Attach((Editor*)ParentApp() , AppState::ProjectContext() , editor_config);
@@ -138,6 +138,8 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
     }
     
     panel_manager->LateUpdate(dt);
+
+
 
     /// after all early updates, update client and script
     for (const auto& [id , script] : editor_scripts.scripts) {
@@ -258,8 +260,8 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
       ImGui::Text("Camera Direction :: [%f , %f , %f]" , 
                   editor_camera->Direction().x , editor_camera->Direction().y , editor_camera->Direction().z);
 
-      if (ImGui::Button("Save Scene")) {
-        SaveActiveScene();
+      if (saved_scene.transforms.size() > 0 && ImGui::Button("Undo")) {
+        AppState::Scenes()->LoadCapture(saved_scene);
       }
     }
     ImGui::End();
@@ -268,7 +270,10 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
       script->RenderUI();
     }
 
-    panel_manager->RenderUI();
+    if (panel_manager->RenderUI()) {
+      OE_INFO("Capturing Scene");
+      saved_scene = AppState::Scenes()->CaptureScene();
+    }
 #endif
   }
 

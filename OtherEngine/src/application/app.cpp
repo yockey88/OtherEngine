@@ -70,8 +70,6 @@ namespace {
       if (Renderer::IsWindowFocused()) {
         DoEarlyUpdate(dt); 
       }
-
-      /// physics step
       
       /// process all events queued from io/early update/physics steps
       EventQueue::Poll(GetEngine() , this);
@@ -112,7 +110,7 @@ namespace {
 
     Detach();
 
-    OE_DEBUG("Application successfully attached");
+    OE_DEBUG("Application successfully detached");
   }
 
   void App::Unload() {

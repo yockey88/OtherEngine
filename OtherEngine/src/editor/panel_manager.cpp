@@ -57,14 +57,18 @@ namespace other {
   void PanelManager::Render() {
   }
 
-  void PanelManager::RenderUI() {
+  bool PanelManager::RenderUI() {
+    bool panel_signal = false;
     for (auto& [id , panel] : active_panels) {
-      panel.panel->OnGuiRender(panel.panel_open);
+      panel_signal = panel.panel->OnGuiRender(panel.panel_open);
+
       if (id == kPropertiesPanelId && SelectionManager::HasSelection() && 
           !panel.panel_open) {
         SelectionManager::ClearSelection();
       }
     }
+
+    return panel_signal;
   }
 
   void PanelManager::Detach() {

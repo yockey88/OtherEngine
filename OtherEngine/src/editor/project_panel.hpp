@@ -30,7 +30,7 @@ namespace other {
       virtual ~ProjectPanel() {}
 
       virtual void OnAttach() override;
-      virtual void OnGuiRender(bool& is_open) override;
+      virtual bool OnGuiRender(bool& is_open) override;
       virtual void OnUpdate(float dt) override;
       virtual void OnEvent(Event* e) override;
       virtual void OnProjectChange(const Ref<Project>& project) override;

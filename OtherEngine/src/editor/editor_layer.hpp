@@ -13,6 +13,7 @@
 #include "rendering/scene_renderer.hpp"
 
 #include "editor/panel_manager.hpp"
+#include "editor/saves.hpp"
 
 namespace other {
 
@@ -38,6 +39,8 @@ namespace other {
 
     private:
       ConfigTable editor_config;
+
+      StateCapture saved_scene;
 
       /// TODO: find a better way to manage state than this
       bool playing = false;

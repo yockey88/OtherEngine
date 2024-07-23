@@ -15,6 +15,8 @@
 
 #include "rendering/scene_renderer.hpp"
 
+#include "editor/saves.hpp"
+
 namespace other {
 
   struct SceneMetadata {
@@ -43,6 +45,9 @@ namespace other {
       SceneMetadata* ActiveScene() const;
       void SaveActiveScene();
       void UnloadActive();
+
+      StateCapture CaptureScene();
+      void LoadCapture(StateCapture& capture);
 
       void ClearScenes();
 

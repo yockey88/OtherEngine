@@ -23,11 +23,11 @@ namespace other {
 
   static std::vector<std::string> things_in_scene{};
 
-  void ScenePanel::OnGuiRender(bool& is_open) {
+  bool ScenePanel::OnGuiRender(bool& is_open) {
     ImGui::SetNextWindowSize(ImVec2(200.f , ImGui::GetContentRegionAvail().y));
     if (!ImGui::Begin("Hierarchy" , &is_open , ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar)) {
       ImGui::End();
-      return;
+      return false;
     }
     
     if (active_scene == nullptr) {
@@ -39,7 +39,7 @@ namespace other {
         if (payload == nullptr) {
           ImGui::EndDragDropTarget();
           ImGui::End();
-          return;
+          return false;
         }
 
         Path path = std::string { 
@@ -62,7 +62,7 @@ namespace other {
       if (ImGui::Button("Unload Active scene")) {
         GetEditor().UnloadScene();
         ImGui::End();
-        return;
+        return false;
       }
 
       ImGuiTableFlags table_flags = ImGuiTableFlags_NoPadInnerX |
@@ -141,6 +141,8 @@ namespace other {
     }
 
     ImGui::End();
+
+    return false;
   }
 
   void ScenePanel::OnEvent(Event* e) {

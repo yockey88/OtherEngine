@@ -13,7 +13,7 @@ namespace other {
       ConsolePanel(Editor& editor) 
         : EditorPanel(editor) {}
       
-      virtual void OnGuiRender(bool& is_open) override {}
+      virtual bool OnGuiRender(bool& is_open) override { return false; }
       virtual void OnEvent(Event* e) override {}
       virtual void OnProjectChange(const Ref<Project>& project) override {}
       virtual void SetSceneContext(const Ref<Scene>& scene) override {}

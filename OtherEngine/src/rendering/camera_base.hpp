@@ -107,7 +107,7 @@ namespace other {
       virtual std::string GetCameraTypeString() const = 0;
 
     protected:
-      friend void DrawCamera(Entity* ent);
+      friend bool DrawCamera(Entity* ent);
 
       glm::ivec2 viewport_size = { 800 , 600 };
 

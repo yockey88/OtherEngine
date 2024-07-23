@@ -171,6 +171,32 @@ namespace other {
     ScriptEngine::SetSceneContext(nullptr);
     Renderer::SetSceneContext(nullptr);
   }
+      
+  StateCapture SceneManager::CaptureScene() {
+    if (!HasActiveScene()) {
+      return {};
+    }
+
+    return StateStack::RecordState(ActiveScene()->scene);
+  }
+      
+  void SceneManager::LoadCapture(StateCapture& capture) {
+    if (!HasActiveScene()) {
+      return;
+    }
+
+    bool scene_playing = false;
+    if (active_scene->scene->IsRunning()) {
+      active_scene->scene->Stop();
+      scene_playing = true;
+    }
+
+    StateStack::RestoreState(ActiveScene()->scene , capture);
+
+    if (scene_playing) {
+      active_scene->scene->Start();
+    }
+  }
     
   void SceneManager::ClearScenes() {
     if (HasActiveScene()) {
