@@ -4,18 +4,24 @@
 #ifndef OTHER_ENGINE_APP_THREAD_HPP
 #define OTHER_ENGINE_APP_THREAD_HPP
 
+
+#include "thread/thread.hpp"
+
 namespace other {
 
-  class AppThread {
+  class AppThread : public Thread {
     public:
-      AppThread() {}
+      AppThread(const ConfigTable& config , Scope<ChannelEndpoint<Message>> endpoint) 
+        : Thread("App-Thread" , config , std::move(endpoint)) {}
       ~AppThread() {}
 
-      void Launch();
-      void Join();
-
     private:
-      void Run();
+      uint32_t counter = 0;
+      
+      void Init() override;
+      void Shutdown() override;
+
+      void Step() override;
   };
 
 } // namespace other

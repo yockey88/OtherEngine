@@ -4,22 +4,23 @@
 #ifndef OTHER_ENGINE_THREAD_HPP
 #define OTHER_ENGINE_THREAD_HPP
 
+#include <stop_token>
 #include <thread>
 #include <mutex>
 #include <condition_variable>
 
 #include "core/config.hpp"
+#include "core/channel.hpp"
 
 namespace other {
 
   class Thread {
     public:
-      Thread(const std::string& name) 
-        : thread_name(name) {}
+      Thread(const std::string& name , const ConfigTable& config , Scope<ChannelEndpoint<Message>> endpoint) 
+        : config(config) , thread_name(name) , endpoint(std::move(endpoint)) {}
       ~Thread() {}
 
-      void Launch(const ConfigTable& config);
-      void Start();
+      void Run();
       void Join();
 
     protected:
@@ -32,10 +33,13 @@ namespace other {
       std::mutex init_mutex;
       std::condition_variable init_condition;
 
-      void Run(std::stop_token stoken);
+      Scope<ChannelEndpoint<Message>> endpoint;
+
+      virtual void Step() = 0;
+      
+      void Main(std::stop_token st);
 
       virtual void Init() {}
-      virtual void Step() {}
       virtual void Shutdown() {}
   };
 

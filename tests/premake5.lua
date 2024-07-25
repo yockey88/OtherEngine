@@ -19,6 +19,12 @@ sandbox.include_dirs = function()
   }
 end
 
+sandbox.external_include_dirs = function()
+  externalincludedirs {
+    "."
+  }
+end
+
 sandbox.components = {}
 sandbox.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
 sandbox.components["gtest"] = "%{wks.location}/externals/gtest/googletest/include"
@@ -116,6 +122,12 @@ end
 sandbox.include_dirs = function()
   includedirs {
     "./sandbox",
+  }
+end
+
+sandbox.externalincludedirs = function()
+  externalincludedirs {
+    "./common"
   }
 end
 
@@ -230,3 +242,54 @@ reflection_testing.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
 reflection_testing.components["gtest"] = "%{wks.location}/externals/gtest/googletest/include"
 
 AddProject(reflection_testing)
+
+local threading_tests = {}
+
+threading_tests.name = "threading_tests"
+threading_tests.path = "./threading_tests"
+threading_tests.kind = "ConsoleApp"
+threading_tests.language = "C++"
+threading_tests.cppdialect = "C++latest"
+
+threading_tests.files = function()
+  files {
+    "./threading_tests/**.cpp",
+    "./threading_tests/**.hpp",
+  }
+end
+
+threading_tests.include_dirs = function()
+  includedirs {
+    "./threading_tests",
+  }
+end
+
+threading_tests.external_include_dirs = function()
+  externalincludedirs {
+    "."
+  }
+end
+
+threading_tests.components = {}
+threading_tests.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
+threading_tests.components["gtest"] = "%{wks.location}/externals/gtest/googletest/include"
+
+threading_tests.post_build_commands = function()
+  filter { "system:windows" , "configurations:Debug" }
+    postbuildcommands {
+      '{COPY} "C:/Yock/code/OtherEngine/externals/sdl2/lib/Debug/SDL2d.dll" "%{cfg.targetdir}"',
+      '{COPY} C:/Yock/code/OtherEngine/externals/mono/bin/mono-2.0-sgen.dll "%{cfg.targetdir}"',
+      '{COPY} C:/Yock/code/OtherEngine/externals/mono/bin/mono-2.0-sgen.pdb "%{cfg.targetdir}"',
+      '{COPY} C:/Yock/code/OtherEngine/externals/mono/bin/MonoPosixHelper.dll "%{cfg.targetdir}"',
+      '{COPY} C:/Yock/code/OtherEngine/externals/mono/bin/MonoPosixHelper.pdb "%{cfg.targetdir}"',
+    }
+
+  filter { "system:windows" , "configurations:Release" }
+    postbuildcommands {
+      '{COPY} "C:/Yock/code/OtherEngine/externals/sdl2/lib/Release/SDL2.dll" "%{cfg.targetdir}"',
+      '{COPY} C:/Yock/code/OtherEngine/externals/mono/bin/mono-2.0-sgen.dll "%{cfg.targetdir}"',
+      '{COPY} C:/Yock/code/OtherEngine/externals/mono/bin/MonoPosixHelper.dll "%{cfg.targetdir}"',
+    }
+end
+
+AddProject(threading_tests)

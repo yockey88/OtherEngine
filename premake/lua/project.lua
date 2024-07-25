@@ -199,11 +199,13 @@ function AddProject(project)
   end
 
   project.include_dirs = project.include_dirs or function() end
+  project.external_include_dirs = project.external_include_dirs or function() end
 
   print(" -- Adding project : " .. project.name)
   ProjectHeader(project)
     project.files()
     project.include_dirs()
+    project.external_include_dirs()
 
     ProcessProjectComponents(project)
 

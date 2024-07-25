@@ -8,6 +8,7 @@
 #include <spdlog/common.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/basic_file_sink.h>
+#include <string_view>
 
 #include "core/config_keys.hpp"
 
@@ -122,9 +123,11 @@ namespace other {
   }
 
   void Logger::RegisterThread(const std::string& name) {
+    using namespace std::string_view_literals;
+
     std::lock_guard<std::mutex> lock(thread_map_mutex);
     if (thread_names.contains(std::this_thread::get_id())) {
-      logger->log(spdlog::level::warn , std::string_view{ "Thread already registered with name: {}" } , name);
+      logger->log(spdlog::level::warn , "Thread already registered with name: {}"sv , name);
       return;
     }
 
