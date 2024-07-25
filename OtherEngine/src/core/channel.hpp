@@ -14,8 +14,18 @@
 
 namespace other {
 
-  /// 4 bytes
+  enum MessageType {
+    INITIALIZE_MSG ,
+    START_MSG ,
+    READY_MSG ,
+    GL_CTX_MSG ,
+
+    NUM_MSG_TYPES ,
+    INVALID_MSG_TYPE = NUM_MSG_TYPES 
+  };
+
   struct MessageMetadata {
+    MessageType type;
     uint32_t size;
   };
 

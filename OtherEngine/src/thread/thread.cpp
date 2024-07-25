@@ -36,6 +36,7 @@ namespace other {
     Init();
 
     MessageMetadata meta {
+      .type = READY_MSG ,
       .size = sizeof(ReadyMessage) ,
     };
 

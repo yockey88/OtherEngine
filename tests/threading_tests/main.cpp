@@ -24,8 +24,7 @@ using other::Thread;
 #pragma pack(push , 1)
 
 struct RenderContextMessage {
-  int32_t* number = nullptr;
-  std::string string = "";
+  SDL_Window* window = nullptr;
 };
 
 #pragma pop(push , 1)
@@ -54,6 +53,7 @@ int main(int argc , char* argv[]) {
     std::this_thread::sleep_for(1s);
 
     other::MessageMetadata meta{
+      .type = other::INITIALIZE_MSG ,
       .size = sizeof(RenderContextMessage) ,
     };
 
@@ -61,8 +61,6 @@ int main(int argc , char* argv[]) {
     
     {
       RenderContextMessage msg {
-        .number = &num ,
-        .string = "Initialize" ,
       };
       Scope<Message> m = NewScope<Message>(meta , msg);
 
@@ -70,14 +68,13 @@ int main(int argc , char* argv[]) {
       ep1->Send(m);
     }
 
+    meta.type = other::START_MSG;
     num = 20;
 
     {
       auto ready = ep1->Receive();
       
       RenderContextMessage msg {
-        .number = &num ,
-        .string = "Start" ,
       };
 
       Scope<Message> m = NewScope<Message>(meta , msg);

@@ -18,7 +18,7 @@ namespace other {
     public:
       Thread(const std::string& name , const ConfigTable& config , Scope<ChannelEndpoint<Message>> endpoint) 
         : config(config) , thread_name(name) , endpoint(std::move(endpoint)) {}
-      ~Thread() {}
+      virtual ~Thread() {}
 
       void Run();
       void Join();

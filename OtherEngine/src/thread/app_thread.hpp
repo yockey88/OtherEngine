@@ -13,7 +13,7 @@ namespace other {
     public:
       AppThread(const ConfigTable& config , Scope<ChannelEndpoint<Message>> endpoint) 
         : Thread("App-Thread" , config , std::move(endpoint)) {}
-      ~AppThread() {}
+      virtual ~AppThread() override {}
 
     private:
       uint32_t counter = 0;
