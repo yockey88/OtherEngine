@@ -14,4 +14,4 @@ cull-face = false
 [log]
 console-level = "Debug" 
 file-level = "trace"
-path = "./logs/threading-Tests.log"
+path = "./logs/threading-tests.log"
