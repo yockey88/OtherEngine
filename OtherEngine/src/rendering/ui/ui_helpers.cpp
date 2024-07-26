@@ -307,35 +307,35 @@ namespace {
     return changed;
   }
   
-  bool TableRowClickable(const char* id, float rowHeight) {
+  bool TableRowClickable(const char* id, float row_height) {
     ImGuiWindow* window = ImGui::GetCurrentWindow();
-    window->DC.CurrLineSize.y = rowHeight;
+    window->DC.CurrLineSize.y = row_height;
     
-    ImGui::TableNextRow(0, rowHeight);
+    ImGui::TableNextRow(0, row_height);
     ImGui::TableNextColumn();
     
     window->DC.CurrLineTextBaseOffset = 3.0f;
-    const ImVec2 rowAreaMin = ImGui::TableGetCellBgRect(ImGui::GetCurrentTable(), 0).Min;
-    const ImVec2 rowAreaMax = { 
+    const ImVec2 row_area_min = ImGui::TableGetCellBgRect(ImGui::GetCurrentTable(), 0).Min;
+    const ImVec2 row_area_max = { 
       ImGui::TableGetCellBgRect(
         ImGui::GetCurrentTable() , 
         ImGui::TableGetColumnCount() - 1
       ).Max.x , 
-      rowAreaMin.y + rowHeight 
+      row_area_min.y + row_height 
     };
   
-    ImGui::PushClipRect(rowAreaMin, rowAreaMax, false);
+    ImGui::PushClipRect(row_area_min, row_area_max, false);
     
-    bool isRowHovered, held;
-    bool isRowClicked = ImGui::ButtonBehavior(
-    ImRect(rowAreaMin , rowAreaMax) , ImGui::GetID(id) ,
-      &isRowHovered , &held , ImGuiButtonFlags_AllowOverlap
+    bool is_row_hovered, held;
+    bool is_row_clicked = ImGui::ButtonBehavior(
+    ImRect(row_area_min , row_area_max) , ImGui::GetID(id) ,
+      &is_row_hovered , &held , ImGuiButtonFlags_AllowOverlap
     );
   
     ImGui::SetItemAllowOverlap();
     ImGui::PopClipRect();
   
-    return isRowClicked;
+    return is_row_clicked;
   }
   
   void Separator(ImVec2 size, ImVec4 color) {
@@ -1014,7 +1014,6 @@ namespace {
 
     return TreeNodeWithIcon(icon , window->GetID(label) , flags , label , nullptr , icon_tint);
   }
-
+  
 } // namespace ui
-
 } // namespace other

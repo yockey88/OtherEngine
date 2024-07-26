@@ -17,6 +17,7 @@
 #include "editor/editor.hpp"
 #include "editor/editor_layer.hpp"
 #include "event/event_queue.hpp"
+#include "editor/editor_console_sink.hpp"
 
 namespace other {
 
@@ -54,6 +55,18 @@ namespace other {
       core_layer = NewRef<RuntimeLayer>(active_app.get() , active_app->config);
     }
     active_app->PushLayer(core_layer);
+
+    if (in_editor) {
+      logger_instance->RegisterTarget({
+        .target_name = "Editor-Console" ,
+        .level = Logger::LevelFromLevel(Logger::Level::DEBUG) ,
+        .log_format = "%v" ,
+        .sink_factory = []() -> spdlog::sink_ptr {
+          return NewStdRef<EditorConsoleSink>(10); 
+        } , 
+      });
+    }
+
     /// now allowed to use logger
   }
 

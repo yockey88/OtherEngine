@@ -164,6 +164,12 @@ namespace {
     SDL_GetWindowSize(context.window , &size.x , &size.y);
     return size;
   }
+      
+  glm::ivec2 Window::Position() const {
+    glm::ivec2 pos;
+    SDL_GetWindowPosition(context.window , &pos.x , &pos.y);
+    return pos;
+  }
 
   glm::vec4 Window::ClearColor() const {
     return config.color;

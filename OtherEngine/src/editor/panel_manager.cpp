@@ -3,18 +3,34 @@
  **/
 #include "editor/panel_manager.hpp"
 
+#include <array>
+
 #include "event/event_handler.hpp"
 
 #include "editor/project_panel.hpp"
 #include "editor/scene_panel.hpp"
 #include "editor/entity_properties.hpp"
+#include "editor/console_panel.hpp"
 #include "editor/selection_manager.hpp"
 
 namespace other {
 
-  constexpr UUID kProjectPanelId = FNV("ProjectPanel");
-  constexpr UUID kScenePanelId = FNV("ScenePanel");
-  constexpr UUID kPropertiesPanelId = FNV("PropertiesPanel");
+  constexpr static UUID kProjectPanelId = FNV("ProjectPanel");
+  constexpr static UUID kScenePanelId = FNV("ScenePanel");
+  constexpr static UUID kPropertiesPanelId = FNV("PropertiesPanel");
+  constexpr static UUID kConsolePanelId = FNV("ConsolePanel");
+
+  constexpr static uint32_t kNumDefaultPanels = 4;
+
+  using PanelBuilder = Ref<EditorPanel>(*)(Editor&);
+  using PanelBuilderPair = std::pair<UUID , PanelBuilder>;
+
+  constexpr static std::array<PanelBuilderPair , kNumDefaultPanels> kPanelBuilderMap {
+    PanelBuilderPair{ kProjectPanelId    , [](Editor& editor) -> Ref<EditorPanel> { return NewRef<ProjectPanel>(editor); } } ,
+    PanelBuilderPair{ kScenePanelId      , [](Editor& editor) -> Ref<EditorPanel> { return NewRef<ScenePanel>(editor);  } } ,
+    PanelBuilderPair{ kPropertiesPanelId , [](Editor& editor) -> Ref<EditorPanel> { return NewRef<EntityProperties>(editor); } } ,
+    PanelBuilderPair{ kConsolePanelId    , [](Editor& editor) -> Ref<EditorPanel> { return NewRef<ConsolePanel>(editor); } } ,
+  };
 
   void PanelManager::Attach(Editor* editor , const Ref<Project>& context , const ConfigTable& editor_config) {
     OE_ASSERT(editor != nullptr , "Loading editor panel manager with a null editor!");
@@ -22,20 +38,11 @@ namespace other {
 
     project_context = context;
 
-    auto& proj_panel = active_panels[kProjectPanelId] = Panel{};
-    auto& scene_panel = active_panels[kScenePanelId] = Panel{};
-    auto& props_panel = active_panels[kPropertiesPanelId] = Panel{};
-
-    proj_panel.panel_open = true;
-    proj_panel.panel = Ref<ProjectPanel>::Create(*editor); 
-    proj_panel.panel->OnProjectChange(project_context);
-
-    scene_panel.panel_open = true;
-    scene_panel.panel = Ref<ScenePanel>::Create(*editor); 
-
-    props_panel.panel_open = true;
-    props_panel.panel = Ref<EntityProperties>::Create(*editor); 
-    for (auto& [id , panel] : active_panels) {
+    for (const auto& [id , ctor] : kPanelBuilderMap) {
+      auto& panel = active_panels[id] = Panel{};
+      panel.panel_open = true;
+      panel.panel = ctor(*editor);
+      panel.panel->OnProjectChange(project_context);
       panel.panel->OnAttach();
     }
 
@@ -51,6 +58,11 @@ namespace other {
   }
   
   void PanelManager::Update(float dt) {
+    // for (auto& [id , panel] : active_panels) {
+    //   panel.panel->OnUpdate(dt);
+    //   // panel.panel_open = panel.panel->IsOpen();
+    // }
+
     active_panels[kPropertiesPanelId].panel_open = SelectionManager::HasSelection();
   }
   

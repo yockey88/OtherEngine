@@ -8,6 +8,7 @@
 #include <spdlog/common.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/spdlog.h>
 
 #include "core/config_keys.hpp"
 
@@ -35,7 +36,8 @@ namespace other {
   constexpr static uint64_t kCriticalKey = FNV(kCriticalStr);
 
   constexpr static std::string_view kLoggerName = "OTHER-ENGINE-LOG";
-  /// just a default
+  constexpr static std::string_view kUserLoggerName = "OTHER-ENGINE-USER-LOG";
+
   constexpr static std::string_view kDefaultLogFilePath = "other.log";
 
   Logger* Logger::instance = nullptr;
@@ -133,23 +135,25 @@ namespace other {
       
   void Logger::RegisterTarget(const LoggerTargetData& target) {
     if (target.sink_factory == nullptr) {
+      logger->log(spdlog::level::err , "Attempted to register target without a sink factory!");
       return;
     }
 
-    target_strings.push_back(target.target_name);
+    user_target_strings.push_back(target.target_name);
     
     std::string case_ins_name;
     std::transform(target.target_name.begin() , target.target_name.end() , std::back_inserter(case_ins_name) , ::toupper);
 
-    sink_hashes.push_back(FNV(case_ins_name));
+    user_sink_hashes.push_back(FNV(case_ins_name));
 
     auto sink = target.sink_factory();
-    sinks.push_back(sink);
+    sink->set_pattern(target.log_format);
+    user_sinks.push_back(sink);
 
-    logger->sinks().push_back(sink);
+    user_target_logger->sinks().push_back(sink);
 
-    sink_levels.push_back(target.level);
-    sink_patterns.push_back(target.log_format);
+    user_sink_levels.push_back(target.level);
+    user_sink_patterns.push_back(target.log_format);
   }
 
   void Logger::SetCorePattern(CoreTarget target , const std::string& pattern) {
@@ -184,37 +188,6 @@ namespace other {
     instance = nullptr;
   }
 
-  /// should never be called
-  Logger::Logger() {
-    sinks[CONSOLE] = NewStdRef<spdlog::sinks::stdout_color_sink_mt>();
-    sinks[CONSOLE]->set_level(sink_levels[CONSOLE]);
-    sinks[CONSOLE]->set_pattern(sink_patterns[CONSOLE]);
-
-    logger = NewStdRef<spdlog::logger>(kLoggerName.data());
-    logger->set_level(spdlog::level::trace);
-    logger->flush_on(spdlog::level::trace);
-    logger->sinks() = { sinks[CONSOLE] };
-
-    spdlog::register_logger(logger);
-  }
-
-  Logger::Logger(const ConfigTable& config) {
-    sinks[CONSOLE] = NewStdRef<spdlog::sinks::stdout_color_sink_mt>();
-    sinks[CONSOLE]->set_level(sink_levels[CONSOLE]);
-    sinks[CONSOLE]->set_pattern(sink_patterns[CONSOLE]);
-
-    logger = NewStdRef<spdlog::logger>(kLoggerName.data());
-    /// leave these as trace to defer to sink levels
-    logger->set_level(spdlog::level::trace);
-    logger->flush_on(spdlog::level::trace);
-    logger->sinks() = { sinks[CONSOLE]  , nullptr };
-
-    spdlog::register_logger(logger);
-
-    /// have to do this last so the the console sink is set up
-    Configure(config);
-  }
-
   spdlog::level::level_enum Logger::LevelFromString(const std::string& l) {
     std::string case_ins_lvl;
     std::transform(l.begin() , l.end() , std::back_inserter(case_ins_lvl) , ::toupper);
@@ -242,6 +215,49 @@ namespace other {
       case CRITICAL: return spdlog::level::critical;
       default: return spdlog::level::critical;
     }
+  }
+
+  /// should never be called
+  Logger::Logger() {
+    sinks[CONSOLE] = NewStdRef<spdlog::sinks::stdout_color_sink_mt>();
+    sinks[CONSOLE]->set_level(sink_levels[CONSOLE]);
+    sinks[CONSOLE]->set_pattern(sink_patterns[CONSOLE]);
+
+    logger = NewStdRef<spdlog::logger>(kLoggerName.data());
+    logger->set_level(spdlog::level::trace);
+    logger->flush_on(spdlog::level::trace);
+    logger->sinks() = { sinks[CONSOLE] };
+
+    spdlog::register_logger(logger);
+
+    user_target_logger = NewStdRef<spdlog::logger>(kUserLoggerName.data());
+    user_target_logger->set_level(spdlog::level::debug);
+    user_target_logger->flush_on(spdlog::level::debug);
+
+    spdlog::register_logger(user_target_logger);
+  }
+
+  Logger::Logger(const ConfigTable& config) {
+    sinks[CONSOLE] = NewStdRef<spdlog::sinks::stdout_color_sink_mt>();
+    sinks[CONSOLE]->set_level(sink_levels[CONSOLE]);
+    sinks[CONSOLE]->set_pattern(sink_patterns[CONSOLE]);
+
+    logger = NewStdRef<spdlog::logger>(kLoggerName.data());
+    /// leave these as trace to defer to sink levels
+    logger->set_level(spdlog::level::trace);
+    logger->flush_on(spdlog::level::trace);
+    logger->sinks() = { sinks[CONSOLE]  , nullptr };
+
+    spdlog::register_logger(logger);
+    
+    user_target_logger = NewStdRef<spdlog::logger>(kUserLoggerName.data());
+    user_target_logger->set_level(spdlog::level::debug);
+    user_target_logger->flush_on(spdlog::level::debug);
+
+    spdlog::register_logger(user_target_logger);
+
+    /// have to do this last so the the console sink is set up
+    Configure(config);
   }
 
 } // namespace other
