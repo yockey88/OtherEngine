@@ -23,11 +23,14 @@ namespace other {
 
     std::map<UUID , Ref<Directory>> children;
 
-    Directory() {}
-    Directory(const Path& path) 
-        : path(path) {}
-    Directory(const Ref<Directory>& parent , const Path& path) 
-      : parent_dir(parent) , path(path) {}
+    Directory();
+    Directory(const Path& path); 
+    Directory(const Ref<Directory>& parent , const Path& path);
+
+    private:
+      void Initialize();
+      void CollectAssets();
+      void CollectChildren();
   };
 
 } // namespace other

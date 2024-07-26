@@ -9,7 +9,6 @@
 
 #include "application/app_state.hpp"
 
-#include "scripting/script_defines.hpp"
 #include "rendering/ui/ui_helpers.hpp"
 
 #include "editor/script_editor.hpp"
@@ -62,13 +61,7 @@ namespace other {
         OE_ASSERT(path.has_value() , "Did not assign path value after writing script source!");
         
         auto script_editor = NewRef<ScriptEditor>(name);
-        script_editor->AddEditor({
-          .object_id = FNV(name) ,
-          .name = name ,
-          .path = path.value().string() ,
-          .lang_type = (ext_idx == 0) ?
-            LanguageModuleType::CS_MODULE : LanguageModuleType::LUA_MODULE ,
-        }, path.value().string());
+        script_editor->AddEditor(FNV(name) , path.value().string());
 
         OE_DEBUG("Pushing script editor");
         AppState::PushUIWindow(script_editor);

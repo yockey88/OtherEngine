@@ -3,6 +3,9 @@
  **/
 #include "scripting/lua/lua_script.hpp"
 
+#include <algorithm>
+#include <iterator>
+
 #include <sol/forward.hpp>
 #include <sol/load_result.hpp>
 
@@ -149,8 +152,13 @@ namespace other {
   std::vector<ScriptObjectTag> LuaScript::GetObjectTags() {
     std::vector<ScriptObjectTag> tags;
     for (auto& table : loaded_tables) {
+      std::string case_ins_name;
+      std::ranges::transform(table , std::back_inserter(case_ins_name) , ::toupper);
+
       tags.push_back({
+        .object_id = FNV(case_ins_name) ,
         .name = table ,
+        .mod_name = module_name ,
         .nspace = "" ,
         .path = path ,
         .lang_type = language ,

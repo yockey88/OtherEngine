@@ -40,6 +40,10 @@ namespace Other {
       }
       set => Scene.SetRotation(Object.ObjectID , ref value);
     }
+
+    public void Rotate(float angle , Vec3 axis) {
+      Scene.RotateObject(Object.ObjectID , angle , ref axis);
+    }
   }
     
 }

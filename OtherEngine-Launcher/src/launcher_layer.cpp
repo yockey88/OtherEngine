@@ -16,7 +16,7 @@
 #include "event/event_handler.hpp"
 
 #include "rendering/ui/file_explorer.hpp"
-#include "rendering/ui/ui_components.hpp"
+#include "rendering/ui/ui_helpers.hpp"
 
 #include "application/app.hpp"
 
@@ -184,7 +184,13 @@ namespace other {
     auto project_names = ProjectCache::GetProjectNames();
     auto project_paths = ProjectCache::GetProjectPaths();
 
-    auto project_table_callback = [&]() {
+    std::vector<std::string> col_headers = { 
+      "Project Name" , "Project Directory" 
+    };
+    auto avail_region = ImGui::GetContentRegionAvail();
+    uint32_t column_count = col_headers.size();
+
+    ui::Table("Project-List" , col_headers , ImVec2(avail_region.x , 350) , column_count , [&]() {
       for (uint32_t i = 0; i < project_names.size(); ++i) {
         ImGui::TableSetColumnIndex(0);
         ImColor bg_color = (i % 2 == 0) ? 
@@ -226,12 +232,8 @@ namespace other {
         }
         ImGui::EndPopup();
       }
-    };
+    });
 
-    std::vector<std::string> col_headers = { "Project Name" , "Project Directory" };
-    auto avail_region = ImGui::GetContentRegionAvail();
-    uint32_t column_count = col_headers.size();
-    ui::Table("Project-List" , col_headers , ImVec2(avail_region.x , 350) , column_count , project_table_callback);
     ImGui::End();
   }
 

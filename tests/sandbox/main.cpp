@@ -25,6 +25,7 @@
 
 #include "rendering/rendering_defines.hpp"
 #include "rendering/shader.hpp"
+#include "rendering/texture.hpp"
 #include "rendering/camera_base.hpp"
 #include "rendering/perspective_camera.hpp"
 #include "rendering/framebuffer.hpp"
@@ -37,6 +38,7 @@
 #include "common/engine_mock.hpp"
 
 using other::Shader;
+using other::Texture2D;
 using other::VertexArray;
 using other::CameraBase;
 using other::PerspectiveCamera;
@@ -75,7 +77,6 @@ int main(int argc , char* argv[]) {
       mock_engine.LoadApp(app_handle);
     }
 
-
     LaunchMock(config);
     OE_DEBUG("Sandbox Launched");
 
@@ -99,6 +100,24 @@ int main(int argc , char* argv[]) {
 #if FOGFB
       Ref<Shader> fog_shader = other::BuildShader(add_fog_shader_path);
 #endif
+
+      const other::Path editor_folder_path = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "textures" / "editor" / "folder.png";
+
+      other::TextureSpecification tex_spec {
+        .channels = other::RGBA ,
+        .type = other::TEX_2D ,
+        .filters = {
+          .min = other::NEAREST ,
+          .mag = other::NEAREST ,
+        } ,
+        .wrap = {
+          .s_val = other::REPEAT , 
+          .t_val = other::REPEAT , 
+        } ,
+        .name = editor_folder_path.filename().string() ,
+      };
+      Ref<other::Texture> icon = NewRef<Texture2D>(editor_folder_path , tex_spec);
+
       Scope<VertexArray> fb_mesh = NewScope<VertexArray>(fb_verts , fb_indices , fb_layout);
 
       glm::mat4 model1 = glm::mat4(1.f);
@@ -277,10 +296,20 @@ int main(int argc , char* argv[]) {
           ImGui::PopID();
         };
 
+        auto RenderTexture = [](const Ref<other::Texture>& texture , const std::string& title , ImVec2 size = ImVec2(800 , 600)) {
+          ImGui::PushID(("##" + title).c_str());
+          ImGui::Text("%s" , title.c_str());
+          ImGui::SameLine();
+
+          ImGui::Image((void*)(uintptr_t)texture->GetRendererId() , ImVec2(size.x , size.y) , ImVec2(0 , 1) , ImVec2(1 , 0));
+          ImGui::PopID();
+        };
+
         if (ImGui::Begin("Frames")) {
           ImVec2 win_size = { (float)other::Renderer::WindowSize().x , (float)other::Renderer::WindowSize().y };
-          // RenderFrame(frames.at(FNV("Geometry")) , "Pipeline 1" , win_size);
           RenderFrame(frames.at(FNV("Debug"))    , "Debug" , win_size);
+
+          // RenderTexture(icon , "Folder Icon");
         } 
         ImGui::End();
 

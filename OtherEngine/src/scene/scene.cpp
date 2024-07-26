@@ -73,13 +73,14 @@ namespace other {
       scene_object->CallMethod("InitializeScene");
     }
 
+    OE_DEBUG("Entities in scene [{}]" , entities.size()); 
+    registry.view<Tag>().each([](const Tag& tag) {
+      OE_DEBUG("  > [{}]" , tag.id);
+    });
+
     registry.view<Script , Tag>().each([](Script& script , Tag& tag) {
       for (auto& [id , obj] : script.scripts) {
-        obj->InitializeScriptFields();
-        obj->InitializeScriptMethods();
-
-        obj->SetEntityId(tag.id);
-        obj->OnBehaviorLoad();
+        OE_DEBUG("Setting entity id for script [{}] {}" , id , obj->Name());
         obj->Initialize();
       }
     });
@@ -95,7 +96,7 @@ namespace other {
   void Scene::Start() {
     OE_ASSERT(initialized , "Starting scene without initialization");
 
-    registry.view<RigidBody2D , Tag , Transform>().each([&](RigidBody2D& body , const Tag& tag , const Transform& transform) {
+    registry.view<RigidBody2D , Tag , Transform>().each([this](RigidBody2D& body , const Tag& tag , const Transform& transform) {
       Initialize2DRigidBody(physics_world_2d , body , tag , transform);
     });
     
@@ -150,14 +151,28 @@ namespace other {
     }
 
     OE_ASSERT(physics_world_2d != nullptr , "Can not step physics world with null scene (2D)!");
+    
+    /// update client app if they have custom logic
+    OnUpdate(dt);
 
     /// TODO: check if simulating or just playing
 
+    /**
+     * order of updates
+     *  - physics
+     *      2d then 3d
+     *  - scripts, to pick up physics updates and apply script reactions
+     *  - update transforms
+     *  - apply transform updates to relevant components
+     *   
+     * use late update to react to other entity's changes
+     **/
+
     /// TODO: fix these to customizeable
     physics_world_2d->Step(dt , 32 , 2);
-
+    
     /// TODO: add 3d physics update here
-
+    
     /// apply physics simulation to transforms, before using transforms for anything else 
     registry.view<RigidBody2D , Transform>().each([](RigidBody2D& body , Transform& transform) {
       if (body.physics_body == nullptr) {
@@ -169,6 +184,16 @@ namespace other {
       transform.position.y = position.y;
       transform.erotation.z = body.physics_body->GetAngle(); 
     });
+
+    /// TODO: rigid body 3d here
+    
+    /// scripts updated last to give most accurate view of updated state 
+    registry.view<Script>().each([&dt](const Script& script) {
+      for (auto& [id , s] : script.scripts) {
+        s->Update(dt);
+      }
+    });
+
 
     /// dont reupdate the transforms of things with physics
     registry.view<Transform>(entt::exclude<RigidBody2D , Collider2D>).each([](Transform& transform) {
@@ -187,15 +212,6 @@ namespace other {
       }
     });
     
-    /// update client app if they have custom logic
-    OnUpdate(dt);
-    
-    /// scripts updated last to give most accurate view of updated state 
-    registry.view<Script>().each([&dt](const Script& script) {
-      for (auto& [id , s] : script.scripts) {
-        s->Update(dt);
-      }
-    });
     
     /// finish scene update
     /// checks if the scene become corrupt on client update
@@ -217,14 +233,14 @@ namespace other {
       Stop();
       return;
     }
+    
+    OnLateUpdate(dt);
 
     registry.view<Script>().each([&dt](const Script& script) {
       for (auto& [id , s] : script.scripts) {
         s->LateUpdate(dt);
       }
     });
-    
-    OnLateUpdate(dt);
     
     /// finish scene update
     /// checks the case the scene become corrupt on client update
@@ -333,7 +349,6 @@ namespace other {
     registry.view<Script>().each([](Script& script) {
       for (auto& [id , obj] : script.scripts) {
         obj->Shutdown();
-        obj->OnBehaviorUnload();
       }
     });
 
@@ -342,6 +357,10 @@ namespace other {
       
   entt::registry& Scene::Registry() {
     return registry;
+  }
+
+  ScriptObject* Scene::SceneScriptObject() {
+    return scene_object;
   }
       
   PhysicsType Scene::ActivePhysicsType() const {
@@ -508,6 +527,13 @@ namespace other {
     if (auto ritr = root_entities.find(curr_id); ritr != root_entities.end()) {
       root_entities.erase(ritr);
       root_entities[new_id] = entity;
+    }
+
+    if (entity->HasComponent<Script>()) {
+      auto& scripts = entity->GetComponent<Script>();
+      for (auto& [id , script] : scripts.scripts) {
+        script->SetEntityId(new_id);
+      } 
     }
   }
       

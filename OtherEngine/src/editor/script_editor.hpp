@@ -7,9 +7,10 @@
 #include <functional>
 #include <string>
 
-#include "rendering/ui/text_editor.hpp"
+#include "core/logger.hpp"
+#include "asset/asset_types.hpp"
 
-#include "scripting/script_module.hpp"
+#include "rendering/ui/text_editor.hpp"
 
 namespace other {
 
@@ -70,7 +71,7 @@ namespace other {
         OE_DEBUG("Some reason destroying Script Editor window");
       }
 
-      void AddEditor(const ScriptObjectTag& obj_tag , const std::string& script_path);
+      void AddEditor(AssetHandle obj_tag , const Path& script_path);
 
       virtual void OnUpdate(float dt) override;
       virtual void Render() override;

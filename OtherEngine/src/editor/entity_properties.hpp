@@ -15,7 +15,7 @@ namespace other {
       EntityProperties(Editor& editor)
         : EditorPanel(editor) {}
 
-      virtual void OnGuiRender(bool& is_open) override;
+      virtual bool OnGuiRender(bool& is_open) override;
       virtual void OnEvent(Event* e) override;
       virtual void OnProjectChange(const Ref<Project>& project) override;
       virtual void SetSceneContext(const Ref<Scene>& scene) override;
@@ -27,7 +27,7 @@ namespace other {
       Opt<Value> test_value;
       Opt<float> testval2;
 
-      void DrawSelectionComponents(Entity* entity);
+      bool DrawSelectionComponents(Entity* entity);
   };
 
 } // namespace other

@@ -60,6 +60,45 @@ namespace other {
     COMPUTE_SHADER = GL_COMPUTE_SHADER ,
   };
   
+  enum FilterType {
+    NEAREST = GL_NEAREST ,
+    LINEAR = GL_LINEAR
+  };
+
+  enum TextureType {
+    DIFFUSE , 
+    SPECULAR ,
+    NORMAL ,
+    HEIGHT
+  };
+  
+  enum ChannelType {
+    RED = GL_RED ,
+    RGB = GL_RGB ,
+    RGBA = GL_RGBA
+  };
+  
+  enum TargetType {
+    TEX_1D = GL_TEXTURE_1D ,
+    TEX_2D = GL_TEXTURE_2D ,
+    TEX_3D = GL_TEXTURE_3D ,
+    TEX_1D_ARR = GL_TEXTURE_1D_ARRAY ,
+    TEX_2D_ARR = GL_TEXTURE_2D_ARRAY ,
+    TEX_RECT = GL_TEXTURE_RECTANGLE ,
+    TEX_CUBE_MAP = GL_TEXTURE_CUBE_MAP ,
+    TEX_CUBE_MAP_ARR = GL_TEXTURE_CUBE_MAP_ARRAY ,
+    TEX_BUFFER = GL_TEXTURE_BUFFER ,
+    TEX_2D_MULTISAMPLE = GL_TEXTURE_2D_MULTISAMPLE ,
+    TEX_2D_MULTISAMPLE_ARR = GL_TEXTURE_2D_MULTISAMPLE_ARRAY
+  };
+
+  enum TextureWrap {
+    CLAMP_EDGE  = GL_CLAMP_TO_EDGE , 
+    CLAMP_BORDER = GL_CLAMP_TO_BORDER ,
+    REPEAT = GL_REPEAT ,
+    MIRRORED_REPEAT = GL_MIRRORED_REPEAT ,
+  };
+  
   struct VertexBufferElement {
     std::string name = "";
     ValueType type = ValueType::EMPTY;

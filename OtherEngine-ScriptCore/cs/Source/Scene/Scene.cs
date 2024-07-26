@@ -242,6 +242,9 @@ namespace Other {
     private static extern void NativeSetRotation(ulong id , ref Vec3 rotation);  
 
     [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern void NativeRotateObject(ulong id , float angle , ref Vec3 axis);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
     private static extern void NativeSetPhysicsBodyType(ulong id , UInt32 type); 
 
     [MethodImpl(MethodImplOptions.InternalCall)]
@@ -289,6 +292,10 @@ namespace Other {
 
     static public void SetRotation(ulong id , ref Vec3 rotation) {
       NativeSetRotation(id , ref rotation);
+    }
+
+    static public void RotateObject(ulong id , float angle , ref Vec3 axis) {
+      NativeRotateObject(id , angle , ref axis);
     }
 
     static public void SetPhysicsBodyType(ulong id , PhysicsBodyType type) {
@@ -346,6 +353,9 @@ namespace Other {
     /// other
     static public void AddObject(OtherObject obj) {
       try {
+        if (objects.ContainsKey(obj.ObjectID)) {
+          return;
+        }
         objects.Add(obj.ObjectID , obj);
       } catch (Exception e) {
         Logger.WriteError($"Failed to add object to scene: {e.Message}");

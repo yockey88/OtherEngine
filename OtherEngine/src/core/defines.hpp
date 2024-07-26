@@ -13,6 +13,8 @@
 
 #include <spdlog/fmt/fmt.h>
 #include <glm/glm.hpp>
+#include <type_traits>
+#include <utility>
 
 #define bit(x) (1 << x)
 
@@ -232,6 +234,13 @@ namespace other {
     } else {
       return fmtstr("ERR"); 
     }
+  }
+
+  template <typename T>
+  concept is_enum = std::is_enum_v<T>;
+
+  constexpr auto ValOf(is_enum auto e) {
+    return std::to_underlying(e);
   }
 
 } // namespace other

@@ -10,6 +10,8 @@ namespace other {
 namespace ui {
 namespace theme {
 
+  constexpr auto no_color = IM_COL32(0 , 0 , 0 , 0);
+
   constexpr auto red = IM_COL32(255 , 0 , 0 , 255);
   constexpr auto green = IM_COL32(0 , 255 , 0 , 255);
   constexpr auto blue = IM_COL32(0 , 0 , 255 , 255);

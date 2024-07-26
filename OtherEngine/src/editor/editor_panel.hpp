@@ -21,12 +21,15 @@ namespace other {
       virtual ~EditorPanel() {}
 
       virtual void OnAttach() {}
-      virtual void OnGuiRender(bool& is_open) {}
+      /// used for signaling events, temporary??
+      virtual bool OnGuiRender(bool& is_open) { return false; }
       virtual void OnUpdate(float dt) {} 
       virtual void OnEvent(Event* e) {}
       virtual void OnProjectChange(const Ref<Project>& project) {}
       virtual void SetSceneContext(const Ref<Scene>& scene) {}
       virtual void OnDetach() {}
+
+      virtual void OnScriptReload() {}
 
     protected:
       Editor& GetEditor() const { return editor; }

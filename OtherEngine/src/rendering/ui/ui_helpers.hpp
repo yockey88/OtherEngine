@@ -13,6 +13,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
 
+#include "rendering/texture.hpp"
 #include "rendering/ui/ui_colors.hpp"
 
 #define UI_COLOR(r , g , b , a) ImVec4(r / 255.0f , g / 255.0f , b / 255.0f , a / 255.0f)
@@ -116,6 +117,13 @@ namespace ui {
       ImVec2(rect.Max.x + x , rect.Max.y + y)
     );
   }
+  
+  inline ImRect RectOffset(const ImRect& rect , float x , float y) {
+    return ImRect(
+      ImVec2(rect.Min.x + x , rect.Min.y + y) ,
+      ImVec2(rect.Max.x + x , rect.Max.y + y)
+    );
+  }
 
   void PushId();
   void PopId();
@@ -129,10 +137,7 @@ namespace ui {
   void EndTreeNode();    
   
   bool ColoredButton(const char* label, const ImVec4& backgroundColor, ImVec2 buttonSize);    
-  bool ColoredButton(
-    const char* label , const ImVec4& background , 
-    const ImVec4& foreground , ImVec2 size
-  );
+  bool ColoredButton(const char* label , const ImVec4& background , const ImVec4& foreground , ImVec2 size);
 
   bool DragInt8(const char* label , int8_t* v , float v_speed = 1.f , int8_t v_min = 0.f , int8_t v_max = 0.f , 
                  const char* format = "%d" , ImGuiSliderFlags flags = 0);
@@ -214,6 +219,76 @@ namespace ui {
   bool Property(const char* label , glm::vec4* value , glm::vec4 min = glm::zero<glm::vec4>(), 
                 glm::vec4 max = glm::zero<glm::vec4>() , const char* help_text = "");
 
+  void Image(const Ref<Texture2D>& texture , const ImVec2& size , const ImVec2& uv0 = ImVec2(0 , 0) , const ImVec2& uv1 = ImVec2(1 , 1),  
+             const ImVec4& tint_col  = ImVec4(1 , 1 , 1 , 1), const ImVec4& border_col = ImVec4(0 , 0 , 0 , 0));
+
+  void DrawButtonImage(const Ref<Texture2D>& image_normal, const Ref<Texture2D>& image_hovered, const Ref<Texture2D>& image_pressed,
+  	               ImU32 tint_normal, ImU32 tint_hovered, ImU32 tint_pressed, ImVec2 rect_min, ImVec2 rect_max);
+  
+  void DrawButtonImage(const Ref<Texture2D>& image, ImU32 tint_normal, ImU32 tint_hovered, ImU32 tint_pressed, ImRect rect);
+  void DrawButtonImage(const Ref<Texture2D>& image, ImU32 tint_normal, ImU32 tint_hovered, ImU32 tint_pressed, 
+                       ImVec2 rect_min, ImVec2 rect_max);
+
+  bool TreeNodeWithIcon(const Ref<Texture2D>& icon , ImGuiID id , ImGuiTreeNodeFlags flags , const char* label , 
+                        const char* label_end , ImColor icon_tint = IM_COL32_WHITE);
+  bool TreeNodeWithIcon(const Ref<Texture2D>& icon , void* id_ptr , ImGuiTreeNodeFlags flags , ImColor icon_tint , const char* fmt , ...);
+  bool TreeNodeWithIcon(const Ref<Texture2D>& icon , const char* label , ImGuiTreeNodeFlags flags , ImColor icon_tint = IM_COL32_WHITE);
+  
+  template <typename T>
+  void Table(
+    const std::string& name , const std::vector<std::string>& headers , 
+    const ImVec2& size , uint32_t columns , T callback
+  ) {
+    if (size.x <= 0.f || size.y <= 0.f) {
+      return;
+    }
+    
+    float edge_offset = 4.f;
+
+    ScopedStyle style(ImGuiStyleVar_CellPadding , ImVec2(4.f , 0.f));
+    ImColor bg_color = ImColor(ui::theme::background);
+    const ImColor col_row_alt = ui::theme::ColorWithMultiplier(bg_color , 1.2f);
+    ScopedColor row_color(ImGuiCol_TableRowBg , bg_color.Value);
+    ScopedColor row_alt_color(ImGuiCol_TableRowBgAlt , col_row_alt.Value);
+    ScopedColor table_color(ImGuiCol_ChildBg , bg_color.Value);
+
+    ImGuiTableFlags flags = ImGuiTableFlags_NoPadInnerX | 
+      ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | 
+      ImGuiTableFlags_ScrollY   | ImGuiTableFlags_RowBg;
+
+    if (!ImGui::BeginTable("Project-Table" , columns , flags , size)) {
+      return;
+    }
+
+    const float cursor_x = ImGui::GetCursorScreenPos().x;
+
+    for (uint32_t i = 0; i < columns; ++i) {
+      ImGui::TableSetupColumn(headers[i].c_str());
+    }
+
+    {
+      const ImColor active_color = theme::ColorWithMultiplier(bg_color , 1.2f);
+      ScopedColorStack color_stack(ImGuiCol_TableHeaderBg , active_color);
+
+      ImGui::TableSetupScrollFreeze(ImGui::TableGetColumnCount() , 1);
+      ImGui::TableNextRow(ImGuiTableRowFlags_Headers , 22.f);
+      
+      for (uint32_t i = 0; i < columns; ++i) {
+        const char* header = ImGui::TableGetColumnName(i);
+        ImGui::PushID(header);
+        ShiftCursor(edge_offset * 3.f , edge_offset * 2.f);
+        ImGui::TableHeader(header);
+        ShiftCursor(-edge_offset * 3.f , -edge_offset * 2.f);
+        ImGui::PopID();
+      }
+      ImGui::SetCursorScreenPos(ImVec2(cursor_x , ImGui::GetCursorScreenPos().y));
+      Underline(false , 0.f , 5.f);
+    }
+
+    callback();
+
+    ImGui::EndTable();
+  }
 
 } // namespace ui
 } // namespace other

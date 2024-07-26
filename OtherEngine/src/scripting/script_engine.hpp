@@ -39,7 +39,10 @@ namespace other {
   class ScriptEngine {
     public:
       static void Initialize(const ConfigTable& config);
+      static void LoadProjectModules();
+
       static void Shutdown();
+      static void UnloadProjectModules();
 
       static std::string GetProjectAssemblyDir();
 
@@ -50,6 +53,7 @@ namespace other {
       static ScriptModule* GetScriptModule(const std::string_view name);
       static ScriptModule* GetScriptModule(UUID id);
 
+      static ScriptObject* GetScriptObject(UUID id);
       static ScriptObject* GetScriptObject(const std::string_view name);
       static ScriptObject* GetScriptObject(const std::string_view name , const std::string_view nspace , const std::string_view mod_name = "");
       static ScriptObject* GetScriptObject(const std::string_view name , const std::string_view nspace , ScriptModule* module);
@@ -59,11 +63,8 @@ namespace other {
       static Ref<Scene> GetSceneContext();
 
       static std::map<UUID , LanguageModuleMetadata>& GetModules();
-      // static std::vector<std::string> GetLoadedEditorObjects();
-      // static std::vector<std::string> GetLoadedObjects();
-
-      static std::vector<ScriptObjectTag> GetLoadedEditorObjects();
-      static std::vector<ScriptObjectTag> GetLoadedObjects();
+      static const std::vector<ScriptObjectTag>& GetLoadedObjects();
+      static const std::vector<ScriptObjectTag>& GetLoadedEditorObjects();
 
       /// because certain parts of the engine rely on specifically lua or c# scripts they need to be 
       ///   able to interface with those modules directly
@@ -79,6 +80,7 @@ namespace other {
 
       static Ref<Scene> scene_context;
 
+      static std::vector<ScriptObjectTag> object_tags;
       static std::map<UUID , LanguageModuleMetadata> language_modules;
       static std::map<UUID , ScriptModule*> loaded_modules;
       static std::map<UUID , ScriptObject*> objects;

@@ -41,6 +41,18 @@ namespace Other {
     public static float Distance(float p1 , float p2) => Abs(p1 - p2);
     public static int CeilToInt(float value) => (int)Ceil(value);
     public static int FloorToInt(float value) => (int)Floor(value);
+
+    public static float Clamp01(float value) => Clamp(value, 0.0f, 1.0f);
+
+    public static float Sign(float value) => value < 0.0f ? -1.0f : 1.0f;
+
+    public static void Rotate(ref Vec3 rotation , float angle , Vec3 axis) {
+      float half_angle = angle * 0.5f;
+      float sin_half_angle = Sin(half_angle);
+      float cos_half_angle = Cos(half_angle);
+      // Vec3 normalized_axis = axis.Normalized;
+      // rotation = normalized_axis * sin_half_angle + rotation * cos_half_angle;
+    }
   }
 
 }

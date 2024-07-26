@@ -25,6 +25,7 @@ namespace other {
   struct ScriptObjectTag {
     UUID object_id;
     std::string name;
+    std::string mod_name;
     std::string nspace;
     std::string path;
     LanguageModuleType lang_type;

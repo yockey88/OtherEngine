@@ -92,6 +92,8 @@ namespace other {
     while (tmp_cursor != cursor) {
       Event* event = reinterpret_cast<Event*>(tmp_cursor);
 
+      /// only reload scripts/rebuild project once per frame at most (ideally significantly less
+      ///     because it take WAAY longer than a frame to change a script and write the changes to file)
       if (event->Type() == EventType::PROJECT_DIR_UPDATE) {
         ProjectDirectoryUpdateEvent* e = Cast<ProjectDirectoryUpdateEvent>(event);
         if (e != nullptr) {
@@ -101,11 +103,7 @@ namespace other {
         tmp_cursor += event->Size();
         regen_project = true;
         continue;
-      }
-
-      /// only reload scripts once per frame at most (ideally significantly less
-      ///     because it take WAAY longer than a frame to change a script and write the changes to file)
-      if (event->Type() == EventType::SCRIPT_RELOAD) {
+      } else if (event->Type() == EventType::SCRIPT_RELOAD) {
         tmp_cursor += event->Size();
         reload_scripts = true;
         continue;
@@ -131,9 +129,7 @@ namespace other {
         ProjectDirectoryUpdateEvent e(t);
         app->ProcessEvent(&e);
       }
-    }
-
-    if (reload_scripts) {
+    } else if (reload_scripts) {
       ScriptReloadEvent e;
       app->ProcessEvent(&e);
     }
