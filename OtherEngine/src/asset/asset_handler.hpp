@@ -9,6 +9,7 @@
 
 #include "asset/asset.hpp"
 #include "asset/asset_types.hpp"
+#include "asset/asset_metadata.hpp"
 
 namespace other {
 

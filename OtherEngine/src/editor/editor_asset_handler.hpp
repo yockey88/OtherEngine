@@ -17,6 +17,16 @@ namespace other {
     public:
       EditorAssetHandler() {}
       virtual ~EditorAssetHandler() override {}
+      
+      const AssetMetadata& GetMetadata(AssetHandle handle);
+      const AssetMetadata& GetMetadata(const Path& path);
+      AssetMetadata& GetMutableMetadata(AssetHandle handle);
+
+      AssetHandle ImportAsset(const Path& path);
+      AssetHandle GetAssetHandleFromFilePath(const Path& filepath);
+      
+      AssetType GetAssetTypeFromExtension(const std::string& extension);
+      AssetType GetAssetTypeFromPath(const Path& path);
 
       virtual AssetType GetAssetType(AssetHandle handle) override;
       virtual Ref<Asset> GetAsset(AssetHandle handle) override;
@@ -41,8 +51,6 @@ namespace other {
       AssetRegistry registry;
 
       Ref<Asset> FindAsset(AssetHandle handle);
-
-      AssetMetadata& GetMetadata(AssetHandle handle);
 
       void LoadAsset(AssetHandle handle);
   };

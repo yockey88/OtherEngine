@@ -51,6 +51,7 @@ namespace other {
       void SwapBuffers();
 
       glm::ivec2 Size() const;
+      glm::ivec2 Position() const;
       glm::vec4 ClearColor() const;
       uint32_t ClearFlags() const;
       float AspectRatio() const;

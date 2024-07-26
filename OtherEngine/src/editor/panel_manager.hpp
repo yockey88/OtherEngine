@@ -25,8 +25,9 @@ namespace other {
       void EarlyUpdate(float dt) {}
       void Update(float dt);
       void LateUpdate(float dt) {}
+      /// placeholder because this matches a generic pattern and might be useful
       void Render();
-      void RenderUI();
+      bool RenderUI();
 
       void Detach();
 

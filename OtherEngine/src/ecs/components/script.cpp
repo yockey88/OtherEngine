@@ -39,7 +39,7 @@ namespace other {
       for (auto& m : mod_s) {
         auto scripts = scene_table.Get(key_value , m);
         for (auto& s : scripts) {
-          OE_DEBUG("attaching script {} to ent : {}" , s , entity->Name());
+          OE_DEBUG("Attaching {} to {}" , s , entity->Name());
 
           ScriptObject* inst = ScriptEngine::GetScriptObject(s);
           if (inst == nullptr) {
@@ -48,14 +48,18 @@ namespace other {
           } 
 
           std::string case_ins_name;
-          std::transform(s.begin() , s.end() , std::back_inserter(case_ins_name) , ::toupper);
+          std::ranges::transform(s , std::back_inserter(case_ins_name) , ::toupper);
 
           UUID id = FNV(case_ins_name);
+
+          OE_DEBUG("Attached {} [{}]" , case_ins_name , id);
+
           script.data[id] = ScriptObjectData{
             .module = m ,
             .obj_name = s ,
           };
           script.scripts[id] = inst;
+          inst->SetEntityId(entity->ReadComponent<Tag>().id);
         }
       }
 

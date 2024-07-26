@@ -15,6 +15,8 @@
 
 #include "rendering/scene_renderer.hpp"
 
+#include "editor/saves.hpp"
+
 namespace other {
 
   struct SceneMetadata {
@@ -35,12 +37,17 @@ namespace other {
       void StartScene();
       void StopScene();
 
+      bool IsPlaying() const;
+
       bool HasScene(const Path& path);
       bool HasActiveScene() const;
 
       SceneMetadata* ActiveScene() const;
       void SaveActiveScene();
       void UnloadActive();
+
+      StateCapture CaptureScene();
+      void LoadCapture(StateCapture& capture);
 
       void ClearScenes();
 
@@ -54,6 +61,7 @@ namespace other {
       void RenderSceneUI();
 
     private:
+      bool playing_scene = false;
       SceneMetadata* active_scene = nullptr;
 
       std::vector<std::string> scene_paths;

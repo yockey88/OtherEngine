@@ -57,14 +57,14 @@ namespace other {
     PushRenderFunction(UI_FUNC(ScriptEditor::DrawTabBar));
   }
 
-  void ScriptEditor::AddEditor(const ScriptObjectTag& obj_tag , const std::string& script_path) {
+  void ScriptEditor::AddEditor(AssetHandle obj_tag , const Path& script_path) {
     auto engine_core = Filesystem::GetEngineCoreDir();
     auto zep_config = engine_core / ".zep";
 
     OE_DEBUG("script editor config path : {}" , zep_config.string());
 
-    auto& new_editor = active_editors[obj_tag.object_id]; 
-    new_editor.id = obj_tag.object_id;
+    auto& new_editor = active_editors[obj_tag.Get()]; 
+    new_editor.id = obj_tag.Get();
     new_editor.editor = this;
 
     new_editor.callback = BIND_FUNC(ScriptEditor::TextBuffer::HandleMessage , &new_editor);
@@ -80,14 +80,14 @@ namespace other {
     zep_display.SetFont(Zep::ZepTextType::Heading3 , NewStdRef<Zep::ZepFont_ImGui>(zep_display , font , (uint32_t)pixl_h * 1.125));
 
     new_editor.zep->GetEditor().GetTheme().SetThemeType(Zep::ThemeType::Dark);
-    new_editor.text_buffer = new_editor.zep->GetEditor().InitWithFile(script_path);
+    new_editor.text_buffer = new_editor.zep->GetEditor().InitWithFile(script_path.string());
 
-    /// no built in syntax for C# so have to register our own provider if C# script
-    if (obj_tag.lang_type == LanguageModuleType::CS_MODULE) {
+    if (script_path.extension() == ".cs") {
       Zep::SyntaxProvider cs_syntax{
         .syntaxID = ".cs" ,
-        .factory = Zep::tSyntaxFactory([&obj_tag](Zep::ZepBuffer* buffer) -> StdRef<Zep::ZepSyntax> {
-          cs_identifiers.insert(obj_tag.name);
+        .factory = Zep::tSyntaxFactory([&script_path](Zep::ZepBuffer* buffer) -> StdRef<Zep::ZepSyntax> {
+          std::string name = script_path.filename().string().substr(0 , script_path.filename().string().find_last_of('.'));
+          cs_identifiers.insert(name);
           return NewStdRef<Zep::ZepSyntax>(*buffer , cs_keywords , cs_identifiers);
         }) ,
       };
@@ -100,8 +100,7 @@ namespace other {
       new_editor.zep->GetEditor().SetBufferSyntax(*new_editor.text_buffer);
     
     /// changed zep source code in zep/syntax_providers.cpp to auto-register lua
-    } else {
-      /// TODO: register custom lua keywords/important engine identifiers
+      
     }
 
     /// for some reason syntax highlighting only appears after inserting characters

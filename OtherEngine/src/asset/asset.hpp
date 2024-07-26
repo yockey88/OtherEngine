@@ -4,6 +4,8 @@
 #ifndef OTHER_ENGINE_ASSET_HPP
 #define OTHER_ENGINE_ASSET_HPP
 
+#include <type_traits>
+
 #include "core/ref_counted.hpp"
 #include "asset/asset_types.hpp"
 
@@ -38,7 +40,7 @@ namespace other {
   };
 
   template <typename T>
-  concept asset_t = std::is_base_of<Asset , T>::value;
+  concept asset_t = std::is_base_of_v<Asset , T>;
 
 } // namespace other
 

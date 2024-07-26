@@ -157,6 +157,10 @@ namespace other {
   glm::ivec2 Renderer::WindowSize() {
     return render_data.window->Size();
   }
+      
+  glm::ivec2 Renderer::WindowPos() {
+    return render_data.window->Position();
+  }
 
   void Renderer::HandleWindowResize(const glm::ivec2& size) {
     render_data.window->Resize(size);

@@ -13,6 +13,7 @@
 #include "rendering/scene_renderer.hpp"
 
 #include "editor/panel_manager.hpp"
+#include "editor/saves.hpp"
 
 namespace other {
 
@@ -39,6 +40,8 @@ namespace other {
     private:
       ConfigTable editor_config;
 
+      StateCapture saved_scene;
+
       /// TODO: find a better way to manage state than this
       bool playing = false;
       bool lost_window_focus = false;
@@ -64,6 +67,8 @@ namespace other {
       /// TODO: move this somewhere else
       void SaveActiveScene();
       void LoadEditorScripts(const ConfigTable& editor_config);
+
+      void LaunchSettingsWindow();
 
       Ref<SceneRenderer> GetDefaultRenderer();
   };

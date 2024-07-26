@@ -48,6 +48,7 @@ namespace other {
   }
 
   void Layer::ReloadScripts() {
+    ParentApp()->ReloadScripts();
     OnScriptReload();
   }
       

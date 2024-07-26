@@ -33,7 +33,7 @@ namespace other {
         OE_ERROR("Failed to deserialize scene : {}" , scenepath.string());
         return false;
       }
-
+      
       loaded_scenes[id] = SceneMetadata{
         .name = loaded_scene.name ,
         .path = scenepath,
@@ -73,6 +73,10 @@ namespace other {
     } 
 
     active_scene->scene->Start();
+  }
+
+  bool SceneManager::IsPlaying() const {
+    return active_scene->scene->IsRunning();
   }
   
   /// TODO: create state system so we don't have to reload the scene each time we stop it to reset
@@ -166,6 +170,32 @@ namespace other {
     
     ScriptEngine::SetSceneContext(nullptr);
     Renderer::SetSceneContext(nullptr);
+  }
+      
+  StateCapture SceneManager::CaptureScene() {
+    if (!HasActiveScene()) {
+      return {};
+    }
+
+    return StateStack::RecordState(ActiveScene()->scene);
+  }
+      
+  void SceneManager::LoadCapture(StateCapture& capture) {
+    if (!HasActiveScene()) {
+      return;
+    }
+
+    bool scene_playing = false;
+    if (active_scene->scene->IsRunning()) {
+      active_scene->scene->Stop();
+      scene_playing = true;
+    }
+
+    StateStack::RestoreState(ActiveScene()->scene , capture);
+
+    if (scene_playing) {
+      active_scene->scene->Start();
+    }
   }
     
   void SceneManager::ClearScenes() {
