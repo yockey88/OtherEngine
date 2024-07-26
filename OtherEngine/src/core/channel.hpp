@@ -4,63 +4,20 @@
 #ifndef OTHER_ENGINE_CHANNEL_HPP
 #define OTHER_ENGINE_CHANNEL_HPP
 
-#include <vector>
-#include <concepts>
+#include <chrono>
 #include <queue>
 #include <mutex>
 #include <condition_variable>
 
 #include "core/defines.hpp"
+#include "core/ref.hpp"
+#include "core/ref_counted.hpp"
+#include "thread/message.hpp"
 
 namespace other {
 
-  enum MessageType {
-    INITIALIZE_MSG ,
-    START_MSG ,
-    READY_MSG ,
-    GL_CTX_MSG ,
-
-    NUM_MSG_TYPES ,
-    INVALID_MSG_TYPE = NUM_MSG_TYPES 
-  };
-
-  struct MessageMetadata {
-    MessageType type;
-    uint32_t size;
-  };
-
-  class Message {
-    public:
-      template <typename T>
-      Message(MessageMetadata metadata , T data) 
-          : metadata(metadata) {
-        uint8_t* data_bytes = reinterpret_cast<uint8_t*>(&data);
-        for (size_t i = 0; i < sizeof(T); ++i) {
-          bytes.push_back(data_bytes[i]);
-        }
-      }
-
-      ~Message() {}
-
-      MessageMetadata GetMeta() {
-        return metadata;
-      }
-
-      template <typename T>
-      T& Get() {
-        return *reinterpret_cast<T>(bytes.data());
-      }
-
-    private:
-      MessageMetadata metadata;
-      std::vector<uint8_t> bytes;
-  };
-
-  template <typename T>
-    concept MsgType = std::derived_from<T , Message>;
-
   template <MsgType M>
-  struct ChannelQueue {
+  struct ChannelQueue : public RefCounted {
     std::mutex mutex;
     std::condition_variable condition;
     std::queue<Scope<M>> queue;
@@ -69,28 +26,37 @@ namespace other {
   template <MsgType M>
   class Sender {
     public:
-      Sender(Scope<ChannelQueue<M>>& queue)
-        : queue(queue) {}
+      Sender(Ref<ChannelQueue<M>> queue)
+        : queue(Ref<ChannelQueue<M>>::Clone(queue)) {}
 
       void Send(Scope<M>& msg) {
-        std::unique_lock<std::mutex> lock(queue->mutex);
+        std::lock_guard<std::mutex> lock(queue->mutex);
         queue->queue.push(std::move(msg));
         queue->condition.notify_one();
       }
 
     private:
-      Scope<ChannelQueue<M>>& queue;
+      Ref<ChannelQueue<M>> queue;
   };
 
   template <MsgType M>
   class Receiver {
     public: 
-      Receiver(Scope<ChannelQueue<M>>& queue)
-        : queue(queue) {}
+      Receiver(Ref<ChannelQueue<M>> queue)
+        : queue(Ref<ChannelQueue<M>>::Clone(queue)) {}
 
-      Scope<M> Receive() {
+      Scope<M> Receive(std::chrono::milliseconds timeout) {
         std::unique_lock<std::mutex> lock(queue->mutex);
-        queue->condition.wait(lock , [this]() { return !queue->queue.empty(); });
+        if (timeout.count() == 0) {
+          queue->condition.wait(lock , [this]() { return !queue->queue.empty(); });
+        } else {
+          queue->condition.wait_for(lock , timeout , [this]() { return !queue->queue.empty(); });
+        }
+
+        if (queue->queue.empty()) {
+          return nullptr;
+        }
+
         Scope<M> msg = std::move(queue->queue.front());
         queue->queue.pop();
 
@@ -98,61 +64,42 @@ namespace other {
       }
 
     private:
-      Scope<ChannelQueue<M>>& queue;
+      Ref<ChannelQueue<M>> queue;
   };
 
   template <MsgType M>
-  class ChannelEndpoint {
+  class ChannelEndpoint : public RefCounted {
     public:
-      ChannelEndpoint(Scope<Sender<M>>& sender , Scope<Receiver<M>>& receiver) 
-        : sender(sender) , receiver(receiver) {}
+      ChannelEndpoint(Scope<Sender<M>> sender , Scope<Receiver<M>> receiver) 
+        : sender(std::move(sender)) , receiver(std::move(receiver)) {}
 
       void Send(Scope<M>& msg) { sender->Send(msg); }
-      Scope<M> Receive() { return receiver->Receive(); }
+      Scope<M> Receive(std::chrono::milliseconds timeout) { return receiver->Receive(timeout); }
 
     private:
-      Scope<Sender<M>>& sender;
-      Scope<Receiver<M>>& receiver;
+      Scope<Sender<M>> sender;
+      Scope<Receiver<M>> receiver;
   };
 
   template <MsgType M>
-  class Channel {
-    public:
-      Channel() {
-        queue1 = NewScope<ChannelQueue<M>>();
-        queue2 = NewScope<ChannelQueue<M>>();
+  using Channel = std::pair<Scope<ChannelEndpoint<M>> , Scope<ChannelEndpoint<M>>>;
 
-        sender1 = NewScope<Sender<M>>(queue1);
-        sender2 = NewScope<Sender<M>>(queue2);
+  template <MsgType M>
+  Channel<M> GetChannel() {
+    Ref<ChannelQueue<M>> queue1 = NewRef<ChannelQueue<M>>();
+    Ref<ChannelQueue<M>> queue2 = NewRef<ChannelQueue<M>>();
 
-        receiver1 = NewScope<Receiver<M>>(queue1);
-        receiver2 = NewScope<Receiver<M>>(queue2);
+    Scope<Sender<M>> sender1 = NewScope<Sender<M>>(queue1);
+    Scope<Sender<M>> sender2 = NewScope<Sender<M>>(queue2);
 
-        ep1 = NewScope<ChannelEndpoint<M>>(sender1 , receiver2);
-        ep2 = NewScope<ChannelEndpoint<M>>(sender2 , receiver1);
-      }
+    Scope<Receiver<M>> receiver1 = NewScope<Receiver<M>>(queue1);
+    Scope<Receiver<M>> receiver2 = NewScope<Receiver<M>>(queue2);
 
-      Scope<ChannelEndpoint<M>>& GetFirstEndpoint() {
-        return ep1;
-      }
-      
-      Scope<ChannelEndpoint<M>>& GetSecondEndpoint() {
-        return ep2;
-      }
+    Scope<ChannelEndpoint<M>> ep1 = NewScope<ChannelEndpoint<M>>(std::move(sender1) , std::move(receiver2));
+    Scope<ChannelEndpoint<M>> ep2 = NewScope<ChannelEndpoint<M>>(std::move(sender2) , std::move(receiver1));
 
-    private:
-      Scope<ChannelQueue<M>> queue1 = nullptr;
-      Scope<ChannelQueue<M>> queue2 = nullptr;
-
-      Scope<Sender<M>> sender1 = nullptr;
-      Scope<Receiver<M>> receiver1 = nullptr;
-      
-      Scope<Sender<M>> sender2 = nullptr;
-      Scope<Receiver<M>> receiver2 = nullptr;
-      
-      Scope<ChannelEndpoint<M>> ep1 = nullptr;
-      Scope<ChannelEndpoint<M>> ep2 = nullptr;
-  };
+    return Channel<M>{ std::move(ep1) , std::move(ep2) };
+  }
 
 } // namespace other
 

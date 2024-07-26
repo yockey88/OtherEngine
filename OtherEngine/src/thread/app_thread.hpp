@@ -11,14 +11,14 @@ namespace other {
 
   class AppThread : public Thread {
     public:
-      AppThread(const ConfigTable& config , Scope<ChannelEndpoint<Message>> endpoint) 
-        : Thread("App-Thread" , config , std::move(endpoint)) {}
+      AppThread(struct ThreadRenderContext& context , const ConfigTable& config) 
+        : Thread(context , "App-Thread" , config) {}
       virtual ~AppThread() override {}
 
     private:
       uint32_t counter = 0;
       
-      void Init() override;
+      void Init(Scope<Message>& init_msg) override;
       void Shutdown() override;
 
       void Step() override;

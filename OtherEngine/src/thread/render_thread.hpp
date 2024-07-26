@@ -4,7 +4,6 @@
 #ifndef OTHER_ENGINE_RENDER_THREAD_HPP
 #define OTHER_ENGINE_RENDER_THREAD_HPP
 
-#include "core/channel.hpp"
 #include "core/config.hpp"
 #include "thread/thread.hpp"
 
@@ -12,12 +11,12 @@ namespace other {
   
   class RenderThread : public Thread {
     public:
-      RenderThread(const ConfigTable& config , Scope<ChannelEndpoint<Message>> endpoint)
-        : Thread("Render-Thread" , config , std::move(endpoint)) {}
+      RenderThread(const ThreadRenderContext& context , const ConfigTable& config)
+        : Thread(context , "Render-Thread" , config) {}
       virtual ~RenderThread() override {}
 
     private:
-      void Init() override;
+      void Init(Scope<Message>& init_msg) override;
       void Shutdown() override;
 
       void Step() override;

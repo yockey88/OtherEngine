@@ -7,7 +7,7 @@
 
 namespace other {
 
-  void AppThread::Init() {
+  void AppThread::Init(Scope<Message>& init_msg) {
   }
 
   void AppThread::Step() {

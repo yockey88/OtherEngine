@@ -22,6 +22,10 @@
   #define OE_ENGINE
 #endif
 
+#define FMT_ENUM(e) \
+  case other::e: \
+    return fmt::formatter<std::string_view>::format("other::" #e , ctx);
+
 namespace other {
   
   enum ExitCode : uint8_t {
