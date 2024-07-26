@@ -21,17 +21,19 @@
 namespace other {
 
   template <component_type C , typename Func>
-  void DrawComponent(const std::string& name , Func ui_function) {
+  bool DrawComponent(const std::string& name , Func ui_function) {
     // bool should_draw = true;
 
     Entity* selection = SelectionManager::ActiveSelection();
     if (selection == nullptr) {
-      return;
+      return false;
     }
 
     if (!selection->HasComponent<C>()) {
-      return;
+      return false;
     }
+
+    bool edited = false;
 
     /// TODO: eliminate rtti here, this is simply the easiest for right now
     ///       without using the name or hashing the name 
@@ -68,6 +70,8 @@ namespace other {
     }
 
     if (ui::OpenPopup("##component_settings")) {
+      bool settings_changed = false;
+
       /// this should really be submesh?
       if constexpr (!std::is_same_v<C , Mesh>) {
         ui::ShiftCursorX(item_padding);
@@ -84,25 +88,30 @@ namespace other {
       ui::ShiftCursorX(item_padding);
       if (ImGui::MenuItem("Reset")) {
         reset_values = true;
+        settings_changed = true;
       }
 
       ui::ShiftCursorX(item_padding);                
       if constexpr (!std::is_same_v<C , Transform> && !std::is_same_v<C , Relationship>) {
         if (ImGui::MenuItem("Remove Component")) {
           remove_comp = true;
+          settings_changed = true;
         }
       }
+
+      edited = edited || settings_changed;
 
       ui::EndPopup();
     }
 
     if (open) {
-      ui_function(selection);
+      edited = edited || ui_function(selection);
       ImGui::TreePop();
     }
 
     if (remove_comp && selection->HasComponent<C>()) {
       selection->RemoveComponent<C>();
+      edited = true;
     }
 
     if (reset_values) {      /// also should be submesh
@@ -112,6 +121,8 @@ namespace other {
         selection->RemoveComponent<C>();
         selection->AddComponent<C>();
         /// if actually mesh 
+
+        edited = true;
       }
     }
 
@@ -120,34 +131,38 @@ namespace other {
     }
 
     ImGui::PopID();
+    
+    return edited;
   }
 
-  void DrawTag(Entity* ent);
-  void DrawTransform(Entity* ent);
-  void DrawRelationship(Entity* ent);
-  void DrawScript(Entity* ent); 
-  void DrawMesh(Entity* ent);
-  void DrawStaticMesh(Entity* ent);
-  void DrawCamera(Entity* ent);
-  void DrawRigidBody2D(Entity* ent);
-  void DrawCollider2D(Entity* ent);
+  bool DrawTag(Entity* ent);
+  bool DrawTransform(Entity* ent);
+  bool DrawRelationship(Entity* ent);
+  bool DrawScript(Entity* ent); 
+  bool DrawMesh(Entity* ent);
+  bool DrawStaticMesh(Entity* ent);
+  bool DrawCamera(Entity* ent);
+  bool DrawRigidBody2D(Entity* ent);
+  bool DrawCollider2D(Entity* ent);
   
   template <component_type C , component_type... ICs>
-  void DrawAddComponentButton(const std::string& name , Ref<Texture2D> icon = nullptr) {
+  bool DrawAddComponentButton(const std::string& name , Ref<Texture2D> icon = nullptr) {
     auto selection = SelectionManager::ActiveSelection();
     if (selection == nullptr) {
       ScopedColor red_color(ImGuiCol_Text , ui::theme::red);
       ImGui::Text("Active Selection Corrupted");
-      return;
+      return false;
     }
 
     if (selection->HasComponent<C>()) {
-      return;
+      return false;
     }
     
     if (icon == nullptr) {
       // get default asset icon
     }
+
+    bool edited = true;
 
     const float row_height = 25.f;
     auto* window = ImGui::GetCurrentWindow();
@@ -193,26 +208,31 @@ namespace other {
     ImGui::TextUnformatted(name.c_str());
     
     if (sizeof...(ICs) > 0 && selection->HasComponent<ICs...>()) {
-      return;
+      return false;
     }
 
     if (hovered && Mouse::Pressed(Mouse::Button::LEFT)) {
       selection->AddComponent<C>();
       ImGui::CloseCurrentPopup();
     }
+    
+    return edited;
   }
 
   template <typename Fn>
   concept entity_modifier = std::is_invocable_v<Fn , Entity*>;
 
   template <component_type C , entity_modifier Fn , component_type... ICs>
-  void DrawAddComponentButton(const std::string& name , Fn on_added , Ref<Texture2D> icon = nullptr) {
+  bool DrawAddComponentButton(const std::string& name , Fn on_added , Ref<Texture2D> icon = nullptr) {
     DrawAddComponentButton<C , ICs...>(name);
 
     /// if we added the component call the function
     if (SelectionManager::HasSelection() && SelectionManager::ActiveSelection()->HasComponent<C>()) {
       on_added(SelectionManager::ActiveSelection());
+      return true;
     }
+
+    return false;
   }
 
 } // namespace other

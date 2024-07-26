@@ -56,7 +56,6 @@ namespace other {
 
       void Configure(const ConfigTable& config);
       
-      /// runtime/release build logging
       template <typename... Args>
       void Log(Level l , const std::string_view format, std::source_location src_pos , std::thread::id thread_id , Args&&... args) {
 #ifdef OE_RELEASE_BUILD
@@ -65,6 +64,9 @@ namespace other {
           return;
         }
 #endif
+        std::string user_msg = fmt::format(fmt::runtime(format) , std::forward<Args>(args)...);
+        user_target_logger->log(LevelFromLevel(l) , user_msg);
+
         std::string file = src_pos.file_name();
 
         std::string func = src_pos.function_name();
@@ -99,6 +101,9 @@ namespace other {
       void SetCoreLevel(CoreTarget target , Level l);
 
       bool ChangeFiles(const std::string& path);
+      
+      static spdlog::level::level_enum LevelFromString(const std::string& l);
+      static spdlog::level::level_enum LevelFromLevel(Level l);
 
       static void Shutdown();
 
@@ -134,14 +139,18 @@ namespace other {
       std::vector<std::string> sink_patterns = { 
         kConsoleFmt.data() , kFileFmt.data() 
       };
+      
+      std::vector<std::string> user_target_strings = {}; 
+      std::vector<uint64_t> user_sink_hashes = {};
+      std::vector<spdlog::sink_ptr> user_sinks = {};
+      std::vector<spdlog::level::level_enum> user_sink_levels = {};
+      std::vector<std::string> user_sink_patterns = {};
 
       StdRef<spdlog::logger> logger;
+      StdRef<spdlog::logger> user_target_logger;
 
       std::mutex thread_map_mutex;
       std::map<std::thread::id , std::string> thread_names;
-
-      spdlog::level::level_enum LevelFromString(const std::string& l);
-      spdlog::level::level_enum LevelFromLevel(Level l);
   };
 
 } // namespace other

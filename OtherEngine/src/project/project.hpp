@@ -84,6 +84,8 @@ namespace other {
 
       static Ref<Project> Create(const CmdLine& cmdline , const ConfigTable& data);
 
+      void LoadFiles();
+
       bool RegenProjectFile();
       void CreateScriptWatchers();
 

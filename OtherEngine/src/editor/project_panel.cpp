@@ -13,15 +13,12 @@
 
 #include "core/logger.hpp"
 #include "core/filesystem.hpp"
-
+#include "input/mouse.hpp"
 #include "event/event_handler.hpp"
 #include "event/ui_events.hpp"
-
+#include "asset/asset_metadata.hpp"
+#include "application/app_state.hpp"
 #include "project/project.hpp"
-
-#include "input/mouse.hpp"
-
-#include "scripting/script_engine.hpp"
 
 #include "rendering/ui/ui_helpers.hpp"
 #include "rendering/ui/ui_colors.hpp"
@@ -30,21 +27,41 @@
 #include "editor/editor.hpp"
 #include "editor/script_window.hpp"
 #include "editor/script_editor.hpp"
+#include "editor/content_browser_item.hpp"
+#include "editor/editor_asset_handler.hpp"
 
 namespace other {
       
   void ProjectPanel::OnAttach() {
     OE_ASSERT(active_proj != nullptr , "Project Panel Project context is nullptr");
+    OE_DEBUG("Attaching Project Panel");
 
     ui_windows[FNV("Script Editor")] = Ref<ScriptEditor>::Create(); 
+    selection = NewRef<Directory>(active_proj->GetMetadata().project_directory); 
+    
+    selection_item = NewRef<CBDirectory>(selection.value());
+    selection_item.value()->Select();
+
+    project_folders.root = selection_item.value();
+    project_folders.assets = NewRef<CBDirectory>(NewRef<Directory>(selection.value()->path / "assets"));
+    project_folders.source = NewRef<CBDirectory>(NewRef<Directory>(selection.value()->path / "src"));
+
+    for (auto& entry : std::filesystem::directory_iterator(project_folders.assets->directory->path)) {
+      if (!entry.is_directory()) {
+        return;
+      }
+
+      Ref<Directory> child_dir = NewRef<Directory>(entry.path()); 
+      project_folders.asset_folders[child_dir->handle] = NewRef<CBDirectory>(child_dir);
+    }
   }
 
-  void ProjectPanel::OnGuiRender(bool& is_open) {
+  bool ProjectPanel::OnGuiRender(bool& is_open) {
     ImGui::SetNextWindowSize(ImVec2(200.f , ImGui::GetContentRegionAvail().y));
     if (!ImGui::Begin("Project" , &is_open , ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar) || 
         active_proj == nullptr) {
       ImGui::End();
-      return;
+      return false;
     }
 
     ImGuiTableFlags table_flags = ImGuiTableFlags_Resizable 
@@ -64,14 +81,8 @@ namespace other {
         ScopedColorStack item_bg(ImGuiCol_Header , IM_COL32_DISABLE , 
                                  ImGuiCol_HeaderActive , IM_COL32_DISABLE);
 
-        auto project_dir = active_proj->GetMetadata().project_directory;
-        auto project_dirs = Filesystem::GetSubDirs(project_dir);
-        for (auto& dir : project_dirs) {
-          if (!Filesystem::IsDirectory(dir)) {
-            continue;
-          }
-          RenderDirectoryTree(dir);
-        }
+        RenderDirectoryTree(project_folders.assets);
+        RenderDirectoryTree(project_folders.source);
       }
       ImGui::EndChild();
 
@@ -81,7 +92,7 @@ namespace other {
       constexpr float bottom_bar_h = 32.f;
       constexpr float tot_h_offset = top_bar_h + bottom_bar_h;
       ImGui::BeginChild("##project-directory-content" , 
-                         ImVec2(ImGui::GetContentRegionAvail().x , ImGui::GetContentRegionAvail().y - tot_h_offset)); 
+                         ImVec2(ImGui::GetContentRegionAvail().x , ImGui::GetWindowHeight() - tot_h_offset)); 
       {
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
         RenderTopBar(top_bar_h);
@@ -130,17 +141,23 @@ namespace other {
 
           ImGui::PopStyleVar();
 
-          // pop up on right right click here
           const float padding_for_outline = 2.0f;
-          // const float scroll_barr_offset = 20.0f + ImGui::GetStyle().ScrollbarSize;
+          const float scroll_barr_offset = 20.0f + ImGui::GetStyle().ScrollbarSize;
+          float panel_w = ImGui::GetContentRegionAvail().x - scroll_barr_offset;
+          float cell_size = 128 + 2.f + padding_for_outline;
+          float col_count = (int32_t)(panel_w / cell_size);
+          if (col_count < 1) {
+            col_count = 1;
+          }
+
           {
             const float row_spacing = 12.0f;
             ScopedStyle spacing(ImGuiStyleVar_ItemSpacing, ImVec2(padding_for_outline, row_spacing));
+            ImGui::Columns(col_count , 0 , false);
 
             ScopedStyle border(ImGuiStyleVar_FrameBorderSize, 0.0f);
             ScopedStyle padding(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
-            // render items
-            ValidateAndRenderSelectionCtx();
+            RenderItems();
           }
           
           ImGui::PopStyleColor(2);
@@ -159,6 +176,8 @@ namespace other {
     for (auto& [id , window] : ui_windows) {
       window->Render(); 
     }
+
+    return false;
   }
       
   void ProjectPanel::OnUpdate(float dt) {
@@ -188,6 +207,27 @@ namespace other {
 
   void ProjectPanel::SetSceneContext(const Ref<Scene>& scene) {
   }
+
+  void ProjectPanel::OnScriptReload() {
+    /// reset assets dir
+    project_folders.assets = nullptr;
+    project_folders.assets = NewRef<CBDirectory>(NewRef<Directory>(project_folders.root->directory->path / "assets"));
+
+    project_folders.asset_folders.clear();
+
+    for (auto& entry : std::filesystem::directory_iterator(project_folders.assets->directory->path)) {
+      if (!entry.is_directory()) {
+        return;
+      }
+
+      Ref<Directory> child_dir = NewRef<Directory>(entry.path()); 
+      project_folders.asset_folders[child_dir->handle] = NewRef<CBDirectory>(child_dir);
+    }
+
+    if (selection_item.has_value()) {
+      current_items = LoadItems(selection_item.value());
+    }
+  }
       
   void ProjectPanel::RenderTopBar(float height) const {
     ImGui::BeginChild("##project_directory_contents_top_bar" , ImVec2(0.f , height));
@@ -195,7 +235,7 @@ namespace other {
     {
       if (selection.has_value()) {
         /// construct navigation string
-        ImGui::Text("%s" , selection.value().filename().string().c_str());
+        ImGui::Text("%s" , selection.value()->path.filename().string().c_str());
       } else {
         ImGui::Text("No Directory Selected");
       }
@@ -218,12 +258,22 @@ namespace other {
     ImGui::EndChild();
   }
       
-  void ProjectPanel::RenderDirectoryTree(const Path& path) {
-    ImGui::PushID(path.string().c_str());
-    auto non_absolute = path.stem();
-    auto files = Filesystem::GetSubDirs(path);
+  bool ProjectPanel::TreeNode(const std::string& id , const std::string& label , ImGuiTreeNodeFlags flags , const Ref<Texture2D>& icon) {
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    if (window->SkipItems) {
+      return false;
+    }
 
-    ImGuiID node_id = ImGui::GetID(non_absolute.string().c_str());
+    return ui::TreeNodeWithIcon(icon , window->GetID(id.c_str()) , flags , label.c_str() , nullptr);
+  }
+      
+  void ProjectPanel::RenderDirectoryTree(const Ref<CBDirectory>& dir) {
+    ImGui::PushID(dir->directory->path.string().c_str());
+    auto non_absolute = dir->directory->path.stem();
+    auto files = Filesystem::GetSubDirs(dir->directory->path);
+
+    std::string id_str = non_absolute.string();
+    ImGuiID node_id = ImGui::GetID(id_str.c_str());
     bool prev_state = ImGui::TreeNodeBehaviorIsOpen(node_id);
 
     auto* window = ImGui::GetCurrentWindow();
@@ -257,7 +307,7 @@ namespace other {
         return false;
       }
 
-      if (dir == selection.value()) {
+      if (dir == selection.value()->path) {
         return true;
       }
       
@@ -277,16 +327,19 @@ namespace other {
       return false;
     };
 
-    const bool any_descendant_selected = check_if_descendant_selected(path , check_if_descendant_selected);
-    const bool is_active_directory = IsDirSelected(path);
+    const bool any_descendant_selected = check_if_descendant_selected(dir->directory->path , check_if_descendant_selected);
+    const bool is_active_dir = IsDirSelected(dir->directory);
 
-    ImGuiTreeNodeFlags flags = (is_active_directory ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_SpanFullWidth;
+    ImGuiTreeNodeFlags flags = (is_active_dir ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_SpanFullWidth;
+    if (dir->directory->children.size() == 0) {
+      flags |= ImGuiTreeNodeFlags_Leaf;
+    }
     
-    if (item_clicked && !any_descendant_selected) {
-      SetSelectionContext(path);
+    if (item_clicked) {
+      SetSelectionContext(dir);
     }
 
-    if (is_active_directory || item_clicked) {
+    if (is_active_dir || item_clicked) {
       if (window_focused) {
         fill_w_color(ui::theme::selection);
       } else {
@@ -300,8 +353,9 @@ namespace other {
     }
 
     bool open = ImGui::TreeNodeEx(non_absolute.string().c_str() , flags);
+    // bool open = TreeNode(id_str , non_absolute.string() , flags , EditorImages::folder_icon);
 
-    if (is_active_directory || item_clicked) {
+    if (is_active_dir || item_clicked) {
       ImGui::PopStyleColor();
     }
 
@@ -309,15 +363,9 @@ namespace other {
 
     // create context menu
 
-    // directory items 
-
     if (open) {
-      for (auto& e : Filesystem::GetSubPaths(path)) {
-        if (!Filesystem::IsDirectory(e)) {
-          continue;
-        }
-
-        RenderDirectoryTree(e);
+      for (auto& [hash , child] : dir->directory->children) {
+        RenderDirectoryTree(project_folders.asset_folders[hash]);
       }
 
       ImGui::TreePop();
@@ -328,106 +376,10 @@ namespace other {
     ImGui::PopID();
   }
 
-  void ProjectPanel::RenderContents(const Path& path) {
-    auto itr = std::find_if(tags.begin() , tags.end() , [&](const auto& tag_pair) -> bool {
-      std::string tag = selection.value().stem().string();
-      return tag_pair.first.Get() == FNV(tag);
-    });
-        
-    if (itr == tags.end()) {
-      return;
-    }
-        
-
-    if (itr->first.Get() == FNV("scripts")) {
-      RenderScriptContents();
-    } else if (itr->first.Get() == FNV("editor")) {
-      RenderEditorFiles();
-    } else {
-      RenderPathContents(path);
-    }
-  }
-      
-  void ProjectPanel::RenderScriptContents() {
-    auto loaded_script_objects = ScriptEngine::GetLoadedObjects();
-
-    for (auto& obj : loaded_script_objects) {
-      ImGui::PushID(("##" + obj.name).c_str());
-
-      if (ui::Selectable(obj.name)) {
-        ImGui::OpenPopup((obj.name + "-context-menu").c_str());
-      } 
-
-      RenderScriptObjectContextMenu(obj);
-      ScriptObjectDragDropSource(kScriptsDirNameHash , obj);
-
-      ImGui::PopID();
-    }
-  }
-      
-  void ProjectPanel::RenderEditorFiles() {
-    /// other things
-
-    if (ImGui::TreeNode("Editor Scripts")) {
-      auto editor_scripts = ScriptEngine::GetLoadedEditorObjects();
-    
-      for (auto& obj : editor_scripts) {
-        ImGui::PushID(("##" + obj.name).c_str());
-
-        if (ui::Selectable(obj.name)) {
-          ImGui::OpenPopup((obj.name + "-context-menu").c_str());
-        } 
-
-        RenderScriptObjectContextMenu(obj);
-        ScriptObjectDragDropSource(kEditorDirNameHash , obj);
-
-        ImGui::PopID();
-      }
-      ImGui::TreePop();
-    }
-
-    if (ImGui::TreeNode("Editor Settings")) {
-      ImGui::TreePop();
-    }
-  }
-      
-  void ProjectPanel::RenderPathContents(const Path& path) const {
-    auto itr = std::find_if(tags.begin() , tags.end() , [&](const auto& tag_pair) -> bool {
-      std::string tag = selection.value().stem().string();
-      return tag_pair.first.Get() == FNV(tag);
-    });
-    OE_ASSERT(itr != tags.end() , "UNREGISTERED PROJECT DIRECTORY");
-        
-    std::string drag_drop_tag = drag_drop_tags.at(itr->first).data();
-
-    for (auto& f : Filesystem::GetSubPaths(path)) {
-      ImGui::PushID(f.string().c_str());
-      
-      if (Filesystem::IsDirectory(f)) {
-        // render folder icon and if clicked set selection context
-      } else {
-        ImGui::Selectable(f.filename().string().c_str());
-
-        if (!selection.has_value()) {
-          ImGui::PopID();
-          return;
-        }
-        
-        /// need to keep track of context here because drag-drop tag is dependent on active selected folder
-        ///   different assets have different valid drop targets
-        ImGuiDragDropFlags dd_flags = ImGuiDragDropFlags_SourceNoDisableHover;
-        if (ImGui::BeginDragDropSource(dd_flags)) {
-          
-          ImGui::Text("%s" , f.string().c_str());
-          ImGui::SetDragDropPayload(drag_drop_tag.c_str() , f.string().c_str() , f.string().size() + 1);
-
-          ImGui::EndDragDropSource();
-        }
-      }
-
-      ImGui::PopID();
-    }
-  }
+  template <typename T>
+  concept id_t = requires (T t) {
+    t.first.Get();
+  };
       
   void ProjectPanel::RenderScriptObjectContextMenu(const ScriptObjectTag& tag) {
     if (ImGui::BeginPopupContextWindow((tag.name + "-context-menu").c_str())) {
@@ -449,18 +401,6 @@ namespace other {
         ImGui::EndMenu();
       }
 
-      if (ImGui::MenuItem("Open In Editor")) {
-        auto script_editor_itr = ui_windows.find(FNV("Script Editor")); 
-        if (script_editor_itr != ui_windows.end()) {
-          Ref<ScriptEditor> editor = Ref<UIWindow>::Cast<ScriptEditor>(script_editor_itr->second);
-          editor->AddEditor(tag , tag.path);
-        } else {
-          OE_ERROR("Failed to create script editor for {}" , tag.name);
-        }
-
-        ImGui::CloseCurrentPopup();
-      }
-
       ImGui::EndPopup();
     }
   }
@@ -480,8 +420,8 @@ namespace other {
       return "";
     }
 
-    auto itr = std::find_if(tags.begin() , tags.end() , [&](const auto& tag_pair) -> bool {
-      std::string tag = selection.value().stem().string();
+    auto itr = std::ranges::find_if(tags , [&](const auto& tag_pair) -> bool {
+      std::string tag = selection.value()->path.stem().string();
       return tag_pair.first.Get() == FNV(tag);
     });
 
@@ -538,46 +478,129 @@ namespace other {
     });
   }
 
-  bool ProjectPanel::IsDirSelected(const Path& dir) const {
-    return selection.has_value() && dir == selection.value(); 
+  bool ProjectPanel::IsDirSelected(const Ref<Directory>& dir) const {
+    return selection.has_value() && dir->path == selection.value()->path; 
   }
 
-  bool ProjectPanel::IsDescendantSelected(const Path& dir) const {
+  bool ProjectPanel::IsDescendantSelected(const Ref<Directory>& dir) const {
     if (!selection.has_value()) {
       return false;
     }
 
-    if (dir == selection.value()) {
+    if (dir->path == selection.value()->path) {
       return true;
     }
     
-    auto items = Filesystem::GetSubPaths(dir);
-    if (!items.empty()) {
-      for (const auto& d : items) {
-        if (!Filesystem::IsDirectory(d)) {
-          continue;
-        }
-
-        if (IsDescendantSelected(d)) {
-          return true;
-        }
+    for (const auto& [id , child] : dir->children) {
+      if (IsDescendantSelected(child)) {
+        return true;
       }
     }
 
     return false;
   }
 
-  void ProjectPanel::SetSelectionContext(const Path& path) {
-    selection = path;
-  }
-
-  void ProjectPanel::ValidateAndRenderSelectionCtx() {
-    if (selection.has_value()) {
-      RenderContents(selection.value());    
-      RenderContextMenu();
-    } else {
-      // render root 
+  void ProjectPanel::SetSelectionContext(const Ref<CBDirectory>& dir) {
+    if (dir->IsSelected()) {
+      return;
     }
+
+    if (selection_item.has_value()) {
+      selection_item.value()->Deselect();
+    }
+
+    selection_item = dir;
+    selection = dir->directory;
+    current_items = LoadItems(selection_item.value());
+
+    selection_item.value()->Select();
+  }
+      
+  void ProjectPanel::ActivateAsset(const Ref<CBItem>& asset) {
+    const AssetMetadata& asset_md = AppState::Assets().As<EditorAssetHandler>()->GetMetadata(asset->GetHandle());
+    switch (asset_md.type) {
+      case SCENE: {
+        GetEditor().LoadScene(asset_md.path);
+      } break;
+      case SCRIPTFILE: {
+        auto script_editor_itr = ui_windows.find(FNV("Script Editor")); 
+        if (script_editor_itr != ui_windows.end()) {
+          Ref<ScriptEditor> editor = Ref<UIWindow>::Cast<ScriptEditor>(script_editor_itr->second);
+          editor->AddEditor(asset_md.handle , asset_md.path);
+        } else {
+          OE_ERROR("Failed to create script editor for {}" , asset_md.path);
+        }
+
+        ImGui::CloseCurrentPopup();
+      } break;
+      default:
+        OE_DEBUG("Implement asset activation {}" , asset_md.type);
+      break;
+    }
+  }
+      
+  void ProjectPanel::RenderItems() {
+    for (auto& itm : current_items) {
+      bool set_selection_ctx = false;
+      bool asset_activated = false;
+
+      itm->OnRenderBegin();
+
+      CBActionResult result = itm->Render();
+
+      if (result.Has(CBAction::ACTIVATED)) {
+        asset_activated = true; 
+      }
+
+      if (result.Has(CBAction::SELECTED)) {
+        set_selection_ctx = true;
+      }
+      
+      if (result.Has(CBAction::DESELECTED)) {
+      }
+
+      if (result.Has(CBAction::START_RENAMING)) {}
+
+      if (result.Has(CBAction::RELOAD)) {}
+
+      if (result.Has(CBAction::OPEN_NATIVE)) {}
+
+      if (result.Has(CBAction::OPEN_EXTERNAL)) {}
+
+      if (result.Has(CBAction::HOVERED)) {}
+
+      if (result.Has(CBAction::RENAMED)) {}
+
+      itm->OnRenderEnd();
+
+      if (set_selection_ctx && itm->GetType() == ContentBrowserItem::Type::DIRECTORY) {
+        SetSelectionContext(itm.As<CBDirectory>());
+        return;
+      } else if (asset_activated) {
+        ActivateAsset(itm.As<CBItem>());
+      }
+    }
+  }
+      
+  CBItemList ProjectPanel::LoadItems(const Ref<CBDirectory>& dir) {
+    CBItemList items;
+    
+    for (auto& [id , child] : dir->directory->children) {
+      items.push_back(NewRef<CBDirectory>(child)); 
+    }
+
+    for (auto& handle : dir->directory->assets) {
+      const AssetMetadata& asset_md = AppState::Assets().As<EditorAssetHandler>()->GetMetadata(handle);
+      if (asset_md.path.empty()) {
+        items.push_back(NewRef<CBItem>(asset_md , EditorImages::default_file_icon));
+        continue;
+      }
+
+      Ref<Texture2D> icon = EditorImages::GetIconFromExtension(asset_md.path.extension().string());
+      items.push_back(NewRef<CBItem>(asset_md , icon));
+    }
+
+    return items; 
   }
 
 } // namespace other 

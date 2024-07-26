@@ -45,6 +45,8 @@ namespace cs_script_bindings {
   void NativeSetScale(uint64_t id , glm::vec3* out_scale);
   void NativeSetPosition(uint64_t id , glm::vec3* out_position);
   void NativeSetRotation(uint64_t id , glm::vec3* out_rotation);
+
+  void NativeRotateObject(uint64_t id , float angle , glm::vec3* axis);
   
   void NativeSetPhysicsBodyType(uint64_t id , uint32_t type);
   void NativeSetMass(uint64_t id , float* mass);

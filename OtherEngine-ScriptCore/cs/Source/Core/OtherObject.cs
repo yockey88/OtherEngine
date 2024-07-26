@@ -3,8 +3,21 @@ using System.Collections.Generic;
 
 namespace Other {
 
+  public struct BehaviorFlags {
+    public bool parent_loaded;
+    public bool children_loaded;
+
+    public BehaviorFlags(bool parent_flag, bool children_flag) {
+      parent_loaded = parent_flag;
+      children_loaded = children_flag;
+    }
+  }
+
   public class OtherObject : OtherBehavior {
     private Dictionary<Type , Component> components = new Dictionary<Type , Component>();
+
+    private BehaviorFlags flags = new BehaviorFlags(false , false);
+
     public ulong Id => ObjectID;
     public string Name => Scene.GetName(ObjectID);
 
@@ -16,7 +29,10 @@ namespace Other {
 
     public override OtherBehavior Parent {
       get {
-        parent = Scene.GetParent(ObjectID);
+        if (parent == null) {
+          parent = Scene.GetParent(ObjectID);
+          flags.parent_loaded = true;
+        }
         return parent;
       }
       set { parent = value; }
@@ -24,22 +40,21 @@ namespace Other {
 
     public override List<OtherBehavior> Children {
       get { 
+        if ((children == null || children.Count == 0) && !flags.children_loaded) {
+          children = Scene.GetChildren(ObjectID);
+          for (int i = 0; i < children.Count; i++) {
+            children[i].Parent = this;
+          }
+          flags.children_loaded = true;
+        }
         return children; 
       }
       set { children = value; }
     }
 
     public override void OnBehaviorLoad() {
-      /// add object to the scene
       Scene.AddObject(this);
-
-      /// initialize data from native side
       object_transform = new Transform(this);
-      Parent = Scene.GetParent(ObjectID);
-      Children = Scene.GetChildren(ObjectID);
-      for (int i = 0; i < Children.Count; i++) {
-        Children[i].Parent = this;
-      }
     }
 
     public override void OnBehaviorUnload() {

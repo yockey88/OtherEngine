@@ -153,10 +153,6 @@ namespace other {
       return nullptr;
     }
 
-    for (const auto& m : loaded_modules) {
-      OE_DEBUG("  {}" , m.first);
-    }
-
     std::string case_insensitive_name;
     std::transform(name.begin() , name.end() , std::back_inserter(case_insensitive_name) , ::toupper);
 

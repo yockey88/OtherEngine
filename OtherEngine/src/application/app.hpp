@@ -50,6 +50,8 @@ namespace other {
       bool HasActiveScene();
       SceneMetadata* ActiveScene();
       void UnloadScene();
+
+      void ReloadScripts();
       
       Ref<Project> project_metadata;
       Ref<AssetHandler> asset_handler = nullptr;
@@ -101,8 +103,6 @@ namespace other {
       friend class Engine;
       friend class AppState;
       friend class Editor;
-
-      void ReloadScripts();
 
     private:
       Engine* GetEngine() const { return engine_handle; }

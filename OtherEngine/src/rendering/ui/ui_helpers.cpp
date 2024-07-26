@@ -10,7 +10,6 @@
 
 #include <spdlog/fmt/fmt.h>
 
-#include "core/logger.hpp"
 #include "rendering/ui/ui_colors.hpp"
 #include "rendering/ui/ui_widgets.hpp"
 
@@ -308,35 +307,35 @@ namespace {
     return changed;
   }
   
-  bool TableRowClickable(const char* id, float rowHeight) {
+  bool TableRowClickable(const char* id, float row_height) {
     ImGuiWindow* window = ImGui::GetCurrentWindow();
-    window->DC.CurrLineSize.y = rowHeight;
+    window->DC.CurrLineSize.y = row_height;
     
-    ImGui::TableNextRow(0, rowHeight);
+    ImGui::TableNextRow(0, row_height);
     ImGui::TableNextColumn();
     
     window->DC.CurrLineTextBaseOffset = 3.0f;
-    const ImVec2 rowAreaMin = ImGui::TableGetCellBgRect(ImGui::GetCurrentTable(), 0).Min;
-    const ImVec2 rowAreaMax = { 
+    const ImVec2 row_area_min = ImGui::TableGetCellBgRect(ImGui::GetCurrentTable(), 0).Min;
+    const ImVec2 row_area_max = { 
       ImGui::TableGetCellBgRect(
         ImGui::GetCurrentTable() , 
         ImGui::TableGetColumnCount() - 1
       ).Max.x , 
-      rowAreaMin.y + rowHeight 
+      row_area_min.y + row_height 
     };
   
-    ImGui::PushClipRect(rowAreaMin, rowAreaMax, false);
+    ImGui::PushClipRect(row_area_min, row_area_max, false);
     
-    bool isRowHovered, held;
-    bool isRowClicked = ImGui::ButtonBehavior(
-    ImRect(rowAreaMin , rowAreaMax) , ImGui::GetID(id) ,
-      &isRowHovered , &held , ImGuiButtonFlags_AllowOverlap
+    bool is_row_hovered, held;
+    bool is_row_clicked = ImGui::ButtonBehavior(
+    ImRect(row_area_min , row_area_max) , ImGui::GetID(id) ,
+      &is_row_hovered , &held , ImGuiButtonFlags_AllowOverlap
     );
   
     ImGui::SetItemAllowOverlap();
     ImGui::PopClipRect();
   
-    return isRowClicked;
+    return is_row_clicked;
   }
   
   void Separator(ImVec2 size, ImVec4 color) {
@@ -775,7 +774,246 @@ namespace {
   bool Property(const char* label , glm::vec4* value , glm::vec4 min , glm::vec4 max , const char* help_text) {
     return false; 
   }
+  
+  void Image(const Ref<Texture2D>& texture , const ImVec2& size , const ImVec2& uv0 , const ImVec2& uv1 , 
+             const ImVec4& tint_col , const ImVec4& border_col) {
+    OE_ASSERT(texture != nullptr , "Texture is null!");
 
+    void* texture_id = (void*)(uintptr_t)texture->GetRendererId();
+    ImGui::Image(texture_id , size , uv0 , uv1 , tint_col , border_col);
+  }
+
+  void DrawButtonImage(const Ref<Texture2D>& image_normal, const Ref<Texture2D>& image_hovered, const Ref<Texture2D>& image_pressed,
+  	                   ImU32 tint_normal, ImU32 tint_hovered, ImU32 tint_pressed, ImVec2 rect_min, ImVec2 rect_max) {
+    auto* drawList = ImGui::GetWindowDrawList();
+    if (ImGui::IsItemActive()) {
+      drawList->AddImage((void*)(uintptr_t)image_pressed->GetRendererId() , rect_min, rect_max, ImVec2(0, 0), ImVec2(1, 1), tint_pressed);
+    } else if (ImGui::IsItemHovered()) {
+      drawList->AddImage((void*)(uintptr_t)image_hovered->GetRendererId() , rect_min, rect_max, ImVec2(0, 0), ImVec2(1, 1), tint_hovered);
+    } else {
+      drawList->AddImage((void*)(uintptr_t)image_normal->GetRendererId() , rect_min, rect_max, ImVec2(0, 0), ImVec2(1, 1), tint_normal);
+    }
+  };
+  
+  void DrawButtonImage(const Ref<Texture2D>& image, ImU32 tint_normal, ImU32 tint_hovered, ImU32 tint_pressed, ImRect rect) {
+    DrawButtonImage(image , image , image , tint_normal , tint_hovered , tint_pressed , rect.Min , rect.Max);
+  }
+  
+  void DrawButtonImage(const Ref<Texture2D>& image, ImU32 tint_normal, ImU32 tint_hovered, ImU32 tint_pressed, 
+                       ImVec2 rect_min, ImVec2 rect_max) {
+    DrawButtonImage(image , image , image , tint_normal , tint_hovered , tint_pressed , rect_min , rect_max);
+  }
+  
+  bool TreeNodeWithIcon(const Ref<Texture2D>& icon , ImGuiID id , ImGuiTreeNodeFlags flags , const char* label , 
+                        const char* label_end , ImColor icon_tint) {
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    if (window->SkipItems) {
+      return false;
+    }
+
+    ImGuiContext& g = *GImGui;
+    ImGuiLastItemData& last_item = g.LastItemData;
+    const ImGuiStyle& style = g.Style;
+    const bool display_frame = (flags & ImGuiTreeNodeFlags_Framed) != 0;
+
+    const ImVec2 padding = (display_frame || (flags & ImGuiTreeNodeFlags_FramePadding)) ? 
+      style.FramePadding : ImVec2(style.FramePadding.x , ImMin(window->DC.CurrLineTextBaseOffset , style.FramePadding.y));
+
+    if (!label_end) {
+      label_end = ImGui::FindRenderedTextEnd(label);
+    }
+    const ImVec2 label_size = ImGui::CalcTextSize(label , label_end , false);
+
+    const float frame_height = ImMax(ImMin(window->DC.CurrLineSize.y , g.FontSize + style.FramePadding.y * 2) , label_size.y + padding.y * 2);
+    ImRect frame_bb;
+    frame_bb.Min = {
+      (flags & ImGuiTreeNodeFlags_SpanFullWidth) ? 
+        window->WorkRect.Min.x : window->DC.CursorPos.x ,
+      window->DC.CursorPos.y
+    };
+    frame_bb.Max = {
+      window->WorkRect.Max.x ,
+      window->DC.CursorPos.y * frame_height
+    };
+
+    if (display_frame) {
+      frame_bb.Min.x -= IM_FLOOR(window->WindowPadding.x * 0.5f - 1.f);
+      frame_bb.Max.x += IM_FLOOR(window->WindowPadding.y * 0.5f);
+    }
+
+    const float text_offs_x = g.FontSize + (display_frame ? padding.x * 3 : padding.x * 2);
+    const float text_offs_y = ImMax(padding.y , window->DC.CurrLineTextBaseOffset);
+    const float text_width = g.FontSize + (label_size.x > 0.f ? label_size.x + padding.x * 2.f : 0.f);
+    ImVec2 text_pos = ImVec2(window->DC.CursorPos.x + text_offs_x , window->DC.CursorPos.y = text_offs_y);
+    ImGui::ItemSize(ImVec2(text_width , frame_height) , padding.y);
+
+    ImRect interact_bb = frame_bb;
+    if (!display_frame && (flags & (ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_SpanFullWidth)) == 0) {
+      interact_bb.Max.x = frame_bb.Max.x + text_width + style.ItemSpacing.x * 2.f;
+    }
+
+    const bool is_leaf = (flags & ImGuiTreeNodeFlags_Leaf) != 0;
+    bool is_open = ImGui::TreeNodeBehaviorIsOpen(id , flags);
+    if (is_open && !g.NavIdIsAlive && (flags & ImGuiTreeNodeFlags_NavLeftJumpsBackHere) && !(flags & ImGuiTreeNodeFlags_NoTreePushOnOpen)) {
+      window->DC.TreeJumpToParentOnPopMask |= (1 << window->DC.TreeDepth);
+    }
+
+    bool item_add = ImGui::ItemAdd(interact_bb , id);
+    last_item.StatusFlags |= ImGuiItemStatusFlags_HasDisplayRect;
+    last_item.DisplayRect = frame_bb;
+
+    if (!item_add) {
+      if (is_open && !(flags & ImGuiTreeNodeFlags_NoTreePushOnOpen)) {
+        ImGui::TreePushOverrideID(id);
+      }
+      IMGUI_TEST_ENGINE_ITEM_INFO(last_item.ID , label , 
+                                  last_item.StatusFlags | (is_leaf ? 0 : ImGuiItemStatusFlags_Openable) | (is_open ? ImGuiStatusFlags_Opened : 0));
+      return is_open;
+    }
+
+    ImGuiButtonFlags button_flags = ImGuiTreeNodeFlags_None;
+    if (!is_leaf) {
+      button_flags |= ImGuiButtonFlags_PressedOnDragDropHold;
+    }
+
+    const float arrow_hit_x1 = (text_pos.x - text_offs_x) - style.TouchExtraPadding.x;
+    const float arrow_hit_x2 = (text_pos.x - text_offs_x) + (g.FontSize + padding.x * 2.f) + style.TouchExtraPadding.x;
+    const bool mouse_over_arrow = (g.IO.MousePos.x >= arrow_hit_x1 && g.IO.MousePos.x < arrow_hit_x2);
+    if (window != g.HoveredWindow || !mouse_over_arrow) {
+      button_flags |= ImGuiButtonFlags_NoKeyModifiers;
+    }
+
+    if (mouse_over_arrow) {
+      button_flags |= ImGuiButtonFlags_PressedOnClick;
+    } else if (flags & ImGuiTreeNodeFlags_OpenOnDoubleClick) {
+      button_flags |= ImGuiButtonFlags_PressedOnClickRelease | ImGuiButtonFlags_PressedOnDoubleClick;
+    } else {
+      button_flags |= ImGuiButtonFlags_PressedOnClickRelease;
+    }
+
+    bool selected = (flags & ImGuiTreeNodeFlags_Selected) != 0;
+    const bool was_selected = selected;
+
+    bool hovered , held;
+    bool pressed = ImGui::ButtonBehavior(interact_bb , id , &hovered, &held);
+    bool toggled = false;
+
+    if (!is_leaf) {
+      if (pressed && g.DragDropHoldJustPressedId != id) {
+        if ((flags & (ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick)) == 0 || (g.NavActivateId == id)) {
+	  toggled = true;
+        }
+        if (flags & ImGuiTreeNodeFlags_OpenOnArrow) {
+          // Lightweight equivalent of IsMouseHoveringRect() since ButtonBehavior() already did the job
+	  toggled |= mouse_over_arrow && !g.NavDisableMouseHover; 
+        }
+	
+        if ((flags & ImGuiTreeNodeFlags_OpenOnDoubleClick) && g.IO.MouseDoubleClicked[0]) {
+	  toggled = true;
+        }
+      } else if (pressed && g.DragDropHoldJustPressedId == id) {
+        IM_ASSERT(button_flags & ImGuiButtonFlags_PressedOnDragDropHold);
+        if (!is_open) {
+          toggled = true;
+        }
+      }
+
+      if (g.NavId == id && g.NavMoveDir == ImGuiDir_Left && is_open) {
+        toggled = true;
+        ImGui::NavMoveRequestCancel();
+      }
+
+      if (g.NavId == id && g.NavMoveDir == ImGuiDir_Right && !is_open) {
+        toggled = true;
+        ImGui::NavMoveRequestCancel();
+      }
+
+      if (toggled) {
+        is_open = !is_open;
+        window->DC.StateStorage->SetInt(id , is_open);
+        last_item.StatusFlags |= ImGuiItemStatusFlags_ToggledOpen;
+      }
+    }
+
+    if (flags & ImGuiTreeNodeFlags_AllowItemOverlap) {
+      ImGui::SetItemAllowOverlap();
+    }
+
+    const ImU32 arrow_col = selected ? 
+      theme::background_dark : theme::muted;
+
+    ImGuiNavHighlightFlags nav_hl_flags = ImGuiNavHighlightFlags_TypeThin;
+    if (display_frame) {
+      const ImU32 bg_col = ImGui::GetColorU32((held && hovered) ? 
+          ImGuiCol_HeaderActive : (hovered && !selected && !held && !pressed && !toggled) ?
+          ImGuiCol_HeaderHovered : ImGuiCol_Header);
+
+      ImGui::RenderFrame(frame_bb.Min , frame_bb.Max , bg_col , true , style.FrameRounding);
+      ImGui::RenderNavHighlight(frame_bb , id , nav_hl_flags);
+      if (flags & ImGuiTreeNodeFlags_Bullet) {
+        ImGui::RenderBullet(window->DrawList , ImVec2(text_pos.x - text_offs_x * 0.6f , text_pos.y + g.FontSize * 0.5f) , arrow_col);  
+      } else if (!is_leaf) {
+        ImGui::RenderArrow(window->DrawList , ImVec2(text_pos.x - text_offs_x + padding.x , text_pos.y) , arrow_col , is_open ? 
+                           ImGuiDir_Down : ImGuiDir_Right , 1.f);
+      } else {
+        text_pos.x -= text_offs_x;
+      }
+
+      if (flags & ImGuiTreeNodeFlags_ClipLabelForTrailingButton) {
+        frame_bb.Max.x -= g.FontSize + style.FramePadding.x;
+      }
+
+      if (icon != nullptr) {
+        auto item_id = last_item.ID;
+        auto item_flags = last_item.InFlags;
+        auto item_status_flags = last_item.StatusFlags;
+        auto item_rect = last_item.Rect;
+
+        const float pad = 3.f;
+        const float arrow_width = 20.f + 1.f;
+        auto cursor_pos = ImGui::GetCursorPos();
+
+        ShiftCursorY(-frame_height + pad);
+        ShiftCursorX(arrow_width);
+        Image(icon , { frame_height - pad * 2.f , frame_height - pad * 2.f } , ImVec2(0 , 0) , ImVec2(1 , 1) , icon_tint);
+
+        ImGui::SetLastItemData(item_id , item_flags , item_status_flags , item_rect);
+        text_pos.x += frame_height + 2.f;
+      }
+
+      text_pos.y -= 1.f;
+    }
+
+    return false;
+  }
+
+  bool TreeNodeWithIcon(const Ref<Texture2D>& icon , void* id_ptr , ImGuiTreeNodeFlags flags , ImColor icon_tint , const char* fmt , ...) {
+    va_list args;
+    va_start(args , fmt);
+
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    if (window->SkipItems) {
+      return false;
+    }
+
+    ImGuiContext& g = *GImGui;
+    const char* label_end = g.TempBuffer.Data + FormatString(g.TempBuffer.Data , IM_ARRAYSIZE(g.TempBuffer.Data) , fmt , args);
+
+
+    bool is_open = TreeNodeWithIcon(icon , window->GetID(id_ptr) , flags , g.TempBuffer.Data , label_end , icon_tint);
+
+    va_end(args);
+    return is_open;
+  }
+
+  bool TreeNodeWithIcon(const Ref<Texture2D>& icon , const char* label , ImGuiTreeNodeFlags flags , ImColor icon_tint) {
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    if (window->SkipItems) {
+      return false;
+    }
+
+    return TreeNodeWithIcon(icon , window->GetID(label) , flags , label , nullptr , icon_tint);
+  }
+  
 } // namespace ui
-
 } // namespace other

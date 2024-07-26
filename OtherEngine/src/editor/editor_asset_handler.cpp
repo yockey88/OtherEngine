@@ -3,12 +3,92 @@
  */
 #include "editor/editor_asset_handler.hpp"
 
+#include "asset/asset_extensions.hpp"
 #include "core/logger.hpp"
+#include "core/filesystem.hpp"
+#include "core/rand.hpp"
 #include "asset/asset_loader.hpp"
 
 namespace other {
 
   static AssetMetadata null_metadata;
+
+  const AssetMetadata& EditorAssetHandler::GetMetadata(AssetHandle handle) {
+    auto itr = registry.find(handle);
+    if (itr == registry.end()) {
+      return null_metadata;
+    }
+
+    return registry[handle];
+  }
+      
+  const AssetMetadata& EditorAssetHandler::GetMetadata(const Path& path) {
+    auto itr = std::ranges::find_if(registry , [&path](const auto& asset_pair) -> bool {
+        return asset_pair.second.path == path;
+    });
+    if (itr != registry.end()) {
+      return itr->second;
+    }
+
+    return null_metadata;
+  }
+  
+  AssetMetadata& EditorAssetHandler::GetMutableMetadata(AssetHandle handle) {
+    auto itr = registry.find(handle);
+    if (itr == registry.end()) {
+      return null_metadata;
+    }
+
+    return registry[handle];
+  }
+      
+  AssetHandle EditorAssetHandler::ImportAsset(const Path& path) {
+    if (!Filesystem::FileExists(path)) {
+      return 0; 
+    }
+
+    if (auto& md = GetMetadata(path); md.IsValid()) {
+      return md.handle;
+    }
+
+    AssetType type = GetAssetTypeFromPath(path);
+    if (type == AssetType::INVALID_ASSET) {
+      return 0;
+    }
+
+    AssetMetadata metadata;
+    metadata.handle = Random::GenerateUUID(); 
+    metadata.path = path;
+    metadata.type = type;
+    registry[metadata.handle] = metadata;
+
+    return metadata.handle;
+  }
+      
+  AssetHandle EditorAssetHandler::GetAssetHandleFromFilePath(const Path& filepath) {
+    auto itr = std::ranges::find_if(registry , [&filepath](const auto& asset_pair) -> bool {
+      return asset_pair.second.path == filepath; 
+    });
+
+    if (itr == registry.end()) {
+      return 0;
+    }
+
+    return itr->first;
+  }
+      
+  AssetType EditorAssetHandler::GetAssetTypeFromExtension(const std::string& extension) {
+    auto itr = asset_extensions.find(FNV(extension)); 
+    if (itr == asset_extensions.end()) {
+      return AssetType::INVALID_ASSET;
+    }
+
+    return itr->second;
+  }
+
+  AssetType EditorAssetHandler::GetAssetTypeFromPath(const Path& path) {
+    return GetAssetTypeFromExtension(path.extension().string());
+  }
 
   AssetType EditorAssetHandler::GetAssetType(AssetHandle handle) {
     if (IsHandleValid(handle)) {
@@ -23,7 +103,7 @@ namespace other {
     if (IsMemOnly(handle)) {
       asset = memory_assets[handle];
     } else {
-      auto& metadata = GetMetadata(handle);
+      auto& metadata = GetMutableMetadata(handle);
       if (!metadata.IsValid()) {
         // OE_ERROR("Asset [{}] not valid!" , handle);
         return nullptr;
@@ -158,16 +238,9 @@ namespace other {
 
     return asset;
   }
-  
-  AssetMetadata& EditorAssetHandler::GetMetadata(AssetHandle handle) {
-    if (registry.Contains(handle)) {
-      return registry[handle];
-    }
-    return null_metadata;
-  }
 
   void EditorAssetHandler::LoadAsset(AssetHandle handle) {
-    auto& metadata = GetMetadata(handle);
+    auto& metadata = GetMutableMetadata(handle);
     if (metadata.IsValid()) {
       metadata.loaded = AssetLoader::Load(metadata , assets[handle]);
       if (!metadata.loaded) {

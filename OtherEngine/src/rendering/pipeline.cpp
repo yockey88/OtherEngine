@@ -111,11 +111,11 @@ namespace other {
 
     target->BindFrame();
 
-    glBindVertexArray(vao_id);
+    // glBindVertexArray(vao_id);
     for (auto& p : passes) {
       PerformPass(p);
     }
-    glBindVertexArray(0);
+    // glBindVertexArray(0);
 
     target->UnbindFrame();
 

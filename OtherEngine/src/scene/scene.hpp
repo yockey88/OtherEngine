@@ -50,6 +50,8 @@ namespace other {
 
       entt::registry& Registry();
 
+      ScriptObject* SceneScriptObject();
+
       PhysicsType ActivePhysicsType() const;
       Ref<PhysicsWorld2D> Get2DPhysicsWorld() const;
 

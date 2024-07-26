@@ -6,7 +6,15 @@ namespace Other {
   public abstract class OtherBehavior : IEquatable<OtherBehavior> {
     private bool enabled = true;
 
-    private UInt64 object_id;
+    /// <summary>
+    ///  ID of the engine object using this behavior
+    /// </summary>
+    private UInt64 object_id = 0;
+
+    /// <summary>
+    /// ID of the behavior for the scripting engine
+    /// </summary>
+    private UInt64 behavior_id = 0;
 
     protected OtherBehavior parent;
 
@@ -29,7 +37,15 @@ namespace Other {
 
     public UInt64 ObjectID {
       get { return object_id; }
-      set { object_id = value; }
+      set { 
+        Logger.WriteDebug($"Setting object ID to {value}");
+        object_id = value;
+      }
+    }
+
+    public UInt64 BehaviorID {
+      get { return behavior_id; }
+      set { behavior_id = value; }
     }
     
     public OtherBehavior() {

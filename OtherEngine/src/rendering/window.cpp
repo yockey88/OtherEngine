@@ -17,9 +17,9 @@ namespace {
 
     auto depth_test = config.GetVal<bool>(kRendererSection , kDepthTestValue).value_or(true);
     auto stencil_test = config.GetVal<bool>(kRendererSection , kStencilTestValue).value_or(true);
-    auto cull_face = config.GetVal<bool>(kRendererSection , kCullFaceValue).value_or(true);
+    auto cull_face = config.GetVal<bool>(kRendererSection , kCullFaceValue).value_or(false);
     auto multisample = config.GetVal<bool>(kRendererSection , kMultisampleValue).value_or(true);
-    auto blend = config.GetVal<bool>(kRendererSection , kBlendValue).value_or(true);
+    auto blend = config.GetVal<bool>(kRendererSection , kBlendValue).value_or(false);
 
     if (depth_test) {
       glEnable(GL_DEPTH_TEST);
@@ -163,6 +163,12 @@ namespace {
     glm::ivec2 size;
     SDL_GetWindowSize(context.window , &size.x , &size.y);
     return size;
+  }
+      
+  glm::ivec2 Window::Position() const {
+    glm::ivec2 pos;
+    SDL_GetWindowPosition(context.window , &pos.x , &pos.y);
+    return pos;
   }
 
   glm::vec4 Window::ClearColor() const {

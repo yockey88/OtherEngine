@@ -1,8 +1,9 @@
 /**
  * \file ecs/systems/component_gui.cpp
  **/
-#include "ecs/systems//component_gui.hpp"
+#include "ecs/systems/component_gui.hpp"
 
+#include <algorithm>
 #include <imgui/imgui.h>
 
 #include "ecs/components/mesh.hpp"
@@ -18,6 +19,7 @@
 #include "rendering/model_factory.hpp"
 #include "rendering/ui/ui_helpers.hpp"
 #include "rendering/ui/ui_widgets.hpp"
+#include "scripting/script_engine.hpp"
 
 #include "ecs/components/transform.hpp"
 #include "ecs/components/relationship.hpp"
@@ -27,15 +29,19 @@
 
 namespace other {
   
-  void DrawTag(Entity* ent) {
+  bool DrawTag(Entity* ent) {
     const auto& tag = ent->GetComponent<Tag>();
     ImGui::Text("ID : %llu" , tag.id.Get());
     ImGui::Text("Name : %s" , tag.name.c_str());
+
+    return false;
   }
 
-  void DrawTransform(Entity *ent) {
+  bool DrawTransform(Entity *ent) {
     ScopedStyle spacing(ImGuiStyleVar_ItemSpacing , ImVec2(8.f , 8.f));
     ScopedStyle padding(ImGuiStyleVar_FramePadding , ImVec2(4.f , 4.f));
+
+    bool modified = false;
 
     ImGui::BeginTable("Transform Component" , 2 , ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_NoClip);
     ImGui::TableSetupColumn("label_col" , 0 , 100.f);
@@ -52,8 +58,9 @@ namespace other {
       auto& component = ent->GetComponent<Transform>();
       
       ImGui::TableNextRow();
-      ui::widgets::DrawVec3Control("Translation" , component.position , translation_manually_edited , 0.f , /// replace this value from redo/undo stack
-                                    100.f , ui::VectorAxis::ZERO , glm::zero<glm::vec3>() , glm::zero<glm::vec3>() , 0.1f);
+      if (ui::widgets::DrawVec3Control("Translation" , component.position , translation_manually_edited , 0.f , /// replace this value from redo/undo stack
+                                    100.f , ui::VectorAxis::ZERO , glm::zero<glm::vec3>() , glm::zero<glm::vec3>() , 0.1f)) {
+      }
 
       ImGui::TableNextRow();
       if (ui::widgets::DrawVec3Control("Rotation" , component.erotation , rotation_manually_edited , 0.f , /// replace this value from redo/undo stack
@@ -62,12 +69,15 @@ namespace other {
       }
 
       ImGui::TableNextRow();
-      ui::widgets::DrawVec3Control("Scale" , component.scale , scale_manually_edited , 1.f , /// replace this value from redo/undo stack
-                                    100.f , ui::VectorAxis::ZERO , glm::zero<glm::vec3>() , glm::zero<glm::vec3>() , 0.1f);
+      if (ui::widgets::DrawVec3Control("Scale" , component.scale , scale_manually_edited , 1.f , /// replace this value from redo/undo stack
+                                    100.f , ui::VectorAxis::ZERO , glm::zero<glm::vec3>() , glm::zero<glm::vec3>() , 0.1f)) {
+      }
       
       if (translation_manually_edited || rotation_manually_edited || scale_manually_edited) {
         component.CalcMatrix();
         OE_DEBUG("Transform calculated : {}" , component.model_transform);
+
+        modified = true;
       }
     }
 
@@ -77,9 +87,11 @@ namespace other {
     ui::Underline();
 
     ui::ShiftCursorY(18.f);
+
+    return modified;
   }
   
-  void DrawRelationship(Entity* ent) {
+  bool DrawRelationship(Entity* ent) {
     auto& relations = ent->GetComponent<Relationship>();
 
     if (!relations.parent.has_value()) {
@@ -91,6 +103,8 @@ namespace other {
     // ImGui::Text("Put options related to how parents and children interact");
     // ImGui::Text(" > have children inherit parent position? ");
     // ImGui::Text(" > other things...");
+
+    return false;
   }
 
   template <typename T>
@@ -285,30 +299,32 @@ namespace other {
     return result;
   }
 
-  void DrawScriptArray(ScriptField* array , ScriptObject* script_instance) {
+  bool DrawScriptArray(ScriptField* array , ScriptObject* script_instance) {
     // ImGui::Text("Script array : %s" , array->name.c_str()); 
+    
+    return false;
   }
 
-  void DrawScriptField(ScriptField* field , ScriptObject* script_instance) {
+  bool DrawScriptField(ScriptField* field , ScriptObject* script_instance) {
     bool result = false;
 
     switch (field->value.Type()) {
-      case ValueType::BOOL: result = DrawFieldValue<bool>(field , script_instance); break;
-      case ValueType::CHAR: result = DrawFieldValue<char>(field , script_instance); break;
-      case ValueType::INT8: result = DrawFieldValue<int8_t>(field , script_instance); break;
-      case ValueType::UINT8: result = DrawFieldValue<uint8_t>(field , script_instance); break;
-      case ValueType::INT16: result = DrawFieldValue<int16_t>(field , script_instance); break;
-      case ValueType::UINT16: result = DrawFieldValue<uint16_t>(field , script_instance); break;
-      case ValueType::INT32: result = DrawFieldValue<int32_t>(field , script_instance); break;
-      case ValueType::UINT32: result = DrawFieldValue<uint32_t>(field , script_instance); break;
-      case ValueType::INT64: result = DrawFieldValue<int64_t>(field , script_instance); break;
-      case ValueType::UINT64: result = DrawFieldValue<uint32_t>(field , script_instance); break;
-      case ValueType::FLOAT: result = DrawFieldValue<float>(field , script_instance); break;
-      case ValueType::DOUBLE: result = DrawFieldValue<double>(field , script_instance); break;
-      case ValueType::VEC2: result = DrawFieldValue<glm::vec2>(field , script_instance); break;
-      case ValueType::VEC3: result = DrawFieldValue<glm::vec3>(field , script_instance); break;
-      case ValueType::VEC4: result = DrawFieldValue<glm::vec4>(field , script_instance); break;
-      case ValueType::STRING: result = DrawFieldValue<std::string>(field , script_instance); break;
+      case ValueType::BOOL: result   = result &= DrawFieldValue<bool>(field , script_instance); break;
+      case ValueType::CHAR: result   = result &= DrawFieldValue<char>(field , script_instance); break;
+      case ValueType::INT8: result   = result &= DrawFieldValue<int8_t>(field , script_instance); break;
+      case ValueType::UINT8: result  = result &= DrawFieldValue<uint8_t>(field , script_instance); break;
+      case ValueType::INT16: result  = result &= DrawFieldValue<int16_t>(field , script_instance); break;
+      case ValueType::UINT16: result = result &= DrawFieldValue<uint16_t>(field , script_instance); break;
+      case ValueType::INT32: result  = result &= DrawFieldValue<int32_t>(field , script_instance); break;
+      case ValueType::UINT32: result = result &= DrawFieldValue<uint32_t>(field , script_instance); break;
+      case ValueType::INT64: result  = result &= DrawFieldValue<int64_t>(field , script_instance); break;
+      case ValueType::UINT64: result = result &= DrawFieldValue<uint32_t>(field , script_instance); break;
+      case ValueType::FLOAT: result  = result &= DrawFieldValue<float>(field , script_instance); break;
+      case ValueType::DOUBLE: result = result &= DrawFieldValue<double>(field , script_instance); break;
+      case ValueType::VEC2: result   = result &= DrawFieldValue<glm::vec2>(field , script_instance); break;
+      case ValueType::VEC3: result   = result &= DrawFieldValue<glm::vec3>(field , script_instance); break;
+      case ValueType::VEC4: result   = result &= DrawFieldValue<glm::vec4>(field , script_instance); break;
+      case ValueType::STRING: result = result &= DrawFieldValue<std::string>(field , script_instance); break;
       case ValueType::ASSET: 
         ImGui::Text("Asset values unimplemented!");
       break;
@@ -321,26 +337,80 @@ namespace other {
       default:
         ImGui::Text("Field value %s has corrupted type" , field->name.c_str());
     }
+
+    return result;
   }
 
   static Opt<Value> test_value;
 
-  void DrawScript(Entity* ent) {
+  bool DrawScript(Entity* ent) {
     auto& script = ent->GetComponent<Script>();
 
+    auto& loaded_script_objs = ScriptEngine::GetLoadedObjects();
+    std::vector<const char*> options = {};
+
+    for (auto& tag : loaded_script_objs) {
+      options.push_back(tag.name.c_str());
+    }
+
+    static uint32_t slctn = 0;
+    if (ui::PropertyDropdown("Attach Script" , options.data() , options.size() , slctn)) {
+    }
+
+    auto contains = [&](const std::pair<UUID , ScriptObject*>& obj_pair) -> bool {
+      return obj_pair.first == loaded_script_objs[slctn].object_id;
+    };
+
+    bool has_script_attached = std::ranges::find_if(script.scripts , contains) != script.scripts.end();
+    if (!has_script_attached && ImGui::Button("Confirm")) {
+      auto id = loaded_script_objs[slctn].object_id;
+      auto name = loaded_script_objs[slctn].name;
+      auto mod_name = loaded_script_objs[slctn].mod_name;
+
+      Opt<std::string> nspace = loaded_script_objs[slctn].nspace.empty() ?
+        Opt<std::string>{ std::nullopt } : Opt<std::string>{ loaded_script_objs[slctn].nspace };
+
+      ScriptObject* inst = nullptr;
+      if (nspace.has_value()) {
+        inst = ScriptEngine::GetScriptObject(nspace.value() + "::" + name);
+      } else {
+        inst = ScriptEngine::GetScriptObject(name);
+      }
+
+      if (inst == nullptr) {
+        OE_ERROR("Failed to retrieve selection script object {} [{}]" , name , id);
+      } else {
+        script.data[id] = {
+          .module = mod_name ,
+          .obj_name = name ,
+        };
+
+        auto& tag = ent->GetComponent<Tag>();
+
+        script.scripts[id] = inst;
+        inst->SetEntityId(tag.id);
+        inst->Initialize();
+      }
+    }
+
+    if (script.scripts.size() == 0) {
+      return false;
+    }
+
     std::vector<UUID> scripts_to_remove;
- 
+
     for (auto& [id , s] : script.scripts) {
       ImGui::PushID(id.Get());
 
       bool is_error = s->IsCorrupt();
       if (is_error) {
+        ScopedColor red(ImGuiCol_Text , ui::theme::red);
         ImGui::Text("%s corrupt, recompile or reload" , s->Name().c_str());
 
         if (ImGui::Button("Rebuild Scripts")) {
           EventQueue::PushEvent<ScriptReloadEvent>();
         }
-        return;
+        return false;
       }
     
       ui::BeginPropertyGrid();
@@ -394,6 +464,7 @@ namespace other {
       }
 
       if (ImGui::Button("Remove Script")) {
+        OE_INFO("Removing script {} [{}]" , s->Name() , id);
         scripts_to_remove.push_back(id);
       }
       
@@ -421,32 +492,44 @@ namespace other {
 
       ImGui::PopID();
     }
+    
+    auto& scenes = AppState::Scenes();
 
     for (const auto& id : scripts_to_remove) {
+      OE_DEBUG("Removing object from scene [{}]" , id);
+      {
+        auto& object = script.scripts[id];
+        object->Shutdown();
+      }
+
       script.scripts.erase(script.scripts.find(id));
       script.data.erase(script.data.find(id));
     }
+
+    return false;
   }
   
-  void DrawMesh(Entity* ent) {
+  bool DrawMesh(Entity* ent) {
     auto& mesh = ent->GetComponent<Mesh>();
 
     if (mesh.handle == 0) {
       /// display other meshes
-      return;
+      return false;
     } 
 
     Ref<Model> model = AppState::Assets()->GetAsset(mesh.handle);
     if (model == nullptr) {
       ScopedColor red_text(ImGuiCol_Text , ui::theme::red);
       ImGui::Text("Mesh [{}] invalid");
-      return;
+      return false;
     }
 
     ImGui::Text("Rendering Mesh");
+
+    return false;
   }
   
-  void DrawStaticMesh(Entity* ent) {
+  bool DrawStaticMesh(Entity* ent) {
     auto& mesh = ent->GetComponent<StaticMesh>();
 
     const char* options[] = {
@@ -458,13 +541,19 @@ namespace other {
     if (mesh.primitive_id != mesh.primitive_selection && ImGui::Button("Confirm Change")) {
       bool change = false;
       switch (mesh.primitive_selection) {
-        case kTriangleIdx:
-          OE_WARN("Assigning rect until implementations for others available!");
-          [[ fallthrough ]];
+        case kTriangleIdx: {
+          auto& scale = ent->ReadComponent<Transform>().scale;
+          mesh.handle = ModelFactory::CreateTriangle({ scale.x / 2 , scale.y / 2 });
+          if (!AppState::Assets()->IsValid(mesh.handle)) {
+            OE_ERROR("Failed to Create Rect Static Mesh");
+          } else {
+            change = true; 
+          }
+        } break;
+
         case kRectIdx: {
           auto& scale = ent->ReadComponent<Transform>().scale;
-          auto& pos = ent->ReadComponent<Transform>().position;
-          mesh.handle = ModelFactory::CreateRect(pos , { scale.x / 2 , scale.y / 2 });
+          mesh.handle = ModelFactory::CreateRect({ scale.x / 2 , scale.y / 2 });
           if (!AppState::Assets()->IsValid(mesh.handle)) {
             OE_ERROR("Failed to Create Rect Static Mesh");
           } else {
@@ -500,36 +589,38 @@ namespace other {
     }
 
     if (mesh.primitive_id == kEmptyIdx) {
-      return;
+      return false;
     }
       
     bool valid = AppState::Assets()->IsHandleValid(mesh.handle);
     if (!valid) {
       ScopedColor red_text(ImGuiCol_Text , ui::theme::red);
       ImGui::Text("Static Mesh handle [%lld] invalid" , mesh.handle.Get());
-      return;
+      return false;
     }
 
     valid = AppState::Assets()->IsValid(mesh.handle);
     if (!valid) {
       ScopedColor red_text(ImGuiCol_Text , ui::theme::red);
       ImGui::Text("Static Mesh [{}] invalid");
-      return;
+      return false;
     }
 
     Ref<StaticModel> model = AppState::Assets()->GetAsset(mesh.handle);
     if (model == nullptr) {
       ScopedColor red_text(ImGuiCol_Text , ui::theme::red);
       ImGui::Text("Unknown error retrievieng Static Mesh [{}] from asset handler");
-      return;
+      return false;
     }
 
     //// draw selection and settings 
 
     ImGui::Text("Rendering Mesh");
+
+    return false;
   }
   
-  void DrawCamera(Entity* ent) {
+  bool DrawCamera(Entity* ent) {
     auto& camera = ent->GetComponent<Camera>();
 
     ui::BeginPropertyGrid();
@@ -593,9 +684,11 @@ namespace other {
     }
 
     ui::EndPropertyGrid();
+
+    return false;
   }
   
-  void DrawRigidBody2D(Entity* ent) {
+  bool DrawRigidBody2D(Entity* ent) {
     ui::BeginPropertyGrid();
 
     auto& body = ent->GetComponent<RigidBody2D>();
@@ -629,12 +722,16 @@ namespace other {
     }
 
     ui::EndPropertyGrid();
+
+    return false;
   }
   
-  void DrawCollider2D(Entity* ent) {
+  bool DrawCollider2D(Entity* ent) {
     ui::BeginPropertyGrid();
 
     ui::EndPropertyGrid();
+
+    return false;
   }
 
 } // namespace other

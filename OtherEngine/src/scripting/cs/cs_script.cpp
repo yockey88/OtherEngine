@@ -3,6 +3,9 @@
  **/
 #include "scripting/cs/cs_script.hpp"
 
+#include <algorithm>
+#include <iterator>
+
 #include <mono/metadata/assembly.h>
 #include <mono/metadata/blob.h>
 #include <mono/metadata/class.h>
@@ -270,9 +273,13 @@ namespace other {
         type = ScriptModuleType::EDITOR_SCRIPT;
       }
 
+      std::string case_ins_name;
+      std::ranges::transform(full_name , std::back_inserter(case_ins_name) , ::toupper);
+
       object_names.push_back(ScriptObjectTag{
-        .object_id = FNV(name) ,
+        .object_id = FNV(case_ins_name) ,
         .name = name , 
+        .mod_name = module_name ,
         .nspace = name_space ,
         .path = actual_path.string() ,
         .lang_type = language ,

@@ -222,6 +222,8 @@ namespace other {
   REGISTER_NATIVE_FUNCTION(Scene , NativeSetScale);
   REGISTER_NATIVE_FUNCTION(Scene , NativeSetPosition);
   REGISTER_NATIVE_FUNCTION(Scene , NativeSetRotation);
+
+  REGISTER_NATIVE_FUNCTION(Scene , NativeRotateObject);
   
   REGISTER_NATIVE_FUNCTION(Scene , NativeSetPhysicsBodyType);
   REGISTER_NATIVE_FUNCTION(Scene , NativeSetMass);

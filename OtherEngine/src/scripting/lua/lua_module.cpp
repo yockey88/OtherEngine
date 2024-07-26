@@ -4,7 +4,11 @@
 #include "scripting/lua/lua_module.hpp"
 
 #include "core/filesystem.hpp"
+#include "application/app_state.hpp"
+
 #include "scripting/lua/lua_script.hpp"
+#include <cctype>
+#include <iterator>
 
 namespace other {
 
@@ -49,7 +53,10 @@ namespace other {
   }
 
   ScriptModule* LuaModule::GetScriptModule(const std::string& name) {
-    UUID id = FNV(name);
+    std::string case_ins_name;
+    std::transform(name.begin() , name.end() , std::back_inserter(case_ins_name) , ::toupper);
+
+    UUID id = FNV(case_ins_name);
     auto* module = GetScriptModule(id);
     if (module == nullptr) {
       OE_ERROR("Script module {} not found" , name);
@@ -59,8 +66,9 @@ namespace other {
   }
 
   ScriptModule* LuaModule::GetScriptModule(const UUID& id) {
-    if (loaded_modules.find(id) != loaded_modules.end()) {
-      return loaded_modules[id];
+    auto itr = loaded_modules.find(id);
+    if (itr != loaded_modules.end()) {
+      return itr->second;
     }
 
     OE_ERROR("Script module {} not found" , id);
@@ -84,15 +92,18 @@ namespace other {
       return nullptr;
     }
 
-    if (!Filesystem::PathExists(module_info.paths[0])) {
-      OE_ERROR("Script module {} path {} does not exist" , module_info.name , module_info.paths[0]);
+    
+    auto project = AppState::ProjectContext();
+    Path real_path = project->GetMetadata().assets_dir / module_info.paths[0];
+    if (!Filesystem::PathExists(real_path)) {
+      OE_ERROR("Script module {} path {} does not exist" , module_info.name , real_path.filename().string());
       return nullptr;
     }
 
     Path mod_path = module_info.paths[0];
     std::string mod_path_str = mod_path.filename().string();
     std::string mod_name = mod_path_str.substr(0 , mod_path_str.find_last_of('.'));
-    loaded_modules[id] = new LuaScript(module_info.paths[0] , mod_name);
+    loaded_modules[id] = new LuaScript(real_path.string() , mod_name);
     loaded_modules[id]->Initialize();
     
     loaded_modules_data[id] = module_info;

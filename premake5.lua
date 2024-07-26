@@ -116,6 +116,10 @@ box2d.path = "./externals/box2d"
 box2d.include_dir = "%{wks.location}/externals/box2d"
 box2d.lib_name = "box2d"
 
+local stb = {}
+stb.name = "stb"
+stb.include_dir = "%{wks.location}/externals/stb"
+
 AddDependency(choc)
 AddDependency(entt)
 AddDependency(glad)
@@ -132,5 +136,6 @@ AddDependency(zep)
 AddDependency(mono)
 AddDependency(sol2)
 AddDependency(box2d)
+AddDependency(stb)
 
 CppWorkspace(configuration)
