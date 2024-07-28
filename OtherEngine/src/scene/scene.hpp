@@ -53,8 +53,8 @@ namespace other {
 
       ScriptObject* SceneScriptObject();
 
-      PhysicsType ActivePhysicsType() const;
       Ref<PhysicsWorld2D> Get2DPhysicsWorld() const;
+      Ref<PhysicsWorld> GetPhysicsWorld() const;
 
       const bool IsInitialized() const;
       const bool IsRunning() const;
@@ -91,6 +91,9 @@ namespace other {
 
       void OnAddRigidBody2D(entt::registry& context , entt::entity ent);
       void OnAddCollider2D(entt::registry& context , entt::entity ent);
+      
+      void OnAddRigidBody(entt::registry& context , entt::entity ent);
+      void OnAddCollider(entt::registry& context , entt::entity ent);
 
       virtual void OnInit() {}
       virtual void OnStart() {}
@@ -118,9 +121,6 @@ namespace other {
 
       ScriptObject* scene_object = nullptr;
 
-      /// TODO: are there use cases for mixing 2d physics and 3d physics in a single scene, and if so
-      ///       what are they and how would we go about implementing that?
-      PhysicsType physics_type = PhysicsType::PHYSICS_2D;
       Ref<PhysicsWorld2D> physics_world_2d;
       Ref<PhysicsWorld> physics_world;
 

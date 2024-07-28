@@ -8,6 +8,7 @@
 #include <Jolt/Physics/PhysicsSettings.h>
 #include <Jolt/Physics/Body/BodyInterface.h>
 
+
 namespace other {
 
   constexpr static JPH::uint kMaxBodies = 1024;
@@ -19,11 +20,18 @@ namespace other {
     /// TODO: somehow choose the best amount of pre-allocated memory for the scene this world
     ///       is owned by
     temp_alloc = NewScope<JPH::TempAllocatorImpl>(10 * 1024 * 1024);
-    thread_pool = NewScope<JPH::JobSystemThreadPool>(JPH::cMaxPhysicsJobs , JPH::cMaxPhysicsBarriers , std::thread::hardware_concurrency() - 1);
+    thread_pool = NewScope<JPH::JobSystemThreadPool>(JPH::cMaxPhysicsJobs , JPH::cMaxPhysicsBarriers , 
+                                                     std::thread::hardware_concurrency() - 1);
 
     system = NewScope<JPH::PhysicsSystem>();
     system->Init(kMaxBodies , kNumMutexes , kMaxPairs , kMaxContactConstraints ,
                  broad_phase_layer_handler , broad_phase_layer_filter , obj_layer_filter);
+
+    activation_listener = NewScope<ActivationListener>();
+    system->SetBodyActivationListener(activation_listener.get());
+    
+    contact_listener = NewScope<ContactListener>();
+    system->SetContactListener(contact_listener.get());
   }
 
   PhysicsWorld::~PhysicsWorld() {

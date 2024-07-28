@@ -275,10 +275,10 @@ namespace other {
     edited = DrawComponent<Mesh>("Mesh" , DrawMesh) || edited;
     edited = DrawComponent<StaticMesh>("Static Mesh" , DrawStaticMesh) || edited;
     edited = DrawComponent<Camera>("Camera" , DrawCamera) || edited;
-    edited = DrawComponent<RigidBody2D>("Rigid Body 2D" , DrawRigidBody2D) || edited;
-    edited = DrawComponent<Collider2D>("Collider 2D" , DrawCollider2D) || edited;
-    edited = DrawComponent<RigidBody>("Rigid Body" , DrawRigidBody) || edited;
-    edited = DrawComponent<Collider>("Collider" , DrawCollider) || edited;
+    edited = DrawComponent<RigidBody2D>("Rigid Body 2D" , DrawRigidBody<RigidBody2D>) || edited;
+    edited = DrawComponent<Collider2D>("Collider 2D" , DrawCollider<Collider2D>) || edited;
+    edited = DrawComponent<RigidBody>("Rigid Body" , DrawRigidBody<RigidBody>) || edited;
+    edited = DrawComponent<Collider>("Collider" , DrawCollider<Collider>) || edited;
 
     return edited;
   }

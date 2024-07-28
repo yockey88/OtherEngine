@@ -16,6 +16,8 @@
 #include "physics/3D/broad_phase_layer_handler.hpp"
 #include "physics/3D/broad_phase_filter.hpp"
 #include "physics/3D/object_layer_filter.hpp"
+#include "physics/3D/activation_listener.hpp"
+#include "physics/3D/contact_listener.hpp"
 
 namespace other {
 
@@ -31,6 +33,9 @@ namespace other {
     private:
       Scope<JPH::TempAllocatorImpl> temp_alloc = nullptr;
       Scope<JPH::JobSystemThreadPool> thread_pool = nullptr;
+
+      Scope<ActivationListener> activation_listener = nullptr;
+      Scope<ContactListener> contact_listener = nullptr;
 
       BroadPhaseLayerHandler broad_phase_layer_handler;
       BroadPhaseLayerFilter broad_phase_layer_filter;

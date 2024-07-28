@@ -18,7 +18,7 @@ namespace other {
     INVALID_PHYSICS_TYPE = NUM_PHYSICS_TYPES
   };
 
-  enum PhysicsBodyType : uint32_t {
+  enum PhysicsBodyType {
     STATIC = 0, 
     KINEMATIC ,
     DYNAMIC ,

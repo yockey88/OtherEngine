@@ -39,21 +39,6 @@ namespace other {
     
     stream << "}\n";
 
-    std::string physics_str;
-
-    stream << "physics = ";
-    switch (scene->physics_type) {
-      case PhysicsType::PHYSICS_2D:
-        physics_str = "2D";
-      break;
-      case PhysicsType::PHYSICS_3D:
-        physics_str = "3D";
-      break;
-      default:
-      break;
-    }
-    stream << physics_str << "\n";
-
     /// final metadata newline 
     stream << "\n";
 
@@ -62,16 +47,13 @@ namespace other {
       serializer.Serialize(stream , e , scene);
     }
 
-    stream << "[physics." << physics_str << "]\n"; 
-    switch (scene->physics_type) {
-      case PhysicsType::PHYSICS_2D:
-        SerializeVec2(stream , "gravity" , scene->physics_world_2d->GetGravity());
-      break;
-      case PhysicsType::PHYSICS_3D:
-      break;
-      default:
-        break;
-    }  
+    stream << "[physics.2D]\n"; 
+    SerializeVec2(stream , "gravity" , scene->physics_world_2d->GetGravity());
+    stream << "\n";
+
+    stream << "[physics.3D]\n";
+    stream << "\n";
+
   }
 
   DeserializedScene SceneSerializer::Deserialize(const std::string_view scn_path) const {
@@ -86,32 +68,25 @@ namespace other {
 
     scene_metadata.name = scene_metadata.scene_table.GetVal<std::string>(kMetadataSection , kNameValue).value_or(scn_path.data());
     scene_metadata.scene = NewRef<Scene>();
-
-    std::string physics = scene_metadata.scene_table.GetVal<std::string>(kMetadataSection , kPhysicsValue).value_or("3D");
-    uint64_t physics_hash = FNV(physics);
+        
     std::string physics_section = std::string{ kPhysicsValue } + ".";
-    switch (physics_hash) {
-      case FNV("2D"): {
-        physics_section += "2D";
-        scene_metadata.scene->physics_type = PHYSICS_2D;
 
-        auto gravity = scene_metadata.scene_table.Get(physics_section , kGravityValue);
-        if (gravity.size() != 2) {
-          OE_ERROR("{} section has corrupt gravity value!" , physics_section);
-        } else {
-          glm::vec2 g;
-          DeserializeVec2(gravity , g);
-          scene_metadata.scene->physics_world_2d = PhysicsEngine::GetPhysicsWorld2D(g);
-        }
-      } break;
-      case FNV("3D"):
-        physics_section += "3D";
-        scene_metadata.scene->physics_type = PHYSICS_3D;
-        scene_metadata.scene->physics_world = PhysicsEngine::GetPhysicsWorld();
-      break;
-      default:
-        break;
+    std::string physics_2d_section = physics_section + "2D";
+    std::string physics_3d_section = physics_section + "3D";
+
+    auto gravity = scene_metadata.scene_table.Get(physics_2d_section , kGravityValue);
+    if (gravity.size() != 2) {
+      OE_ERROR("{} section has corrupt gravity value!" , physics_2d_section);
+    } else {
+      glm::vec2 g;
+      DeserializeVec2(gravity , g);
+      scene_metadata.scene->physics_world_2d = PhysicsEngine::GetPhysicsWorld2D(g);
     }
+
+    // deserialize 3d physics metadata
+    // validate physics metadata
+
+    scene_metadata.scene->physics_world = PhysicsEngine::GetPhysicsWorld();
 
     EntitySerializer deserializer;
     auto entities = scene_metadata.scene_table.Get(kMetadataSection , kEntitiesValue);

@@ -6,36 +6,25 @@
 #include <algorithm>
 #include <imgui/imgui.h>
 
-#include "ecs/components/mesh.hpp"
 #include "event/event_queue.hpp"
 #include "event/app_events.hpp"
 
 #include "application/app_state.hpp"
+
+#include "ecs/components/transform.hpp"
+#include "ecs/components/relationship.hpp"
+#include "ecs/components/script.hpp"
+#include "ecs/components/camera.hpp"
 
 #include "rendering/camera_base.hpp"
 #include "rendering/perspective_camera.hpp"
 #include "rendering/orthographic_camera.hpp"
 #include "rendering/model.hpp"
 #include "rendering/model_factory.hpp"
-#include "rendering/ui/ui_helpers.hpp"
-#include "rendering/ui/ui_widgets.hpp"
 #include "scripting/script_engine.hpp"
 
-#include "ecs/components/transform.hpp"
-#include "ecs/components/relationship.hpp"
-#include "ecs/components/script.hpp"
-#include "ecs/components/camera.hpp"
-#include "ecs/components/rigid_body_2d.hpp"
 
 namespace other {
-  
-  bool DrawTag(Entity* ent) {
-    const auto& tag = ent->GetComponent<Tag>();
-    ImGui::Text("ID : %llu" , tag.id.Get());
-    ImGui::Text("Name : %s" , tag.name.c_str());
-
-    return false;
-  }
 
   bool DrawTransform(Entity *ent) {
     ScopedStyle spacing(ImGuiStyleVar_ItemSpacing , ImVec2(8.f , 8.f));
@@ -89,22 +78,6 @@ namespace other {
     ui::ShiftCursorY(18.f);
 
     return modified;
-  }
-  
-  bool DrawRelationship(Entity* ent) {
-    auto& relations = ent->GetComponent<Relationship>();
-
-    if (!relations.parent.has_value()) {
-      ImGui::Text("Root Entity");
-    } else {
-      ImGui::Text("Parent Entity > [ %lld ]" , relations.parent.value().Get());
-    }
-
-    // ImGui::Text("Put options related to how parents and children interact");
-    // ImGui::Text(" > have children inherit parent position? ");
-    // ImGui::Text(" > other things...");
-
-    return false;
   }
 
   template <typename T>
@@ -685,66 +658,6 @@ namespace other {
 
     ui::EndPropertyGrid();
 
-    return false;
-  }
-  
-  bool DrawRigidBody2D(Entity* ent) {
-    ui::BeginPropertyGrid();
-
-    auto& body = ent->GetComponent<RigidBody2D>();
-
-    const char* body_type_strings[] = {
-      "Static" , "Kinematic" , "Dynamic"
-    };
-
-    uint32_t selected = body.type;
-    if (selected >= INVALID_PHYSICS_BODY) {
-      ScopedColor red(ImGuiCol_Text , ui::theme::red);
-      ImGui::Text("Invalid valid for Rigid Body 2D body type : %d" , body.type);
-    } else {
-      if (ui::PropertyDropdown("Type" , body_type_strings , 3 , selected)) {
-        body.type = static_cast<PhysicsBodyType>(selected);
-        ent->UpdateComponent<RigidBody2D>(body);
-      }
-      
-      if (body.type == PhysicsBodyType::DYNAMIC) {
-        ui::BeginPropertyGrid();
-        
-        ui::Property("Mass" , &body.mass);
-        ui::Property("Linear Drag" , &body.linear_drag);
-        ui::Property("Angular Drag" , &body.angular_drag);
-        ui::Property("Gravity Scale" , &body.gravity_scale);
-        ui::Property("Fixed Rotation" , &body.fixed_rotation);
-        ui::Property("Bullet" , &body.bullet);
-
-        ui::EndPropertyGrid();
-      } 
-    }
-
-    ui::EndPropertyGrid();
-
-    return false;
-  }
-  
-  bool DrawCollider2D(Entity* ent) {
-    ui::BeginPropertyGrid();
-
-    ui::EndPropertyGrid();
-
-    return false;
-  }
-  
-  bool DrawRigidBody(Entity* ent) {
-    ui::BeginPropertyGrid();
-
-    ui::EndPropertyGrid();
-    return false;
-  }
-
-  bool DrawCollider(Entity* ent) {
-    ui::BeginPropertyGrid();
-
-    ui::EndPropertyGrid();
     return false;
   }
 
