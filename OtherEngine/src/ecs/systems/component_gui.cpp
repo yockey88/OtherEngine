@@ -733,5 +733,19 @@ namespace other {
 
     return false;
   }
+  
+  bool DrawRigidBody(Entity* ent) {
+    ui::BeginPropertyGrid();
+
+    ui::EndPropertyGrid();
+    return false;
+  }
+
+  bool DrawCollider(Entity* ent) {
+    ui::BeginPropertyGrid();
+
+    ui::EndPropertyGrid();
+    return false;
+  }
 
 } // namespace other

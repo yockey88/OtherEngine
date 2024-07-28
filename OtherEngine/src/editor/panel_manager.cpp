@@ -72,7 +72,7 @@ namespace other {
   bool PanelManager::RenderUI() {
     bool panel_signal = false;
     for (auto& [id , panel] : active_panels) {
-      panel_signal = panel.panel->OnGuiRender(panel.panel_open);
+      panel_signal = panel.panel->OnGuiRender(panel.panel_open) || panel_signal;
 
       if (id == kPropertiesPanelId && SelectionManager::HasSelection() && 
           !panel.panel_open) {

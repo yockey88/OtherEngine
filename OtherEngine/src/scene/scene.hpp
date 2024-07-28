@@ -19,6 +19,7 @@
 
 #include "physics/physics_defines.hpp"
 #include "physics/2D/physics_world_2d.hpp"
+#include "physics/3D/physics_world.hpp"
 
 #include "rendering/scene_renderer.hpp"
 
@@ -117,8 +118,11 @@ namespace other {
 
       ScriptObject* scene_object = nullptr;
 
+      /// TODO: are there use cases for mixing 2d physics and 3d physics in a single scene, and if so
+      ///       what are they and how would we go about implementing that?
       PhysicsType physics_type = PhysicsType::PHYSICS_2D;
       Ref<PhysicsWorld2D> physics_world_2d;
+      Ref<PhysicsWorld> physics_world;
 
       std::map<UUID , Entity*> root_entities{};
       std::map<UUID , Entity*> entities{};

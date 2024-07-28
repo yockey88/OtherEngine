@@ -7,16 +7,18 @@
 
 #include <imgui/imgui.h>
 
-#include "ecs/components/collider_2d.hpp"
-#include "ecs/components/rigid_body_2d.hpp"
 #include "input/keyboard.hpp"
 
 #include "ecs/entity.hpp"
+#include "ecs/systems/component_gui.hpp"
 #include "ecs/components/transform.hpp"
 #include "ecs/components/mesh.hpp"
 #include "ecs/components/script.hpp"
 #include "ecs/components/camera.hpp"
-#include "ecs/systems/component_gui.hpp"
+#include "ecs/components/rigid_body_2d.hpp"
+#include "ecs/components/collider_2d.hpp"
+#include "ecs/components/rigid_body.hpp"
+#include "ecs/components/collider.hpp"
 
 #include "scripting/script_engine.hpp"
 #include "rendering/ui/ui_colors.hpp"
@@ -188,21 +190,14 @@ namespace other {
             ImGui::TableSetupColumn("icon" , ImGuiTableColumnFlags_WidthFixed , add_comp_panel_w * 0.15f);
             ImGui::TableSetupColumn("component names" , ImGuiTableColumnFlags_WidthFixed , add_comp_panel_w * 0.85f);
 
-            edited = edited || DrawAddComponentButton<Script>("Script");
-            edited = edited || DrawAddComponentButton<Mesh>("Mesh");
-            edited = edited || DrawAddComponentButton<StaticMesh>("Static Mesh");
-            edited = edited || DrawAddComponentButton<Camera>("Camera");
-            switch (active_scene->ActivePhysicsType()) {
-              case PHYSICS_2D:
-                edited = edited || DrawAddComponentButton<RigidBody2D>("Rigid Body 2D");
-                edited = edited || DrawAddComponentButton<Collider2D>("Collider 2D");
-              break;
-              case PHYSICS_3D: { 
-                ui::DrawTodoReminder("3D PHYSICS COMPONENT ADDERS");
-              } break;
-              default:
-                break;
-            }
+            edited = DrawAddComponentButton<Script>("Script") || edited;
+            edited = DrawAddComponentButton<Mesh>("Mesh") || edited;
+            edited = DrawAddComponentButton<StaticMesh>("Static Mesh") || edited;
+            edited = DrawAddComponentButton<Camera>("Camera") || edited;
+            edited = DrawAddComponentButton<RigidBody2D>("Rigid Body 2D") || edited;
+            edited = DrawAddComponentButton<Collider2D>("Collider 2D") || edited;
+            edited = DrawAddComponentButton<RigidBody>("Rigid Body") || edited;
+            edited = DrawAddComponentButton<Collider>("Collider") || edited;
             
             ImGui::EndTable();
           }
@@ -211,7 +206,7 @@ namespace other {
         }
       }
 
-      edited = edited || DrawSelectionComponents(selection);
+      edited = DrawSelectionComponents(selection) || edited;
 
       ImRect win_rect = { ImGui::GetWindowContentRegionMin() , ImGui::GetWindowContentRegionMax() }; 
       ImGui::Dummy(win_rect.GetSize());
@@ -275,15 +270,15 @@ namespace other {
   bool EntityProperties::DrawSelectionComponents(Entity* entity) {
     bool edited = false;
 
-    // DrawComponent<Tag>("Tag" , DrawTag);
-    edited = edited || DrawComponent<Transform>("Transform" , DrawTransform);
-    // edited = edited || DrawComponent<Relationship>("Scene Relationships" , DrawRelationship);
-    edited = edited || DrawComponent<Script>("Script" , DrawScript);
-    edited = edited || DrawComponent<Mesh>("Mesh" , DrawMesh);
-    edited = edited || DrawComponent<StaticMesh>("Static Mesh" , DrawStaticMesh);
-    edited = edited || DrawComponent<Camera>("Camera" , DrawCamera);
-    edited = edited || DrawComponent<RigidBody2D>("Rigid Body 2D" , DrawRigidBody2D);
-    edited = edited || DrawComponent<Collider2D>("Collider 2D" , DrawCollider2D);
+    edited = DrawComponent<Transform>("Transform" , DrawTransform) || edited;
+    edited = DrawComponent<Script>("Script" , DrawScript) || edited;
+    edited = DrawComponent<Mesh>("Mesh" , DrawMesh) || edited;
+    edited = DrawComponent<StaticMesh>("Static Mesh" , DrawStaticMesh) || edited;
+    edited = DrawComponent<Camera>("Camera" , DrawCamera) || edited;
+    edited = DrawComponent<RigidBody2D>("Rigid Body 2D" , DrawRigidBody2D) || edited;
+    edited = DrawComponent<Collider2D>("Collider 2D" , DrawCollider2D) || edited;
+    edited = DrawComponent<RigidBody>("Rigid Body" , DrawRigidBody) || edited;
+    edited = DrawComponent<Collider>("Collider" , DrawCollider) || edited;
 
     return edited;
   }

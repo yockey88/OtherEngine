@@ -101,13 +101,13 @@ namespace other {
         } else {
           glm::vec2 g;
           DeserializeVec2(gravity , g);
-          scene_metadata.scene->physics_world_2d = PhysicsEngine::GetPhysicsWorld(g);
+          scene_metadata.scene->physics_world_2d = PhysicsEngine::GetPhysicsWorld2D(g);
         }
       } break;
       case FNV("3D"):
-        OE_ASSERT(false , "3D Physics Unimplemented!");
         physics_section += "3D";
         scene_metadata.scene->physics_type = PHYSICS_3D;
+        scene_metadata.scene->physics_world = PhysicsEngine::GetPhysicsWorld();
       break;
       default:
         break;

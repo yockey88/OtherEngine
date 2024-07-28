@@ -333,6 +333,12 @@ namespace other {
   
   constexpr static std::string_view kPrimitiveValue = "PRIMITIVE";
   constexpr static uint64_t kPrimitiveValueHash = FNV(kPrimitiveValue);
+  
+  constexpr static std::string_view kRigidBodyValue = "RIGID-BODY";
+  constexpr static uint64_t kRigidBodyValueHash = FNV(kRigidBodyValue);
+  
+  constexpr static std::string_view kColliderValue = "COLLIDER";
+  constexpr static uint64_t kColliderValueHash = FNV(kColliderValue);
 
 } // namespace other 
 

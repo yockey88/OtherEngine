@@ -11,7 +11,12 @@ namespace other {
   void StateStack::RestoreState(Ref<Scene> &scene, const StateCapture &capture) {
     for (auto& [id , transform] : capture.transforms) {
       Entity* ent = scene->GetEntity(id);
-      ent->GetComponent<Transform>() = transform;
+      auto& t = ent->GetComponent<Transform>();
+      t.position = transform.position;
+      t.scale = transform.scale;
+      t.erotation = transform.erotation;
+      t.qrotation = transform.qrotation;
+      t.CalcMatrix();
     }
   }
 

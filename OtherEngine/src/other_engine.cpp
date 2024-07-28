@@ -20,6 +20,7 @@
 #include "rendering/rendering_defines.hpp"
 #include "rendering/ui/ui.hpp"
 #include "scripting/script_engine.hpp"
+#include "physics/phyics_engine.hpp"
 
 namespace other { 
 
@@ -203,6 +204,8 @@ namespace other {
 
     UI::Initialize(current_config , Renderer::GetWindow());
     ScriptEngine::Initialize(current_config);
+
+    PhysicsEngine::Initialize(current_config);
   }
 
   ExitCode OE::Run() {
@@ -268,6 +271,8 @@ namespace other {
   }
 
   void OE::Shutdown() {
+    PhysicsEngine::Shutdown();
+
     ScriptEngine::Shutdown();
 
     UI::Shutdown();
