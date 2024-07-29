@@ -19,6 +19,14 @@ OtherEngine.include_dirs = function()
   }
 end
 
+OtherEngine.defines = function()
+  defines {
+    "TRACY_ENABLE" ,
+    "TRACY_ON_DEMAND" ,
+    "TRACY_CALLSTACK=10"
+  }
+end
+
 OtherEngine.windows_configuration = function()
   files {
     "./platform/windows/**.hpp",

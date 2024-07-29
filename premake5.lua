@@ -106,6 +106,12 @@ local stb = {}
 stb.name = "stb"
 stb.include_dir = "%{wks.location}/externals/stb"
 
+local tracy = {}
+tracy.name = "tracy"
+tracy.path = "./externals/tracy"
+tracy.include_dir = "%{wks.location}/externals/tracy"
+tracy.lib_name = "tracy"
+
 AddDependency(choc)
 AddDependency(entt)
 AddDependency(glad)
@@ -121,5 +127,6 @@ AddDependency(mono)
 AddDependency(sol2)
 AddDependency(box2d)
 AddDependency(stb)
+AddDependency(tracy)
 
 CppWorkspace(configuration)
