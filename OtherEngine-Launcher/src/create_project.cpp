@@ -3,7 +3,9 @@
  **/
 #include "create_project.hpp"
 
+#include <filesystem>
 #include <fstream>
+#include <optional>
 
 #include "core/logger.hpp"
 #include "core/filesystem.hpp"
@@ -41,10 +43,13 @@ namespace other {
   
   void CreateProjectLayer::OnAttach() {
     OE_ASSERT(!project_path.empty() , "Project path is empty");
-    OE_ASSERT(Filesystem::IsDirectory(project_path) , "Project path does not exist: {}", project_path);
+    
+    if (!CreateProjectFolder()) {
+      OE_ERROR("Failed to create project directory!");
 
-    for (const auto& entry : std::filesystem::directory_iterator(project_path)) {
-      project_dir_contents.push_back(entry.path());
+      /// this is always going to be the top layer
+      ParentApp()->PopLayer();
+      return;
     }
 
     render_state = RenderState::MAIN;
@@ -63,48 +68,14 @@ namespace other {
     if (project_name.value().empty()) {
       OE_WARN("Project name can not be an empty string");
       project_name = std::nullopt;
+      return;
     }
 
-    OE_INFO("Project name: {}" , project_name.value());
-    final_name = project_name.value();
-
-    if (!Filesystem::CreateDir(project_path + "/" + project_name.value())) {
-      OE_WARN("Failed to create project: {}" , project_name.value());
-      project_name = std::nullopt;
+    if (!CreateCoreProjectFiles()) {
+      OE_ERROR("Failed to create core project files!");
+      ParentApp()->PopLayer();
+      return;
     }
-
-    std::string cfg_file = project_name.value() + ".other";
-
-    project_dir = std::filesystem::absolute(std::filesystem::path(project_path)) / project_name.value();
-    project_file = project_dir / cfg_file;
-
-    std::ofstream file(project_file);
-    if (!file.is_open()) {
-      OE_WARN("Failed to create project file: {}" , project_name.value());
-      project_name = std::nullopt;
-    }
-
-
-    project_dir_contents.clear();
-    for (const auto& entry : std::filesystem::directory_iterator(project_dir)) {
-      project_dir_contents.push_back(entry.path());
-    }
-
-    render_state = RenderState::CREATING_PROJECT;
-
-    // write project metadata
-    file << "[project]\n";
-    file << "name = " << project_name.value() << "\n";
-    file << "path = " << project_dir.string() << "\n";
-
-    // write project settings
-    // write bare minimum engine settings
-    // create project directory structure
-    // write build scripts
-    
-    ParentApp()->PushUIWindow(NewRef<TextEditor>("Project Editor" , "." , project_file.string()));
-
-    project_name = std::nullopt;
   }
 
   void CreateProjectLayer::OnEvent(Event* event) {
@@ -130,6 +101,230 @@ namespace other {
         OE_ASSERT(false , "Invalid render state");
       } break;
     }
+  }
+      
+  bool CreateProjectLayer::CreateProjectFolder() {
+    if (!Filesystem::PathExists(project_path)) {
+      if (!Filesystem::CreateDir(project_path)) {
+        return false;
+      }
+    }
+
+    project_dir = project_path;
+    Path logs = project_dir / "logs";
+    Path premake = project_dir / "premake";
+    Path make = project_dir / "ymake.lua";
+
+    if (!Filesystem::CreateDir(logs)) {
+      return false;
+    }
+
+    if (!Filesystem::CreateDir(premake)) {
+      return false;
+    }
+    
+    Path engine_core = Filesystem::GetEngineCoreDir();
+    Path engine_premake = engine_core / "premake";
+    Path engine_make = engine_core / "ymake.lua";
+
+    std::filesystem::copy(engine_premake , premake , 
+                          std::filesystem::copy_options::overwrite_existing |
+                          std::filesystem::copy_options::recursive);
+    std::filesystem::copy_file(engine_make , make ,
+                               std::filesystem::copy_options::overwrite_existing);
+
+    return true;
+  }
+
+  bool CreateProjectLayer::CreateCoreProjectFiles() {
+    OE_INFO("Project name: {}" , project_name.value());
+    final_name = project_name.value();
+
+    if (!Filesystem::CreateDir(project_path + "/" + project_name.value())) {
+      OE_WARN("Failed to create project director: {}" , project_name.value());
+      return false;
+    }
+
+    std::string cfg_file = final_name + ".other";
+    
+    Path engine_core = Filesystem::GetEngineCoreDir(); 
+    Path launcher_dir = engine_core / "OtherEngine-Launcher";
+    Path launcher_assets = launcher_dir / "assets";
+    Path make = launcher_assets / "premake5.lua";
+
+    project_dir = std::filesystem::absolute(Path(project_path)) / project_name.value();
+    project_file = Path{ project_path } / cfg_file;
+
+    Path default_make = launcher_assets / "premake5.lua.txt";
+    Path proj_make = Path{ project_path } / "premake5.lua";
+
+    CopyWithEdits(default_make , proj_make , [&](std::string& contents) {
+      std::string enginedir = "@enginedir";
+      std::string projectname = "@projectname";
+      std::string projectpath = "@projectpath";
+
+      size_t idx = contents.find(enginedir);
+      while (idx < contents.length()) {
+        contents.replace(idx , enginedir.length() , engine_core.string());
+        idx = contents.find(enginedir);
+      }
+      
+      idx = contents.find(projectname);
+      while (idx < contents.length()) {
+        contents.replace(idx , projectname.length() , final_name);
+        idx = contents.find(projectname);
+      }
+
+      idx = contents.find(projectpath);
+      while (idx < contents.length()) {
+        contents.replace(idx , projectpath.length() , project_path);
+        idx = contents.find(projectpath);
+      }
+    });
+
+    Path default_cfg = launcher_assets / "default.other.txt";
+
+    CopyWithEdits(default_cfg , project_file , [&](std::string& contents) {
+      std::string projectname = "@projectname";
+      std::string projectpath = "@projectpath";
+      
+      size_t idx = contents.find(projectname);
+      while (idx < contents.length()) {
+        contents.replace(idx , projectname.length() , final_name);
+        idx = contents.find(projectname);
+      }
+
+      idx = contents.find(projectpath);
+      while (idx < contents.length()) {
+        contents.replace(idx , projectpath.length() , project_path);
+        idx = contents.find(projectpath);
+      }
+    });
+
+    render_state = RenderState::CREATING_PROJECT;
+    
+    Path assets = project_dir / "assets";
+    Path src = project_dir / "src";
+
+    if (!Filesystem::CreateDir(assets)) {
+      OE_ERROR("Failed to create 'assets'");
+    }
+    
+    if (!Filesystem::CreateDir(src)) {
+      OE_ERROR("Failed to create 'src'");
+    }
+
+    Path hpp = src / (final_name + ".hpp");
+    Path cpp = src / (final_name + ".cpp");
+
+    Path defaulthpp = launcher_assets / "default.hpp.txt";
+    Path defaultcpp = launcher_assets / "default.cpp.txt";
+    
+    CopyWithEdits(defaulthpp , hpp , [&](std::string& contents) {
+      std::string projectname = "@projectname";
+      std::string headerguard = "@headerguard";
+      std::string appname = "@appname";
+      
+      size_t idx = contents.find(projectname);
+      while (idx < contents.length()) {
+        contents.replace(idx , projectname.length() , final_name);
+        idx = contents.find(projectname);
+      }
+
+      std::string headerguard_out;
+      std::ranges::transform(final_name , std::back_inserter(headerguard_out) , ::toupper);
+
+      idx = contents.find(headerguard);
+      while (idx < contents.length()) {
+        contents.replace(idx , headerguard.length() , headerguard_out);
+        idx = contents.find(headerguard);
+      }
+
+      std::string appname_out = final_name;
+      appname_out[0] = toupper(appname_out[0]);
+      
+      idx = contents.find(appname);
+      while (idx < contents.length()) {
+        contents.replace(idx , appname.length() , appname_out);
+        idx = contents.find(appname);
+      }
+    });
+    
+    CopyWithEdits(defaultcpp , cpp , [&](std::string& contents) {
+      std::string projectname = "@projectname";
+      
+      size_t idx = contents.find(projectname);
+      while (idx < contents.length()) {
+        contents.replace(idx , projectname.length() , final_name);
+        idx = contents.find(projectname);
+      }
+    });
+    // 
+
+    if (!Filesystem::CreateDir(assets / "scripts")) {
+      return false;
+    }
+    
+    if (!Filesystem::CreateDir(assets / "scenes")) {
+      return false;
+    }
+    
+    if (!Filesystem::CreateDir(assets / "editor")) {
+      return false;
+    }
+    
+    if (!Filesystem::CreateDir(assets / "materials")) {
+      return false;
+    }
+    
+    if (!Filesystem::CreateDir(assets / "shaders")) {
+      return false;
+    }
+    
+    ParentApp()->PushUIWindow(NewRef<TextEditor>("Project Editor" , "." , project_file.string()));
+
+    project_name = std::nullopt;
+    return true;
+  }
+      
+  bool CreateProjectLayer::CopyFileTo(const Path& from , const Path& to) {
+    OE_ASSERT(Filesystem::PathExists(from) , "For some reason copy src path doesn't exist!");
+
+    try {
+      std::filesystem::copy_file(from , to);
+      return true;
+    } catch (const std::filesystem::filesystem_error& e) {
+      return false;
+    }
+  }
+      
+  bool CreateProjectLayer::CopyWithEdits(const Path& from , const Path& to , std::function<void(std::string&)> modifier) {
+    OE_ASSERT(Filesystem::PathExists(from) , "For some reason copy src path doesn't exist!");
+    
+    std::string contents;
+    {
+      std::ifstream file(from);
+      if (!file.is_open()) {
+        project_name = std::nullopt;
+        return false;
+      }
+
+      std::stringstream ss;
+      ss << file.rdbuf();
+      contents = ss.str();
+    }
+
+    modifier(contents);
+
+    std::ofstream out_file(to);
+    if (!out_file.is_open()) {
+      OE_WARN("Failed to create project file: {}" , project_name.value());
+      project_name = std::nullopt;
+      return false;
+    }
+
+    out_file << contents;
+    return true;
   }
 
   void CreateProjectLayer::RenderDirContents() {

@@ -51,7 +51,9 @@ namespace other {
 
       UUID editor_id = 0;
       UUID create_proj_id = 0;
+
       bool rendering_open_project = true;
+      bool rendering_create_project = false;
 
       SelectionContext selection_context;
 
@@ -63,6 +65,7 @@ namespace other {
 
       void RenderMain();
       void RenderOpeningProject();
+      void RenderCreateProject();
 
       void Launch(const std::filesystem::path& path , LaunchType type);
   };

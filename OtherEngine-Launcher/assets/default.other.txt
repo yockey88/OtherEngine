@@ -1,0 +1,17 @@
+[project]
+name = "@projectname"
+author = ""
+version = 0.0.1
+description = ""
+scenes = {}
+assets = "@projectpath/assets"
+
+[window]
+width = 1200
+height = 800
+title = "@projectname"
+
+[log]
+console-level = "info" 
+file-level = "trace"
+path = "@projectpath/logs/@projectname.log"

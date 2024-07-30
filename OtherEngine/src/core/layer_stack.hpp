@@ -4,6 +4,7 @@
 #ifndef OTHER_ENGINE_LAYER_STACK_HPP
 #define OTHER_ENGINE_LAYER_STACK_HPP
 
+#include <type_traits>
 #include <vector>
 
 #include "core/layer.hpp"
@@ -22,6 +23,27 @@ namespace other {
 
       void PushOverlay(const Ref<Layer>& overlay);
       void PopOverlay(const Ref<Layer>& overlay);
+      
+      template <typename... Args>
+      using LayerFunc = void(Layer::*)(Args...); 
+
+      template <typename... Args>
+      void InvokeControlledLoop(LayerFunc<Args...> fn , Args... args) {
+        for (auto& l : layers) {
+          auto sza = layers.size();
+
+          if constexpr (sizeof...(args) == 0) {
+            std::invoke(fn , *(l.Raw()));
+          } else {
+            std::invoke(fn , *(l.Raw()) , std::forward<Args>(args)...); 
+          }
+
+          auto szb = layers.size();
+          if (sza != szb) {
+            break;
+          }
+        }
+      }
 
       Ref<Layer>& operator[](size_t index);
       const Ref<Layer>& operator[](size_t index) const;

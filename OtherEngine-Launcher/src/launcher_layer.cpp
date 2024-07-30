@@ -39,11 +39,6 @@ namespace other {
   }
 
   void LauncherLayer::OnUpdate(float dt) {
-    if (ParentApp()->GetUIWindow(editor_id) == nullptr) {
-      editor_id = 0;
-      render_state = RenderState::MAIN;
-    }
-
     if (selection_context.selected_path.has_value()) {
       auto path = selection_context.selected_path.value();
       if (!Filesystem::PathExists(path)) {
@@ -64,10 +59,10 @@ namespace other {
       }
 
       switch (selection_context.context_type) {
-        case SelectionContextType::CREATE_PROJECT: 
+        case CREATE_PROJECT: 
           CreateProject();
           break;
-        case SelectionContextType::OPEN_PROJECT:
+        case OPEN_PROJECT:
           OpenProject();
           break;
         default: 
@@ -83,20 +78,25 @@ namespace other {
   }
 
   void LauncherLayer::OnUIRender() {
-    auto fe_option = [this](const std::string& option , FileExplorerType type , SelectionContextType context_type) {
+    auto fe_option = [this](const std::string& option , FileExplorerType type , SelectionContextType context_type , 
+                            std::optional<RenderState> transition_to = std::nullopt) {
       if (ImGui::MenuItem(option.c_str())) { 
         FileExplorer file_explorer(kFileExplorerName.data() , "." , type);
         file_explorer.OnAttach();
 
         selection_context.selected_path = file_explorer.GetPath();
         selection_context.context_type = context_type;
+
+        if (transition_to.has_value()) {
+          render_state = *transition_to;
+        }
       }
     };
 
     if (ImGui::BeginMainMenuBar()) {
       if (ImGui::BeginMenu("File")) {
         fe_option("Open Project" , FileExplorerType::OPEN_FOLDER , SelectionContextType::OPEN_PROJECT);
-        fe_option("Create Project" , FileExplorerType::SAVE_FILE , SelectionContextType::CREATE_PROJECT);
+        fe_option("Create Project" , FileExplorerType::SAVE_FILE , SelectionContextType::CREATE_PROJECT , RenderState::CREATING_PROJECT);
 
         ImGui::EndMenu();
       }
@@ -111,20 +111,15 @@ namespace other {
       case RenderState::OPENING_PROJECT:
         RenderOpeningProject();
         break;
+      case RenderState::CREATING_PROJECT:
+         RenderCreateProject();
+         break;
       default:
         break;
     }
   }
 
   void LauncherLayer::OnEvent(Event* event) {
-    EventHandler handler(event);
-    handler.Handle<AppLayerEvent>([this](AppLayerEvent& app_event) -> bool {
-      if (app_event.IsPop() && app_event.LayerID() == kCreateProjectLayerUUID) {
-        render_state = RenderState::MAIN;
-        return true;
-      }
-      return false;
-    });
   }
 
   void LauncherLayer::OnDetach() {
@@ -134,11 +129,12 @@ namespace other {
     OE_ASSERT(selection_context.selected_path.has_value() , "Bad selection context LauncherLayer::CreateProject()");
     auto path = selection_context.selected_path.value();
 
+    OE_DEBUG("Creating Project");
+
     {
       Ref<Layer> create_proj = NewRef<CreateProjectLayer>(ParentApp() , path);
       ParentApp()->PushLayer(create_proj);
 
-      OE_DEBUG("Pushed CreateProjectLayer | change render state to CREATING_PROJECT");
       render_state = RenderState::CREATING_PROJECT;
     }
   }
@@ -220,13 +216,12 @@ namespace other {
 
       if (ImGui::BeginPopup("Project-Table-Menu")) {
         if (ImGui::Button("Create Project")) {
-          if (!selection_context.selected_path.has_value()) {
-            FileExplorer file_explorer(kFileExplorerName.data() , "." , FileExplorerType::OPEN_FOLDER);
-            file_explorer.OnAttach();
-            selection_context.selected_path = file_explorer.GetPath();
-          } 
+          FileExplorer file_explorer(kFileExplorerName.data() , "." , FileExplorerType::OPEN_FOLDER);
+          file_explorer.OnAttach();
 
+          selection_context.selected_path = file_explorer.GetPath();
           selection_context.context_type = SelectionContextType::CREATE_PROJECT;
+          render_state = RenderState::CREATING_PROJECT;
 
           ImGui::CloseCurrentPopup();
         }
@@ -240,7 +235,7 @@ namespace other {
   void LauncherLayer::RenderOpeningProject() {
     OE_ASSERT(render_state == RenderState::OPENING_PROJECT , "Bad render state LauncherLayer::RenderOpeningProject()");
 
-    bool rendering = ImGui::Begin("Projects" , &rendering_open_project);
+    bool rendering = ImGui::Begin("Project" , &rendering_open_project);
     if (!rendering_open_project) {
       Project::ClearQueuedProject();
       ParentApp()->RemoveUIWindow(editor_id);
@@ -281,6 +276,30 @@ namespace other {
 
       Launch(find_exe , LaunchType::RUNTIME);
     }
+
+    ImGui::End();
+  }
+
+  void LauncherLayer::RenderCreateProject() {
+    OE_ASSERT(render_state == RenderState::CREATING_PROJECT , "Bad render state LauncherLayer::RenderCreateProject()"); 
+
+    bool rendering = ImGui::Begin("Project Settings" , &rendering_create_project);
+    if (!rendering_create_project) {
+      Project::ClearQueuedProject();
+      ParentApp()->RemoveUIWindow(create_proj_id);
+      editor_id = 0;
+      render_state = RenderState::MAIN;
+      
+      // have to set this to true or IMGUI wont render the window next time we try to open it
+      rendering_create_project = true;
+    }
+
+    if (!rendering) {
+      ImGui::End();
+      return;
+    }
+
+    ImGui::Text("Project Settings"); 
 
     ImGui::End();
   }
