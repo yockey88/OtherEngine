@@ -3,6 +3,10 @@
  **/
 #include "project_cache.hpp"
 
+#include <fstream>
+
+#include "core/logger.hpp"
+
 #include "parsing/ini_parser.hpp"
 
 namespace other {
@@ -30,6 +34,32 @@ namespace other {
       paths.push_back(projects.Get("PROJECTS", uc_name)[0]);
     }
     return paths;
+  }
+      
+  void ProjectCache::WriteProjectToCache(const Path& cache_path , const std::string& name , const Path& path) {
+    std::string contents;
+    {
+      std::ifstream infile(cache_path);
+      if (!infile.is_open()) {
+        OE_ERROR("Failed to open project cache : {}" , cache_path);
+        return;
+      }
+
+      std::stringstream ss;
+      ss << infile.rdbuf();
+
+      contents = ss.str();
+    }
+      
+    contents += "\n" + name + " = \"" + path.string() + "\"";
+
+    std::ofstream outfile(cache_path);
+    if (!outfile.is_open()) {
+      OE_ERROR("Failed to open project cache : {}" , cache_path);
+      return;
+    }
+
+    outfile << contents;
   }
 
 } // namespace other

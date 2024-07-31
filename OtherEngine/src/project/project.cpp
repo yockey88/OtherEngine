@@ -116,11 +116,18 @@ namespace {
   bool Project::RegenProjectFile() {
     CreateScriptWatchers();
 
+    std::string makefilename = "premake5.lua"; // metadata.name + ".lua";
     Path premake = metadata.file_path.parent_path() / "premake" / "premake5.exe";
-    Path project_sln = metadata.file_path.parent_path() / "premake5.lua";
+    Path project = metadata.file_path.parent_path() / makefilename;
+
+    std::string premakestr = premake.string();
+    std::string projectstr =project.string();
+
+    std::replace(premakestr.begin() , premakestr.end() , '/' , '\\');
+    std::replace(projectstr.begin() , projectstr.end() , '/' , '\\');
 
     /// TODO: replace vs2022 with platform specific generator 
-    std::string cmd = fmtstr("{} vs2022 --file={}" , premake.string() , project_sln.string());
+    std::string cmd = fmtstr("{} vs2022 --file={}" , premakestr , projectstr);
     return system(cmd.c_str()) == 0;
   }
   

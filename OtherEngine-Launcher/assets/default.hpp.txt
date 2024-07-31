@@ -1,0 +1,18 @@
+/**
+ * \file @projectname.hpp
+ **/
+#ifndef @headerguard_HPP
+#define @headerguard_HPP
+
+#include "other_engine.hpp"
+
+class @appname : public other::App {
+  public:
+    @appname(other::Engine* engine)
+      : other::App(engine) {}
+    virtual ~@appname() override {}
+};
+
+OE_APPLICATION(@appname);
+
+#endif // !@headerguard_HPP

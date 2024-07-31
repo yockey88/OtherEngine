@@ -1,0 +1,93 @@
+local @projectname = {}
+
+@projectname.name = "@appname"
+@projectname.path = "./@appname"
+@projectname.kind = "ConsoleApp"
+@projectname.language = "C++"
+@projectname.cppdialect = "C++latest"
+
+@projectname.files = function() 
+  files { 
+    "./src/**.cpp" , 
+    "./src/**.hpp" 
+  } 
+end
+
+@projectname.include_dirs = function() 
+  includedirs { 
+    "./src" 
+  } 
+end
+
+@projectname.links = function() 
+  libdirs { 
+    "./engine/Debug" , 
+    "./engine/Release" 
+  } 
+end
+
+@projectname.defines = function() 
+  defines { 
+    "OE_MODULE" 
+  } 
+end
+
+@projectname.components = {}
+@projectname.components["@enginedir/bin/Debug/OtherEngine/OtherEngine"] = 
+  "@enginedir/OtherEngine/src"
+
+@projectname.window_configuration = function() end
+
+@projectname.post_build_commands = function()
+  filter { "system:windows" , "configurations:Debug" }
+    postbuildcommands {
+      '{COPY} "@enginedir/externals/sdl2/lib/Debug/SDL2d.dll" "%{cfg.targetdir}"',
+      '{COPY} @enginedir/externals/mono/bin/mono-2.0-sgen.dll "%{cfg.targetdir}"',
+      '{COPY} @enginedir/externals/mono/bin/mono-2.0-sgen.pdb "%{cfg.targetdir}"',
+      '{COPY} @enginedir/externals/mono/bin/MonoPosixHelper.dll "%{cfg.targetdir}"',
+      '{COPY} @enginedir/externals/mono/bin/MonoPosixHelper.pdb "%{cfg.targetdir}"',
+    }
+
+  filter { "system:windows" , "configurations:Release" }
+    postbuildcommands {
+      '{COPY} "@enginedir/externals/sdl2/lib/Release/SDL2.dll" "%{cfg.targetdir}"',
+      '{COPY} @enginedir/externals/mono/bin/mono-2.0-sgen.dll "%{cfg.targetdir}"',
+      '{COPY} @enginedir/externals/mono/bin/MonoPosixHelper.dll "%{cfg.targetdir}"',
+    }
+end
+
+AddProject(@projectname)
+
+local @projectname_scripts = {}
+
+@projectname_scripts.name = "@appnameScripts"
+@projectname_scripts.kind = "SharedLib"
+@projectname_scripts.language = "C#"
+
+@projectname_scripts.files = function() 
+  files { 
+    "./assets/scripts/*.cs" 
+  } 
+end
+
+@projectname_scripts.components = {}
+@projectname_scripts.components["@enginedir/bin/Debug/OtherEngine-CsCore/OtherEngine-CsCore"] = ""
+
+local editor_scripts = {}
+
+editor_scripts.name = "@appnameEditorScripts"
+editor_scripts.kind = "SharedLib"
+editor_scripts.language = "C#"
+
+editor_scripts.files = function() 
+  files { 
+    "./assets/editor/*.cs" 
+  } 
+end
+
+editor_scripts.components = {}
+editor_scripts.components["@enginedir/bin/Debug/OtherEngine-CsCore/OtherEngine-CsCore"] = ""
+editor_scripts.components["@appnameScripts"] = ""
+
+AddModule(@projectname_scripts)
+AddModule(editor_scripts)
