@@ -1,0 +1,28 @@
+[project]
+name = "@projectname"
+version = 0.0.1
+scenes = {}
+assets = "./assets"
+
+[window]
+width = 1200
+height = 800
+title = "@projectname"
+
+[log]
+console-level = "info" 
+file-level = "trace"
+path = "./logs/@projectname.log"
+
+[script-engine.C#]
+paths = {
+  "@appnameScripts.dll"
+}
+
+[script-engine.Lua]
+paths = {}
+
+[editor]
+scripts = {
+  "@appnameEditorScripts.dll"
+}

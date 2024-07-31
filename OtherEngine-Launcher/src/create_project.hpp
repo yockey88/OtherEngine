@@ -6,11 +6,11 @@
 
 #include <string>
 #include <array>
-#include <filesystem>
 
 #include "core/defines.hpp"
 #include "core/layer.hpp"
 #include "core/uuid.hpp"
+
 #include "rendering/ui/text_editor.hpp"
 
 namespace other {
@@ -52,19 +52,23 @@ namespace other {
       Opt<std::string> description;
 
       std::string final_name;
-      std::filesystem::path project_dir;
-      std::filesystem::path project_file;
+      Path project_dir;
+      Path project_file;
 
       constexpr static size_t kBufferSize = 256;
       std::array<char , kBufferSize> project_name_buffer = {0};
       std::array<char , kBufferSize> author_buffer = {0};
       std::array<char , kBufferSize> description_buffer = {0};
 
-      std::vector<std::filesystem::path> project_dir_contents;
-
       Ref<TextEditor> text_editor = nullptr;
 
       UUID text_editor_id = 0;
+
+      bool CreateProjectFolder();
+      bool CreateCoreProjectFiles();
+
+      bool CopyFileTo(const Path& from , const Path& to);
+      bool CopyWithEdits(const Path& from , const Path& to , std::function<void(std::string&)> modifier);
 
       void RenderDirContents();
 

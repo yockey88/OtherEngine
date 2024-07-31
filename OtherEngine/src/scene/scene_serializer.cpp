@@ -11,6 +11,7 @@
 
 #include "parsing/ini_parser.hpp"
 #include "physics/phyics_engine.hpp"
+#include "physics/physics_defines.hpp"
 
 namespace other {
 
@@ -105,11 +106,12 @@ namespace other {
         }
       } break;
       case FNV("3D"):
-        OE_ASSERT(false , "3D Physics Unimplemented!");
         physics_section += "3D";
         scene_metadata.scene->physics_type = PHYSICS_3D;
       break;
       default:
+        physics_section += "2D";
+        scene_metadata.scene->physics_type = PHYSICS_2D;
         break;
     }
 

@@ -1,0 +1,138 @@
+--- @todo : add the generation of this file into project manager when creating a new project, then run 
+---         premake5 --file=<project-name>_premake5.lua vs2022 to generate the solution and project files
+--- @todo : regenerate this file when adding a new C# script, then run 
+---        premake5 --file=<project-name>_premake5.lua vs2022 to generate the solution and project files
+--- @todo : make sure the absolute path to the engine is generated as the install location of the engine
+
+require("ymake")
+
+local configuration = {}
+configuration.wks_name = "@projectname"
+configuration.architecture = "x64"
+configuration.start_project = "@projectname"
+configuration.cpp_dialect = "C++latest"
+configuration.static_runtime = "on"
+configuration.target_dir = "@projectpath/bin/%{cfg.buildcfg}"
+configuration.obj_dir = "@projectpath/obj/%{cfg.buildcfg}"
+
+configuration.build_configurations = { "Debug", "Release" }
+configuration.platforms = { "Windows" }
+
+configuration.groups = {
+  ["@projectname"] = { "./@projectname" } ,
+}
+
+local choc = {}
+choc.name = "choc"
+choc.include_dir = "@enginedir/externals/choc"
+
+local entt = {}
+entt.name = "entt"
+entt.include_dir = "@enginedir/externals/entt"
+
+local glad = {}
+glad.name = "glad"
+glad.include_dir = "@enginedir/externals/glad/include"
+glad.lib_name = "glad"
+glad.lib_dir = "@enginedir/bin/Debug/glad"
+
+local glm = {}
+glm.name = "glm"
+glm.include_dir = "@enginedir/externals/glm"
+
+local imgui = {}
+imgui.name = "imgui"
+imgui.include_dir = "@enginedir/externals/imgui"
+imgui.lib_name = "imgui"
+imgui.lib_dir = "@enginedir/bin/Debug/imgui"
+
+local magic_enum = {}
+magic_enum.name = "magic_enum"
+magic_enum.include_dir = "@enginedir/externals/magic_enum/magic_enum"
+
+local nativefiledialog = {}
+nativefiledialog.name = "nativefiledialog"
+nativefiledialog.include_dir = "@enginedir/externals/nativefiledialog/src"
+nativefiledialog.lib_name = "nfd"
+nativefiledialog.lib_dir = "@enginedir/bin/Debug/nfd"
+
+local sdl2 = {}
+sdl2.name = "sdl2"
+sdl2.include_dir = "@enginedir/externals/sdl2/SDL2"
+sdl2.lib_dir = "@enginedir/externals/sdl2/lib/%{cfg.buildcfg}"
+sdl2.lib_name = "SDL2"
+sdl2.debug_lib_name = "SDL2d"
+sdl2.configurations = { "Debug" , "Release" }
+
+local spdlog = {}
+spdlog.name = "spdlog"
+spdlog.include_dir = "@enginedir/externals/spdlog/include"
+spdlog.lib_name = "spdlog"
+spdlog.lib_dir = "@enginedir/bin/Debug/spdlog"
+
+local zep = {}
+zep.name = "zep"
+zep.include_dir = "@enginedir/externals/zep/include"
+zep.lib_name = "zep"
+zep.lib_dir = "@enginedir/bin/Debug/zep"
+
+local mono = {}
+mono.name = "mono"
+mono.include_dir = "@enginedir/externals/mono/include"
+mono.lib_dir = "@enginedir/externals/mono/lib"
+mono.lib_name = "mono-2.0-sgen"
+
+local sol2 = {}
+sol2.name = "sol2"
+sol2.include_dir = "@enginedir/externals/sol2"
+sol2.lib_name = "sol2"
+sol2.lib_dir = "@enginedir/bin/Debug/sol2"
+
+local box2d = {}
+box2d.name = "box2d"
+box2d.include_dir = "@enginedir/externals/box2d"
+box2d.lib_name = "box2d"
+box2d.lib_dir = "@enginedir/bin/Debug/box2d"
+
+local stb = {}
+stb.name = "stb"
+stb.include_dir = "@enginedir/externals/stb"
+
+AddDependency(choc)
+AddDependency(entt)
+AddDependency(glad)
+AddDependency(glm)
+AddDependency(imgui)
+AddDependency(magic_enum)
+AddDependency(nativefiledialog)
+AddDependency(sdl2)
+AddDependency(spdlog)
+AddDependency(zep)
+AddDependency(mono)
+AddDependency(sol2)
+AddDependency(box2d)
+AddDependency(stb)
+
+--- @fixme :
+---   testbed not tracked on github, must manually manage 
+---     dependencies between engine branches
+
+-- local jolt = {}
+-- jolt.name = "jolt"
+-- jolt.path = "@enginedir/externals/jolt"
+-- jolt.include_dir = "@enginedir/externals/jolt"
+-- jolt.lib_name = "jolt"
+
+-- local tracy = {}
+-- tracy.name = "tracy"
+-- tracy.path = "@enginedir/externals/tracy"
+-- tracy.include_dir = "@enginedir/externals/tracy"
+-- tracy.lib_name = "tracy"
+
+-- physics branch
+-- AddDependency(jolt)
+
+-- profiling branch
+-- AddDependency(tracy)
+
+CppWorkspace(configuration)
