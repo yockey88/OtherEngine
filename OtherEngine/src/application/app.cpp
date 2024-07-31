@@ -132,7 +132,6 @@ namespace {
   void App::PushLayer(Ref<Layer>&  layer) {
     layer->Attach();
     layer_stack->PushLayer(layer);
-
     EventQueue::PushEvent<AppLayerEvent>(LayerEventType::LAYER_PUSH , layer->GetUUID() , layer->Name());
   }
 
@@ -144,6 +143,7 @@ namespace {
   }
 
   void App::PopLayer(Ref<Layer>&  layer) {
+    OE_DEBUG("Popping Layer : {}" , layer->Name());
     layer->Detach();
     layer_stack->PopLayer(layer);
     EventQueue::PushEvent<AppLayerEvent>(LayerEventType::LAYER_POP , layer->GetUUID() , layer->Name());
@@ -354,18 +354,13 @@ namespace {
   void App::DoEarlyUpdate(float dt) {
     EarlyUpdate(dt);  
 
-    for (auto& l : *layer_stack) {
-      l->EarlyUpdate(dt);
-    }
+    layer_stack->InvokeControlledLoop(&Layer::EarlyUpdate , dt);
   }
 
   void App::DoUpdate(float dt) {
     Update(dt);
 
-    // update all layers
-    for (auto& l : *layer_stack) {
-      l->Update(dt);
-    }
+    layer_stack->InvokeControlledLoop(&Layer::Update , dt);
     
     LateUpdate(dt);
     
@@ -398,9 +393,7 @@ namespace {
       
       RenderUI();
       
-      for (auto& l : *layer_stack) {
-        l->UIRender();
-      }
+      layer_stack->InvokeControlledLoop(&Layer::UIRender);
       
       for (auto& [id , window] : ui_windows) {
         window->Render();
