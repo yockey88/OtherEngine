@@ -4,6 +4,7 @@
 #ifndef OTHER_ENGINE_APP_HPP
 #define OTHER_ENGINE_APP_HPP
 
+#include "core/defines.hpp"
 #include "core/config.hpp"
 #include "core/layer.hpp"
 #include "core/layer_stack.hpp"
@@ -99,6 +100,17 @@ namespace other {
       UIWindowMap ui_windows;
 
       bool lost_window_focus = false;
+
+      enum LayerFlags : uint64_t {
+        NO_LAYER_FLAGS = 0 ,
+        
+        LAYER_PUSHED_EU = bit(1) ,
+        LAYER_PUSHED_U = bit(2) , 
+        LAYER_PUSHED_LU = bit(3) , 
+
+        LAYER_PUSHED_R = bit(4) ,
+        LAYER_PUSHED_RUI = bit(5) , 
+      };
 
       friend class Engine;
       friend class AppState;

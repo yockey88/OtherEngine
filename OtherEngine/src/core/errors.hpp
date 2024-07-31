@@ -89,7 +89,7 @@ namespace other {
       IniException(const std::string_view message) 
         : std::runtime_error(message.data()) {};
       IniException(const std::string_view message , IniError error) 
-        : std::runtime_error(fmterr("[ {} ] : {})" , message , kIniErrStrings[error]).data()) {};
+        : std::runtime_error(fmterr("[ {} ] : {}" , message , kIniErrStrings[error]).data()) {};
 
       IniError error;
 

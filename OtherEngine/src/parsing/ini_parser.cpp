@@ -7,6 +7,7 @@
 #include <sstream>
 
 #include "core/errors.hpp"
+#include "core/logger.hpp"
 
 namespace other {
 
@@ -165,7 +166,7 @@ namespace other {
     current_key = key;
 
     if (value.empty()) {
-      throw IniException("Empty value" , IniError::FILE_PARSE_ERROR);
+      throw IniException(fmtstr("Key {} has empty value" , key) , IniError::FILE_PARSE_ERROR);
     } else if (value[0] == '{') {
       ParseValueList(value);
       return;

@@ -1,0 +1,4 @@
+/**
+ * \file @projectname.cpp
+ **/
+#include "@projectname.hpp"
