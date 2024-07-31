@@ -30,8 +30,8 @@ namespace other {
     activation_listener = NewScope<ActivationListener>();
     system->SetBodyActivationListener(activation_listener.get());
     
-    // contact_listener = NewScope<ContactListener>();
-    // system->SetContactListener(contact_listener.get());
+    contact_listener = NewScope<ContactListener>();
+    system->SetContactListener(contact_listener.get());
   }
 
   PhysicsWorld::~PhysicsWorld() {
