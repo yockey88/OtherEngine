@@ -20,6 +20,8 @@ namespace other {
 
       static std::string GetProjectPath(const std::string& name);
 
+      static void WriteProjectToCache(const Path& cache_path , const std::string& name , const Path& path);
+
     private:
       static ConfigTable projects;
   };

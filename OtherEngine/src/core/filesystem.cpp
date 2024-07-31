@@ -70,6 +70,7 @@ namespace other {
   }
 
   Path Filesystem::FindExecutableIn(const Path& path) {
+    OE_DEBUG("Attempting to find executable in : {}" , path);
     if (!std::filesystem::exists(path)) {
       OE_WARN("Path does not exist : {}", path.string());
       return Path();
@@ -77,12 +78,14 @@ namespace other {
 
     if (std::filesystem::is_regular_file(path)) {
       if (path.extension() == ".exe") {
+        OE_DEBUG("{} is already an exe!" , path);
         return path;
       }
 
       Path parent = path.parent_path();
       if (parent.empty()) {
         OE_WARN("Parent path is empty : {}", path.string());
+        OE_WARN("Could not find executable!");
         return Path();
       }
 
@@ -96,6 +99,8 @@ namespace other {
 #elif defined(OE_RELEASE_BUILD)
     bin_path /= "Release";
 #endif
+
+    OE_DEBUG("Attempting find exe in {}" , bin_path);
 
     if (!std::filesystem::exists(bin_path)) {
       OE_WARN("Bin path does not exist : {}", bin_path.string());

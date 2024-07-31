@@ -11,6 +11,7 @@
 
 #include "parsing/ini_parser.hpp"
 #include "physics/phyics_engine.hpp"
+#include "physics/physics_defines.hpp"
 
 namespace other {
 

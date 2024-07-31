@@ -96,6 +96,8 @@ namespace detail {
 
       operator bool() { return object != nullptr; }
       operator bool() const { return object != nullptr; }
+
+      Ref& operator*() { return object; }
       
       T* operator->() { return object; }
       const T* operator->() const { return object; }
