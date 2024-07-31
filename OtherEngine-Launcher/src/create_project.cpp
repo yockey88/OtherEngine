@@ -3,6 +3,7 @@
  **/
 #include "create_project.hpp"
 
+#include <core/platform.hpp>
 #include <filesystem>
 #include <fstream>
 #include <optional>
@@ -17,6 +18,7 @@
 #include "event/event_queue.hpp"
 #include "event/event_handler.hpp"
 
+#include "project_cache.hpp"
 #include "rendering/ui/ui_helpers.hpp"
 
 namespace other {
@@ -114,6 +116,7 @@ namespace other {
     Path logs = project_dir / "logs";
     Path premake = project_dir / "premake";
     Path make = project_dir / "ymake.lua";
+    Path imguiini = project_dir / "imgui.ini";
 
     if (!Filesystem::CreateDir(logs)) {
       return false;
@@ -126,11 +129,14 @@ namespace other {
     Path engine_core = Filesystem::GetEngineCoreDir();
     Path engine_premake = engine_core / "premake";
     Path engine_make = engine_core / "ymake.lua";
+    Path engine_imguiini = engine_core / "OtherEngine-Launcher" / "assets" / "imgui.ini";
 
     std::filesystem::copy(engine_premake , premake , 
                           std::filesystem::copy_options::overwrite_existing |
                           std::filesystem::copy_options::recursive);
     std::filesystem::copy_file(engine_make , make ,
+                               std::filesystem::copy_options::overwrite_existing);
+    std::filesystem::copy_file(engine_imguiini , imguiini ,
                                std::filesystem::copy_options::overwrite_existing);
 
     return true;
@@ -146,6 +152,7 @@ namespace other {
     }
 
     std::string cfg_file = final_name + ".other";
+    std::string makefilename = "premake5.lua"; // final_name + ".lua";
     
     Path engine_core = Filesystem::GetEngineCoreDir(); 
     Path launcher_dir = engine_core / "OtherEngine-Launcher";
@@ -155,13 +162,31 @@ namespace other {
     project_dir = std::filesystem::absolute(Path(project_path)) / project_name.value();
     project_file = Path{ project_path } / cfg_file;
 
-    Path default_make = launcher_assets / "premake5.lua.txt";
-    Path proj_make = Path{ project_path } / "premake5.lua";
+    Path default_tlmake = launcher_assets / "top_level_premake5.lua.txt";
+    Path default_pmake = launcher_assets / "project_premake5.lua.txt";
+    Path proj_tlmake = Path{ project_path } / makefilename;
+    Path proj_pmake = Path{ project_path } / final_name / "premake5.lua";
 
-    CopyWithEdits(default_make , proj_make , [&](std::string& contents) {
+    /// make backslashes into forwards
+    std::string fixed_path = project_path;
+    std::ranges::replace(fixed_path , '\\' , '/');
+    
+    Path default_cfg = launcher_assets / "default.other.txt";
+    
+    Path assets = project_dir / "assets";
+    Path src = project_dir / "src";
+    
+    Path hpp = src / (final_name + ".hpp");
+    Path cpp = src / (final_name + ".cpp");
+
+    Path defaulthpp = launcher_assets / "default.hpp.txt";
+    Path defaultcpp = launcher_assets / "default.cpp.txt";
+
+    auto make_processor = [&](std::string& contents) {
       std::string enginedir = "@enginedir";
       std::string projectname = "@projectname";
       std::string projectpath = "@projectpath";
+      std::string appname = "@appname";
 
       size_t idx = contents.find(enginedir);
       while (idx < contents.length()) {
@@ -177,16 +202,26 @@ namespace other {
 
       idx = contents.find(projectpath);
       while (idx < contents.length()) {
-        contents.replace(idx , projectpath.length() , project_path);
+        contents.replace(idx , projectpath.length() , fixed_path);
         idx = contents.find(projectpath);
       }
-    });
+      
+      std::string appname_out = final_name;
+      appname_out[0] = toupper(appname_out[0]);
+      
+      idx = contents.find(appname);
+      while (idx < contents.length()) {
+        contents.replace(idx , appname.length() , appname_out);
+        idx = contents.find(appname);
+      }
+    };
 
-    Path default_cfg = launcher_assets / "default.other.txt";
-
+    CopyWithEdits(default_tlmake , proj_tlmake , make_processor);
+    CopyWithEdits(default_pmake , proj_pmake , make_processor); 
     CopyWithEdits(default_cfg , project_file , [&](std::string& contents) {
       std::string projectname = "@projectname";
       std::string projectpath = "@projectpath";
+      std::string appname = "@appname";
       
       size_t idx = contents.find(projectname);
       while (idx < contents.length()) {
@@ -196,15 +231,21 @@ namespace other {
 
       idx = contents.find(projectpath);
       while (idx < contents.length()) {
-        contents.replace(idx , projectpath.length() , project_path);
+        contents.replace(idx , projectpath.length() , fixed_path);
         idx = contents.find(projectpath);
+      }
+      
+      std::string appname_out = final_name;
+      appname_out[0] = toupper(appname_out[0]);
+      
+      idx = contents.find(appname);
+      while (idx < contents.length()) {
+        contents.replace(idx , appname.length() , appname_out);
+        idx = contents.find(appname);
       }
     });
 
     render_state = RenderState::CREATING_PROJECT;
-    
-    Path assets = project_dir / "assets";
-    Path src = project_dir / "src";
 
     if (!Filesystem::CreateDir(assets)) {
       OE_ERROR("Failed to create 'assets'");
@@ -214,11 +255,6 @@ namespace other {
       OE_ERROR("Failed to create 'src'");
     }
 
-    Path hpp = src / (final_name + ".hpp");
-    Path cpp = src / (final_name + ".cpp");
-
-    Path defaulthpp = launcher_assets / "default.hpp.txt";
-    Path defaultcpp = launcher_assets / "default.cpp.txt";
     
     CopyWithEdits(defaulthpp , hpp , [&](std::string& contents) {
       std::string projectname = "@projectname";
@@ -249,7 +285,6 @@ namespace other {
         idx = contents.find(appname);
       }
     });
-    
     CopyWithEdits(defaultcpp , cpp , [&](std::string& contents) {
       std::string projectname = "@projectname";
       
@@ -280,8 +315,28 @@ namespace other {
     if (!Filesystem::CreateDir(assets / "shaders")) {
       return false;
     }
+
+    Path premakeexe = std::filesystem::absolute(Path{ project_path } / "premake" / "premake5.exe");
+    Path makefile = std::filesystem::absolute(Path{ project_path } / makefilename);
+
+    std::string cmd = fmtstr("\"{}\" vs2022 --file={}" , premakeexe.string() , makefile.string());
+    OE_DEBUG("Premake command : {}" , cmd);
+    if (system(cmd.c_str()) != 0) {
+      OE_ERROR("Failed to build project!");
+      return false;
+    }
+
+    std::string slnfilename = final_name + ".sln";
+    Path slnfile = Path{ project_path } / slnfilename;
+    if (!PlatformLayer::BuildProject(slnfile)) {
+      OE_ERROR("Failed to build project!");
+      return false;
+    }
+
+    ProjectCache::WriteProjectToCache("OtherEngine-Launcher/projects.cfg" , final_name , project_file.parent_path());
     
     ParentApp()->PushUIWindow(NewRef<TextEditor>("Project Editor" , "." , project_file.string()));
+    Project::QueueNewProject(project_file.string());
 
     project_name = std::nullopt;
     return true;
@@ -328,12 +383,6 @@ namespace other {
   }
 
   void CreateProjectLayer::RenderDirContents() {
-    for (const auto& entry : project_dir_contents) {
-      ImGui::Text("%s" , entry.filename().string().c_str());
-    }
-
-    ui::Underline();
-    ImGui::Separator();
   }
 
   void CreateProjectLayer::RenderMain() {

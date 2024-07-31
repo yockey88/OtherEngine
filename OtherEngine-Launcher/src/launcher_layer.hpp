@@ -52,8 +52,9 @@ namespace other {
       UUID editor_id = 0;
       UUID create_proj_id = 0;
 
+      /// these need to be true so window doesnt close first time it is opened
       bool rendering_open_project = true;
-      bool rendering_create_project = false;
+      bool rendering_create_project = true;
 
       SelectionContext selection_context;
 

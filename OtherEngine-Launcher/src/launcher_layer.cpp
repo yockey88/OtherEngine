@@ -8,6 +8,7 @@
 #include "core/defines.hpp"
 #include "core/logger.hpp"
 #include "core/filesystem.hpp"
+#include "core/platform.hpp"
 
 #include "event/event_queue.hpp"
 #include "event/event.hpp"
@@ -251,19 +252,19 @@ namespace other {
       return;
     }
 
+    LaunchType launch_type;
+
+    bool clicked = false;
+
     if (ImGui::Button("Open Project")) {
-      std::filesystem::path find_exe = Filesystem::FindExecutableIn(Project::GetQueuedProjectPath());
-      /// can clear it now that we have used the path 
-      Project::ClearQueuedProject();
-
-      if (find_exe.empty()) {
-        OE_ERROR("Failed to find executable in project directory");
-        ImGui::End();
-        return;
-      }
-
-      Launch(find_exe , LaunchType::EDITOR);
+      launch_type = LaunchType::EDITOR;
+      clicked = true;
     } else if (ImGui::Button("Launch Project")) {
+      launch_type = LaunchType::RUNTIME;
+      clicked = true;
+    }
+
+    if (clicked) {
       std::filesystem::path find_exe = Filesystem::FindExecutableIn(Project::GetQueuedProjectPath());
       /// can clear it now that we have used the path 
       Project::ClearQueuedProject();
@@ -274,7 +275,7 @@ namespace other {
         return;
       }
 
-      Launch(find_exe , LaunchType::RUNTIME);
+      Launch(find_exe , launch_type);
     }
 
     ImGui::End();
@@ -294,12 +295,25 @@ namespace other {
       rendering_create_project = true;
     }
 
-    if (!rendering) {
+    if (!rendering || !Project::HasQueuedProject()) {
       ImGui::End();
       return;
     }
 
-    ImGui::Text("Project Settings"); 
+    /// only let them open in editor
+    if (ImGui::Button("Open Project")) {
+      std::filesystem::path find_exe = Filesystem::FindExecutableIn(Project::GetQueuedProjectPath());
+      /// can clear it now that we have used the path 
+      Project::ClearQueuedProject();
+
+      if (find_exe.empty()) {
+        OE_ERROR("Failed to find executable in project directory");
+        ImGui::End();
+        return;
+      }
+
+      Launch(find_exe , LaunchType::EDITOR);
+    } 
 
     ImGui::End();
   }

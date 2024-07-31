@@ -10,7 +10,7 @@ class @appname : public other::App {
   public:
     @appname(other::Engine* engine)
       : other::App(engine) {}
-    virtual ~@appname override {}
+    virtual ~@appname() override {}
 };
 
 OE_APPLICATION(@appname);
