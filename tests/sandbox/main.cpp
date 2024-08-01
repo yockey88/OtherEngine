@@ -123,11 +123,14 @@ int main(int argc , char* argv[]) {
     OE_DEBUG("Sandbox Launched");
 
     mock_engine.PushCoreLayer();
-    
-    const other::Path shader1_path = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders" / "default.oshader";
-    const other::Path shader2_path = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders" / "normals.oshader";
-    const other::Path fbshader_path = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders" / "fbshader.oshader";
-    const other::Path add_fog_shader_path = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders" / "fog.oshader";
+
+    const other::Path shader_dir = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders";
+    const other::Path shader1_path = shader_dir / "default.oshader";
+    const other::Path normals_path = shader_dir / "normals.oshader";
+    const other::Path fbshader_path = shader_dir / "fbshader.oshader";
+    const other::Path add_fog_shader_path = shader_dir / "fog.oshader";
+    const other::Path red_path = shader_dir / "red.oshader";
+    const other::Path outline_path = shader_dir / "outline.oshader";
     
     SDL_SetRelativeMouseMode(SDL_TRUE);
 
@@ -184,6 +187,14 @@ int main(int argc , char* argv[]) {
       std::vector<Uniform> model_unis = {
         { "models" , other::ValueType::MAT4 , 100 } ,
       };
+      
+      other::Layout default_layout = {
+        { other::ValueType::VEC3 , "position" } ,
+        { other::ValueType::VEC3 , "normal"   } ,
+        { other::ValueType::VEC3 , "tangent"  } ,
+        { other::ValueType::VEC3 , "binormal" } ,
+        { other::ValueType::VEC2 , "uvs"      }
+      };
         
       SceneRenderSpec render_spec {
         .camera_uniforms = NewRef<UniformBuffer>("Camera" , cam_unis , camera_binding_pnt) ,
@@ -200,8 +211,20 @@ int main(int argc , char* argv[]) {
             .uniforms = {
               { "magnitude" , other::FLOAT } ,
             } ,
-            .shader = other::BuildShader(shader2_path) ,
+            .shader = other::BuildShader(normals_path) ,
           } ,
+          { 
+            .name = "Red" ,
+            .tag_col = { 0.f , 0.f , 1.f , 1.f } ,
+            .uniforms = {} ,
+            .shader = other::BuildShader(red_path)
+          } ,
+          { 
+            .name = "Outline" ,
+            .tag_col = { 0.f , 0.f , 1.f , 1.f } ,
+            .uniforms = {} ,
+            .shader = other::BuildShader(outline_path)
+          }
 #if FOGFB
           {
             .name = "Add Fog" , 
@@ -223,19 +246,26 @@ int main(int argc , char* argv[]) {
               .clear_color = { 0.1f , 0.3f , 0.5f , 1.f } ,
               .size = other::Renderer::WindowSize() ,
             } ,
-            .vertex_layout = {
-              { other::ValueType::VEC3 , "position" } ,
-              { other::ValueType::VEC3 , "normal"   } ,
-              { other::ValueType::VEC3 , "tangent"  } ,
-              { other::ValueType::VEC3 , "binormal" } ,
-              { other::ValueType::VEC2 , "uvs"      }
-            } ,
+            .vertex_layout = default_layout ,
             .model_storage = NewRef<UniformBuffer>("ModelData" , model_unis , model_binding_pnt , other::SHADER_STORAGE) ,
             .debug_name = "Debug" , 
           } ,
+          {
+            .has_indices = true ,
+            .buffer_cap = 4096 * sizeof(float) ,
+            .framebuffer_spec = {
+              .depth_func = other::LESS_EQUAL ,
+              .clear_color = { 0.3f , 0.3f , 0.3f , 1.f } ,
+              .size = other::Renderer::WindowSize() ,
+            } ,
+            .vertex_layout = default_layout ,
+            .model_storage = NewRef<UniformBuffer>("ModelData" , model_unis , model_binding_pnt , other::SHADER_STORAGE) ,
+            .debug_name = "Stencil Buffer" ,
+          } ,
         } , 
         .pipeline_to_pass_map = {
-          { FNV("Debug")    , { FNV("Draw Geometry") , FNV("Draw Normals") } }
+          { FNV("Debug")          , { FNV("Draw Geometry") , FNV("Draw Normals") } } ,
+          { FNV("Stencil Buffer") , { FNV("Outline") } }
         } ,
       };
       Scope<SceneRenderer> renderer = NewScope<SceneRenderer>(render_spec);
@@ -350,6 +380,7 @@ int main(int argc , char* argv[]) {
         if (ImGui::Begin("Frames")) {
           ImVec2 win_size = { (float)other::Renderer::WindowSize().x , (float)other::Renderer::WindowSize().y };
           RenderFrame(frames.at(FNV("Debug"))    , "Debug" , win_size);
+          RenderFrame(frames.at(FNV("Stencil Buffer")) , "Outline" , win_size);
 
           // RenderTexture(icon , "Folder Icon");
         } 

@@ -110,7 +110,7 @@ static const char* frag2 = R"(
 out vec4 frag_color;
 
 void main() {
-  frag_color = vec4(0.7 , 0.7 , 0.7 , 1.0);
+  frag_color = vec4(1.f , 0.f , 0.f , 1.f);
 }
 )";
 
@@ -352,16 +352,19 @@ int main(int argc , char* argv[]) {
 
     CHECK();
 
-
-    glUseProgram(0);
-
     OE_INFO("Uniforms applied");
 
     other::FramebufferSpec fb_spec {
       .size = { win_w , win_h }
     };
+    
+    other::FramebufferSpec fb2_spec {
+      .clear_color = { 0.1f , 1.f , 1.f , 1.f } ,
+      .size = { win_w , win_h } ,
+    };
 
     other::Ref<other::Framebuffer> fb = other::NewRef<other::Framebuffer>(fb_spec);
+    other::Ref<other::Framebuffer> fb2 = other::NewRef<other::Framebuffer>(fb2_spec);
 
     OE_INFO("Running");
 
@@ -392,6 +395,10 @@ int main(int argc , char* argv[]) {
         ImGui_ImplSDL2_ProcessEvent(&event);
       }
 
+      model1 = glm::mat4(1.f);
+
+      // model1 = glm::rotate(model1 , 0.1f , { 1.f , 1.f , 1.f });
+
       glClearColor(0.2f , 0.3f , 0.3f , 1.f);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
@@ -409,6 +416,22 @@ int main(int argc , char* argv[]) {
 
       fb->BindFrame();
 
+      glUseProgram(shader1);
+      glBindVertexArray(vao);
+#if RECT
+      glDrawElements(GL_TRIANGLES , 6 , GL_UNSIGNED_INT , 0);
+#else
+      glDrawArrays(GL_TRIANGLES , 0 , 6);
+#endif
+
+      glBindVertexArray(0);
+
+      fb->UnbindFrame();
+
+      fb2->BindFrame();
+
+      glStencilFunc(GL_ALWAYS , 1 , 0xFF);
+      glStencilMask(0xFF);
 
       glUseProgram(shader1);
       glBindVertexArray(vao);
@@ -417,14 +440,32 @@ int main(int argc , char* argv[]) {
 #else
       glDrawArrays(GL_TRIANGLES , 0 , 6);
 #endif
-      CHECK();
 
-      // glUseProgram(shader2);
-      // glUniformMatrix4fv(model_loc2, 1, GL_FALSE, glm::value_ptr(model2));
-      // glDrawElements(GL_TRIANGLES , 6 , GL_UNSIGNED_INT , 0);
-      // CHECK();
+      glStencilFunc(GL_NOTEQUAL , 1 , 0xFF);
+      glStencilMask(0x00);
+      glDisable(GL_DEPTH_TEST);
+      
+      // model1 = glm::scale(model1 , { 1.1f , 1.1f , 1.f });
 
-      fb->UnbindFrame();
+      // glBindBuffer(GL_SHADER_STORAGE_BUFFER , model_ssbo);
+      // glBufferSubData(GL_SHADER_STORAGE_BUFFER , 0 , sizeof(glm::mat4) , glm::value_ptr(model1));
+      // glBufferSubData(GL_SHADER_STORAGE_BUFFER , sizeof(glm::mat4) , sizeof(glm::mat4) , glm::value_ptr(model2));
+      // glBindBuffer(GL_SHADER_STORAGE_BUFFER , 0);
+
+      glUseProgram(shader2);
+      // glBindVertexArray(vao);
+#if RECT
+      glDrawElements(GL_TRIANGLES , 6 , GL_UNSIGNED_INT , 0);
+#else
+      glDrawArrays(GL_TRIANGLES , 0 , 6);
+#endif
+
+      glBindVertexArray(0);
+      glStencilMask(0xFF);
+      glStencilFunc(GL_ALWAYS , 0 , 0xFF);
+      glEnable(GL_DEPTH_TEST);
+
+      fb2->UnbindFrame();
 
       ImGui_ImplOpenGL3_NewFrame();
       ImGui_ImplSDL2_NewFrame(context.window);
@@ -433,7 +474,8 @@ int main(int argc , char* argv[]) {
       if (ImGui::Begin("Viewport")) {
         ImGui::Text("Frame");
         ImGui::SameLine();
-        ImGui::Image((void*)(uintptr_t)fb->texture , { win_w / 2 , win_h / 2} , ImVec2(0 , 1) , ImVec2(1 , 0));
+        ImGui::Image((void*)(uintptr_t)fb->texture , { (float)win_w / 2 , (float)win_h / 2} , ImVec2(0 , 1) , ImVec2(1 , 0));
+        ImGui::Image((void*)(uintptr_t)fb2->texture , { (float)win_w / 2 , (float)win_h / 2} , ImVec2(0 , 1) , ImVec2(1 , 0));
       }
       ImGui::End();
 

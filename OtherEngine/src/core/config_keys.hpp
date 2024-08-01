@@ -333,6 +333,9 @@ namespace other {
   
   constexpr static std::string_view kPrimitiveValue = "PRIMITIVE";
   constexpr static uint64_t kPrimitiveValueHash = FNV(kPrimitiveValue);
+  
+  constexpr static std::string_view kPointLightValue = "POINT-LIGHT";
+  constexpr static uint64_t kPointLightHash = FNV(kPointLightValue);
 
 } // namespace other 
 
