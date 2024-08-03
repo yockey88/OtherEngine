@@ -10,6 +10,7 @@
 #include <optional>
 #include <iostream>
 #include <filesystem>
+#include <utility>
 
 #include <spdlog/fmt/fmt.h>
 #include <glm/glm.hpp>
@@ -239,8 +240,11 @@ namespace other {
   template <typename T>
   concept is_enum = std::is_enum_v<T>;
 
-  constexpr auto ValOf(is_enum auto e) {
-    return std::to_underlying(e);
+  template <typename E>
+    requires is_enum<E>
+  constexpr std::underlying_type_t<E> ValOf(E e) {
+    /// solve really annoying LSP issue
+    return fmt::underlying(e);
   }
 
 } // namespace other

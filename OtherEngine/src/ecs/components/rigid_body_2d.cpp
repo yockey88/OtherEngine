@@ -42,13 +42,14 @@ namespace other {
     OE_ASSERT(entity != nullptr && scene != nullptr , "Attempting to deserialize a rigid-body 2D into null entity or scene!");
     std::string key_value = GetComponentSectionKey(entity->Name() , std::string{ kRigidBody2DValue });
 
+    auto& rigid_body = entity->AddComponent<RigidBody2D>();
+    
     auto body_type = scene_table.Get(key_value , kTypeValue);
     if (body_type.size() != 1) {
       OE_ERROR("Failed to deserialize rigidy body 2D into entity {}" , entity->Name());
       return;
     }
-    
-    auto& rigid_body = entity->AddComponent<RigidBody2D>();
+
     std::string type = body_type[0];
     std::string uc_type;
     std::transform(type.begin() , type.end() , std::back_inserter(uc_type) , ::toupper);

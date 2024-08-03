@@ -28,7 +28,7 @@ namespace other {
 
 #define COMPONENT_SERIALIZERS(name) \
   virtual ~name##Serializer() override {} \
-  const std::string GetSerializerName() const { return "ComponentSerializer[" #name "Serializer]"; } \
+  const std::string GetSerializerName() const { return "ComponentSerializer[" #name "]"; } \
   virtual void Serialize(std::ostream& stream , Entity* entity , const Ref<Scene>& scene) const override; \
   virtual void Deserialize(Entity* entity , const ConfigTable& scene_table , Ref<Scene>& scene) const override;
 

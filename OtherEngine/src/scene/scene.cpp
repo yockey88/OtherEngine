@@ -39,6 +39,15 @@ namespace other {
 
     registry.on_construct<RigidBody2D>().connect<&Scene::OnAddRigidBody2D>(this);
     registry.on_update<RigidBody2D>().connect<&OnRigidBody2DUpdate>();
+    
+    registry.on_construct<Collider2D>().connect<&Scene::OnAddCollider2D>(this);
+    registry.on_update<Collider2D>().connect<&OnCollider2DUpdate>();
+    
+    registry.on_construct<RigidBody>().connect<&Scene::OnAddRigidBody>(this);
+    registry.on_update<RigidBody>().connect<&OnRigidBodyUpdate>();
+    
+    registry.on_construct<Collider>().connect<&Scene::OnAddCollider>(this);
+    registry.on_update<Collider>().connect<&OnColliderUpdate>();
 
     registry.on_construct<Mesh>().connect<&OnAddModel>();
     registry.on_construct<StaticMesh>().connect<&OnAddStaticModel>();
@@ -47,6 +56,15 @@ namespace other {
   Scene::~Scene() {
     registry.on_construct<StaticMesh>().disconnect<&OnAddStaticModel>();
     registry.on_construct<Mesh>().disconnect<&OnAddModel>();
+    
+    registry.on_update<Collider>().disconnect();
+    registry.on_construct<Collider>().disconnect();
+
+    registry.on_update<RigidBody>().disconnect();
+    registry.on_construct<RigidBody>().disconnect(this);
+
+    registry.on_update<Collider2D>().disconnect();
+    registry.on_construct<Collider2D>().disconnect();
 
     registry.on_update<RigidBody2D>().disconnect();
     registry.on_construct<RigidBody2D>().disconnect(this);
@@ -150,7 +168,7 @@ namespace other {
       return;
     }
 
-    OE_ASSERT(physics_world_2d != nullptr , "Can not step physics world with null scene (2D)!");
+    OE_ASSERT(physics_world_2d != nullptr , "Cannot step physics world with null scene (2D)!");
     
     /// update client app if they have custom logic
     OnUpdate(dt);
@@ -325,11 +343,9 @@ namespace other {
       }
     });
 
-    if (physics_type == PHYSICS_2D) {
-      registry.view<RigidBody2D>().each([&](RigidBody2D& body) {
-        physics_world_2d->DestroyBody(body.physics_body);
-      });
-    }
+    registry.view<RigidBody2D>().each([&](RigidBody2D& body) {
+      physics_world_2d->DestroyBody(body.physics_body);
+    });
 
     running = false;
     OnStop();
@@ -363,12 +379,12 @@ namespace other {
     return scene_object;
   }
       
-  PhysicsType Scene::ActivePhysicsType() const {
-    return physics_type;
-  }
-      
   Ref<PhysicsWorld2D> Scene::Get2DPhysicsWorld() const {
     return physics_world_2d;
+  }
+      
+  Ref<PhysicsWorld> Scene::GetPhysicsWorld() const {
+    return physics_world;
   }
 
   const bool Scene::IsInitialized() const {
@@ -621,6 +637,33 @@ namespace other {
     auto& transform = ent.GetComponent<Transform>();
 
     Initialize2DCollider(physics_world_2d , body , collider , transform);
+  }
+      
+  void Scene::OnAddRigidBody(entt::registry& context , entt::entity entt) {
+    OE_ASSERT(physics_world != nullptr , "Somehow created a rigid body component without active 3D physics!");
+    
+    Entity ent(context , entt);
+    auto& body = ent.GetComponent<RigidBody>(); 
+
+    auto& tag = ent.GetComponent<Tag>();
+    auto& transform = ent.GetComponent<Transform>();
+    
+    InitializeRigidBody(physics_world , body , tag , transform); 
+  }
+
+  void Scene::OnAddCollider(entt::registry& context , entt::entity entt) {
+    OE_ASSERT(physics_world != nullptr , "Somehow created a collider component without active 3D physics!");
+    
+    Entity ent(context , entt);
+    if (!ent.HasComponent<RigidBody>()) {
+      ent.AddComponent<RigidBody>(); 
+    }
+
+    auto& body = ent.AddComponent<RigidBody>();
+    auto& collider = ent.AddComponent<Collider>();
+    auto& transform = ent.GetComponent<Transform>();
+
+    InitializeCollider(physics_world , body , collider , transform);
   }
       
   void Scene::FixRoots() {

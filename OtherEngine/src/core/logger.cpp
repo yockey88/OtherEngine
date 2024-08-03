@@ -159,6 +159,10 @@ namespace other {
     user_sink_levels.push_back(target.level);
     user_sink_patterns.push_back(target.log_format);
   }
+      
+  bool Logger::IsThreadRegistered() {
+    return thread_names.find(std::this_thread::get_id()) != thread_names.end();
+  }
 
   void Logger::SetCorePattern(CoreTarget target , const std::string& pattern) {
     sink_patterns[target] = pattern;
