@@ -95,6 +95,8 @@ namespace other {
       void RegisterThread(const std::string& name); 
       void RegisterTarget(const LoggerTargetData& target);
 
+      bool IsThreadRegistered();
+
       void SetCorePattern(CoreTarget target , const std::string& pattern);
 
       void SetCoreLevel(CoreTarget target , const std::string& l);
@@ -187,5 +189,17 @@ struct fmt::formatter<other::Path> : fmt::formatter<std::string_view> {
 #define OE_WARN(fmt , ...) OE_LOG(WARN , fmt , __VA_ARGS__)
 #define OE_ERROR(fmt , ...) OE_LOG(ERR , fmt , __VA_ARGS__)
 #define OE_CRITICAL(fmt , ...) OE_LOG(CRITICAL , fmt , __VA_ARGS__)
+
+#define OE_REGISTER_THREAD(name) \
+  do { \
+    LOG_INSTANCE()->RegisterThread(name); \
+  } while (false)
+
+#define OE_CHECK_AND_REGISTER_THREAD(name) \
+  do { \
+    if (!LOG_INSTANCE()->IsThreadRegistered()) { \
+      OE_REGISTER_THREAD(name); \
+    } \
+  } while (false)
 
 #endif // !OTHER_ENGINE_LOGGER_HPP

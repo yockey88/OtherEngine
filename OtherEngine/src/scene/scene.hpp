@@ -19,6 +19,7 @@
 
 #include "physics/physics_defines.hpp"
 #include "physics/2D/physics_world_2d.hpp"
+#include "physics/3D/physics_world.hpp"
 
 #include "rendering/scene_renderer.hpp"
 
@@ -52,8 +53,8 @@ namespace other {
 
       ScriptObject* SceneScriptObject();
 
-      PhysicsType ActivePhysicsType() const;
       Ref<PhysicsWorld2D> Get2DPhysicsWorld() const;
+      Ref<PhysicsWorld> GetPhysicsWorld() const;
 
       const bool IsInitialized() const;
       const bool IsRunning() const;
@@ -90,6 +91,9 @@ namespace other {
 
       void OnAddRigidBody2D(entt::registry& context , entt::entity ent);
       void OnAddCollider2D(entt::registry& context , entt::entity ent);
+      
+      void OnAddRigidBody(entt::registry& context , entt::entity ent);
+      void OnAddCollider(entt::registry& context , entt::entity ent);
 
       virtual void OnInit() {}
       virtual void OnStart() {}
@@ -117,8 +121,8 @@ namespace other {
 
       ScriptObject* scene_object = nullptr;
 
-      PhysicsType physics_type = PhysicsType::PHYSICS_2D;
       Ref<PhysicsWorld2D> physics_world_2d;
+      Ref<PhysicsWorld> physics_world;
 
       std::map<UUID , Entity*> root_entities{};
       std::map<UUID , Entity*> entities{};

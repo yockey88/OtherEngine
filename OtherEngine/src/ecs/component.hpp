@@ -18,7 +18,23 @@
 
 namespace other {
 
-  constexpr static size_t kNumComponents = 9;
+/**
+ * FIXME: reduce the number of steps to implement a component
+ *
+ * When adding a new component these are the places where something must change
+ *  - implement the component and its corresponding serializer
+ *    - while implementing the serializer, add any necessary key/values to core/config_keys.hpp file
+ *  - add the next index to the list below and increment kNumComponents by one
+ *  - add the corresponding tag-pair to the array and note there can be no collisions between names
+ *  - add a ctor function for the component serializer list in ecs/systems/entity_serialization.cpp
+ *      (this must have the same index as specified below)
+ *  - add a AddComponentButton in editor/entity_properties.hpp 
+ *
+ *  - (optional) implement any UI functionality in ecs/systems/component_gui and add the call to DrawComponent<>(name , func)
+ *      in the editor/entity_properties.hpp
+ **/
+
+  constexpr static size_t kNumComponents = 11;
 
   constexpr static int32_t kTagIndex = 0;
   constexpr static int32_t kTransformIndex = 1;
@@ -29,6 +45,8 @@ namespace other {
   constexpr static int32_t kCameraIndex = 6;
   constexpr static int32_t kRigidBody2DIndex = 7;
   constexpr static int32_t kCollider2DIndex = 8;
+  constexpr static int32_t kRigidBodyIndex = 9;
+  constexpr static int32_t kColliderIndex = 10;
 
   using ComponentTagPair = std::pair<std::string_view , size_t>;
   constexpr static std::array<ComponentTagPair , kNumComponents> kComponentTags = {
@@ -41,6 +59,8 @@ namespace other {
     ComponentTagPair{ "CAMERA" , kCameraIndex } ,
     ComponentTagPair{ "RIGID-BODY-2D" , kRigidBody2DIndex } ,
     ComponentTagPair{ "COLLIDER-2D" , kCollider2DIndex } ,
+    ComponentTagPair{ "RIGID-BODY" , kRigidBodyIndex } ,
+    ComponentTagPair{ "COLLIDER" , kColliderIndex } ,
   };
 
   class ComponentDataBase {
@@ -48,8 +68,6 @@ namespace other {
       static std::string GetComponentTagUc(size_t idx);
       static std::string GetComponentTagLc(size_t idx);
       static int32_t GetComponentIdxFromTag(const std::string_view tag);
-
-    private:
   };
 
   struct Component {
