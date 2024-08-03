@@ -231,6 +231,50 @@ reflection_testing.components["gtest"] = "%{wks.location}/externals/gtest/google
 
 AddProject(reflection_testing)
 
+local physics_tests = {}
+
+physics_tests.name = "physics_tests"
+physics_tests.path = "./physics_tests"
+physics_tests.kind = "ConsoleApp"
+physics_tests.language = "C++"
+physics_tests.cppdialect = "C++latest"
+
+physics_tests.files = function()
+  files {
+    "./physics_tests/main.cpp"
+  }
+end
+
+physics_tests.include_dirs = function()
+  includedirs {
+    "./physics_tests",
+  }
+end
+
+physics_tests.post_build_commands = function()
+  filter { "system:windows" , "configurations:Debug" }
+    postbuildcommands {
+      '{COPY} "%{wks.location}/externals/sdl2/lib/Debug/SDL2d.dll" "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/mono-2.0-sgen.dll "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/mono-2.0-sgen.pdb "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/MonoPosixHelper.dll "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/MonoPosixHelper.pdb "%{cfg.targetdir}"',
+    }
+
+  filter { "system:windows" , "configurations:Release" }
+    postbuildcommands {
+      '{COPY} "%{wks.location}/externals/sdl2/lib/Release/SDL2.dll" "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/mono-2.0-sgen.dll "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/MonoPosixHelper.dll "%{cfg.targetdir}"',
+    }
+end
+
+physics_tests.components = {}
+physics_tests.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
+physics_tests.components["gtest"] = "%{wks.location}/externals/gtest/googletest/include"
+
+AddProject(physics_tests)
+
 local node_editor_tests = {}
 node_editor_tests.name = "node_editor_tests"
 node_editor_tests.path = "./node_editor_tests"

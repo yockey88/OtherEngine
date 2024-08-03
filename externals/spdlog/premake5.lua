@@ -4,15 +4,18 @@ spdlog.name = "spdlog"
 spdlog.kind = "StaticLib"
 spdlog.language = "C++"
 
-spdlog.files = function() 
-  files { "./include/**.h" , "./src/**.cpp" }
+spdlog.files = function()
+  files {
+    "./src/**.cpp" ,
+    "./include/**.h" ,
+  }
 end
 
-spdlog.include_dirs = function() 
+spdlog.include_dirs = function()
   includedirs { "./include" }
 end
 
-spdlog.defines = function() 
+spdlog.defines = function()
   defines { "SPDLOG_COMPILED_LIB" }
 end
 
