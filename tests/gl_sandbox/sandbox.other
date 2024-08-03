@@ -1,5 +1,5 @@
 [project]
-name = "Sandbox"
+name = "GLSandbox"
 author = "Y"
 version = 0.0.1
 
@@ -11,4 +11,4 @@ title = "Other Engine Sandbox"
 [log]
 console-level = "Debug" 
 file-level = "trace"
-path = "./logs/sandbox.log"
+path = "./logs/gl_sandbox.log"

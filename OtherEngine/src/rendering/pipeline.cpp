@@ -156,6 +156,9 @@ namespace other {
       meshes[i]->Draw(spec.topology);
     }
 
+    pass->Unbind();
+    CHECKGL();
+
     // if (spec.has_indices) {
     //   glDrawElements(spec.topology , indices.size() , GL_UNSIGNED_INT , 0);
     // } else {

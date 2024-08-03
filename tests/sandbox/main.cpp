@@ -41,6 +41,8 @@
 #include "rendering/uniform.hpp"
 #include "rendering/model.hpp"
 #include "rendering/model_factory.hpp"
+#include "rendering/outline_pass.hpp"
+#include "rendering/render_pass.hpp"
 #include "rendering/scene_renderer.hpp"
 #include "rendering/ui/ui.hpp"
 
@@ -125,7 +127,7 @@ int main(int argc , char* argv[]) {
     mock_engine.PushCoreLayer();
 
     const other::Path shader_dir = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders";
-    const other::Path shader1_path = shader_dir / "default.oshader";
+    const other::Path default_path = shader_dir / "default.oshader";
     const other::Path normals_path = shader_dir / "normals.oshader";
     const other::Path fbshader_path = shader_dir / "fbshader.oshader";
     const other::Path add_fog_shader_path = shader_dir / "fog.oshader";
@@ -195,6 +197,11 @@ int main(int argc , char* argv[]) {
         { other::ValueType::VEC3 , "binormal" } ,
         { other::ValueType::VEC2 , "uvs"      }
       };
+
+      std::vector<Uniform> outline_unis = {
+      };
+      Ref<other::Shader> outline_shader = other::BuildShader(outline_path);
+      Ref<other::RenderPass> outline_pass = other::NewRef<other::OutlinePass>(outline_unis , outline_shader);
         
       SceneRenderSpec render_spec {
         .camera_uniforms = NewRef<UniformBuffer>("Camera" , cam_unis , camera_binding_pnt) ,
@@ -203,7 +210,7 @@ int main(int argc , char* argv[]) {
             .name = "Draw Geometry" , 
             .tag_col = { 1.f , 0.f , 0.f , 1.f } ,
             .uniforms = {} ,
-            .shader = other::BuildShader(shader1_path) ,
+            .shader = other::BuildShader(default_path) ,
           } ,
           {
             .name = "Draw Normals" , 
@@ -213,29 +220,6 @@ int main(int argc , char* argv[]) {
             } ,
             .shader = other::BuildShader(normals_path) ,
           } ,
-          { 
-            .name = "Red" ,
-            .tag_col = { 0.f , 0.f , 1.f , 1.f } ,
-            .uniforms = {} ,
-            .shader = other::BuildShader(red_path)
-          } ,
-          { 
-            .name = "Outline" ,
-            .tag_col = { 0.f , 0.f , 1.f , 1.f } ,
-            .uniforms = {} ,
-            .shader = other::BuildShader(outline_path)
-          }
-#if FOGFB
-          {
-            .name = "Add Fog" , 
-            .tag_col = { 0.f , 0.f , 1.f , 1.f } ,
-            .uniforms = {
-              { "depth_tex" , other::SAMPLER2D } ,
-              { "screen_tex" , other::SAMPLER2D } ,
-            } ,
-            .shader = other::BuildShader(add_fog_shader_path) ,
-          } ,
-#endif
         } ,
         .pipelines = {
           {
@@ -263,9 +247,12 @@ int main(int argc , char* argv[]) {
             .debug_name = "Stencil Buffer" ,
           } ,
         } , 
+        .ref_passes = {
+          outline_pass ,  
+        } ,
         .pipeline_to_pass_map = {
-          { FNV("Debug")          , { FNV("Draw Geometry") , FNV("Draw Normals") } } ,
-          { FNV("Stencil Buffer") , { FNV("Outline") } }
+          { FNV("Debug")           , { FNV("Draw Geometry")     , FNV("Draw Normals")  } } ,
+          { FNV("Stencil Buffer")  , { FNV("ObjectOutlinePass") } } ,
         } ,
       };
       Scope<SceneRenderer> renderer = NewScope<SceneRenderer>(render_spec);
@@ -279,7 +266,7 @@ int main(int argc , char* argv[]) {
 
       bool running = true;
 
-      bool camera_free = true;
+      bool camera_lock = false;
       other::Mouse::LockCursor();
         
       CHECKGL();
@@ -307,11 +294,11 @@ int main(int argc , char* argv[]) {
                 case SDLK_ESCAPE: running = false; break;
                 case SDLK_f: rendering_floor = !rendering_floor; break;
                 case SDLK_c: 
-                  camera_free = !camera_free;
-                  if (!camera_free) {
-                    other::Mouse::LockCursor();
-                  } else {
+                  camera_lock = !camera_lock;
+                  if (camera_lock) {
                     other::Mouse::FreeCursor();
+                  } else {
+                    other::Mouse::LockCursor();
                   }
                 break;
                 default: break;
@@ -324,10 +311,9 @@ int main(int argc , char* argv[]) {
           ImGui_ImplSDL2_ProcessEvent(&event);
         }
 
-        if (camera_free) {
+        if (!camera_lock) {
           other::DefaultUpdateCamera(camera);
         }
-
 
         model1 = glm::rotate(model1 , glm::radians(5.f) , { 1.f , 1.f , 0.f });
 
@@ -351,42 +337,23 @@ int main(int argc , char* argv[]) {
         fbshader->SetUniform("screen_tex" , 0);
         fb_mesh->Draw(other::TRIANGLES);
 
-#if FOGFB
-        fog_shader->SetUniform("screen_tex" , 0);
-        fog_shader->SetUniform("depth_tex" , 1);
-        fb_mesh->Draw(other::TRIANGLES);
-#endif
-
         other::UI::BeginFrame();
 
-        auto RenderFrame = [](const Ref<other::Framebuffer>& fb , const std::string& title , ImVec2 size = ImVec2(800 , 600)) {
+        auto RenderItem = [](int32_t id , const std::string& title , ImVec2 size = ImVec2(800 , 600)) {
           ImGui::PushID(("##" + title).c_str());
           ImGui::Text("%s" , title.c_str());
           ImGui::SameLine();
-
-          ImGui::Image((void*)(uintptr_t)fb->texture , ImVec2(size.x , size.y) , ImVec2(0 , 1) , ImVec2(1 , 0));
-          ImGui::PopID();
-        };
-
-        auto RenderTexture = [](const Ref<other::Texture>& texture , const std::string& title , ImVec2 size = ImVec2(800 , 600)) {
-          ImGui::PushID(("##" + title).c_str());
-          ImGui::Text("%s" , title.c_str());
-          ImGui::SameLine();
-
-          ImGui::Image((void*)(uintptr_t)texture->GetRendererId() , ImVec2(size.x , size.y) , ImVec2(0 , 1) , ImVec2(1 , 0));
+          ImGui::Image((void*)(intptr_t)id , ImVec2(size.x , size.y) , ImVec2(0 , 1) , ImVec2(1 , 0));
           ImGui::PopID();
         };
 
         if (ImGui::Begin("Frames")) {
           ImVec2 win_size = { (float)other::Renderer::WindowSize().x , (float)other::Renderer::WindowSize().y };
-          RenderFrame(frames.at(FNV("Debug"))    , "Debug" , win_size);
-          RenderFrame(frames.at(FNV("Stencil Buffer")) , "Outline" , win_size);
-
-          // RenderTexture(icon , "Folder Icon");
+          RenderItem(frames.at(FNV("Debug"))->texture          , "Debug"   , win_size);
+          RenderItem(frames.at(FNV("Stencil Buffer"))->texture , "Outline" , win_size);
         } 
         ImGui::End();
 
-        
         other::UI::EndFrame();
 
         other::Renderer::GetWindow()->SwapBuffers();

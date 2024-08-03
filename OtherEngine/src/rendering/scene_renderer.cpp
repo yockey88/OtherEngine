@@ -62,11 +62,16 @@ namespace other {
   void SceneRenderer::Initialize() {
     spec.camera_uniforms->BindBase();
 
+    for (auto& rp : spec.ref_passes) {
+      passes[FNV(rp->Name())] = rp;
+    }
+
     for (auto& rp : spec.passes) {
       passes[FNV(rp.name)] = NewRef<RenderPass>(rp);
     }
 
     for (auto& pl : spec.pipelines) {
+      pl.model_storage->BindBase();
       pipelines[FNV(pl.debug_name)] = NewRef<Pipeline>(pl);
     }
 

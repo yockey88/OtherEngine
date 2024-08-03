@@ -2,8 +2,10 @@
  * \file gl_sandbox/main.cpp
  **/
 #include <SDL_events.h>
+#include <event/event_queue.hpp>
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <imgui/backends/imgui_impl_sdl2.h>
+#include <input/io.hpp>
 #include <iostream>
 
 #include <SDL_video.h>
@@ -16,6 +18,7 @@
 
 #include <box2d/box2d.h>
 #include <box2d/b2_world.h>
+#include <rendering/camera_base.hpp>
 
 
 #include "core/logger.hpp"
@@ -26,8 +29,9 @@
 #include "rendering/rendering_defines.hpp"
 #include "rendering/window.hpp"
 #include "rendering/framebuffer.hpp"
+#include "rendering/perspective_camera.hpp"
 
-#define RECT 1
+#define RECT 0
 
 #if RECT
 const float vertices[] = {
@@ -43,10 +47,31 @@ const uint32_t indices[] = {
 };
 #else
 const float vertices[] = {
-  -0.5f , -0.5f , 0.0f ,
-   0.5f , -0.5f , 0.0f ,
-   0.0f ,  0.5f , 0.0f ,
+  -1.0f / 2.0f, -1.0f / 2.0f,  1.0f / 2.0f , 0.f ,
+   1.0f / 2.0f, -1.0f / 2.0f,  1.0f / 2.0f , 0.f ,
+   1.0f / 2.0f,  1.0f / 2.0f,  1.0f / 2.0f , 0.f , 
+  -1.0f / 2.0f,  1.0f / 2.0f,  1.0f / 2.0f , 0.f , 
+  -1.0f / 2.0f, -1.0f / 2.0f, -1.0f / 2.0f , 0.f , 
+   1.0f / 2.0f, -1.0f / 2.0f, -1.0f / 2.0f , 0.f , 
+   1.0f / 2.0f,  1.0f / 2.0f, -1.0f / 2.0f , 0.f , 
+  -1.0f / 2.0f,  1.0f / 2.0f, -1.0f / 2.0f , 0.f , 
 };
+
+const uint32_t indices[] = {
+  0, 1, 2 , 
+  2, 3, 0 , 
+  1, 5, 6 , 
+  6, 2, 1 , 
+  7, 6, 5 , 
+  5, 4, 7 , 
+  4, 0, 3 , 
+  3, 7, 4 , 
+  4, 5, 1 , 
+  1, 0, 4 , 
+  3, 2, 6 , 
+  6, 7, 3 , 
+};
+
 #endif
 
 
@@ -84,26 +109,6 @@ void main() {
 }
 )";
 
-static const char* vert2 = R"(
-#version 460 core
-
-layout(location = 0) in vec3 vpos;
-layout (location = 1) in int model_id; 
-
-layout (std140) uniform Camera {
-  mat4 projection;
-  mat4 view;
-};
-
-layout (std430) readonly buffer ModelData {
-  mat4 models[];
-};
-
-void main() {
-  gl_Position = projection * view * models[model_id] * vec4(vpos , 1.0);
-}
-)";
-
 static const char* frag2 = R"(
 #version 460 core
 
@@ -121,9 +126,15 @@ void CheckGlError(int line);
 constexpr static uint32_t win_w = 800;
 constexpr static uint32_t win_h = 600;
 
+using other::CameraBase;
+using other::PerspectiveCamera;
+using other::Framebuffer;
+
+void UpdateCamera(other::Ref<CameraBase>& camera);
+
 int main(int argc , char* argv[]) {
   try {
-    other::IniFileParser parser("C:/Yock/code/OtherEngine/tests/sandbox/sandbox.other");
+    other::IniFileParser parser("C:/Yock/code/OtherEngine/tests/gl_sandbox/sandbox.other");
     auto config = parser.Parse(); 
 
     other::Logger::Open(config);
@@ -186,6 +197,9 @@ int main(int argc , char* argv[]) {
     ImGui_ImplSDL2_InitForOpenGL(context.window, context.context);
     ImGui_ImplOpenGL3_Init("#version 460 core");
 
+    other::IO::Initialize();
+    other::EventQueue::Initialize(config);
+
     OE_INFO("ImGui Initialized successfully"); 
 
     int success;
@@ -229,21 +243,7 @@ int main(int argc , char* argv[]) {
       OE_ERROR("Failed to link shader program: {0}", info);
     }
 
-    glDeleteShader(vert_1);
     glDeleteShader(frag_1);
-    
-    CHECK();
-    
-    int32_t vert_2 = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vert_2, 1, &vert2, nullptr);
-    
-    glCompileShader(vert_2);
-    glGetShaderiv(vert_2, GL_COMPILE_STATUS, &success);
-    if (success != GL_TRUE) {
-      char info[512];
-      glGetShaderInfoLog(vert_2, 512, nullptr, info);
-      OE_ERROR("Failed to compile vertex shader: {0}", info);
-    }
     
     CHECK();
 
@@ -262,7 +262,7 @@ int main(int argc , char* argv[]) {
 
     uint32_t shader2 = 0;
     shader2 = glCreateProgram();
-    glAttachShader(shader2, vert_2);
+    glAttachShader(shader2, vert_1);
     glAttachShader(shader2, frag_2);
     glLinkProgram(shader2);
     
@@ -273,7 +273,7 @@ int main(int argc , char* argv[]) {
       OE_ERROR("Failed to link shader2 program: {0}", info);
     }
 
-    glDeleteShader(vert_2);
+    glDeleteShader(vert_1);
     glDeleteShader(frag_2);
 
     OE_INFO("Shaders Compiled");
@@ -286,11 +286,9 @@ int main(int argc , char* argv[]) {
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     
-#if RECT
     glGenBuffers(1, &ebo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-#endif
 
     glVertexAttribPointer(0 , 3 , GL_FLOAT , GL_FALSE , 4 * sizeof(float) , (void*)0);
     glEnableVertexAttribArray(0);
@@ -324,14 +322,15 @@ int main(int argc , char* argv[]) {
 
     glBindBufferRange(GL_UNIFORM_BUFFER , 0 , camera_ub , 0 , 2 * sizeof(glm::mat4));
     
-    glm::mat4 proj = glm::perspective(glm::radians(70.0f), (float)win_w / (float)win_h, 0.1f, 100.0f);
-    glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    other::Ref<CameraBase> camera = other::NewRef<PerspectiveCamera>(glm::ivec2{ win_w , win_h });
+    camera->SetPosition({ 0.f , 0.f , 3.f });
+    glm::mat4 proj = camera->ProjectionMatrix();
+    glm::mat4 view = camera->ViewMatrix();
 
     glBindBuffer(GL_UNIFORM_BUFFER , camera_ub);
     glBufferSubData(GL_UNIFORM_BUFFER , 0 , sizeof(glm::mat4) , glm::value_ptr(proj));
     glBufferSubData(GL_UNIFORM_BUFFER , sizeof(glm::mat4) , sizeof(glm::mat4) , glm::value_ptr(view));
     glBindBuffer(GL_UNIFORM_BUFFER , 0);
-
 
     glm::mat4 model1 =  glm::mat4(1.0f); 
     glm::mat4 model2 =  glm::mat4(1.f);
@@ -363,12 +362,21 @@ int main(int argc , char* argv[]) {
       .size = { win_w , win_h } ,
     };
 
-    other::Ref<other::Framebuffer> fb = other::NewRef<other::Framebuffer>(fb_spec);
-    other::Ref<other::Framebuffer> fb2 = other::NewRef<other::Framebuffer>(fb2_spec);
+    other::Ref<Framebuffer> fb = other::NewRef<Framebuffer>(fb_spec);
+    other::Ref<Framebuffer> fb2 = other::NewRef<Framebuffer>(fb2_spec);
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glEnable(GL_STENCIL_TEST);
+    glStencilFunc(GL_NOTEQUAL , 1 , 0xFF);
+    glStencilOp(GL_KEEP , GL_KEEP , GL_REPLACE);
 
     OE_INFO("Running");
 
     bool running = true;
+    bool camera_lock = false;
+    other::Mouse::LockCursor();
+
     while (running) {
       SDL_Event event;
       while (SDL_PollEvent(&event)) {
@@ -384,6 +392,14 @@ int main(int argc , char* argv[]) {
           case SDL_KEYDOWN:
             switch (event.key.keysym.sym) {
               case SDLK_ESCAPE: running = false; break;
+              case SDLK_c: 
+                camera_lock = !camera_lock; 
+                if (camera_lock) {
+                  other::Mouse::FreeCursor();
+                } else {
+                  other::Mouse::LockCursor();
+                }
+                break;
               default:
                 break;
             }
@@ -395,10 +411,17 @@ int main(int argc , char* argv[]) {
         ImGui_ImplSDL2_ProcessEvent(&event);
       }
 
-      model1 = glm::mat4(1.f);
+      other::IO::Update();
+
+      if (!camera_lock) {
+        UpdateCamera(camera);
+        proj = camera->ProjectionMatrix();
+        view = camera->ViewMatrix();
+      }
 
       // model1 = glm::rotate(model1 , 0.1f , { 1.f , 1.f , 1.f });
 
+      /// clear window
       glClearColor(0.2f , 0.3f , 0.3f , 1.f);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
@@ -407,77 +430,65 @@ int main(int argc , char* argv[]) {
       glBufferSubData(GL_UNIFORM_BUFFER , 0 , sizeof(glm::mat4) , glm::value_ptr(proj));
       glBufferSubData(GL_UNIFORM_BUFFER , sizeof(glm::mat4) , sizeof(glm::mat4) , glm::value_ptr(view));
       glBindBuffer(GL_UNIFORM_BUFFER , 0);
+      
+      /// outline pass
+      float scale = 1.03f;
+      model1 = glm::mat4(1.f);
+      model1 = glm::scale(model1 , { scale , scale , scale });
+      
+      glBindBuffer(GL_SHADER_STORAGE_BUFFER , model_ssbo);
+      glBufferSubData(GL_SHADER_STORAGE_BUFFER , 0 , sizeof(glm::mat4) , glm::value_ptr(model1));
+      glBindBuffer(GL_SHADER_STORAGE_BUFFER , 0);
 
-      /// update model data
+      glStencilFunc(GL_NOTEQUAL , 0 , 0xFF);
+      glStencilMask(0x00);
+      glDisable(GL_DEPTH_TEST);
+
+      glUseProgram(shader2);
+      glBindVertexArray(vao);
+      glDrawElements(GL_TRIANGLES , 
+#if RECT
+        6 , 
+#else
+        36 ,
+#endif
+      GL_UNSIGNED_INT , 0);
+      /// end of outline pass
+
+      /// model pass 
+      model1 = glm::mat4(1.f);
+
       glBindBuffer(GL_SHADER_STORAGE_BUFFER , model_ssbo);
       glBufferSubData(GL_SHADER_STORAGE_BUFFER , 0 , sizeof(glm::mat4) , glm::value_ptr(model1));
       glBufferSubData(GL_SHADER_STORAGE_BUFFER , sizeof(glm::mat4) , sizeof(glm::mat4) , glm::value_ptr(model2));
       glBindBuffer(GL_SHADER_STORAGE_BUFFER , 0);
 
-      fb->BindFrame();
-
-      glUseProgram(shader1);
-      glBindVertexArray(vao);
-#if RECT
-      glDrawElements(GL_TRIANGLES , 6 , GL_UNSIGNED_INT , 0);
-#else
-      glDrawArrays(GL_TRIANGLES , 0 , 6);
-#endif
-
-      glBindVertexArray(0);
-
-      fb->UnbindFrame();
-
-      fb2->BindFrame();
-
+      glEnable(GL_DEPTH_TEST);
       glStencilFunc(GL_ALWAYS , 1 , 0xFF);
       glStencilMask(0xFF);
 
       glUseProgram(shader1);
-      glBindVertexArray(vao);
+      glDrawElements(GL_TRIANGLES , 
 #if RECT
-      glDrawElements(GL_TRIANGLES , 6 , GL_UNSIGNED_INT , 0);
+        6 , 
 #else
-      glDrawArrays(GL_TRIANGLES , 0 , 6);
+        36 ,
 #endif
+      GL_UNSIGNED_INT , 0);
+      /// end of model pass
 
-      glStencilFunc(GL_NOTEQUAL , 1 , 0xFF);
-      glStencilMask(0x00);
-      glDisable(GL_DEPTH_TEST);
-      
-      // model1 = glm::scale(model1 , { 1.1f , 1.1f , 1.f });
-
-      // glBindBuffer(GL_SHADER_STORAGE_BUFFER , model_ssbo);
-      // glBufferSubData(GL_SHADER_STORAGE_BUFFER , 0 , sizeof(glm::mat4) , glm::value_ptr(model1));
-      // glBufferSubData(GL_SHADER_STORAGE_BUFFER , sizeof(glm::mat4) , sizeof(glm::mat4) , glm::value_ptr(model2));
-      // glBindBuffer(GL_SHADER_STORAGE_BUFFER , 0);
-
-      glUseProgram(shader2);
-      // glBindVertexArray(vao);
-#if RECT
-      glDrawElements(GL_TRIANGLES , 6 , GL_UNSIGNED_INT , 0);
-#else
-      glDrawArrays(GL_TRIANGLES , 0 , 6);
-#endif
-
-      glBindVertexArray(0);
-      glStencilMask(0xFF);
-      glStencilFunc(GL_ALWAYS , 0 , 0xFF);
-      glEnable(GL_DEPTH_TEST);
-
-      fb2->UnbindFrame();
 
       ImGui_ImplOpenGL3_NewFrame();
       ImGui_ImplSDL2_NewFrame(context.window);
       ImGui::NewFrame();
 
-      if (ImGui::Begin("Viewport")) {
-        ImGui::Text("Frame");
-        ImGui::SameLine();
-        ImGui::Image((void*)(uintptr_t)fb->texture , { (float)win_w / 2 , (float)win_h / 2} , ImVec2(0 , 1) , ImVec2(1 , 0));
-        ImGui::Image((void*)(uintptr_t)fb2->texture , { (float)win_w / 2 , (float)win_h / 2} , ImVec2(0 , 1) , ImVec2(1 , 0));
-      }
-      ImGui::End();
+      // if (ImGui::Begin("Viewport")) {
+      //   ImGui::Text("Frame");
+      //   ImGui::SameLine();
+      //   // ImGui::Image((void*)(uintptr_t)fb->texture , { (float)win_w / 2 , (float)win_h / 2} , ImVec2(0 , 1) , ImVec2(1 , 0));
+      //   // ImGui::Image((void*)(uintptr_t)fb2->texture , { (float)win_w / 2 , (float)win_h / 2} , ImVec2(0 , 1) , ImVec2(1 , 0));
+      // }
+      // ImGui::End();
 
       ImGui::Render();
       ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -489,19 +500,30 @@ int main(int argc , char* argv[]) {
       SDL_GL_SwapWindow(context.window);
     }
 
+
     glDeleteVertexArrays(1 , &vao);
     glDeleteBuffers(1 , &vbo);
     glDeleteProgram(shader1);
     glDeleteProgram(shader2);
+
+    other::EventQueue::Shutdown();
+    other::IO::Shutdown();
+
+    return 1;
   } catch (const other::IniException& e) {
     std::cout << "caught ini error : " << e.what() << "\n";
+    other::EventQueue::Shutdown();
+    other::IO::Shutdown();
   } catch(const std::exception& e) {
     std::cout << "caught std error : " << e.what() << "\n";
   } catch (...) {
     std::cout << "unknown error" << "\n";
-    return 1;
   }
-  return 0;
+
+  other::EventQueue::Shutdown();
+  other::IO::Shutdown();
+
+  return 1;
 }
 
 void CheckGlError(int line) {
@@ -539,4 +561,55 @@ void CheckGlError(int line) {
     }
     err = glGetError();
   }
+}
+
+void UpdateCamera(other::Ref<CameraBase>& camera) {
+  if (other::Keyboard::Down(other::Keyboard::Key::OE_W)) {
+    camera->MoveForward();
+  }
+  if (other::Keyboard::Down(other::Keyboard::Key::OE_S)) {
+    camera->MoveBackward();
+  }
+  if (other::Keyboard::Down(other::Keyboard::Key::OE_A)) {
+    camera->MoveLeft();
+  }
+  if (other::Keyboard::Down(other::Keyboard::Key::OE_D)) {
+    camera->MoveRight();
+  }
+  if (other::Keyboard::Down(other::Keyboard::Key::OE_SPACE)) {
+    camera->MoveUp();
+  }
+  if (other::Keyboard::Down(other::Keyboard::Key::OE_LSHIFT)) {
+    camera->MoveDown();
+  }
+
+  glm::vec2 win_size = { win_w , win_h };
+  glm::ivec2 mouse_pos = other::Mouse::GetPos();
+
+  SDL_WarpMouseInWindow(SDL_GetMouseFocus() , win_size.x / 2 , win_size.y / 2);
+
+  camera->SetLastMouse(camera->Mouse());
+  camera->SetMousePos(mouse_pos);
+  camera->SetDeltaMouse({ 
+    camera->Mouse().x - camera->LastMouse().x ,
+    camera->LastMouse().y - camera->Mouse().y
+  });
+
+    glm::ivec2 rel_pos = other::Mouse::GetRelPos();
+
+    camera->SetYaw(camera->Yaw() + (rel_pos.x * camera->Sensitivity()));
+    camera->SetPitch(camera->Pitch() - (rel_pos.y * camera->Sensitivity()));
+
+    if (camera->ConstrainPitch()) {
+      if (camera->Pitch() > 89.0f) {
+        camera->SetPitch(89.0f);
+      }
+
+      if (camera->Pitch() < -89.0f) {
+        camera->SetPitch(-89.0f);
+      }
+    }
+
+    camera->UpdateCoordinateFrame();
+    camera->CalculateMatrix();
 }

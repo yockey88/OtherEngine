@@ -21,6 +21,8 @@ namespace other {
     std::vector<RenderPassSpec> passes;
     std::vector<PipelineSpec> pipelines;
 
+    std::vector<Ref<RenderPass>> ref_passes;
+
     std::map<UUID , std::vector<UUID>> pipeline_to_pass_map;
   };
 

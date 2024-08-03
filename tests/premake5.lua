@@ -23,7 +23,6 @@ sandbox.components = {}
 sandbox.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
 sandbox.components["gtest"] = "%{wks.location}/externals/gtest/googletest/include"
 
-
 sandbox.post_build_commands = function()
   filter { "system:windows" , "configurations:Debug" }
     postbuildcommands {
@@ -68,6 +67,24 @@ end
 gl_sandbox.components = {}
 gl_sandbox.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
 gl_sandbox.components["gtest"] = "%{wks.location}/externals/gtest/googletest/include"
+
+gl_sandbox.post_build_commands = function()
+  filter { "system:windows" , "configurations:Debug" }
+    postbuildcommands {
+      '{COPY} "C:/Yock/code/OtherEngine/externals/sdl2/lib/Debug/SDL2d.dll" "%{cfg.targetdir}"',
+      '{COPY} C:/Yock/code/OtherEngine/externals/mono/bin/mono-2.0-sgen.dll "%{cfg.targetdir}"',
+      '{COPY} C:/Yock/code/OtherEngine/externals/mono/bin/mono-2.0-sgen.pdb "%{cfg.targetdir}"',
+      '{COPY} C:/Yock/code/OtherEngine/externals/mono/bin/MonoPosixHelper.dll "%{cfg.targetdir}"',
+      '{COPY} C:/Yock/code/OtherEngine/externals/mono/bin/MonoPosixHelper.pdb "%{cfg.targetdir}"',
+    }
+
+  filter { "system:windows" , "configurations:Release" }
+    postbuildcommands {
+      '{COPY} "C:/Yock/code/OtherEngine/externals/sdl2/lib/Release/SDL2.dll" "%{cfg.targetdir}"',
+      '{COPY} C:/Yock/code/OtherEngine/externals/mono/bin/mono-2.0-sgen.dll "%{cfg.targetdir}"',
+      '{COPY} C:/Yock/code/OtherEngine/externals/mono/bin/MonoPosixHelper.dll "%{cfg.targetdir}"',
+    }
+end
 
 AddProject(gl_sandbox)
 

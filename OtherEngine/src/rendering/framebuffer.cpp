@@ -49,17 +49,6 @@ namespace other {
     if (!fb_complete) {
       return;
     }
-    
-    if (spec.depth) {
-      glEnable(GL_DEPTH_TEST);
-    }
-
-    if (spec.color) {
-    }
-
-    if (spec.stencil) {
-      glEnable(GL_STENCIL_TEST);
-    }
 
     glBindFramebuffer(GL_FRAMEBUFFER , fbo);
     glClearColor(spec.clear_color.x , spec.clear_color.y , spec.clear_color.z , spec.clear_color.w);
