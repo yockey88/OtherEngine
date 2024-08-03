@@ -333,7 +333,40 @@ namespace other {
   
   constexpr static std::string_view kPrimitiveValue = "PRIMITIVE";
   constexpr static uint64_t kPrimitiveValueHash = FNV(kPrimitiveValue);
+    
+  constexpr static std::string_view kRigidBodyValue = "RIGID-BODY";
+  constexpr static uint64_t kRigidBodyValueHash = FNV(kRigidBodyValue);
+
+  constexpr static std::string_view kDisableGravityValue = "DISABLE-GRAVITY";
+  constexpr static uint64_t kDisableGravityValueHash = FNV(kDisableGravityValue);
   
+  constexpr static std::string_view kIsTriggerValue = "IS-TRIGGER";
+  constexpr static uint64_t kIsTriggerValueHash = FNV(kIsTriggerValue);
+  
+  constexpr static std::string_view kCollisionTypeValue = "COLLISION-TYPE";
+  constexpr static uint64_t kCollisionTypeValueHash = FNV(kCollisionTypeValue);
+  
+  constexpr static std::string_view kDiscreteValue = "DISCRETE";
+  constexpr static uint64_t kDiscreteValueHash = FNV(kDiscreteValue);
+  
+  constexpr static std::string_view kContinuousValue = "CONTINUOUS";
+  constexpr static uint64_t kContinuousValueHash = FNV(kContinuousValue);
+  
+  constexpr static std::string_view kInitialLinearVelocityValue = "INITIAL-LINEAR-VELOCITY";
+  constexpr static uint64_t kInitialLinearVelocityValueHash = FNV(kInitialLinearVelocityValue);
+  
+  constexpr static std::string_view kInitialAngularVelocityValue = "INITIAL-ANGULAR-VELOCITY";
+  constexpr static uint64_t kInitialAngularVelocityValueHash = FNV(kInitialAngularVelocityValue);
+  
+  constexpr static std::string_view kMaxLinearVelocityValue = "INITIAL-LINEAR-VELOCITY";
+  constexpr static uint64_t kMaxLinearVelocityValueHash = FNV(kMaxLinearVelocityValue);
+  
+  constexpr static std::string_view kMaxAngularVelocityValue = "INITIAL-ANGULAR-VELOCITY";
+  constexpr static uint64_t kMaxAngularVelocityValueHash = FNV(kMaxAngularVelocityValue);
+  
+  constexpr static std::string_view kColliderValue = "COLLIDER";
+  constexpr static uint64_t kColliderValueHash = FNV(kColliderValue);
+
   constexpr static std::string_view kPointLightValue = "POINT-LIGHT";
   constexpr static uint64_t kPointLightHash = FNV(kPointLightValue);
 

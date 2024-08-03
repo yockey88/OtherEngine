@@ -18,6 +18,7 @@ namespace other {
     b2BodyDef body_def;
     b2Body* physics_body = nullptr; 
     b2MassData mass_data;
+
     PhysicsBodyType type = STATIC;
     float mass = 1.f;
     float linear_drag = 0.01f;

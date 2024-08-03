@@ -11,8 +11,11 @@
 #include "ecs/components/transform.hpp"
 #include "ecs/components/rigid_body_2d.hpp"
 #include "ecs/components/collider_2d.hpp"
+#include "ecs/components/rigid_body.hpp"
+#include "ecs/components/collider.hpp"
 
 #include "physics/2D/physics_world_2d.hpp"
+#include "physics/3D/physics_world.hpp"
 
 namespace other {
 
@@ -40,6 +43,12 @@ namespace other {
 
   CORE_SYSTEM(OnRigidBody2DUpdate);
   CORE_SYSTEM(OnCollider2DUpdate);
+  
+  void InitializeRigidBody(Ref<PhysicsWorld>& world , RigidBody& body , const Tag& tag , const Transform& transform);
+  void InitializeCollider(Ref<PhysicsWorld>& world , RigidBody& body , Collider& collider , const Transform& transform);
+
+  CORE_SYSTEM(OnRigidBodyUpdate);
+  CORE_SYSTEM(OnColliderUpdate);
 
 } // namespace other
 

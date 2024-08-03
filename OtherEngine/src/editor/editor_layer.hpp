@@ -40,7 +40,7 @@ namespace other {
     private:
       ConfigTable editor_config;
 
-      StateCapture saved_scene;
+      Opt<StateCapture> saved_scene;
 
       /// TODO: find a better way to manage state than this
       bool playing = false;

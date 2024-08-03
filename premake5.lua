@@ -106,6 +106,12 @@ local stb = {}
 stb.name = "stb"
 stb.include_dir = "%{wks.location}/externals/stb"
 
+local jolt = {}
+jolt.name = "jolt"
+jolt.path = "./externals/jolt"
+jolt.include_dir = "%{wks.location}/externals/jolt"
+jolt.lib_name = "jolt"
+
 AddDependency(choc)
 AddDependency(entt)
 AddDependency(glad)
@@ -121,5 +127,6 @@ AddDependency(mono)
 AddDependency(sol2)
 AddDependency(box2d)
 AddDependency(stb)
+AddDependency(jolt)
 
 CppWorkspace(configuration)
