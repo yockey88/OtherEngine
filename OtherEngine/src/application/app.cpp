@@ -3,6 +3,8 @@
  */
 #include "application\app.hpp"
 
+#include <tracy/tracy/Tracy.hpp>
+
 #include "core/logger.hpp"
 #include "core/time.hpp"  
 #include "core/engine.hpp"
@@ -106,6 +108,8 @@ namespace {
       Renderer::GetWindow()->SwapBuffers();
       
       CHECKGL();
+
+      // FrameMark;
     } 
 
     Detach();

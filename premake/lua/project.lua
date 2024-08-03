@@ -174,14 +174,13 @@ function AddModule(project)
   end
 
   project.include_dirs = project.include_dirs or function() end
+  project.defines = project.defines or function() end
 
   print(" -- Adding Module : " .. project.name)
   ProjectHeader(project)
     project.files()
 
-    if project.defines ~= nil then
-      project.defines()
-    end
+    project.defines()
 
     if project.language == "C++" then
       project.include_dirs()
@@ -199,6 +198,8 @@ function AddProject(project)
   end
 
   project.include_dirs = project.include_dirs or function() end
+  project.defines = project.defines or function() end
+  project.post_build_commands = project.post_build_commands or function() end
 
   print(" -- Adding project : " .. project.name)
   ProjectHeader(project)
@@ -207,13 +208,9 @@ function AddProject(project)
 
     ProcessProjectComponents(project)
 
-    if project.defines ~= nil then
-      project.defines()
-    end
+    project.defines()
 
     ProcessConfigurations(project)
 
-    if project.post_build_commands ~= nil then
-      project.post_build_commands()
-    end
+    project.post_build_commands()
 end
