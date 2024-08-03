@@ -56,10 +56,10 @@ namespace other {
     passes.push_back(pass);
   }
 
-  void Pipeline::SubmitModel(Ref<Model>& model , const glm::mat4& transform) {
+  void Pipeline::SubmitModel(Ref<Model>& model , const glm::mat4& transform , const Material& material) {
   }
 
-  void Pipeline::SubmitStaticModel(Ref<StaticModel>& model , const glm::mat4& transform) {
+  void Pipeline::SubmitStaticModel(Ref<StaticModel>& model , const glm::mat4& transform , const Material& material) {
     Ref<ModelSource> source = model->GetModelSource();
     // const auto& submesh_data = model_source->SubMeshes();
      
@@ -92,8 +92,11 @@ namespace other {
       indices.push_back(i.v3);
     }
 
-    meshes.emplace_back(NewRef<VertexArray>(verts , indices));
-    transforms.push_back(transform);
+    frame_submissions.emplace_back(RenderSubmission{
+      .mesh = NewRef<VertexArray>(verts , indices) ,
+      .material = material ,
+      .transform = transform ,
+    });
   }
 
   void Pipeline::Render() {
@@ -128,8 +131,7 @@ namespace other {
     // 
     // vertices.clear();
     // indices.clear();
-    meshes.clear();
-    transforms.clear();
+    frame_submissions.clear();
 
     // curr_transform_idx = 0;
     // idx_offset = 0;
@@ -151,9 +153,14 @@ namespace other {
     pass->Bind();
     CHECKGL();
 
-    for (uint32_t i = 0; i < meshes.size(); ++i) {
-      pass->SetInput("voe_model" , transforms[i]);
-      meshes[i]->Draw(spec.topology);
+    for (auto& fs : frame_submissions) {
+      pass->SetInput("voe_model" , fs.transform);
+      pass->SetInput("foe_color" , fs.material.ambient);
+      pass->SetInput("foe_material.ambient" , fs.material.ambient);
+      pass->SetInput("foe_material.diffuse" , fs.material.diffuse);
+      pass->SetInput("foe_material.specular" , fs.material.specular);
+      pass->SetInput("foe_material.shininess" , fs.material.shininess);
+      fs.mesh->Draw(spec.topology);
     }
 
     pass->Unbind();

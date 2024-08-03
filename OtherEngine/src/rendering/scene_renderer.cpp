@@ -26,27 +26,25 @@ namespace other {
   void SceneRenderer::SetViewportSize(const glm::ivec2& size) {
   }
   
-  void SceneRenderer::SubmitModel(Ref<Model> model , const glm::mat4& transform) {
-  }
-
-  void SceneRenderer::SubmitStaticModel(Ref<StaticModel> model , const glm::mat4& transform) {
-    /// decide which pipeline to submit model to
-    for (auto& [id , pl] : pipelines) {
-      pl->SubmitStaticModel(model , transform);
-    }
-  }
-
-  /**
-   * fn SetUniforms(camera , light)
-   *    for u in camera.uniforms 
-   *      passes.bind(u)
-   *    for l in light
-   *      passes.bind(l)
-   **/
+  
   void SceneRenderer::BeginScene(Ref<CameraBase>& camera) {
     spec.camera_uniforms->SetUniform("projection" , camera->ProjectionMatrix());
     spec.camera_uniforms->SetUniform("view" , camera->ViewMatrix());
     spec.camera_uniforms->SetUniform("viewpoint" , camera->Position());
+  }
+  
+  void SceneRenderer::SubmitModel(const std::string_view pl_name , Ref<Model> model , const glm::mat4& transform , const Material& material) {
+  }
+
+  void SceneRenderer::SubmitStaticModel(const std::string_view pl_name , Ref<StaticModel> model , const glm::mat4& transform , const Material& material) {
+    auto hash = FNV(pl_name);
+    auto itr = pipelines.find(hash); 
+    if (itr == pipelines.end()) {
+      return;
+    }
+
+    auto& [id , pl] = *itr;
+    pl->SubmitStaticModel(model , transform , material);
   }
   
   void SceneRenderer::EndScene() {
@@ -122,6 +120,8 @@ namespace other {
     /// light culling
     /// skybox pass
 
+    /// TODO: certain pipelines should be rendered before others so we can use pipeline outputs as 
+    ///       inputs to other pipelines
     for (auto& [id , pl] : pipelines) {
       pl->Render();
       image_ir[id] = pl->GetOutput();

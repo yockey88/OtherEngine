@@ -13,6 +13,7 @@
 #include "rendering/vertex.hpp"
 #include "rendering/framebuffer.hpp"
 #include "rendering/model.hpp"
+#include "rendering/material.hpp"
 #include "rendering/render_pass.hpp"
 
 namespace other {
@@ -96,8 +97,8 @@ namespace other {
       void SubmitRenderPass(const Ref<RenderPass>& pass);
 
       /// Add materials to model submission
-      void SubmitModel(Ref<Model>& model , const glm::mat4& transform);
-      void SubmitStaticModel(Ref<StaticModel>& model , const glm::mat4& transform);
+      void SubmitModel(Ref<Model>& model , const glm::mat4& transform , const Material& color);
+      void SubmitStaticModel(Ref<StaticModel>& model , const glm::mat4& transform , const Material& color);
 
       void Render();
       Ref<Framebuffer> GetOutput();
@@ -106,10 +107,13 @@ namespace other {
       uint32_t vao_id = 0;
       PipelineSpec spec{};
 
-      std::vector<Ref<VertexArray>> meshes;
+      struct RenderSubmission {
+        Ref<VertexArray> mesh = nullptr;
+        Material material;
+        glm::mat4 transform;
+      };
 
-      // std::vector<Ref<ModelSource>> meshes{};
-      std::vector<glm::mat4> transforms{};
+      std::vector<RenderSubmission> frame_submissions;
       
       std::vector<float> vertices{};
       std::vector<uint32_t> indices{};

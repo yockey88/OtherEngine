@@ -315,6 +315,35 @@ namespace other {
     std::stringstream stream;
     stream << "#version 460 core\n\n";
 
+    if (context == FRAGMENT_SHADER) {
+      stream << "struct Material {\n";
+      stream << "  vec3 ambient;\n";
+      stream << "  vec3 diffuse;\n";
+      stream << "  vec3 specular;\n";
+      stream << "  float shininess;\n";
+      stream << "};\n\n";
+      
+      stream << "struct PointLight {\n";
+      stream << "  vec3 position;\n";
+      stream << "  vec3 ambient;\n";
+      stream << "  vec3 diffuse;\n";
+      stream << "  vec3 specular;\n";
+      stream << "  float constant;\n";
+      stream << "  float linear;\n";
+      stream << "  float quadratic;\n";
+      stream << "};\n\n";
+      
+      stream << "struct DirectionLight {\n";
+      stream << "  vec3 direction;\n";
+      stream << "  vec3 ambient;\n";
+      stream << "  vec3 diffuse;\n";
+      stream << "  vec3 specular;\n";
+      stream << "  float constant;\n";
+      stream << "  float linear;\n";
+      stream << "  float quadratic;\n";
+      stream << "};\n\n";
+    }
+
     std::stringstream ts;
     if (mesh_layout.has_value() && mesh_layout->override && context == VERTEX_SHADER) {
       for (const auto& a : mesh_layout.value().attrs) {
@@ -342,6 +371,11 @@ namespace other {
 
     if (context == VERTEX_SHADER) {
       stream << "uniform mat4 voe_model;\n\n";
+    } else if (context == FRAGMENT_SHADER) {
+      stream << "uniform vec3 foe_color;\n";
+      stream << "uniform Material foe_material;\n\n";
+      stream << "uniform PointLight foe_plight;\n\n";
+      stream << "uniform DirectionLight foe_dlight;\n\n";
     }
 
     for (auto& n : nodes) {

@@ -35,6 +35,7 @@ namespace other {
 
     if (!Compile(vsrc_ptr , fsrc_ptr , gsrc_ptr)) {
       OE_ERROR("Failed to compile shader!");
+      valid = false;
     }
   }
   
@@ -47,6 +48,9 @@ namespace other {
   }
   
   void Shader::Bind() const {
+    if (!valid) {
+      return;
+    }
     glUseProgram(renderer_id);
   }
   

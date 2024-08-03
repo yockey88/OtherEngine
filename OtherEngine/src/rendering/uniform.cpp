@@ -84,7 +84,7 @@ namespace other {
     return uniform.offset + index * uniform.size;
   }
       
-  std::tuple<UniformBuffer::UniformData , bool , uint32_t> UniformBuffer::TryFind(const std::string& name , uint32_t index) {
+  std::tuple<UniformBuffer::UniformData , bool , uint32_t> UniformBuffer::TryFind(const std::string_view name , uint32_t index) {
     auto [id , u_data] = GetUniform(name);
     if (id.Get() == 0) {
       return { {} , false  , 0 };
@@ -94,7 +94,7 @@ namespace other {
     return { u_data , true , offset };
   }
       
-  std::pair<UUID , UniformBuffer::UniformData> UniformBuffer::GetUniform(const std::string& name) {
+  std::pair<UUID , UniformBuffer::UniformData> UniformBuffer::GetUniform(const std::string_view name) {
     static const auto null_uniform = std::pair<UUID , UniformBuffer::UniformData>{ 0 , {} };
 
     UUID hash = FNV(name);

@@ -35,7 +35,7 @@ namespace other {
       void Bind();
       
       template <typename T>
-      void SetUniform(const std::string& name , const T& value , uint32_t index = 0) {
+      void SetUniform(const std::string_view name , const T& value , uint32_t index = 0) {
         auto [u_data , success , offset] = TryFind(name , index);
         if (!success) {
           return;
@@ -75,8 +75,8 @@ namespace other {
       uint32_t renderer_id = 0;
 
       uint32_t CalculateOffset(const UniformData& uniform , uint32_t index);
-      std::tuple<UniformData , bool , uint32_t> TryFind(const std::string& name , uint32_t index);
-      std::pair<UUID , UniformData> GetUniform(const std::string& name);
+      std::tuple<UniformData , bool , uint32_t> TryFind(const std::string_view name , uint32_t index);
+      std::pair<UUID , UniformData> GetUniform(const std::string_view name);
   };
 
 } // namespace other

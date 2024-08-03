@@ -5,17 +5,44 @@
 
 #include <glad/glad.h>
 
+#include "core/defines.hpp"
+
 namespace other {
       
   RenderPass::RenderPass(RenderPassSpec spec) 
       : spec(spec) {
     for (auto& u : spec.uniforms) {
-      uniforms[other::FNV(u.name)] = u;
+      uniforms[FNV(u.name)] = u;
     } 
 
-    uniforms[other::FNV("voe_model")] = Uniform {
-      "voe_model" , other::ValueType::MAT4 
-    };
+    const std::vector<Uniform> material_unis = {
+      { "voe_model"          , MAT4  } ,
+      { "foe_color"          , VEC3 } ,
+
+      { "foe_material.ambient"   , VEC3  } ,
+      { "foe_material.diffuse"   , VEC3  } ,
+      { "foe_material.specular"  , VEC3  } ,
+      { "foe_material.shininess" , FLOAT } ,
+
+      { "foe_plight.position"   , VEC3  } ,
+      { "foe_plight.ambient"    , VEC3  } ,
+      { "foe_plight.diffuse"    , VEC3  } ,
+      { "foe_plight.specular"   , VEC3  } ,
+      { "foe_plight.constant"   , FLOAT  } ,
+      { "foe_plight.linear"     , FLOAT  } ,
+      { "foe_plight.quadratic"  , FLOAT  } ,
+
+      { "foe_dlight.direction"   , VEC3  } ,
+      { "foe_dlight.ambient"    , VEC3  } ,
+      { "foe_dlight.diffuse"    , VEC3  } ,
+      { "foe_dlight.specular"   , VEC3  } ,
+      { "foe_dlight.constant"   , FLOAT  } ,
+      { "foe_dlight.linear"     , FLOAT  } ,
+      { "foe_dlight.quadratic"  , FLOAT  } ,
+    }; 
+    for (const auto& u : material_unis) {
+      DefineInput(u);
+    }
   }
 
   std::string RenderPass::Name() const {
@@ -32,6 +59,7 @@ namespace other {
     /// depth
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
+    
 
     /// stencil
     glEnable(GL_STENCIL_TEST);
@@ -39,7 +67,14 @@ namespace other {
     glStencilMask(0xFF);
     glStencilOp(GL_KEEP , GL_KEEP , GL_REPLACE);
 
+    /// gamma correction 
+    // glEnable(GL_FRAMEBUFFER_SRGB);
+
+    CHECKGL();
+
     SetRenderState();
+
+    CHECKGL();
 
     spec.shader->Bind();
   }
@@ -62,8 +97,9 @@ namespace other {
       OE_ERROR("Can not redefine uniform block {}" , uni_buffer->Name());
       return;
     }
-  
-    uniform_blocks[hash] = uni_buffer;
+
+    auto& buff = uniform_blocks[hash] = uni_buffer;
+    buff->BindBase();
   }
 
   void RenderPass::DefineInput(Uniform uniform) {
@@ -74,7 +110,6 @@ namespace other {
     }
   
     uniforms[hash] = uniform;
-    
   }
 
 } // namespace other

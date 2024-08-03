@@ -1,5 +1,5 @@
 vertex [mesh : default] {
-   
+  
   layout (std140 , binding = 0) uniform Camera {
     mat4 projection;
     mat4 view;
@@ -11,15 +11,17 @@ vertex [mesh : default] {
   };
 
   out vec3 fviewpoint;
+
   out vec3 foe_position;
-  out vec4 foe_color;
+  out vec3 foe_normal;
   
   void main() {
     gl_Position = projection * view * voe_model * vec4(voe_position , 1.0);
 
     fviewpoint = viewpoint;
-    foe_position = vec3(view * voe_model * vec4(voe_position , 1.0))
-    foe_color = vec4(voe_position , 1.0);
+
+    foe_position = vec3(voe_model * vec4(voe_position , 1.0));
+    foe_normal = mat3(transpose(inverse(voe_model))) * voe_normal;
   };
 
 }
@@ -27,42 +29,38 @@ vertex [mesh : default] {
 fragment {
   
   in vec3 fviewpoint;
+
   in vec3 foe_position;
-  in vec4 foe_color;
-  
-  const float fog_start = 0.0;
-  const float fog_end = 0.1;
-
-  float fog_factor(float d , float scalar , float near_plane , float far_plane) {
-    float fog_max = 1.0f * far_plane;
-    float fog_min = scalar * far_plane;
-    if (d >= fog_max) {
-      return 1.0f;
-    }
-
-    if (d <= fog_min) {
-      return 0.0f;
-    }
-
-    return 1.0f - (fog_max - d) / (fog_max - fog_min);
-  }
+  in vec3 foe_normal;
 
   out vec4 FragColor;
-  
-  const vec3 fog_color = vec3(1.0 , 1.0 , 1.0);
 
   void main () {
-    // float d = distance(fviewpoint , foe_position);
-    // float factor = fog_factor(d , 0.5f , 2 , 10);
-    // float alpha = fog_factor(d , 0.7f , 2 , 10);
-    // FragColor = mix(foe_color , vec4(fog_color , 1.f) , factor);
-    // FragColor.a = 1-alpha;
-    
-    /// for weird invisible box?
-    // FragColor = vec4(1 / d); 
+    /// general data
+    vec3 norm = normalize(foe_normal);
+    vec3 light_dir = normalize(foe_plight.position - foe_position);
+    vec3 view_dir = normalize(fviewpoint - foe_position);
+    vec3 reflect_dir = reflect(-light_dir , norm);
+    vec3 halfway_dir = normalize(light_dir + view_dir);
 
-    /// for vert shader based color 
-    FragColor = foe_color;
+    float distance = length(foe_plight.position - foe_position);
+    float attenuation = 1.f / (foe_plight.constant + foe_plight.linear * distance + foe_plight.quadratic * (distance * distance));
+
+    /// ambient
+    vec3 ambient = foe_plight.ambient * foe_material.ambient * attenuation;
+
+    /// diffuse
+    float diff = max(dot(norm , light_dir) , 0.0);
+    vec3 diffuse = foe_plight.diffuse * (diff * foe_material.diffuse) * attenuation;
+
+    /// specular
+    float spec = pow(max(dot(norm , halfway_dir) , 0.0) , foe_material.shininess);
+    vec3 specular = foe_plight.specular * (spec * foe_material.specular) * attenuation;
+      
+    ///  final color
+    vec3 result = ambient + diffuse + specular;
+    FragColor = vec4(result , 1.f);
+    // FragColor.rgb = pow(FragColor.rgb , vec3(1.0/2.2));
   };
 
 }

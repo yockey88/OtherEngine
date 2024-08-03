@@ -13,6 +13,7 @@
 #include "asset/asset_manager.hpp"
 
 #include "physics/physics_defines.hpp"
+#include "rendering/material.hpp"
 #include "rendering/model.hpp"
 #include "rendering/model_factory.hpp"
 #include "scripting/script_engine.hpp"
@@ -303,7 +304,10 @@ namespace other {
         return;
       }
 
-      renderer->SubmitModel(model , transform.model_transform);
+      Material material {
+        .ambient = glm::vec3(0.4f , 0.4f , 0.4f) ,
+      };
+      renderer->SubmitModel("GeometryPipeline" , model , transform.model_transform , material);
     });
 
     registry.view<StaticMesh , Transform>().each([&renderer](const StaticMesh& mesh , const Transform& transform) {
@@ -316,7 +320,10 @@ namespace other {
         return;
       }
 
-      renderer->SubmitStaticModel(model , transform.model_transform);
+      Material material {
+        .ambient = glm::vec3(0.4f , 0.4f , 0.4f) ,
+      };
+      renderer->SubmitStaticModel("GeometryPipeline" , model , transform.model_transform , material);
     });
     
     registry.view<Script>().each([](const Script& script) {

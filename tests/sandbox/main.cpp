@@ -11,6 +11,7 @@
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <imgui/backends/imgui_impl_sdl2.h>
+#include <rendering/point_light.hpp>
 
 #include "core/defines.hpp"
 #include "core/logger.hpp"
@@ -21,7 +22,6 @@
 #include "input/io.hpp"
 #include "parsing/cmd_line_parser.hpp"
 #include "parsing/ini_parser.hpp"
-#include "input/keyboard.hpp"
 
 #include "application/app.hpp"
 #include "application/app_state.hpp"
@@ -41,10 +41,14 @@
 #include "rendering/uniform.hpp"
 #include "rendering/model.hpp"
 #include "rendering/model_factory.hpp"
+#include "rendering/material.hpp"
+#include "rendering/geometry_pass.hpp"
 #include "rendering/outline_pass.hpp"
 #include "rendering/render_pass.hpp"
 #include "rendering/scene_renderer.hpp"
 #include "rendering/ui/ui.hpp"
+#include "rendering/ui/ui_helpers.hpp"
+#include "rendering/ui/ui_widgets.hpp"
 
 using other::FNV;
 
@@ -138,6 +142,7 @@ int main(int argc , char* argv[]) {
     const other::Path add_fog_shader_path = shader_dir / "fog.oshader";
     const other::Path red_path = shader_dir / "red.oshader";
     const other::Path outline_path = shader_dir / "outline.oshader";
+    const other::Path pure_geometry_path = shader_dir / "pure_geometry.oshader";
     
     SDL_SetRelativeMouseMode(SDL_TRUE);
 
@@ -172,9 +177,6 @@ int main(int argc , char* argv[]) {
 
       Scope<VertexArray> fb_mesh = NewScope<VertexArray>(fb_verts , fb_indices , fb_layout);
 
-      glm::mat4 model1 = glm::mat4(1.f);
-      glm::mat4 model2 = glm::mat4(1.f); 
-
       other::AssetHandle model_handle = other::ModelFactory::CreateBox({ 1.f , 1.f , 1.f });
       Ref<StaticModel> model = other::AssetManager::GetAsset<StaticModel>(model_handle);
       Ref<ModelSource> model_source = model->GetModelSource();
@@ -204,19 +206,19 @@ int main(int argc , char* argv[]) {
       };
 
       std::vector<Uniform> outline_unis = {
+        { "outline_color" , other::VEC3 } ,
       };
       Ref<other::Shader> outline_shader = other::BuildShader(outline_path);
       Ref<other::RenderPass> outline_pass = other::NewRef<other::OutlinePass>(outline_unis , outline_shader);
+      
+      std::vector<Uniform> geometry_unis = {
+      };
+      Ref<other::Shader> geometry_shader = other::BuildShader(default_path);
+      Ref<other::RenderPass> geometry_pass = other::NewRef<other::GeometryPass>(geometry_unis , geometry_shader);
         
       SceneRenderSpec render_spec {
         .camera_uniforms = NewRef<UniformBuffer>("Camera" , cam_unis , camera_binding_pnt) ,
         .passes = {
-          {
-            .name = "Draw Geometry" , 
-            .tag_col = { 1.f , 0.f , 0.f , 1.f } ,
-            .uniforms = {} ,
-            .shader = other::BuildShader(default_path) ,
-          } ,
           {
             .name = "Draw Normals" , 
             .tag_col = { 0.f , 1.f , 0.f , 1.f } ,
@@ -225,6 +227,12 @@ int main(int argc , char* argv[]) {
             } ,
             .shader = other::BuildShader(normals_path) ,
           } ,
+          {
+            .name = "Pure Geometry" , 
+            .tag_col = { 0.f , 0.f , 0.f , 1.f } ,
+            .uniforms = {} ,
+            .shader = other::BuildShader(pure_geometry_path) ,
+          } ,
         } ,
         .pipelines = {
           {
@@ -232,7 +240,19 @@ int main(int argc , char* argv[]) {
             .buffer_cap = 4096 * sizeof(float) ,
             .framebuffer_spec = {
               .depth_func = other::LESS_EQUAL ,
-              .clear_color = { 0.1f , 0.3f , 0.5f , 1.f } ,
+              .clear_color = { 0.1f , 0.1f , 0.1f , 1.f } ,
+              .size = other::Renderer::WindowSize() ,
+            } ,
+            .vertex_layout = default_layout ,
+            .model_storage = NewRef<UniformBuffer>("ModelData" , model_unis , model_binding_pnt , other::SHADER_STORAGE) ,
+            .debug_name = "Geometry" , 
+          } ,
+          {
+            .has_indices = true ,
+            .buffer_cap = 4096 * sizeof(float) ,
+            .framebuffer_spec = {
+              .depth_func = other::LESS_EQUAL ,
+              .clear_color = { 0.3f , 0.3f , 0.3f , 1.f } ,
               .size = other::Renderer::WindowSize() ,
             } ,
             .vertex_layout = default_layout ,
@@ -249,15 +269,17 @@ int main(int argc , char* argv[]) {
             } ,
             .vertex_layout = default_layout ,
             .model_storage = NewRef<UniformBuffer>("ModelData" , model_unis , model_binding_pnt , other::SHADER_STORAGE) ,
-            .debug_name = "Stencil Buffer" ,
+            .debug_name = "Outline" ,
           } ,
         } , 
         .ref_passes = {
           outline_pass ,  
+          geometry_pass ,
         } ,
         .pipeline_to_pass_map = {
-          { FNV("Debug")           , { FNV("Draw Geometry")     , FNV("Draw Normals")  } } ,
-          { FNV("Stencil Buffer")  , { FNV("ObjectOutlinePass") } } ,
+          { FNV("Geometry") , { FNV(geometry_pass->Name()) } } ,
+          { FNV("Debug")    , { FNV("Pure Geometry")      , FNV("Draw Normals")  } } ,
+          { FNV("Outline")  , { FNV(outline_pass->Name()) , FNV(geometry_pass->Name()) } } ,
         } ,
       };
       Scope<SceneRenderer> renderer = NewScope<SceneRenderer>(render_spec);
@@ -276,13 +298,43 @@ int main(int argc , char* argv[]) {
         
       CHECKGL();
 
-      bool rendering_floor = false;
-      model2 = glm::translate(glm::mat4(1.f) , glm::vec3(0 , -2.f , 0)) *
-               glm::scale(glm::mat4(1.f) , glm::vec3(10 , 1 , 10));
+      glm::vec3 cube_pos = glm::vec3(0.f , 0.f , 0.f);
+      glm::mat4 cube_model = glm::mat4(1.f);
+      other::Material cube_material = {
+        .ambient  = { 1.0f , 0.5f , 0.31f } ,
+        .diffuse  = { 1.0f , 0.5f , 0.31f } ,
+        .specular = { 0.5f , 0.5f , 0.50f } ,
+        .shininess = 32.f
+      };
+
+      other::PointLight point_light {
+        .position = { 1.2f , 1.0f , 2.0f } ,
+        .ambient  = { 0.2f , 0.2f , 0.2f } ,
+        .diffuse  = { 0.5f , 0.5f , 0.5f } ,
+        .specular = { 1.0f , 1.0f , 1.0f } ,
+      };
+      glm::mat4 light_model = glm::mat4(1.f);
+      const glm::vec3 light_scale = glm::vec3(0.2f , 0.2f , 0.2f);
+      light_model = glm::translate(light_model , point_light.position);
+      light_model = glm::scale(light_model , light_scale);
+
+      other::Material light_material = {
+        .ambient  = { 1.f , 1.f , 1.f } ,
+        .diffuse  = { 1.f , 1.f , 1.f } ,
+        .specular = { 1.f , 1.f , 1.f } ,
+        .shininess = 1.f
+      };
+
+      glm::vec3 outline_color{ 1.f , 0.f , 0.f };
 
       while (running) {
-        other::Mouse::Update();
-        other::Keyboard::Update();
+        /// get dt
+
+        other::IO::Update();
+
+        /// early update
+
+
 
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
@@ -297,7 +349,6 @@ int main(int argc , char* argv[]) {
             case SDL_KEYDOWN:
               switch (event.key.keysym.sym) {
                 case SDLK_ESCAPE: running = false; break;
-                case SDLK_f: rendering_floor = !rendering_floor; break;
                 case SDLK_c: 
                   camera_lock = !camera_lock;
                   if (camera_lock) {
@@ -316,25 +367,41 @@ int main(int argc , char* argv[]) {
           ImGui_ImplSDL2_ProcessEvent(&event);
         }
 
+        /// dont want event queue to actually dispatch events, so we just clear the buffer to avoid an
+        ///   overflow of the event queue's buffer
+        other::EventQueue::Clear();
+
         if (!camera_lock) {
           other::DefaultUpdateCamera(camera);
         }
+        
+        cube_model = glm::mat4(1.f);
+        cube_model = glm::translate(cube_model , cube_pos);
 
-        model1 = glm::rotate(model1 , glm::radians(5.f) , { 1.f , 1.f , 0.f });
+        light_model = glm::mat4(1.f);
+        light_model = glm::translate(light_model , point_light.position);
+        light_model = glm::scale(light_model , light_scale);
 
         other::Renderer::GetWindow()->Clear();
 
         renderer->BeginScene(camera);
+        renderer->SetUniform(geometry_pass->Name() , "foe_plight.position" , point_light.position);
+        renderer->SetUniform(geometry_pass->Name() , "foe_plight.ambient" , point_light.ambient);
+        renderer->SetUniform(geometry_pass->Name() , "foe_plight.diffuse" , point_light.diffuse);
+        renderer->SetUniform(geometry_pass->Name() , "foe_plight.specular" , point_light.specular);
+        renderer->SetUniform(geometry_pass->Name() , "foe_plight.constant" , point_light.constant);
+        renderer->SetUniform(geometry_pass->Name() , "foe_plight.linear" , point_light.linear);
+        renderer->SetUniform(geometry_pass->Name() , "foe_plight.quadratic" , point_light.quadratic);
         renderer->SetUniform("Draw Normals" , "magnitude" , 0.4f);
-        renderer->SubmitStaticModel(model , model1);
-        if (rendering_floor) {
-          renderer->SubmitStaticModel(floor , model2);
-        }
+        renderer->SetUniform(outline_pass->Name() , "outline_color" , outline_color);
+        renderer->SubmitStaticModel("Geometry" , model , cube_model , cube_material);
+        renderer->SubmitStaticModel("Debug" , model , cube_model , cube_material);
+        renderer->SubmitStaticModel("Outline" , model , cube_model , cube_material);
+        renderer->SubmitStaticModel("Debug" , model , light_model , light_material);
         renderer->EndScene();
 
         const auto& frames = renderer->GetRender(); 
-
-        const auto& vp = frames.at(FNV("Debug"));
+        const auto& vp = frames.at(FNV("Geometry"));
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D , vp->texture);
@@ -352,11 +419,81 @@ int main(int argc , char* argv[]) {
           ImGui::PopID();
         };
 
+        auto RenderMaterial = [](const std::string& title , other::Material& mat) {
+          ImGui::PushID(("##" + title).c_str());
+          ImGui::Text("%s" , title.c_str());
+
+          bool edited = false;
+          other::ui::widgets::DrawVec3Control("ambient color" , mat.ambient , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
+                                              { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
+          other::ui::widgets::DrawVec3Control("diffuse color" , mat.diffuse , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
+                                              { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
+          other::ui::widgets::DrawVec3Control("specular color" , mat.specular , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
+                                              { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
+          other::ui::BeginProperty("shininess");
+          other::ui::DragFloat("##shininess" , &mat.shininess , 0.5f , 0.f , 256.f);
+          other::ui::EndProperty();
+          
+          ImGui::PopID();
+        };
+        
+        auto RenderPointLight = [](const std::string& title , other::PointLight& pl) {
+          ImGui::PushID(("##" + title).c_str());
+          ImGui::Text("%s" , title.c_str());
+
+          bool edited = false;
+          other::ui::widgets::DrawVec3Control("position" , pl.position , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
+                                              { 0.f , 0.f , 0.f } , { 100.f , 100.f , 100.f } , 0.5f);
+          other::ui::widgets::DrawVec3Control("ambient color" , pl.ambient , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
+                                              { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
+          other::ui::widgets::DrawVec3Control("diffuse color" , pl.diffuse , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
+                                              { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
+          other::ui::widgets::DrawVec3Control("specular color" , pl.specular , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
+                                              { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
+          other::ui::BeginProperty("constant");
+          other::ui::DragFloat("##constant" , &pl.constant , 0.1f , 0.f , 256.f);
+          other::ui::EndProperty();
+
+          other::ui::BeginProperty("linear");
+          other::ui::DragFloat("##linear" , &pl.linear , 0.05f , 0.f , 256.f);
+          other::ui::EndProperty();
+
+          other::ui::BeginProperty("quadratic");
+          other::ui::DragFloat("##quadratic" , &pl.quadratic , 0.01f , 0.f , 256.f);
+          other::ui::EndProperty();
+          
+          ImGui::PopID();
+        };
+
         if (ImGui::Begin("Frames")) {
           ImVec2 win_size = { (float)other::Renderer::WindowSize().x , (float)other::Renderer::WindowSize().y };
-          RenderItem(frames.at(FNV("Debug"))->texture          , "Debug"   , win_size);
-          RenderItem(frames.at(FNV("Stencil Buffer"))->texture , "Outline" , win_size);
+          RenderItem(frames.at(FNV("Debug"))->texture , "Debug" , win_size);
+          RenderItem(frames.at(FNV("Outline"))->texture , "Outline" , win_size);
         } 
+        ImGui::End();
+
+        if (ImGui::Begin("Render Settings")) {
+          bool edited = false;
+          other::ui::Underline();
+
+          ImGui::Text("Debug Controls");
+          ImGui::Separator();
+          other::ui::widgets::DrawVec3Control("outline color" , outline_color , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
+                                              { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
+          ImGui::Separator();
+
+          ImGui::Text("Cube Controls");
+          ImGui::Separator();
+          other::ui::widgets::DrawVec3Control("cube position" , cube_pos , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
+                                              { -100.f , -100.f , -100.f } , { 100.f , 100.f , 100.f } , 0.5f); 
+          RenderMaterial("cube material" , cube_material);
+          ImGui::Separator();
+
+          ImGui::Text("Light Controls");
+          ImGui::Separator();
+          RenderPointLight("light" , point_light);
+          ImGui::Separator();
+        }
         ImGui::End();
 
         other::UI::EndFrame();

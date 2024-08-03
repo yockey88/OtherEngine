@@ -485,7 +485,8 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
   }
       
   Ref<SceneRenderer> EditorLayer::GetDefaultRenderer() {
-    const other::Path shader1_path = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders" / "default.oshader";
+    const Path shader_dir = Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders";
+    const Path default_path = shader_dir / "default.oshader";
 
     uint32_t camera_binding_pnt = 0;
     std::vector<Uniform> cam_unis = {
@@ -509,7 +510,7 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
           .name = "GeometryPass1" , 
           .tag_col = { 1.f , 0.f , 0.f , 1.f } ,
           .uniforms = {} ,
-          .shader = other::BuildShader(shader1_path) ,
+          .shader = other::BuildShader(default_path) ,
         } ,
       } ,
       .pipelines = {
