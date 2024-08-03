@@ -100,8 +100,13 @@ std::vector<float> fb_verts = {
    1.f , -1.f , 1.f , 0.f
 };
 
-std::vector<uint32_t> fb_indices{ 0 , 1 , 3 , 1 , 2 , 3 };
-std::vector<uint32_t> fb_layout{ 2 , 2 };
+std::vector<uint32_t> fb_indices = { 
+  0 , 1 , 3 , 
+  1 , 2 , 3 
+};
+std::vector<uint32_t> fb_layout = { 
+  2 , 2 
+};
 
 int main(int argc , char* argv[]) {
   try {
