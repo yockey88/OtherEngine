@@ -36,6 +36,6 @@ with open("{}/{}.other".format(PATH , NAME), "w") as f:
     f.write("title = \"Other Engine {}\"\n".format(NAME))
     f.write("\n")
     f.write("[log]\n")
-    f.write("console-level = \"Info\"\n")
+    f.write("console-level = \"trace\"\n")
     f.write("file-level = \"trace\"\n")
     f.write("path = \"./logs/{}.log\"\n".format(NAME))

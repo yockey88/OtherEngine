@@ -357,7 +357,8 @@ namespace other {
     ui::ShiftCursorY(line_height / 4.f);
     
     bool remove_entity = false;
-    if (ImGui::InvisibleButton("##entity-options" , ImVec2{ line_height , line_height }) || right_clicked) {
+    if ((ImGui::InvisibleButton("##entity-options" , ImVec2{ line_height , line_height }) || right_clicked) &&
+        !SelectionManager::HasSelection()) {
       ImGui::OpenPopup("##entity-settings");
     }
     
@@ -374,6 +375,7 @@ namespace other {
       if (active_selection) {
         ImGui::PushStyleColor(ImGuiCol_Text , ui::theme::background_dark);
       }
+
       ui::EndPopup();
     }
 

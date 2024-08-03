@@ -115,10 +115,10 @@ namespace other {
 
   CORE_SYSTEM(OnRigidBody2DUpdate) {
     Ref<Scene> scene = PhysicsEngine::GetSceneContext();
-    OE_ASSERT(scene != nullptr , "Somehow created a rigidy body 2D component without and active scene context");
+    OE_ASSERT(scene != nullptr , "Somehow updated a rigidy body 2D component without and active scene context");
     
     auto physics_world = scene->Get2DPhysicsWorld();
-    OE_ASSERT(physics_world != nullptr , "Somehow create a rigid body 2D component without active 2D physics");
+    OE_ASSERT(physics_world != nullptr , "Somehow updated a rigid body 2D component without active 2D physics");
 
     Entity ent(context , entt);
     auto& body = ent.GetComponent<RigidBody2D>(); 
@@ -132,17 +132,62 @@ namespace other {
 
   CORE_SYSTEM(OnCollider2DUpdate) {
     Ref<Scene> scene = PhysicsEngine::GetSceneContext();
-    OE_ASSERT(scene != nullptr , "Somehow created a rigidy body 2D component without and active scene context");
+    OE_ASSERT(scene != nullptr , "Somehow updated a collider 2D component without an active scene context");
     
     auto physics_world = scene->Get2DPhysicsWorld();
-    OE_ASSERT(physics_world != nullptr , "Somehow create a rigid body 2D component without active 2D physics");
+    OE_ASSERT(physics_world != nullptr , "Somehow updated a collider 2D component without active 2D physics");
 
     Entity ent(context , entt);
+    if (!ent.HasComponent<RigidBody2D>()) {
+      ent.AddComponent<RigidBody2D>();
+    }
+
     auto& body = ent.GetComponent<RigidBody2D>(); 
     auto& collider = ent.GetComponent<Collider2D>();
     auto& transform = ent.GetComponent<Transform>();
 
     Initialize2DCollider(physics_world , body , collider , transform);
+  }
+  
+  void InitializeRigidBody(Ref<PhysicsWorld>& world , RigidBody& body , const Tag& tag , const Transform& transform) {
+  }
+
+  void InitializeCollider(Ref<PhysicsWorld>& world , RigidBody& body , Collider& collider , const Transform& transform) {
+  }
+  
+  CORE_SYSTEM(OnRigidBodyUpdate) {
+    Ref<Scene> scene = PhysicsEngine::GetSceneContext();
+    OE_ASSERT(scene != nullptr , "Somehow updated a rigid body component without an active scene context");
+    
+    auto physics_world = scene->GetPhysicsWorld();
+    OE_ASSERT(physics_world != nullptr , "Somehow updated a rigid body component without active 3D physics");
+
+    Entity ent(context , entt);
+    auto& body = ent.GetComponent<RigidBody>();
+
+    auto& tag = ent.GetComponent<Tag>();
+    auto& transform = ent.GetComponent<Transform>();
+
+    InitializeRigidBody(physics_world , body , tag , transform);
+  }
+
+  CORE_SYSTEM(OnColliderUpdate) {
+    Ref<Scene> scene = PhysicsEngine::GetSceneContext();
+    OE_ASSERT(scene != nullptr , "Somehow updated a collider component without an active scene context");
+    
+    auto physics_world = scene->GetPhysicsWorld();
+    OE_ASSERT(physics_world != nullptr , "Somehow updated a collider component without active 3D physics");
+
+    Entity ent(context , entt);
+    if (!ent.HasComponent<RigidBody>()) {
+      ent.AddComponent<RigidBody>();
+    }
+
+    auto& body = ent.GetComponent<RigidBody>(); 
+    auto& collider = ent.GetComponent<Collider>();
+    auto& transform = ent.GetComponent<Transform>();
+
+    InitializeCollider(physics_world , body , collider , transform);
   }
 
 } // namespace other

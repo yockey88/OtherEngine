@@ -260,8 +260,11 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
       ImGui::Text("Camera Direction :: [%f , %f , %f]" , 
                   editor_camera->Direction().x , editor_camera->Direction().y , editor_camera->Direction().z);
 
-      if (saved_scene.transforms.size() > 0 && ImGui::Button("Undo")) {
-        AppState::Scenes()->LoadCapture(saved_scene);
+      if (saved_scene.has_value() && ImGui::Button("Undo")) {
+        AppState::Scenes()->LoadCapture(saved_scene.value());
+        saved_scene = std::nullopt;
+      } else if (ImGui::Button("Save Scene")) {
+        AppState::Scenes()->SaveActiveScene();
       }
     }
     ImGui::End();
@@ -270,8 +273,8 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
       script->RenderUI();
     }
 
-    if (panel_manager->RenderUI()) {
-      OE_INFO("Capturing Scene");
+    /// true => something changed
+    if (panel_manager->RenderUI() && !saved_scene.has_value()) {
       saved_scene = AppState::Scenes()->CaptureScene();
     }
 #endif
