@@ -305,7 +305,7 @@ namespace other {
       }
 
       Material material {
-        .ambient = glm::vec3(0.4f , 0.4f , 0.4f) ,
+        .ambient = glm::vec4(0.4f , 0.4f , 0.4f , 1.f) ,
       };
       renderer->SubmitModel("GeometryPipeline" , model , transform.model_transform , material);
     });
@@ -321,7 +321,7 @@ namespace other {
       }
 
       Material material {
-        .ambient = glm::vec3(0.4f , 0.4f , 0.4f) ,
+        .ambient = glm::vec4(0.4f , 0.4f , 0.4f , 1.f) ,
       };
       renderer->SubmitStaticModel("GeometryPipeline" , model , transform.model_transform , material);
     });

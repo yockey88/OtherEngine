@@ -31,9 +31,9 @@ namespace other {
       const bool HasGeometry() const;
     
       template <typename T> 
-      void SetUniform(const std::string_view name , T&& value) {
+      void SetUniform(const std::string_view name , T&& value , uint32_t index = 0) {
         Bind();
-        InnerSetUniform(name , std::forward<T>(value)); 
+        InnerSetUniform(name , std::forward<T>(value) , index); 
       }
 
     private:
@@ -52,14 +52,14 @@ namespace other {
   
       uint32_t GetUniformLocation(const std::string_view name);
       
-      void InnerSetUniform(const std::string_view name , const int32_t& value);
-      void InnerSetUniform(const std::string_view name , const float& value);
-      void InnerSetUniform(const std::string_view name , const glm::vec2& value);
-      void InnerSetUniform(const std::string_view name , const glm::vec3& value);
-      void InnerSetUniform(const std::string_view name , const glm::vec4& value);
-      void InnerSetUniform(const std::string_view name , const glm::mat2& value);
-      void InnerSetUniform(const std::string_view name , const glm::mat3& value);
-      void InnerSetUniform(const std::string_view name , const glm::mat4& value);
+      void InnerSetUniform(const std::string_view name , const int32_t& value , uint32_t index = 0);
+      void InnerSetUniform(const std::string_view name , const float& value , uint32_t index = 0);
+      void InnerSetUniform(const std::string_view name , const glm::vec2& value , uint32_t index = 0);
+      void InnerSetUniform(const std::string_view name , const glm::vec3& value , uint32_t index = 0);
+      void InnerSetUniform(const std::string_view name , const glm::vec4& value , uint32_t index = 0);
+      void InnerSetUniform(const std::string_view name , const glm::mat2& value , uint32_t index = 0);
+      void InnerSetUniform(const std::string_view name , const glm::mat3& value , uint32_t index = 0);
+      void InnerSetUniform(const std::string_view name , const glm::mat4& value , uint32_t index = 0);
   };
 
   Ref<Shader> BuildShader(const Path& path);

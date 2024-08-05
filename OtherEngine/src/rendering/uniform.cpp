@@ -5,6 +5,7 @@
 
 #include <glad/glad.h>
 
+#include "core/defines.hpp"
 #include "rendering/rendering_defines.hpp"
 
 namespace other {
@@ -17,13 +18,25 @@ namespace other {
     
     uint32_t offset = 0;
     for (const auto& u : unis) {
-      size += GetValueSize(u.type) * u.arr_length;
+      size_t type_size = GetValueSize(u.type);
+      if (type_size == 0) {
+        if (!u.size.has_value()) {
+          OE_ERROR("Can not set uniform size for user defined type, failed on uniform '{}'" , u.name);
+          glBindBuffer(type , 0);
+          glDeleteBuffers(1 , &renderer_id);
+          return;
+        } else {
+          type_size = *u.size;
+        }
+      } 
+
+      size += type_size * u.arr_length;
 
       UUID hash = FNV(u.name);
       auto& u_data = uniforms[hash] = UniformData{
         .hash = hash , 
         .offset = offset ,
-        .size = GetValueSize(u.type) ,
+        .size = type_size ,
       };
 
       offset += u_data.size * u.arr_length;

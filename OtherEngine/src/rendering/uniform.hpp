@@ -4,6 +4,7 @@
 #ifndef OTHER_ENGINE_UNIFORM_HPP
 #define OTHER_ENGINE_UNIFORM_HPP
 
+#include <rendering/point_light.hpp>
 #include <string>
 
 #include <glm/gtc/type_ptr.hpp>
@@ -14,6 +15,8 @@
 
 #include "rendering/rendering_defines.hpp"
 #include "rendering/shader.hpp"
+#include "rendering/point_light.hpp"
+#include "rendering/direction_light.hpp"
 
 namespace other {
 
@@ -44,6 +47,21 @@ namespace other {
         Bind();
         if constexpr (glm_t<T>) {
           glBufferSubData(type , offset , u_data.size , glm::value_ptr(value));
+        } else if constexpr (std::same_as<T , PointLight>) {
+          glBufferSubData(type , offset , sizeof(PointLight) , &value);
+          // glBufferSubData(type , offset , GetValueSize(VEC3) , glm::value_ptr(value.position));
+          // glBufferSubData(type , offset + GetValueSize(VEC3) , GetValueSize(VEC3) , glm::value_ptr(value.ambient));
+          // glBufferSubData(type , offset + 2 * GetValueSize(VEC3) , GetValueSize(VEC3) , glm::value_ptr(value.diffuse));
+          // glBufferSubData(type , offset + 3 * GetValueSize(VEC3) , GetValueSize(VEC3) , glm::value_ptr(value.specular));
+          // glBufferSubData(type , offset + 4 * GetValueSize(VEC3) , GetValueSize(FLOAT) , &value.constant);
+          // glBufferSubData(type , offset + 4 * GetValueSize(VEC3) + GetValueSize(FLOAT) , GetValueSize(FLOAT) , &value.linear);
+          // glBufferSubData(type , offset + 4 * GetValueSize(VEC3) + 2 * GetValueSize(FLOAT) , GetValueSize(FLOAT) , &value.quadratic);
+        } else if constexpr (std::same_as<T , DirectionLight>) {
+          // glBufferSubData(type , offset , sizeof(DirectionLight) , &value);
+          glBufferSubData(type , offset , GetValueSize(VEC4) , glm::value_ptr(value.direction));
+          glBufferSubData(type , offset + GetValueSize(VEC4) , GetValueSize(VEC4) , glm::value_ptr(value.ambient));
+          glBufferSubData(type , offset + 2 * GetValueSize(VEC4) , GetValueSize(VEC4) , glm::value_ptr(value.diffuse));
+          glBufferSubData(type , offset + 4 * GetValueSize(VEC4) , GetValueSize(VEC4) , glm::value_ptr(value.specular));
         } else {
           glBufferSubData(type , offset , u_data.size , &value);
         }

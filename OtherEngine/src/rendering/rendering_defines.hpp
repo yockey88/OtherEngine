@@ -151,6 +151,7 @@ namespace other {
     std::string name = ""; 
     ValueType type;
     uint32_t arr_length = 1;
+    Opt<size_t> size = std::nullopt; /// must be set for user types
   };
   
   struct MeshAttr {

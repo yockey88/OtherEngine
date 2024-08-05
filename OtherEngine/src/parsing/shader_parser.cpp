@@ -706,6 +706,9 @@ namespace other {
       case SAMPLER2D_KW:
         return Advance();
       default:
+        if (Peek().value == "DirectionLight" || Peek().value == "PointLight") {
+          return Advance();
+        }
         break;
     }
 

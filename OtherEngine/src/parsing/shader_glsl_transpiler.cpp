@@ -317,30 +317,27 @@ namespace other {
 
     if (context == FRAGMENT_SHADER) {
       stream << "struct Material {\n";
-      stream << "  vec3 ambient;\n";
-      stream << "  vec3 diffuse;\n";
-      stream << "  vec3 specular;\n";
+      stream << "  vec4 ambient;\n";
+      stream << "  vec4 diffuse;\n";
+      stream << "  vec4 specular;\n";
       stream << "  float shininess;\n";
       stream << "};\n\n";
       
       stream << "struct PointLight {\n";
-      stream << "  vec3 position;\n";
-      stream << "  vec3 ambient;\n";
-      stream << "  vec3 diffuse;\n";
-      stream << "  vec3 specular;\n";
+      stream << "  vec4 position;\n";
+      stream << "  vec4 ambient;\n";
+      stream << "  vec4 diffuse;\n";
+      stream << "  vec4 specular;\n";
       stream << "  float constant;\n";
       stream << "  float linear;\n";
       stream << "  float quadratic;\n";
       stream << "};\n\n";
       
       stream << "struct DirectionLight {\n";
-      stream << "  vec3 direction;\n";
-      stream << "  vec3 ambient;\n";
-      stream << "  vec3 diffuse;\n";
-      stream << "  vec3 specular;\n";
-      stream << "  float constant;\n";
-      stream << "  float linear;\n";
-      stream << "  float quadratic;\n";
+      stream << "  vec4 direction;\n";
+      stream << "  vec4 ambient;\n";
+      stream << "  vec4 diffuse;\n";
+      stream << "  vec4 specular;\n";
       stream << "};\n\n";
     }
 
@@ -370,9 +367,23 @@ namespace other {
     }
 
     if (context == VERTEX_SHADER) {
+      stream << "layout (std140 , binding = 0) uniform Camera {\n";
+      stream << "  mat4 projection;\n";
+      stream << "  mat4 view;\n";
+      stream << "  vec4 viewpoint;\n";
+      stream << "};\n\n";
+      stream << "layout (std430 , binding = 1) readonly buffer ModelData {\n";
+      stream << "  mat4 models[];\n";
+      stream << "};\n\n";
       stream << "uniform mat4 voe_model;\n\n";
     } else if (context == FRAGMENT_SHADER) {
-      stream << "uniform vec3 foe_color;\n";
+      stream << "layout (std430 , binding = 2) readonly buffer LightData {\n";
+      stream << "  DirectionLight direction_light;\n";
+
+      stream << "  int num_point_lights;\n";
+      stream << "  PointLight point_lights[];\n";
+      stream << "};\n\n";
+      stream << "uniform vec4 foe_color;\n";
       stream << "uniform Material foe_material;\n\n";
       stream << "uniform PointLight foe_plight;\n\n";
       stream << "uniform DirectionLight foe_dlight;\n\n";

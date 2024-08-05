@@ -1,14 +1,5 @@
 vertex [mesh : default] {
   
-  layout (std140 , binding = 0) uniform Camera {
-    mat4 projection;
-    mat4 view;
-  };
-  
-  layout (std430 , binding = 1) readonly buffer ModelData {
-    mat4 models[];
-  };
-  
   out VOUT {
     vec3 normal;
   } vout;
@@ -30,6 +21,7 @@ geometry {
   layout (std140 , binding = 0) uniform Camera {
     mat4 projection;
     mat4 view;
+    vec4 viewpoint;
   };
   
   in VOUT {

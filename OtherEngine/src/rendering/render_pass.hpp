@@ -15,6 +15,7 @@
 
 #include "rendering/shader.hpp"
 #include "rendering/uniform.hpp"
+#include "rendering/point_light.hpp"
 
 namespace other {
 
@@ -41,7 +42,7 @@ namespace other {
       void DefineInput(Uniform uniform);
       
       template <typename T>
-      void SetInput(const std::string_view block_name , const std::string_view name , T val) {
+      void SetInput(const std::string_view block_name , const std::string_view name , T val , uint32_t index = 0) {
         uint64_t blck_hash = FNV(block_name);
 
         auto itr = uniform_blocks.find(blck_hash);
@@ -51,11 +52,12 @@ namespace other {
         }
 
         auto& [id , uni_blck] = *itr;
-        uni_blck->SetUniform(name , val);
+        uni_blck->SetUniform(name , val , index);
       }
 
+      /// FIXME: do something about this mess
       template <typename T>
-      void SetInput(const std::string_view name , T val) {
+      void SetInput(const std::string_view name , T val , uint32_t index = 0) {
         uint64_t hash = FNV(name);
 
         auto itr = uniforms.find(hash);
@@ -120,14 +122,8 @@ namespace other {
           }
         }
 
-        spec.shader->SetUniform(uni.name , val);
+        spec.shader->SetUniform(uni.name , val , index);
       }
-      
-      // void Input(Storage buffer set) = 0;
-      // void Input(Storage buffer) = 0;
-
-      // void Input(TextureXXX set);
-      // void Input(TextureXXX);
 
       virtual void SetRenderState() {}
 

@@ -1,11 +1,5 @@
 vertex [mesh : default] {
 
-  layout (std140 , binding = 0) uniform Camera {
-    mat4 projection;
-    mat4 view;
-    vec3 viewpoint;
-  };
-
   void main() {
     gl_Position = projection * view * voe_model * vec4(voe_position , 1.0);
   }

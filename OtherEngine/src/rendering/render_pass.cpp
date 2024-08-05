@@ -7,6 +7,9 @@
 
 #include "core/defines.hpp"
 
+#include "rendering/rendering_defines.hpp"
+#include "rendering/point_light.hpp"
+
 namespace other {
       
   RenderPass::RenderPass(RenderPassSpec spec) 
@@ -15,30 +18,36 @@ namespace other {
       uniforms[FNV(u.name)] = u;
     } 
 
+    std::vector<Uniform> light_uniforms = {
+      { "direction_light" , USER_TYPE , 1 , sizeof(DirectionLight) } ,
+      { "num_point_lights" , INT32 } ,
+      { "point_lights" , USER_TYPE , 10 , sizeof(PointLight) } ,
+    };
+    uint32_t light_binding_point = 2;
+    Ref<UniformBuffer> uni_buffer = NewRef<UniformBuffer>("LightData" , light_uniforms , light_binding_point , SHADER_STORAGE);
+    DefineInput(uni_buffer);
+
     const std::vector<Uniform> material_unis = {
       { "voe_model"          , MAT4  } ,
-      { "foe_color"          , VEC3 } ,
+      { "foe_color"          , VEC4 } ,
 
-      { "foe_material.ambient"   , VEC3  } ,
-      { "foe_material.diffuse"   , VEC3  } ,
-      { "foe_material.specular"  , VEC3  } ,
+      { "foe_material.ambient"   , VEC4  } ,
+      { "foe_material.diffuse"   , VEC4  } ,
+      { "foe_material.specular"  , VEC4  } ,
       { "foe_material.shininess" , FLOAT } ,
 
-      { "foe_plight.position"   , VEC3  } ,
-      { "foe_plight.ambient"    , VEC3  } ,
-      { "foe_plight.diffuse"    , VEC3  } ,
-      { "foe_plight.specular"   , VEC3  } ,
+      { "foe_plight.position"   , VEC4  } ,
+      { "foe_plight.ambient"    , VEC4  } ,
+      { "foe_plight.diffuse"    , VEC4  } ,
+      { "foe_plight.specular"   , VEC4  } ,
       { "foe_plight.constant"   , FLOAT  } ,
       { "foe_plight.linear"     , FLOAT  } ,
       { "foe_plight.quadratic"  , FLOAT  } ,
 
-      { "foe_dlight.direction"   , VEC3  } ,
-      { "foe_dlight.ambient"    , VEC3  } ,
-      { "foe_dlight.diffuse"    , VEC3  } ,
-      { "foe_dlight.specular"   , VEC3  } ,
-      { "foe_dlight.constant"   , FLOAT  } ,
-      { "foe_dlight.linear"     , FLOAT  } ,
-      { "foe_dlight.quadratic"  , FLOAT  } ,
+      { "foe_dlight.direction"   , VEC4  } ,
+      { "foe_dlight.ambient"    , VEC4  } ,
+      { "foe_dlight.diffuse"    , VEC4  } ,
+      { "foe_dlight.specular"   , VEC4  } ,
     }; 
     for (const auto& u : material_unis) {
       DefineInput(u);
@@ -100,6 +109,7 @@ namespace other {
 
     auto& buff = uniform_blocks[hash] = uni_buffer;
     buff->BindBase();
+    buff->BindShader(GetShader());
   }
 
   void RenderPass::DefineInput(Uniform uniform) {

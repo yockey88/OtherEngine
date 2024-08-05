@@ -11,10 +11,10 @@
 #include <spdlog/fmt/fmt.h>
 
 template <typename T>
-concept glm_t = requires(T) {
-  std::is_same_v<glm::mat4 , T> || 
-  std::is_same_v<glm::vec4 , T> || std::is_same_v<glm::vec3 , T> || std::is_same_v<glm::vec2 , T>;
-};
+concept glm_t = std::is_same_v<glm::mat4 , T> || 
+                std::is_same_v<glm::vec4 , T> || 
+                std::is_same_v<glm::vec3 , T> || 
+                std::is_same_v<glm::vec2 , T>;
 
 namespace other {
 

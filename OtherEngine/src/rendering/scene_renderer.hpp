@@ -32,16 +32,16 @@ namespace other {
       virtual ~SceneRenderer() override;
       
       template <typename T>
-      void SetUniform(const std::string_view pass , const std::string_view block , const std::string_view name , const T& val) {
+      void SetUniform(const std::string_view pass , const std::string_view block , const std::string_view name , const T& val , uint32_t index = 0) {
         if (auto itr = passes.find(FNV(pass)); itr != passes.end()) {
-          itr->second->SetInput(block , name , val);
+          itr->second->SetInput(block , name , val , index);
         }
       }
 
       template <typename T>
-      void SetUniform(const std::string_view pass , std::string_view name , const T& val) {
+      void SetUniform(const std::string_view pass , std::string_view name , const T& val , uint32_t index = 0) {
         if (auto itr = passes.find(FNV(pass)); itr != passes.end()) {
-          itr->second->SetInput(name , val);
+          itr->second->SetInput(name , val , index);
         }
       }
 

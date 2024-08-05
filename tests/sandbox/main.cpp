@@ -42,6 +42,8 @@
 #include "rendering/model.hpp"
 #include "rendering/model_factory.hpp"
 #include "rendering/material.hpp"
+#include "rendering/point_light.hpp"
+#include "rendering/direction_light.hpp"
 #include "rendering/geometry_pass.hpp"
 #include "rendering/outline_pass.hpp"
 #include "rendering/render_pass.hpp"
@@ -49,6 +51,8 @@
 #include "rendering/ui/ui.hpp"
 #include "rendering/ui/ui_helpers.hpp"
 #include "rendering/ui/ui_widgets.hpp"
+
+#include "sandbox_ui.hpp"
 
 using other::FNV;
 
@@ -301,27 +305,34 @@ int main(int argc , char* argv[]) {
       glm::vec3 cube_pos = glm::vec3(0.f , 0.f , 0.f);
       glm::mat4 cube_model = glm::mat4(1.f);
       other::Material cube_material = {
-        .ambient  = { 1.0f , 0.5f , 0.31f } ,
-        .diffuse  = { 1.0f , 0.5f , 0.31f } ,
-        .specular = { 0.5f , 0.5f , 0.50f } ,
+        .ambient  = { 1.0f , 0.5f , 0.31f , 1.f } ,
+        .diffuse  = { 1.0f , 0.5f , 0.31f , 1.f } ,
+        .specular = { 0.5f , 0.5f , 0.50f , 1.f } ,
         .shininess = 32.f
       };
 
       other::PointLight point_light {
-        .position = { 1.2f , 1.0f , 2.0f } ,
-        .ambient  = { 0.2f , 0.2f , 0.2f } ,
-        .diffuse  = { 0.5f , 0.5f , 0.5f } ,
-        .specular = { 1.0f , 1.0f , 1.0f } ,
+        .position = { 1.2f , 1.0f , 2.0f , 1.f } ,
+        .ambient  = { 0.2f , 0.2f , 0.2f , 1.f } ,
+        .diffuse  = { 0.5f , 0.5f , 0.5f , 1.f } ,
+        .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
       };
+      other::DirectionLight direction_light {
+        .direction = { -0.2f , -1.f , -0.3f , 1.f } ,
+        .ambient  = { 0.2f , 0.2f , 0.2f , 1.f } ,
+        .diffuse  = { 0.5f , 0.5f , 0.5f , 1.f } ,
+        .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
+      };
+
       glm::mat4 light_model = glm::mat4(1.f);
       const glm::vec3 light_scale = glm::vec3(0.2f , 0.2f , 0.2f);
-      light_model = glm::translate(light_model , point_light.position);
+      light_model = glm::translate(light_model , glm::vec3(point_light.position));
       light_model = glm::scale(light_model , light_scale);
 
       other::Material light_material = {
-        .ambient  = { 1.f , 1.f , 1.f } ,
-        .diffuse  = { 1.f , 1.f , 1.f } ,
-        .specular = { 1.f , 1.f , 1.f } ,
+        .ambient  = { 1.f , 1.f , 1.f  , 1.f } ,
+        .diffuse  = { 1.f , 1.f , 1.f  , 1.f } ,
+        .specular = { 1.f , 1.f , 1.f  , 1.f } ,
         .shininess = 1.f
       };
 
@@ -379,12 +390,16 @@ int main(int argc , char* argv[]) {
         cube_model = glm::translate(cube_model , cube_pos);
 
         light_model = glm::mat4(1.f);
-        light_model = glm::translate(light_model , point_light.position);
+        light_model = glm::translate(light_model , glm::vec3(point_light.position));
         light_model = glm::scale(light_model , light_scale);
 
         other::Renderer::GetWindow()->Clear();
 
         renderer->BeginScene(camera);
+        renderer->SetUniform(geometry_pass->Name() , "LightData" , "direction_light" , direction_light);
+        // renderer->SetUniform(geometry_pass->Name() , "LightData" , "num_point_lights" , 1 , 0);
+        // renderer->SetUniform(geometry_pass->Name() , "LightData" , "point_lights" , point_light);
+
         renderer->SetUniform(geometry_pass->Name() , "foe_plight.position" , point_light.position);
         renderer->SetUniform(geometry_pass->Name() , "foe_plight.ambient" , point_light.ambient);
         renderer->SetUniform(geometry_pass->Name() , "foe_plight.diffuse" , point_light.diffuse);
@@ -392,8 +407,10 @@ int main(int argc , char* argv[]) {
         renderer->SetUniform(geometry_pass->Name() , "foe_plight.constant" , point_light.constant);
         renderer->SetUniform(geometry_pass->Name() , "foe_plight.linear" , point_light.linear);
         renderer->SetUniform(geometry_pass->Name() , "foe_plight.quadratic" , point_light.quadratic);
+
         renderer->SetUniform("Draw Normals" , "magnitude" , 0.4f);
         renderer->SetUniform(outline_pass->Name() , "outline_color" , outline_color);
+
         renderer->SubmitStaticModel("Geometry" , model , cube_model , cube_material);
         renderer->SubmitStaticModel("Debug" , model , cube_model , cube_material);
         renderer->SubmitStaticModel("Outline" , model , cube_model , cube_material);
@@ -410,60 +427,6 @@ int main(int argc , char* argv[]) {
         fb_mesh->Draw(other::TRIANGLES);
 
         other::UI::BeginFrame();
-
-        auto RenderItem = [](int32_t id , const std::string& title , ImVec2 size = ImVec2(800 , 600)) {
-          ImGui::PushID(("##" + title).c_str());
-          ImGui::Text("%s" , title.c_str());
-          ImGui::SameLine();
-          ImGui::Image((void*)(intptr_t)id , ImVec2(size.x , size.y) , ImVec2(0 , 1) , ImVec2(1 , 0));
-          ImGui::PopID();
-        };
-
-        auto RenderMaterial = [](const std::string& title , other::Material& mat) {
-          ImGui::PushID(("##" + title).c_str());
-          ImGui::Text("%s" , title.c_str());
-
-          bool edited = false;
-          other::ui::widgets::DrawVec3Control("ambient color" , mat.ambient , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
-                                              { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
-          other::ui::widgets::DrawVec3Control("diffuse color" , mat.diffuse , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
-                                              { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
-          other::ui::widgets::DrawVec3Control("specular color" , mat.specular , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
-                                              { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
-          other::ui::BeginProperty("shininess");
-          other::ui::DragFloat("##shininess" , &mat.shininess , 0.5f , 0.f , 256.f);
-          other::ui::EndProperty();
-          
-          ImGui::PopID();
-        };
-        
-        auto RenderPointLight = [](const std::string& title , other::PointLight& pl) {
-          ImGui::PushID(("##" + title).c_str());
-          ImGui::Text("%s" , title.c_str());
-
-          bool edited = false;
-          other::ui::widgets::DrawVec3Control("position" , pl.position , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
-                                              { 0.f , 0.f , 0.f } , { 100.f , 100.f , 100.f } , 0.5f);
-          other::ui::widgets::DrawVec3Control("ambient color" , pl.ambient , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
-                                              { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
-          other::ui::widgets::DrawVec3Control("diffuse color" , pl.diffuse , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
-                                              { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
-          other::ui::widgets::DrawVec3Control("specular color" , pl.specular , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
-                                              { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
-          other::ui::BeginProperty("constant");
-          other::ui::DragFloat("##constant" , &pl.constant , 0.1f , 0.f , 256.f);
-          other::ui::EndProperty();
-
-          other::ui::BeginProperty("linear");
-          other::ui::DragFloat("##linear" , &pl.linear , 0.05f , 0.f , 256.f);
-          other::ui::EndProperty();
-
-          other::ui::BeginProperty("quadratic");
-          other::ui::DragFloat("##quadratic" , &pl.quadratic , 0.01f , 0.f , 256.f);
-          other::ui::EndProperty();
-          
-          ImGui::PopID();
-        };
 
         if (ImGui::Begin("Frames")) {
           ImVec2 win_size = { (float)other::Renderer::WindowSize().x , (float)other::Renderer::WindowSize().y };
@@ -491,7 +454,8 @@ int main(int argc , char* argv[]) {
 
           ImGui::Text("Light Controls");
           ImGui::Separator();
-          RenderPointLight("light" , point_light);
+          RenderPointLight("point light" , point_light);
+          RenderDirectionLight("direction light" , direction_light);
           ImGui::Separator();
         }
         ImGui::End();

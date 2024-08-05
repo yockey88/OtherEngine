@@ -1,33 +1,17 @@
 vertex [mesh : default] {
-   
-  layout (std140 , binding = 0) uniform Camera {
-    mat4 projection;
-    mat4 view;
-    vec3 viewpoint;
-  };
-
-  out vec3 fviewpoint;
-  out vec3 foe_position;
   
   void main() {
     gl_Position = projection * view * voe_model * vec4(voe_position , 1.0);
-
-    fviewpoint = viewpoint;
-    foe_position = voe_position;
   };
 
 }
 
 fragment {
   
-  in vec3 fviewpoint;
-  in vec3 foe_position;
-  in vec3 flight_color;
-  
   out vec4 FragColor;
 
   void main () {
-    FragColor = vec4(foe_color , 1.f);
+    FragColor = foe_color;
   };
 
 }
