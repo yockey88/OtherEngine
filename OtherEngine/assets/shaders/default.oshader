@@ -6,12 +6,12 @@ vertex [mesh : default] {
   out vec3 foe_normal;
   
   void main() {
-    gl_Position = projection * view * voe_model * vec4(voe_position , 1.0);
+    gl_Position = projection * view * models[gl_InstanceID] * vec4(voe_position , 1.0);
 
     fviewpoint = viewpoint.xyz;
 
-    foe_position = vec3(voe_model * vec4(voe_position , 1.0));
-    foe_normal = mat3(transpose(inverse(voe_model))) * voe_normal;
+    foe_position = vec3(models[gl_InstanceID] * vec4(voe_position , 1.0));
+    foe_normal = mat3(transpose(inverse(models[gl_InstanceID]))) * voe_normal;
   };
 
 }
@@ -62,11 +62,12 @@ fragment {
     vec3 view_dir = normalize(fviewpoint - foe_position);
 
     /// lights
-    vec3 result = CalcDirLight(direction_light , norm , view_dir);
+    // vec3 result = CalcDirLight(foe_dlight , norm , view_dir);
+    vec3 result = CalcPointLight(foe_plight , norm , foe_position , view_dir);
     // result = result + CalcPointLight(foe_plight , norm , foe_position , view_dir);
       
     ///  final color
-    FragColor = vec4(result , 1.f);
+    FragColor = vec4(foe_position , 1.f);
   };
 
 }

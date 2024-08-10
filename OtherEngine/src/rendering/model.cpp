@@ -3,7 +3,10 @@
  **/
 #include "rendering/model.hpp"
 
+#include <glad/glad.h>
+
 #include "core/rand.hpp"
+#include "rendering/rendering_defines.hpp"
 
 namespace other {
 
@@ -20,13 +23,20 @@ namespace other {
     BuildVertexBuffer(verts);
     indices.swap(idxs);
 
-    vertex_buffer = NewRef<VertexBuffer>(vertices.data() , vertices.size() * sizeof(float));
+    vertex_buffer = NewRef<VertexBuffer>(fvertices.data() , fvertices.size() * sizeof(float));
     if (indices.size() > 0) {
-      index_buffer = NewRef<VertexBuffer>(indices.data() , vertices.size() * sizeof(uint32_t));
+      index_buffer = NewRef<VertexBuffer>(indices.data() , 3 * indices.size() * sizeof(uint32_t) ,
+                                          STATIC_DRAW , ELEMENT_ARRAY_BUFFER);
     }
 
     raw_layout = Vertex::RawLayout();
     layout = Vertex::Layout();
+    
+    for (auto& idx : idxs) {
+      raw_indices.push_back(idx.v1);
+      raw_indices.push_back(idx.v2);
+      raw_indices.push_back(idx.v3);
+    }
     
     OE_ASSERT(vertex_buffer != nullptr , "null vertex buffer after model creation!");
   }
@@ -40,13 +50,21 @@ namespace other {
     BuildVertexBuffer(verts);
     indices.swap(idxs);
 
-    vertex_buffer = NewRef<VertexBuffer>(vertices.data() , vertices.size() * sizeof(float));
+    vertex_buffer = NewRef<VertexBuffer>(fvertices.data() , fvertices.size() * sizeof(float));
     if (indices.size() > 0) {
-      index_buffer = NewRef<VertexBuffer>(indices.data() , vertices.size() * sizeof(uint32_t));
+      /// indices stored as triangles with idx1 , idx2 , idx3
+      index_buffer = NewRef<VertexBuffer>(indices.data() , 3 * indices.size() * sizeof(uint32_t) ,
+                                          STATIC_DRAW , ELEMENT_ARRAY_BUFFER);
     }
 
     raw_layout = Vertex::RawLayout();
     layout = Vertex::Layout();
+
+    for (auto& idx : idxs) {
+      raw_indices.push_back(idx.v1);
+      raw_indices.push_back(idx.v2);
+      raw_indices.push_back(idx.v3);
+    }
 
     OE_ASSERT(vertex_buffer != nullptr , "null vertex buffer after model creation!");
   }
@@ -95,6 +113,10 @@ namespace other {
   const std::vector<float>& ModelSource::RawVertices() const {
     return fvertices;
   }
+      
+  const std::vector<uint32_t>& ModelSource::RawIndices() const {
+    return raw_indices;
+  }
 
   const std::vector<Vertex>& ModelSource::Vertices() const {
     return vertices;
@@ -135,11 +157,27 @@ namespace other {
     }
   }
 
+  void ModelSource::SetLayout() {
+    uint32_t stride = 0;
+    for (uint32_t i = 0; i < raw_layout.size(); i++) {
+      stride += raw_layout[i];
+    }
+  
+    uint32_t offset = 0;
+    for (uint32_t i = 0; i < raw_layout.size(); i++) {
+      glEnableVertexAttribArray(i);
+      glVertexAttribPointer(i , raw_layout[i] , GL_FLOAT , GL_FALSE , stride * sizeof(float) , (void*)(offset * sizeof(float)));
+  
+      offset += raw_layout[i];
+    }
+  }
+
   Model::Model(Ref<ModelSource>& model_source) 
       : model_source(model_source) {
     OE_ASSERT(model_source != nullptr , "Attempting construct model from null source!");
     handle = Random::GenerateUUID();
     SetSubMeshes({});
+    RebuildMesh();
 
     /// build materials
   }
@@ -149,6 +187,7 @@ namespace other {
     OE_ASSERT(model_src != nullptr , "Attempting construct model from null source!");
     handle = Random::GenerateUUID();
     SetSubMeshes(sub_meshes);
+    RebuildMesh();
 
     /// build materials
   }
@@ -157,6 +196,11 @@ namespace other {
       : model_source(other->model_source) /* materials */ {
     handle = Random::GenerateUUID();
     SetSubMeshes(other->sub_meshes);
+    RebuildMesh();
+  }
+  
+  const Ref<VertexArray>& Model::GetMesh() const {
+    return model_vao; 
   }
   
   const std::vector<uint32_t>& Model::SubMeshes() const {
@@ -173,6 +217,14 @@ namespace other {
         sub_meshes[i] = i;
       }
     }
+  }
+      
+  void Model::RebuildMesh() {
+    auto& raw_vertices = model_source->RawVertices();
+    auto& raw_indices = model_source->RawIndices();
+
+    model_vao = NewRef<VertexArray>(raw_vertices , raw_indices);
+    OE_ASSERT(model_vao != nullptr , "null model vao after model creation!");
   }
 
   Ref<ModelSource> Model::GetModelSource() {
@@ -192,6 +244,7 @@ namespace other {
     handle = Random::GenerateUUID();
     this->model_source = Ref<ModelSource>::Clone(model_source);
     SetSubMeshes({});
+    RebuildMesh();
 
     /// build materials
   }
@@ -201,14 +254,20 @@ namespace other {
     handle = Random::GenerateUUID();
     this->model_source = Ref<ModelSource>::Clone(model_source);
     SetSubMeshes(sub_meshes);
+    RebuildMesh();
 
     /// build materials
   }
 
   StaticModel::StaticModel(const Ref<StaticModel>& other) 
       : model_source(other->model_source) /* materials */ {
-    SetSubMeshes(other->sub_meshes);
     handle = Random::GenerateUUID();
+    SetSubMeshes(other->sub_meshes);
+    RebuildMesh();
+  }
+
+  const Ref<VertexArray>& StaticModel::GetMesh() const {
+    return model_vao; 
   }
   
   const std::vector<uint32_t>& StaticModel::SubMeshes() const {
@@ -227,6 +286,14 @@ namespace other {
     }
 
     OE_DEBUG("Model {} has {} submeshes" , handle , sub_meshes.size());
+  }
+     
+  void StaticModel::RebuildMesh() {
+    auto& raw_vertices = model_source->RawVertices();
+    auto& raw_indices = model_source->RawIndices();
+
+    model_vao = NewRef<VertexArray>(raw_vertices , raw_indices);
+    OE_ASSERT(model_vao != nullptr , "null model vao after model creation!");
   }
 
   Ref<ModelSource> StaticModel::GetModelSource() {

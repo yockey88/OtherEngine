@@ -321,6 +321,7 @@ namespace other {
       stream << "  vec4 diffuse;\n";
       stream << "  vec4 specular;\n";
       stream << "  float shininess;\n";
+      stream << "  vec3 padding;\n";
       stream << "};\n\n";
       
       stream << "struct PointLight {\n";
@@ -331,6 +332,7 @@ namespace other {
       stream << "  float constant;\n";
       stream << "  float linear;\n";
       stream << "  float quadratic;\n";
+      stream << "  float padding;\n";
       stream << "};\n\n";
       
       stream << "struct DirectionLight {\n";
@@ -377,11 +379,11 @@ namespace other {
       stream << "};\n\n";
       stream << "uniform mat4 voe_model;\n\n";
     } else if (context == FRAGMENT_SHADER) {
-      stream << "layout (std430 , binding = 2) readonly buffer LightData {\n";
+      stream << "layout (std140 , binding = 2) readonly buffer LightData {\n";
       stream << "  DirectionLight direction_light;\n";
-
-      stream << "  int num_point_lights;\n";
-      stream << "  PointLight point_lights[];\n";
+      stream << "};\n\n";
+      stream << "layout (std430 , binding = 3) readonly buffer MaterialData {\n";
+      stream << "  Material materials[];\n";
       stream << "};\n\n";
       stream << "uniform vec4 foe_color;\n";
       stream << "uniform Material foe_material;\n\n";

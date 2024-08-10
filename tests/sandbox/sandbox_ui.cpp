@@ -51,7 +51,7 @@ void RenderPointLight(const std::string& title , other::PointLight& pl) {
   glm::vec3 temp_diffuse = pl.diffuse;
   glm::vec3 temp_specular = pl.specular;
   other::ui::widgets::DrawVec3Control("position" , temp_position , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
-                                      { 0.f , 0.f , 0.f } , { 100.f , 100.f , 100.f } , 0.5f);
+                                      { -100.f , -100.f , -100.f } , { 100.f , 100.f , 100.f } , 0.5f);
   other::ui::widgets::DrawVec3Control("ambient color" , temp_ambient , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
                                       { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
   other::ui::widgets::DrawVec3Control("diffuse color" , temp_diffuse , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
@@ -89,7 +89,7 @@ void RenderDirectionLight(const std::string& title , other::DirectionLight& dl) 
   glm::vec3 temp_diffuse = dl.diffuse;
   glm::vec3 temp_specular = dl.specular;
   other::ui::widgets::DrawVec3Control("direction" , temp_direction , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
-                                      { 0.f , 0.f , 0.f } , { 100.f , 100.f , 100.f } , 0.5f);
+                                      { -100.f , -100.f , -100.f } , { 100.f , 100.f , 100.f } , 0.5f);
   other::ui::widgets::DrawVec3Control("ambient color" , temp_ambient , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
                                       { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
   other::ui::widgets::DrawVec3Control("diffuse color" , temp_diffuse , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,

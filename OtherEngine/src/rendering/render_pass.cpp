@@ -105,11 +105,12 @@ namespace other {
     if (uniform_blocks.find(hash) != uniform_blocks.end()) {
       OE_ERROR("Can not redefine uniform block {}" , uni_buffer->Name());
       return;
+    } else {
+      OE_DEBUG("Bound Uniform Buffer : {}" , uni_buffer->Name());
     }
 
     auto& buff = uniform_blocks[hash] = uni_buffer;
     buff->BindBase();
-    buff->BindShader(GetShader());
   }
 
   void RenderPass::DefineInput(Uniform uniform) {

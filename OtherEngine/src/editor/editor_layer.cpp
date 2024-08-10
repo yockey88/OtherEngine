@@ -515,8 +515,6 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
       } ,
       .pipelines = {
         {
-          .has_indices = true ,
-          .buffer_cap = 4096 * sizeof(float) ,
           .framebuffer_spec = {
             .depth_func = other::LESS_EQUAL ,
             .clear_color = { 0.1f , 0.3f , 0.3f , 1.f } ,

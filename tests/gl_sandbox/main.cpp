@@ -31,48 +31,27 @@
 #include "rendering/framebuffer.hpp"
 #include "rendering/perspective_camera.hpp"
 
-#define RECT 0
+struct Cube {
+  uint32_t vao = 0 , vbo = 0 , ebo = 0;
+  std::vector<float> vertices;
+  constexpr static uint32_t indices[] = {
+    0, 1, 2 , 
+    2, 3, 0 , 
+    1, 5, 6 , 
+    6, 2, 1 , 
+    7, 6, 5 , 
+    5, 4, 7 , 
+    4, 0, 3 , 
+    3, 7, 4 , 
+    4, 5, 1 , 
+    1, 0, 4 , 
+    3, 2, 6 , 
+    6, 7, 3 , 
+  };
 
-#if RECT
-const float vertices[] = {
-   0.5f ,  0.5f , 0.0f , 0.f ,
-   0.5f , -0.5f , 0.0f , 0.f ,
-  -0.5f , -0.5f , 0.0f , 0.f ,
-  -0.5f ,  0.5f , 0.0f , 0.f ,
+  Cube(uint32_t model_idx);
+  ~Cube();
 };
-
-const uint32_t indices[] = {
-  0 , 1 , 3 ,
-  1 , 2 , 3
-};
-#else
-const float vertices[] = {
-  -1.0f / 2.0f, -1.0f / 2.0f,  1.0f / 2.0f , 0.f ,
-   1.0f / 2.0f, -1.0f / 2.0f,  1.0f / 2.0f , 0.f ,
-   1.0f / 2.0f,  1.0f / 2.0f,  1.0f / 2.0f , 0.f , 
-  -1.0f / 2.0f,  1.0f / 2.0f,  1.0f / 2.0f , 0.f , 
-  -1.0f / 2.0f, -1.0f / 2.0f, -1.0f / 2.0f , 0.f , 
-   1.0f / 2.0f, -1.0f / 2.0f, -1.0f / 2.0f , 0.f , 
-   1.0f / 2.0f,  1.0f / 2.0f, -1.0f / 2.0f , 0.f , 
-  -1.0f / 2.0f,  1.0f / 2.0f, -1.0f / 2.0f , 0.f , 
-};
-
-const uint32_t indices[] = {
-  0, 1, 2 , 
-  2, 3, 0 , 
-  1, 5, 6 , 
-  6, 2, 1 , 
-  7, 6, 5 , 
-  5, 4, 7 , 
-  4, 0, 3 , 
-  3, 7, 4 , 
-  4, 5, 1 , 
-  1, 0, 4 , 
-  3, 2, 6 , 
-  6, 7, 3 , 
-};
-
-#endif
 
 
 static const char* vert1 = R"(
@@ -81,19 +60,19 @@ static const char* vert1 = R"(
 layout (location = 0) in vec3 vpos;
 layout (location = 1) in int model_id; 
 
-layout (std140) uniform Camera {
+layout (std140 , binding = 0) uniform Camera {
   mat4 projection;
   mat4 view;
 };
 
-layout (std430) buffer ModelData {
+layout (std430 , binding = 1) readonly buffer ModelData {
   mat4 models[];
 };
 
 out vec4 fcol;
 
 void main() {
-  gl_Position = projection * view * models[model_id] * vec4(vpos , 1.0);
+  gl_Position = projection * view * models[gl_InstanceID] * vec4(vpos , 1.0);
   fcol = vec4(vpos , 1.0);
 }
 )";
@@ -277,27 +256,11 @@ int main(int argc , char* argv[]) {
     glDeleteShader(frag_2);
 
     OE_INFO("Shaders Compiled");
-    
-    uint32_t vao = 0 , vbo = 0 , ebo = 0;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
 
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    
-    glGenBuffers(1, &ebo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    Cube cube1(0);
+    CHECK();
 
-    glVertexAttribPointer(0 , 3 , GL_FLOAT , GL_FALSE , 4 * sizeof(float) , (void*)0);
-    glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(1 , 1 , GL_FLOAT , GL_FALSE , 4 * sizeof(float) , (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    glBindVertexArray(0);
-    
+    Cube cube2(1);
     CHECK();
 
     OE_INFO("VAO created");
@@ -305,22 +268,21 @@ int main(int argc , char* argv[]) {
     uint32_t cam_idx_1 = glGetUniformBlockIndex(shader1 , "Camera");
     uint32_t cam_idx_2 = glGetUniformBlockIndex(shader2 , "Camera");
 
-    glUniformBlockBinding(shader1 , cam_idx_1 , 0);
-    glUniformBlockBinding(shader2 , cam_idx_2 , 0);
-    
     uint32_t model_idx_1 = glGetProgramResourceIndex(shader1 , GL_SHADER_STORAGE_BLOCK, "ModelData");
     uint32_t model_idx_2 = glGetProgramResourceIndex(shader2 , GL_SHADER_STORAGE_BLOCK, "ModelData");
 
+    glUniformBlockBinding(shader1 , cam_idx_1 , 0);
     glShaderStorageBlockBinding(shader1 , model_idx_1 , 1);
+
+    glUniformBlockBinding(shader2 , cam_idx_2 , 0);
     glShaderStorageBlockBinding(shader2 , model_idx_2 , 1);
 
     uint32_t camera_ub = 0;
     glGenBuffers(1 , &camera_ub);
     glBindBuffer(GL_UNIFORM_BUFFER , camera_ub);
-    glBufferData(GL_UNIFORM_BUFFER , 2 * sizeof(glm::mat4) , nullptr , GL_DYNAMIC_DRAW);
+    glBufferData(GL_UNIFORM_BUFFER , 2 * sizeof(glm::mat4) , nullptr , GL_DYNAMIC_COPY);
     glBindBuffer(GL_UNIFORM_BUFFER , 0);
-
-    glBindBufferRange(GL_UNIFORM_BUFFER , 0 , camera_ub , 0 , 2 * sizeof(glm::mat4));
+    glBindBufferBase(GL_UNIFORM_BUFFER , 0 , camera_ub);
     
     other::Ref<CameraBase> camera = other::NewRef<PerspectiveCamera>(glm::ivec2{ win_w , win_h });
     camera->SetPosition({ 0.f , 0.f , 3.f });
@@ -333,16 +295,15 @@ int main(int argc , char* argv[]) {
     glBindBuffer(GL_UNIFORM_BUFFER , 0);
 
     glm::mat4 model1 =  glm::mat4(1.0f); 
-    glm::mat4 model2 =  glm::mat4(1.f);
-    model2 = glm::translate(model1 , glm::vec3(0.3f , 0.1f , 0.f));
+    glm::mat4 model2 =  glm::mat4(1.0f);
+    model2 = glm::translate(model2 , glm::vec3(2.f , 0.f , 0.f));
 
     uint32_t model_ssbo = 0;
     glGenBuffers(1 , &model_ssbo);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER , model_ssbo);
-    glBufferData(GL_SHADER_STORAGE_BUFFER , 2 * sizeof(glm::mat4) , nullptr , GL_DYNAMIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER , 2 * sizeof(glm::mat4) , nullptr , GL_DYNAMIC_COPY);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER , 0);
-
-    glBindBufferRange(GL_SHADER_STORAGE_BUFFER , 1 , model_ssbo , 0 , 2 * sizeof(glm::mat4));
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER , 1 , model_ssbo);
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER , model_ssbo);
     glBufferSubData(GL_SHADER_STORAGE_BUFFER , 0 , sizeof(glm::mat4) , glm::value_ptr(model1));
@@ -419,7 +380,7 @@ int main(int argc , char* argv[]) {
         view = camera->ViewMatrix();
       }
 
-      // model1 = glm::rotate(model1 , 0.1f , { 1.f , 1.f , 1.f });
+      model1 = glm::rotate(model1 , 0.1f , { 1.f , 1.f , 1.f });
 
       /// clear window
       glClearColor(0.2f , 0.3f , 0.3f , 1.f);
@@ -433,7 +394,7 @@ int main(int argc , char* argv[]) {
       
       /// outline pass
       float scale = 1.03f;
-      model1 = glm::mat4(1.f);
+      float inv_scale = 1.f / scale;
       model1 = glm::scale(model1 , { scale , scale , scale });
       
       glBindBuffer(GL_SHADER_STORAGE_BUFFER , model_ssbo);
@@ -445,18 +406,12 @@ int main(int argc , char* argv[]) {
       glDisable(GL_DEPTH_TEST);
 
       glUseProgram(shader2);
-      glBindVertexArray(vao);
-      glDrawElements(GL_TRIANGLES , 
-#if RECT
-        6 , 
-#else
-        36 ,
-#endif
-      GL_UNSIGNED_INT , 0);
+      glBindVertexArray(cube1.vao);
+      glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES , 36 , GL_UNSIGNED_INT , (void*)0 , 1 , 0 , 0);
       /// end of outline pass
 
       /// model pass 
-      model1 = glm::mat4(1.f);
+      model1 = glm::scale(model1 , { inv_scale , inv_scale , inv_scale });
 
       glBindBuffer(GL_SHADER_STORAGE_BUFFER , model_ssbo);
       glBufferSubData(GL_SHADER_STORAGE_BUFFER , 0 , sizeof(glm::mat4) , glm::value_ptr(model1));
@@ -468,13 +423,8 @@ int main(int argc , char* argv[]) {
       glStencilMask(0xFF);
 
       glUseProgram(shader1);
-      glDrawElements(GL_TRIANGLES , 
-#if RECT
-        6 , 
-#else
-        36 ,
-#endif
-      GL_UNSIGNED_INT , 0);
+      glBindVertexArray(cube1.vao);
+      glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES , 36 , GL_UNSIGNED_INT , (void*)0 , 2 , 0 , 0);
       /// end of model pass
 
 
@@ -500,9 +450,6 @@ int main(int argc , char* argv[]) {
       SDL_GL_SwapWindow(context.window);
     }
 
-
-    glDeleteVertexArrays(1 , &vao);
-    glDeleteBuffers(1 , &vbo);
     glDeleteProgram(shader1);
     glDeleteProgram(shader2);
 
@@ -524,6 +471,39 @@ int main(int argc , char* argv[]) {
   other::IO::Shutdown();
 
   return 1;
+}
+  
+Cube::Cube(uint32_t model_idx) {
+  vertices = {
+    -1.0f / 2.0f, -1.0f / 2.0f,  1.0f / 2.0f , 
+     1.0f / 2.0f, -1.0f / 2.0f,  1.0f / 2.0f , 
+     1.0f / 2.0f,  1.0f / 2.0f,  1.0f / 2.0f ,  
+    -1.0f / 2.0f,  1.0f / 2.0f,  1.0f / 2.0f ,  
+    -1.0f / 2.0f, -1.0f / 2.0f, -1.0f / 2.0f ,  
+     1.0f / 2.0f, -1.0f / 2.0f, -1.0f / 2.0f ,  
+     1.0f / 2.0f,  1.0f / 2.0f, -1.0f / 2.0f ,  
+    -1.0f / 2.0f,  1.0f / 2.0f, -1.0f / 2.0f ,  
+  }; 
+  glGenVertexArrays(1, &vao);
+  glBindVertexArray(vao);
+
+  glGenBuffers(1, &vbo);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data() , GL_STATIC_DRAW);
+  
+  glGenBuffers(1, &ebo);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+  glVertexAttribPointer(0 , 3 , GL_FLOAT , GL_FALSE , 3 * sizeof(float) , (void*)0);
+  glEnableVertexAttribArray(0);
+
+  glBindVertexArray(0);
+}
+
+Cube::~Cube() {
+  glDeleteVertexArrays(1 , &vao);
+  glDeleteBuffers(1 , &vbo);
 }
 
 void CheckGlError(int line) {

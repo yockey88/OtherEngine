@@ -33,7 +33,7 @@ namespace other {
       bool Bound() const;
 
       void BindBase();
-      void BindRange(size_t offset , size_t size);
+      void BindRange(size_t offset  = 0 , size_t size = 0);
 
       void Bind();
       
@@ -47,8 +47,10 @@ namespace other {
         Bind();
         if constexpr (glm_t<T>) {
           glBufferSubData(type , offset , u_data.size , glm::value_ptr(value));
+
+          CHECKGL();
         } else if constexpr (std::same_as<T , PointLight>) {
-          glBufferSubData(type , offset , sizeof(PointLight) , &value);
+          // glBufferSubData(type , offset , sizeof(PointLight) , &value);
           // glBufferSubData(type , offset , GetValueSize(VEC3) , glm::value_ptr(value.position));
           // glBufferSubData(type , offset + GetValueSize(VEC3) , GetValueSize(VEC3) , glm::value_ptr(value.ambient));
           // glBufferSubData(type , offset + 2 * GetValueSize(VEC3) , GetValueSize(VEC3) , glm::value_ptr(value.diffuse));
@@ -56,14 +58,20 @@ namespace other {
           // glBufferSubData(type , offset + 4 * GetValueSize(VEC3) , GetValueSize(FLOAT) , &value.constant);
           // glBufferSubData(type , offset + 4 * GetValueSize(VEC3) + GetValueSize(FLOAT) , GetValueSize(FLOAT) , &value.linear);
           // glBufferSubData(type , offset + 4 * GetValueSize(VEC3) + 2 * GetValueSize(FLOAT) , GetValueSize(FLOAT) , &value.quadratic);
+          
+          CHECKGL();
         } else if constexpr (std::same_as<T , DirectionLight>) {
           // glBufferSubData(type , offset , sizeof(DirectionLight) , &value);
-          glBufferSubData(type , offset , GetValueSize(VEC4) , glm::value_ptr(value.direction));
-          glBufferSubData(type , offset + GetValueSize(VEC4) , GetValueSize(VEC4) , glm::value_ptr(value.ambient));
-          glBufferSubData(type , offset + 2 * GetValueSize(VEC4) , GetValueSize(VEC4) , glm::value_ptr(value.diffuse));
-          glBufferSubData(type , offset + 4 * GetValueSize(VEC4) , GetValueSize(VEC4) , glm::value_ptr(value.specular));
+          glBufferSubData(type , 0  , 16 , glm::value_ptr(value.direction));
+          glBufferSubData(type , 16 , 16 , glm::value_ptr(value.ambient));
+          glBufferSubData(type , 32 , 16 , glm::value_ptr(value.diffuse));
+          glBufferSubData(type , 48 , 16 , glm::value_ptr(value.specular));
+          
+          CHECKGL();
         } else {
           glBufferSubData(type , offset , u_data.size , &value);
+          
+          CHECKGL();
         }
         Unbind();
 

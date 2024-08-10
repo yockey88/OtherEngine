@@ -92,6 +92,7 @@ namespace other {
       void UnbindIndexBuffer();
 
       const std::vector<float>& RawVertices() const;
+      const std::vector<uint32_t>& RawIndices() const;
       const std::vector<Vertex>& Vertices() const;
       const std::vector<Index>& Indices() const;
       const std::vector<uint32_t>& RawLayout() const;
@@ -105,6 +106,7 @@ namespace other {
       Ref<VertexBuffer> bone_infl_buffer;
 
       std::vector<float> fvertices;
+      std::vector<uint32_t> raw_indices;
       std::vector<Vertex> vertices;
       std::vector<Index> indices;
       std::vector<uint32_t> raw_layout;
@@ -123,6 +125,7 @@ namespace other {
       std::vector<MeshNode> nodes;
 
       void BuildVertexBuffer(const std::vector<Vertex>& vertices);
+      void SetLayout();
   };
 
   class Model : public Asset {
@@ -131,10 +134,14 @@ namespace other {
       Model(Ref<ModelSource>& mesh_src , const std::vector<uint32_t>& sub_meshes);
       Model(const Ref<Model>& other);
       virtual ~Model() {}
+      
+      const Ref<VertexArray>& GetMesh() const;
 
       const std::vector<uint32_t>& SubMeshes() const;
 
       void SetSubMeshes(const std::vector<uint32_t>& sub_meshes);
+
+      void RebuildMesh();
 
       Ref<ModelSource> GetModelSource();
       Ref<ModelSource> GetModelSource() const;
@@ -143,6 +150,7 @@ namespace other {
 
     private:
       Ref<ModelSource> model_source;
+      Ref<VertexArray> model_vao = nullptr;
       std::vector<uint32_t> sub_meshes;
 
       // Ref<MaterialTable> material_table;
@@ -155,16 +163,22 @@ namespace other {
       StaticModel(const Ref<StaticModel>& other);
       virtual ~StaticModel() {}
 
+      const Ref<VertexArray>& GetMesh() const;
+
       const std::vector<uint32_t>& SubMeshes() const;
 
       void SetSubMeshes(const std::vector<uint32_t>& sub_meshes);
+      
+      void RebuildMesh();
 
       Ref<ModelSource> GetModelSource();
       Ref<ModelSource> GetModelSource() const;
 
       void SetModelAsset(Ref<ModelSource>& mesh_src);
 
+    private:
       Ref<ModelSource> model_source;
+      Ref<VertexArray> model_vao = nullptr;
       std::vector<uint32_t> sub_meshes;
 
       /// Ref<MaterialTable> material_table;

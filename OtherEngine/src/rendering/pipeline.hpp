@@ -23,9 +23,8 @@ namespace other {
   struct MeshKey {
     AssetHandle model_handle;
     // AssetHandle material_handle;
-    glm::mat4 transform = glm::mat4(1.f);
-    uint32_t model_idx = 0;
-    uint32_t submesh_idx = 0;
+    Ref<VertexArray> vao = nullptr;
+    size_t num_elements = 0;
     bool selected;
   };
 
@@ -34,36 +33,8 @@ namespace other {
 namespace std {
 
   template <>
-  struct std::less<other::MeshKey> {
-    bool operator()(const other::MeshKey& lhs , const other::MeshKey& rhs) const {
-      if (lhs.model_handle.Get() < rhs.model_handle.Get()) {
-        return true;
-      }
-
-      if (lhs.model_handle.Get() > rhs.model_handle.Get()) {
-        return false;
-      }
-      
-      if (lhs.submesh_idx < rhs.submesh_idx) {
-        return true;
-      }
-
-      if (lhs.submesh_idx > rhs.submesh_idx) {
-        return false;
-      }
-      
-      /* 
-      if (lhs.material_handle.Get() < rhs.material_handle.Get()) {
-        return true;
-      }
-
-      if (lhs.material_handle.Get() > rhs.material_handle.Get()) {
-        return false;
-      }
-      */
-
-      return lhs.selected && !rhs.selected;
-    }
+  struct less<other::MeshKey> {
+    bool operator()(const other::MeshKey& lhs , const other::MeshKey& rhs) const;
   };
 
 } // namespace std
@@ -71,9 +42,6 @@ namespace std {
 namespace other {
 
   struct PipelineSpec {
-    bool has_indices = false;
-    uint32_t buffer_cap = 4096;
-
     DrawMode topology = DrawMode::TRIANGLES;
     bool back_face_culling = true;
     bool depth_test = true;
@@ -108,22 +76,16 @@ namespace other {
       PipelineSpec spec{};
 
       struct RenderSubmission {
-        Ref<VertexArray> mesh = nullptr;
         Material material;
-        glm::mat4 transform;
       };
 
-      std::vector<RenderSubmission> frame_submissions;
+      std::map<MeshKey , std::vector<RenderSubmission>> model_submissions;
       
       std::vector<float> vertices{};
       std::vector<uint32_t> indices{};
 
       uint32_t curr_transform_idx = 0;
       uint32_t idx_offset = 0;
-      
-      Scope<VertexBuffer> vertex_buffer = nullptr;
-      Scope<VertexBuffer> index_buffer = nullptr;
-
        
       Ref<Framebuffer> target = nullptr;
 

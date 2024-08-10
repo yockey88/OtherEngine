@@ -6,49 +6,28 @@
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 
+#include "rendering/rendering_defines.hpp"
 #include "rendering/render_pass.hpp"
+#include "rendering/vertex.hpp"
+
+namespace std {
+  
+  bool less<other::MeshKey>::operator()(const other::MeshKey& lhs , const other::MeshKey& rhs) const {
+    if (lhs.model_handle.Get() != rhs.model_handle.Get()) {
+      return lhs.model_handle.Get() < rhs.model_handle.Get();
+    }
+    
+    return lhs.selected && !rhs.selected;
+  }
+
+} // namespace std
 
 namespace other {
 
   Pipeline::Pipeline(PipelineSpec& spec) 
       : spec(spec) {
-    glGenVertexArrays(1 , &vao_id);
-    glBindVertexArray(vao_id);
-
-    CHECKGL();
-
-    vertex_buffer = NewScope<VertexBuffer>(BufferType::ARRAY_BUFFER , spec.buffer_cap);
-    if (spec.has_indices) {
-      index_buffer = NewScope<VertexBuffer>(BufferType::ELEMENT_ARRAY_BUFFER , spec.buffer_cap);
-    }
-
-    OE_DEBUG("Setting vertex attributes");
-
-    uint32_t index = 0;
-    uint32_t offset = 0;
-
-    /// we always add an index into the end of the layout
-    uint32_t stride = spec.vertex_layout.Stride() * sizeof(float) + sizeof(uint32_t);
-  
-    OE_ASSERT(stride >= 0 , "Stride for pipeline [{}] is negative ({})" , spec.debug_name , stride);
-
-    for (const auto& attr : spec.vertex_layout) {
-      glEnableVertexAttribArray(index);
-      glVertexAttribPointer(index , attr.size , GL_FLOAT , GL_FALSE , stride , (void*)(offset * sizeof(float)));
-      CHECKGL();
-
-      ++index;
-      offset += attr.size;
-    }
-
-    glEnableVertexAttribArray(index);
-    glVertexAttribPointer(index , 1 , GL_INT , GL_FALSE , stride , (void*)(offset * sizeof(float)));
-    
-    OE_DEBUG("Set vertex attributes");
-
-    glBindVertexArray(0);
-
     target = Ref<Framebuffer>::Create(spec.framebuffer_spec);
+    OE_ASSERT(spec.model_storage != nullptr , "Constructing pipeline [{}] with null model storage" , spec.debug_name);
     spec.model_storage->BindBase();
   }
       
@@ -62,81 +41,42 @@ namespace other {
   void Pipeline::SubmitStaticModel(Ref<StaticModel>& model , const glm::mat4& transform , const Material& material) {
     Ref<ModelSource> source = model->GetModelSource();
     // const auto& submesh_data = model_source->SubMeshes();
-     
-    auto& verts = source->RawVertices();
-    auto& idxs = source->Indices();
-
-    // uint32_t floats_added = 0;
-    // for (uint32_t i = 0; i < verts.size();) {
-    //   for (uint32_t j = 0; j < spec.vertex_layout.Stride(); ++j, ++floats_added) {
-    //     vertices.push_back(verts[i]);
-    //     ++i;
-    //   }
-
-    //   vertices.push_back(curr_transform_idx);
-    // }
-
-    // for (auto& i : idxs) {
-    //   AddIndices(i);
-    // }
-    // 
-    // spec.model_storage->SetUniform("models" , transform , curr_transform_idx);
-
-    // ++curr_transform_idx;
-    // idx_offset += floats_added; 
-
-    std::vector<uint32_t> indices{};
-    for (const auto& i : idxs) {
-      indices.push_back(i.v1);
-      indices.push_back(i.v2);
-      indices.push_back(i.v3);
-    }
-
-    frame_submissions.emplace_back(RenderSubmission{
-      .mesh = NewRef<VertexArray>(verts , indices) ,
-      .material = material ,
-      .transform = transform ,
+    
+    auto itr = std::ranges::find_if(model_submissions , [&](const auto& pair) -> bool {
+      return model->handle == pair.first.model_handle;
     });
+
+    if (itr == model_submissions.end()) {
+      MeshKey key = {
+        .model_handle = model->handle ,
+        .vao = Ref<VertexArray>::Clone(model->GetMesh()) ,
+        .num_elements = model->GetMesh()->NumElements() ,
+      };
+
+      model_submissions[key] = {};
+      itr = model_submissions.find(key);
+    } 
+    
+    /// will be valid now
+    auto& [mk , sl] = *itr; 
+    spec.model_storage->SetUniform("models" , transform , sl.size());
+
+    auto& submission = sl.emplace_back();
+    submission.material = material;
   }
 
   void Pipeline::Render() {
-    // vertex_buffer->Bind();
-    // vertex_buffer->BufferData(vertices.data() , vertices.size() * sizeof(float));
-
-    // CHECKGL();
-
-    // if (spec.has_indices) {
-    //   index_buffer->Bind();
-    //   index_buffer->BufferData(indices.data() , indices.size() * sizeof(uint32_t));
-    // }
-
-    // CHECKGL();
-
     target->BindFrame();
 
-    // glBindVertexArray(vao_id);
     for (auto& p : passes) {
       PerformPass(p);
     }
-    // glBindVertexArray(0);
 
     target->UnbindFrame();
 
+    model_submissions.clear();
+
     CHECKGL();
-
-    // vertex_buffer->ClearBuffer();
-    // if (spec.has_indices) {
-    //   index_buffer->ClearBuffer();
-    // }
-    // 
-    // vertices.clear();
-    // indices.clear();
-    frame_submissions.clear();
-
-    // curr_transform_idx = 0;
-    // idx_offset = 0;
-
-    // CHECKGL();
   }
 
   Ref<Framebuffer> Pipeline::GetOutput() {
@@ -153,25 +93,13 @@ namespace other {
     pass->Bind();
     CHECKGL();
 
-    for (auto& fs : frame_submissions) {
-      pass->SetInput("voe_model" , fs.transform);
-      pass->SetInput("foe_color" , fs.material.ambient);
-      pass->SetInput("foe_material.ambient" , fs.material.ambient);
-      pass->SetInput("foe_material.diffuse" , fs.material.diffuse);
-      pass->SetInput("foe_material.specular" , fs.material.specular);
-      pass->SetInput("foe_material.shininess" , fs.material.shininess);
-      fs.mesh->Draw(spec.topology);
+    for (auto& [mk , sl] : model_submissions) {
+      mk.vao->Bind();
+      glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES , mk.num_elements , GL_UNSIGNED_INT , (void*)0 , sl.size() , 0 , 0);
     }
-
-    pass->Unbind();
     CHECKGL();
 
-    // if (spec.has_indices) {
-    //   glDrawElements(spec.topology , indices.size() , GL_UNSIGNED_INT , 0);
-    // } else {
-    //   glDrawArrays(spec.topology , 0 , vertices.size() / spec.vertex_layout.Stride()); 
-    // }
-
+    pass->Unbind();
     CHECKGL();
   }
 

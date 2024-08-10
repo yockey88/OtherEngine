@@ -183,11 +183,6 @@ int main(int argc , char* argv[]) {
 
       other::AssetHandle model_handle = other::ModelFactory::CreateBox({ 1.f , 1.f , 1.f });
       Ref<StaticModel> model = other::AssetManager::GetAsset<StaticModel>(model_handle);
-      Ref<ModelSource> model_source = model->GetModelSource();
-      
-      other::AssetHandle floor_handle = other::ModelFactory::CreateBox({ 1.f , 1.f , 1.f });
-      Ref<StaticModel> floor = other::AssetManager::GetAsset<StaticModel>(floor_handle);
-      Ref<ModelSource> floor_source = floor->GetModelSource();
     
       uint32_t camera_binding_pnt = 0;
       std::vector<Uniform> cam_unis = {
@@ -240,8 +235,6 @@ int main(int argc , char* argv[]) {
         } ,
         .pipelines = {
           {
-            .has_indices = true ,
-            .buffer_cap = 4096 * sizeof(float) ,
             .framebuffer_spec = {
               .depth_func = other::LESS_EQUAL ,
               .clear_color = { 0.1f , 0.1f , 0.1f , 1.f } ,
@@ -252,8 +245,6 @@ int main(int argc , char* argv[]) {
             .debug_name = "Geometry" , 
           } ,
           {
-            .has_indices = true ,
-            .buffer_cap = 4096 * sizeof(float) ,
             .framebuffer_spec = {
               .depth_func = other::LESS_EQUAL ,
               .clear_color = { 0.3f , 0.3f , 0.3f , 1.f } ,
@@ -264,8 +255,6 @@ int main(int argc , char* argv[]) {
             .debug_name = "Debug" , 
           } ,
           {
-            .has_indices = true ,
-            .buffer_cap = 4096 * sizeof(float) ,
             .framebuffer_spec = {
               .depth_func = other::LESS_EQUAL ,
               .clear_color = { 0.3f , 0.3f , 0.3f , 1.f } ,
@@ -302,9 +291,18 @@ int main(int argc , char* argv[]) {
         
       CHECKGL();
 
-      glm::vec3 cube_pos = glm::vec3(0.f , 0.f , 0.f);
-      glm::mat4 cube_model = glm::mat4(1.f);
-      other::Material cube_material = {
+      glm::vec3 cube_pos1 = glm::vec3(0.f , 0.f , 0.f);
+      glm::mat4 cube_model1 = glm::mat4(1.f);
+      other::Material cube_material1 = {
+        .ambient  = { 1.0f , 0.5f , 0.31f , 1.f } ,
+        .diffuse  = { 1.0f , 0.5f , 0.31f , 1.f } ,
+        .specular = { 0.5f , 0.5f , 0.50f , 1.f } ,
+        .shininess = 32.f
+      };
+      
+      glm::vec3 cube_pos2 = glm::vec3(2.f , 0.f , 0.f);
+      glm::mat4 cube_model2 = glm::mat4(1.f);
+      other::Material cube_material2 = {
         .ambient  = { 1.0f , 0.5f , 0.31f , 1.f } ,
         .diffuse  = { 1.0f , 0.5f , 0.31f , 1.f } ,
         .specular = { 0.5f , 0.5f , 0.50f , 1.f } ,
@@ -345,8 +343,6 @@ int main(int argc , char* argv[]) {
 
         /// early update
 
-
-
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
           switch (event.type) {
@@ -386,8 +382,12 @@ int main(int argc , char* argv[]) {
           other::DefaultUpdateCamera(camera);
         }
         
-        cube_model = glm::mat4(1.f);
-        cube_model = glm::translate(cube_model , cube_pos);
+        cube_model1 = glm::mat4(1.f);
+        cube_model1 = glm::translate(cube_model1 , cube_pos1);
+        cube_model1 = glm::rotate(cube_model1 , 0.1f , { 1.f , 1.f , 1.f });
+        
+        cube_model2 = glm::mat4(1.f);
+        cube_model2 = glm::translate(cube_model2 , cube_pos2);
 
         light_model = glm::mat4(1.f);
         light_model = glm::translate(light_model , glm::vec3(point_light.position));
@@ -396,7 +396,7 @@ int main(int argc , char* argv[]) {
         other::Renderer::GetWindow()->Clear();
 
         renderer->BeginScene(camera);
-        renderer->SetUniform(geometry_pass->Name() , "LightData" , "direction_light" , direction_light);
+        // renderer->SetUniform(geometry_pass->Name() , "LightData" , "direction_light" , direction_light);
         // renderer->SetUniform(geometry_pass->Name() , "LightData" , "num_point_lights" , 1 , 0);
         // renderer->SetUniform(geometry_pass->Name() , "LightData" , "point_lights" , point_light);
 
@@ -407,13 +407,19 @@ int main(int argc , char* argv[]) {
         renderer->SetUniform(geometry_pass->Name() , "foe_plight.constant" , point_light.constant);
         renderer->SetUniform(geometry_pass->Name() , "foe_plight.linear" , point_light.linear);
         renderer->SetUniform(geometry_pass->Name() , "foe_plight.quadratic" , point_light.quadratic);
+        
+        renderer->SetUniform(geometry_pass->Name() , "foe_dlight.direction" , direction_light.direction);
+        renderer->SetUniform(geometry_pass->Name() , "foe_dlight.ambient" , direction_light.ambient);
+        renderer->SetUniform(geometry_pass->Name() , "foe_dlight.diffuse" , direction_light.diffuse);
+        renderer->SetUniform(geometry_pass->Name() , "foe_dlight.specular" , direction_light.specular);
 
         renderer->SetUniform("Draw Normals" , "magnitude" , 0.4f);
         renderer->SetUniform(outline_pass->Name() , "outline_color" , outline_color);
 
-        renderer->SubmitStaticModel("Geometry" , model , cube_model , cube_material);
-        renderer->SubmitStaticModel("Debug" , model , cube_model , cube_material);
-        renderer->SubmitStaticModel("Outline" , model , cube_model , cube_material);
+        renderer->SubmitStaticModel("Geometry" , model , cube_model1 , cube_material1);
+        renderer->SubmitStaticModel("Geometry" , model , cube_model2 , cube_material2);
+        renderer->SubmitStaticModel("Debug" , model , cube_model1 , cube_material1);
+        renderer->SubmitStaticModel("Outline" , model , cube_model1 , cube_material1);
         renderer->SubmitStaticModel("Debug" , model , light_model , light_material);
         renderer->EndScene();
 
@@ -447,9 +453,12 @@ int main(int argc , char* argv[]) {
 
           ImGui::Text("Cube Controls");
           ImGui::Separator();
-          other::ui::widgets::DrawVec3Control("cube position" , cube_pos , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
+          other::ui::widgets::DrawVec3Control("cube1 position" , cube_pos1 , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
                                               { -100.f , -100.f , -100.f } , { 100.f , 100.f , 100.f } , 0.5f); 
-          RenderMaterial("cube material" , cube_material);
+          RenderMaterial("cube1 material" , cube_material1);
+          other::ui::widgets::DrawVec3Control("cube2 position" , cube_pos2 , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
+                                              { -100.f , -100.f , -100.f } , { 100.f , 100.f , 100.f } , 0.5f); 
+          RenderMaterial("cube2 material" , cube_material2);
           ImGui::Separator();
 
           ImGui::Text("Light Controls");
