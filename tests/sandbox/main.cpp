@@ -12,6 +12,7 @@
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <imgui/backends/imgui_impl_sdl2.h>
 #include <rendering/point_light.hpp>
+#include <scene/environment.hpp>
 
 #include "core/defines.hpp"
 #include "core/logger.hpp"
@@ -344,23 +345,28 @@ int main(int argc , char* argv[]) {
       light_model2 = glm::translate(light_model2 , light_pos2);
       light_model2 = glm::scale(light_model2 , light_scale);
 
-      other::PointLight point_light1 {
-        .position = glm::vec4(light_pos1 , 1.f),
-        .ambient  = { 0.2f , 0.2f , 0.2f , 1.f } ,
-        .diffuse  = { 0.5f , 0.5f , 0.5f , 1.f } ,
-        .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
+      Ref<other::Environment> environment = NewRef<other::Environment>();
+      environment->point_lights = {
+        {
+          .position = glm::vec4(light_pos1 , 1.f),
+          .ambient  = { 0.2f , 0.2f , 0.2f , 1.f } ,
+          .diffuse  = { 0.5f , 0.5f , 0.5f , 1.f } ,
+          .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
+        } ,
+        {
+          .position = glm::vec4(light_pos2 , 1.f),
+          .ambient  = { 0.5f , 0.5f , 0.5f , 1.f } ,
+          .diffuse  = { 0.2f , 0.2f , 0.2f , 1.f } ,
+          .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
+        } ,
       };
-      other::PointLight point_light2 {
-        .position = glm::vec4(light_pos2 , 1.f),
-        .ambient  = { 0.5f , 0.5f , 0.5f , 1.f } ,
-        .diffuse  = { 0.2f , 0.2f , 0.2f , 1.f } ,
-        .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
-      };
-      other::DirectionLight direction_light {
-        .direction = { -0.2f , -1.f , -0.3f , 1.f } ,
-        .ambient  = { 0.2f , 0.2f , 0.2f , 1.f } ,
-        .diffuse  = { 0.5f , 0.5f , 0.5f , 1.f } ,
-        .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
+      environment->direction_lights = {
+        {
+          .direction = { -0.2f , -1.f , -0.3f , 1.f } ,
+          .ambient  = { 0.2f , 0.2f , 0.2f , 1.f } ,
+          .diffuse  = { 0.5f , 0.5f , 0.5f , 1.f } ,
+          .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
+        } ,
       };
       
 
@@ -437,18 +443,13 @@ int main(int argc , char* argv[]) {
 
         other::Renderer::GetWindow()->Clear();
 
-        renderer->BeginScene(camera);
-        renderer->SetLightUniform("num_lights" , glm::vec4(1 , 2 , 0 , 0));
-        renderer->SetLightUniform("direction_lights" , direction_light);
-        renderer->SetLightUniform("point_lights" , point_light1);
-        renderer->SetLightUniform("point_lights" , point_light2 , 1);
+        renderer->BeginScene(camera , environment);
 
         renderer->SetUniform("Draw Normals" , "magnitude" , 0.4f);
         renderer->SetUniform(outline_pass->Name() , "outline_color" , outline_color);
 
         /// outline the first cube but not the second
         renderer->SubmitStaticModel("Outline" , model , cube_model1 , cube_material1);
-        renderer->SubmitStaticModel("Outline" , model , cube_model2 , cube_material2);
 
         renderer->SubmitStaticModel("Geometry" , model , cube_model1 , cube_material1);
         renderer->SubmitStaticModel("Geometry" , model , cube_model2 , cube_material2);
@@ -500,9 +501,9 @@ int main(int argc , char* argv[]) {
 
           ImGui::Text("Light Controls");
           ImGui::Separator();
-          RenderPointLight("point light 1" , point_light1);
-          RenderPointLight("point light 2" , point_light2);
-          RenderDirectionLight("direction light" , direction_light);
+          RenderPointLight("point light 1" , environment->point_lights[0]);
+          RenderPointLight("point light 2" , environment->point_lights[1]);
+          RenderDirectionLight("direction light" , environment->direction_lights[0]);
           ImGui::Separator();
         }
         ImGui::End();

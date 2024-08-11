@@ -11,6 +11,7 @@
 #include "ecs/components/script.hpp"
 #include "ecs/components/camera.hpp"
 #include "ecs/components/rigid_body_2d.hpp"
+#include "ecs/components/mesh.hpp"
 
 #include "physics/physics_defines.hpp"
 #include "rendering/perspective_camera.hpp"
@@ -61,9 +62,25 @@ namespace other {
   }
   
   CORE_SYSTEM(OnAddModel) {
+    Entity ent(context , entt);
+    auto& mesh = ent.GetComponent<Mesh>();
+    mesh.material = Material {
+      .ambient = { 0.5f , 0.5f , 0.5f , 1.f } ,
+      .diffuse = { 0.5f , 0.6f , 0.7f , 1.f } ,
+      .specular = { 0.3f , 0.3f , 0.3f , 1.f } ,
+      .shininess = 16.f ,
+    };
   }
 
   CORE_SYSTEM(OnAddStaticModel) {
+    Entity ent(context , entt);
+    auto& mesh = ent.GetComponent<StaticMesh>();
+    mesh.material = Material {
+      .ambient = { 0.5f , 0.5f , 0.5f , 1.f } ,
+      .diffuse = { 0.5f , 0.6f , 0.7f , 1.f } ,
+      .specular = { 0.3f , 0.3f , 0.3f , 1.f } ,
+      .shininess = 16.f ,
+    };
   }
 
   void Initialize2DRigidBody(Ref<PhysicsWorld2D>& world , RigidBody2D& body , const Tag& tag ,const Transform& transform) {

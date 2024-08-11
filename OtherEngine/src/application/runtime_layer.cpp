@@ -18,6 +18,8 @@ namespace other {
       Ref<Layer> debug_layer = NewRef<DebugLayer>(ParentApp());
       ParentApp()->PushLayer(debug_layer);
     }
+
+    environment = NewRef<Environment>();
   }
 
   void RuntimeLayer::OnEarlyUpdate(float dt) {

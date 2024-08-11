@@ -27,13 +27,28 @@ namespace other {
   }
   
   
-  void SceneRenderer::BeginScene(Ref<CameraBase>& camera /* , Ref<Environment>& lighting */) {
+  void SceneRenderer::BeginScene(Ref<CameraBase>& camera , Ref<Environment>& environment) {
     spec.camera_uniforms->BindBase();
     spec.camera_uniforms->SetUniform("projection" , camera->ProjectionMatrix());
     spec.camera_uniforms->SetUniform("view" , camera->ViewMatrix());
 
     glm::vec4 cam_pos = glm::vec4(camera->Position() , 1.f);
     spec.camera_uniforms->SetUniform("viewpoint" , cam_pos);
+
+    glm::vec4 light_count{ 
+      environment->direction_lights.size() , 
+      environment->point_lights.size() ,
+      0 , 0
+    };
+    spec.light_uniforms->SetUniform("num_lights" , light_count);
+    for (size_t i = 0; i < environment->direction_lights.size(); ++i) {
+      auto& l = environment->direction_lights[i];
+      spec.light_uniforms->SetUniform("direction_lights" , l , i); 
+    }
+    for (size_t i = 0; i < environment->point_lights.size(); ++i) {
+      auto& l = environment->point_lights[i];
+      spec.light_uniforms->SetUniform("point_lights" , l , i); 
+    }
   }
   
   void SceneRenderer::SubmitModel(const std::string_view pl_name , Ref<Model> model , const glm::mat4& transform , const Material& material) {

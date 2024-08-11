@@ -34,7 +34,7 @@ namespace other {
  *      in the editor/entity_properties.hpp
  **/
 
-  constexpr static size_t kNumComponents = 11;
+  constexpr static size_t kNumComponents = 12;
 
   constexpr static int32_t kTagIndex = 0;
   constexpr static int32_t kTransformIndex = 1;
@@ -47,6 +47,7 @@ namespace other {
   constexpr static int32_t kCollider2DIndex = 8;
   constexpr static int32_t kRigidBodyIndex = 9;
   constexpr static int32_t kColliderIndex = 10;
+  constexpr static int32_t kLightSourceIndex = 11;
 
   using ComponentTagPair = std::pair<std::string_view , size_t>;
   constexpr static std::array<ComponentTagPair , kNumComponents> kComponentTags = {
@@ -61,6 +62,7 @@ namespace other {
     ComponentTagPair{ "COLLIDER-2D" , kCollider2DIndex } ,
     ComponentTagPair{ "RIGID-BODY" , kRigidBodyIndex } ,
     ComponentTagPair{ "COLLIDER" , kColliderIndex } ,
+    ComponentTagPair{ "LIGHT-SOURCE" , kLightSourceIndex } ,
   };
 
   class ComponentDataBase {

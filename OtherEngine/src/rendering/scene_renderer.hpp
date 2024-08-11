@@ -8,6 +8,8 @@
 
 #include "core/ref_counted.hpp"
 
+#include "scene/environment.hpp"
+
 #include "rendering/camera_base.hpp"
 #include "rendering/model.hpp"
 #include "rendering/render_pass.hpp"
@@ -56,7 +58,7 @@ namespace other {
 
       void SetViewportSize(const glm::ivec2& size);
       
-      void BeginScene(Ref<CameraBase>& camera /* , Ref<Environment>& lighting */);
+      void BeginScene(Ref<CameraBase>& camera , Ref<Environment>& environment);
       
       // void SubmitEnv(...)
       // void SubmitLighting(...)

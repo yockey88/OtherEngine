@@ -14,10 +14,10 @@
 #include "asset/asset.hpp"
 
 #include "scene/octree.hpp"
+#include "scene/environment.hpp"
 
 #include "scripting/script_object.hpp"
 
-#include "physics/physics_defines.hpp"
 #include "physics/2D/physics_world_2d.hpp"
 #include "physics/3D/physics_world.hpp"
 
@@ -56,6 +56,8 @@ namespace other {
       Ref<PhysicsWorld2D> Get2DPhysicsWorld() const;
       Ref<PhysicsWorld> GetPhysicsWorld() const;
 
+      Ref<Environment> GetEnvironment() const;
+
       const bool IsInitialized() const;
       const bool IsRunning() const;
       const bool IsDirty() const;
@@ -88,6 +90,8 @@ namespace other {
       other::AssetHandle model_handle;
       Ref<StaticModel> model = nullptr;
       Ref<ModelSource> model_source = nullptr;
+
+      Ref<Environment> environment = nullptr;
 
       void OnAddRigidBody2D(entt::registry& context , entt::entity ent);
       void OnAddCollider2D(entt::registry& context , entt::entity ent);

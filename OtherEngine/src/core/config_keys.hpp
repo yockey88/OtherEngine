@@ -367,8 +367,8 @@ namespace other {
   constexpr static std::string_view kColliderValue = "COLLIDER";
   constexpr static uint64_t kColliderValueHash = FNV(kColliderValue);
 
-  constexpr static std::string_view kPointLightValue = "POINT-LIGHT";
-  constexpr static uint64_t kPointLightHash = FNV(kPointLightValue);
+  constexpr static std::string_view kLightSourceValue = "LIGHT-SOURCE";
+  constexpr static uint64_t kLightSourceHash = FNV(kLightSourceValue);
 
 } // namespace other 
 
