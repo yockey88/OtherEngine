@@ -213,7 +213,12 @@ namespace other {
         AddToken(CLOSE_BRACKET);
       break;
       case '+': 
-        AddToken(PLUS);
+        if (Check('=')) {
+          Advance();
+          AddToken(PLUS_EQUAL);
+        } else {
+          AddToken(PLUS);
+        }
       break;
       case '-':
         AddToken(MINUS);

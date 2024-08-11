@@ -99,43 +99,6 @@ namespace other {
     MIRRORED_REPEAT = GL_MIRRORED_REPEAT ,
   };
   
-  struct VertexBufferElement {
-    std::string name = "";
-    ValueType type = ValueType::EMPTY;
-    uint32_t size = 0;
-    uint32_t offset = 0;
-
-    uint32_t GetComponentCount();
-
-    VertexBufferElement() {}
-    VertexBufferElement(ValueType type , const std::string& name)
-        : name(name) , type(type) {
-      size = GetComponentCount();
-      offset = GetComponentCount();
-    }
-  };
-
-  class Layout {
-    public:
-      Layout() {}
-      Layout(const std::initializer_list<VertexBufferElement>& elements);
-
-      uint32_t Stride() const;
-      const std::vector<VertexBufferElement> Elements() const;
-      uint32_t Count() const;
-
-      [[nodiscard]] std::vector<VertexBufferElement>::iterator begin() { return elements.begin(); }
-      [[nodiscard]] std::vector<VertexBufferElement>::iterator end() { return elements.end(); }
-      [[nodiscard]] std::vector<VertexBufferElement>::const_iterator begin() const { return elements.begin(); }
-      [[nodiscard]] std::vector<VertexBufferElement>::const_iterator end() const { return elements.end(); }
-
-    private:
-      uint32_t stride = 0;
-      std::vector<VertexBufferElement> elements;
-
-      void CalculateOffsetAndStride();
-  };
-
   struct FramebufferSpec {
     DepthFunction depth_func;
 
@@ -146,13 +109,7 @@ namespace other {
     bool color = true;
     bool stencil = true;
   };
-  
-  struct Uniform {
-    std::string name = ""; 
-    ValueType type;
-    uint32_t arr_length = 1;
-  };
-  
+    
   struct MeshAttr {
     std::string attr_name = "";
     uint32_t idx = 0;
@@ -167,29 +124,7 @@ namespace other {
     uint32_t stride = 0;
     std::vector<MeshAttr> attrs;
   };
-
-  enum ShaderStorageType {
-    STD140 , STD430 ,
-  };
-  
-  struct ShaderStorage {
-    ShaderStorageType type; 
-    uint32_t binding_point;
-    std::string name;
-    std::map<UUID , Uniform> uniforms;
-  };
-  
-  struct ShaderIr {
-    MeshLayout layout;
-
-    std::map<UUID , ShaderStorage> storages;
-    std::map<UUID , Uniform> uniforms;
-
-    std::string vert_source = ""; 
-    std::string frag_source = "";
-    Opt<std::string> geom_source = std::nullopt;
-  };
-  
+ 
   static void CheckGlError(const char* file , int line) {
     GLenum err = glGetError();
     while (err != GL_NO_ERROR) {

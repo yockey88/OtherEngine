@@ -22,7 +22,7 @@ end
 sandbox.components = {}
 sandbox.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
 sandbox.components["gtest"] = "%{wks.location}/externals/gtest/googletest/include"
-
+sandbox.components[""] = "%{wks.location}/externals/gtest/googlemock/include"
 
 sandbox.post_build_commands = function()
   filter { "system:windows" , "configurations:Debug" }
@@ -68,6 +68,25 @@ end
 gl_sandbox.components = {}
 gl_sandbox.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
 gl_sandbox.components["gtest"] = "%{wks.location}/externals/gtest/googletest/include"
+gl_sandbox.components[""] = "%{wks.location}/externals/gtest/googlemock/include"
+
+gl_sandbox.post_build_commands = function()
+  filter { "system:windows" , "configurations:Debug" }
+    postbuildcommands {
+      '{COPY} "C:/Yock/code/OtherEngine/externals/sdl2/lib/Debug/SDL2d.dll" "%{cfg.targetdir}"',
+      '{COPY} C:/Yock/code/OtherEngine/externals/mono/bin/mono-2.0-sgen.dll "%{cfg.targetdir}"',
+      '{COPY} C:/Yock/code/OtherEngine/externals/mono/bin/mono-2.0-sgen.pdb "%{cfg.targetdir}"',
+      '{COPY} C:/Yock/code/OtherEngine/externals/mono/bin/MonoPosixHelper.dll "%{cfg.targetdir}"',
+      '{COPY} C:/Yock/code/OtherEngine/externals/mono/bin/MonoPosixHelper.pdb "%{cfg.targetdir}"',
+    }
+
+  filter { "system:windows" , "configurations:Release" }
+    postbuildcommands {
+      '{COPY} "C:/Yock/code/OtherEngine/externals/sdl2/lib/Release/SDL2.dll" "%{cfg.targetdir}"',
+      '{COPY} C:/Yock/code/OtherEngine/externals/mono/bin/mono-2.0-sgen.dll "%{cfg.targetdir}"',
+      '{COPY} C:/Yock/code/OtherEngine/externals/mono/bin/MonoPosixHelper.dll "%{cfg.targetdir}"',
+    }
+end
 
 AddProject(gl_sandbox)
 
@@ -95,6 +114,7 @@ end
 OctreeTests.components = {}
 OctreeTests.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
 OctreeTests.components["gtest"] = "%{wks.location}/externals/gtest/googletest/include"
+OctreeTests.components[""] = "%{wks.location}/externals/gtest/googlemock/include"
 
 AddProject(OctreeTests)
 
@@ -122,6 +142,7 @@ end
 sandbox.components = {}
 sandbox.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
 sandbox.components["gtest"] = "%{wks.location}/externals/gtest/googletest/include"
+sandbox.components[""] = "%{wks.location}/externals/gtest/googlemock/include"
 
 local scripting_tests = {}
 
@@ -164,6 +185,7 @@ end
 scripting_tests.components = {}
 scripting_tests.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
 scripting_tests.components["gtest"] = "%{wks.location}/externals/gtest/googletest/include"
+scripting_tests.components[""] = "%{wks.location}/externals/gtest/googlemock/include"
 
 AddProject(scripting_tests)
 
@@ -228,6 +250,7 @@ end
 reflection_testing.components = {}
 reflection_testing.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
 reflection_testing.components["gtest"] = "%{wks.location}/externals/gtest/googletest/include"
+reflection_testing.components[""] = "%{wks.location}/externals/gtest/googlemock/include"
 
 AddProject(reflection_testing)
 
@@ -272,6 +295,7 @@ end
 physics_tests.components = {}
 physics_tests.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
 physics_tests.components["gtest"] = "%{wks.location}/externals/gtest/googletest/include"
+physics_tests.components[""] = "%{wks.location}/externals/gtest/googlemock/include"
 
 AddProject(physics_tests)
 
@@ -317,3 +341,47 @@ node_editor_tests.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
 node_editor_tests.components["gtest"] = "%{wks.location}/externals/gtest/googletest/include"
 
 AddProject(node_editor_tests)
+
+local unit_tests = {}
+unit_tests.name = "unit_tests"
+unit_tests.path = "./unit_tests"
+unit_tests.kind = "ConsoleApp"
+unit_tests.language = "C++"
+unit_tests.cppdialect = "C++latest"
+
+unit_tests.files = function()
+  files {
+    "./unit_tests/**.cpp" ,
+  }
+end
+
+unit_tests.include_dirs = function()
+  includedirs {
+    "."
+  }
+end
+
+unit_tests.post_build_commands = function()
+  filter { "system:windows" , "configurations:Debug" }
+    postbuildcommands {
+      '{COPY} "%{wks.location}/externals/sdl2/lib/Debug/SDL2d.dll" "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/mono-2.0-sgen.dll "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/mono-2.0-sgen.pdb "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/MonoPosixHelper.dll "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/MonoPosixHelper.pdb "%{cfg.targetdir}"',
+    }
+
+  filter { "system:windows" , "configurations:Release" }
+    postbuildcommands {
+      '{COPY} "%{wks.location}/externals/sdl2/lib/Release/SDL2.dll" "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/mono-2.0-sgen.dll "%{cfg.targetdir}"',
+      '{COPY} %{wks.location}/externals/mono/bin/MonoPosixHelper.dll "%{cfg.targetdir}"',
+    }
+end
+
+unit_tests.components = {}
+unit_tests.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
+unit_tests.components["gtest"] = "%{wks.location}/externals/gtest/googletest/include"
+unit_tests.components[""] = "%{wks.location}/externals/gtest/googlemock/include"
+
+AddProject(unit_tests)

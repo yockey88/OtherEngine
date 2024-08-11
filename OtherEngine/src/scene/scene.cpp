@@ -12,11 +12,6 @@
 #include "application/app_state.hpp"
 #include "asset/asset_manager.hpp"
 
-#include "physics/physics_defines.hpp"
-#include "rendering/model.hpp"
-#include "rendering/model_factory.hpp"
-#include "scripting/script_engine.hpp"
-
 #include "ecs/entity.hpp"
 #include "ecs/components/tag.hpp"
 #include "ecs/components/transform.hpp"
@@ -27,6 +22,9 @@
 #include "ecs/components/rigid_body_2d.hpp"
 #include "ecs/components/collider_2d.hpp"
 #include "ecs/systems/core_systems.hpp"
+
+#include "rendering/model.hpp"
+#include "scripting/script_engine.hpp"
 
 namespace other {
 
@@ -51,6 +49,31 @@ namespace other {
 
     registry.on_construct<Mesh>().connect<&OnAddModel>();
     registry.on_construct<StaticMesh>().connect<&OnAddStaticModel>();
+
+    /// TODO: move this 
+    environment = NewRef<Environment>();
+    environment->point_lights = {
+      {
+        .position = { 3.0f , 5.f , 1.f , 1.f },
+        .ambient  = { 0.2f , 0.2f , 0.2f , 1.f } ,
+        .diffuse  = { 0.5f , 0.5f , 0.5f , 1.f } ,
+        .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
+      } ,
+      {
+        .position = { -3.f , 5.f , 1.f , 1.f },
+        .ambient  = { 0.5f , 0.5f , 0.5f , 1.f } ,
+        .diffuse  = { 0.2f , 0.2f , 0.2f , 1.f } ,
+        .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
+      } ,
+    };
+    environment->direction_lights = {
+      {
+        .direction = { -0.2f , -1.f , -0.3f , 1.f } ,
+        .ambient  = { 0.2f , 0.2f , 0.2f , 1.f } ,
+        .diffuse  = { 0.5f , 0.5f , 0.5f , 1.f } ,
+        .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
+      } ,
+    };
   }
 
   Scene::~Scene() {
@@ -105,10 +128,6 @@ namespace other {
 
     OnInit(); 
     initialized = true;
-    
-    model_handle = ModelFactory::CreateBox({ 1.f , 1.f , 1.f });
-    model = AssetManager::GetAsset<StaticModel>(model_handle);
-    model_source = model->GetModelSource();
   }
 
   void Scene::Start() {
@@ -292,7 +311,7 @@ namespace other {
   void Scene::Render(Ref<SceneRenderer> renderer , Ref<CameraBase> camera) {
     /// environment (set pipeline inputs) 
 
-    /// models
+    /// models without materials
     registry.view<Mesh , Transform>().each([&renderer](const Mesh& mesh , const Transform& transform) {
       if (!AppState::Assets()->IsValid(mesh.handle)) {
         return;
@@ -303,9 +322,10 @@ namespace other {
         return;
       }
 
-      renderer->SubmitModel(model , transform.model_transform);
+      renderer->SubmitModel("GeometryPipeline" , model , transform.model_transform , mesh.material);
     });
 
+    /// static models without materials
     registry.view<StaticMesh , Transform>().each([&renderer](const StaticMesh& mesh , const Transform& transform) {
       if (!AppState::Assets()->IsValid(mesh.handle)) {
         return;
@@ -316,7 +336,7 @@ namespace other {
         return;
       }
 
-      renderer->SubmitStaticModel(model , transform.model_transform);
+      renderer->SubmitStaticModel("GeometryPipeline" , model , transform.model_transform , mesh.material);
     });
     
     registry.view<Script>().each([](const Script& script) {
@@ -385,6 +405,10 @@ namespace other {
       
   Ref<PhysicsWorld> Scene::GetPhysicsWorld() const {
     return physics_world;
+  }
+
+  Ref<Environment> Scene::GetEnvironment() const {
+    return environment;
   }
 
   const bool Scene::IsInitialized() const {

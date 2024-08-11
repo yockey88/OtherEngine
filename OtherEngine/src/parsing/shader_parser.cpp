@@ -114,6 +114,10 @@ namespace other {
       return ParseIf();
     }
 
+    if (Match({ FOR_KW })) {
+      return ParseFor();
+    }
+
     return ParseStatement();
   }
       
@@ -391,7 +395,53 @@ namespace other {
   }
 
   Ref<AstStmt> ShaderParser::ParseWhile() { return nullptr; }
-  Ref<AstStmt> ShaderParser::ParseFor() { return nullptr; }
+
+  Ref<AstStmt> ShaderParser::ParseFor() { 
+    Consume(TokenType::OPEN_PAREN , "Expected opening parenthesis after 'for' keyword");
+
+    Ref<AstStmt> initializer = nullptr;
+    if (Match({ TokenType::SEMICOLON })) {
+      // do nothing
+    } else if (Match({ TokenType::IDENTIFIER } , false)) {
+      initializer = ParseDecl();
+    } else {
+      Ref<AstExpr> expr = ParseExpression();
+      initializer = NewRef<ExprStmt>(expr);
+      Consume(TokenType::SEMICOLON , "Expected semicolon after initializer");
+    }
+
+    Ref<AstExpr> condition = nullptr;
+    if (!Check(TokenType::SEMICOLON)) {
+      condition = ParseExpression();
+    }
+    Consume(TokenType::SEMICOLON , "Expected semicolon after loop condition");
+
+    Ref<AstExpr> increment = nullptr;
+    if (!Check(TokenType::CLOSE_PAREN)) {
+      increment = ParseExpression();
+    }
+    Consume(TokenType::CLOSE_PAREN , "Expected closing parenthesis after for loop");
+
+    Ref<AstStmt> body = ParseBlock();
+
+    if (increment != nullptr) {
+      std::vector<Ref<AstStmt>> stmts{ body , NewRef<ExprStmt>(increment) };
+      body = NewRef<BlockStmt>(stmts);
+    }
+
+    if (condition == nullptr) {
+      condition = NewRef<LiteralExpr>(Token(Peek().location , TokenType::TRUE_KW , "true"));
+    }
+
+    body = NewRef<WhileStmt>(condition , body);
+
+    if (initializer != nullptr) {
+      std::vector<Ref<AstStmt>> stmts{ initializer , body };
+      body = NewRef<BlockStmt>(stmts);
+    }
+
+    return body;
+  }
 
   Ref<AstStmt> ShaderParser::ParseReturn() {
     if (Match({ SEMICOLON })) {
@@ -706,6 +756,9 @@ namespace other {
       case SAMPLER2D_KW:
         return Advance();
       default:
+        if (Peek().value == "DirectionLight" || Peek().value == "PointLight") {
+          return Advance();
+        }
         break;
     }
 

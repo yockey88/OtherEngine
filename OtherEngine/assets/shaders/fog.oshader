@@ -1,28 +1,16 @@
 vertex [mesh : default] {
-  
-  layout (std140 , binding = 0) uniform Camera {
-    mat4 projection;
-    mat4 view;
-    vec3 viewpoint;
-  };
-   
-  layout (std430 , binding = 1) readonly buffer ModelData {
-    mat4 models[];
-  };
 
   out vec3 fviewpoint;
   out vec3 foe_position;
-  out vec4 foe_color;
 
   void main() {
     /// output gl_Position in projection space
-    gl_Position = projection * view * voe_model * vec4(voe_position , 1.0);
+    gl_Position = projection * view * models[gl_InstanceID] * vec4(voe_position , 1.0);
 
     fviewpoint = viewpoint;
 
     /// fog position is in view space
-    foe_position = vec3(view * voe_model * vec4(voe_position , 1.0));
-    foe_color = vec4(voe_position , 1.0);
+    foe_position = vec3(view * models[gl_InstanceID] * vec4(voe_position , 1.0));
   }
 
 }

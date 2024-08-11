@@ -12,6 +12,7 @@
 #include "core/ref.hpp"
 
 #include "scene/scene.hpp"
+#include "scene/environment.hpp"
 
 #include "rendering/scene_renderer.hpp"
 

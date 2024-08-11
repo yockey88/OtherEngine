@@ -1,0 +1,17 @@
+vertex [mesh : default] {
+
+  void main() {
+    gl_Position = projection * view * models[gl_InstanceID] * vec4(voe_position , 1.0);
+  }
+
+}
+
+fragment {
+
+  out vec4 FragColor;
+  
+  void main() {
+    FragColor = vec4(1.f , 0.f , 0.f , 1.f);
+  }
+
+}
