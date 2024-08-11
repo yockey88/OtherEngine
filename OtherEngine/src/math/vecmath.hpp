@@ -27,12 +27,10 @@ template <>
 struct fmt::formatter<glm::mat4> : public fmt::formatter<std::string_view> {
   auto format(const glm::mat4& mat , fmt::format_context& ctx) {
   constexpr std::string_view mat_str = 
-R"(
-[{} {} {} {}]
-[{} {} {} {}]
-[{} {} {} {}]
-[{} {} {} {}]
-)";
+R"(|{} {} {} {}|
+|{} {} {} {}|
+|{} {} {} {}|
+|{} {} {} {}|)";
 
     std::string mat_fmt_str = fmt::format(
       fmt::runtime(mat_str) , 

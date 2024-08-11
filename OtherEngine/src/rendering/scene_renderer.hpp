@@ -92,9 +92,9 @@ namespace other {
       ///  - skybox
 
       enum RenderStateType {
-        FILL = GL_FILL ,
+        FILL      = GL_FILL ,
         WIREFRAME = GL_LINE ,
-        POINT = GL_POINT ,
+        POINT     = GL_POINT ,
       } render_state;
 
       std::map<UUID , Ref<RenderPass>> passes;

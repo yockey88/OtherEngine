@@ -11,14 +11,32 @@
 
 #include "core/uuid.hpp"
 #include "core/ref_counted.hpp"
+#include "core/buffer.hpp"
 #include "math/vecmath.hpp"
 
 #include "rendering/rendering_defines.hpp"
-#include "rendering/shader.hpp"
 #include "rendering/point_light.hpp"
 #include "rendering/direction_light.hpp"
 
 namespace other {
+  
+  enum ShaderStorageType {
+    STD140 , STD430 ,
+  };
+  
+  struct Uniform {
+    std::string name = ""; 
+    ValueType type;
+    uint32_t arr_length = 1;
+    Opt<size_t> size = std::nullopt; /// must be set for user types
+  };
+  
+  struct ShaderStorage {
+    ShaderStorageType type; 
+    uint32_t binding_point;
+    std::string name;
+    std::map<UUID , Uniform> uniforms;
+  };
 
   class UniformBuffer : public RefCounted {
     public:
@@ -28,14 +46,14 @@ namespace other {
 
       const std::string& Name() const;
 
-      void BindShader(const Ref<Shader>& shader);
-
       bool Bound() const;
 
       void BindBase();
       void BindRange(size_t offset  = 0 , size_t size = 0);
 
       void Bind();
+
+      void LoadFromBuffer(const Buffer& buffer);
       
       template <typename T>
       void SetUniform(const std::string_view name , const T& value , uint32_t index = 0) {
@@ -47,8 +65,6 @@ namespace other {
         Bind();
         if constexpr (glm_t<T>) {
           glBufferSubData(type , offset , u_data.size , glm::value_ptr(value));
-
-          CHECKGL();
         } else if constexpr (std::same_as<T , PointLight>) {
           // glBufferSubData(type , offset , sizeof(PointLight) , &value);
           // glBufferSubData(type , offset , GetValueSize(VEC3) , glm::value_ptr(value.position));
@@ -58,21 +74,16 @@ namespace other {
           // glBufferSubData(type , offset + 4 * GetValueSize(VEC3) , GetValueSize(FLOAT) , &value.constant);
           // glBufferSubData(type , offset + 4 * GetValueSize(VEC3) + GetValueSize(FLOAT) , GetValueSize(FLOAT) , &value.linear);
           // glBufferSubData(type , offset + 4 * GetValueSize(VEC3) + 2 * GetValueSize(FLOAT) , GetValueSize(FLOAT) , &value.quadratic);
-          
-          CHECKGL();
         } else if constexpr (std::same_as<T , DirectionLight>) {
           // glBufferSubData(type , offset , sizeof(DirectionLight) , &value);
-          glBufferSubData(type , 0  , 16 , glm::value_ptr(value.direction));
-          glBufferSubData(type , 16 , 16 , glm::value_ptr(value.ambient));
-          glBufferSubData(type , 32 , 16 , glm::value_ptr(value.diffuse));
-          glBufferSubData(type , 48 , 16 , glm::value_ptr(value.specular));
-          
-          CHECKGL();
+          // glBufferSubData(type , 0  , 16 , glm::value_ptr(value.direction));
+          // glBufferSubData(type , 16 , 16 , glm::value_ptr(value.ambient));
+          // glBufferSubData(type , 32 , 16 , glm::value_ptr(value.diffuse));
+          // glBufferSubData(type , 48 , 16 , glm::value_ptr(value.specular));
         } else {
           glBufferSubData(type , offset , u_data.size , &value);
-          
-          CHECKGL();
         }
+        CHECKGL();
         Unbind();
 
         CHECKGL();

@@ -188,12 +188,17 @@ int main(int argc , char* argv[]) {
       std::vector<Uniform> cam_unis = {
         { "projection" , other::ValueType::MAT4 } ,
         { "view"       , other::ValueType::MAT4 } ,
-        { "viewpoint"  , other::ValueType::VEC3 } ,
+        { "viewpoint"  , other::ValueType::VEC4 } ,
       };
-    
+
       uint32_t model_binding_pnt = 1;
       std::vector<Uniform> model_unis = {
         { "models" , other::ValueType::MAT4 , 100 } ,
+      };
+      
+      uint32_t materials_binding_pnt = 1;
+      std::vector<Uniform> material_unis = {
+        { "materials" , other::ValueType::USER_TYPE , 100 , 3 * 16 + 4 } ,
       };
       
       other::Layout default_layout = {
@@ -207,14 +212,15 @@ int main(int argc , char* argv[]) {
       std::vector<Uniform> outline_unis = {
         { "outline_color" , other::VEC3 } ,
       };
-      Ref<other::Shader> outline_shader = other::BuildShader(outline_path);
-      Ref<other::RenderPass> outline_pass = other::NewRef<other::OutlinePass>(outline_unis , outline_shader);
-      
       std::vector<Uniform> geometry_unis = {
       };
+      Ref<other::Shader> outline_shader = other::BuildShader(outline_path);
       Ref<other::Shader> geometry_shader = other::BuildShader(default_path);
-      Ref<other::RenderPass> geometry_pass = other::NewRef<other::GeometryPass>(geometry_unis , geometry_shader);
-        
+      
+      Ref<other::RenderPass> geom_pass = NewRef<other::GeometryPass>(geometry_unis , geometry_shader);
+      Ref<other::RenderPass> outline_pass = NewRef<other::OutlinePass>(outline_unis , outline_shader);
+
+
       SceneRenderSpec render_spec {
         .camera_uniforms = NewRef<UniformBuffer>("Camera" , cam_unis , camera_binding_pnt) ,
         .passes = {
@@ -241,7 +247,10 @@ int main(int argc , char* argv[]) {
               .size = other::Renderer::WindowSize() ,
             } ,
             .vertex_layout = default_layout ,
-            .model_storage = NewRef<UniformBuffer>("ModelData" , model_unis , model_binding_pnt , other::SHADER_STORAGE) ,
+            .model_uniforms = model_unis , 
+            .model_binding_point = model_binding_pnt ,
+            .material_uniforms = material_unis ,
+            .material_binding_point = materials_binding_pnt ,
             .debug_name = "Geometry" , 
           } ,
           {
@@ -251,7 +260,10 @@ int main(int argc , char* argv[]) {
               .size = other::Renderer::WindowSize() ,
             } ,
             .vertex_layout = default_layout ,
-            .model_storage = NewRef<UniformBuffer>("ModelData" , model_unis , model_binding_pnt , other::SHADER_STORAGE) ,
+            .model_uniforms = model_unis , 
+            .model_binding_point = model_binding_pnt ,
+            .material_uniforms = material_unis ,
+            .material_binding_point = materials_binding_pnt ,
             .debug_name = "Debug" , 
           } ,
           {
@@ -261,18 +273,20 @@ int main(int argc , char* argv[]) {
               .size = other::Renderer::WindowSize() ,
             } ,
             .vertex_layout = default_layout ,
-            .model_storage = NewRef<UniformBuffer>("ModelData" , model_unis , model_binding_pnt , other::SHADER_STORAGE) ,
+            .model_uniforms = model_unis , 
+            .model_binding_point = model_binding_pnt ,
+            .material_uniforms = material_unis ,
+            .material_binding_point = materials_binding_pnt ,
             .debug_name = "Outline" ,
           } ,
         } , 
         .ref_passes = {
-          outline_pass ,  
-          geometry_pass ,
+          geom_pass , outline_pass ,
         } ,
         .pipeline_to_pass_map = {
-          { FNV("Geometry") , { FNV(geometry_pass->Name()) } } ,
+          { FNV("Geometry") , { FNV(geom_pass->Name()) } } ,
           { FNV("Debug")    , { FNV("Pure Geometry")      , FNV("Draw Normals")  } } ,
-          { FNV("Outline")  , { FNV(outline_pass->Name()) , FNV(geometry_pass->Name()) } } ,
+          { FNV("Outline")  , { FNV(outline_pass->Name()) , FNV(geom_pass->Name()) } } ,
         } ,
       };
       Scope<SceneRenderer> renderer = NewScope<SceneRenderer>(render_spec);
@@ -293,20 +307,21 @@ int main(int argc , char* argv[]) {
 
       glm::vec3 cube_pos1 = glm::vec3(0.f , 0.f , 0.f);
       glm::mat4 cube_model1 = glm::mat4(1.f);
+      float cube_rotation1 = 0.1f;
       other::Material cube_material1 = {
+        // .shininess = 32.f ,
         .ambient  = { 1.0f , 0.5f , 0.31f , 1.f } ,
-        .diffuse  = { 1.0f , 0.5f , 0.31f , 1.f } ,
-        .specular = { 0.5f , 0.5f , 0.50f , 1.f } ,
-        .shininess = 32.f
+        // .diffuse  = { 1.0f , 0.5f , 0.31f , 1.f } ,
+        // .specular = { 0.5f , 0.5f , 0.50f , 1.f } ,
       };
       
       glm::vec3 cube_pos2 = glm::vec3(2.f , 0.f , 0.f);
       glm::mat4 cube_model2 = glm::mat4(1.f);
       other::Material cube_material2 = {
+        // .shininess = 32.f ,
         .ambient  = { 1.0f , 0.5f , 0.31f , 1.f } ,
-        .diffuse  = { 1.0f , 0.5f , 0.31f , 1.f } ,
-        .specular = { 0.5f , 0.5f , 0.50f , 1.f } ,
-        .shininess = 32.f
+        // .diffuse  = { 1.0f , 0.5f , 0.31f , 1.f } ,
+        // .specular = { 0.5f , 0.5f , 0.50f , 1.f } ,
       };
 
       other::PointLight point_light {
@@ -328,10 +343,10 @@ int main(int argc , char* argv[]) {
       light_model = glm::scale(light_model , light_scale);
 
       other::Material light_material = {
+        // .shininess = 1.f ,
         .ambient  = { 1.f , 1.f , 1.f  , 1.f } ,
-        .diffuse  = { 1.f , 1.f , 1.f  , 1.f } ,
-        .specular = { 1.f , 1.f , 1.f  , 1.f } ,
-        .shininess = 1.f
+        // .diffuse  = { 1.f , 1.f , 1.f  , 1.f } ,
+        // .specular = { 1.f , 1.f , 1.f  , 1.f } ,
       };
 
       glm::vec3 outline_color{ 1.f , 0.f , 0.f };
@@ -384,7 +399,8 @@ int main(int argc , char* argv[]) {
         
         cube_model1 = glm::mat4(1.f);
         cube_model1 = glm::translate(cube_model1 , cube_pos1);
-        cube_model1 = glm::rotate(cube_model1 , 0.1f , { 1.f , 1.f , 1.f });
+        cube_model1 = glm::rotate(cube_model1 , cube_rotation1 , { 1.f , 1.f , 1.f });
+        cube_rotation1 += 0.1f;
         
         cube_model2 = glm::mat4(1.f);
         cube_model2 = glm::translate(cube_model2 , cube_pos2);
@@ -400,18 +416,18 @@ int main(int argc , char* argv[]) {
         // renderer->SetUniform(geometry_pass->Name() , "LightData" , "num_point_lights" , 1 , 0);
         // renderer->SetUniform(geometry_pass->Name() , "LightData" , "point_lights" , point_light);
 
-        renderer->SetUniform(geometry_pass->Name() , "foe_plight.position" , point_light.position);
-        renderer->SetUniform(geometry_pass->Name() , "foe_plight.ambient" , point_light.ambient);
-        renderer->SetUniform(geometry_pass->Name() , "foe_plight.diffuse" , point_light.diffuse);
-        renderer->SetUniform(geometry_pass->Name() , "foe_plight.specular" , point_light.specular);
-        renderer->SetUniform(geometry_pass->Name() , "foe_plight.constant" , point_light.constant);
-        renderer->SetUniform(geometry_pass->Name() , "foe_plight.linear" , point_light.linear);
-        renderer->SetUniform(geometry_pass->Name() , "foe_plight.quadratic" , point_light.quadratic);
-        
-        renderer->SetUniform(geometry_pass->Name() , "foe_dlight.direction" , direction_light.direction);
-        renderer->SetUniform(geometry_pass->Name() , "foe_dlight.ambient" , direction_light.ambient);
-        renderer->SetUniform(geometry_pass->Name() , "foe_dlight.diffuse" , direction_light.diffuse);
-        renderer->SetUniform(geometry_pass->Name() , "foe_dlight.specular" , direction_light.specular);
+        // renderer->SetUniform(geom_pass->Name() , "foe_plight.position" , point_light.position);
+        // renderer->SetUniform(geom_pass->Name() , "foe_plight.ambient" , point_light.ambient);
+        // renderer->SetUniform(geom_pass->Name() , "foe_plight.diffuse" , point_light.diffuse);
+        // renderer->SetUniform(geom_pass->Name() , "foe_plight.specular" , point_light.specular);
+        // renderer->SetUniform(geom_pass->Name() , "foe_plight.constant" , point_light.constant);
+        // renderer->SetUniform(geom_pass->Name() , "foe_plight.linear" , point_light.linear);
+        // renderer->SetUniform(geom_pass->Name() , "foe_plight.quadratic" , point_light.quadratic);
+        // 
+        // renderer->SetUniform(geom_pass->Name() , "foe_dlight.direction" , direction_light.direction);
+        // renderer->SetUniform(geom_pass->Name() , "foe_dlight.ambient" , direction_light.ambient);
+        // renderer->SetUniform(geom_pass->Name() , "foe_dlight.diffuse" , direction_light.diffuse);
+        // renderer->SetUniform(geom_pass->Name() , "foe_dlight.specular" , direction_light.specular);
 
         renderer->SetUniform("Draw Normals" , "magnitude" , 0.4f);
         renderer->SetUniform(outline_pass->Name() , "outline_color" , outline_color);
@@ -428,12 +444,12 @@ int main(int argc , char* argv[]) {
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D , vp->texture);
-        
         fbshader->SetUniform("screen_tex" , 0);
         fb_mesh->Draw(other::TRIANGLES);
 
+#define UI_ENABLED 1
+#if UI_ENABLED
         other::UI::BeginFrame();
-
         if (ImGui::Begin("Frames")) {
           ImVec2 win_size = { (float)other::Renderer::WindowSize().x , (float)other::Renderer::WindowSize().y };
           RenderItem(frames.at(FNV("Debug"))->texture , "Debug" , win_size);
@@ -468,8 +484,8 @@ int main(int argc , char* argv[]) {
           ImGui::Separator();
         }
         ImGui::End();
-
         other::UI::EndFrame();
+#endif // !UI_ENABLED
 
         other::Renderer::GetWindow()->SwapBuffers();
       }

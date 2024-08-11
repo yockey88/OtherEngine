@@ -135,7 +135,7 @@ namespace other {
       Model(const Ref<Model>& other);
       virtual ~Model() {}
       
-      const Ref<VertexArray>& GetMesh() const;
+      Ref<VertexArray> GetMesh() const;
 
       const std::vector<uint32_t>& SubMeshes() const;
 
@@ -163,7 +163,7 @@ namespace other {
       StaticModel(const Ref<StaticModel>& other);
       virtual ~StaticModel() {}
 
-      const Ref<VertexArray>& GetMesh() const;
+      Ref<VertexArray> GetMesh() const;
 
       const std::vector<uint32_t>& SubMeshes() const;
 

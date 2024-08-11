@@ -5,6 +5,7 @@
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include "rendering/rendering_defines.hpp"
 #include "rendering/render_pass.hpp"
@@ -24,57 +25,66 @@ namespace std {
 
 namespace other {
 
-  Pipeline::Pipeline(PipelineSpec& spec) 
-      : spec(spec) {
+  Pipeline::Pipeline(PipelineSpec& s) 
+      : spec(s) {
     target = Ref<Framebuffer>::Create(spec.framebuffer_spec);
-    OE_ASSERT(spec.model_storage != nullptr , "Constructing pipeline [{}] with null model storage" , spec.debug_name);
-    spec.model_storage->BindBase();
+    model_storage = NewRef<UniformBuffer>("ModelData" , spec.model_uniforms , spec.model_binding_point , SHADER_STORAGE);
+    material_storage = NewRef<UniformBuffer>("MaterialData" , spec.material_uniforms , spec.material_binding_point , SHADER_STORAGE);
   }
       
   void Pipeline::SubmitRenderPass(const Ref<RenderPass>& pass) {
     passes.push_back(pass);
   }
 
-  void Pipeline::SubmitModel(Ref<Model>& model , const glm::mat4& transform , const Material& material) {
+  void Pipeline::SubmitModel(Ref<Model> model , const glm::mat4& transform , const Material& material) {
   }
 
-  void Pipeline::SubmitStaticModel(Ref<StaticModel>& model , const glm::mat4& transform , const Material& material) {
-    Ref<ModelSource> source = model->GetModelSource();
-    // const auto& submesh_data = model_source->SubMeshes();
-    
+  void Pipeline::SubmitStaticModel(Ref<StaticModel> model , const glm::mat4& transform , const Material& material) {
     auto itr = std::ranges::find_if(model_submissions , [&](const auto& pair) -> bool {
       return model->handle == pair.first.model_handle;
     });
+    
 
     if (itr == model_submissions.end()) {
+      auto& verts = model->GetModelSource()->RawVertices();
+      auto& idxs = model->GetModelSource()->Indices();
+
+      std::vector<uint32_t> indices{};
+      for (const auto& i : idxs) {
+        indices.push_back(i.v1);
+        indices.push_back(i.v2);
+        indices.push_back(i.v3);
+      }
+
       MeshKey key = {
         .model_handle = model->handle ,
-        .vao = Ref<VertexArray>::Clone(model->GetMesh()) ,
-        .num_elements = model->GetMesh()->NumElements() ,
+        .vao = NewRef<VertexArray>(verts , indices) ,
       };
+      key.num_elements = key.vao->NumElements();
 
       model_submissions[key] = {};
       itr = model_submissions.find(key);
     } 
     
-    /// will be valid now
     auto& [mk , sl] = *itr; 
-    spec.model_storage->SetUniform("models" , transform , sl.size());
-
-    auto& submission = sl.emplace_back();
-    submission.material = material;
+    sl.cpu_model_storage.BufferData(transform);
+    sl.cpu_material_storage.BufferData(material);
+    ++sl.instance_count;
   }
 
   void Pipeline::Render() {
     target->BindFrame();
 
-    for (auto& p : passes) {
+     for (auto& p : passes) {
       PerformPass(p);
     }
 
     target->UnbindFrame();
 
-    model_submissions.clear();
+    for (auto& [mk , sl] : model_submissions) {
+      sl.cpu_model_storage.Release();
+      sl.instance_count = 0;
+    }
 
     CHECKGL();
   }
@@ -94,8 +104,16 @@ namespace other {
     CHECKGL();
 
     for (auto& [mk , sl] : model_submissions) {
+      material_storage->BindBase();
+      for (size_t mat = 0; mat < sl.instance_count; ++mat) {
+        material_storage->SetUniform("materials" , sl.cpu_material_storage.At<Material>(mat) , mat); 
+      }
+      
+      model_storage->BindBase();
+      model_storage->LoadFromBuffer(sl.cpu_model_storage);
+
       mk.vao->Bind();
-      glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES , mk.num_elements , GL_UNSIGNED_INT , (void*)0 , sl.size() , 0 , 0);
+      glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES , mk.num_elements , GL_UNSIGNED_INT , (void*)0 , sl.instance_count , 0 , 0);
     }
     CHECKGL();
 

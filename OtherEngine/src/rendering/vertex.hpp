@@ -10,6 +10,7 @@
 #include "math/vecmath.hpp"
 
 #include "rendering/rendering_defines.hpp"
+#include "rendering/layout.hpp"
 #include "rendering/color.hpp"
 
 namespace other {

@@ -13,7 +13,10 @@ namespace other {
     glm::vec4 diffuse;
     glm::vec4 specular;
     float shininess;
+    float padding[3];
   };
+
+  static_assert(sizeof(Material) == 4 * (4 * sizeof(float)) , "Material size is invalid for GPU layout!");
 
 } // namespace other
 

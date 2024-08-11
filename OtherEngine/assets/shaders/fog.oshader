@@ -5,12 +5,12 @@ vertex [mesh : default] {
 
   void main() {
     /// output gl_Position in projection space
-    gl_Position = projection * view * voe_model * vec4(voe_position , 1.0);
+    gl_Position = projection * view * models[gl_InstanceID] * vec4(voe_position , 1.0);
 
     fviewpoint = viewpoint;
 
     /// fog position is in view space
-    foe_position = vec3(view * voe_model * vec4(voe_position , 1.0));
+    foe_position = vec3(view * models[gl_InstanceID] * vec4(voe_position , 1.0));
   }
 
 }

@@ -58,21 +58,6 @@ namespace other {
     return name;
   }
 
-  void UniformBuffer::BindShader(const Ref<Shader>& shader) {
-    switch (type) {
-      case UNIFORM_BUFFER: {
-        uint32_t idx = glGetUniformBlockIndex(shader->ID() , name.c_str());
-        glUniformBlockBinding(shader->ID() , idx , binding_point);
-        break;
-      } case SHADER_STORAGE: {
-        uint32_t idx = glGetProgramResourceIndex(shader->ID() , GL_SHADER_STORAGE_BLOCK , name.c_str());
-        glShaderStorageBlockBinding(shader->ID() , idx , binding_point);
-      } break;
-      default:
-        break;
-    }
-  }
-
   bool UniformBuffer::Bound() const {
     return bound;
   }
@@ -87,6 +72,12 @@ namespace other {
 
   void UniformBuffer::Bind() {
     glBindBuffer(type , renderer_id);
+  }
+      
+  void UniformBuffer::LoadFromBuffer(const Buffer& buffer) {
+    glBindBuffer(type , renderer_id);
+    glBufferSubData(type , 0 , buffer.Size() , buffer.ReadBytes());
+    glBindBuffer(type , 0);
   }
   
   void UniformBuffer::Unbind() {

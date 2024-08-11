@@ -192,15 +192,15 @@ namespace other {
     /// build materials
   }
 
-  Model::Model(const Ref<Model>& other) 
-      : model_source(other->model_source) /* materials */ {
-    handle = Random::GenerateUUID();
-    SetSubMeshes(other->sub_meshes);
+  Model::Model(const Ref<Model>& other) {
+    handle = other->handle;
+    model_source = Ref<ModelSource>::Clone(other->model_source);
+    SetSubMeshes({});
     RebuildMesh();
   }
   
-  const Ref<VertexArray>& Model::GetMesh() const {
-    return model_vao; 
+  Ref<VertexArray> Model::GetMesh() const {
+    return Ref<VertexArray>::Clone(model_vao); 
   }
   
   const std::vector<uint32_t>& Model::SubMeshes() const {
@@ -218,10 +218,17 @@ namespace other {
       }
     }
   }
-      
+ 
   void Model::RebuildMesh() {
     auto& raw_vertices = model_source->RawVertices();
-    auto& raw_indices = model_source->RawIndices();
+    auto& idxs = model_source->Indices();
+
+    std::vector<uint32_t> raw_indices{};
+    for (const auto& i : idxs) {
+      raw_indices.push_back(i.v1);
+      raw_indices.push_back(i.v2);
+      raw_indices.push_back(i.v3);
+    }
 
     model_vao = NewRef<VertexArray>(raw_vertices , raw_indices);
     OE_ASSERT(model_vao != nullptr , "null model vao after model creation!");
@@ -259,15 +266,15 @@ namespace other {
     /// build materials
   }
 
-  StaticModel::StaticModel(const Ref<StaticModel>& other) 
-      : model_source(other->model_source) /* materials */ {
-    handle = Random::GenerateUUID();
-    SetSubMeshes(other->sub_meshes);
+  StaticModel::StaticModel(const Ref<StaticModel>& other) {
+    handle = other->handle;
+    model_source = Ref<ModelSource>::Clone(other->model_source);
+    SetSubMeshes({});
     RebuildMesh();
   }
 
-  const Ref<VertexArray>& StaticModel::GetMesh() const {
-    return model_vao; 
+  Ref<VertexArray> StaticModel::GetMesh() const {
+    return Ref<VertexArray>::Clone(model_vao); 
   }
   
   const std::vector<uint32_t>& StaticModel::SubMeshes() const {

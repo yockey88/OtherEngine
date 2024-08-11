@@ -40,15 +40,6 @@ namespace other {
   void Value::Clear() {
     value.Release();
   }
-      
-  void Value::SetStr(const std::string& str) {
-    value.Release();
-    if (str.length() == 0) {
-      return;
-    }
-    value.WriteStr(str);
-    type = ValueType::STRING;
-  }
 
   ValueType Value::Type() const {
     return type;
@@ -60,6 +51,10 @@ namespace other {
 
   size_t Value::Size() const {
     return value.Size();
+  }
+      
+  size_t Value::NumElements() const {
+    return value.NumElements();
   }
 
 } // namespace other

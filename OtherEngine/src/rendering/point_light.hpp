@@ -16,7 +16,10 @@ namespace other {
     float constant = 1.f;
     float linear = 0.09f;
     float quadratic = 0.032f;
+    float padding;
   };
+
+  static_assert(sizeof(PointLight) == 5 * 4 * sizeof(float) , "PointLight size invalid for GPU layout!");
   
 } // namespace other
 

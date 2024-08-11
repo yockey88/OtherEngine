@@ -28,26 +28,7 @@ namespace other {
     DefineInput(uni_buffer);
 
     const std::vector<Uniform> material_unis = {
-      { "voe_model"          , MAT4  } ,
-      { "foe_color"          , VEC4 } ,
-
-      { "foe_material.ambient"   , VEC4  } ,
-      { "foe_material.diffuse"   , VEC4  } ,
-      { "foe_material.specular"  , VEC4  } ,
-      { "foe_material.shininess" , FLOAT } ,
-
-      { "foe_plight.position"   , VEC4  } ,
-      { "foe_plight.ambient"    , VEC4  } ,
-      { "foe_plight.diffuse"    , VEC4  } ,
-      { "foe_plight.specular"   , VEC4  } ,
-      { "foe_plight.constant"   , FLOAT  } ,
-      { "foe_plight.linear"     , FLOAT  } ,
-      { "foe_plight.quadratic"  , FLOAT  } ,
-
-      { "foe_dlight.direction"   , VEC4  } ,
-      { "foe_dlight.ambient"    , VEC4  } ,
-      { "foe_dlight.diffuse"    , VEC4  } ,
-      { "foe_dlight.specular"   , VEC4  } ,
+      { "materials" , USER_TYPE } ,
     }; 
     for (const auto& u : material_unis) {
       DefineInput(u);

@@ -30,13 +30,16 @@ namespace other {
   void SceneRenderer::BeginScene(Ref<CameraBase>& camera) {
     spec.camera_uniforms->SetUniform("projection" , camera->ProjectionMatrix());
     spec.camera_uniforms->SetUniform("view" , camera->ViewMatrix());
-    spec.camera_uniforms->SetUniform("viewpoint" , camera->Position());
+
+    glm::vec4 cam_pos = glm::vec4(camera->Position() , 1.f);
+    spec.camera_uniforms->SetUniform("viewpoint" , cam_pos);
   }
   
   void SceneRenderer::SubmitModel(const std::string_view pl_name , Ref<Model> model , const glm::mat4& transform , const Material& material) {
   }
 
-  void SceneRenderer::SubmitStaticModel(const std::string_view pl_name , Ref<StaticModel> model , const glm::mat4& transform , const Material& material) {
+  void SceneRenderer::SubmitStaticModel(const std::string_view pl_name , Ref<StaticModel> model , 
+                                        const glm::mat4& transform , const Material& material) {
     auto hash = FNV(pl_name);
     auto itr = pipelines.find(hash); 
     if (itr == pipelines.end()) {
@@ -60,20 +63,24 @@ namespace other {
   void SceneRenderer::Initialize() {
     spec.camera_uniforms->BindBase();
 
+    /// already made render passes
     for (auto& rp : spec.ref_passes) {
       passes[FNV(rp->Name())] = rp;
     }
 
+    /// render passes from specifications
     for (auto& rp : spec.passes) {
       passes[FNV(rp.name)] = NewRef<RenderPass>(rp);
     }
 
+    /// pipelines
     for (auto& pl : spec.pipelines) {
-      pl.model_storage->BindBase();
       pipelines[FNV(pl.debug_name)] = NewRef<Pipeline>(pl);
     }
 
+    /// register passes with pipelines
     for (auto& [pl , rps] : spec.pipeline_to_pass_map) {
+      /// FIXME: pl might not exist
       auto& pline = pipelines[pl];
 
       for (auto& p : rps) {
@@ -92,9 +99,12 @@ namespace other {
   }
  
   void SceneRenderer::PreRenderSettings() {
+    /// TODO: figure out why glPolygonMode causes INVALID ENUM ?? here 
+    ///       but not below
+    // glPolygonMode(GL_FRONT_AND_BACK , render_state);
     switch (render_state) {
       case POINT:
-        glPolygonMode(GL_FRONT_AND_BACK , FILL);
+        glPolygonMode(GL_FRONT_AND_BACK , POINT);
         break;
 
       case WIREFRAME:

@@ -315,14 +315,14 @@ namespace other {
     std::stringstream stream;
     stream << "#version 460 core\n\n";
 
-    if (context == FRAGMENT_SHADER) {
+    if (context == VERTEX_SHADER || context == FRAGMENT_SHADER) {
       stream << "struct Material {\n";
       stream << "  vec4 ambient;\n";
       stream << "  vec4 diffuse;\n";
       stream << "  vec4 specular;\n";
       stream << "  float shininess;\n";
-      stream << "  vec3 padding;\n";
       stream << "};\n\n";
+      
       
       stream << "struct PointLight {\n";
       stream << "  vec4 position;\n";
@@ -332,7 +332,6 @@ namespace other {
       stream << "  float constant;\n";
       stream << "  float linear;\n";
       stream << "  float quadratic;\n";
-      stream << "  float padding;\n";
       stream << "};\n\n";
       
       stream << "struct DirectionLight {\n";
@@ -377,18 +376,16 @@ namespace other {
       stream << "layout (std430 , binding = 1) readonly buffer ModelData {\n";
       stream << "  mat4 models[];\n";
       stream << "};\n\n";
-      stream << "uniform mat4 voe_model;\n\n";
+      stream << "layout (std430 , binding = 2) readonly buffer MaterialData {\n";
+      stream << "  vec4 ambient[];\n";
+      // stream << "  Material materials[];\n";
+      stream << "};\n\n";
+      stream << "out Material material;\n\n";
     } else if (context == FRAGMENT_SHADER) {
-      stream << "layout (std140 , binding = 2) readonly buffer LightData {\n";
-      stream << "  DirectionLight direction_light;\n";
-      stream << "};\n\n";
-      stream << "layout (std430 , binding = 3) readonly buffer MaterialData {\n";
-      stream << "  Material materials[];\n";
-      stream << "};\n\n";
-      stream << "uniform vec4 foe_color;\n";
-      stream << "uniform Material foe_material;\n\n";
-      stream << "uniform PointLight foe_plight;\n\n";
-      stream << "uniform DirectionLight foe_dlight;\n\n";
+      stream << "in Material material;\n\n";
+      // stream << "layout (std140 , binding = 2) readonly buffer LightData {\n";
+      // stream << "  DirectionLight direction_light;\n";
+      // stream << "};\n\n";
     }
 
     for (auto& n : nodes) {
@@ -427,7 +424,6 @@ namespace other {
       { .attr_name = "voe_tangent"     , .idx = 2 , .size = 3 },
       { .attr_name = "voe_bitangent"   , .idx = 3 , .size = 3 },
       { .attr_name = "voe_uvs"     , .idx = 4 , .size = 2 },
-      { .attr_name = "voe_model_id" , .idx = 5 , .size = 1 },
     } ,
   };
 
@@ -438,7 +434,6 @@ namespace other {
     .attrs = {
       { .attr_name = "voe_position" , .idx = 0 , .size = 2 } ,
       { .attr_name = "voe_uvs" , .idx = 1 , .size = 2 } ,
-      { .attr_name = "voe_model_id" , .idx = 2 , .size = 1 },
     } ,
   };
       

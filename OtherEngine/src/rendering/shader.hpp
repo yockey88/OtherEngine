@@ -10,9 +10,22 @@
 
 #include "core/defines.hpp"
 #include "asset/asset.hpp"
+
 #include "rendering/rendering_defines.hpp"
+#include "rendering/uniform.hpp"
 
 namespace other {
+    
+  struct ShaderIr {
+    MeshLayout layout;
+
+    std::map<UUID , ShaderStorage> storages;
+    std::map<UUID , Uniform> uniforms;
+
+    std::string vert_source = ""; 
+    std::string frag_source = "";
+    Opt<std::string> geom_source = std::nullopt;
+  };
 
   class Shader : public Asset {    
     public:

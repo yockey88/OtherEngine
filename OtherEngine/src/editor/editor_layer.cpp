@@ -530,7 +530,6 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
             { other::ValueType::VEC3 , "binormal" } ,
             { other::ValueType::VEC2 , "uvs"      }
           } ,
-          .model_storage = NewRef<UniformBuffer>("ModelData" , model_unis , model_binding_pnt , other::SHADER_STORAGE) ,
           .debug_name = "GeometryPipeline" , 
         } ,
       } ,

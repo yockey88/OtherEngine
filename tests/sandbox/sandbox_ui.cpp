@@ -21,21 +21,21 @@ void RenderMaterial(const std::string& title , other::Material& mat) {
   bool edited = false;
 
   glm::vec3 temp_ambient = mat.ambient;
-  glm::vec3 temp_diffuse = mat.diffuse;
-  glm::vec3 temp_specular = mat.specular;
+  // glm::vec3 temp_diffuse = mat.diffuse;
+  // glm::vec3 temp_specular = mat.specular;
   other::ui::widgets::DrawVec3Control("ambient color" , temp_ambient , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
                                       { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
-  other::ui::widgets::DrawVec3Control("diffuse color" , temp_diffuse , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
-                                      { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
-  other::ui::widgets::DrawVec3Control("specular color" , temp_specular , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
-                                      { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
-  other::ui::BeginProperty("shininess");
-  other::ui::DragFloat("##shininess" , &mat.shininess , 0.5f , 0.f , 256.f);
-  other::ui::EndProperty();
+  // other::ui::widgets::DrawVec3Control("diffuse color" , temp_diffuse , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
+  //                                     { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
+  // other::ui::widgets::DrawVec3Control("specular color" , temp_specular , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
+  //                                     { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
+  // other::ui::BeginProperty("shininess");
+  // other::ui::DragFloat("##shininess" , &mat.shininess , 0.5f , 0.f , 256.f);
+  // other::ui::EndProperty();
 
   mat.ambient = glm::vec4(temp_ambient , 1.f);
-  mat.diffuse = glm::vec4(temp_diffuse , 1.f);
-  mat.specular = glm::vec4(temp_specular , 1.f);
+  // mat.diffuse = glm::vec4(temp_diffuse , 1.f);
+  // mat.specular = glm::vec4(temp_specular , 1.f);
   
   ImGui::PopID();
 }

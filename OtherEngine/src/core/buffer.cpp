@@ -3,12 +3,15 @@
 */
 #include "core/buffer.hpp"
 
+#include <cstring>
+#include <numeric>
+
 #include "core/logger.hpp"
 
 namespace other {
       
-  Buffer::Buffer(void* data , uint64_t size) {
-    *this = Copy(data , size);
+  Buffer::Buffer(void* d , uint64_t sz) {
+    *this = Copy(d , sz);
   }
 
   Buffer::Buffer(Buffer&& other) {
@@ -21,8 +24,8 @@ namespace other {
   }
 
   Buffer& Buffer::operator=(Buffer&& other) {
-    Allocate(other.size);
-    Write(other.data , other.size);
+    Allocate(other.capacity);
+    Write(other.data , other.capacity);
     other.Release();
     return *this;
   }
@@ -34,75 +37,142 @@ namespace other {
 
   Buffer Buffer::Copy(const Buffer& other) {
     Buffer b;
-    b.Allocate(other.size);
-    b.Write(other.data , other.size);
+    b.Allocate(other.capacity);
+    b.Write(other.data , other.capacity);
     return b;
   }
 
-  Buffer Buffer::Copy(const void* data , uint64_t size) {
+  Buffer Buffer::Copy(const void* d , uint64_t sz) {
     Buffer b;
-    b.Allocate(size);
-    b.Write(data , size);
+    b.Allocate(sz);
+    b.Write(d , sz);
     return b;
   }
 
   void Buffer::Allocate(uint64_t sz) {
-    delete[] data;
-    data = nullptr;
+    Release();
 
     if (sz == 0) {
       return;
     }
 
-    data = new uint8_t[sz + 1];
-    size = sz;
+    capacity = sz;
+    data = new uint8_t[capacity];
+    ZeroMem();
+  }
+      
+  void Buffer::Extend() {
+    size_t new_size = 2 * capacity;
+    uint8_t* new_buffer = new uint8_t[new_size];
+    uint8_t* temp = data;
+
+    memset(new_buffer , 0 , new_size);
+    memcpy(new_buffer , data , capacity);
+
+    data = new_buffer;
+    delete[] temp;
+
+    capacity = new_size;
   }
 
   void Buffer::Release() {
     delete[] data;
     data = nullptr;
-    size = 0;
+    capacity = 0;
+    element_sizes.clear();
   }
 
   void Buffer::ZeroMem() {
     if (data != nullptr) {
-      memset(data , 0 , size);
+      memset(data , 0 , capacity);
     }
+  }
+      
+  size_t Buffer::ElementSize(size_t index) const {
+    if (index >= element_sizes.size()) {
+      return 0;
+    }
+
+    return element_sizes[index];
   }
 
   const uint8_t* Buffer::ReadBytes(uint64_t offset) const {
-    OE_ASSERT(offset <= size , "Buffer::ReadBytes |> Out of bounds");
+    OE_ASSERT(offset <= capacity , "Buffer::ReadBytes |> Out of bounds! attempted read at {} > {} real capacity" , offset , capacity);
     return static_cast<const uint8_t*>(&data[offset]);
   }
 
   void Buffer::Write(const void* d , uint64_t sz , uint64_t offset) {
-    OE_ASSERT(offset + sz <= size , "Buffer::Write |> Out of bounds ({} vs {})" , offset + sz , size);
-    memcpy((data + offset), d , size);
-  }
-      
-  void Buffer::WriteStr(const std::string_view str) {
-    Release();
-    Allocate(str.length() + 1);
-    for (size_t i = 0; i < str.length(); ++i) {
-      data[i] = static_cast<uint8_t>(str[i]);
+    OE_ASSERT(offset + sz <= capacity , "Attempting to write into invalid memory! expected capacity {} + {} = {} > {} real capacity" , 
+              offset , sz , offset + sz , capacity);
+    const uint8_t* d_bytes = reinterpret_cast<const uint8_t*>(d);
+    uint8_t* data_bytes = reinterpret_cast<uint8_t*>(data);
+
+    for (size_t i = offset; i < offset + sz; ++i) {
+      data_bytes[i] = d_bytes[i];
     }
-    data[str.length()] = '\0';
   }
 
   uint8_t& Buffer::operator[](uint64_t offset) {
-    OE_ASSERT(offset <= size , "Accessing Buffer out of bounds");
+    OE_ASSERT(offset <= capacity , "Accessing Buffer out of bounds");
     return *(data + offset);
   }
 
   uint8_t Buffer::operator[](uint64_t offset) const {
-    OE_ASSERT(offset <= size , "Accessing Buffer out of bounds");
+    OE_ASSERT(offset <= capacity , "Accessing Buffer out of bounds");
     return *(data + offset);
+  }
+      
+  std::string Buffer::DumpBuffer() const {
+    std::stringstream ss;
+
+    ss << "Buffer Capacity = " << Capacity() << "\n";
+    ss << " - current size = " << Size() << "\n";
+    if (Capacity() == 0) {
+      ss << "[ EMPTY ]";
+      return ss.str();
+    }
+    
+    ss << " - number elements = " << NumElements() << "\n";
+
+    size_t idx = 0 , cursor = 0;
+    for (auto& elt_size : element_sizes) {
+
+      ss << std::dec << " -- [" << idx << " : " << elt_size << "] = ";
+      ss << std::hex;
+      for (uint32_t i = cursor; i < cursor + elt_size; ++i) {
+        ss << "0x";
+        if (static_cast<uint64_t>(data[i]) < 16) {
+          ss << "0";
+        }
+        ss << static_cast<uint64_t>(data[i]) << " ";
+      }
+      ss << "\n";
+
+      ++idx;
+      cursor += elt_size;
+    }
+
+    return ss.str();
   }
 
   uint64_t Buffer::Size() const {
-    return size;
+    return std::accumulate(element_sizes.begin() , element_sizes.end() , 0);
+  }
+      
+  uint64_t Buffer::Capacity() const {
+    return capacity;
+  }
+      
+  uint64_t Buffer::NumElements() const {
+    return element_sizes.size();
   }
   
+  void Buffer::SetUniformElementSize(uint64_t num_elts , uint64_t size) {
+    element_sizes.clear();
+    element_sizes.resize(num_elts);
+    std::ranges::fill(element_sizes , size);
+  }
+       
   SafeBuffer::~SafeBuffer() {
     Release();
   }

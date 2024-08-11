@@ -16,6 +16,8 @@ namespace other {
     glm::vec4 specular;
   };
 
+  static_assert(sizeof(DirectionLight) == 4 * 4 * sizeof(float) , "DirectionLight has incorrect size for GPU layout!");
+
 } // namespace other
 
 #endif // !OTHER_ENGINE_DIRECTION_LIGHT_HPP

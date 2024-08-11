@@ -1,0 +1,9 @@
+[project]
+name = "unittest"
+author = "Y"
+version = 0.0.1
+
+[window]
+width = 1280
+height = 720
+title = "Other Engine unittest"

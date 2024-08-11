@@ -1,7 +1,10 @@
 vertex [mesh : default] {
+
+  out vec3 pos;
   
   void main() {
-    gl_Position = projection * view * voe_model * vec4(voe_position , 1.0);
+    gl_Position = projection * view * models[gl_InstanceID] * vec4(voe_position , 1.0);
+    material.ambient = ambient[gl_InstanceID];
   };
 
 }
@@ -11,7 +14,7 @@ fragment {
   out vec4 FragColor;
 
   void main () {
-    FragColor = foe_color;
+    FragColor = material.ambient;
   };
 
 }
