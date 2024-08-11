@@ -6,6 +6,9 @@
 
 #include "parsing/shader_parser.hpp"
 
+#include "rendering/uniform.hpp"
+#include "rendering/shader.hpp"
+
 namespace other {  
 
   class ShaderGlslTranspiler : public TreeWalker {

@@ -198,7 +198,16 @@ namespace other {
     walker.Visit(*this);
   }
   
-  void WhileStmt::Stream(std::ostream& stream , TreeWalker& walker) const {}
+  void WhileStmt::Stream(std::ostream& stream , TreeWalker& walker) const {
+    stream << "while (";
+    if (condition != nullptr) {
+      condition->Stream(stream , walker);
+    } else {
+      stream << "false";
+    }
+    stream << ") ";
+    body->Stream(stream , walker);
+  }
   
   void WhileStmt::Accept(TreeWalker& walker) {
     walker.Visit(*this);

@@ -7,7 +7,7 @@ print(args)
 
 NAME = project_settings.GetArgValue(args, "-n", "")
 
-if NAME  == "":
+if NAME == "":
     print("Please provide a name for the project (-n)")
     sys.exit(1)
 
@@ -24,7 +24,7 @@ if not os.path.exists(PATH):
 
 print("Generating project: {}".format(NAME))
 
-with open("{}/{}.other".format(PATH , NAME), "w") as f:
+with open("{}/{}.other".format(PATH, NAME), "w") as f:
     f.write("[project]\n")
     f.write("name = \"{}\"\n".format(NAME))
     f.write("author = \"<no-author>\"\n")

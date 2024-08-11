@@ -4,6 +4,7 @@
 #include "parsing/shader_glsl_transpiler.hpp"
 
 #include "core/errors.hpp"
+#include "parsing/parsing_defines.hpp"
 #include "parsing/shader_ast_node.hpp"
 #include "rendering/rendering_defines.hpp"
 
@@ -154,7 +155,8 @@ namespace other {
 
   void ShaderGlslTranspiler::Visit(IfStmt& stmt) {}
 
-  void ShaderGlslTranspiler::Visit(WhileStmt& stmt) {}
+  void ShaderGlslTranspiler::Visit(WhileStmt& stmt) {
+  }
 
   void ShaderGlslTranspiler::Visit(ReturnStmt& stmt) {}
 
@@ -315,6 +317,36 @@ namespace other {
     std::stringstream stream;
     stream << "#version 460 core\n\n";
 
+    /// define this in both vertex and fragment 
+    if (context == VERTEX_SHADER || context == FRAGMENT_SHADER) {
+      stream << "struct Material {\n";
+      stream << "  vec4 ambient;\n";
+      stream << "  vec4 diffuse;\n";
+      stream << "  vec4 specular;\n";
+      stream << "  float shininess;\n";
+      stream << "};\n\n";
+    }
+
+    /// lights only necessary in fragment
+    if (context == FRAGMENT_SHADER) {
+      stream << "struct PointLight {\n";
+      stream << "  vec4 position;\n";
+      stream << "  vec4 ambient;\n";
+      stream << "  vec4 diffuse;\n";
+      stream << "  vec4 specular;\n";
+      stream << "  float constant;\n";
+      stream << "  float linear;\n";
+      stream << "  float quadratic;\n";
+      stream << "};\n\n";
+      
+      stream << "struct DirectionLight {\n";
+      stream << "  vec4 direction;\n";
+      stream << "  vec4 ambient;\n";
+      stream << "  vec4 diffuse;\n";
+      stream << "  vec4 specular;\n";
+      stream << "};\n\n";
+    }
+
     std::stringstream ts;
     if (mesh_layout.has_value() && mesh_layout->override && context == VERTEX_SHADER) {
       for (const auto& a : mesh_layout.value().attrs) {
@@ -341,7 +373,30 @@ namespace other {
     }
 
     if (context == VERTEX_SHADER) {
-      stream << "uniform mat4 voe_model;\n\n";
+      stream << "layout (std140 , binding = 0) uniform Camera {\n";
+      stream << "  mat4 projection;\n";
+      stream << "  mat4 view;\n";
+      stream << "  vec4 viewpoint;\n";
+      stream << "};\n\n";
+      stream << "layout (std430 , binding = 1) readonly buffer ModelData {\n";
+      stream << "  mat4 models[];\n";
+      stream << "};\n\n";
+      stream << "layout (std430 , binding = 2) readonly buffer MaterialData {\n";
+      stream << "  Material materials[];\n";
+      stream << "};\n\n";
+      stream << "out Material material;\n\n";
+    } else if (context == FRAGMENT_SHADER) {
+      stream << "in Material material;\n\n";
+      stream << "#define MAX_POINT_LIGHTS 100\n";
+      stream << "#define MAX_DIR_LIGHTS 100\n";
+      stream << "layout (std430 , binding = 3) readonly buffer Lights {\n";
+      /// num direction lights is num_lights.x
+      /// num point lights is num_lights.y
+      /// num_lights.z and .w are padding
+      stream << "  vec4 num_lights;\n";
+      stream << "  DirectionLight direction_lights[MAX_DIR_LIGHTS];\n";
+      stream << "  PointLight point_lights[MAX_POINT_LIGHTS];\n";
+      stream << "};\n\n";
     }
 
     for (auto& n : nodes) {
@@ -380,7 +435,6 @@ namespace other {
       { .attr_name = "voe_tangent"     , .idx = 2 , .size = 3 },
       { .attr_name = "voe_bitangent"   , .idx = 3 , .size = 3 },
       { .attr_name = "voe_uvs"     , .idx = 4 , .size = 2 },
-      { .attr_name = "voe_model_id" , .idx = 5 , .size = 1 },
     } ,
   };
 
@@ -391,7 +445,6 @@ namespace other {
     .attrs = {
       { .attr_name = "voe_position" , .idx = 0 , .size = 2 } ,
       { .attr_name = "voe_uvs" , .idx = 1 , .size = 2 } ,
-      { .attr_name = "voe_model_id" , .idx = 2 , .size = 1 },
     } ,
   };
       

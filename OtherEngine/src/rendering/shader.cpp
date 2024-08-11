@@ -35,6 +35,7 @@ namespace other {
 
     if (!Compile(vsrc_ptr , fsrc_ptr , gsrc_ptr)) {
       OE_ERROR("Failed to compile shader!");
+      valid = false;
     }
   }
   
@@ -47,6 +48,9 @@ namespace other {
   }
   
   void Shader::Bind() const {
+    if (!valid) {
+      return;
+    }
     glUseProgram(renderer_id);
   }
   
@@ -54,7 +58,7 @@ namespace other {
     glUseProgram(0);
   }
     
-  void Shader::InnerSetUniform(const std::string_view name , const int32_t& value) {
+  void Shader::InnerSetUniform(const std::string_view name , const int32_t& value , uint32_t index) {
     uint32_t loc = GetUniformLocation(name);
 
     CHECKGL();
@@ -64,37 +68,37 @@ namespace other {
     CHECKGL();
   }
   
-  void Shader::InnerSetUniform(const std::string_view name , const float& value) {
+  void Shader::InnerSetUniform(const std::string_view name , const float& value , uint32_t index) {
     uint32_t loc = GetUniformLocation(name);
     glUniform1f(loc , value);
   }
   
-  void Shader::InnerSetUniform(const std::string_view name , const glm::vec2& value) {
+  void Shader::InnerSetUniform(const std::string_view name , const glm::vec2& value , uint32_t index) {
     uint32_t loc = GetUniformLocation(name);
     glUniform2f(loc , value.x , value.y);
   }
   
-  void Shader::InnerSetUniform(const std::string_view name , const glm::vec3& value) {
+  void Shader::InnerSetUniform(const std::string_view name , const glm::vec3& value , uint32_t index) {
     uint32_t loc = GetUniformLocation(name);
     glUniform3f(loc , value.x , value.y , value.z);
   }
   
-  void Shader::InnerSetUniform(const std::string_view name , const glm::vec4& value) {
+  void Shader::InnerSetUniform(const std::string_view name , const glm::vec4& value , uint32_t index) {
     uint32_t loc = GetUniformLocation(name);
     glUniform4f(loc , value.x , value.y , value.z , value.w);
   }
   
-  void Shader::InnerSetUniform(const std::string_view name , const glm::mat2& value) {
+  void Shader::InnerSetUniform(const std::string_view name , const glm::mat2& value , uint32_t index) {
     uint32_t loc = GetUniformLocation(name);
     glUniformMatrix2fv(loc , 1 , GL_FALSE , glm::value_ptr(value));
   }
   
-  void Shader::InnerSetUniform(const std::string_view name , const glm::mat3& value) {
+  void Shader::InnerSetUniform(const std::string_view name , const glm::mat3& value , uint32_t index) {
     uint32_t loc = GetUniformLocation(name);
     glUniformMatrix3fv(loc , 1 , GL_FALSE , glm::value_ptr(value));
   }
   
-  void Shader::InnerSetUniform(const std::string_view name , const glm::mat4& value) {
+  void Shader::InnerSetUniform(const std::string_view name , const glm::mat4& value , uint32_t index) {
     uint32_t loc = GetUniformLocation(name);
     glUniformMatrix4fv(loc , 1 , GL_FALSE , glm::value_ptr(value));
   }

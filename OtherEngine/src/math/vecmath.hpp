@@ -11,10 +11,10 @@
 #include <spdlog/fmt/fmt.h>
 
 template <typename T>
-concept glm_t = requires(T) {
-  std::is_same_v<glm::mat4 , T> || 
-  std::is_same_v<glm::vec4 , T> || std::is_same_v<glm::vec3 , T> || std::is_same_v<glm::vec2 , T>;
-};
+concept glm_t = std::is_same_v<glm::mat4 , T> || 
+                std::is_same_v<glm::vec4 , T> || 
+                std::is_same_v<glm::vec3 , T> || 
+                std::is_same_v<glm::vec2 , T>;
 
 namespace other {
 
@@ -27,12 +27,10 @@ template <>
 struct fmt::formatter<glm::mat4> : public fmt::formatter<std::string_view> {
   auto format(const glm::mat4& mat , fmt::format_context& ctx) {
   constexpr std::string_view mat_str = 
-R"(
-[{} {} {} {}]
-[{} {} {} {}]
-[{} {} {} {}]
-[{} {} {} {}]
-)";
+R"(|{} {} {} {}|
+|{} {} {} {}|
+|{} {} {} {}|
+|{} {} {} {}|)";
 
     std::string mat_fmt_str = fmt::format(
       fmt::runtime(mat_str) , 

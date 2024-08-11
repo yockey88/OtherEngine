@@ -8,10 +8,13 @@
 #include "ecs/component.hpp"
 #include "ecs/component_serializer.hpp"
 
+#include "rendering/material.hpp"
+
 namespace other {
 
   struct Mesh : public Component {
     AssetHandle handle; 
+    Material material;
     // Ref<MaterialTable> mat_table = nullptr;
     std::vector<UUID> bone_entity_ids;
     bool visible = true;
@@ -28,6 +31,8 @@ namespace other {
   
   struct StaticMesh : public Component {
     AssetHandle handle; 
+    Material material;
+
     // Ref<MaterialTable> mat_table = nullptr;
     bool visible = true;
 

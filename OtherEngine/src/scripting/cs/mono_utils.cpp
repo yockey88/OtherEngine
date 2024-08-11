@@ -251,7 +251,7 @@ namespace other {
         std::string res{ utf8 };
         mono_free(utf8);
 
-        val.SetStr(res);
+        val.Set(res);
       } break;
 
       case ValueType::VEC2: {

@@ -2,8 +2,10 @@
  * \file gl_sandbox/main.cpp
  **/
 #include <SDL_events.h>
+#include <event/event_queue.hpp>
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <imgui/backends/imgui_impl_sdl2.h>
+#include <input/io.hpp>
 #include <iostream>
 
 #include <SDL_video.h>
@@ -16,8 +18,9 @@
 
 #include <box2d/box2d.h>
 #include <box2d/b2_world.h>
+#include <rendering/point_light.hpp>
 
-
+#include "core/defines.hpp"
 #include "core/logger.hpp"
 #include "core/errors.hpp"
 #include "core/ref.hpp"
@@ -26,91 +29,172 @@
 #include "rendering/rendering_defines.hpp"
 #include "rendering/window.hpp"
 #include "rendering/framebuffer.hpp"
+#include "rendering/pipeline.hpp"
+#include "rendering/perspective_camera.hpp"
+#include "rendering/camera_base.hpp"
+#include "rendering/geometry_pass.hpp"
+#include "rendering/material.hpp"
 
-#define RECT 1
+struct Cube {
+  uint32_t vao = 0 , vbo = 0 , ebo = 0;
+  std::vector<float> vertices;
+  constexpr static uint32_t indices[] = {
+    0, 1, 2 , 
+    2, 3, 0 , 
+    1, 5, 6 , 
+    6, 2, 1 , 
+    7, 6, 5 , 
+    5, 4, 7 , 
+    4, 0, 3 , 
+    3, 7, 4 , 
+    4, 5, 1 , 
+    1, 0, 4 , 
+    3, 2, 6 , 
+    6, 7, 3 , 
+  };
 
-#if RECT
-const float vertices[] = {
-   0.5f ,  0.5f , 0.0f , 0.f ,
-   0.5f , -0.5f , 0.0f , 0.f ,
-  -0.5f , -0.5f , 0.0f , 0.f ,
-  -0.5f ,  0.5f , 0.0f , 0.f ,
+  Cube(uint32_t model_idx);
+  ~Cube();
 };
-
-const uint32_t indices[] = {
-  0 , 1 , 3 ,
-  1 , 2 , 3
-};
-#else
-const float vertices[] = {
-  -0.5f , -0.5f , 0.0f ,
-   0.5f , -0.5f , 0.0f ,
-   0.0f ,  0.5f , 0.0f ,
-};
-#endif
 
 
 static const char* vert1 = R"(
 #version 460 core
 
 layout (location = 0) in vec3 vpos;
-layout (location = 1) in int model_id; 
+layout (location = 1) in vec3 vnormal;
 
-layout (std140) uniform Camera {
+layout (std140 , binding = 0) uniform Camera {
   mat4 projection;
   mat4 view;
+  vec4 viewpoint;
 };
 
-layout (std430) buffer ModelData {
+layout (std430 , binding = 1) readonly buffer ModelData {
   mat4 models[];
 };
 
-out vec4 fcol;
+struct Material {
+  vec4 ambient;
+  vec4 diffuse;
+  vec4 specular;
+  float shininess;
+};
+
+layout (std430 , binding = 2) readonly buffer MaterialData {
+  Material materials[];
+};
+
+out vec4 fviewpoint;
+out vec3 position;
+out vec3 normal;
+
+out Material material;
 
 void main() {
-  gl_Position = projection * view * models[model_id] * vec4(vpos , 1.0);
-  fcol = vec4(vpos , 1.0);
+  gl_Position = projection * view * models[gl_InstanceID] * vec4(vpos , 1.0);
+
+  material = materials[gl_InstanceID];
+
+  fviewpoint = viewpoint;
+  position = vec3(models[gl_InstanceID] * vec4(vpos , 1.0));
+  normal = mat3(transpose(inverse(models[gl_InstanceID]))) * vnormal;
 }
 )";
 
 static const char* frag1 = R"(
 #version 460 core
 
-in vec4 fcol;
+struct Material {
+  vec4 ambient;
+  vec4 diffuse;
+  vec4 specular;
+  float shininess;
+};
+
+struct PointLight {
+  vec4 position;
+  vec4 ambient;
+  vec4 diffuse;
+  vec4 specular;
+  float constant;
+  float linear;
+  float quadratic;
+};
+
+layout (std430 , binding = 3) readonly buffer Lights {
+  // int num_point_lights;
+  PointLight point_lights[];
+};
+
+uniform PointLight plight;
+
+in vec4 fviewpoint;
+in vec3 position;
+in vec3 normal;
+
+in Material material;
+
 out vec4 frag_color;
 
-void main() {
-  frag_color = fcol;
+vec3 CalcPointLight(PointLight light , vec3 normal , vec3 frag_pos , vec3 view_dir) {
+  vec3 light_dir = normalize(light.position.xyz - frag_pos);
+  float diff = max(dot(normal , light_dir) , 0.f);
+
+  vec3 reflect_dir = reflect(-light_dir , normal);
+  float spec = pow(max(dot(view_dir , reflect_dir) , 0.0) , material.shininess);
+
+  float distance = length(light.position.xyz - frag_pos);
+  float attenuation = 1.f / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
+
+  // vec3 ambient = material.ambient.rgb;
+  vec3 ambient = light.ambient.rgb * material.ambient.rgb * attenuation;
+  vec3 diffuse = light.diffuse.rgb * diff * material.diffuse.rgb * attenuation;
+  vec3 specular = light.specular.rgb * spec * material.specular.rgb * attenuation;
+  
+  return (ambient + diffuse + specular);
 }
-)";
-
-static const char* vert2 = R"(
-#version 460 core
-
-layout(location = 0) in vec3 vpos;
-layout (location = 1) in int model_id; 
-
-layout (std140) uniform Camera {
-  mat4 projection;
-  mat4 view;
-};
-
-layout (std430) readonly buffer ModelData {
-  mat4 models[];
-};
 
 void main() {
-  gl_Position = projection * view * models[model_id] * vec4(vpos , 1.0);
+  // vec3 result = vec3(0.f , 0.f , 0.f);
+  // for (int i = 0; i < num_point_lights; ++i) {
+  //   result += CalcPointLight(point_lights[i] , normal , position , fviewpoint.xyz); 
+  // }
+  vec3 result = CalcPointLight(point_lights[0] , normal , position , fviewpoint.xyz);
+  frag_color = vec4(result , 1.0);
 }
 )";
 
 static const char* frag2 = R"(
 #version 460 core
 
+struct Material {
+  vec4 ambient;
+  vec4 diffuse;
+  vec4 specular;
+  float shininess;
+};
+
+struct PointLight {
+  vec4 position;
+  vec4 ambient;
+  vec4 diffuse;
+  vec4 specular;
+  float constant;
+  float linear;
+  float quadratic;
+};
+
+in vec4 fviewpoint;
+in vec3 position;
+in vec3 normal;
+
+in Material material;
+
 out vec4 frag_color;
 
 void main() {
-  frag_color = vec4(0.7 , 0.7 , 0.7 , 1.0);
+  frag_color = vec4(1.f , 0.f , 0.f , 1.f);
 }
 )";
 
@@ -121,9 +205,21 @@ void CheckGlError(int line);
 constexpr static uint32_t win_w = 800;
 constexpr static uint32_t win_h = 600;
 
+using other::Ref;
+using other::NewRef;
+
+using other::Scope;
+using other::NewScope;
+
+using other::CameraBase;
+using other::PerspectiveCamera;
+using other::Framebuffer;
+
+void UpdateCamera(other::Ref<CameraBase>& camera);
+
 int main(int argc , char* argv[]) {
   try {
-    other::IniFileParser parser("C:/Yock/code/OtherEngine/tests/sandbox/sandbox.other");
+    other::IniFileParser parser("C:/Yock/code/OtherEngine/tests/gl_sandbox/sandbox.other");
     auto config = parser.Parse(); 
 
     other::Logger::Open(config);
@@ -186,6 +282,9 @@ int main(int argc , char* argv[]) {
     ImGui_ImplSDL2_InitForOpenGL(context.window, context.context);
     ImGui_ImplOpenGL3_Init("#version 460 core");
 
+    other::IO::Initialize();
+    other::EventQueue::Initialize(config);
+
     OE_INFO("ImGui Initialized successfully"); 
 
     int success;
@@ -229,21 +328,7 @@ int main(int argc , char* argv[]) {
       OE_ERROR("Failed to link shader program: {0}", info);
     }
 
-    glDeleteShader(vert_1);
     glDeleteShader(frag_1);
-    
-    CHECK();
-    
-    int32_t vert_2 = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vert_2, 1, &vert2, nullptr);
-    
-    glCompileShader(vert_2);
-    glGetShaderiv(vert_2, GL_COMPILE_STATUS, &success);
-    if (success != GL_TRUE) {
-      char info[512];
-      glGetShaderInfoLog(vert_2, 512, nullptr, info);
-      OE_ERROR("Failed to compile vertex shader: {0}", info);
-    }
     
     CHECK();
 
@@ -262,7 +347,7 @@ int main(int argc , char* argv[]) {
 
     uint32_t shader2 = 0;
     shader2 = glCreateProgram();
-    glAttachShader(shader2, vert_2);
+    glAttachShader(shader2, vert_1);
     glAttachShader(shader2, frag_2);
     glLinkProgram(shader2);
     
@@ -273,99 +358,103 @@ int main(int argc , char* argv[]) {
       OE_ERROR("Failed to link shader2 program: {0}", info);
     }
 
-    glDeleteShader(vert_2);
+    glDeleteShader(vert_1);
     glDeleteShader(frag_2);
 
     OE_INFO("Shaders Compiled");
-    
-    uint32_t vao = 0 , vbo = 0 , ebo = 0;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
 
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    
-#if RECT
-    glGenBuffers(1, &ebo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-#endif
+    Cube cube1(0);
+    CHECK();
 
-    glVertexAttribPointer(0 , 3 , GL_FLOAT , GL_FALSE , 4 * sizeof(float) , (void*)0);
-    glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(1 , 1 , GL_FLOAT , GL_FALSE , 4 * sizeof(float) , (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    glBindVertexArray(0);
-    
+    Cube cube2(1);
     CHECK();
 
     OE_INFO("VAO created");
 
-    uint32_t cam_idx_1 = glGetUniformBlockIndex(shader1 , "Camera");
-    uint32_t cam_idx_2 = glGetUniformBlockIndex(shader2 , "Camera");
-
-    glUniformBlockBinding(shader1 , cam_idx_1 , 0);
-    glUniformBlockBinding(shader2 , cam_idx_2 , 0);
-    
-    uint32_t model_idx_1 = glGetProgramResourceIndex(shader1 , GL_SHADER_STORAGE_BLOCK, "ModelData");
-    uint32_t model_idx_2 = glGetProgramResourceIndex(shader2 , GL_SHADER_STORAGE_BLOCK, "ModelData");
-
-    glShaderStorageBlockBinding(shader1 , model_idx_1 , 1);
-    glShaderStorageBlockBinding(shader2 , model_idx_2 , 1);
-
-    uint32_t camera_ub = 0;
-    glGenBuffers(1 , &camera_ub);
-    glBindBuffer(GL_UNIFORM_BUFFER , camera_ub);
-    glBufferData(GL_UNIFORM_BUFFER , 2 * sizeof(glm::mat4) , nullptr , GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_UNIFORM_BUFFER , 0);
-
-    glBindBufferRange(GL_UNIFORM_BUFFER , 0 , camera_ub , 0 , 2 * sizeof(glm::mat4));
-    
-    glm::mat4 proj = glm::perspective(glm::radians(70.0f), (float)win_w / (float)win_h, 0.1f, 100.0f);
-    glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-
-    glBindBuffer(GL_UNIFORM_BUFFER , camera_ub);
-    glBufferSubData(GL_UNIFORM_BUFFER , 0 , sizeof(glm::mat4) , glm::value_ptr(proj));
-    glBufferSubData(GL_UNIFORM_BUFFER , sizeof(glm::mat4) , sizeof(glm::mat4) , glm::value_ptr(view));
-    glBindBuffer(GL_UNIFORM_BUFFER , 0);
-
+    other::Ref<CameraBase> camera = other::NewRef<PerspectiveCamera>(glm::ivec2{ win_w , win_h });
+    camera->SetPosition({ 0.f , 0.f , 3.f });
+    glm::mat4 proj = camera->ProjectionMatrix();
+    glm::mat4 view = camera->ViewMatrix();
 
     glm::mat4 model1 =  glm::mat4(1.0f); 
-    glm::mat4 model2 =  glm::mat4(1.f);
-    model2 = glm::translate(model1 , glm::vec3(0.3f , 0.1f , 0.f));
+    float m1_rotation = 0.f;
 
-    uint32_t model_ssbo = 0;
-    glGenBuffers(1 , &model_ssbo);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER , model_ssbo);
-    glBufferData(GL_SHADER_STORAGE_BUFFER , 2 * sizeof(glm::mat4) , nullptr , GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER , 0);
+    glm::mat4 model2 =  glm::mat4(1.0f);
+    model2 = glm::translate(model2 , glm::vec3(2.f , 0.f , 0.f));
 
-    glBindBufferRange(GL_SHADER_STORAGE_BUFFER , 1 , model_ssbo , 0 , 2 * sizeof(glm::mat4));
+    other::Material material1 = {
+      .ambient = { 1.0f , 0.5f , 0.31f , 1.f } ,
+      .diffuse = { 0.1f , 0.5f , 0.31f , 1.f } ,
+      .specular = { 0.5f , 0.5f , 0.5f , 1.f } ,
+      .shininess = 32.f ,
+    };
+    other::Material material2 = {
+      .ambient = { 0.1f , 0.5f , 0.31f , 1.f } ,
+      .diffuse = { 1.0f , 0.5f , 0.31f , 1.f } ,
+      .specular = { 0.5f , 0.5f , 0.5f , 1.f } ,
+      .shininess = 32.f ,
+    };
 
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER , model_ssbo);
-    glBufferSubData(GL_SHADER_STORAGE_BUFFER , 0 , sizeof(glm::mat4) , glm::value_ptr(model1));
-    glBufferSubData(GL_SHADER_STORAGE_BUFFER , sizeof(glm::mat4) , sizeof(glm::mat4) , glm::value_ptr(model2));
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER , 0);
+    other::PointLight point_light {
+      .position = { 1.2f , 1.0f , 2.0f , 1.f } ,
+      .ambient  = { 0.2f , 0.2f , 0.2f , 1.f } ,
+      .diffuse  = { 0.5f , 0.5f , 0.5f , 1.f } ,
+      .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
+    };
 
     CHECK();
 
-
-    glUseProgram(0);
-
-    OE_INFO("Uniforms applied");
-
-    other::FramebufferSpec fb_spec {
-      .size = { win_w , win_h }
+    uint32_t camera_binding_pnt = 0;
+    std::vector<other::Uniform> camera_unis = {
+      { "projection" , other::ValueType::MAT4 } ,
+      { "view"       , other::ValueType::MAT4 } ,
+      { "viewpoint"  , other::ValueType::VEC4 } ,
     };
 
-    other::Ref<other::Framebuffer> fb = other::NewRef<other::Framebuffer>(fb_spec);
+    uint32_t model_binding_pnt = 1;
+    std::vector<other::Uniform> model_unis = {
+      { "models" , other::ValueType::MAT4 , 100 } ,
+    };
+    
+    uint32_t material_binding_pnt = 2;
+    std::vector<other::Uniform> material_unis = {
+      { "materials" , other::ValueType::USER_TYPE , 100  , sizeof(other::Material) } ,
+    };
+    
+    uint32_t light_binding_pnt = 3;
+    std::vector<other::Uniform> light_unis = {
+      { "point_lights"     , other::ValueType::USER_TYPE , 100 , sizeof(other::PointLight) } ,
+    };
+    
+    Ref<other::UniformBuffer> camera_uniforms = NewRef<other::UniformBuffer>("Camera" , camera_unis , camera_binding_pnt);    
+    camera_uniforms->BindBase();
+    Ref<other::UniformBuffer> light_uniforms = NewRef<other::UniformBuffer>("Lights" , light_unis , light_binding_pnt , other::SHADER_STORAGE);    
+    light_uniforms->BindBase();
+
+    Ref<other::UniformBuffer> material_uniforms = NewRef<other::UniformBuffer>("MaterialData" , material_unis , material_binding_pnt , 
+                                                                               other::SHADER_STORAGE);    
+    material_uniforms->BindBase();
+    Ref<other::UniformBuffer> model_uniforms = NewRef<other::UniformBuffer>("ModelData" , model_unis , model_binding_pnt , 
+                                                                            other::SHADER_STORAGE);    
+    model_uniforms->BindBase();
+    
+    
+
+    other::Buffer model_buffer;
+    other::Buffer material_buffer;
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glEnable(GL_STENCIL_TEST);
+    glStencilFunc(GL_NOTEQUAL , 1 , 0xFF);
+    glStencilOp(GL_KEEP , GL_KEEP , GL_REPLACE);
 
     OE_INFO("Running");
 
     bool running = true;
+    bool camera_lock = false;
+    other::Mouse::LockCursor();
+
     while (running) {
       SDL_Event event;
       while (SDL_PollEvent(&event)) {
@@ -381,6 +470,14 @@ int main(int argc , char* argv[]) {
           case SDL_KEYDOWN:
             switch (event.key.keysym.sym) {
               case SDLK_ESCAPE: running = false; break;
+              case SDLK_c: 
+                camera_lock = !camera_lock; 
+                if (camera_lock) {
+                  other::Mouse::FreeCursor();
+                } else {
+                  other::Mouse::LockCursor();
+                }
+                break;
               default:
                 break;
             }
@@ -392,74 +489,166 @@ int main(int argc , char* argv[]) {
         ImGui_ImplSDL2_ProcessEvent(&event);
       }
 
-      glClearColor(0.2f , 0.3f , 0.3f , 1.f);
-      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+      other::IO::Update();
 
       /// update camera uniforms
-      glBindBuffer(GL_UNIFORM_BUFFER , camera_ub);
-      glBufferSubData(GL_UNIFORM_BUFFER , 0 , sizeof(glm::mat4) , glm::value_ptr(proj));
-      glBufferSubData(GL_UNIFORM_BUFFER , sizeof(glm::mat4) , sizeof(glm::mat4) , glm::value_ptr(view));
-      glBindBuffer(GL_UNIFORM_BUFFER , 0);
+      if (!camera_lock) {
+        UpdateCamera(camera);
+        proj = camera->ProjectionMatrix();
+        view = camera->ViewMatrix();
 
-      /// update model data
-      glBindBuffer(GL_SHADER_STORAGE_BUFFER , model_ssbo);
-      glBufferSubData(GL_SHADER_STORAGE_BUFFER , 0 , sizeof(glm::mat4) , glm::value_ptr(model1));
-      glBufferSubData(GL_SHADER_STORAGE_BUFFER , sizeof(glm::mat4) , sizeof(glm::mat4) , glm::value_ptr(model2));
-      glBindBuffer(GL_SHADER_STORAGE_BUFFER , 0);
+        camera_uniforms->SetUniform("projection" , camera->ProjectionMatrix());
+        camera_uniforms->SetUniform("view" , camera->ViewMatrix());
 
-      fb->BindFrame();
+        glm::vec4 cam_pos = glm::vec4(camera->Position() , 1.f);
+        camera_uniforms->SetUniform("viewpoint" , cam_pos);
+      }
 
+      light_uniforms->SetUniform("point_lights" , point_light);
+
+      model1 = glm::mat4(1.f);
+      model1 = glm::rotate(model1 , m1_rotation , { 1.f , 1.f , 1.f });
+      m1_rotation += 0.1f;
+
+      /// clear window
+      glClearColor(0.2f , 0.3f , 0.3f , 1.f);
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+      
+/// cpu buffers belong to mesh key (1 per mesh)
+/// > model/material submission
+      model_buffer.BufferData(model1);
+      model_buffer.BufferData(model2);
+      material_buffer.BufferData(material1);
+      material_buffer.BufferData(material2);
+/// > end model/material submission
+      
+      
+////// OUTLINE RENDER PASS 
+      float scale = 1.05f;
+      float inv_scale = 1.f / scale;
+      model1 = glm::scale(model1 , { scale , scale , scale });
+      
+      
+  /// > Bind RenderPass
+      glStencilFunc(GL_NOTEQUAL , 0 , 0xFF);
+      glStencilMask(0x00);
+      glDisable(GL_DEPTH_TEST);
+      
+      glUseProgram(shader2);
+  /// > End Bind RenderPass
+
+  /// > for each mesh in model submissions
+      glBindVertexArray(cube1.vao);
+
+  /// > let render pass set its own uniforms
+      model_uniforms->BindBase();
+      model_uniforms->LoadFromBuffer(model_buffer);
+  /// > end let render pass set its own uniforms 
+      
+    /// draw
+      glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES , 36 , GL_UNSIGNED_INT , (void*)0 , 1 , 0 , 0);
+////// END OUTLINE RENDER PASS 
+
+////// END GEOMETRY RENDER PASS 
+      model1 = glm::scale(model1 , { inv_scale , inv_scale , inv_scale });
+
+  /// > Bind RenderPass
+      glEnable(GL_DEPTH_TEST);
+      glStencilFunc(GL_ALWAYS , 1 , 0xFF);
+      glStencilMask(0xFF);
 
       glUseProgram(shader1);
-      glBindVertexArray(vao);
-#if RECT
-      glDrawElements(GL_TRIANGLES , 6 , GL_UNSIGNED_INT , 0);
-#else
-      glDrawArrays(GL_TRIANGLES , 0 , 6);
-#endif
-      CHECK();
+      glBindVertexArray(cube1.vao);
+  /// > End Bind RenderPass
 
-      // glUseProgram(shader2);
-      // glUniformMatrix4fv(model_loc2, 1, GL_FALSE, glm::value_ptr(model2));
-      // glDrawElements(GL_TRIANGLES , 6 , GL_UNSIGNED_INT , 0);
-      // CHECK();
+  /// > let render pass set its own uniforms
+      material_uniforms->BindBase();
+      material_uniforms->LoadFromBuffer(material_buffer);
+      model_uniforms->BindBase();
+      model_uniforms->LoadFromBuffer(model_buffer);
+  /// > end let render pass set its own uniforms
 
-      fb->UnbindFrame();
+    /// > draw
+      glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES , 36 , GL_UNSIGNED_INT , (void*)0 , 2 , 0 , 0);
+////// END GEOMETRY RENDER PASS 
 
+      /// reset buffers after render (size == 0, capacity unchanged) 
+      model_buffer.ZeroMem();
+      material_buffer.ZeroMem();
+
+#if 0
       ImGui_ImplOpenGL3_NewFrame();
       ImGui_ImplSDL2_NewFrame(context.window);
       ImGui::NewFrame();
-
-      if (ImGui::Begin("Viewport")) {
-        ImGui::Text("Frame");
-        ImGui::SameLine();
-        ImGui::Image((void*)(uintptr_t)fb->texture , { win_w / 2 , win_h / 2} , ImVec2(0 , 1) , ImVec2(1 , 0));
-      }
-      ImGui::End();
 
       ImGui::Render();
       ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
       ImGui::UpdatePlatformWindows();
       ImGui::RenderPlatformWindowsDefault();
+#endif
 
       SDL_GL_MakeCurrent(context.window , context.context);
-      SDL_GL_SwapWindow(context.window);
+      SDL_GL_SwapWindow(context.window);  
     }
 
-    glDeleteVertexArrays(1 , &vao);
-    glDeleteBuffers(1 , &vbo);
     glDeleteProgram(shader1);
     glDeleteProgram(shader2);
+
+    other::EventQueue::Shutdown();
+    other::IO::Shutdown();
+
+    return 1;
   } catch (const other::IniException& e) {
     std::cout << "caught ini error : " << e.what() << "\n";
+    other::EventQueue::Shutdown();
+    other::IO::Shutdown();
   } catch(const std::exception& e) {
     std::cout << "caught std error : " << e.what() << "\n";
   } catch (...) {
     std::cout << "unknown error" << "\n";
-    return 1;
   }
-  return 0;
+
+  other::EventQueue::Shutdown();
+  other::IO::Shutdown();
+
+  return 1;
+}
+  
+Cube::Cube(uint32_t model_idx) {
+  vertices = {
+    -1.0f / 2.0f, -1.0f / 2.0f,  1.0f / 2.0f ,  -1.f , -1.f ,  1.f , 
+     1.0f / 2.0f, -1.0f / 2.0f,  1.0f / 2.0f ,   1.f , -1.f ,  1.f ,
+     1.0f / 2.0f,  1.0f / 2.0f,  1.0f / 2.0f ,   1.f ,  1.f ,  1.f ,
+    -1.0f / 2.0f,  1.0f / 2.0f,  1.0f / 2.0f ,  -1.f ,  1.f ,  1.f ,
+    -1.0f / 2.0f, -1.0f / 2.0f, -1.0f / 2.0f ,  -1.f , -1.f , -1.f ,
+     1.0f / 2.0f, -1.0f / 2.0f, -1.0f / 2.0f ,   1.f , -1.f , -1.f ,
+     1.0f / 2.0f,  1.0f / 2.0f, -1.0f / 2.0f ,   1.f ,  1.f , -1.f ,
+    -1.0f / 2.0f,  1.0f / 2.0f, -1.0f / 2.0f ,  -1.f ,  1.f , -1.f ,
+  }; 
+  glGenVertexArrays(1, &vao);
+  glBindVertexArray(vao);
+
+  glGenBuffers(1, &vbo);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data() , GL_STATIC_DRAW);
+  
+  glGenBuffers(1, &ebo);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+  glVertexAttribPointer(0 , 3 , GL_FLOAT , GL_FALSE , 6 * sizeof(float) , (void*)0);
+  glEnableVertexAttribArray(0);
+  
+  glVertexAttribPointer(1 , 3 , GL_FLOAT , GL_FALSE , 6 * sizeof(float) , (void*)(3 * sizeof(float)));
+  glEnableVertexAttribArray(1);
+
+  glBindVertexArray(0);
+}
+
+Cube::~Cube() {
+  glDeleteVertexArrays(1 , &vao);
+  glDeleteBuffers(1 , &vbo);
 }
 
 void CheckGlError(int line) {
@@ -497,4 +686,55 @@ void CheckGlError(int line) {
     }
     err = glGetError();
   }
+}
+
+void UpdateCamera(other::Ref<CameraBase>& camera) {
+  if (other::Keyboard::Down(other::Keyboard::Key::OE_W)) {
+    camera->MoveForward();
+  }
+  if (other::Keyboard::Down(other::Keyboard::Key::OE_S)) {
+    camera->MoveBackward();
+  }
+  if (other::Keyboard::Down(other::Keyboard::Key::OE_A)) {
+    camera->MoveLeft();
+  }
+  if (other::Keyboard::Down(other::Keyboard::Key::OE_D)) {
+    camera->MoveRight();
+  }
+  if (other::Keyboard::Down(other::Keyboard::Key::OE_SPACE)) {
+    camera->MoveUp();
+  }
+  if (other::Keyboard::Down(other::Keyboard::Key::OE_LSHIFT)) {
+    camera->MoveDown();
+  }
+
+  glm::vec2 win_size = { win_w , win_h };
+  glm::ivec2 mouse_pos = other::Mouse::GetPos();
+
+  SDL_WarpMouseInWindow(SDL_GetMouseFocus() , win_size.x / 2 , win_size.y / 2);
+
+  camera->SetLastMouse(camera->Mouse());
+  camera->SetMousePos(mouse_pos);
+  camera->SetDeltaMouse({ 
+    camera->Mouse().x - camera->LastMouse().x ,
+    camera->LastMouse().y - camera->Mouse().y
+  });
+
+    glm::ivec2 rel_pos = other::Mouse::GetRelPos();
+
+    camera->SetYaw(camera->Yaw() + (rel_pos.x * camera->Sensitivity()));
+    camera->SetPitch(camera->Pitch() - (rel_pos.y * camera->Sensitivity()));
+
+    if (camera->ConstrainPitch()) {
+      if (camera->Pitch() > 89.0f) {
+        camera->SetPitch(89.0f);
+      }
+
+      if (camera->Pitch() < -89.0f) {
+        camera->SetPitch(-89.0f);
+      }
+    }
+
+    camera->UpdateCoordinateFrame();
+    camera->CalculateMatrix();
 }

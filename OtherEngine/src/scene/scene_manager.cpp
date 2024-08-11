@@ -253,8 +253,11 @@ namespace other {
         return false;
       }
     }
+
+    auto environment = active_scene->scene->GetEnvironment();
+    OE_ASSERT(environment != nullptr , "Scene environment can not be null!");
     
-    scene_renderer->BeginScene(viewpoint);
+    scene_renderer->BeginScene(viewpoint , environment);
     active_scene->scene->Render(scene_renderer);
 
     // debug rendering

@@ -64,6 +64,11 @@ namespace other {
 
     Dispatch(engine , app);
   }
+ 
+  void EventQueue::Clear() {
+    cursor = event_buffer;
+    buffer_offset = 0;
+  }
    
   void EventQueue::EnableUIEvents() {
     process_ui_events = true;
@@ -135,11 +140,6 @@ namespace other {
     }
 
     Clear();
-  }
-  
-  void EventQueue::Clear() {
-    cursor = event_buffer;
-    buffer_offset = 0;
   }
 
 } // namespace other

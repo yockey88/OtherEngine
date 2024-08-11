@@ -10,6 +10,7 @@
 #include "math/vecmath.hpp"
 
 #include "rendering/rendering_defines.hpp"
+#include "rendering/layout.hpp"
 #include "rendering/color.hpp"
 
 namespace other {
@@ -79,6 +80,10 @@ namespace other {
       void Bind() const;
       void Draw(DrawMode mode) const;
       void Unbind() const;
+
+      uint32_t RendererId() const;
+
+      size_t NumElements() const;
 
     private:
       uint32_t renderer_id;

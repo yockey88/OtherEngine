@@ -66,7 +66,9 @@ function ProcessProjectComponents(project)
   end
 
   for lib, comp in pairs(project.components) do
-    links { lib }
+    if string.len(lib) > 0 then 
+      links { lib }
+    end
     externalincludedirs { comp }
   end
 end

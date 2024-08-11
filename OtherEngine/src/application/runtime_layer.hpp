@@ -7,6 +7,7 @@
 #include "core/layer.hpp"
 
 #include "rendering/scene_renderer.hpp"
+#include "scene/environment.hpp"
 
 namespace other {
 
@@ -33,6 +34,7 @@ namespace other {
       const ConfigTable& config;
 
       Ref<SceneRenderer> scene_renderer = nullptr;
+      Ref<Environment> environment = nullptr;
   }; 
 
 } // namespace other

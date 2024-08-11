@@ -98,6 +98,18 @@ local stb = {}
 stb.name = "stb"
 stb.include_dir = "@enginedir/externals/stb"
 
+local jolt = {}
+jolt.name = "jolt"
+jolt.path = "@enginedir/externals/jolt"
+jolt.include_dir = "@enginedir/externals/jolt"
+jolt.lib_name = "jolt"
+
+local tracy = {}
+tracy.name = "tracy"
+tracy.path = "@enginedir/externals/tracy"
+tracy.include_dir = "@enginedir/externals/tracy"
+tracy.lib_name = "tracy"
+
 AddDependency(choc)
 AddDependency(entt)
 AddDependency(glad)
@@ -112,27 +124,7 @@ AddDependency(mono)
 AddDependency(sol2)
 AddDependency(box2d)
 AddDependency(stb)
-
---- @fixme :
----   testbed not tracked on github, must manually manage 
----     dependencies between engine branches
-
--- local jolt = {}
--- jolt.name = "jolt"
--- jolt.path = "@enginedir/externals/jolt"
--- jolt.include_dir = "@enginedir/externals/jolt"
--- jolt.lib_name = "jolt"
-
--- local tracy = {}
--- tracy.name = "tracy"
--- tracy.path = "@enginedir/externals/tracy"
--- tracy.include_dir = "@enginedir/externals/tracy"
--- tracy.lib_name = "tracy"
-
--- physics branch
--- AddDependency(jolt)
-
--- profiling branch
--- AddDependency(tracy)
+AddDependency(jolt)
+AddDependency(tracy)
 
 CppWorkspace(configuration)
