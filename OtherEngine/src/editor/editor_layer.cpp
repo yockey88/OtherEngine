@@ -19,6 +19,8 @@
 #include "event/event_queue.hpp"
 
 #include "rendering/camera_base.hpp"
+#include "rendering/geometry_pass.hpp"
+#include "rendering/uniform.hpp"
 #include "scripting/script_engine.hpp"
 
 #include "rendering/renderer.hpp"
@@ -485,40 +487,51 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
   }
       
   Ref<SceneRenderer> EditorLayer::GetDefaultRenderer() {
-    const other::Path shader1_path = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders" / "default.oshader";
+    const Path shader_dir = Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders";
+    const Path default_path = shader_dir / "default.oshader";
 
     uint32_t camera_binding_pnt = 0;
     std::vector<Uniform> cam_unis = {
       { "projection" , other::ValueType::MAT4 } ,
       { "view"       , other::ValueType::MAT4 } ,
-      { "viewpoint"  , other::ValueType::VEC3 } ,
+      { "viewpoint"  , other::ValueType::VEC4 } ,
     };
-    
+
     uint32_t model_binding_pnt = 1;
     std::vector<Uniform> model_unis = {
       { "models" , other::ValueType::MAT4 , 100 } ,
     };
+    
+    uint32_t material_binding_pnt = 2;
+    std::vector<Uniform> material_unis = {
+      { "materials" , other::ValueType::USER_TYPE , 100 , sizeof(other::Material) } ,
+    };
+    
+    uint32_t light_binding_pnt = 3;
+    std::vector<Uniform> light_unis = {
+      { "num_lights" , other::ValueType::VEC4 } ,
+      { "direction_lights" , other::ValueType::USER_TYPE , 100 , sizeof(other::DirectionLight) } ,
+      { "point_lights" , other::ValueType::USER_TYPE , 100 , sizeof(other::PointLight) } ,
+    };
 
     glm::vec2 window_size = Renderer::WindowSize();
 
-    //// how tf do render passes work ??? 
+    std::vector<Uniform> geometry_unis = {
+    };
+    Ref<Shader> geometry_shader = BuildShader(default_path);
+    
+    Ref<RenderPass> geom_pass = NewRef<GeometryPass>(geometry_unis , geometry_shader);
+
     SceneRenderSpec spec{
       .camera_uniforms = NewRef<UniformBuffer>("Camera" , cam_unis , camera_binding_pnt) ,
+      .light_uniforms = NewRef<UniformBuffer>("Lights" , light_unis , light_binding_pnt) ,
       .passes = {
-        {
-          .name = "GeometryPass1" , 
-          .tag_col = { 1.f , 0.f , 0.f , 1.f } ,
-          .uniforms = {} ,
-          .shader = other::BuildShader(shader1_path) ,
-        } ,
       } ,
       .pipelines = {
         {
-          .has_indices = true ,
-          .buffer_cap = 4096 * sizeof(float) ,
           .framebuffer_spec = {
             .depth_func = other::LESS_EQUAL ,
-            .clear_color = { 0.1f , 0.3f , 0.3f , 1.f } ,
+            .clear_color = { 0.1f , 0.1f , 0.1f , 1.f } ,
             .size =  {
               window_size.x ,
               window_size.y ,
@@ -531,12 +544,18 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
             { other::ValueType::VEC3 , "binormal" } ,
             { other::ValueType::VEC2 , "uvs"      }
           } ,
-          .model_storage = NewRef<UniformBuffer>("ModelData" , model_unis , model_binding_pnt , other::SHADER_STORAGE) ,
+          .model_uniforms = model_unis , 
+          .model_binding_point = model_binding_pnt ,
+          .material_uniforms = material_unis ,
+          .material_binding_point = material_binding_pnt ,
           .debug_name = "GeometryPipeline" , 
         } ,
       } ,
+      .ref_passes = {
+        geom_pass ,
+      } ,
       .pipeline_to_pass_map = {
-        { FNV("GeometryPipeline") , { FNV("GeometryPass1") } } ,
+        { FNV("GeometryPipeline") , { FNV(geom_pass->Name()) } } ,
       } ,
     }; 
     return NewRef<SceneRenderer>(spec);

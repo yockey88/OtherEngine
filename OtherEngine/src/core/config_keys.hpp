@@ -333,7 +333,7 @@ namespace other {
   
   constexpr static std::string_view kPrimitiveValue = "PRIMITIVE";
   constexpr static uint64_t kPrimitiveValueHash = FNV(kPrimitiveValue);
-  
+    
   constexpr static std::string_view kRigidBodyValue = "RIGID-BODY";
   constexpr static uint64_t kRigidBodyValueHash = FNV(kRigidBodyValue);
 
@@ -366,6 +366,9 @@ namespace other {
   
   constexpr static std::string_view kColliderValue = "COLLIDER";
   constexpr static uint64_t kColliderValueHash = FNV(kColliderValue);
+
+  constexpr static std::string_view kLightSourceValue = "LIGHT-SOURCE";
+  constexpr static uint64_t kLightSourceHash = FNV(kLightSourceValue);
 
 } // namespace other 
 

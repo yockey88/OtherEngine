@@ -146,7 +146,6 @@ namespace other {
 
     return false;
   }
-
       
   bool CsScript::HasScript(const std::string_view name , const std::string_view nspace) {
     if (!valid) {

@@ -33,7 +33,7 @@ namespace other {
   void VertexBuffer::Unbind() const {
     glBindBuffer(buffer_type , 0);
   }
-      
+       
   void VertexBuffer::BufferData(const void* data , uint32_t size , uint32_t offset) {
     if (buffer_usage != BufferUsage::DYNAMIC_DRAW) {
       return;
@@ -99,6 +99,14 @@ namespace other {
   
   void VertexArray::Unbind() const {
     glBindVertexArray(0);
+  }
+  
+  uint32_t VertexArray::RendererId() const {
+    return renderer_id; 
+  }
+
+  size_t VertexArray::NumElements() const {
+    return indices.size();
   }
   
   void VertexArray::SetLayout() {

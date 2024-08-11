@@ -165,7 +165,7 @@ namespace other {
     if (ImGui::InputText(("##script-string-" + field->name).c_str() , buffer.data() , buffer.size())) {
       if (ImGui::IsKeyPressed(ImGuiKey_Enter) && buffer[0] != 0) {
         v = buffer.data();
-        field->value.SetStr(v);
+        field->value.Set(v);
         script_instance->SetField(field->name , field->value);
         result = true;
       }

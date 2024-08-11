@@ -18,6 +18,7 @@ namespace other {
       static void Initialize(const ConfigTable& config);
 
       static void Poll(Engine* engine , App* app);
+      static void Clear();
 
       template<event_t T , typename... Args>
       static void PushEvent(Args&&... args) {
@@ -45,7 +46,6 @@ namespace other {
 
       static void Dispatch(Engine* engine , App* app_data);
       
-      static void Clear();
   };
 
 } // namespace other

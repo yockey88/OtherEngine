@@ -5,6 +5,7 @@
 
 #include <glad/glad.h>
 
+#include "core/defines.hpp"
 #include "rendering/rendering_defines.hpp"
 
 namespace other {
@@ -17,13 +18,25 @@ namespace other {
     
     uint32_t offset = 0;
     for (const auto& u : unis) {
-      size += GetValueSize(u.type) * u.arr_length;
+      size_t type_size = GetValueSize(u.type);
+      if (type_size == 0) {
+        if (!u.size.has_value()) {
+          OE_ERROR("Can not set uniform size for user defined type, failed on uniform '{}'" , u.name);
+          glBindBuffer(type , 0);
+          glDeleteBuffers(1 , &renderer_id);
+          return;
+        } else {
+          type_size = *u.size;
+        }
+      } 
+
+      size += type_size * u.arr_length;
 
       UUID hash = FNV(u.name);
       auto& u_data = uniforms[hash] = UniformData{
         .hash = hash , 
         .offset = offset ,
-        .size = GetValueSize(u.type) ,
+        .size = type_size ,
       };
 
       offset += u_data.size * u.arr_length;
@@ -45,21 +58,6 @@ namespace other {
     return name;
   }
 
-  void UniformBuffer::BindShader(const Ref<Shader>& shader) {
-    switch (type) {
-      case UNIFORM_BUFFER: {
-        uint32_t idx = glGetUniformBlockIndex(shader->ID() , name.c_str());
-        glUniformBlockBinding(shader->ID() , idx , binding_point);
-        break;
-      } case SHADER_STORAGE: {
-        uint32_t idx = glGetProgramResourceIndex(shader->ID() , GL_SHADER_STORAGE_BLOCK , name.c_str());
-        glShaderStorageBlockBinding(shader->ID() , idx , binding_point);
-      } break;
-      default:
-        break;
-    }
-  }
-
   bool UniformBuffer::Bound() const {
     return bound;
   }
@@ -75,6 +73,12 @@ namespace other {
   void UniformBuffer::Bind() {
     glBindBuffer(type , renderer_id);
   }
+      
+  void UniformBuffer::LoadFromBuffer(const Buffer& buffer) {
+    glBindBuffer(type , renderer_id);
+    glBufferSubData(type , 0 , buffer.Size() , buffer.ReadBytes());
+    glBindBuffer(type , 0);
+  }
   
   void UniformBuffer::Unbind() {
     glBindBuffer(type , 0);
@@ -84,7 +88,7 @@ namespace other {
     return uniform.offset + index * uniform.size;
   }
       
-  std::tuple<UniformBuffer::UniformData , bool , uint32_t> UniformBuffer::TryFind(const std::string& name , uint32_t index) {
+  std::tuple<UniformBuffer::UniformData , bool , uint32_t> UniformBuffer::TryFind(const std::string_view name , uint32_t index) {
     auto [id , u_data] = GetUniform(name);
     if (id.Get() == 0) {
       return { {} , false  , 0 };
@@ -94,7 +98,7 @@ namespace other {
     return { u_data , true , offset };
   }
       
-  std::pair<UUID , UniformBuffer::UniformData> UniformBuffer::GetUniform(const std::string& name) {
+  std::pair<UUID , UniformBuffer::UniformData> UniformBuffer::GetUniform(const std::string_view name) {
     static const auto null_uniform = std::pair<UUID , UniformBuffer::UniformData>{ 0 , {} };
 
     UUID hash = FNV(name);

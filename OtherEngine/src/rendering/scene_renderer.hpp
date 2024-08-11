@@ -8,6 +8,8 @@
 
 #include "core/ref_counted.hpp"
 
+#include "scene/environment.hpp"
+
 #include "rendering/camera_base.hpp"
 #include "rendering/model.hpp"
 #include "rendering/render_pass.hpp"
@@ -17,37 +19,53 @@ namespace other {
   
   struct SceneRenderSpec {
     Ref<UniformBuffer> camera_uniforms;
+    Ref<UniformBuffer> light_uniforms;
 
     std::vector<RenderPassSpec> passes;
     std::vector<PipelineSpec> pipelines;
+
+    std::vector<Ref<RenderPass>> ref_passes;
 
     std::map<UUID , std::vector<UUID>> pipeline_to_pass_map;
   };
 
   class SceneRenderer : public RefCounted {
     public:
-      //// TODO: find way to configure render passes performed! Right now hard coded :(
       SceneRenderer(SceneRenderSpec spec = SceneRenderSpec());
       virtual ~SceneRenderer() override;
+      
+      template <typename T>
+      void SetUniform(const std::string_view pass , const std::string_view block , const std::string_view name , const T& val , uint32_t index = 0) {
+        if (auto itr = passes.find(FNV(pass)); itr != passes.end()) {
+          itr->second->SetInput(block , name , val , index);
+        }
+      }
 
       template <typename T>
-      void SetUniform(const std::string_view pass , std::string_view name , const T& val) {
+      void SetUniform(const std::string_view pass , std::string_view name , const T& val , uint32_t index = 0) {
         if (auto itr = passes.find(FNV(pass)); itr != passes.end()) {
-          itr->second->SetInput(name , val);
+          itr->second->SetInput(name , val , index);
         }
+      }
+
+      template <typename T>
+      void SetLightUniform(const std::string_view name , const T& val , uint32_t index = 0) {
+        spec.light_uniforms->BindBase();
+        spec.light_uniforms->SetUniform(name , val , index);
       }
 
       void ToggleWireframe();
 
       void SetViewportSize(const glm::ivec2& size);
       
-      void SubmitModel(Ref<Model> model , const glm::mat4& transform = glm::mat4(1.f));
-      void SubmitStaticModel(Ref<StaticModel> model , const glm::mat4& transform = glm::mat4(1.f));
-
+      void BeginScene(Ref<CameraBase>& camera , Ref<Environment>& environment);
+      
       // void SubmitEnv(...)
       // void SubmitLighting(...)
+
+      void SubmitModel(const std::string_view pl_name , Ref<Model> model , const glm::mat4& transform , const Material& material);
+      void SubmitStaticModel(const std::string_view pl_name , Ref<StaticModel> model , const glm::mat4& transform , const Material& material);
       
-      void BeginScene(Ref<CameraBase>& camera);
       void EndScene();
 
       const std::map<UUID , Ref<Framebuffer>>& GetRender() const;
@@ -83,9 +101,9 @@ namespace other {
       ///  - skybox
 
       enum RenderStateType {
-        FILL = GL_FILL ,
+        FILL      = GL_FILL ,
         WIREFRAME = GL_LINE ,
-        POINT = GL_POINT ,
+        POINT     = GL_POINT ,
       } render_state;
 
       std::map<UUID , Ref<RenderPass>> passes;

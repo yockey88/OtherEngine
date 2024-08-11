@@ -16,7 +16,12 @@ gtest.files = function()
 end
 
 gtest.include_dirs = function()
-    includedirs { "./googletest/include" , "./googletest" , "./googlemock/include" , "./googlemock" }
+    includedirs { 
+      "./googletest/include" , 
+      "./googletest" , 
+      "./googlemock/include" , 
+      "./googlemock" 
+    }
 end
 
 AddExternalProject(gtest)

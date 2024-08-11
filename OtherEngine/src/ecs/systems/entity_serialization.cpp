@@ -16,6 +16,7 @@
 #include "ecs/components/collider_2d.hpp"
 #include "ecs/components/rigid_body.hpp"
 #include "ecs/components/collider.hpp"
+#include "ecs/components/light_source.hpp"
 
 namespace other {
 
@@ -32,6 +33,7 @@ namespace other {
     []() -> Scope<ComponentSerializer> { return NewScope<Collider2DSerializer>(); } ,
     []() -> Scope<ComponentSerializer> { return NewScope<RigidBodySerializer>(); } ,
     []() -> Scope<ComponentSerializer> { return NewScope<ColliderSerializer>(); } ,
+    []() -> Scope<ComponentSerializer> { return NewScope<LightSourceSerializer>(); } ,
   };
 
   Scope<ComponentSerializer> EntitySerialization::GetComponentSerializer(const std::string_view tag) {
