@@ -17,6 +17,7 @@ namespace other {
   };
 
   static_assert(sizeof(Material) == 4 * (4 * sizeof(float)) , "Material size is invalid for GPU layout!");
+  static_assert(sizeof(Material) % 16 == 0 , "Material size not a multiple of 16!");
 
 } // namespace other
 

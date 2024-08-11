@@ -196,9 +196,16 @@ int main(int argc , char* argv[]) {
         { "models" , other::ValueType::MAT4 , 100 } ,
       };
       
-      uint32_t materials_binding_pnt = 1;
+      uint32_t material_binding_pnt = 2;
       std::vector<Uniform> material_unis = {
-        { "materials" , other::ValueType::USER_TYPE , 100 , 3 * 16 + 4 } ,
+        { "materials" , other::ValueType::USER_TYPE , 100 , sizeof(other::Material) } ,
+      };
+      
+      uint32_t light_binding_pnt = 3;
+      std::vector<Uniform> light_unis = {
+        { "num_lights" , other::ValueType::VEC4 } ,
+        { "direction_lights" , other::ValueType::USER_TYPE , 100 , sizeof(other::DirectionLight) } ,
+        { "point_lights" , other::ValueType::USER_TYPE , 100 , sizeof(other::PointLight) } ,
       };
       
       other::Layout default_layout = {
@@ -223,6 +230,7 @@ int main(int argc , char* argv[]) {
 
       SceneRenderSpec render_spec {
         .camera_uniforms = NewRef<UniformBuffer>("Camera" , cam_unis , camera_binding_pnt) ,
+        .light_uniforms = NewRef<UniformBuffer>("Lights" , light_unis , light_binding_pnt , other::SHADER_STORAGE) ,
         .passes = {
           {
             .name = "Draw Normals" , 
@@ -250,7 +258,7 @@ int main(int argc , char* argv[]) {
             .model_uniforms = model_unis , 
             .model_binding_point = model_binding_pnt ,
             .material_uniforms = material_unis ,
-            .material_binding_point = materials_binding_pnt ,
+            .material_binding_point = material_binding_pnt ,
             .debug_name = "Geometry" , 
           } ,
           {
@@ -263,7 +271,7 @@ int main(int argc , char* argv[]) {
             .model_uniforms = model_unis , 
             .model_binding_point = model_binding_pnt ,
             .material_uniforms = material_unis ,
-            .material_binding_point = materials_binding_pnt ,
+            .material_binding_point = material_binding_pnt ,
             .debug_name = "Debug" , 
           } ,
           {
@@ -276,7 +284,7 @@ int main(int argc , char* argv[]) {
             .model_uniforms = model_unis , 
             .model_binding_point = model_binding_pnt ,
             .material_uniforms = material_unis ,
-            .material_binding_point = materials_binding_pnt ,
+            .material_binding_point = material_binding_pnt ,
             .debug_name = "Outline" ,
           } ,
         } , 
@@ -309,25 +317,43 @@ int main(int argc , char* argv[]) {
       glm::mat4 cube_model1 = glm::mat4(1.f);
       float cube_rotation1 = 0.1f;
       other::Material cube_material1 = {
-        // .shininess = 32.f ,
         .ambient  = { 1.0f , 0.5f , 0.31f , 1.f } ,
-        // .diffuse  = { 1.0f , 0.5f , 0.31f , 1.f } ,
-        // .specular = { 0.5f , 0.5f , 0.50f , 1.f } ,
+        .diffuse  = { 1.0f , 0.5f , 0.31f , 1.f } ,
+        .specular = { 0.5f , 0.5f , 0.50f , 1.f } ,
+        .shininess = 32.f ,
       };
       
       glm::vec3 cube_pos2 = glm::vec3(2.f , 0.f , 0.f);
       glm::mat4 cube_model2 = glm::mat4(1.f);
       other::Material cube_material2 = {
-        // .shininess = 32.f ,
-        .ambient  = { 1.0f , 0.5f , 0.31f , 1.f } ,
-        // .diffuse  = { 1.0f , 0.5f , 0.31f , 1.f } ,
-        // .specular = { 0.5f , 0.5f , 0.50f , 1.f } ,
+        .ambient  = { 1.0f , 0.31f , 0.5f , 1.f } ,
+        .diffuse  = { 1.0f , 0.31f , 0.5f , 1.f } ,
+        .specular = { 0.5f , 0.5f , 0.50f , 1.f } ,
+        .shininess = 32.f ,
       };
+      
+      const glm::vec3 light_scale = glm::vec3(0.2f , 0.2f , 0.2f);
 
-      other::PointLight point_light {
-        .position = { 1.2f , 1.0f , 2.0f , 1.f } ,
+      glm::mat4 light_model1 = glm::mat4(1.f);
+      glm::vec3 light_pos1 = glm::vec3(1.2f , 1.f , 2.f);
+      light_model1 = glm::translate(light_model1 , light_pos1);
+      light_model1 = glm::scale(light_model1 , light_scale);
+
+      glm::mat4 light_model2 = glm::mat4(1.f);
+      glm::vec3 light_pos2 = glm::vec3(-1.2f , 1.f , 2.f);
+      light_model2 = glm::translate(light_model2 , light_pos2);
+      light_model2 = glm::scale(light_model2 , light_scale);
+
+      other::PointLight point_light1 {
+        .position = glm::vec4(light_pos1 , 1.f),
         .ambient  = { 0.2f , 0.2f , 0.2f , 1.f } ,
         .diffuse  = { 0.5f , 0.5f , 0.5f , 1.f } ,
+        .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
+      };
+      other::PointLight point_light2 {
+        .position = glm::vec4(light_pos2 , 1.f),
+        .ambient  = { 0.5f , 0.5f , 0.5f , 1.f } ,
+        .diffuse  = { 0.2f , 0.2f , 0.2f , 1.f } ,
         .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
       };
       other::DirectionLight direction_light {
@@ -336,17 +362,13 @@ int main(int argc , char* argv[]) {
         .diffuse  = { 0.5f , 0.5f , 0.5f , 1.f } ,
         .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
       };
-
-      glm::mat4 light_model = glm::mat4(1.f);
-      const glm::vec3 light_scale = glm::vec3(0.2f , 0.2f , 0.2f);
-      light_model = glm::translate(light_model , glm::vec3(point_light.position));
-      light_model = glm::scale(light_model , light_scale);
+      
 
       other::Material light_material = {
-        // .shininess = 1.f ,
         .ambient  = { 1.f , 1.f , 1.f  , 1.f } ,
-        // .diffuse  = { 1.f , 1.f , 1.f  , 1.f } ,
-        // .specular = { 1.f , 1.f , 1.f  , 1.f } ,
+        .diffuse  = { 1.f , 1.f , 1.f  , 1.f } ,
+        .specular = { 1.f , 1.f , 1.f  , 1.f } ,
+        .shininess = 1.f ,
       };
 
       glm::vec3 outline_color{ 1.f , 0.f , 0.f };
@@ -405,38 +427,37 @@ int main(int argc , char* argv[]) {
         cube_model2 = glm::mat4(1.f);
         cube_model2 = glm::translate(cube_model2 , cube_pos2);
 
-        light_model = glm::mat4(1.f);
-        light_model = glm::translate(light_model , glm::vec3(point_light.position));
-        light_model = glm::scale(light_model , light_scale);
+        light_model1 = glm::mat4(1.f);
+        light_model1 = glm::translate(light_model1 , light_pos1);
+        light_model1 = glm::scale(light_model1 , light_scale);
+        
+        light_model2 = glm::mat4(1.f);
+        light_model2 = glm::translate(light_model2 , light_pos2);
+        light_model2 = glm::scale(light_model2 , light_scale);
 
         other::Renderer::GetWindow()->Clear();
 
         renderer->BeginScene(camera);
-        // renderer->SetUniform(geometry_pass->Name() , "LightData" , "direction_light" , direction_light);
-        // renderer->SetUniform(geometry_pass->Name() , "LightData" , "num_point_lights" , 1 , 0);
-        // renderer->SetUniform(geometry_pass->Name() , "LightData" , "point_lights" , point_light);
-
-        // renderer->SetUniform(geom_pass->Name() , "foe_plight.position" , point_light.position);
-        // renderer->SetUniform(geom_pass->Name() , "foe_plight.ambient" , point_light.ambient);
-        // renderer->SetUniform(geom_pass->Name() , "foe_plight.diffuse" , point_light.diffuse);
-        // renderer->SetUniform(geom_pass->Name() , "foe_plight.specular" , point_light.specular);
-        // renderer->SetUniform(geom_pass->Name() , "foe_plight.constant" , point_light.constant);
-        // renderer->SetUniform(geom_pass->Name() , "foe_plight.linear" , point_light.linear);
-        // renderer->SetUniform(geom_pass->Name() , "foe_plight.quadratic" , point_light.quadratic);
-        // 
-        // renderer->SetUniform(geom_pass->Name() , "foe_dlight.direction" , direction_light.direction);
-        // renderer->SetUniform(geom_pass->Name() , "foe_dlight.ambient" , direction_light.ambient);
-        // renderer->SetUniform(geom_pass->Name() , "foe_dlight.diffuse" , direction_light.diffuse);
-        // renderer->SetUniform(geom_pass->Name() , "foe_dlight.specular" , direction_light.specular);
+        renderer->SetLightUniform("num_lights" , glm::vec4(1 , 2 , 0 , 0));
+        renderer->SetLightUniform("direction_lights" , direction_light);
+        renderer->SetLightUniform("point_lights" , point_light1);
+        renderer->SetLightUniform("point_lights" , point_light2 , 1);
 
         renderer->SetUniform("Draw Normals" , "magnitude" , 0.4f);
         renderer->SetUniform(outline_pass->Name() , "outline_color" , outline_color);
 
+        /// outline the first cube but not the second
+        renderer->SubmitStaticModel("Outline" , model , cube_model1 , cube_material1);
+        renderer->SubmitStaticModel("Outline" , model , cube_model2 , cube_material2);
+
         renderer->SubmitStaticModel("Geometry" , model , cube_model1 , cube_material1);
         renderer->SubmitStaticModel("Geometry" , model , cube_model2 , cube_material2);
+
+        /// light cube only gets rendered in debug
         renderer->SubmitStaticModel("Debug" , model , cube_model1 , cube_material1);
-        renderer->SubmitStaticModel("Outline" , model , cube_model1 , cube_material1);
-        renderer->SubmitStaticModel("Debug" , model , light_model , light_material);
+        renderer->SubmitStaticModel("Debug" , model , cube_model2 , cube_material2);
+        renderer->SubmitStaticModel("Debug" , model , light_model1 , light_material);
+        renderer->SubmitStaticModel("Debug" , model , light_model2 , light_material);
         renderer->EndScene();
 
         const auto& frames = renderer->GetRender(); 
@@ -479,7 +500,8 @@ int main(int argc , char* argv[]) {
 
           ImGui::Text("Light Controls");
           ImGui::Separator();
-          RenderPointLight("point light" , point_light);
+          RenderPointLight("point light 1" , point_light1);
+          RenderPointLight("point light 2" , point_light2);
           RenderDirectionLight("direction light" , direction_light);
           ImGui::Separator();
         }

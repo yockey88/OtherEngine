@@ -4,7 +4,7 @@ vertex [mesh : default] {
   
   void main() {
     gl_Position = projection * view * models[gl_InstanceID] * vec4(voe_position , 1.0);
-    material.ambient = ambient[gl_InstanceID];
+    material = materials[gl_InstanceID];
   };
 
 }

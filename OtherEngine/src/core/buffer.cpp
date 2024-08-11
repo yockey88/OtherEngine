@@ -11,42 +11,37 @@
 namespace other {
       
   Buffer::Buffer(void* d , uint64_t sz) {
-    *this = Copy(d , sz);
+    Allocate(sz);
+    Write(d , sz);
+    element_sizes.push_back(sz);
   }
 
   Buffer::Buffer(Buffer&& other) {
-    *this = Copy(other);
+    Allocate(other.capacity);
+    Write(other.data , other.capacity);
+    element_sizes = other.element_sizes;
     other.Release();
   }
 
   Buffer::Buffer(const Buffer& other) {
-    *this = Copy(other);
+    Allocate(other.capacity);
+    Write(other.data , other.capacity);
+    element_sizes = other.element_sizes;
   }
 
   Buffer& Buffer::operator=(Buffer&& other) {
     Allocate(other.capacity);
     Write(other.data , other.capacity);
+    element_sizes = other.element_sizes;
     other.Release();
     return *this;
   }
 
   Buffer& Buffer::operator=(const Buffer& other) {
-    *this = Copy(other);
+    Allocate(other.capacity);
+    Write(other.data , other.capacity);
+    element_sizes = other.element_sizes;
     return *this;
-  }
-
-  Buffer Buffer::Copy(const Buffer& other) {
-    Buffer b;
-    b.Allocate(other.capacity);
-    b.Write(other.data , other.capacity);
-    return b;
-  }
-
-  Buffer Buffer::Copy(const void* d , uint64_t sz) {
-    Buffer b;
-    b.Allocate(sz);
-    b.Write(d , sz);
-    return b;
   }
 
   void Buffer::Allocate(uint64_t sz) {
@@ -86,6 +81,7 @@ namespace other {
     if (data != nullptr) {
       memset(data , 0 , capacity);
     }
+    element_sizes.clear();
   }
       
   size_t Buffer::ElementSize(size_t index) const {

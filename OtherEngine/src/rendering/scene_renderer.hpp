@@ -17,6 +17,7 @@ namespace other {
   
   struct SceneRenderSpec {
     Ref<UniformBuffer> camera_uniforms;
+    Ref<UniformBuffer> light_uniforms;
 
     std::vector<RenderPassSpec> passes;
     std::vector<PipelineSpec> pipelines;
@@ -45,11 +46,17 @@ namespace other {
         }
       }
 
+      template <typename T>
+      void SetLightUniform(const std::string_view name , const T& val , uint32_t index = 0) {
+        spec.light_uniforms->BindBase();
+        spec.light_uniforms->SetUniform(name , val , index);
+      }
+
       void ToggleWireframe();
 
       void SetViewportSize(const glm::ivec2& size);
       
-      void BeginScene(Ref<CameraBase>& camera);
+      void BeginScene(Ref<CameraBase>& camera /* , Ref<Environment>& lighting */);
       
       // void SubmitEnv(...)
       // void SubmitLighting(...)

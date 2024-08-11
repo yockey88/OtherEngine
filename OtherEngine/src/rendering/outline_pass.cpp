@@ -15,14 +15,25 @@ namespace other {
             .uniforms = uniforms ,
             .shader = shader ,
           }) {
-    RegisterUniformProcessor<glm::mat4>("voe_model" , [](glm::mat4& model) {
-      float scale = 1.03f;
-      model = glm::scale(model , { scale , scale , scale });
-    });
   }
 
   void OutlinePass::SetRenderState() {
     glDisable(GL_DEPTH_TEST);
+  }
+      
+  Buffer OutlinePass::ProcessModels(Buffer& buffer) {
+    Buffer res;
+    res.Allocate(buffer.Size());
+
+    /// TODO: make this customizeable
+    const float scale = 1.03f;
+    for (size_t m = 0; m < buffer.NumElements(); ++m) {
+      glm::mat4 model = buffer.At<glm::mat4>(m);
+      model = glm::scale(model , { scale , scale , scale });
+      res.BufferData(model);
+    }
+
+    return res;
   }
 
 } // namespace other

@@ -108,6 +108,8 @@ namespace other {
     RETURN_KW , 
     STRUCT_KW ,
     CONST_KW ,
+    TRUE_KW , 
+    FALSE_KW ,
 
     CORE_KW ,
     LAYOUT_KW , 
@@ -236,6 +238,8 @@ namespace other {
     "RETURN_KW" , 
     "STRUCT_KW" ,
     "CONST_KW" ,
+    "TRUE_KW" , 
+    "FALSE_KW" ,
 
     "CORE_KW" ,
     "LAYOUT_KW" , 
@@ -288,6 +292,8 @@ namespace other {
     KeyWordPair{ FNV("return")       , RETURN_KW       } ,
     KeyWordPair{ FNV("struct")       , STRUCT_KW       } ,
     KeyWordPair{ FNV("const")        , CONST_KW        } ,
+    KeyWordPair{ FNV("true")         , TRUE_KW       } ,
+    KeyWordPair{ FNV("false")        , FALSE_KW        } ,
 
     KeyWordPair{ FNV("core")         , CORE_KW         } ,
     KeyWordPair{ FNV("layout")       , LAYOUT_KW       } ,

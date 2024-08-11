@@ -122,10 +122,12 @@ struct PointLight {
   float quadratic;
 };
 
-layout (std430 , binding = 3) readonly buffer LightData {
-  int num_point_lights;
+layout (std430 , binding = 3) readonly buffer Lights {
+  // int num_point_lights;
   PointLight point_lights[];
 };
+
+uniform PointLight plight;
 
 in vec4 fviewpoint;
 in vec3 position;
@@ -145,12 +147,12 @@ vec3 CalcPointLight(PointLight light , vec3 normal , vec3 frag_pos , vec3 view_d
   float distance = length(light.position.xyz - frag_pos);
   float attenuation = 1.f / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
 
-  vec3 ambient = light.ambient.rgb * material.ambient.rgb; //  * attenuation;
   // vec3 ambient = material.ambient.rgb;
+  vec3 ambient = light.ambient.rgb * material.ambient.rgb * attenuation;
   vec3 diffuse = light.diffuse.rgb * diff * material.diffuse.rgb * attenuation;
   vec3 specular = light.specular.rgb * spec * material.specular.rgb * attenuation;
   
-  return (ambient); // + diffuse + specular);
+  return (ambient + diffuse + specular);
 }
 
 void main() {
@@ -158,7 +160,7 @@ void main() {
   // for (int i = 0; i < num_point_lights; ++i) {
   //   result += CalcPointLight(point_lights[i] , normal , position , fviewpoint.xyz); 
   // }
-  vec3 result = CalcPointLights(point_lights[0] , normal , position , fviewpoint.xyz);
+  vec3 result = CalcPointLight(point_lights[0] , normal , position , fviewpoint.xyz);
   frag_color = vec4(result , 1.0);
 }
 )";
@@ -421,26 +423,23 @@ int main(int argc , char* argv[]) {
     
     uint32_t light_binding_pnt = 3;
     std::vector<other::Uniform> light_unis = {
-      { "num_point_lights" , other::ValueType::INT32 } ,
       { "point_lights"     , other::ValueType::USER_TYPE , 100 , sizeof(other::PointLight) } ,
     };
     
     Ref<other::UniformBuffer> camera_uniforms = NewRef<other::UniformBuffer>("Camera" , camera_unis , camera_binding_pnt);    
     camera_uniforms->BindBase();
+    Ref<other::UniformBuffer> light_uniforms = NewRef<other::UniformBuffer>("Lights" , light_unis , light_binding_pnt , other::SHADER_STORAGE);    
+    light_uniforms->BindBase();
 
+    Ref<other::UniformBuffer> material_uniforms = NewRef<other::UniformBuffer>("MaterialData" , material_unis , material_binding_pnt , 
+                                                                               other::SHADER_STORAGE);    
+    material_uniforms->BindBase();
     Ref<other::UniformBuffer> model_uniforms = NewRef<other::UniformBuffer>("ModelData" , model_unis , model_binding_pnt , 
                                                                             other::SHADER_STORAGE);    
     model_uniforms->BindBase();
     
-    Ref<other::UniformBuffer> material_uniforms = NewRef<other::UniformBuffer>("MaterialData" , material_unis , material_binding_pnt , 
-                                                                                other::SHADER_STORAGE);    
-    material_uniforms->BindBase();
     
-    Ref<other::UniformBuffer> light_uniforms = NewRef<other::UniformBuffer>("LightData" , light_unis , light_binding_pnt , 
-                                                                                other::SHADER_STORAGE);    
-    light_uniforms->BindBase();
 
-    other::Buffer camera_buffer;
     other::Buffer model_buffer;
     other::Buffer material_buffer;
 
@@ -505,12 +504,7 @@ int main(int argc , char* argv[]) {
         camera_uniforms->SetUniform("viewpoint" , cam_pos);
       }
 
-      light_uniforms->SetUniform("num_point_lights" , 1u);
       light_uniforms->SetUniform("point_lights" , point_light);
-
-      // light_uniforms->BindBase();
-      // light_uniforms->SetUniform("num_point_lights" , 1);
-      // light_uniforms->SetUniform("point_lights" , point_light);
 
       model1 = glm::mat4(1.f);
       model1 = glm::rotate(model1 , m1_rotation , { 1.f , 1.f , 1.f });
@@ -520,53 +514,67 @@ int main(int argc , char* argv[]) {
       glClearColor(0.2f , 0.3f , 0.3f , 1.f);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
       
-      /// outline pass
+/// cpu buffers belong to mesh key (1 per mesh)
+/// > model/material submission
+      model_buffer.BufferData(model1);
+      model_buffer.BufferData(model2);
+      material_buffer.BufferData(material1);
+      material_buffer.BufferData(material2);
+/// > end model/material submission
+      
+      
+////// OUTLINE RENDER PASS 
       float scale = 1.05f;
       float inv_scale = 1.f / scale;
       model1 = glm::scale(model1 , { scale , scale , scale });
       
-      model_buffer.Release();
-      model_buffer.BufferData(model1);
       
+  /// > Bind RenderPass
       glStencilFunc(GL_NOTEQUAL , 0 , 0xFF);
       glStencilMask(0x00);
       glDisable(GL_DEPTH_TEST);
       
       glUseProgram(shader2);
+  /// > End Bind RenderPass
+
+  /// > for each mesh in model submissions
       glBindVertexArray(cube1.vao);
-      
+
+  /// > let render pass set its own uniforms
       model_uniforms->BindBase();
       model_uniforms->LoadFromBuffer(model_buffer);
-      glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES , 36 , GL_UNSIGNED_INT , (void*)0 , 1 , 0 , 0);
-      /// end of outline pass
+  /// > end let render pass set its own uniforms 
       
-      glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    /// draw
+      glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES , 36 , GL_UNSIGNED_INT , (void*)0 , 1 , 0 , 0);
+////// END OUTLINE RENDER PASS 
 
-      /// model pass 
+////// END GEOMETRY RENDER PASS 
       model1 = glm::scale(model1 , { inv_scale , inv_scale , inv_scale });
 
-      model_buffer.Release();
-      material_buffer.Release();
-
-      model_buffer.BufferData(model1);
-      material_buffer.BufferData(material1);
-
-      model_buffer.BufferData(model2);
-      material_buffer.BufferData(material2);
-
+  /// > Bind RenderPass
       glEnable(GL_DEPTH_TEST);
       glStencilFunc(GL_ALWAYS , 1 , 0xFF);
       glStencilMask(0xFF);
 
       glUseProgram(shader1);
       glBindVertexArray(cube1.vao);
+  /// > End Bind RenderPass
 
-      model_uniforms->BindBase();
-      model_uniforms->LoadFromBuffer(model_buffer);
+  /// > let render pass set its own uniforms
       material_uniforms->BindBase();
       material_uniforms->LoadFromBuffer(material_buffer);
+      model_uniforms->BindBase();
+      model_uniforms->LoadFromBuffer(model_buffer);
+  /// > end let render pass set its own uniforms
+
+    /// > draw
       glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES , 36 , GL_UNSIGNED_INT , (void*)0 , 2 , 0 , 0);
-      /// end of model pass
+////// END GEOMETRY RENDER PASS 
+
+      /// reset buffers after render (size == 0, capacity unchanged) 
+      model_buffer.ZeroMem();
+      material_buffer.ZeroMem();
 
 #if 0
       ImGui_ImplOpenGL3_NewFrame();

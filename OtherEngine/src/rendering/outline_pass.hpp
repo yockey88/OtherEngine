@@ -16,6 +16,7 @@ namespace other {
       virtual ~OutlinePass() override {}
 
       virtual void SetRenderState() override;
+      virtual Buffer ProcessModels(Buffer& buffer) override;
   };
 
 } // namespace other

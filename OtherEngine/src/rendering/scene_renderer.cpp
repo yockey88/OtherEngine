@@ -27,7 +27,8 @@ namespace other {
   }
   
   
-  void SceneRenderer::BeginScene(Ref<CameraBase>& camera) {
+  void SceneRenderer::BeginScene(Ref<CameraBase>& camera /* , Ref<Environment>& lighting */) {
+    spec.camera_uniforms->BindBase();
     spec.camera_uniforms->SetUniform("projection" , camera->ProjectionMatrix());
     spec.camera_uniforms->SetUniform("view" , camera->ViewMatrix());
 
@@ -61,7 +62,6 @@ namespace other {
 
 
   void SceneRenderer::Initialize() {
-    spec.camera_uniforms->BindBase();
 
     /// already made render passes
     for (auto& rp : spec.ref_passes) {

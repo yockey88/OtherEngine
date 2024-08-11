@@ -82,7 +82,8 @@ namespace other {
     target->UnbindFrame();
 
     for (auto& [mk , sl] : model_submissions) {
-      sl.cpu_model_storage.Release();
+      sl.cpu_model_storage.ZeroMem();
+      sl.cpu_material_storage.ZeroMem();
       sl.instance_count = 0;
     }
 
@@ -103,14 +104,17 @@ namespace other {
     pass->Bind();
     CHECKGL();
 
+    Buffer pass_models;
+    Buffer pass_materials;
     for (auto& [mk , sl] : model_submissions) {
-      material_storage->BindBase();
-      for (size_t mat = 0; mat < sl.instance_count; ++mat) {
-        material_storage->SetUniform("materials" , sl.cpu_material_storage.At<Material>(mat) , mat); 
-      }
+
+      pass_materials = pass->ProcessMaterials(sl.cpu_material_storage);
+      pass_models = pass->ProcessModels(sl.cpu_model_storage);
       
+      material_storage->BindBase();
+      material_storage->LoadFromBuffer(pass_materials);
       model_storage->BindBase();
-      model_storage->LoadFromBuffer(sl.cpu_model_storage);
+      model_storage->LoadFromBuffer(pass_models);
 
       mk.vao->Bind();
       glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES , mk.num_elements , GL_UNSIGNED_INT , (void*)0 , sl.instance_count , 0 , 0);

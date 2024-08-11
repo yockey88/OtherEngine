@@ -12,6 +12,7 @@
 #include "core/defines.hpp"
 #include "core/ref.hpp"
 #include "core/ref_counted.hpp"
+#include "core/buffer.hpp"
 
 #include "rendering/shader.hpp"
 #include "rendering/uniform.hpp"
@@ -126,6 +127,9 @@ namespace other {
       }
 
       virtual void SetRenderState() {}
+      /// just return them by default
+      virtual Buffer ProcessModels(Buffer& buffer) { return buffer; }
+      virtual Buffer ProcessMaterials(Buffer& buffer) { return buffer; }
 
       template <typename T>
       using UniformProcessor = std::function<void(T&)>;

@@ -17,6 +17,7 @@ namespace other {
   };
 
   static_assert(sizeof(DirectionLight) == 4 * 4 * sizeof(float) , "DirectionLight has incorrect size for GPU layout!");
+  static_assert(sizeof(DirectionLight) % 16 == 0 , "DirectionLight size not a multiple of 16!");
 
 } // namespace other
 

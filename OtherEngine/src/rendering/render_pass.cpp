@@ -9,6 +9,7 @@
 
 #include "rendering/rendering_defines.hpp"
 #include "rendering/point_light.hpp"
+#include "rendering/direction_light.hpp"
 
 namespace other {
       

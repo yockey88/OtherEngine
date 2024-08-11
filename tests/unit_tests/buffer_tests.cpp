@@ -6,6 +6,7 @@
 #include "core/buffer.hpp"
 
 #include "unit_tests/oetest.hpp"
+#include <gtest.h>
 
 using other::Buffer;
 
@@ -17,12 +18,23 @@ class BufferTests : public other::OtherTest {
       other::OtherTest::SetUp();
       ASSERT_EQ(buffer.Size() , 0u) <<
         "Buffer size is not initially zero!";
+      ASSERT_EQ(buffer.Capacity() , 0u) <<
+        "Buffer capacity is not initially zero!";
+      ASSERT_EQ(buffer.NumElements() , 0u) <<
+        "Buffer number of elements is not 0 at the beginning of test!";
     }
 
     void TearDown() override {
       ASSERT_NO_FATAL_FAILURE(std::cout << "END OF TEST DUMP :\n" << buffer.DumpBuffer() << "\n");
       ASSERT_NO_FATAL_FAILURE(buffer.Release());
       other::OtherTest::TearDown();
+    }
+
+    void LoadBufferWithMat4(uint32_t num = 1) {
+      glm::mat4 mat4 = glm::mat4(1.f);
+      for (uint32_t i = 0; i < num; ++i) {
+        EXPECT_NO_FATAL_FAILURE(buffer.BufferData(mat4));
+      }
     }
 };
 
@@ -143,4 +155,89 @@ TEST_F(BufferTests , uniform_buffer_compatability) {
   ASSERT_DEATH(buffer.At<glm::mat4>(3) , "");
   ASSERT_DEATH(buffer.At<glm::vec4>(4) , "");
   ASSERT_DEATH(buffer.At<glm::mat4>(5) , "");
+
+  buffer.ZeroMem();
+}
+
+TEST_F(BufferTests , zero_mem_test) {
+  glm::mat4 transform = glm::mat4(1.f);
+  glm::vec4 vector = glm::vec4(1.f);
+
+  /// after first write:
+  ///   capacity == sizeof(glm::mat4) * 64 == 64 * 64 == 4096
+  ///   size == 64
+  /// then we shouldn't have to resize again in this test there should be no more resizes
+  EXPECT_NO_FATAL_FAILURE(buffer.BufferData(transform));
+  EXPECT_EQ(buffer.Capacity() , sizeof(glm::mat4) * 64);
+  EXPECT_EQ(buffer.Size() , sizeof(glm::mat4));
+  EXPECT_EQ(buffer.NumElements() , 1);
+  
+  EXPECT_NO_FATAL_FAILURE(buffer.BufferData(transform));
+  EXPECT_EQ(buffer.Capacity() , sizeof(glm::mat4) * 64);
+  EXPECT_EQ(buffer.Size() , 2 * sizeof(glm::mat4));
+  EXPECT_EQ(buffer.NumElements() , 2);
+  
+  EXPECT_NO_FATAL_FAILURE(buffer.BufferData(transform));
+  EXPECT_EQ(buffer.Capacity() , sizeof(glm::mat4) * 64);
+  EXPECT_EQ(buffer.Size() , 3 * sizeof(glm::mat4));
+  EXPECT_EQ(buffer.NumElements() , 3);
+  
+  ASSERT_EQ(buffer.ElementSize(0) , sizeof(glm::mat4));
+  const glm::mat4& m0 = buffer.At<glm::mat4>(0);
+  EXPECT_EQ(m0 , transform);
+  
+  ASSERT_EQ(buffer.ElementSize(1) , sizeof(glm::mat4));
+  const glm::mat4& m1 = buffer.At<glm::mat4>(1);
+  EXPECT_EQ(m0 , transform);
+
+  ASSERT_EQ(buffer.ElementSize(2) , sizeof(glm::mat4));
+  const glm::mat4& m2 = buffer.At<glm::mat4>(2);
+  EXPECT_EQ(m1 , transform);
+  
+  /// should not deallocate but should reset current size so size == 0 but capacity is still the same
+  ///  and elements is now 0
+  EXPECT_NO_FATAL_FAILURE(buffer.ZeroMem());
+  EXPECT_EQ(buffer.Capacity() , sizeof(glm::mat4) * 64);
+  EXPECT_EQ(buffer.Size() , 0);
+  EXPECT_EQ(buffer.NumElements() , 0);
+}
+
+TEST_F(BufferTests , copy_constructor) {
+  LoadBufferWithMat4(4);
+  EXPECT_EQ(buffer.Capacity() , sizeof(glm::mat4) * 64);
+  EXPECT_EQ(buffer.Size() , 4 * sizeof(glm::mat4));
+  EXPECT_EQ(buffer.NumElements() , 4);
+  
+  {
+    Buffer b2;
+    b2 = buffer;
+    
+    /// buffer remain unchaged
+    EXPECT_EQ(buffer.Capacity() , sizeof(glm::mat4) * 64);
+    EXPECT_EQ(buffer.Size() , 4 * sizeof(glm::mat4));
+    EXPECT_EQ(buffer.NumElements() , 4);
+    
+    EXPECT_EQ(b2.Capacity() , sizeof(glm::mat4) * 64);
+    EXPECT_EQ(b2.Size() , 4 * sizeof(glm::mat4));
+    EXPECT_EQ(b2.NumElements() , 4);
+  }
+
+  /// b2 goes out of scope and should have no effect on buffer
+  EXPECT_EQ(buffer.Capacity() , sizeof(glm::mat4) * 64);
+  EXPECT_EQ(buffer.Size() , 4 * sizeof(glm::mat4));
+  EXPECT_EQ(buffer.NumElements() , 4);
+}
+
+TEST_F(BufferTests , pass_by_const_ref) {
+  GTEST_SKIP();
+  /// FIXME: why can i not pass by const ref
+  auto f = [](const Buffer& b) {
+    for (size_t i = 0; i < b.NumElements(); ++i) {
+      // access each element
+      glm::mat4 mat = b.At<glm::mat4>(i);
+    }
+  };
+
+  LoadBufferWithMat4(4); 
+  EXPECT_NO_FATAL_FAILURE(f(buffer));
 }

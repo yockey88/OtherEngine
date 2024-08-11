@@ -31,9 +31,6 @@ namespace other {
       Buffer& operator=(Buffer&& other);
       Buffer& operator=(const Buffer& other);
 
-      static Buffer Copy(const Buffer& other);
-      static Buffer Copy(const void* data , uint64_t size);
-
       void Allocate(uint64_t size);
       void Extend();
       void Release();
@@ -179,7 +176,7 @@ namespace other {
     protected:
       uint8_t* data = nullptr;
       uint64_t capacity = 0;
-      std::vector<uint64_t> element_sizes = { 0 };
+      std::vector<uint64_t> element_sizes;
 
       void SetUniformElementSize(uint64_t num_elts , uint64_t size);
   };

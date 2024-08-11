@@ -7,25 +7,25 @@ namespace other {
 
   Value::Value(Value&& other) {
     type = other.type;
-    value = Buffer::Copy(other.value);
+    value = other.value;
     other.value.Release();
   }
 
   Value::Value(const Value& other) {
     type = other.type;
-    value = Buffer::Copy(other.value);
+    value = other.value;
   }
 
   Value& Value::operator=(Value&& other) {
     type = other.type;
-    value = Buffer::Copy(other.value);
+    value = other.value;
     other.value.Release();
     return *this;
   }
 
   Value& Value::operator=(const Value& other) {
     type = other.type;
-    value = Buffer::Copy(other.value);
+    value = other.value;
     return *this;
   }
       

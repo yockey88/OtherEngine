@@ -4,6 +4,7 @@
 #include "parsing/shader_glsl_transpiler.hpp"
 
 #include "core/errors.hpp"
+#include "parsing/parsing_defines.hpp"
 #include "parsing/shader_ast_node.hpp"
 #include "rendering/rendering_defines.hpp"
 
@@ -154,7 +155,8 @@ namespace other {
 
   void ShaderGlslTranspiler::Visit(IfStmt& stmt) {}
 
-  void ShaderGlslTranspiler::Visit(WhileStmt& stmt) {}
+  void ShaderGlslTranspiler::Visit(WhileStmt& stmt) {
+  }
 
   void ShaderGlslTranspiler::Visit(ReturnStmt& stmt) {}
 
@@ -315,6 +317,7 @@ namespace other {
     std::stringstream stream;
     stream << "#version 460 core\n\n";
 
+    /// define this in both vertex and fragment 
     if (context == VERTEX_SHADER || context == FRAGMENT_SHADER) {
       stream << "struct Material {\n";
       stream << "  vec4 ambient;\n";
@@ -322,8 +325,10 @@ namespace other {
       stream << "  vec4 specular;\n";
       stream << "  float shininess;\n";
       stream << "};\n\n";
-      
-      
+    }
+
+    /// lights only necessary in fragment
+    if (context == FRAGMENT_SHADER) {
       stream << "struct PointLight {\n";
       stream << "  vec4 position;\n";
       stream << "  vec4 ambient;\n";
@@ -377,15 +382,21 @@ namespace other {
       stream << "  mat4 models[];\n";
       stream << "};\n\n";
       stream << "layout (std430 , binding = 2) readonly buffer MaterialData {\n";
-      stream << "  vec4 ambient[];\n";
-      // stream << "  Material materials[];\n";
+      stream << "  Material materials[];\n";
       stream << "};\n\n";
       stream << "out Material material;\n\n";
     } else if (context == FRAGMENT_SHADER) {
       stream << "in Material material;\n\n";
-      // stream << "layout (std140 , binding = 2) readonly buffer LightData {\n";
-      // stream << "  DirectionLight direction_light;\n";
-      // stream << "};\n\n";
+      stream << "#define MAX_POINT_LIGHTS 100\n";
+      stream << "#define MAX_DIR_LIGHTS 100\n";
+      stream << "layout (std430 , binding = 3) readonly buffer Lights {\n";
+      /// num direction lights is num_lights.x
+      /// num point lights is num_lights.y
+      /// num_lights.z and .w are padding
+      stream << "  vec4 num_lights;\n";
+      stream << "  DirectionLight direction_lights[MAX_DIR_LIGHTS];\n";
+      stream << "  PointLight point_lights[MAX_POINT_LIGHTS];\n";
+      stream << "};\n\n";
     }
 
     for (auto& n : nodes) {

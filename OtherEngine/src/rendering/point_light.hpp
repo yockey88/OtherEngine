@@ -20,6 +20,7 @@ namespace other {
   };
 
   static_assert(sizeof(PointLight) == 5 * 4 * sizeof(float) , "PointLight size invalid for GPU layout!");
+  static_assert(sizeof(PointLight) % 16 == 0 , "PointLight size not a multiple of 16!");
   
 } // namespace other
 
