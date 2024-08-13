@@ -1,5 +1,5 @@
 /**
- * \file test/unit-tests/oetest.hpp
+ * \file unit_tests/oetest.hpp
  **/
 #ifndef OETEST_HPP
 #define OETEST_HPP

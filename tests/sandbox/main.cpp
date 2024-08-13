@@ -88,15 +88,17 @@ class TestApp : public other::App {
 void LaunchMock(const other::ConfigTable& config) {
   other::IO::Initialize();
   other::EventQueue::Initialize(config);
+  other::ScriptEngine::Initialize(config);
+  
   other::Renderer::Initialize(config);
   other::UI::Initialize(config , other::Renderer::GetWindow());
-  other::ScriptEngine::Initialize(config);
 }
 
 void ShutdownMock() {
-  other::ScriptEngine::Shutdown();
   other::UI::Shutdown();
   other::Renderer::Shutdown();
+
+  other::ScriptEngine::Shutdown();
   other::EventQueue::Shutdown();
   other::IO::Shutdown();
 }
