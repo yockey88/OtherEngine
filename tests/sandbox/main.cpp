@@ -70,7 +70,6 @@ using other::CameraBase;
 using other::PerspectiveCamera;
 using other::Uniform;
 using other::UniformBuffer;
-using other::ModelSource;
 using other::StaticModel;
 using other::SceneRenderSpec;
 using other::SceneRenderer;
@@ -380,11 +379,7 @@ int main(int argc , char* argv[]) {
       glm::vec3 outline_color{ 1.f , 0.f , 0.f };
 
       while (running) {
-        /// get dt
-
         other::IO::Update();
-
-        /// early update
 
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
@@ -472,8 +467,8 @@ int main(int argc , char* argv[]) {
 #define UI_ENABLED 1
 #if UI_ENABLED
         other::UI::BeginFrame();
+        const ImVec2 win_size = { (float)other::Renderer::WindowSize().x , (float)other::Renderer::WindowSize().y };
         if (ImGui::Begin("Frames")) {
-          ImVec2 win_size = { (float)other::Renderer::WindowSize().x , (float)other::Renderer::WindowSize().y };
           RenderItem(frames.at(FNV("Debug"))->texture , "Debug" , win_size);
           RenderItem(frames.at(FNV("Outline"))->texture , "Outline" , win_size);
         } 

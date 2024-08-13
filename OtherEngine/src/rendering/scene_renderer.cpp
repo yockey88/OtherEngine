@@ -6,6 +6,8 @@
 #include <glad/glad.h>
 
 #include "core/defines.hpp"
+
+#include "rendering/renderer.hpp"
 #include "rendering/uniform.hpp"
 
 namespace other {
@@ -40,6 +42,7 @@ namespace other {
       environment->point_lights.size() ,
       0 , 0
     };
+    spec.light_uniforms->BindBase();
     spec.light_uniforms->SetUniform("num_lights" , light_count);
     for (size_t i = 0; i < environment->direction_lights.size(); ++i) {
       auto& l = environment->direction_lights[i];

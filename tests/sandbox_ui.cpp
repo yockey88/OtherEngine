@@ -6,11 +6,11 @@
 #include "rendering/ui/ui_helpers.hpp"
 #include "rendering/ui/ui_widgets.hpp"
 
-void RenderItem(int32_t id , const std::string& title , ImVec2 size) {
+void RenderItem(uint32_t id , const std::string& title , ImVec2 size) {
   ImGui::PushID(("##" + title).c_str());
   ImGui::Text("%s" , title.c_str());
   ImGui::SameLine();
-  ImGui::Image((void*)(intptr_t)id , ImVec2(size.x , size.y) , ImVec2(0 , 1) , ImVec2(1 , 0));
+  ImGui::Image((void*)(uintptr_t)id , ImVec2(size.x , size.y) , ImVec2(0 , 1) , ImVec2(1 , 0));
   ImGui::PopID();
 }
 

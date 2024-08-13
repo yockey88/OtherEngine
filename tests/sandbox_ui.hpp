@@ -12,11 +12,11 @@
 #include "rendering/point_light.hpp"
 #include "rendering/direction_light.hpp"
 
-void RenderItem(int32_t id , const std::string& title , ImVec2 size = ImVec2(800 , 600));
+void RenderItem(uint32_t id , const std::string& title , ImVec2 size = ImVec2(800 , 600));
 void RenderMaterial(const std::string& title , other::Material& mat);
 void RenderPointLight(const std::string& title , other::PointLight& pl);
 void RenderDirectionLight(const std::string& title , other::DirectionLight& pl);
 
 void RenderSettings();
 
-#endif // !OTHER_ENGINE_SANDBOX_UI_HPP;
+#endif // !OTHER_ENGINE_SANDBOX_UI_HPP

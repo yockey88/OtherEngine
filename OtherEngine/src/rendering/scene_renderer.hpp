@@ -74,6 +74,20 @@ namespace other {
       glm::ivec2 viewport_size;
       SceneRenderSpec spec;
 
+      uint32_t gbuffer = 0;
+
+      enum GBufferTextureType {
+        POSITION = 0 ,
+        NORMALS , 
+        ALBEDO , 
+        SPECULAR ,
+
+        NUM_GBUFFER_TEXTURES , 
+      };
+      uint32_t gbuffer_textures[NUM_GBUFFER_TEXTURES] = {
+        0 , 0 , 0 , 0
+      };
+
       /// here go the passes
       ///  - bloom compute ?
       ///  - directional shadow pass
