@@ -125,6 +125,7 @@ namespace other {
 
     IN_KW ,
     OUT_KW ,
+    FLAT_KW ,
     // sfloat for shader float, becuase ValueType has A FLOAT
     INT_KW , 
     FLOAT_KW , 
@@ -253,6 +254,7 @@ namespace other {
     "READONLY_KW" , 
     "BUFFER_KW" ,
 
+    "FLAT_KW" ,
     "IN_KW" ,
     "OUT_KW" ,
 
@@ -292,7 +294,7 @@ namespace other {
     KeyWordPair{ FNV("return")       , RETURN_KW       } ,
     KeyWordPair{ FNV("struct")       , STRUCT_KW       } ,
     KeyWordPair{ FNV("const")        , CONST_KW        } ,
-    KeyWordPair{ FNV("true")         , TRUE_KW       } ,
+    KeyWordPair{ FNV("true")         , TRUE_KW         } ,
     KeyWordPair{ FNV("false")        , FALSE_KW        } ,
 
     KeyWordPair{ FNV("core")         , CORE_KW         } ,
@@ -309,6 +311,7 @@ namespace other {
     KeyWordPair{ FNV("in")           , IN_KW           } ,
     KeyWordPair{ FNV("out")          , OUT_KW          } ,
 
+    KeyWordPair{ FNV("flat")         , FLAT_KW         } ,
     KeyWordPair{ FNV("int")          , INT_KW          } ,
     KeyWordPair{ FNV("float")        , FLOAT_KW        } ,
     KeyWordPair{ FNV("vec2")         , VEC2_KW         } ,

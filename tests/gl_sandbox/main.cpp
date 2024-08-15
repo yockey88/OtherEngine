@@ -17,25 +17,32 @@
 
 #include <box2d/box2d.h>
 #include <box2d/b2_world.h>
-#include <rendering/point_light.hpp>
 
 #include "core/defines.hpp"
 #include "core/logger.hpp"
 #include "core/errors.hpp"
 #include "core/ref.hpp"
+#include "core/filesystem.hpp"
 #include "parsing/ini_parser.hpp"
 
 #include "event/event_queue.hpp"
 #include "input/io.hpp"
 
+#include "rendering/rendering_defines.hpp"
 #include "rendering/window.hpp"
+#include "rendering/vertex.hpp"
+#include "rendering/shader.hpp"
 #include "rendering/uniform.hpp"
 #include "rendering/framebuffer.hpp"
 #include "rendering/perspective_camera.hpp"
 #include "rendering/camera_base.hpp"
 #include "rendering/material.hpp"
+#include "rendering/point_light.hpp"
+#include "rendering/direction_light.hpp"
 
 #include "sandbox_ui.hpp"
+#include "gl_helpers.hpp"
+#include "shader_embed.hpp"
 
 struct Quad {
   uint32_t vao = 0 , vbo = 0 , ebo = 0;
@@ -74,155 +81,6 @@ struct Cube {
   void Draw(other::DrawMode mode , uint32_t instances = 1);
 };
 
-
-static const char* vert1 = R"(
-#version 460 core
-
-layout (location = 0) in vec3 vpos;
-layout (location = 1) in vec3 vnormal;
-
-layout (std140 , binding = 0) uniform Camera {
-  mat4 projection;
-  mat4 view;
-  vec4 viewpoint;
-};
-
-#define MAX_NUM_MODELS 100
-layout (std430 , binding = 1) readonly buffer ModelData {
-  mat4 models[MAX_NUM_MODELS];
-};
-
-out vec3 model_pos;
-out vec3 position;
-out vec3 normal;
-
-void main() {
-  mat4 model = models[gl_InstanceID];
-  vec4 world_pos = model * vec4(vpos , 1.0);
-
-  model_pos = vpos;
-
-  mat3 normal_mat = transpose(inverse(mat3(model)));
-  normal = normal_mat * vnormal;
-
-  position = world_pos.xyz;
-  gl_Position = projection * view * world_pos;
-}
-)";
-
-static const char* frag1 = R"(
-#version 460 core
-
-layout (location = 0) out vec3 g_position;
-layout (location = 1) out vec3 g_normal;
-layout (location = 2) out vec4 g_albedo_spec;
-
-in vec3 model_pos;
-in vec3 position;
-in vec3 normal;
-
-void main() {
-  g_position = position;
-  g_normal = normalize(normal);
-  g_albedo_spec.rgb = model_pos;
-  g_albedo_spec.a = 1.f;
-}
-)";
-
-static const char* vert2 = R"(
-#version 460 core
-
-layout (location = 0) in vec3 vpos;
-layout (location = 1) in vec2 vtexcoords;
-
-layout (std140 , binding = 0) uniform Camera {
-  mat4 projection;
-  mat4 view;
-  vec4 viewpoint;
-};
-
-out vec2 tex_coords;
-out vec3 fviewpoint;
-
-void main() {
-  fviewpoint = viewpoint.xyz;
-  tex_coords = vtexcoords;
-  gl_Position = vec4(vpos , 1.0);
-}
-)";
-
-static const char* frag2 = R"(
-#version 460 core
-
-in vec2 tex_coords;
-in vec3 fviewpoint;
-
-out vec4 frag_color;
-
-uniform sampler2D g_position;
-uniform sampler2D g_normal;
-uniform sampler2D g_albedo_spec;
-
-struct PointLight {
-  vec4 position;
-  vec4 ambient;
-  vec4 diffuse;
-  vec4 specular;
-  float constant;
-  float linear;
-  float quadratic;
-};
-
-struct DirectionLight {
-  vec4 direction;
-  vec4 ambient;
-  vec4 diffuse;
-  vec4 specular;
-};
-
-#define MAX_NUM_LIGHTS 100
-layout (std430 , binding = 3) readonly buffer Lights {
-  vec4 num_lights;
-  PointLight point_lights[MAX_NUM_LIGHTS];
-  DirectionLight direction_lights[MAX_NUM_LIGHTS];
-};
-
-void main() {
-  vec3 frag_pos = texture(g_position , tex_coords).rgb;
-  vec3 normal = texture(g_normal , tex_coords).rgb;
-  vec3 albedo = texture(g_albedo_spec , tex_coords).rgb;
-  float specular = texture(g_albedo_spec , tex_coords).a;
-
-  vec3 lighting = albedo * 0.1;
-  vec3 view_dir = normalize(fviewpoint - frag_pos);
-
-  for (int i = 0; i < num_lights.y; ++i) {
-    // diffuse
-    vec3 light_dir = normalize(point_lights[i].position.xyz - frag_pos);
-    vec3 diffuse = max(dot(normal , light_dir) , 0.0) * albedo * point_lights[i].ambient.xyz;
-    lighting += diffuse;
-
-    // // specular
-    // vec3 halfway = normalize(light_dir + view_dir);
-    // float s = pow(max(dot(normal , halfway) , 0.0) , 16.0);
-    // vec3 spec = point_lights[i].ambient.xyz * s * specular;
-
-    // // attenuation
-    // float dist = length(point_lights[i].position.xyz - frag_pos);
-    // float attenuation = 1.0 / (1.0 + point_lights[i].linear * dist + point_lights[i].quadratic * dist * dist);
-
-    // diffuse *= attenuation;
-    // specular *= attenuation;
-    // lighting += diffuse + specular;
-  }
-  frag_color = vec4(lighting , 1.f);
-}
-)";
-
-void CheckGlError(int line);
-
-#define CHECK() do { CheckGlError(__LINE__); } while (false)
-
 constexpr static uint32_t win_w = 800;
 constexpr static uint32_t win_h = 600;
 
@@ -232,6 +90,8 @@ using other::NewRef;
 using other::Scope;
 using other::NewScope;
 
+using other::VertexArray;
+using other::Shader;
 using other::CameraBase;
 using other::PerspectiveCamera;
 using other::Framebuffer;
@@ -308,94 +168,8 @@ int main(int argc , char* argv[]) {
 
     OE_INFO("ImGui Initialized successfully"); 
 
-    int success;
-
-    int32_t vert_1 = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vert_1, 1, &vert1, nullptr);
-    
-    glCompileShader(vert_1);
-    glGetShaderiv(vert_1, GL_COMPILE_STATUS, &success);
-    if (success != GL_TRUE) {
-      char info[512];
-      glGetShaderInfoLog(vert_1, 512, nullptr, info);
-      OE_ERROR("Failed to compile vertex shader vert 1: {0}", info);
-    }
-    
-    CHECK();
-    
-    int32_t vert_2 = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vert_2, 1, &vert2, nullptr);
-    
-    glCompileShader(vert_2);
-    glGetShaderiv(vert_2, GL_COMPILE_STATUS, &success);
-    if (success != GL_TRUE) {
-      char info[512];
-      glGetShaderInfoLog(vert_2, 512, nullptr, info);
-      OE_ERROR("Failed to compile vertex shader vert 2: {0}", info);
-    }
-    
-    CHECK();
-
-    int32_t frag_1 = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(frag_1, 1, &frag1, nullptr);
-
-    glCompileShader(frag_1);
-    glGetShaderiv(frag_1, GL_COMPILE_STATUS, &success);
-    if (success != GL_TRUE) {
-      char info[511];
-      glGetShaderInfoLog(frag_1, 512, nullptr, info);
-      OE_ERROR("Failed to compile fragment shader frag 1: {0}", info);
-    }
-    
-    CHECK();
-    
-    int32_t frag_2 = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(frag_2, 1, &frag2, nullptr);
-
-    glCompileShader(frag_2);
-    glGetShaderiv(frag_2, GL_COMPILE_STATUS, &success);
-    if (success != GL_TRUE) {
-      char info[511];
-      glGetShaderInfoLog(frag_2, 512, nullptr, info);
-      OE_ERROR("Failed to compile fragment shader frag 2: {0}", info);
-    }
-    
-    CHECK();
-
-    uint32_t shader1 = 0;
-    shader1 = glCreateProgram();
-    glAttachShader(shader1, vert_1);
-    glAttachShader(shader1, frag_1);
-    glLinkProgram(shader1);
-    
-    glGetProgramiv(shader1, GL_LINK_STATUS, &success);
-    if (success != GL_TRUE) {
-      char info[512];
-      glGetProgramInfoLog(shader1, 512, nullptr, info);
-      OE_ERROR("Failed to link shader program shader 1: {0}", info);
-    }
-
-    glDeleteShader(frag_1);
-    
-    CHECK();
-
-    uint32_t shader2 = 0;
-    shader2 = glCreateProgram();
-    glAttachShader(shader2, vert_2);
-    glAttachShader(shader2, frag_2);
-    glLinkProgram(shader2);
-    
-    glGetProgramiv(shader2, GL_LINK_STATUS, &success);
-    if (success != GL_TRUE) {
-      char info[512];
-      glGetProgramInfoLog(shader2, 512, nullptr, info);
-      OE_ERROR("Failed to link shader2 program shader 2: {0}", info);
-    }
-
-    glDeleteShader(vert_1);
-    glDeleteShader(vert_2);
-    glDeleteShader(frag_1);
-    glDeleteShader(frag_2);
+    uint32_t shader1 = other::GetShader(vert1 , frag1);
+    uint32_t shader2 = other::GetShader(vert2 , frag2);
 
     OE_INFO("Shaders Compiled");
 
@@ -405,6 +179,29 @@ int main(int argc , char* argv[]) {
     CHECK();
 
     OE_INFO("VAOs created");
+
+    Scope<Framebuffer> frame = NewScope<Framebuffer>(other::FramebufferSpec{});
+
+    std::vector<float> fb_verts = {
+       1.f ,  1.f , 1.f , 1.f ,
+      -1.f ,  1.f , 0.f , 1.f ,
+      -1.f , -1.f , 0.f , 0.f ,
+       1.f , -1.f , 1.f , 0.f
+    };
+    
+    std::vector<uint32_t> fb_indices = { 
+      0 , 1 , 3 , 
+      1 , 2 , 3 
+    };
+    std::vector<uint32_t> fb_layout = { 
+      2 , 2 
+    };
+      
+    Scope<VertexArray> fb_mesh = NewScope<VertexArray>(fb_verts , fb_indices , fb_layout);
+    
+    const other::Path shader_dir = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders";
+    const other::Path fbshader_path = shader_dir / "fbshader.oshader";
+    Ref<Shader> fb_shader = other::BuildShader(fbshader_path);
 
     other::Ref<CameraBase> camera = other::NewRef<PerspectiveCamera>(glm::ivec2{ win_w , win_h });
     camera->SetPosition({ 0.f , 0.f , 3.f });
@@ -436,6 +233,12 @@ int main(int argc , char* argv[]) {
       .diffuse  = { 0.5f , 0.5f , 0.5f , 1.f } ,
       .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
     };
+    other::DirectionLight dir_light {
+      .direction = { -0.2f , 1.0f , -0.3f , 1.f } ,
+      .ambient = { 1.0f , 1.0f , 1.0f , 1.f } ,
+      .diffuse = { 1.0f , 1.0f , 1.0f , 1.f } ,
+      .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
+    };
 
     CHECK();
 
@@ -460,6 +263,7 @@ int main(int argc , char* argv[]) {
     std::vector<other::Uniform> light_unis = {
       { "num_lights" , other::ValueType::VEC4 } ,
       { "point_lights"     , other::ValueType::USER_TYPE , 100 , sizeof(other::PointLight) } ,
+      { "direction_lights"     , other::ValueType::USER_TYPE , 100 , sizeof(other::DirectionLight) } ,
     };
     
     Ref<other::UniformBuffer> camera_uniforms = NewRef<other::UniformBuffer>("Camera" , camera_unis , camera_binding_pnt);    
@@ -482,10 +286,6 @@ int main(int argc , char* argv[]) {
       0 , 0 , 0 , 0
     };
 
-    glUseProgram(shader1);
-    glUniform1i(glGetUniformLocation(shader1 , "g_position") , 0);
-    glUniform1i(glGetUniformLocation(shader1 , "g_normal") , 1);
-    glUniform1i(glGetUniformLocation(shader1 , "g_albedo_spec") , 2);
     glUseProgram(shader2);
     glUniform1i(glGetUniformLocation(shader2 , "g_position") , 0);
     glUniform1i(glGetUniformLocation(shader2 , "g_normal") , 1);
@@ -496,34 +296,27 @@ int main(int argc , char* argv[]) {
 
     glGenFramebuffers(1 , &gbuffer);
     glBindFramebuffer(GL_FRAMEBUFFER , gbuffer);
+    glGenTextures(3 , gbuffer_textures);
 
-    glGenTextures(1 , &gbuffer_textures[0]);
     glBindTexture(GL_TEXTURE_2D , gbuffer_textures[0]);
     glTexImage2D(GL_TEXTURE_2D , 0 , GL_RGBA16F , win_w , win_h , 0 , GL_RGBA , GL_FLOAT , nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gbuffer_textures[0] , 0);
 
-    // glGenTextures(1 , &gbuffer_textures[1]);
-    // glBindTexture(GL_TEXTURE_2D , gbuffer_textures[1]);
-    // glTexImage2D(GL_TEXTURE_2D , 0 , GL_RGBA16F , win_w , win_h , 0 , GL_RGBA , GL_FLOAT , nullptr);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1 , GL_TEXTURE_2D, gbuffer_textures[1] , 0);
-    // 
-    // glGenTextures(1 , &gbuffer_textures[2]);
-    // glBindTexture(GL_TEXTURE_2D , gbuffer_textures[2]);
-    // glTexImage2D(GL_TEXTURE_2D , 0 , GL_RGBA , win_w , win_h , 0 , GL_RGBA , GL_FLOAT , nullptr);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gbuffer_textures[2] , 0);
+    glBindTexture(GL_TEXTURE_2D , gbuffer_textures[1]);
+    glTexImage2D(GL_TEXTURE_2D , 0 , GL_RGBA16F , win_w , win_h , 0 , GL_RGBA , GL_FLOAT , nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1 , GL_TEXTURE_2D, gbuffer_textures[1] , 0);
+    
+    glBindTexture(GL_TEXTURE_2D , gbuffer_textures[2]);
+    glTexImage2D(GL_TEXTURE_2D , 0 , GL_RGBA , win_w , win_h , 0 , GL_RGBA , GL_UNSIGNED_BYTE , nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gbuffer_textures[2] , 0);
 
-    uint32_t attachments[3] = { 
-      GL_COLOR_ATTACHMENT0 ,
-      // GL_COLOR_ATTACHMENT1 ,
-      // GL_COLOR_ATTACHMENT2 ,
-    };
-      
+    uint32_t attachments[3] = { GL_COLOR_ATTACHMENT0 , GL_COLOR_ATTACHMENT1 , GL_COLOR_ATTACHMENT2 };
     glDrawBuffers(3 , attachments);
 
     uint32_t render_buffer = 0;
@@ -535,15 +328,9 @@ int main(int argc , char* argv[]) {
       OE_ERROR("G-Buffer not complete!");
     }
 
-    glm::mat4 display_model = glm::mat4(1.0);
-
     glBindFramebuffer(GL_FRAMEBUFFER , 0);
 
-    // glEnable(GL_DEPTH_TEST);
-    // glDepthFunc(GL_LESS);
-    // glEnable(GL_STENCIL_TEST);
-    // glStencilFunc(GL_NOTEQUAL , 1 , 0xFF);
-    // glStencilOp(GL_KEEP , GL_KEEP , GL_REPLACE);
+    glEnable(GL_DEPTH_TEST);
 
     OE_INFO("Running");
 
@@ -607,6 +394,7 @@ int main(int argc , char* argv[]) {
 
       light_uniforms->SetUniform("num_lights" , glm::vec4{ 0 , 1 , 0 , 0 });
       light_uniforms->SetUniform("point_lights" , point_light);
+      light_uniforms->SetUniform("direction_lights" , dir_light);
 
       model1 = glm::mat4(1.f);
       model1 = glm::rotate(model1 , m1_rotation , { 1.f , 1.f , 1.f });
@@ -618,28 +406,38 @@ int main(int argc , char* argv[]) {
       
 ///> GBUFFER RENDER
       glBindFramebuffer(GL_FRAMEBUFFER , gbuffer);
-
-      glDepthMask(GL_TRUE);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-      glEnable(GL_DEPTH_TEST);
-      glDisable(GL_BLEND);
 
       glUseProgram(shader1);
 
       model_buffer.ZeroMem();
+      material_buffer.ZeroMem();
+
       model_buffer.BufferData(model1);
+      material_buffer.BufferData(material1);
+
       model_buffer.BufferData(model2);
-      
+      material_buffer.BufferData(material2);
+
       model_uniforms->BindBase();
       model_uniforms->LoadFromBuffer(model_buffer);
 
+      material_uniforms->BindBase();
+      material_uniforms->LoadFromBuffer(material_buffer);
+
       cube.Draw(other::TRIANGLES , 2);
       
-      glDepthMask(GL_FALSE);
-      glDisable(GL_DEPTH_TEST);
       glBindFramebuffer(GL_FRAMEBUFFER , 0);
 /// > END GBUFFER RENDER
+
+/// > DEBUG
+#if 0
+      glActiveTexture(GL_TEXTURE0);
+      glBindTexture(GL_TEXTURE_2D , gbuffer_textures[2]);
+      fb_shader->SetUniform("screen_tex" , 0);
+      fb_mesh->Draw(other::TRIANGLES);
+#endif 
+/// > END DEBUG
 
 /// > LIGHTING PASS
       glUseProgram(shader2);
@@ -650,12 +448,12 @@ int main(int argc , char* argv[]) {
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
       glActiveTexture(GL_TEXTURE0);
       glBindTexture(GL_TEXTURE_2D , gbuffer_textures[0]);
-      // glActiveTexture(GL_TEXTURE1);
-      // glBindTexture(GL_TEXTURE_2D , gbuffer_textures[1]);
-      // glActiveTexture(GL_TEXTURE2);
-      // glBindTexture(GL_TEXTURE_2D , gbuffer_textures[2]);
+      glActiveTexture(GL_TEXTURE1);
+      glBindTexture(GL_TEXTURE_2D , gbuffer_textures[1]);
+      glActiveTexture(GL_TEXTURE2);
+      glBindTexture(GL_TEXTURE_2D , gbuffer_textures[2]);
 
-      quad.Draw();
+      fb_mesh->Draw(other::TRIANGLES);
 
       glBindFramebuffer(GL_FRAMEBUFFER , 0);
 /// > END LIGHTING PASS
@@ -672,7 +470,7 @@ int main(int argc , char* argv[]) {
       // glBlitFramebuffer(0, 0, win_w, win_h, 0, 0, win_w, win_h, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
       // glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-  /// set gbuffer data
+/// set gbuffer data
   
 // ////// OUTLINE RENDER PASS 
 //       float scale = 1.05f;
@@ -855,43 +653,6 @@ void Cube::Draw(other::DrawMode mode , uint32_t instances) {
   glBindVertexArray(vao);
   glDrawElementsInstancedBaseVertexBaseInstance(mode , 36 , GL_UNSIGNED_INT , (void*)0 , 2 , 0 , 0);
   glBindVertexArray(0);
-}
-
-void CheckGlError(int line) {
-  GLenum err = glGetError();
-  while (err != GL_NO_ERROR) {
-    switch (err) {
-      case GL_INVALID_ENUM: 
-        OE_ERROR("OpenGL Error INVALID_ENUM : {}" , line);
-      break;
-      case GL_INVALID_VALUE:
-        OE_ERROR("OpenGL Error INVALID_VALUE : {}" , line);
-      break;
-      case GL_INVALID_OPERATION:
-        OE_ERROR("OpenGL Error INVALID_OPERATION : {}" , line);
-      break;
-      case GL_STACK_OVERFLOW:
-        OE_ERROR("OpenGL Error STACK_OVERFLOW : {}" , line);
-      break;
-      case GL_STACK_UNDERFLOW:
-        OE_ERROR("OpenGL Error STACK_UNDERFLOW : {}" , line);
-      break;
-      case GL_OUT_OF_MEMORY:
-        OE_ERROR("OpenGL Error OUT_OF_MEMORY : {}" , line);
-      break;
-      case GL_INVALID_FRAMEBUFFER_OPERATION:
-        OE_ERROR("OpenGL Error INVALID_FRAMEBUFFER_OPERATION : {}" , line);
-      break;
-      case GL_CONTEXT_LOST:
-        OE_ERROR("OpenGL Error CONTEXT_LOST : {}" , line);
-      break;
-      case GL_TABLE_TOO_LARGE:
-        OE_ERROR("OpenGL Error TABLE_TOO_LARGE : {}" , line);
-      break;
-      default: break;
-    }
-    err = glGetError();
-  }
 }
 
 void UpdateCamera(other::Ref<CameraBase>& camera) {

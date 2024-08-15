@@ -180,9 +180,18 @@ namespace other {
   void ShaderGlslTranspiler::Visit(LayoutDescriptor& expr) {
     expr.expr->Accept(*this);
 
+    // if (context == FRAGMENT_SHADER) {
+    //   if (token_stack.empty()) {
+    //     return;
+    //   }
+
+    //   Token token = token_stack.top();
+    //   token_stack.pop();
+    // }
+
     if (expr.type.type == LOCATION_KW) {
       if (token_stack.size() != 1) {
-        throw Error(SHADER_TRANSPILATION , "Corrupt token stack transpiling layout location descriptor! size = {}" , token_stack.size());
+        throw Error(SHADER_TRANSPILATION , "Corrupt token stack transpiling layout 'location' descriptor! size = {}" , token_stack.size());
       }
 
       Token literal = token_stack.top();
@@ -206,7 +215,7 @@ namespace other {
 
     if (expr.type.type == BINDING_KW) {
       if (token_stack.size() != 1) {
-        throw Error(SHADER_TRANSPILATION , "Corrupt token stack transpiling layout binding descriptor! size = {}" , token_stack.size());
+        throw Error(SHADER_TRANSPILATION , "Corrupt token stack transpiling layout 'binding' descriptor! size = {}" , token_stack.size());
       }
 
       Token literal = token_stack.top();
@@ -378,25 +387,27 @@ namespace other {
       stream << "  mat4 view;\n";
       stream << "  vec4 viewpoint;\n";
       stream << "};\n\n";
+      stream << "#define MAX_NUM_MODELS\n";
       stream << "layout (std430 , binding = 1) readonly buffer ModelData {\n";
-      stream << "  mat4 models[];\n";
+      stream << "  mat4 models[MAX_NUM_MODELS];\n";
       stream << "};\n\n";
+      stream << "#define MAX_MATERIALS 100\n";
       stream << "layout (std430 , binding = 2) readonly buffer MaterialData {\n";
-      stream << "  Material materials[];\n";
+      stream << "  Material materials[MAX_MATERIALS];\n";
       stream << "};\n\n";
+      stream << "out int instanceid;\n";
       stream << "out Material material;\n\n";
     } else if (context == FRAGMENT_SHADER) {
-      stream << "in Material material;\n\n";
-      stream << "#define MAX_POINT_LIGHTS 100\n";
-      stream << "#define MAX_DIR_LIGHTS 100\n";
+      stream << "#define MAX_LIGHTS 100\n";
       stream << "layout (std430 , binding = 3) readonly buffer Lights {\n";
       /// num direction lights is num_lights.x
       /// num point lights is num_lights.y
       /// num_lights.z and .w are padding
       stream << "  vec4 num_lights;\n";
-      stream << "  DirectionLight direction_lights[MAX_DIR_LIGHTS];\n";
-      stream << "  PointLight point_lights[MAX_POINT_LIGHTS];\n";
+      stream << "  DirectionLight direction_lights[MAX_LIGHTS];\n";
+      stream << "  PointLight point_lights[MAX_LIGHTS];\n";
       stream << "};\n\n";
+      stream << "in Material material;\n\n";
     }
 
     for (auto& n : nodes) {

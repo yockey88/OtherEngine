@@ -9,10 +9,14 @@
 
 #include "core/errors.hpp"
 
+namespace other {
+using MockEnv = ::testing::Environment;
+} // namespace other
+
 int main(int argc , char* argv[]) {
   ::testing::InitGoogleTest(&argc, argv);
 
-  const ::testing::Environment* mock_engine = nullptr;
+  const other::MockEnv* mock_engine = nullptr;
 
   try {
     /// FIXME: command line argument for config path
@@ -33,4 +37,3 @@ using other::EngineTest;
 TEST_F(EngineTest , example) {
   auto* env = TEST_ENGINE();
 }
-

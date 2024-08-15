@@ -15,6 +15,9 @@ namespace other {
       
   RenderPass::RenderPass(RenderPassSpec spec) 
       : spec(spec) {
+    uniforms[FNV("g_position")] = { "g_position" , SAMPLER2D , sizeof(uint32_t) };
+    uniforms[FNV("g_normal")] = { "g_normal" , SAMPLER2D , sizeof(uint32_t) };
+    uniforms[FNV("g_albedo")] = { "g_albedo" , SAMPLER2D , sizeof(uint32_t) };
     for (auto& u : spec.uniforms) {
       uniforms[FNV(u.name)] = u;
     } 

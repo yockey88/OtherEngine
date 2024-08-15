@@ -17,6 +17,7 @@
 #include "rendering/model.hpp"
 #include "rendering/material.hpp"
 #include "rendering/render_pass.hpp"
+#include "rendering/gbuffer.hpp"
 
 namespace other {
 
@@ -68,7 +69,7 @@ namespace other {
       Pipeline(PipelineSpec& spec);
       virtual ~Pipeline() override {}
       
-      void SubmitRenderPass(const Ref<RenderPass>& pass);
+      void SubmitRenderPass(Ref<RenderPass> pass);
 
       /// Add materials to model submission
       void SubmitModel(Ref<Model> model , const glm::mat4& transform , const Material& color);
@@ -86,6 +87,7 @@ namespace other {
     private:
       uint32_t vao_id = 0;
       PipelineSpec spec{};
+      GBuffer gbuffer;
 
       Ref<UniformBuffer> model_storage = nullptr;
       Ref<UniformBuffer> material_storage = nullptr;

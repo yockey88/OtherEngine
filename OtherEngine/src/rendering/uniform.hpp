@@ -63,6 +63,10 @@ namespace other {
         }
 
         Bind();
+        // if constexpr (std::same_as<T , Buffer>) {
+        //   BindBase();
+        //   LoadFromBuffer(value); 
+        // } else 
         if constexpr (glm_t<T>) {
           glBufferSubData(type , offset , u_data.size , glm::value_ptr(value));
         // } else if constexpr (std::same_as<T , PointLight>) {

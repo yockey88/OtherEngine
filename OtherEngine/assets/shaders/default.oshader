@@ -26,6 +26,10 @@ fragment {
   in vec3 foe_normal;
 
   out vec4 FragColor;
+      
+  // uniform sampler2D g_position;
+  // uniform sampler2D g_normal;
+  // uniform sampler2D g_albedo;
 
   vec3 CalcDirectionLight(DirectionLight light , vec3 normal , vec3 view_dir) {
     vec3 light_dir = normalize(-light.direction.xyz);

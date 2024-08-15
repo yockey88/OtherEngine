@@ -26,13 +26,16 @@ namespace std {
 namespace other {
 
   Pipeline::Pipeline(PipelineSpec& s) 
-      : spec(s) {
+      : spec(s) , gbuffer(s.framebuffer_spec.size) {
     target = Ref<Framebuffer>::Create(spec.framebuffer_spec);
     model_storage = NewRef<UniformBuffer>("ModelData" , spec.model_uniforms , spec.model_binding_point , SHADER_STORAGE);
     material_storage = NewRef<UniformBuffer>("MaterialData" , spec.material_uniforms , spec.material_binding_point , SHADER_STORAGE);
   }
       
-  void Pipeline::SubmitRenderPass(const Ref<RenderPass>& pass) {
+  void Pipeline::SubmitRenderPass(Ref<RenderPass> pass) {
+    pass->SetInput("g_position" , 0);
+    pass->SetInput("g_normal" , 1);
+    pass->SetInput("g_albedo" , 2);
     passes.push_back(pass);
   }
 
@@ -73,7 +76,32 @@ namespace other {
   }
 
   void Pipeline::Render() {
+    gbuffer.Bind();
+
+    Buffer pass_models;
+    Buffer pass_materials;
+    for (auto& [mk , sl] : model_submissions) {
+      
+      material_storage->BindBase();
+      material_storage->LoadFromBuffer(pass_materials);
+      model_storage->BindBase();
+      model_storage->LoadFromBuffer(pass_models);
+
+      mk.vao->Bind();
+      glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES , mk.num_elements , GL_UNSIGNED_INT , (void*)0 , sl.instance_count , 0 , 0);
+    }
+    CHECKGL();
+
+    gbuffer.Unbind();
+
     target->BindFrame();
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D , gbuffer.textures[GBuffer::POSITION]);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D , gbuffer.textures[GBuffer::NORMAL]);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D , gbuffer.textures[GBuffer::ALBEDO]);
 
      for (auto& p : passes) {
       PerformPass(p);
