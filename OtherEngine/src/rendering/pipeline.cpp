@@ -33,9 +33,9 @@ namespace other {
   }
       
   void Pipeline::SubmitRenderPass(Ref<RenderPass> pass) {
-    pass->SetInput("g_position" , 0);
-    pass->SetInput("g_normal" , 1);
-    pass->SetInput("g_albedo" , 2);
+    pass->SetInput("goe_position" , 0);
+    pass->SetInput("goe_normal" , 1);
+    pass->SetInput("goe_albedo" , 2);
     passes.push_back(pass);
   }
 

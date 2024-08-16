@@ -180,15 +180,6 @@ namespace other {
   void ShaderGlslTranspiler::Visit(LayoutDescriptor& expr) {
     expr.expr->Accept(*this);
 
-    // if (context == FRAGMENT_SHADER) {
-    //   if (token_stack.empty()) {
-    //     return;
-    //   }
-
-    //   Token token = token_stack.top();
-    //   token_stack.pop();
-    // }
-
     if (expr.type.type == LOCATION_KW) {
       if (token_stack.size() != 1) {
         throw Error(SHADER_TRANSPILATION , "Corrupt token stack transpiling layout 'location' descriptor! size = {}" , token_stack.size());
@@ -398,6 +389,11 @@ namespace other {
       stream << "out int instanceid;\n";
       stream << "out Material material;\n\n";
     } else if (context == FRAGMENT_SHADER) {
+      /// hack, these should not be here
+      /// FIXME: rewrite transpiler
+      stream << "layout (location = 0) out vec3 g_position;\n";
+      stream << "layout (location = 1) out vec3 g_normal;\n";
+      stream << "layout (location = 2) out vec4 g_albedo;\n";
       stream << "#define MAX_LIGHTS 100\n";
       stream << "layout (std430 , binding = 3) readonly buffer Lights {\n";
       /// num direction lights is num_lights.x
@@ -407,6 +403,9 @@ namespace other {
       stream << "  DirectionLight direction_lights[MAX_LIGHTS];\n";
       stream << "  PointLight point_lights[MAX_LIGHTS];\n";
       stream << "};\n\n";
+      stream << "uniform sampler2D goe_position;\n";
+      stream << "uniform sampler2D goe_normal;\n";
+      stream << "uniform sampler2D goe_albedo;\n";
       stream << "in Material material;\n\n";
     }
 
