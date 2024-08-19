@@ -308,7 +308,7 @@ namespace other {
     return primary_cam;
   }
       
-  void Scene::Render(Ref<SceneRenderer> renderer , Ref<CameraBase> camera) {
+  void Scene::Render(Ref<SceneRenderer> renderer) {
     /// environment (set pipeline inputs) 
 
     /// models without materials
@@ -322,7 +322,7 @@ namespace other {
         return;
       }
 
-      renderer->SubmitModel("GeometryPipeline" , model , transform.model_transform , mesh.material);
+      renderer->SubmitModel("Geometry" , model , transform.model_transform , mesh.material);
     });
 
     /// static models without materials
@@ -336,7 +336,7 @@ namespace other {
         return;
       }
 
-      renderer->SubmitStaticModel("GeometryPipeline" , model , transform.model_transform , mesh.material);
+      renderer->SubmitStaticModel("Geometry" , model , transform.model_transform , mesh.material);
     });
     
     registry.view<Script>().each([](const Script& script) {

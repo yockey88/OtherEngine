@@ -26,13 +26,16 @@ namespace std {
 namespace other {
 
   Pipeline::Pipeline(PipelineSpec& s) 
-      : spec(s) {
+      : spec(s) , gbuffer(s.framebuffer_spec.size) {
     target = Ref<Framebuffer>::Create(spec.framebuffer_spec);
     model_storage = NewRef<UniformBuffer>("ModelData" , spec.model_uniforms , spec.model_binding_point , SHADER_STORAGE);
     material_storage = NewRef<UniformBuffer>("MaterialData" , spec.material_uniforms , spec.material_binding_point , SHADER_STORAGE);
   }
       
-  void Pipeline::SubmitRenderPass(const Ref<RenderPass>& pass) {
+  void Pipeline::SubmitRenderPass(Ref<RenderPass> pass) {
+    pass->SetInput("goe_position" , 0);
+    pass->SetInput("goe_normal" , 1);
+    pass->SetInput("goe_albedo" , 2);
     passes.push_back(pass);
   }
 
@@ -73,14 +76,26 @@ namespace other {
   }
 
   void Pipeline::Render() {
+    material_storage->Clear();
+    model_storage->Clear();
+
+    gbuffer.Bind();
+    RenderMeshes();
+    gbuffer.Unbind();
+    
+    for (uint32_t i = 0; i < GBuffer::NUM_TEX_IDXS; ++i) {
+      glActiveTexture(GL_TEXTURE0 + i);
+      glBindTexture(GL_TEXTURE_2D , gbuffer.textures[i]);
+    }
+
     target->BindFrame();
 
-     for (auto& p : passes) {
+    for (auto& p : passes) {
       PerformPass(p);
     }
 
     target->UnbindFrame();
-
+    
     for (auto& [mk , sl] : model_submissions) {
       sl.cpu_model_storage.ZeroMem();
       sl.cpu_material_storage.ZeroMem();
@@ -92,6 +107,10 @@ namespace other {
 
   Ref<Framebuffer> Pipeline::GetOutput() {
     return target;
+  }
+      
+  GBuffer& Pipeline::GetGBuffer() {
+    return gbuffer;
   }
       
   void Pipeline::AddIndices(const Index& idx) {
@@ -107,7 +126,6 @@ namespace other {
     Buffer pass_models;
     Buffer pass_materials;
     for (auto& [mk , sl] : model_submissions) {
-
       pass_materials = pass->ProcessMaterials(sl.cpu_material_storage);
       pass_models = pass->ProcessModels(sl.cpu_model_storage);
       
@@ -122,6 +140,21 @@ namespace other {
     CHECKGL();
 
     pass->Unbind();
+    CHECKGL();
+  }
+      
+  void Pipeline::RenderMeshes() {
+    Buffer pass_models;
+    Buffer pass_materials;
+    for (auto& [mk , sl] : model_submissions) {
+      material_storage->BindBase();
+      material_storage->LoadFromBuffer(pass_materials);
+      model_storage->BindBase();
+      model_storage->LoadFromBuffer(pass_models);
+
+      mk.vao->Bind();
+      glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES , mk.num_elements , GL_UNSIGNED_INT , (void*)0 , sl.instance_count , 0 , 0);
+    }
     CHECKGL();
   }
 

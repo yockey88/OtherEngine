@@ -94,8 +94,15 @@ namespace other {
       return ParseStructDecl(identifier);
     }
 
-    if (Match({ IN_KW , OUT_KW })) {
+    if (Match({ FLAT_KW , IN_KW , OUT_KW })) {
       Token in_out = Previous();
+      if (in_out.type == FLAT_KW) {
+        if (!Match({ IN_KW , OUT_KW })) {
+          throw Error(SYNTAX_ERROR , "Expected 'in' or 'out' after 'flat', found '{}'" , Peek().value);
+        }
+
+        in_out = Previous();
+      }
       if (Match({ IDENTIFIER })) {
         return ParseInOutBlock(in_out , Previous()); 
       }

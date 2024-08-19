@@ -3,7 +3,7 @@ vertex [mesh : textured_quad] {
   out vec2 foe_uvs;
 
   void main() {
-    gl_Position = vec4(voe_position , 0.0 , 1.0);
+    gl_Position = vec4(voe_position , 1.0);
     foe_uvs = voe_uvs;
   }
 

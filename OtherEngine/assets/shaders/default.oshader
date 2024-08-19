@@ -4,6 +4,7 @@ vertex [mesh : default] {
 
   out vec3 foe_position;
   out vec3 foe_normal;
+  out vec2 foe_texcoords;
   
   void main() {
     gl_Position = projection * view * models[gl_InstanceID] * vec4(voe_position , 1.0);
@@ -12,6 +13,7 @@ vertex [mesh : default] {
 
     foe_position = vec3(models[gl_InstanceID] * vec4(voe_position , 1.0));
     foe_normal = mat3(transpose(inverse(models[gl_InstanceID]))) * voe_normal;
+    foe_texcoords = voe_uvs;
 
     material = materials[gl_InstanceID];
   };
@@ -24,6 +26,7 @@ fragment {
 
   in vec3 foe_position;
   in vec3 foe_normal;
+  in vec2 foe_texcoords;
 
   out vec4 FragColor;
 
@@ -41,22 +44,25 @@ fragment {
     return (ambient + diffuse + specular);
   }
 
-  vec3 CalcPointLight(PointLight light , vec3 normal , vec3 frag_pos , vec3 view_dir) {
+  vec3 CalcPointLight(PointLight light , vec3 normal , vec3 frag_pos , vec3 view_dir ,
+                      vec3 albedo , float specular) {
+    // diffuse
     vec3 light_dir = normalize(light.position.xyz - frag_pos);
-    float diff = max(dot(normal , light_dir) , 0.f);
+    vec3 diffuse = max(dot(normal , light_dir) , 0.0) * albedo * (light.ambient.xyz + light.diffuse.xyz);
 
-    vec3 reflect_dir = reflect(-light_dir , normal);
-    float spec = pow(max(dot(view_dir , reflect_dir) , 0.0) , material.shininess);
+    // specular
+    vec3 halfway = normalize(light_dir + view_dir);
+    float s = pow(max(dot(normal , halfway) , 0.0) , 16.0);
+    vec3 spec = light.ambient.xyz * s * specular;
 
-    float distance = length(light.position.xyz - frag_pos);
-    float attenuation = 1.f / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
+    // attenuation
+    float dist = length(light.position.xyz - frag_pos);
+    float attenuation = 1.0 / (1.0 + light.linear * dist + light.quadratic * dist * dist);
 
-    // vec3 ambient = material.ambient.rgb;
-    vec3 ambient = light.ambient.rgb * material.ambient.rgb * attenuation;
-    vec3 diffuse = light.diffuse.rgb * diff * material.diffuse.rgb * attenuation;
-    vec3 specular = light.specular.rgb * spec * material.specular.rgb * attenuation;
-    
-    return (ambient + diffuse + specular);
+    // diffuse = diffuse * attenuation;
+    // specular = specular * attenuation;
+
+    return (diffuse);
   }
 
   void main () {
@@ -64,19 +70,23 @@ fragment {
     vec3 norm = normalize(foe_normal);
     vec3 view_dir = normalize(fviewpoint - foe_position);
 
+    vec3 frag_pos = texture(goe_position , foe_texcoords).rgb;
+    vec3 normal = texture(goe_normal , foe_texcoords).rgb;
+    vec3 albedo = texture(goe_albedo , foe_texcoords).rgb;
+    float specular = texture(goe_albedo , foe_texcoords).a;
+
     /// lights
-    // vec3 result = CalcDirLight(foe_dlight , norm , view_dir);
-    vec3 result = vec3(0.f , 0.f , 0.f);
+    vec3 result = albedo * 0.1;
     
     int i = 0;
-    for (; i < num_lights.x;) {
-      result = result + CalcDirectionLight(direction_lights[i] , norm , view_dir);
-      i = i + 1;
-    }
+    // for (; i < num_lights.x;) {
+    //   result = result + CalcDirectionLight(direction_lights[i] , norm , view_dir);
+    //   i = i + 1;
+    // }
 
     i = 0;
     for (; i < num_lights.y;) {
-      result = result + CalcPointLight(point_lights[i] , norm , foe_position , view_dir);
+      result = result + CalcPointLight(point_lights[i] , normal , foe_position , view_dir , albedo , specular);
       i = i + 1;
     }
       
