@@ -6,6 +6,8 @@
 #include <glad/glad.h>
 
 #include "core/defines.hpp"
+
+#include "rendering/renderer.hpp"
 #include "rendering/uniform.hpp"
 
 namespace other {
@@ -40,6 +42,7 @@ namespace other {
       environment->point_lights.size() ,
       0 , 0
     };
+    spec.light_uniforms->BindBase();
     spec.light_uniforms->SetUniform("num_lights" , light_count);
     for (size_t i = 0; i < environment->direction_lights.size(); ++i) {
       auto& l = environment->direction_lights[i];
@@ -56,8 +59,7 @@ namespace other {
 
   void SceneRenderer::SubmitStaticModel(const std::string_view pl_name , Ref<StaticModel> model , 
                                         const glm::mat4& transform , const Material& material) {
-    auto hash = FNV(pl_name);
-    auto itr = pipelines.find(hash); 
+    auto itr = pipelines.find(FNV(pl_name)); 
     if (itr == pipelines.end()) {
       return;
     }

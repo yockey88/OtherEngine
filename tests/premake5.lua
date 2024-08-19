@@ -10,12 +10,15 @@ sandbox.files = function()
   files {
     "./sandbox/**.cpp",
     "./sandbox/**.hpp",
+    "./sandbox_ui.cpp" ,
+    "./sandbox_ui.hpp" ,
   }
 end
 
 sandbox.include_dirs = function()
   includedirs {
     "./sandbox",
+    "." ,
   }
 end
 
@@ -56,12 +59,15 @@ gl_sandbox.files = function()
   files {
     "./gl_sandbox/**.cpp",
     "./gl_sandbox/**.hpp",
+    "./sandbox_ui.cpp" ,
+    "./sandbox_ui.hpp" ,
   }
 end
 
 gl_sandbox.include_dirs = function()
   includedirs {
     "./gl_sandbox",
+    "." ,
   }
 end
 

@@ -74,7 +74,7 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
 
     default_renderer = GetDefaultRenderer();
 
-    const Path fbshader_path = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders" / "fbshader.oshader";
+    const Path fbshader_path = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders" / "deferred_shading.oshader";
     fbshader = BuildShader(fbshader_path);
     fb_mesh = NewScope<VertexArray>(fb_verts , fb_indices , fb_layout);
   }
@@ -152,34 +152,16 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
   }
 
   void EditorLayer::OnRender() {
-    // for (const auto& [id , script] : editor_scripts.scripts) {
-    //   script->Render();
-    // }
-    // panel_manager->Render();
-
+    bool success = true;
     if (HasActiveScene()) {
-      AppState::Scenes()->RenderScene(default_renderer , editor_camera);
+      success = AppState::Scenes()->RenderScene(default_renderer , editor_camera);
     } else {
       
     }
-    default_renderer->EndScene();
 
-    // default_renderer->BeginScene(editor_camera);
-    // default_renderer->SubmitStaticModel(model , model1);
-    // default_renderer->EndScene();
-
-#if 0
-    auto& frames = default_renderer->GetRender();
-    viewport = frames.at(FNV("GeometryPipeline"));
-
-    fbshader->Bind();
-    fbshader->SetUniform("screen_tex" , 0);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D , viewport->texture);
-
-    fb_mesh->Draw(TRIANGLES);
-#endif
+    if (!success) {
+      OE_ERROR("Failed to render scene!");
+    }
   }
 
   void EditorLayer::OnUIRender() {
@@ -212,11 +194,15 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
     }
 
 #if 1
-    if (ImGui::Begin("Viewport")) {
+    if (HasActiveScene() && ImGui::Begin("Viewport")) {
       auto& frames = default_renderer->GetRender();
-      viewport = frames.at(FNV("GeometryPipeline"));
+      viewport = nullptr;
 
-      if (HasActiveScene() && viewport == nullptr) {
+      if (auto itr = frames.find(FNV("Geometry")); itr != frames.end()) {
+        viewport = itr->second;
+      }
+
+      if (viewport == nullptr) {
         ScopedColor red_text(ImGuiCol_Text , ui::theme::red);
         ImGui::Text("No Viewport Generated");
       } else {
@@ -244,8 +230,9 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
         uint32_t tex_id = viewport->texture; 
         ImGui::Image((void*)(uintptr_t)tex_id , size , ImVec2(0 , 1) , ImVec2(1 , 0)); 
       } 
+    
+      ImGui::End();
     }
-    ImGui::End();
 
     if (ImGui::Begin("Inspector") /* && scene_manager->HasActiveScene() */) {
       if (!playing && ImGui::Button("Play")) {
@@ -548,14 +535,14 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
           .model_binding_point = model_binding_pnt ,
           .material_uniforms = material_unis ,
           .material_binding_point = material_binding_pnt ,
-          .debug_name = "GeometryPipeline" , 
+          .debug_name = "Geometry" , 
         } ,
       } ,
       .ref_passes = {
         geom_pass ,
       } ,
       .pipeline_to_pass_map = {
-        { FNV("GeometryPipeline") , { FNV(geom_pass->Name()) } } ,
+        { FNV("Geometry") , { FNV(geom_pass->Name()) } } ,
       } ,
     }; 
     return NewRef<SceneRenderer>(spec);

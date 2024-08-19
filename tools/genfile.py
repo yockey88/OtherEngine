@@ -13,14 +13,15 @@ if FILE_NAME == "":
 
 if DIRECTORY == "":
     print("Must provide a subdirectory for the files (-d=<directory>")
-    print(" > Note this directory must be under OtherEngine/src")
+    print(" > Note this directory will be placed under OtherEngine/src if it does not already exist there")
     sys.exit(1)
 
 h_file = FILE_NAME + ".hpp"
 c_file = FILE_NAME + ".cpp"
 
 if DIRECTORY != "":
-    directory = os.path.join("OtherEngine", DIRECTORY)
+    directory = os.path.join("OtherEngine", "src")
+    directory = os.path.join(directory, DIRECTORY)
     os.makedirs(directory, exist_ok=True)
 
     full_hpath = "OtherEngine/src/{}/{}".format(DIRECTORY, h_file)
@@ -37,8 +38,7 @@ if os.path.exists(full_cpath):
 uc_hname = FILE_NAME.upper()
 
 with open("{}".format(full_hpath), "w") as f:
-    f.write("""
-/**
+    f.write("""/**
  * \\file {}/{}
  **/
 #ifndef OTHER_ENGINE_{}_HPP
@@ -54,8 +54,7 @@ namespace other {{
 """.format(DIRECTORY, h_file, uc_hname, uc_hname, uc_hname))
 
 with open("{}".format(full_cpath), "w") as f:
-    f.write("""
-/**
+    f.write("""/**
  * \\file {}/{}
  **/
 #include "{}/{}"

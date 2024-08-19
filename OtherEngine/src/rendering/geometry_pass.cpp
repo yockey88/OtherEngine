@@ -1,4 +1,3 @@
-
 /**
  * \file rendering/geometry_pass.cpp
  **/

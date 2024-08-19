@@ -242,9 +242,9 @@ namespace other {
     active_scene->scene->LateUpdate(dt);
   }
 
-  bool SceneManager::RenderScene(Ref<SceneRenderer> scene_renderer , Ref<CameraBase> viewpoint) {
+  bool SceneManager::RenderScene(Ref<SceneRenderer>& scene_renderer , Ref<CameraBase> viewpoint) {
     if (!HasActiveScene()) {
-      return false;
+      return true;
     }
     
     if (viewpoint == nullptr) {
@@ -259,8 +259,7 @@ namespace other {
     
     scene_renderer->BeginScene(viewpoint , environment);
     active_scene->scene->Render(scene_renderer);
-
-    // debug rendering
+    scene_renderer->EndScene();
     
     return true;
   }
