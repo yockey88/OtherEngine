@@ -1,0 +1,14 @@
+[project]
+name = "test_engine"
+author = "Y"
+version = 0.0.1
+
+[window]
+width = 1280
+height = 720
+title = "Other Engine Test Engine"
+
+[log]
+console-level = "trace"
+file-level = "trace"
+path = "./logs/test_engine.log"

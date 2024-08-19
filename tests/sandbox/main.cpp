@@ -11,6 +11,8 @@
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <imgui/backends/imgui_impl_sdl2.h>
+#include <rendering/gbuffer.hpp>
+#include <rendering/pipeline.hpp>
 #include <rendering/point_light.hpp>
 #include <scene/environment.hpp>
 
@@ -70,7 +72,6 @@ using other::CameraBase;
 using other::PerspectiveCamera;
 using other::Uniform;
 using other::UniformBuffer;
-using other::ModelSource;
 using other::StaticModel;
 using other::SceneRenderSpec;
 using other::SceneRenderer;
@@ -89,15 +90,17 @@ class TestApp : public other::App {
 void LaunchMock(const other::ConfigTable& config) {
   other::IO::Initialize();
   other::EventQueue::Initialize(config);
+  other::ScriptEngine::Initialize(config);
+  
   other::Renderer::Initialize(config);
   other::UI::Initialize(config , other::Renderer::GetWindow());
-  other::ScriptEngine::Initialize(config);
 }
 
 void ShutdownMock() {
-  other::ScriptEngine::Shutdown();
   other::UI::Shutdown();
   other::Renderer::Shutdown();
+
+  other::ScriptEngine::Shutdown();
   other::EventQueue::Shutdown();
   other::IO::Shutdown();
 }
@@ -144,6 +147,7 @@ int main(int argc , char* argv[]) {
     const other::Path default_path = shader_dir / "default.oshader";
     const other::Path normals_path = shader_dir / "normals.oshader";
     const other::Path fbshader_path = shader_dir / "fbshader.oshader";
+    const other::Path deferred_shader_path = shader_dir / "deferred_shading.oshader";
     const other::Path add_fog_shader_path = shader_dir / "fog.oshader";
     const other::Path red_path = shader_dir / "red.oshader";
     const other::Path outline_path = shader_dir / "outline.oshader";
@@ -156,12 +160,7 @@ int main(int argc , char* argv[]) {
       Ref<CameraBase> camera = NewRef<PerspectiveCamera>(glm::ivec2{ win_size.x , win_size.y });
       camera->SetPosition({ 0.f , 0.f , 3.f });
 
-  #define FOGFB 0
-
       Ref<Shader> fbshader = other::BuildShader(fbshader_path);
-#if FOGFB
-      Ref<Shader> fog_shader = other::BuildShader(add_fog_shader_path);
-#endif
 
       const other::Path editor_folder_path = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "textures" / "editor" / "folder.png";
 
@@ -224,25 +223,52 @@ int main(int argc , char* argv[]) {
       };
       Ref<other::Shader> outline_shader = other::BuildShader(outline_path);
       Ref<other::Shader> geometry_shader = other::BuildShader(default_path);
-      
+      Ref<other::Shader> deferred_shader = other::BuildShader(deferred_shader_path);
+      deferred_shader->Bind();
+      deferred_shader->SetUniform("goe_position" , 0);
+      deferred_shader->SetUniform("goe_normal" , 1);
+      deferred_shader->SetUniform("goe_albedo" , 2);
+      deferred_shader->Unbind();
+        
+      other::RenderPassSpec normal_pass_spec {
+        .name = "Draw Normals" , 
+        .tag_col = { 0.f , 1.f , 0.f , 1.f } ,
+        .uniforms = {
+          { "magnitude" , other::FLOAT } ,
+        } ,
+        .shader = other::BuildShader(normals_path) ,
+      };
+      Ref<other::RenderPass> normal_pass = NewRef<other::RenderPass>(normal_pass_spec);
       Ref<other::RenderPass> geom_pass = NewRef<other::GeometryPass>(geometry_unis , geometry_shader);
       Ref<other::RenderPass> outline_pass = NewRef<other::OutlinePass>(outline_unis , outline_shader);
 
+      other::PipelineSpec pl_spec = {
+        .framebuffer_spec = {
+          .depth_func = other::LESS_EQUAL ,
+          .clear_color = { 0.1f , 0.1f , 0.1f , 1.f } ,
+          .size = other::Renderer::WindowSize() ,
+        } ,
+        .vertex_layout = default_layout ,
+        .model_uniforms = model_unis , 
+        .model_binding_point = model_binding_pnt ,
+        .material_uniforms = material_unis ,
+        .material_binding_point = material_binding_pnt ,
+        .debug_name = "Test Pipeline 1" , 
+      };
+      other::PipelineSpec pl_spec2 = pl_spec;
+      pl_spec2.debug_name = "Test Pipeoline 2"; 
+
+      Scope<other::Pipeline> pipeline = NewScope<other::Pipeline>(pl_spec);
+      Scope<other::Pipeline> pipeline2 = NewScope<other::Pipeline>(pl_spec2);
+      pipeline->SubmitRenderPass(geom_pass);
+      pipeline2->SubmitRenderPass(normal_pass);
 
       SceneRenderSpec render_spec {
         .camera_uniforms = NewRef<UniformBuffer>("Camera" , cam_unis , camera_binding_pnt) ,
         .light_uniforms = NewRef<UniformBuffer>("Lights" , light_unis , light_binding_pnt , other::SHADER_STORAGE) ,
         .passes = {
           {
-            .name = "Draw Normals" , 
-            .tag_col = { 0.f , 1.f , 0.f , 1.f } ,
-            .uniforms = {
-              { "magnitude" , other::FLOAT } ,
-            } ,
-            .shader = other::BuildShader(normals_path) ,
-          } ,
-          {
-            .name = "Pure Geometry" , 
+            .name = "Albedo" , 
             .tag_col = { 0.f , 0.f , 0.f , 1.f } ,
             .uniforms = {} ,
             .shader = other::BuildShader(pure_geometry_path) ,
@@ -273,7 +299,7 @@ int main(int argc , char* argv[]) {
             .model_binding_point = model_binding_pnt ,
             .material_uniforms = material_unis ,
             .material_binding_point = material_binding_pnt ,
-            .debug_name = "Debug" , 
+            .debug_name = "Outline" ,
           } ,
           {
             .framebuffer_spec = {
@@ -286,16 +312,16 @@ int main(int argc , char* argv[]) {
             .model_binding_point = model_binding_pnt ,
             .material_uniforms = material_unis ,
             .material_binding_point = material_binding_pnt ,
-            .debug_name = "Outline" ,
+            .debug_name = "Normals" , 
           } ,
         } , 
         .ref_passes = {
-          geom_pass , outline_pass ,
+          geom_pass , outline_pass , normal_pass ,
         } ,
         .pipeline_to_pass_map = {
           { FNV("Geometry") , { FNV(geom_pass->Name()) } } ,
-          { FNV("Debug")    , { FNV("Pure Geometry")      , FNV("Draw Normals")  } } ,
-          { FNV("Outline")  , { FNV(outline_pass->Name()) , FNV(geom_pass->Name()) } } ,
+          { FNV("Normals")  , { FNV("Albedo")             , FNV(normal_pass->Name())  } } ,
+          { FNV("Outline")  , { FNV(outline_pass->Name()) , FNV("Albedo") } } ,
         } ,
       };
       Scope<SceneRenderer> renderer = NewScope<SceneRenderer>(render_spec);
@@ -369,7 +395,6 @@ int main(int argc , char* argv[]) {
         } ,
       };
       
-
       other::Material light_material = {
         .ambient  = { 1.f , 1.f , 1.f  , 1.f } ,
         .diffuse  = { 1.f , 1.f , 1.f  , 1.f } ,
@@ -380,11 +405,7 @@ int main(int argc , char* argv[]) {
       glm::vec3 outline_color{ 1.f , 0.f , 0.f };
 
       while (running) {
-        /// get dt
-
         other::IO::Update();
-
-        /// early update
 
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
@@ -434,48 +455,64 @@ int main(int argc , char* argv[]) {
         cube_model2 = glm::translate(cube_model2 , cube_pos2);
 
         light_model1 = glm::mat4(1.f);
-        light_model1 = glm::translate(light_model1 , light_pos1);
+        light_model1 = glm::translate(light_model1 , glm::vec3(environment->point_lights[0].position));
         light_model1 = glm::scale(light_model1 , light_scale);
         
         light_model2 = glm::mat4(1.f);
-        light_model2 = glm::translate(light_model2 , light_pos2);
+        light_model2 = glm::translate(light_model2 , glm::vec3(environment->point_lights[1].position));
         light_model2 = glm::scale(light_model2 , light_scale);
 
         other::Renderer::GetWindow()->Clear();
 
         renderer->BeginScene(camera , environment);
 
+#define FULL_RENDER 1
+#if FULL_RENDER
         renderer->SetUniform("Draw Normals" , "magnitude" , 0.4f);
         renderer->SetUniform(outline_pass->Name() , "outline_color" , outline_color);
-
-        /// outline the first cube but not the second
-        renderer->SubmitStaticModel("Outline" , model , cube_model1 , cube_material1);
-
+        
+        /// light cube only gets rendered in debug
+        renderer->SubmitStaticModel("Normals" , model , cube_model1 , cube_material1);
+        renderer->SubmitStaticModel("Normals" , model , cube_model2 , cube_material2);
+        renderer->SubmitStaticModel("Normals" , model , light_model1 , light_material);
+        renderer->SubmitStaticModel("Normals" , model , light_model2 , light_material);
+        
         renderer->SubmitStaticModel("Geometry" , model , cube_model1 , cube_material1);
         renderer->SubmitStaticModel("Geometry" , model , cube_model2 , cube_material2);
 
-        /// light cube only gets rendered in debug
-        renderer->SubmitStaticModel("Debug" , model , cube_model1 , cube_material1);
-        renderer->SubmitStaticModel("Debug" , model , cube_model2 , cube_material2);
-        renderer->SubmitStaticModel("Debug" , model , light_model1 , light_material);
-        renderer->SubmitStaticModel("Debug" , model , light_model2 , light_material);
-        renderer->EndScene();
+        /// outline the first cube but not the second
+        renderer->SubmitStaticModel("Outline" , model , cube_model1 , cube_material1);
+        renderer->SubmitStaticModel("Outline" , model , cube_model2 , cube_material2);
 
+        
+        renderer->EndScene();
         const auto& frames = renderer->GetRender(); 
         const auto& vp = frames.at(FNV("Geometry"));
+#else
+        pipeline->SubmitStaticModel(model , cube_model1 , cube_material1);
+        pipeline->Render();
+        auto& gbuffer = pipeline->GetGBuffer();
+        const auto& vp = pipeline->GetOutput();
+#endif 
 
-        glActiveTexture(GL_TEXTURE0);
+        glActiveTexture(GL_TEXTURE4);
         glBindTexture(GL_TEXTURE_2D , vp->texture);
-        fbshader->SetUniform("screen_tex" , 0);
+        deferred_shader->Bind();
         fb_mesh->Draw(other::TRIANGLES);
 
 #define UI_ENABLED 1
 #if UI_ENABLED
         other::UI::BeginFrame();
+        const ImVec2 win_size = { (float)other::Renderer::WindowSize().x , (float)other::Renderer::WindowSize().y };
         if (ImGui::Begin("Frames")) {
-          ImVec2 win_size = { (float)other::Renderer::WindowSize().x , (float)other::Renderer::WindowSize().y };
-          RenderItem(frames.at(FNV("Debug"))->texture , "Debug" , win_size);
+#if FULL_RENDER
+          RenderItem(frames.at(FNV("Normals"))->texture , "Normals" , win_size);
           RenderItem(frames.at(FNV("Outline"))->texture , "Outline" , win_size);
+#else 
+          RenderItem(gbuffer.textures[other::GBuffer::POSITION] , "GBuffer Position 1" , win_size);
+          RenderItem(gbuffer.textures[other::GBuffer::NORMAL] , "GBuffer Normal 1" , win_size);
+          RenderItem(gbuffer.textures[other::GBuffer::ALBEDO] , "GBuffer Albedo 1" , win_size);
+#endif
         } 
         ImGui::End();
 

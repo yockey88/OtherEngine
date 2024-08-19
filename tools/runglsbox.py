@@ -16,7 +16,7 @@ if (config == "release"):
 ret = 0
 
 if project_settings.IsWindows():
-    proc_args = ["cmd.exe", "/c", "{}\\run.bat".format(project_settings.TOOLS_DIR), config, "sandbox"]
+    proc_args = ["cmd.exe", "/c", "{}\\run.bat".format(project_settings.TOOLS_DIR), config, "gl_sandbox"]
     proc_args.extend(arguments)
     ret = subprocess.call(proc_args, cwd=os.getcwd())
 else:

@@ -1,10 +1,11 @@
 /**
  * \file gl_sandbox/main.cpp
  **/
+#include <iostream>
+
 #include <SDL_events.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <imgui/backends/imgui_impl_sdl2.h>
-#include <iostream>
 
 #include <SDL_video.h>
 #include <glad/glad.h>
@@ -20,20 +21,40 @@
 #include "core/logger.hpp"
 #include "core/errors.hpp"
 #include "core/ref.hpp"
+#include "core/filesystem.hpp"
 #include "parsing/ini_parser.hpp"
 
-#include "input/io.hpp"
 #include "event/event_queue.hpp"
+#include "input/io.hpp"
 
 #include "rendering/rendering_defines.hpp"
 #include "rendering/window.hpp"
+#include "rendering/vertex.hpp"
+#include "rendering/shader.hpp"
+#include "rendering/uniform.hpp"
 #include "rendering/framebuffer.hpp"
-#include "rendering/pipeline.hpp"
 #include "rendering/perspective_camera.hpp"
 #include "rendering/camera_base.hpp"
-#include "rendering/geometry_pass.hpp"
 #include "rendering/material.hpp"
 #include "rendering/point_light.hpp"
+#include "rendering/direction_light.hpp"
+
+#include "sandbox_ui.hpp"
+#include "gl_helpers.hpp"
+#include "shader_embed.hpp"
+
+struct Quad {
+  uint32_t vao = 0 , vbo = 0 , ebo = 0;
+  std::vector<float> vertices;
+  constexpr static uint32_t indices[] = {
+    0 , 1 , 2 , 1 , 2 , 3 ,
+  };
+
+  Quad();
+  ~Quad();
+
+  void Draw();
+};
 
 struct Cube {
   uint32_t vao = 0 , vbo = 0 , ebo = 0;
@@ -53,154 +74,11 @@ struct Cube {
     6, 7, 3 , 
   };
 
-  Cube(uint32_t model_idx);
+  Cube();
   ~Cube();
+
+  void Draw(other::DrawMode mode , uint32_t instances = 1);
 };
-
-
-static const char* vert1 = R"(
-#version 460 core
-
-layout (location = 0) in vec3 vpos;
-layout (location = 1) in vec3 vnormal;
-
-layout (std140 , binding = 0) uniform Camera {
-  mat4 projection;
-  mat4 view;
-  vec4 viewpoint;
-};
-
-layout (std430 , binding = 1) readonly buffer ModelData {
-  mat4 models[];
-};
-
-struct Material {
-  vec4 ambient;
-  vec4 diffuse;
-  vec4 specular;
-  float shininess;
-};
-
-layout (std430 , binding = 2) readonly buffer MaterialData {
-  Material materials[];
-};
-
-out vec4 fviewpoint;
-out vec3 position;
-out vec3 normal;
-
-out Material material;
-
-void main() {
-  gl_Position = projection * view * models[gl_InstanceID] * vec4(vpos , 1.0);
-
-  material = materials[gl_InstanceID];
-
-  fviewpoint = viewpoint;
-  position = vec3(models[gl_InstanceID] * vec4(vpos , 1.0));
-  normal = mat3(transpose(inverse(models[gl_InstanceID]))) * vnormal;
-}
-)";
-
-static const char* frag1 = R"(
-#version 460 core
-
-struct Material {
-  vec4 ambient;
-  vec4 diffuse;
-  vec4 specular;
-  float shininess;
-};
-
-struct PointLight {
-  vec4 position;
-  vec4 ambient;
-  vec4 diffuse;
-  vec4 specular;
-  float constant;
-  float linear;
-  float quadratic;
-};
-
-layout (std430 , binding = 3) readonly buffer Lights {
-  // int num_point_lights;
-  PointLight point_lights[];
-};
-
-uniform PointLight plight;
-
-in vec4 fviewpoint;
-in vec3 position;
-in vec3 normal;
-
-in Material material;
-
-out vec4 frag_color;
-
-vec3 CalcPointLight(PointLight light , vec3 normal , vec3 frag_pos , vec3 view_dir) {
-  vec3 light_dir = normalize(light.position.xyz - frag_pos);
-  float diff = max(dot(normal , light_dir) , 0.f);
-
-  vec3 reflect_dir = reflect(-light_dir , normal);
-  float spec = pow(max(dot(view_dir , reflect_dir) , 0.0) , material.shininess);
-
-  float distance = length(light.position.xyz - frag_pos);
-  float attenuation = 1.f / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
-
-  // vec3 ambient = material.ambient.rgb;
-  vec3 ambient = light.ambient.rgb * material.ambient.rgb * attenuation;
-  vec3 diffuse = light.diffuse.rgb * diff * material.diffuse.rgb * attenuation;
-  vec3 specular = light.specular.rgb * spec * material.specular.rgb * attenuation;
-  
-  return (ambient + diffuse + specular);
-}
-
-void main() {
-  // vec3 result = vec3(0.f , 0.f , 0.f);
-  // for (int i = 0; i < num_point_lights; ++i) {
-  //   result += CalcPointLight(point_lights[i] , normal , position , fviewpoint.xyz); 
-  // }
-  vec3 result = CalcPointLight(point_lights[0] , normal , position , fviewpoint.xyz);
-  frag_color = vec4(result , 1.0);
-}
-)";
-
-static const char* frag2 = R"(
-#version 460 core
-
-struct Material {
-  vec4 ambient;
-  vec4 diffuse;
-  vec4 specular;
-  float shininess;
-};
-
-struct PointLight {
-  vec4 position;
-  vec4 ambient;
-  vec4 diffuse;
-  vec4 specular;
-  float constant;
-  float linear;
-  float quadratic;
-};
-
-in vec4 fviewpoint;
-in vec3 position;
-in vec3 normal;
-
-in Material material;
-
-out vec4 frag_color;
-
-void main() {
-  frag_color = vec4(1.f , 0.f , 0.f , 1.f);
-}
-)";
-
-void CheckGlError(int line);
-
-#define CHECK() do { CheckGlError(__LINE__); } while (false)
 
 constexpr static uint32_t win_w = 800;
 constexpr static uint32_t win_h = 600;
@@ -211,6 +89,8 @@ using other::NewRef;
 using other::Scope;
 using other::NewScope;
 
+using other::VertexArray;
+using other::Shader;
 using other::CameraBase;
 using other::PerspectiveCamera;
 using other::Framebuffer;
@@ -287,89 +167,40 @@ int main(int argc , char* argv[]) {
 
     OE_INFO("ImGui Initialized successfully"); 
 
-    int success;
-
-    int32_t vert_1 = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vert_1, 1, &vert1, nullptr);
-    
-    glCompileShader(vert_1);
-    glGetShaderiv(vert_1, GL_COMPILE_STATUS, &success);
-    if (success != GL_TRUE) {
-      char info[512];
-      glGetShaderInfoLog(vert_1, 512, nullptr, info);
-      OE_ERROR("Failed to compile vertex shader: {0}", info);
-    }
-    
-    CHECK();
-
-    int32_t frag_1 = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(frag_1, 1, &frag1, nullptr);
-
-    glCompileShader(frag_1);
-    glGetShaderiv(frag_1, GL_COMPILE_STATUS, &success);
-    if (success != GL_TRUE) {
-      char info[511];
-      glGetShaderInfoLog(frag_1, 512, nullptr, info);
-      OE_ERROR("Failed to compile fragment shader: {0}", info);
-    }
-    
-    CHECK();
-
-    uint32_t shader1 = 0;
-    shader1 = glCreateProgram();
-    glAttachShader(shader1, vert_1);
-    glAttachShader(shader1, frag_1);
-    glLinkProgram(shader1);
-    
-    glGetProgramiv(shader1, GL_LINK_STATUS, &success);
-    if (success != GL_TRUE) {
-      char info[512];
-      glGetProgramInfoLog(shader1, 512, nullptr, info);
-      OE_ERROR("Failed to link shader program: {0}", info);
-    }
-
-    glDeleteShader(frag_1);
-    
-    CHECK();
-
-    int32_t frag_2 = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(frag_2, 1, &frag2, nullptr);
-
-    glCompileShader(frag_2);
-    glGetShaderiv(frag_2, GL_COMPILE_STATUS, &success);
-    if (success != GL_TRUE) {
-      char info[511];
-      glGetShaderInfoLog(frag_2, 512, nullptr, info);
-      OE_ERROR("Failed to compile fragment shader: {0}", info);
-    }
-    
-    CHECK();
-
-    uint32_t shader2 = 0;
-    shader2 = glCreateProgram();
-    glAttachShader(shader2, vert_1);
-    glAttachShader(shader2, frag_2);
-    glLinkProgram(shader2);
-    
-    glGetProgramiv(shader2, GL_LINK_STATUS, &success);
-    if (success != GL_TRUE) {
-      char info[512];
-      glGetProgramInfoLog(shader2, 512, nullptr, info);
-      OE_ERROR("Failed to link shader2 program: {0}", info);
-    }
-
-    glDeleteShader(vert_1);
-    glDeleteShader(frag_2);
+    uint32_t shader1 = other::GetShader(vert1 , frag1);
+    uint32_t shader2 = other::GetShader(vert2 , frag2);
 
     OE_INFO("Shaders Compiled");
 
-    Cube cube1(0);
+    Quad quad;
+    CHECK();
+    Cube cube;
     CHECK();
 
-    Cube cube2(1);
-    CHECK();
+    OE_INFO("VAOs created");
 
-    OE_INFO("VAO created");
+    Scope<Framebuffer> frame = NewScope<Framebuffer>(other::FramebufferSpec{});
+
+    std::vector<float> fb_verts = {
+       1.f ,  1.f , 1.f , 1.f ,
+      -1.f ,  1.f , 0.f , 1.f ,
+      -1.f , -1.f , 0.f , 0.f ,
+       1.f , -1.f , 1.f , 0.f
+    };
+    
+    std::vector<uint32_t> fb_indices = { 
+      0 , 1 , 3 , 
+      1 , 2 , 3 
+    };
+    std::vector<uint32_t> fb_layout = { 
+      2 , 2 
+    };
+      
+    Scope<VertexArray> fb_mesh = NewScope<VertexArray>(fb_verts , fb_indices , fb_layout);
+    
+    const other::Path shader_dir = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders";
+    const other::Path fbshader_path = shader_dir / "fbshader.oshader";
+    Ref<Shader> fb_shader = other::BuildShader(fbshader_path);
 
     other::Ref<CameraBase> camera = other::NewRef<PerspectiveCamera>(glm::ivec2{ win_w , win_h });
     camera->SetPosition({ 0.f , 0.f , 3.f });
@@ -401,6 +232,12 @@ int main(int argc , char* argv[]) {
       .diffuse  = { 0.5f , 0.5f , 0.5f , 1.f } ,
       .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
     };
+    other::DirectionLight dir_light {
+      .direction = { -0.2f , 1.0f , -0.3f , 1.f } ,
+      .ambient = { 1.0f , 1.0f , 1.0f , 1.f } ,
+      .diffuse = { 1.0f , 1.0f , 1.0f , 1.f } ,
+      .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
+    };
 
     CHECK();
 
@@ -423,7 +260,9 @@ int main(int argc , char* argv[]) {
     
     uint32_t light_binding_pnt = 3;
     std::vector<other::Uniform> light_unis = {
+      { "num_lights" , other::ValueType::VEC4 } ,
       { "point_lights"     , other::ValueType::USER_TYPE , 100 , sizeof(other::PointLight) } ,
+      { "direction_lights"     , other::ValueType::USER_TYPE , 100 , sizeof(other::DirectionLight) } ,
     };
     
     Ref<other::UniformBuffer> camera_uniforms = NewRef<other::UniformBuffer>("Camera" , camera_unis , camera_binding_pnt);    
@@ -438,24 +277,71 @@ int main(int argc , char* argv[]) {
                                                                             other::SHADER_STORAGE);    
     model_uniforms->BindBase();
     
-    
-
     other::Buffer model_buffer;
     other::Buffer material_buffer;
+    
+    uint32_t gbuffer = 0;
+    uint32_t gbuffer_textures[4] = {
+      0 , 0 , 0 , 0
+    };
+
+    glUseProgram(shader2);
+    glUniform1i(glGetUniformLocation(shader2 , "g_position") , 0);
+    glUniform1i(glGetUniformLocation(shader2 , "g_normal") , 1);
+    glUniform1i(glGetUniformLocation(shader2 , "g_albedo_spec") , 2);
+    glUseProgram(0);
+
+    OE_DEBUG("Uniforms Set");
+
+    glGenFramebuffers(1 , &gbuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER , gbuffer);
+    glGenTextures(3 , gbuffer_textures);
+
+    glBindTexture(GL_TEXTURE_2D , gbuffer_textures[0]);
+    glTexImage2D(GL_TEXTURE_2D , 0 , GL_RGBA16F , win_w , win_h , 0 , GL_RGBA , GL_FLOAT , nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gbuffer_textures[0] , 0);
+
+    glBindTexture(GL_TEXTURE_2D , gbuffer_textures[1]);
+    glTexImage2D(GL_TEXTURE_2D , 0 , GL_RGBA16F , win_w , win_h , 0 , GL_RGBA , GL_FLOAT , nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1 , GL_TEXTURE_2D, gbuffer_textures[1] , 0);
+    
+    glBindTexture(GL_TEXTURE_2D , gbuffer_textures[2]);
+    glTexImage2D(GL_TEXTURE_2D , 0 , GL_RGBA , win_w , win_h , 0 , GL_RGBA , GL_UNSIGNED_BYTE , nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gbuffer_textures[2] , 0);
+
+    uint32_t attachments[3] = { GL_COLOR_ATTACHMENT0 , GL_COLOR_ATTACHMENT1 , GL_COLOR_ATTACHMENT2 };
+    glDrawBuffers(3 , attachments);
+
+    uint32_t render_buffer = 0;
+    glGenRenderbuffers(1 , &render_buffer);
+    glBindRenderbuffer(GL_RENDERBUFFER , render_buffer);
+    glRenderbufferStorage(GL_RENDERBUFFER , GL_DEPTH_COMPONENT , win_w , win_h);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER , GL_DEPTH_ATTACHMENT , GL_RENDERBUFFER , render_buffer);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+      OE_ERROR("G-Buffer not complete!");
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER , 0);
 
     glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
-    glEnable(GL_STENCIL_TEST);
-    glStencilFunc(GL_NOTEQUAL , 1 , 0xFF);
-    glStencilOp(GL_KEEP , GL_KEEP , GL_REPLACE);
 
     OE_INFO("Running");
 
     bool running = true;
-    bool camera_lock = false;
-    other::Mouse::LockCursor();
+    
+    bool camera_lock = true;
+    bool force_update = true;
+    other::Mouse::FreeCursor();
 
     while (running) {
+      other::IO::Update();
+      
       SDL_Event event;
       while (SDL_PollEvent(&event)) {
         switch (event.type) {
@@ -489,10 +375,11 @@ int main(int argc , char* argv[]) {
         ImGui_ImplSDL2_ProcessEvent(&event);
       }
 
-      other::IO::Update();
+      other::EventQueue::Clear();
 
       /// update camera uniforms
-      if (!camera_lock) {
+      if (!camera_lock || force_update) {
+        force_update = !force_update;
         UpdateCamera(camera);
         proj = camera->ProjectionMatrix();
         view = camera->ViewMatrix();
@@ -504,82 +391,109 @@ int main(int argc , char* argv[]) {
         camera_uniforms->SetUniform("viewpoint" , cam_pos);
       }
 
+      light_uniforms->SetUniform("num_lights" , glm::vec4{ 0 , 1 , 0 , 0 });
       light_uniforms->SetUniform("point_lights" , point_light);
+      light_uniforms->SetUniform("direction_lights" , dir_light);
 
       model1 = glm::mat4(1.f);
       model1 = glm::rotate(model1 , m1_rotation , { 1.f , 1.f , 1.f });
       m1_rotation += 0.1f;
 
       /// clear window
-      glClearColor(0.2f , 0.3f , 0.3f , 1.f);
-      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+      glClearColor(0.f , 0.f , 0.f , 1.f);
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // GL_STENCIL_BUFFER_BIT);
       
-/// cpu buffers belong to mesh key (1 per mesh)
-/// > model/material submission
-      model_buffer.BufferData(model1);
-      model_buffer.BufferData(model2);
-      material_buffer.BufferData(material1);
-      material_buffer.BufferData(material2);
-/// > end model/material submission
-      
-      
-////// OUTLINE RENDER PASS 
-      float scale = 1.05f;
-      float inv_scale = 1.f / scale;
-      model1 = glm::scale(model1 , { scale , scale , scale });
-      
-      
-  /// > Bind RenderPass
-      glStencilFunc(GL_NOTEQUAL , 0 , 0xFF);
-      glStencilMask(0x00);
-      glDisable(GL_DEPTH_TEST);
-      
-      glUseProgram(shader2);
-  /// > End Bind RenderPass
-
-  /// > for each mesh in model submissions
-      glBindVertexArray(cube1.vao);
-
-  /// > let render pass set its own uniforms
-      model_uniforms->BindBase();
-      model_uniforms->LoadFromBuffer(model_buffer);
-  /// > end let render pass set its own uniforms 
-      
-    /// draw
-      glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES , 36 , GL_UNSIGNED_INT , (void*)0 , 1 , 0 , 0);
-////// END OUTLINE RENDER PASS 
-
-////// END GEOMETRY RENDER PASS 
-      model1 = glm::scale(model1 , { inv_scale , inv_scale , inv_scale });
-
-  /// > Bind RenderPass
-      glEnable(GL_DEPTH_TEST);
-      glStencilFunc(GL_ALWAYS , 1 , 0xFF);
-      glStencilMask(0xFF);
+///> GBUFFER RENDER
+      glBindFramebuffer(GL_FRAMEBUFFER , gbuffer);
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
       glUseProgram(shader1);
-      glBindVertexArray(cube1.vao);
-  /// > End Bind RenderPass
 
-  /// > let render pass set its own uniforms
-      material_uniforms->BindBase();
-      material_uniforms->LoadFromBuffer(material_buffer);
-      model_uniforms->BindBase();
-      model_uniforms->LoadFromBuffer(model_buffer);
-  /// > end let render pass set its own uniforms
-
-    /// > draw
-      glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES , 36 , GL_UNSIGNED_INT , (void*)0 , 2 , 0 , 0);
-////// END GEOMETRY RENDER PASS 
-
-      /// reset buffers after render (size == 0, capacity unchanged) 
       model_buffer.ZeroMem();
       material_buffer.ZeroMem();
 
-#if 0
+      model_buffer.BufferData(model1);
+      material_buffer.BufferData(material1);
+
+      model_buffer.BufferData(model2);
+      material_buffer.BufferData(material2);
+
+      model_uniforms->BindBase();
+      model_uniforms->LoadFromBuffer(model_buffer);
+
+      material_uniforms->BindBase();
+      material_uniforms->LoadFromBuffer(material_buffer);
+
+      cube.Draw(other::TRIANGLES , 2);
+      
+      glBindFramebuffer(GL_FRAMEBUFFER , 0);
+/// > END GBUFFER RENDER
+
+/// > DEBUG
+#define DEBUG 0
+#if DEBUG
+      glActiveTexture(GL_TEXTURE0);
+      glBindTexture(GL_TEXTURE_2D , gbuffer_textures[1]);
+      fb_shader->SetUniform("screen_tex" , 0);
+      fb_mesh->Draw(other::TRIANGLES);
+#endif 
+/// > END DEBUG
+
+/// > LIGHTING PASS
+#if !DEBUG
+      glUseProgram(shader2);
+      
+      model_uniforms->BindBase();
+      model_uniforms->SetUniform("models" , model_buffer);
+
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+      glActiveTexture(GL_TEXTURE0);
+      glBindTexture(GL_TEXTURE_2D , gbuffer_textures[0]);
+      glActiveTexture(GL_TEXTURE1);
+      glBindTexture(GL_TEXTURE_2D , gbuffer_textures[1]);
+      glActiveTexture(GL_TEXTURE2);
+      glBindTexture(GL_TEXTURE_2D , gbuffer_textures[2]);
+
+      fb_mesh->Draw(other::TRIANGLES);
+
+      glBindFramebuffer(GL_FRAMEBUFFER , 0);
+#endif
+/// > END LIGHTING PASS
+
+/// > copy final results default
+      // glBindFramebuffer(GL_READ_FRAMEBUFFER, gbuffer);
+      // glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); // write to default framebuffer
+      // // blit to default framebuffer. Note that this may or may not work as the internal formats of 
+      // //    both the FBO and default framebuffer have to match.
+      // // the internal formats are implementation defined. This works on all of my systems, 
+      // //    but if it doesn't on yours you'll likely have to write to th 
+      // // depth buffer in another shader stage (or somehow see to match the default 
+      // //    framebuffer's internal format with the FBO's internal format).
+      // glBlitFramebuffer(0, 0, win_w, win_h, 0, 0, win_w, win_h, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+      // glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+/// set gbuffer data
+  
+#define UI_ENABLED 1
+#if UI_ENABLED
       ImGui_ImplOpenGL3_NewFrame();
       ImGui_ImplSDL2_NewFrame(context.window);
       ImGui::NewFrame();
+
+      if (ImGui::Begin("GBuffer")) {
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D , gbuffer_textures[0]);
+        RenderItem(gbuffer_textures[0] , "Position" , ImVec2((float)win_w / 2 , (float)win_h / 2));
+        ImGui::SameLine();
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D , gbuffer_textures[1]);
+        RenderItem(gbuffer_textures[1] , "Normals" , ImVec2((float)win_w / 2 , (float)win_h / 2));
+        ImGui::SameLine();
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D , gbuffer_textures[2]);
+        RenderItem(gbuffer_textures[2] , "Albedo" , ImVec2((float)win_w / 2 , (float)win_h / 2));
+      }
+      ImGui::End();
 
       ImGui::Render();
       ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -615,16 +529,12 @@ int main(int argc , char* argv[]) {
   return 1;
 }
   
-Cube::Cube(uint32_t model_idx) {
+Quad::Quad() {
   vertices = {
-    -1.0f / 2.0f, -1.0f / 2.0f,  1.0f / 2.0f ,  -1.f , -1.f ,  1.f , 
-     1.0f / 2.0f, -1.0f / 2.0f,  1.0f / 2.0f ,   1.f , -1.f ,  1.f ,
-     1.0f / 2.0f,  1.0f / 2.0f,  1.0f / 2.0f ,   1.f ,  1.f ,  1.f ,
-    -1.0f / 2.0f,  1.0f / 2.0f,  1.0f / 2.0f ,  -1.f ,  1.f ,  1.f ,
-    -1.0f / 2.0f, -1.0f / 2.0f, -1.0f / 2.0f ,  -1.f , -1.f , -1.f ,
-     1.0f / 2.0f, -1.0f / 2.0f, -1.0f / 2.0f ,   1.f , -1.f , -1.f ,
-     1.0f / 2.0f,  1.0f / 2.0f, -1.0f / 2.0f ,   1.f ,  1.f , -1.f ,
-    -1.0f / 2.0f,  1.0f / 2.0f, -1.0f / 2.0f ,  -1.f ,  1.f , -1.f ,
+   /* (-,+,0) */   -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
+   /* (-,-,0) */   -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+   /* (+,+,0) */    1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+   /* (+,-,0) */    1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
   }; 
   glGenVertexArrays(1, &vao);
   glBindVertexArray(vao);
@@ -632,14 +542,50 @@ Cube::Cube(uint32_t model_idx) {
   glGenBuffers(1, &vbo);
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
   glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data() , GL_STATIC_DRAW);
+
+  glVertexAttribPointer(0 , 3 , GL_FLOAT , GL_FALSE , 5 * sizeof(float) , (void*)0);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(2 , 3 , GL_FLOAT , GL_FALSE , 5 * sizeof(float) , (void*)(3 * sizeof(float)));
+  glEnableVertexAttribArray(2);
+
+  glBindVertexArray(0);
+}
+
+Quad::~Quad() {
+  glDeleteVertexArrays(1 , &vao);
+  glDeleteBuffers(1 , &vbo);
+}
+
+void Quad::Draw() {
+  glBindVertexArray(vao);
+  glDrawArrays(GL_TRIANGLE_STRIP , 0 , 4);
+  glBindVertexArray(0);
+}
   
+Cube::Cube() {
+  vertices = {
+   /* (-,-,+) */  -1.0f / 2.0f, -1.0f / 2.0f,  1.0f / 2.0f ,  -1.f , -1.f ,  1.f ,  
+   /* (+,-,+) */   1.0f / 2.0f, -1.0f / 2.0f,  1.0f / 2.0f ,   1.f , -1.f ,  1.f , 
+   /* (+,+,+) */   1.0f / 2.0f,  1.0f / 2.0f,  1.0f / 2.0f ,   1.f ,  1.f ,  1.f , 
+   /* (-,+,+) */  -1.0f / 2.0f,  1.0f / 2.0f,  1.0f / 2.0f ,  -1.f ,  1.f ,  1.f , 
+   /* (-,-,-) */  -1.0f / 2.0f, -1.0f / 2.0f, -1.0f / 2.0f ,  -1.f , -1.f , -1.f , 
+   /* (+,-,-) */   1.0f / 2.0f, -1.0f / 2.0f, -1.0f / 2.0f ,   1.f , -1.f , -1.f ,  
+   /* (+,+,-) */   1.0f / 2.0f,  1.0f / 2.0f, -1.0f / 2.0f ,   1.f ,  1.f , -1.f , 
+   /* (-,+,-) */  -1.0f / 2.0f,  1.0f / 2.0f, -1.0f / 2.0f ,  -1.f ,  1.f , -1.f , 
+  }; 
+  glGenVertexArrays(1, &vao);
+  glBindVertexArray(vao);
+
+  glGenBuffers(1, &vbo);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data() , GL_STATIC_DRAW);
+ 
   glGenBuffers(1, &ebo);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices) , indices , GL_STATIC_DRAW);
 
   glVertexAttribPointer(0 , 3 , GL_FLOAT , GL_FALSE , 6 * sizeof(float) , (void*)0);
   glEnableVertexAttribArray(0);
-  
   glVertexAttribPointer(1 , 3 , GL_FLOAT , GL_FALSE , 6 * sizeof(float) , (void*)(3 * sizeof(float)));
   glEnableVertexAttribArray(1);
 
@@ -649,43 +595,13 @@ Cube::Cube(uint32_t model_idx) {
 Cube::~Cube() {
   glDeleteVertexArrays(1 , &vao);
   glDeleteBuffers(1 , &vbo);
+  glDeleteBuffers(1 , &ebo);
 }
-
-void CheckGlError(int line) {
-  GLenum err = glGetError();
-  while (err != GL_NO_ERROR) {
-    switch (err) {
-      case GL_INVALID_ENUM: 
-        OE_ERROR("OpenGL Error INVALID_ENUM : {}" , line);
-      break;
-      case GL_INVALID_VALUE:
-        OE_ERROR("OpenGL Error INVALID_VALUE : {}" , line);
-      break;
-      case GL_INVALID_OPERATION:
-        OE_ERROR("OpenGL Error INVALID_OPERATION : {}" , line);
-      break;
-      case GL_STACK_OVERFLOW:
-        OE_ERROR("OpenGL Error STACK_OVERFLOW : {}" , line);
-      break;
-      case GL_STACK_UNDERFLOW:
-        OE_ERROR("OpenGL Error STACK_UNDERFLOW : {}" , line);
-      break;
-      case GL_OUT_OF_MEMORY:
-        OE_ERROR("OpenGL Error OUT_OF_MEMORY : {}" , line);
-      break;
-      case GL_INVALID_FRAMEBUFFER_OPERATION:
-        OE_ERROR("OpenGL Error INVALID_FRAMEBUFFER_OPERATION : {}" , line);
-      break;
-      case GL_CONTEXT_LOST:
-        OE_ERROR("OpenGL Error CONTEXT_LOST : {}" , line);
-      break;
-      case GL_TABLE_TOO_LARGE:
-        OE_ERROR("OpenGL Error TABLE_TOO_LARGE : {}" , line);
-      break;
-      default: break;
-    }
-    err = glGetError();
-  }
+  
+void Cube::Draw(other::DrawMode mode , uint32_t instances) {
+  glBindVertexArray(vao);
+  glDrawElementsInstancedBaseVertexBaseInstance(mode , 36 , GL_UNSIGNED_INT , (void*)0 , 2 , 0 , 0);
+  glBindVertexArray(0);
 }
 
 void UpdateCamera(other::Ref<CameraBase>& camera) {

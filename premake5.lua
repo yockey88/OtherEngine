@@ -16,7 +16,7 @@ configuration.groups = {
     ["OtherEngine"] = { "./OtherEngine" } ,
     ["OtherEngine-CsCore"] = { "./OtherEngine-ScriptCore/cs" } ,
     ["OtherEngine-Tools"] = { "./OtherEngine-Launcher" } ,
-    ["Testing"] = { "./tests" } ,
+    ["Testing"] = { "./tests" , "./OtherTestEngine/" } ,
 }
 
 local choc = {}
