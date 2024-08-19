@@ -26,8 +26,8 @@ fragment {
   in vec3 foe_normal;
   
   void main() {
-    g_position = foe_position;
-    g_normal = normalize(foe_normal);
+    g_position = vec4(foe_position , 1.0);
+    g_normal = vec4(normalize(foe_normal) , 1.0);
     g_albedo.rgb = material.ambient.rgb;
     g_albedo.a = material.shininess;
   }

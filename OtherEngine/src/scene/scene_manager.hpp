@@ -58,7 +58,7 @@ namespace other {
       void EarlyUpdateScene(float dt);
       void UpdateScene(float dt);
       void LateUpdateScene(float dt);
-      bool RenderScene(Ref<SceneRenderer> scene_renderer , Ref<CameraBase> viewpoint = nullptr);
+      bool RenderScene(Ref<SceneRenderer>& scene_renderer , Ref<CameraBase> viewpoint = nullptr);
       void RenderSceneUI();
 
     private:

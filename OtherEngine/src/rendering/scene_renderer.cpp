@@ -59,8 +59,7 @@ namespace other {
 
   void SceneRenderer::SubmitStaticModel(const std::string_view pl_name , Ref<StaticModel> model , 
                                         const glm::mat4& transform , const Material& material) {
-    auto hash = FNV(pl_name);
-    auto itr = pipelines.find(hash); 
+    auto itr = pipelines.find(FNV(pl_name)); 
     if (itr == pipelines.end()) {
       return;
     }

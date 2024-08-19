@@ -84,6 +84,12 @@ namespace other {
     glBindBuffer(type , 0);
   }
       
+  void UniformBuffer::Clear() {
+    glBindBuffer(type , renderer_id);
+    glBufferSubData(type , 0 , size , nullptr); 
+    glBindBuffer(type , 0);
+  }
+      
   uint32_t UniformBuffer::CalculateOffset(const UniformData& uniform , uint32_t index) {
     return uniform.offset + index * uniform.size;
   }

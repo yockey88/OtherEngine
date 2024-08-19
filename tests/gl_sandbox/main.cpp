@@ -431,15 +431,17 @@ int main(int argc , char* argv[]) {
 /// > END GBUFFER RENDER
 
 /// > DEBUG
-#if 0
+#define DEBUG 0
+#if DEBUG
       glActiveTexture(GL_TEXTURE0);
-      glBindTexture(GL_TEXTURE_2D , gbuffer_textures[2]);
+      glBindTexture(GL_TEXTURE_2D , gbuffer_textures[1]);
       fb_shader->SetUniform("screen_tex" , 0);
       fb_mesh->Draw(other::TRIANGLES);
 #endif 
 /// > END DEBUG
 
 /// > LIGHTING PASS
+#if !DEBUG
       glUseProgram(shader2);
       
       model_uniforms->BindBase();
@@ -456,6 +458,7 @@ int main(int argc , char* argv[]) {
       fb_mesh->Draw(other::TRIANGLES);
 
       glBindFramebuffer(GL_FRAMEBUFFER , 0);
+#endif
 /// > END LIGHTING PASS
 
 /// > copy final results default
@@ -472,77 +475,24 @@ int main(int argc , char* argv[]) {
 
 /// set gbuffer data
   
-// ////// OUTLINE RENDER PASS 
-//       float scale = 1.05f;
-//       float inv_scale = 1.f / scale;
-//       model1 = glm::scale(model1 , { scale , scale , scale });
-//       
-//       model_buffer.ZeroMem();
-//       material_buffer.ZeroMem();
-//       model_buffer.BufferData(model1);
-//       material_buffer.BufferData(material1);
-//       
-//   /// > Bind RenderPass
-//       glStencilFunc(GL_NOTEQUAL , 0 , 0xFF);
-//       glStencilMask(0x00);
-//       glDisable(GL_DEPTH_TEST);
-//       
-//       glUseProgram(shader2);
-//   /// > End Bind RenderPass
-// 
-//   /// > for each mesh in model submissions
-//       glBindVertexArray(cube.vao);
-// 
-//   /// > let render pass set its own uniforms
-//       model_uniforms->BindBase();
-//       model_uniforms->LoadFromBuffer(model_buffer);
-//   /// > end let render pass set its own uniforms 
-//       
-//     /// draw
-//       glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES , 36 , GL_UNSIGNED_INT , (void*)0 , 1 , 0 , 0);
-// ////// END OUTLINE RENDER PASS 
-// 
-// ////// GEOMETRY RENDER PASS 
-//       model1 = glm::scale(model1 , { inv_scale , inv_scale , inv_scale });
-//       
-//       model_buffer.ZeroMem();
-//       material_buffer.ZeroMem();
-//       model_buffer.BufferData(model1);
-//       model_buffer.BufferData(model2);
-//       material_buffer.BufferData(material1);
-//       material_buffer.BufferData(material2);
-// 
-//   /// > Bind RenderPass
-//       glEnable(GL_DEPTH_TEST);
-//       glStencilFunc(GL_ALWAYS , 1 , 0xFF);
-//       glStencilMask(0xFF);
-// 
-//       glUseProgram(shader1);
-//       glBindVertexArray(cube.vao);
-//   /// > End Bind RenderPass
-// 
-//   /// > let render pass set its own uniforms
-//       material_uniforms->BindBase();
-//       material_uniforms->LoadFromBuffer(material_buffer);
-//       model_uniforms->BindBase();
-//       model_uniforms->LoadFromBuffer(model_buffer);
-//   /// > end let render pass set its own uniforms
-// 
-//     /// > draw
-//       glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES , 36 , GL_UNSIGNED_INT , (void*)0 , 2 , 0 , 0);
-// ////// END GEOMETRY RENDER PASS 
-
-#if 1
+#define UI_ENABLED 1
+#if UI_ENABLED
       ImGui_ImplOpenGL3_NewFrame();
       ImGui_ImplSDL2_NewFrame(context.window);
       ImGui::NewFrame();
 
       if (ImGui::Begin("GBuffer")) {
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D , gbuffer_textures[0]);
         RenderItem(gbuffer_textures[0] , "Position" , ImVec2((float)win_w / 2 , (float)win_h / 2));
         ImGui::SameLine();
-        // RenderItem(gbuffer_textures[1] , "Normals" , ImVec2((float)win_w / 2 , (float)win_h / 2));
-        // ImGui::SameLine();
-        // RenderItem(gbuffer_textures[2] , "Albedo" , ImVec2((float)win_w / 2 , (float)win_h / 2));
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D , gbuffer_textures[1]);
+        RenderItem(gbuffer_textures[1] , "Normals" , ImVec2((float)win_w / 2 , (float)win_h / 2));
+        ImGui::SameLine();
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D , gbuffer_textures[2]);
+        RenderItem(gbuffer_textures[2] , "Albedo" , ImVec2((float)win_w / 2 , (float)win_h / 2));
       }
       ImGui::End();
 

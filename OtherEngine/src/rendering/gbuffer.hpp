@@ -25,7 +25,10 @@ namespace other {
         INVALID_TEX_IDX = NUM_TEX_IDXS
       };
 
-      std::array<uint32_t , NUM_TEX_IDXS> textures;
+      // std::array<uint32_t , NUM_TEX_IDXS> textures;
+      uint32_t textures[NUM_TEX_IDXS] = {
+        0 , 0 , 0 
+      };
 
       GBuffer(const glm::ivec2& size);
       ~GBuffer();

@@ -59,26 +59,10 @@ fragment {
     float dist = length(light.position.xyz - frag_pos);
     float attenuation = 1.0 / (1.0 + light.linear * dist + light.quadratic * dist * dist);
 
-    diffuse = diffuse * attenuation;
-    specular = specular * attenuation;
-    // lighting += diffuse + spec; 
+    // diffuse = diffuse * attenuation;
+    // specular = specular * attenuation;
 
-
-    // vec3 light_dir = normalize(light.position.xyz - frag_pos);
-    // float diff = max(dot(normal , light_dir) , 0.f);
-
-    // vec3 reflect_dir = reflect(-light_dir , normal);
-    // float spec = pow(max(dot(view_dir , reflect_dir) , 0.0) , material.shininess);
-
-    // float distance = length(light.position.xyz - frag_pos);
-    // float attenuation = 1.f / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
-
-    // // vec3 ambient = material.ambient.rgb;
-    // vec3 ambient = light.ambient.rgb * material.ambient.rgb * attenuation;
-    // vec3 diffuse = light.diffuse.rgb * diff * material.diffuse.rgb * attenuation;
-    // vec3 specular = light.specular.rgb * spec * material.specular.rgb * attenuation;
-    
-    return (diffuse + spec);
+    return (diffuse);
   }
 
   void main () {

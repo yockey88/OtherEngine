@@ -77,6 +77,7 @@ namespace other {
 
       void Render();
       Ref<Framebuffer> GetOutput();
+      GBuffer& GetGBuffer();
       
       struct MeshSubmissionList {
         uint32_t instance_count = 0;
@@ -106,6 +107,8 @@ namespace other {
       void AddIndices(const Index& idxs); 
 
       void PerformPass(Ref<RenderPass>& pass);
+
+      void RenderMeshes();
   };
 
 } // namespace other

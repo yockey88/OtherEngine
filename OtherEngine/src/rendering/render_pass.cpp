@@ -15,11 +15,11 @@ namespace other {
       
   RenderPass::RenderPass(RenderPassSpec spec) 
       : spec(spec) {
-    uniforms[FNV("goe_position")] = { "goe_position" , SAMPLER2D , sizeof(uint32_t) };
-    uniforms[FNV("goe_normal")]   = { "goe_normal" , SAMPLER2D , sizeof(uint32_t) };
-    uniforms[FNV("goe_albedo")]   = { "goe_albedo" , SAMPLER2D , sizeof(uint32_t) };
+    DefineInput({ "goe_position" , SAMPLER2D , sizeof(uint32_t) });
+    DefineInput({ "goe_normal"   , SAMPLER2D , sizeof(uint32_t) });
+    DefineInput({ "goe_albedo"   , SAMPLER2D , sizeof(uint32_t) });
     for (auto& u : spec.uniforms) {
-      uniforms[FNV(u.name)] = u;
+      DefineInput(u);
     } 
 
     std::vector<Uniform> light_uniforms = {
@@ -53,7 +53,6 @@ namespace other {
     /// depth
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
-    
 
     /// stencil
     glEnable(GL_STENCIL_TEST);

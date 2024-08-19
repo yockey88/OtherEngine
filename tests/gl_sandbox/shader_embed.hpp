@@ -42,8 +42,8 @@ void main() {
 static const char* frag1 = R"(
 #version 460 core
 
-layout (location = 0) out vec3 g_position;
-layout (location = 1) out vec3 g_normal;
+layout (location = 0) out vec4 g_position;
+layout (location = 1) out vec4 g_normal;
 layout (location = 2) out vec4 g_albedo_spec;
 
 in vec3 position;
@@ -66,8 +66,8 @@ layout (std430 , binding = 2) readonly buffer MaterialData {
 void main() {
   Material mat = materials[instanceid];
 
-  g_position = position;
-  g_normal = normalize(normal);
+  g_position = vec4(position , 1.0);
+  g_normal = vec4(normalize(normal), 1.0);
 
   g_albedo_spec.rgb = mat.ambient.rgb;
   g_albedo_spec.a = mat.shininess;

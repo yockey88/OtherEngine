@@ -43,7 +43,7 @@ namespace other {
 
       Ref<CameraBase> GetPrimaryCamera() const;
 
-      void Render(Ref<SceneRenderer> scene_renderer , Ref<CameraBase> camera = nullptr);
+      void Render(Ref<SceneRenderer> scene_renderer);
       void RenderUI();
 
       void Stop(); 

@@ -378,9 +378,9 @@ namespace other {
       stream << "  mat4 view;\n";
       stream << "  vec4 viewpoint;\n";
       stream << "};\n\n";
-      stream << "#define MAX_NUM_MODELS\n";
+      stream << "#define MAX_MODELS\n";
       stream << "layout (std430 , binding = 1) readonly buffer ModelData {\n";
-      stream << "  mat4 models[MAX_NUM_MODELS];\n";
+      stream << "  mat4 models[MAX_MODELS];\n";
       stream << "};\n\n";
       stream << "#define MAX_MATERIALS 100\n";
       stream << "layout (std430 , binding = 2) readonly buffer MaterialData {\n";
@@ -391,8 +391,8 @@ namespace other {
     } else if (context == FRAGMENT_SHADER) {
       /// hack, these should not be here
       /// FIXME: rewrite transpiler
-      stream << "layout (location = 0) out vec3 g_position;\n";
-      stream << "layout (location = 1) out vec3 g_normal;\n";
+      stream << "layout (location = 0) out vec4 g_position;\n";
+      stream << "layout (location = 1) out vec4 g_normal;\n";
       stream << "layout (location = 2) out vec4 g_albedo;\n";
       stream << "#define MAX_LIGHTS 100\n";
       stream << "layout (std430 , binding = 3) readonly buffer Lights {\n";
@@ -453,7 +453,7 @@ namespace other {
     .layout_name = "textured_quad" ,
     .stride = 5 , 
     .attrs = {
-      { .attr_name = "voe_position" , .idx = 0 , .size = 2 } ,
+      { .attr_name = "voe_position" , .idx = 0 , .size = 3 } ,
       { .attr_name = "voe_uvs" , .idx = 1 , .size = 2 } ,
     } ,
   };
