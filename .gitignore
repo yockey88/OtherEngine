@@ -3,6 +3,12 @@ bin/
 bin_obj/
 .cache/
 
+## Project tools
+tools/runtestbed.py
+tools/runsand.py
+tools/gensln.py
+tools/buildsln.py
+
 # Prerequisites
 *.d
 
