@@ -9,16 +9,14 @@
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <imgui/backends/imgui_impl_sdl2.h>
-#include <rendering/gbuffer.hpp>
-#include <rendering/pipeline.hpp>
-#include <rendering/point_light.hpp>
-#include <scene/environment.hpp>
 
 #include "core/defines.hpp"
 #include "core/logger.hpp"
 #include "core/errors.hpp"
 #include "core/filesystem.hpp"
 #include "core/time.hpp"
+#include "core/uuid.hpp"
+#include "input/io.hpp"
 #include "parsing/cmd_line_parser.hpp"
 #include "parsing/ini_parser.hpp"
 
@@ -26,6 +24,17 @@
 #include "application/app_state.hpp"
 #include "asset/asset_manager.hpp"
 
+#include "event/event_queue.hpp"
+
+#include "ecs/entity.hpp"
+#include "ecs/components/mesh.hpp"
+
+#include "scene/scene_serializer.hpp"
+#include "scene/environment.hpp"
+#include "scene/scene.hpp"
+
+#include "scripting/script_engine.hpp"
+#include "physics/phyics_engine.hpp"
 #include "rendering/rendering_defines.hpp"
 #include "rendering/shader.hpp"
 #include "rendering/texture.hpp"
@@ -41,6 +50,8 @@
 #include "rendering/geometry_pass.hpp"
 #include "rendering/outline_pass.hpp"
 #include "rendering/render_pass.hpp"
+#include "rendering/pipeline.hpp"
+#include "rendering/point_light.hpp"
 #include "rendering/scene_renderer.hpp"
 
 #include "common/test_app.hpp"
@@ -48,7 +59,16 @@
 #include "rendering/ui/ui_widgets.hpp"
 
 #include "sandbox_ui.hpp"
-#include "common/engine_mock.hpp"
+
+using other::FNV;
+
+using other::Ref;
+using other::NewRef;
+
+using other::Scope;
+using other::NewScope;
+
+using other::UUID;
 
 using other::Shader;
 using other::Texture2D;
@@ -60,6 +80,8 @@ using other::UniformBuffer;
 using other::StaticModel;
 using other::SceneRenderSpec;
 using other::SceneRenderer;
+
+using other::SceneSerializer;
 
 void CheckGlError(int line);
 
@@ -76,6 +98,7 @@ void LaunchMock(const other::ConfigTable& config) {
   other::IO::Initialize();
   other::EventQueue::Initialize(config);
   other::ScriptEngine::Initialize(config);
+  other::PhysicsEngine::Initialize(config);
   
   other::Renderer::Initialize(config);
   other::UI::Initialize(config , other::Renderer::GetWindow());
@@ -85,6 +108,7 @@ void ShutdownMock() {
   other::UI::Shutdown();
   other::Renderer::Shutdown();
 
+  other::PhysicsEngine::Shutdown();
   other::ScriptEngine::Shutdown();
   other::EventQueue::Shutdown();
   other::IO::Shutdown();
@@ -109,15 +133,17 @@ int main(int argc , char* argv[]) {
   try {
     other::CmdLine cmd_line(argc , argv);
 
-    std::string config_path = "C:/Yock/code/OtherEngine/tests/sandbox/sandbox.other"; 
-    other::IniFileParser parser(config_path);
+    const other::Path sandbox_dir = "C:/Yock/code/OtherEngine/tests/sandbox";
+
+    const other::Path config_path = sandbox_dir / "sandbox.other"; 
+    other::IniFileParser parser(config_path.string());
     auto config = parser.Parse(); 
 
     other::Logger::Open(config);
     other::Logger::Instance()->RegisterThread("Sandbox-Thread");
 
     /// for test reasons
-    other::Engine mock_engine = other::Engine::Create(cmd_line , config , config_path);
+    other::Engine mock_engine = other::Engine::Create(cmd_line , config , config_path.string());
     {
       Scope<other::App> app_handle = NewScope<TestApp>(&mock_engine);
       mock_engine.LoadApp(app_handle);
@@ -127,16 +153,32 @@ int main(int argc , char* argv[]) {
     OE_DEBUG("Sandbox Launched");
 
     mock_engine.PushCoreLayer();
+    other::ScriptEngine::LoadProjectModules();
 
-    const other::Path shader_dir = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders";
-    const other::Path default_path = shader_dir / "default.oshader";
-    const other::Path normals_path = shader_dir / "normals.oshader";
-    const other::Path fbshader_path = shader_dir / "fbshader.oshader";
-    const other::Path deferred_shader_path = shader_dir / "deferred_shading.oshader";
-    const other::Path add_fog_shader_path = shader_dir / "fog.oshader";
-    const other::Path red_path = shader_dir / "red.oshader";
-    const other::Path outline_path = shader_dir / "outline.oshader";
-    const other::Path pure_geometry_path = shader_dir / "pure_geometry.oshader";
+
+    const other::Path engine_core_dir = other::Filesystem::GetEngineCoreDir();
+    const other::Path assets_dir = engine_core_dir / "OtherEngine" / "assets";
+
+    const other::Path shader_dir = assets_dir / "shaders";
+      const other::Path default_path = shader_dir / "default.oshader";
+      const other::Path normals_path = shader_dir / "normals.oshader";
+      const other::Path fbshader_path = shader_dir / "fbshader.oshader";
+      const other::Path deferred_shader_path = shader_dir / "deferred_shading.oshader";
+      const other::Path add_fog_shader_path = shader_dir / "fog.oshader";
+      const other::Path red_path = shader_dir / "red.oshader";
+      const other::Path outline_path = shader_dir / "outline.oshader";
+      const other::Path pure_geometry_path = shader_dir / "pure_geometry.oshader";
+      
+    const other::Path texture_dir = assets_dir / "textures";
+      const other::Path editor_texture_dir = texture_dir / "editor";
+        const other::Path editor_folder_path = editor_texture_dir / "folder.png";
+    
+    const other::Path scene_dir = assets_dir / "scenes";
+      
+    const other::Path scenepath = sandbox_dir / "test_scene.yscn";
+    
+    const other::Path bin_dir = engine_core_dir / "bin";
+    const other::Path debug_bin_dir = bin_dir / "Debug";
     
     SDL_SetRelativeMouseMode(SDL_TRUE);
 
@@ -147,27 +189,7 @@ int main(int argc , char* argv[]) {
 
       Ref<Shader> fbshader = other::BuildShader(fbshader_path);
 
-      const other::Path editor_folder_path = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "textures" / "editor" / "folder.png";
-
-      other::TextureSpecification tex_spec {
-        .channels = other::RGBA ,
-        .type = other::TEX_2D ,
-        .filters = {
-          .min = other::NEAREST ,
-          .mag = other::NEAREST ,
-        } ,
-        .wrap = {
-          .s_val = other::REPEAT , 
-          .t_val = other::REPEAT , 
-        } ,
-        .name = editor_folder_path.filename().string() ,
-      };
-      Ref<other::Texture> icon = NewRef<Texture2D>(editor_folder_path , tex_spec);
-
       Scope<VertexArray> fb_mesh = NewScope<VertexArray>(fb_verts , fb_indices , fb_layout);
-
-      other::AssetHandle model_handle = other::ModelFactory::CreateBox({ 1.f , 1.f , 1.f });
-      Ref<StaticModel> model = other::AssetManager::GetAsset<StaticModel>(model_handle);
     
       uint32_t camera_binding_pnt = 0;
       std::vector<Uniform> cam_unis = {
@@ -226,27 +248,6 @@ int main(int argc , char* argv[]) {
       Ref<other::RenderPass> normal_pass = NewRef<other::RenderPass>(normal_pass_spec);
       Ref<other::RenderPass> geom_pass = NewRef<other::GeometryPass>(geometry_unis , geometry_shader);
       Ref<other::RenderPass> outline_pass = NewRef<other::OutlinePass>(outline_unis , outline_shader);
-
-      other::PipelineSpec pl_spec = {
-        .framebuffer_spec = {
-          .depth_func = other::LESS_EQUAL ,
-          .clear_color = { 0.1f , 0.1f , 0.1f , 1.f } ,
-          .size = other::Renderer::WindowSize() ,
-        } ,
-        .vertex_layout = default_layout ,
-        .model_uniforms = model_unis , 
-        .model_binding_point = model_binding_pnt ,
-        .material_uniforms = material_unis ,
-        .material_binding_point = material_binding_pnt ,
-        .debug_name = "Test Pipeline 1" , 
-      };
-      other::PipelineSpec pl_spec2 = pl_spec;
-      pl_spec2.debug_name = "Test Pipeoline 2"; 
-
-      Scope<other::Pipeline> pipeline = NewScope<other::Pipeline>(pl_spec);
-      Scope<other::Pipeline> pipeline2 = NewScope<other::Pipeline>(pl_spec2);
-      pipeline->SubmitRenderPass(geom_pass);
-      pipeline2->SubmitRenderPass(normal_pass);
 
       SceneRenderSpec render_spec {
         .camera_uniforms = NewRef<UniformBuffer>("Camera" , cam_unis , camera_binding_pnt) ,
@@ -309,7 +310,7 @@ int main(int argc , char* argv[]) {
           { FNV("Outline")  , { FNV(outline_pass->Name()) , FNV("Albedo") } } ,
         } ,
       };
-      Scope<SceneRenderer> renderer = NewScope<SceneRenderer>(render_spec);
+      Ref<SceneRenderer> renderer = NewRef<SceneRenderer>(render_spec);
 
       CHECK();
 
@@ -326,8 +327,6 @@ int main(int argc , char* argv[]) {
       CHECKGL();
 
       glm::vec3 cube_pos1 = glm::vec3(0.f , 0.f , 0.f);
-      glm::mat4 cube_model1 = glm::mat4(1.f);
-      float cube_rotation1 = 0.1f;
       other::Material cube_material1 = {
         .ambient  = { 1.0f , 0.5f , 0.31f , 1.f } ,
         .diffuse  = { 1.0f , 0.5f , 0.31f , 1.f } ,
@@ -336,7 +335,6 @@ int main(int argc , char* argv[]) {
       };
       
       glm::vec3 cube_pos2 = glm::vec3(2.f , 0.f , 0.f);
-      glm::mat4 cube_model2 = glm::mat4(1.f);
       other::Material cube_material2 = {
         .ambient  = { 1.0f , 0.31f , 0.5f , 1.f } ,
         .diffuse  = { 1.0f , 0.31f , 0.5f , 1.f } ,
@@ -356,38 +354,27 @@ int main(int argc , char* argv[]) {
       light_model2 = glm::translate(light_model2 , light_pos2);
       light_model2 = glm::scale(light_model2 , light_scale);
 
-      Ref<other::Environment> environment = NewRef<other::Environment>();
-      environment->point_lights = {
-        {
-          .position = glm::vec4(light_pos1 , 1.f),
-          .ambient  = { 0.2f , 0.2f , 0.2f , 1.f } ,
-          .diffuse  = { 0.5f , 0.5f , 0.5f , 1.f } ,
-          .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
-        } ,
-        {
-          .position = glm::vec4(light_pos2 , 1.f),
-          .ambient  = { 0.5f , 0.5f , 0.5f , 1.f } ,
-          .diffuse  = { 0.2f , 0.2f , 0.2f , 1.f } ,
-          .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
-        } ,
-      };
-      environment->direction_lights = {
-        {
-          .direction = { -0.2f , -1.f , -0.3f , 1.f } ,
-          .ambient  = { 0.2f , 0.2f , 0.2f , 1.f } ,
-          .diffuse  = { 0.5f , 0.5f , 0.5f , 1.f } ,
-          .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
-        } ,
-      };
-      
-      other::Material light_material = {
-        .ambient  = { 1.f , 1.f , 1.f  , 1.f } ,
-        .diffuse  = { 1.f , 1.f , 1.f  , 1.f } ,
-        .specular = { 1.f , 1.f , 1.f  , 1.f } ,
-        .shininess = 1.f ,
-      };
-
       glm::vec3 outline_color{ 1.f , 0.f , 0.f };
+
+      UUID id = FNV(scenepath.string());
+      SceneSerializer serializer;
+      Ref<other::Scene> scene = nullptr;
+
+      {
+        auto loaded_scene = serializer.Deserialize(scenepath.string());
+        if (loaded_scene.scene == nullptr) {
+          OE_ERROR("Failed to deserialize scene : {}" , scenepath.string());
+          throw std::runtime_error("Failed to deserialize scene!");
+        }
+
+        scene = loaded_scene.scene;
+      }
+
+      other::ScriptEngine::SetSceneContext(scene);
+      other::Renderer::SetSceneContext(scene);
+
+      scene->Initialize();
+      scene->Start();
 
       while (running) {
         other::IO::Update();
@@ -413,6 +400,9 @@ int main(int argc , char* argv[]) {
                     other::Mouse::LockCursor();
                   }
                 break;
+                case SDLK_s: 
+                  // if scene started stop scene else start scene
+                break;
                 default: break;
               }
             break;
@@ -431,13 +421,7 @@ int main(int argc , char* argv[]) {
           other::DefaultUpdateCamera(camera);
         }
         
-        cube_model1 = glm::mat4(1.f);
-        cube_model1 = glm::translate(cube_model1 , cube_pos1);
-        cube_model1 = glm::rotate(cube_model1 , cube_rotation1 , { 1.f , 1.f , 1.f });
-        cube_rotation1 += 0.1f;
-        
-        cube_model2 = glm::mat4(1.f);
-        cube_model2 = glm::translate(cube_model2 , cube_pos2);
+        auto environment = scene->GetEnvironment();
 
         light_model1 = glm::mat4(1.f);
         light_model1 = glm::translate(light_model1 , glm::vec3(environment->point_lights[0].position));
@@ -447,39 +431,19 @@ int main(int argc , char* argv[]) {
         light_model2 = glm::translate(light_model2 , glm::vec3(environment->point_lights[1].position));
         light_model2 = glm::scale(light_model2 , light_scale);
 
+        scene->EarlyUpdate(0.16f);
+        scene->Update(0.16f);
+        scene->LateUpdate(0.16f);
+
         other::Renderer::GetWindow()->Clear();
 
         renderer->BeginScene(camera , environment);
-
-#define FULL_RENDER 1
-#if FULL_RENDER
-        renderer->SetUniform("Draw Normals" , "magnitude" , 0.4f);
-        renderer->SetUniform(outline_pass->Name() , "outline_color" , outline_color);
-        
-        /// light cube only gets rendered in debug
-        renderer->SubmitStaticModel("Normals" , model , cube_model1 , cube_material1);
-        renderer->SubmitStaticModel("Normals" , model , cube_model2 , cube_material2);
-        renderer->SubmitStaticModel("Normals" , model , light_model1 , light_material);
-        renderer->SubmitStaticModel("Normals" , model , light_model2 , light_material);
-        
-        renderer->SubmitStaticModel("Geometry" , model , cube_model1 , cube_material1);
-        renderer->SubmitStaticModel("Geometry" , model , cube_model2 , cube_material2);
-
-        /// outline the first cube but not the second
-        renderer->SubmitStaticModel("Outline" , model , cube_model1 , cube_material1);
-        renderer->SubmitStaticModel("Outline" , model , cube_model2 , cube_material2);
-
-        
+        scene->Render(renderer);
         renderer->EndScene();
+
         const auto& frames = renderer->GetRender(); 
         const auto& vp = frames.at(FNV("Geometry"));
-#else
-        pipeline->SubmitStaticModel(model , cube_model1 , cube_material1);
-        pipeline->Render();
-        auto& gbuffer = pipeline->GetGBuffer();
-        const auto& vp = pipeline->GetOutput();
-#endif 
-
+        
         glActiveTexture(GL_TEXTURE4);
         glBindTexture(GL_TEXTURE_2D , vp->texture);
         deferred_shader->Bind();
@@ -490,14 +454,8 @@ int main(int argc , char* argv[]) {
         other::UI::BeginFrame();
         const ImVec2 win_size = { (float)other::Renderer::WindowSize().x , (float)other::Renderer::WindowSize().y };
         if (ImGui::Begin("Frames")) {
-#if FULL_RENDER
           RenderItem(frames.at(FNV("Normals"))->texture , "Normals" , win_size);
           RenderItem(frames.at(FNV("Outline"))->texture , "Outline" , win_size);
-#else 
-          RenderItem(gbuffer.textures[other::GBuffer::POSITION] , "GBuffer Position 1" , win_size);
-          RenderItem(gbuffer.textures[other::GBuffer::NORMAL] , "GBuffer Normal 1" , win_size);
-          RenderItem(gbuffer.textures[other::GBuffer::ALBEDO] , "GBuffer Albedo 1" , win_size);
-#endif
         } 
         ImGui::End();
 
@@ -511,14 +469,26 @@ int main(int argc , char* argv[]) {
                                               { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
           ImGui::Separator();
 
-          ImGui::Text("Cube Controls");
-          ImGui::Separator();
-          other::ui::widgets::DrawVec3Control("cube1 position" , cube_pos1 , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
-                                              { -100.f , -100.f , -100.f } , { 100.f , 100.f , 100.f } , 0.5f); 
-          RenderMaterial("cube1 material" , cube_material1);
-          other::ui::widgets::DrawVec3Control("cube2 position" , cube_pos2 , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
-                                              { -100.f , -100.f , -100.f } , { 100.f , 100.f , 100.f } , 0.5f); 
-          RenderMaterial("cube2 material" , cube_material2);
+          ImGui::Text("Scene Controls");
+          auto& reg = scene->Registry();
+
+          ImGui::Text("Transforms =====");
+          reg.view<other::Tag , other::Transform>().each([&](other::Tag& tag , other::Transform& transform) {
+            ImGui::PushID((tag.name + "##transform-widget").c_str());
+            if (other::ui::widgets::DrawVec3Control(other::fmtstr("{} position", tag.name) , 
+                                                    transform.position , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
+                                                    { -100.f , -100.f , -100.f } , { 100.f , 100.f , 100.f } , 0.5f)) {}
+            ImGui::Separator();
+            ImGui::PopID();
+          });
+          
+          ImGui::Text("Materials =====");
+          reg.view<other::Tag , other::StaticMesh>().each([&](other::Tag& tag , other::StaticMesh& mesh) {
+            ImGui::PushID((tag.name + "##static-mesh-widget").c_str());
+            RenderMaterial(other::fmtstr("{} material" , tag.name) , mesh.material);
+            ImGui::Separator();
+            ImGui::PopID();
+          });
           ImGui::Separator();
 
           ImGui::Text("Light Controls");
@@ -534,6 +504,9 @@ int main(int argc , char* argv[]) {
 
         other::Renderer::GetWindow()->SwapBuffers();
       }
+    
+      scene->Stop();
+      scene->Shutdown();
     }
 
     ShutdownMock();

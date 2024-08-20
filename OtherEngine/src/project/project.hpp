@@ -61,7 +61,10 @@ namespace other {
     std::string name = "";
     Path project_directory = "";
     Path file_path = "";
+    Path bin_dir = "";
     Path assets_dir = "";
+
+    Opt<Path> script_bin_dir = std::nullopt;
 
     Path cs_project_file = "";
     Path cs_editor_project_file = "";

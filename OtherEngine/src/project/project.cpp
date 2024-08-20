@@ -53,6 +53,14 @@ namespace {
     metadata.name = config.GetVal<std::string>(kProjectSection , kNameValue).value_or("Unnamed Project");
     OE_DEBUG("Project Name : {}" , metadata.name);
 
+    metadata.bin_dir = config.GetVal<std::string>(kProjectSection , kBinDirValue).value_or("bin/Debug/");
+    OE_DEBUG("Bin Dir : {}" , metadata.bin_dir);
+
+    auto script_bin = config.GetVal<std::string>(kProjectSection , kScriptBinDirValue).value_or("");
+    if (!script_bin.empty()) {
+      metadata.script_bin_dir = script_bin;
+    }
+
     auto proj_path = cmdline.GetArg("--project").value_or(Arg{});
     if (proj_path.hash != 0 && proj_path.args.size() > 0) {
       metadata.file_path = Path(proj_path.args[0]);

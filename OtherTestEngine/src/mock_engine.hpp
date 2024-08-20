@@ -9,7 +9,7 @@
 #include "core/defines.hpp"
 #include "core/config.hpp"
 
-#define TEST_ENGINE() \
+#define TEST_ENGINE_ENV() \
   other::MockEngine::TestEngine();
 
 namespace other {

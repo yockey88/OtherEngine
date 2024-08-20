@@ -58,11 +58,17 @@ namespace other {
   constexpr static uint64_t kRelationshipSectionHash = FNV(kRelationshipSection);
 
   /// useful value keys
-  constexpr static std::string_view kDebugValue = "DEBUG";
-  constexpr static uint64_t kDebugValueHash = FNV(kDebugValue);
-
   constexpr static std::string_view kNameValue = "NAME";
   constexpr static uint64_t kNameValueHash = FNV(kNameValue);
+  
+  constexpr static std::string_view kBinDirValue = "BIN-DIR";
+  constexpr static uint64_t kBinDirValueHash = FNV(kBinDirValue);
+  
+  constexpr static std::string_view kScriptBinDirValue = "SCRIPT-BIN-DIR";
+  constexpr static uint64_t kScriptBinDirValueHash = FNV(kScriptBinDirValue);
+
+  constexpr static std::string_view kDebugValue = "DEBUG";
+  constexpr static uint64_t kDebugValueHash = FNV(kDebugValue);
   
   constexpr static std::string_view kAssetsValue = "ASSETS";
   constexpr static uint64_t kAssetsValueHash = FNV(kAssetsValue);
