@@ -95,6 +95,8 @@ namespace other {
     }
 
     target->UnbindFrame();
+
+    /// lighting pass
     
     for (auto& [mk , sl] : model_submissions) {
       sl.cpu_model_storage.ZeroMem();
@@ -148,9 +150,9 @@ namespace other {
     Buffer pass_materials;
     for (auto& [mk , sl] : model_submissions) {
       material_storage->BindBase();
-      material_storage->LoadFromBuffer(pass_materials);
+      material_storage->LoadFromBuffer(sl.cpu_material_storage);
       model_storage->BindBase();
-      model_storage->LoadFromBuffer(pass_models);
+      model_storage->LoadFromBuffer(sl.cpu_model_storage);
 
       mk.vao->Bind();
       glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES , mk.num_elements , GL_UNSIGNED_INT , (void*)0 , sl.instance_count , 0 , 0);
