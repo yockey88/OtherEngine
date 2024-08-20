@@ -45,6 +45,22 @@ sandbox.post_build_commands = function()
     }
 end
 
+local sandbox_scripts = {}
+
+sandbox_scripts.name = "SandboxScripts"
+sandbox_scripts.kind = "SharedLib"
+sandbox_scripts.language = "C#"
+
+sandbox_scripts.files = function() 
+  files { 
+    "./sandbox/*.cs" 
+  } 
+end
+
+sandbox_scripts.components = {}
+sandbox_scripts.components["C:/Yock/code/OtherEngine/bin/Debug/OtherEngine-CsCore/OtherEngine-CsCore"] = ""
+
+AddModule(sandbox_scripts)
 AddProject(sandbox)
 
 local gl_sandbox = {}

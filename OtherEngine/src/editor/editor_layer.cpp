@@ -21,6 +21,7 @@
 #include "rendering/camera_base.hpp"
 #include "rendering/geometry_pass.hpp"
 #include "rendering/uniform.hpp"
+#include "scene/environment.hpp"
 #include "scripting/script_engine.hpp"
 
 #include "rendering/renderer.hpp"
@@ -154,7 +155,15 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
   void EditorLayer::OnRender() {
     bool success = true;
     if (HasActiveScene()) {
-      success = AppState::Scenes()->RenderScene(default_renderer , editor_camera);
+      Ref<Scene> scene = AppState::Scenes()->ActiveScene()->scene;
+      OE_ASSERT(scene != nullptr , "Retrieved a null scene during render!");
+
+      Ref<Environment> env = scene->GetEnvironment();
+      default_renderer->BeginScene(editor_camera , env);
+      scene->Render(default_renderer);
+      default_renderer->EndScene();
+
+      // success = AppState::Scenes()->RenderScene(default_renderer , editor_camera);
     } else {
       
     }

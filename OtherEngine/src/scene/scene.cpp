@@ -187,8 +187,6 @@ namespace other {
       return;
     }
 
-    OE_ASSERT(physics_world_2d != nullptr , "Cannot step physics world with null scene (2D)!");
-    
     /// update client app if they have custom logic
     OnUpdate(dt);
 
@@ -206,21 +204,24 @@ namespace other {
      **/
 
     /// TODO: fix these to customizeable
-    physics_world_2d->Step(dt , 32 , 2);
+    if (physics_world_2d != nullptr) {
+      physics_world_2d->Step(dt , 32 , 2);
+
+      /// apply physics simulation to transforms, before using transforms for anything else 
+      registry.view<RigidBody2D , Transform>().each([](RigidBody2D& body , Transform& transform) {
+        if (body.physics_body == nullptr) {
+          return;
+        } 
+
+        auto& position = body.physics_body->GetPosition();
+        transform.position.x = position.x;
+        transform.position.y = position.y;
+        transform.erotation.z = body.physics_body->GetAngle(); 
+      });
+    }
     
     /// TODO: add 3d physics update here
     
-    /// apply physics simulation to transforms, before using transforms for anything else 
-    registry.view<RigidBody2D , Transform>().each([](RigidBody2D& body , Transform& transform) {
-      if (body.physics_body == nullptr) {
-        return;
-      } 
-
-      auto& position = body.physics_body->GetPosition();
-      transform.position.x = position.x;
-      transform.position.y = position.y;
-      transform.erotation.z = body.physics_body->GetAngle(); 
-    });
 
     /// TODO: rigid body 3d here
     
@@ -311,7 +312,6 @@ namespace other {
   void Scene::Render(Ref<SceneRenderer> renderer) {
     /// environment (set pipeline inputs) 
 
-    /// models without materials
     registry.view<Mesh , Transform>().each([&renderer](const Mesh& mesh , const Transform& transform) {
       if (!AppState::Assets()->IsValid(mesh.handle)) {
         return;
@@ -325,7 +325,6 @@ namespace other {
       renderer->SubmitModel("Geometry" , model , transform.model_transform , mesh.material);
     });
 
-    /// static models without materials
     registry.view<StaticMesh , Transform>().each([&renderer](const StaticMesh& mesh , const Transform& transform) {
       if (!AppState::Assets()->IsValid(mesh.handle)) {
         return;
