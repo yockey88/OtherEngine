@@ -35,5 +35,5 @@ int main(int argc , char* argv[]) {
 
 using other::EngineTest;
 TEST_F(EngineTest , example) {
-  auto* env = TEST_ENGINE();
+  auto* env = TEST_ENGINE_ENV();
 }

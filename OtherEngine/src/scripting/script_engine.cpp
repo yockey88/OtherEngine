@@ -47,8 +47,14 @@ namespace other {
       auto cs_modules = config.Get(real_key , kPathsValue);
     
       auto project_path = project_metadata->GetMetadata().file_path.parent_path();
+      auto project_bin = project_metadata->GetMetadata().bin_dir;
+      auto script_bin = project_metadata->GetMetadata().script_bin_dir;
       for (const auto& cs_mod : cs_modules) {
-        Path path = project_path / "bin" / "Debug" / cs_mod; 
+        Path path = project_path / project_bin;
+        if (script_bin.has_value()) {
+          path /= script_bin.value();
+        }
+        path /= cs_mod;
         std::string name = path.filename().string().substr(0 , path.filename().string().find_last_of('.'));
 
         cs_language_module->LoadScriptModule({
