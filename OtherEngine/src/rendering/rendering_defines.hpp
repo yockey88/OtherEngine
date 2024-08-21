@@ -6,13 +6,11 @@
 
 #include <string>
 #include <vector>
-#include <map>
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 
 #include "core/logger.hpp"
-#include "core/uuid.hpp"
 
 namespace other {
 
@@ -102,8 +100,8 @@ namespace other {
   struct FramebufferSpec {
     DepthFunction depth_func = DepthFunction::LESS;
 
-    glm::vec4 clear_color = { 1.f , 0.f , 0.f , 1.f };
-    glm::ivec2 size = { 0.f , 0.f };
+    glm::vec4 clear_color = { 0.f , 0.f , 0.f , 1.f };
+    glm::ivec2 size = { 800.f , 600.f };
 
     bool depth = true;
     bool color = true;

@@ -52,6 +52,9 @@ namespace other {
     bool wire_frame = false;
     float line_width = 1.f;
 
+    Ref<Shader> lighting_shader = nullptr;
+    Ref<VertexArray> target_mesh = nullptr;
+
     FramebufferSpec framebuffer_spec {};
     Layout vertex_layout;
 
@@ -69,8 +72,6 @@ namespace other {
       Pipeline(PipelineSpec& spec);
       virtual ~Pipeline() override {}
       
-      void SubmitRenderPass(Ref<RenderPass> pass);
-
       /// Add materials to model submission
       void SubmitModel(Ref<Model> model , const glm::mat4& transform , const Material& color);
       void SubmitStaticModel(Ref<StaticModel> model , const glm::mat4& transform , const Material& color);
@@ -99,14 +100,8 @@ namespace other {
 
       uint32_t curr_transform_idx = 0;
       uint32_t idx_offset = 0;
-       
+      
       Ref<Framebuffer> target = nullptr;
-
-      std::vector<Ref<RenderPass>> passes;
-
-      void AddIndices(const Index& idxs); 
-
-      void PerformPass(Ref<RenderPass>& pass);
 
       void RenderMeshes();
   };

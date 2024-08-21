@@ -8,7 +8,6 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "rendering/rendering_defines.hpp"
-#include "rendering/render_pass.hpp"
 #include "rendering/vertex.hpp"
 
 namespace std {
@@ -30,13 +29,6 @@ namespace other {
     target = Ref<Framebuffer>::Create(spec.framebuffer_spec);
     model_storage = NewRef<UniformBuffer>("ModelData" , spec.model_uniforms , spec.model_binding_point , SHADER_STORAGE);
     material_storage = NewRef<UniformBuffer>("MaterialData" , spec.material_uniforms , spec.material_binding_point , SHADER_STORAGE);
-  }
-      
-  void Pipeline::SubmitRenderPass(Ref<RenderPass> pass) {
-    pass->SetInput("goe_position" , 0);
-    pass->SetInput("goe_normal" , 1);
-    pass->SetInput("goe_albedo" , 2);
-    passes.push_back(pass);
   }
 
   void Pipeline::SubmitModel(Ref<Model> model , const glm::mat4& transform , const Material& material) {
@@ -76,9 +68,41 @@ namespace other {
   }
 
   void Pipeline::Render() {
+    /** Possible passes
+     * ----------------
+     * shadow map pass
+     * spot shadow mapp pass
+     * pre depth pass
+     * hzb compute
+     * pre integration
+     * light culling
+     * skybox pass
+     * GTAO compute
+     * GTAO denoise compute
+     * AO Composite
+     * pre convolution compute
+     * jump flood
+     * ssr compute
+     * ssr composite
+     * edge detection
+     * bloom compute 
+     * composite pass
+     * end command buffer
+     * submit command buffer
+     **/
+    auto itr = model_submissions.begin();
+    for (; itr != model_submissions.end();) {
+      if (itr->second.instance_count == 0) {
+        itr = model_submissions.erase(itr);
+      } else {
+        ++itr;
+      }
+    }
+
     material_storage->Clear();
     model_storage->Clear();
 
+    /// geometry pass (gbuffer pass)
     gbuffer.Bind();
     RenderMeshes();
     gbuffer.Unbind();
@@ -88,16 +112,15 @@ namespace other {
       glBindTexture(GL_TEXTURE_2D , gbuffer.textures[i]);
     }
 
+    /// lighting pass (composition pass)
     target->BindFrame();
-
-    for (auto& p : passes) {
-      PerformPass(p);
-    }
-
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D , target->texture);
+    spec.lighting_shader->Bind();
+    spec.target_mesh->Draw(other::TRIANGLES);
     target->UnbindFrame();
 
-    /// lighting pass
-    
+    /// dont clear the mesh key for a tiny optimization on future submissions
     for (auto& [mk , sl] : model_submissions) {
       sl.cpu_model_storage.ZeroMem();
       sl.cpu_material_storage.ZeroMem();
@@ -113,36 +136,6 @@ namespace other {
       
   GBuffer& Pipeline::GetGBuffer() {
     return gbuffer;
-  }
-      
-  void Pipeline::AddIndices(const Index& idx) {
-    indices.push_back(idx_offset + idx.v1);
-    indices.push_back(idx_offset + idx.v2);
-    indices.push_back(idx_offset + idx.v3); 
-  }
-        
-  void Pipeline::PerformPass(Ref<RenderPass>& pass) {
-    pass->Bind();
-    CHECKGL();
-
-    Buffer pass_models;
-    Buffer pass_materials;
-    for (auto& [mk , sl] : model_submissions) {
-      pass_materials = pass->ProcessMaterials(sl.cpu_material_storage);
-      pass_models = pass->ProcessModels(sl.cpu_model_storage);
-      
-      material_storage->BindBase();
-      material_storage->LoadFromBuffer(pass_materials);
-      model_storage->BindBase();
-      model_storage->LoadFromBuffer(pass_models);
-
-      mk.vao->Bind();
-      glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES , mk.num_elements , GL_UNSIGNED_INT , (void*)0 , sl.instance_count , 0 , 0);
-    }
-    CHECKGL();
-
-    pass->Unbind();
-    CHECKGL();
   }
       
   void Pipeline::RenderMeshes() {

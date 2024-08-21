@@ -193,7 +193,10 @@ int main(int argc , char* argv[]) {
 
       Ref<Shader> fbshader = other::BuildShader(fbshader_path);
 
-      Scope<VertexArray> fb_mesh = NewScope<VertexArray>(fb_verts , fb_indices , fb_layout);
+      Ref<VertexArray> fb_mesh = NewRef<VertexArray>(fb_verts , fb_indices , fb_layout);
+      Ref<other::Framebuffer> framebuffer = NewRef<other::Framebuffer>(other::FramebufferSpec{
+        .size = win_size ,
+      });
     
       uint32_t camera_binding_pnt = 0;
       std::vector<Uniform> cam_unis = {
@@ -256,16 +259,10 @@ int main(int argc , char* argv[]) {
       SceneRenderSpec render_spec {
         .camera_uniforms = NewRef<UniformBuffer>("Camera" , cam_unis , camera_binding_pnt) ,
         .light_uniforms = NewRef<UniformBuffer>("Lights" , light_unis , light_binding_pnt , other::SHADER_STORAGE) ,
-        .passes = {
-          {
-            .name = "Albedo" , 
-            .tag_col = { 0.f , 0.f , 0.f , 1.f } ,
-            .uniforms = {} ,
-            .shader = other::BuildShader(pure_geometry_path) ,
-          } ,
-        } ,
         .pipelines = {
           {
+            .lighting_shader = deferred_shader ,
+            .target_mesh = fb_mesh ,
             .framebuffer_spec = {
               .depth_func = other::LESS_EQUAL ,
               .clear_color = { 0.1f , 0.1f , 0.1f , 1.f } ,
@@ -278,41 +275,7 @@ int main(int argc , char* argv[]) {
             .material_binding_point = material_binding_pnt ,
             .debug_name = "Geometry" , 
           } ,
-          {
-            .framebuffer_spec = {
-              .depth_func = other::LESS_EQUAL ,
-              .clear_color = { 0.3f , 0.3f , 0.3f , 1.f } ,
-              .size = other::Renderer::WindowSize() ,
-            } ,
-            .vertex_layout = default_layout ,
-            .model_uniforms = model_unis , 
-            .model_binding_point = model_binding_pnt ,
-            .material_uniforms = material_unis ,
-            .material_binding_point = material_binding_pnt ,
-            .debug_name = "Outline" ,
-          } ,
-          {
-            .framebuffer_spec = {
-              .depth_func = other::LESS_EQUAL ,
-              .clear_color = { 0.3f , 0.3f , 0.3f , 1.f } ,
-              .size = other::Renderer::WindowSize() ,
-            } ,
-            .vertex_layout = default_layout ,
-            .model_uniforms = model_unis , 
-            .model_binding_point = model_binding_pnt ,
-            .material_uniforms = material_unis ,
-            .material_binding_point = material_binding_pnt ,
-            .debug_name = "Normals" , 
-          } ,
         } , 
-        .ref_passes = {
-          geom_pass , outline_pass , normal_pass ,
-        } ,
-        .pipeline_to_pass_map = {
-          { FNV("Geometry") , { FNV(geom_pass->Name()) } } ,
-          { FNV("Normals")  , { FNV("Albedo")             , FNV(normal_pass->Name())  } } ,
-          { FNV("Outline")  , { FNV(outline_pass->Name()) , FNV("Albedo") } } ,
-        } ,
       };
       Ref<SceneRenderer> renderer = NewRef<SceneRenderer>(render_spec);
 
@@ -360,10 +323,8 @@ int main(int argc , char* argv[]) {
 
       glm::vec3 outline_color{ 1.f , 0.f , 0.f };
 
-      UUID id = FNV(scenepath.string());
       SceneSerializer serializer;
       Ref<other::Scene> scene = nullptr;
-
       {
         auto loaded_scene = serializer.Deserialize(scenepath.string());
         if (loaded_scene.scene == nullptr) {
@@ -372,6 +333,16 @@ int main(int argc , char* argv[]) {
         }
 
         scene = loaded_scene.scene;
+      }
+
+      {
+        auto* cube = scene->GetEntity("cube");
+        auto& cube_mesh = cube->GetComponent<other::StaticMesh>();
+        cube_mesh.material = cube_material1;
+
+        auto* floor = scene->GetEntity("floor");
+        auto& floor_mesh = floor->GetComponent<other::StaticMesh>();
+        floor_mesh.material = cube_material2;
       }
 
       other::ScriptEngine::SetSceneContext(scene);
@@ -447,21 +418,13 @@ int main(int argc , char* argv[]) {
 
         const auto& frames = renderer->GetRender(); 
         const auto& vp = frames.at(FNV("Geometry"));
-        
-        glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D , vp->texture);
-        deferred_shader->Bind();
-        fb_mesh->Draw(other::TRIANGLES);
+
+        other::Renderer::DrawFramebufferToWindow(vp);
 
 #define UI_ENABLED 1
 #if UI_ENABLED
         other::UI::BeginFrame();
         const ImVec2 win_size = { (float)other::Renderer::WindowSize().x , (float)other::Renderer::WindowSize().y };
-        if (ImGui::Begin("Frames")) {
-          RenderItem(frames.at(FNV("Normals"))->texture , "Normals" , win_size);
-          RenderItem(frames.at(FNV("Outline"))->texture , "Outline" , win_size);
-        } 
-        ImGui::End();
 
         if (ImGui::Begin("Render Settings")) {
           bool edited = false;

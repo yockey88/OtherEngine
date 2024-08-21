@@ -79,10 +79,10 @@ fragment {
     vec3 result = albedo * 0.1;
     
     int i = 0;
-    // for (; i < num_lights.x;) {
-    //   result = result + CalcDirectionLight(direction_lights[i] , norm , view_dir);
-    //   i = i + 1;
-    // }
+    for (; i < num_lights.x;) {
+      result = result + CalcDirectionLight(direction_lights[i] , norm , view_dir);
+      i = i + 1;
+    }
 
     i = 0;
     for (; i < num_lights.y;) {

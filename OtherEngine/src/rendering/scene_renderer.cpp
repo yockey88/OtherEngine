@@ -7,7 +7,6 @@
 
 #include "core/defines.hpp"
 
-#include "rendering/renderer.hpp"
 #include "rendering/uniform.hpp"
 
 namespace other {
@@ -85,29 +84,9 @@ namespace other {
       passes[FNV(rp->Name())] = rp;
     }
 
-    /// render passes from specifications
-    for (auto& rp : spec.passes) {
-      passes[FNV(rp.name)] = NewRef<RenderPass>(rp);
-    }
-
     /// pipelines
     for (auto& pl : spec.pipelines) {
       pipelines[FNV(pl.debug_name)] = NewRef<Pipeline>(pl);
-    }
-
-    /// register passes with pipelines
-    for (auto& [pl , rps] : spec.pipeline_to_pass_map) {
-      /// FIXME: pl might not exist
-      auto& pline = pipelines[pl];
-
-      for (auto& p : rps) {
-        auto itr = passes.find(p);
-        if (itr == passes.end()) {
-          continue;
-        }
-        const auto& pass = itr->second;
-        pline->SubmitRenderPass(pass);
-      }
     }
   }
 
@@ -136,39 +115,10 @@ namespace other {
   }
       
   void SceneRenderer::FlushDrawList() {
-    /// pre render
-    /// begin command buffer ?
-    ///
-    /// shadow map pass
-    /// spot shadow mapp pass
-    /// pre depth pass
-    /// hzb compute
-    /// pre integration
-    /// light culling
-    /// skybox pass
-
-    /// TODO: certain pipelines should be rendered before others so we can use pipeline outputs as 
-    ///       inputs to other pipelines
     for (auto& [id , pl] : pipelines) {
       pl->Render();
       image_ir[id] = pl->GetOutput();
     }
-
-    /// GTAO compute
-    /// GTAO denoise compute
-    /// AO Composite
-    /// pre convolution compute
-    ///
-    /// jump flood
-    ///
-    /// ssr compute
-    /// ssr composite
-    /// edge detection
-    /// bloom compute 
-    /// composite pass
-    ///
-    /// end command buffer
-    /// submit command buffer
   }
   
 } // namespace other
