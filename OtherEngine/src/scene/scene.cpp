@@ -3,6 +3,8 @@
  **/
 #include "scene/scene.hpp"
 
+#include <ranges>
+
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -21,6 +23,7 @@
 #include "ecs/components/camera.hpp"
 #include "ecs/components/rigid_body_2d.hpp"
 #include "ecs/components/collider_2d.hpp"
+#include "ecs/components/light_source.hpp"
 #include "ecs/systems/core_systems.hpp"
 
 #include "rendering/model.hpp"
@@ -46,39 +49,21 @@ namespace other {
     
     registry.on_construct<Collider>().connect<&Scene::OnAddCollider>(this);
     registry.on_update<Collider>().connect<&OnColliderUpdate>();
+    
+    registry.on_construct<LightSource>().connect<&Scene::OnAddLightSource>(this);
 
     registry.on_construct<Mesh>().connect<&OnAddModel>();
     registry.on_construct<StaticMesh>().connect<&OnAddStaticModel>();
 
     /// TODO: move this 
     environment = NewRef<Environment>();
-    environment->point_lights = {
-      {
-        .position = { 3.0f , 5.f , 1.f , 1.f },
-        .ambient  = { 0.2f , 0.2f , 0.2f , 1.f } ,
-        .diffuse  = { 0.5f , 0.5f , 0.5f , 1.f } ,
-        .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
-      } ,
-      {
-        .position = { -3.f , 5.f , 1.f , 1.f },
-        .ambient  = { 0.5f , 0.5f , 0.5f , 1.f } ,
-        .diffuse  = { 0.2f , 0.2f , 0.2f , 1.f } ,
-        .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
-      } ,
-    };
-    environment->direction_lights = {
-      {
-        .direction = { -0.2f , -1.f , -0.3f , 1.f } ,
-        .ambient  = { 0.2f , 0.2f , 0.2f , 1.f } ,
-        .diffuse  = { 0.5f , 0.5f , 0.5f , 1.f } ,
-        .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
-      } ,
-    };
   }
 
   Scene::~Scene() {
     registry.on_construct<StaticMesh>().disconnect<&OnAddStaticModel>();
     registry.on_construct<Mesh>().disconnect<&OnAddModel>();
+
+    registry.on_construct<LightSource>().disconnect<&Scene::OnAddLightSource>(this);
     
     registry.on_update<Collider>().disconnect();
     registry.on_construct<Collider>().disconnect();
@@ -250,6 +235,24 @@ namespace other {
       }
     });
     
+    /// update environment
+
+    /// FIXME: dont deallocate and allocate each frame, only update when needed
+    environment->point_lights.clear();
+    environment->direction_lights.clear();
+    registry.view<LightSource , Transform>().each([this](LightSource& light , Transform& transform) {
+        switch (light.type) {
+          case POINT_LIGHT_SRC:
+            light.pointlight.position = glm::vec4(transform.position , 1.f);
+            environment->point_lights.push_back(light.pointlight);
+          break;
+          case DIRECTION_LIGHT_SRC:
+            environment->direction_lights.push_back(light.direction_light);
+          break;
+          default:
+          break;
+        }
+    });
     
     /// finish scene update
     /// checks if the scene become corrupt on client update
@@ -310,7 +313,13 @@ namespace other {
   }
       
   void Scene::Render(Ref<SceneRenderer> renderer) {
-    /// environment (set pipeline inputs) 
+    renderer->SubmitEnvironment(environment);
+
+    registry.view<Camera>().each([&](const Camera& camera) {
+      if (camera.camera->IsPrimary()) {
+        renderer->SubmitCamera(camera.camera); 
+      }
+    });
 
     registry.view<Mesh , Transform>().each([&renderer](const Mesh& mesh , const Transform& transform) {
       if (!AppState::Assets()->IsValid(mesh.handle)) {
@@ -687,6 +696,12 @@ namespace other {
     auto& transform = ent.GetComponent<Transform>();
 
     InitializeCollider(physics_world , body , collider , transform);
+  }
+
+  void Scene::OnAddLightSource(entt::registry& context , entt::entity entt) {
+  }
+
+  void Scene::OnRemoveLightSource(entt::registry& context , entt::entity entt) {
   }
       
   void Scene::FixRoots() {

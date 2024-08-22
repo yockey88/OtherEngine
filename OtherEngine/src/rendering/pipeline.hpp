@@ -16,7 +16,6 @@
 #include "rendering/framebuffer.hpp"
 #include "rendering/model.hpp"
 #include "rendering/material.hpp"
-#include "rendering/render_pass.hpp"
 #include "rendering/gbuffer.hpp"
 
 namespace other {
@@ -24,7 +23,7 @@ namespace other {
   using RenderFn = std::function<void(void*)>;
 
   struct MeshKey {
-    AssetHandle model_handle;
+    AssetHandle source_handle;
     Ref<VertexArray> vao = nullptr;
 
     size_t num_elements = 0;

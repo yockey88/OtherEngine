@@ -13,8 +13,8 @@
 namespace std {
   
   bool less<other::MeshKey>::operator()(const other::MeshKey& lhs , const other::MeshKey& rhs) const {
-    if (lhs.model_handle.Get() != rhs.model_handle.Get()) {
-      return lhs.model_handle.Get() < rhs.model_handle.Get();
+    if (lhs.source_handle.Get() != rhs.source_handle.Get()) {
+      return lhs.source_handle.Get() < rhs.source_handle.Get();
     }
     
     return lhs.selected && !rhs.selected;
@@ -35,8 +35,10 @@ namespace other {
   }
 
   void Pipeline::SubmitStaticModel(Ref<StaticModel> model , const glm::mat4& transform , const Material& material) {
+    Ref<ModelSource> source = model->GetModelSource();
+
     auto itr = std::ranges::find_if(model_submissions , [&](const auto& pair) -> bool {
-      return model->handle == pair.first.model_handle;
+      return source->handle == pair.first.source_handle;
     });
     
 
@@ -52,7 +54,7 @@ namespace other {
       }
 
       MeshKey key = {
-        .model_handle = model->handle ,
+        .source_handle = source->handle ,
         .vao = NewRef<VertexArray>(verts , indices) ,
       };
       key.num_elements = key.vao->NumElements();

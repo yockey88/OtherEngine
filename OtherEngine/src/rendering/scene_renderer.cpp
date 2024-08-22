@@ -27,30 +27,45 @@ namespace other {
   void SceneRenderer::SetViewportSize(const glm::ivec2& size) {
   }
   
-  
-  void SceneRenderer::BeginScene(Ref<CameraBase>& camera , Ref<Environment>& environment) {
+  void SceneRenderer::SubmitCamera(const Ref<CameraBase>& camera) {
+    if (frame_data.viewpoint != nullptr) {
+      /// only one viewpoint per frame
+      return;
+    }
+
     spec.camera_uniforms->BindBase();
     spec.camera_uniforms->SetUniform("projection" , camera->ProjectionMatrix());
     spec.camera_uniforms->SetUniform("view" , camera->ViewMatrix());
-
+    
     glm::vec4 cam_pos = glm::vec4(camera->Position() , 1.f);
     spec.camera_uniforms->SetUniform("viewpoint" , cam_pos);
 
-    glm::vec4 light_count{ 
-      environment->direction_lights.size() , 
-      environment->point_lights.size() ,
-      0 , 0
-    };
-    spec.light_uniforms->BindBase();
-    spec.light_uniforms->SetUniform("num_lights" , light_count);
-    for (size_t i = 0; i < environment->direction_lights.size(); ++i) {
-      auto& l = environment->direction_lights[i];
-      spec.light_uniforms->SetUniform("direction_lights" , l , i); 
+    frame_data.viewpoint = camera;
+  }
+  
+  void SceneRenderer::SubmitEnvironment(const Ref<Environment>& environment) {
+    if (frame_data.environment != nullptr) {
+      /// only one environment per frame
+      return;
     }
-    for (size_t i = 0; i < environment->point_lights.size(); ++i) {
-      auto& l = environment->point_lights[i];
-      spec.light_uniforms->SetUniform("point_lights" , l , i); 
-    }
+
+    // glm::vec4 light_count{ 
+    //   environment->direction_lights.size() , 
+    //   environment->point_lights.size() ,
+    //   0 , 0
+    // };
+    // spec.light_uniforms->BindBase();
+    // spec.light_uniforms->SetUniform("num_lights" , light_count);
+    // for (size_t i = 0; i < environment->direction_lights.size(); ++i) {
+    //   auto& l = environment->direction_lights[i];
+    //   spec.light_uniforms->SetUniform("direction_lights" , l , i); 
+    // }
+
+    // for (size_t i = 0; i < environment->point_lights.size(); ++i) {
+    //   auto& l = environment->point_lights[i];
+    //   spec.light_uniforms->SetUniform("point_lights" , l , i); 
+    // }
+    frame_data.environment = environment;
   }
   
   void SceneRenderer::SubmitModel(const std::string_view pl_name , Ref<Model> model , const glm::mat4& transform , const Material& material) {
@@ -68,8 +83,14 @@ namespace other {
   }
   
   void SceneRenderer::EndScene() {
+    if (!FrameComplete()) {
+      ResetFrame();
+      return;
+    }
+
     PreRenderSettings();
     FlushDrawList();
+    ResetFrame();
   }
 
   const std::map<UUID , Ref<Framebuffer>>& SceneRenderer::GetRender() const {
@@ -119,6 +140,16 @@ namespace other {
       pl->Render();
       image_ir[id] = pl->GetOutput();
     }
+  }
+      
+  bool SceneRenderer::FrameComplete() const {
+    return frame_data.viewpoint != nullptr && 
+           frame_data.environment != nullptr;
+  }
+      
+  void SceneRenderer::ResetFrame() {
+    frame_data.viewpoint = nullptr; 
+    frame_data.environment = nullptr;
   }
   
 } // namespace other

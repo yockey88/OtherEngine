@@ -28,7 +28,7 @@ namespace other {
 
     std::map<UUID , std::vector<UUID>> pipeline_to_pass_map;
   };
-
+  
   class SceneRenderer : public RefCounted {
     public:
       SceneRenderer(SceneRenderSpec spec = SceneRenderSpec());
@@ -58,10 +58,11 @@ namespace other {
 
       void SetViewportSize(const glm::ivec2& size);
       
-      void BeginScene(Ref<CameraBase>& camera , Ref<Environment>& environment);
-      
-      // void SubmitEnv(...)
-      // void SubmitLighting(...)
+      void SubmitCamera(const Ref<CameraBase>& camera);
+      void SubmitEnvironment(const Ref<Environment>& environment);
+
+      void SubmitDirectionLight(const DirectionLight& light);
+      void SubmitPointLight(const PointLight& light);
 
       void SubmitModel(const std::string_view pl_name , Ref<Model> model , const glm::mat4& transform , const Material& material);
       void SubmitStaticModel(const std::string_view pl_name , Ref<StaticModel> model , const glm::mat4& transform , const Material& material);
@@ -87,6 +88,11 @@ namespace other {
       uint32_t gbuffer_textures[NUM_GBUFFER_TEXTURES] = {
         0 , 0 , 0 , 0
       };
+
+      struct FrameSubmissions {
+        Ref<CameraBase> viewpoint = nullptr;
+        Ref<Environment> environment = nullptr;
+      } frame_data;
 
       /// here go the passes
       ///  - bloom compute ?
@@ -130,6 +136,9 @@ namespace other {
 
       void PreRenderSettings();
       void FlushDrawList();
+
+      bool FrameComplete() const;
+      void ResetFrame();
   };
 
 } // namespace other

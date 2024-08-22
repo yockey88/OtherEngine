@@ -247,19 +247,11 @@ namespace other {
       return true;
     }
     
-    if (viewpoint == nullptr) {
-      viewpoint = active_scene->scene->GetPrimaryCamera();
-      if (viewpoint == nullptr) {
-        return false;
-      }
+    if (viewpoint != nullptr) {
+      scene_renderer->SubmitCamera(viewpoint);
     }
 
-    auto environment = active_scene->scene->GetEnvironment();
-    OE_ASSERT(environment != nullptr , "Scene environment can not be null!");
-    
-    scene_renderer->BeginScene(viewpoint , environment);
     active_scene->scene->Render(scene_renderer);
-    scene_renderer->EndScene();
     
     return true;
   }

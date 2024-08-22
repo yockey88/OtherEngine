@@ -3,6 +3,8 @@
  **/
 #include "core/defines.hpp"
 
+#include <ranges>
+
 #include <SDL.h>
 #include <SDL_keyboard.h>
 #include <SDL_mouse.h>
@@ -25,12 +27,12 @@
 
 #include "application/app.hpp"
 #include "application/app_state.hpp"
-#include "asset/asset_manager.hpp"
 
 #include "event/event_queue.hpp"
 
 #include "ecs/entity.hpp"
 #include "ecs/components/mesh.hpp"
+#include "ecs/components/light_source.hpp"
 
 #include "scene/scene_serializer.hpp"
 #include "scene/environment.hpp"
@@ -48,14 +50,12 @@
 #include "rendering/framebuffer.hpp"
 #include "rendering/uniform.hpp"
 #include "rendering/model.hpp"
-#include "rendering/model_factory.hpp"
 #include "rendering/material.hpp"
 #include "rendering/point_light.hpp"
 #include "rendering/direction_light.hpp"
 #include "rendering/geometry_pass.hpp"
 #include "rendering/outline_pass.hpp"
 #include "rendering/render_pass.hpp"
-#include "rendering/pipeline.hpp"
 #include "rendering/point_light.hpp"
 #include "rendering/scene_renderer.hpp"
 #include "rendering/ui/ui.hpp"
@@ -398,21 +398,14 @@ int main(int argc , char* argv[]) {
         
         auto environment = scene->GetEnvironment();
 
-        light_model1 = glm::mat4(1.f);
-        light_model1 = glm::translate(light_model1 , glm::vec3(environment->point_lights[0].position));
-        light_model1 = glm::scale(light_model1 , light_scale);
-        
-        light_model2 = glm::mat4(1.f);
-        light_model2 = glm::translate(light_model2 , glm::vec3(environment->point_lights[1].position));
-        light_model2 = glm::scale(light_model2 , light_scale);
-
         scene->EarlyUpdate(0.16f);
         scene->Update(0.16f);
         scene->LateUpdate(0.16f);
 
         other::Renderer::GetWindow()->Clear();
 
-        renderer->BeginScene(camera , environment);
+        renderer->SubmitCamera(camera);
+        renderer->SubmitEnvironment(environment);
         scene->Render(renderer);
         renderer->EndScene();
 
@@ -436,10 +429,10 @@ int main(int argc , char* argv[]) {
                                               { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
           ImGui::Separator();
 
-          ImGui::Text("Scene Controls");
+          ImGui::Text("===== Scene Controls =====");
           auto& reg = scene->Registry();
 
-          ImGui::Text("Transforms =====");
+          ImGui::Text(" - Transforms =====");
           reg.view<other::Tag , other::Transform>().each([&](other::Tag& tag , other::Transform& transform) {
             ImGui::PushID((tag.name + "##transform-widget").c_str());
             if (other::ui::widgets::DrawVec3Control(other::fmtstr("{} position", tag.name) , 
@@ -449,7 +442,7 @@ int main(int argc , char* argv[]) {
             ImGui::PopID();
           });
           
-          ImGui::Text("Materials =====");
+          ImGui::Text(" - Materials =====");
           reg.view<other::Tag , other::StaticMesh>().each([&](other::Tag& tag , other::StaticMesh& mesh) {
             ImGui::PushID((tag.name + "##static-mesh-widget").c_str());
             RenderMaterial(other::fmtstr("{} material" , tag.name) , mesh.material);
@@ -458,11 +451,40 @@ int main(int argc , char* argv[]) {
           });
           ImGui::Separator();
 
-          ImGui::Text("Light Controls");
+          ImGui::Text(" - Light Controls =====");
+
+          if (ImGui::Button("Add Point Light")) {
+            auto* new_pl = scene->CreateEntity(other::fmtstr("point light {}" , environment->point_lights.size()));
+            OE_ASSERT(new_pl != nullptr , "new point light is null");
+            auto& new_light = new_pl->AddComponent<other::LightSource>();
+            new_light.type = other::POINT_LIGHT_SRC;
+            new_light.pointlight = {};
+          }
+          ImGui::SameLine();
+          if (ImGui::Button("Add Direction Light")) {
+            auto* new_pl = scene->CreateEntity(other::fmtstr("direction light {}" , environment->direction_lights.size()));
+            OE_ASSERT(new_pl != nullptr , "new point light is null");
+            auto& new_light = new_pl->AddComponent<other::LightSource>();
+            new_light.type = other::DIRECTION_LIGHT_SRC;
+            new_light.direction_light = {};
+          }
           ImGui::Separator();
-          RenderPointLight("point light 1" , environment->point_lights[0]);
-          RenderPointLight("point light 2" , environment->point_lights[1]);
-          RenderDirectionLight("direction light" , environment->direction_lights[0]);
+
+          uint32_t i = 0;
+          reg.view<other::LightSource , other::Transform>().each([&](other::LightSource& light , other::Transform& transform) {
+            switch (light.type) {
+            case other::POINT_LIGHT_SRC:
+                light.pointlight.position = glm::vec4(transform.position , 1.f);
+                RenderPointLight(other::fmtstr("point light [{}]" , i++) , light.pointlight);
+              break;
+              case other::DIRECTION_LIGHT_SRC:
+                RenderDirectionLight(other::fmtstr("direction light [{}]" , i++) , light.direction_light);
+              break;
+              default:
+              break;
+            }
+            ++i;
+          });
           ImGui::Separator();
         }
         ImGui::End();
