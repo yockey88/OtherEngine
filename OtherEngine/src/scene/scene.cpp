@@ -50,7 +50,8 @@ namespace other {
     registry.on_construct<Collider>().connect<&Scene::OnAddCollider>(this);
     registry.on_update<Collider>().connect<&OnColliderUpdate>();
     
-    registry.on_construct<LightSource>().connect<&Scene::OnAddLightSource>(this);
+    registry.on_update<LightSource>().connect<&Scene::RebuildEnvironment>(this);
+    registry.on_destroy<LightSource>().connect<&Scene::RebuildEnvironment>(this);
 
     registry.on_construct<Mesh>().connect<&OnAddModel>();
     registry.on_construct<StaticMesh>().connect<&OnAddStaticModel>();
@@ -63,7 +64,8 @@ namespace other {
     registry.on_construct<StaticMesh>().disconnect<&OnAddStaticModel>();
     registry.on_construct<Mesh>().disconnect<&OnAddModel>();
 
-    registry.on_construct<LightSource>().disconnect<&Scene::OnAddLightSource>(this);
+    registry.on_destroy<LightSource>().disconnect<&Scene::RebuildEnvironment>(this);
+    registry.on_update<LightSource>().disconnect<&Scene::RebuildEnvironment>(this);
     
     registry.on_update<Collider>().disconnect();
     registry.on_construct<Collider>().disconnect();
@@ -238,21 +240,6 @@ namespace other {
     /// update environment
 
     /// FIXME: dont deallocate and allocate each frame, only update when needed
-    environment->point_lights.clear();
-    environment->direction_lights.clear();
-    registry.view<LightSource , Transform>().each([this](LightSource& light , Transform& transform) {
-        switch (light.type) {
-          case POINT_LIGHT_SRC:
-            light.pointlight.position = glm::vec4(transform.position , 1.f);
-            environment->point_lights.push_back(light.pointlight);
-          break;
-          case DIRECTION_LIGHT_SRC:
-            environment->direction_lights.push_back(light.direction_light);
-          break;
-          default:
-          break;
-        }
-    });
     
     /// finish scene update
     /// checks if the scene become corrupt on client update
@@ -643,6 +630,26 @@ namespace other {
 
     FixRoots();
   }
+  
+  void Scene::RebuildEnvironment() {
+    /// rebuild environment on light source change
+    environment->point_lights.clear();
+    environment->direction_lights.clear();
+    registry.view<LightSource , Transform>().each([this](LightSource& light , Transform& transform) {
+        switch (light.type) {
+          case POINT_LIGHT_SRC:
+            light.pointlight.position = glm::vec4(transform.position , 1.f);
+            environment->point_lights.push_back(light.pointlight);
+          break;
+          case DIRECTION_LIGHT_SRC:
+            environment->direction_lights.push_back(light.direction_light);
+          break;
+          default:
+          break;
+        }
+    });
+    OE_DEBUG("Environment updated : [{} , {}]" , environment->direction_lights.size() , environment->point_lights.size());
+  }
       
   void Scene::OnAddRigidBody2D(entt::registry& context , entt::entity entt) {
     OE_ASSERT(physics_world_2d != nullptr , "Somehow created a rigid body 2D component without active 2D physics");
@@ -697,13 +704,7 @@ namespace other {
 
     InitializeCollider(physics_world , body , collider , transform);
   }
-
-  void Scene::OnAddLightSource(entt::registry& context , entt::entity entt) {
-  }
-
-  void Scene::OnRemoveLightSource(entt::registry& context , entt::entity entt) {
-  }
-      
+ 
   void Scene::FixRoots() {
     /// add any entities that should be root entities to roots
     for (auto itr = entities.begin(); itr != entities.end();) {

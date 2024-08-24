@@ -85,6 +85,8 @@ namespace other {
 
       void ParentEntity(UUID id , UUID parent_id);
       void OrphanEntity(UUID id);
+      
+      void RebuildEnvironment();
 
     protected:
       other::AssetHandle model_handle;
@@ -98,9 +100,6 @@ namespace other {
       
       void OnAddRigidBody(entt::registry& context , entt::entity ent);
       void OnAddCollider(entt::registry& context , entt::entity ent);
-
-      void OnAddLightSource(entt::registry& context , entt::entity ent);
-      void OnRemoveLightSource(entt::registry& context , entt::entity ent);
 
       virtual void OnInit() {}
       virtual void OnStart() {}

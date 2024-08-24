@@ -10,10 +10,10 @@
 namespace other {
 
   struct DirectionLight {
-    glm::vec4 direction;
-    glm::vec4 ambient;
-    glm::vec4 diffuse;
-    glm::vec4 specular;
+    glm::vec4 direction{ 0.f , -1.f , 0.f , 1.f };
+    glm::vec4 ambient{ 1.f , 1.f , 1.f , 1.f };
+    glm::vec4 diffuse{ 1.f , 1.f , 1.f , 1.f };
+    glm::vec4 specular{ 1.f , 1.f , 1.f , 1.f };
   };
 
   static_assert(sizeof(DirectionLight) == 4 * 4 * sizeof(float) , "DirectionLight has incorrect size for GPU layout!");

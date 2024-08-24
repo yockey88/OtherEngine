@@ -49,22 +49,22 @@ namespace other {
       return;
     }
 
-    // glm::vec4 light_count{ 
-    //   environment->direction_lights.size() , 
-    //   environment->point_lights.size() ,
-    //   0 , 0
-    // };
-    // spec.light_uniforms->BindBase();
-    // spec.light_uniforms->SetUniform("num_lights" , light_count);
-    // for (size_t i = 0; i < environment->direction_lights.size(); ++i) {
-    //   auto& l = environment->direction_lights[i];
-    //   spec.light_uniforms->SetUniform("direction_lights" , l , i); 
-    // }
+    glm::vec4 light_count{ 
+      environment->direction_lights.size() , 
+      environment->point_lights.size() ,
+      0 , 0
+    };
+    spec.light_uniforms->BindBase();
+    spec.light_uniforms->SetUniform("num_lights" , light_count);
+    for (size_t i = 0; i < environment->direction_lights.size(); ++i) {
+      auto& l = environment->direction_lights[i];
+      spec.light_uniforms->SetUniform("direction_lights" , l , i); 
+    }
 
-    // for (size_t i = 0; i < environment->point_lights.size(); ++i) {
-    //   auto& l = environment->point_lights[i];
-    //   spec.light_uniforms->SetUniform("point_lights" , l , i); 
-    // }
+    for (size_t i = 0; i < environment->point_lights.size(); ++i) {
+      auto& l = environment->point_lights[i];
+      spec.light_uniforms->SetUniform("point_lights" , l , i); 
+    }
     frame_data.environment = environment;
   }
   

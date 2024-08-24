@@ -40,7 +40,7 @@ void RenderMaterial(const std::string& title , other::Material& mat) {
   ImGui::PopID();
 }
 
-void RenderPointLight(const std::string& title , other::PointLight& pl) {
+bool RenderPointLight(const std::string& title , other::PointLight& pl) {
   ImGui::PushID(("##" + title).c_str());
   ImGui::Text("%s" , title.c_str());
 
@@ -50,13 +50,13 @@ void RenderPointLight(const std::string& title , other::PointLight& pl) {
   glm::vec3 temp_ambient = pl.ambient;
   glm::vec3 temp_diffuse = pl.diffuse;
   glm::vec3 temp_specular = pl.specular;
-  other::ui::widgets::DrawVec3Control("position" , temp_position , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
+  edited = edited || other::ui::widgets::DrawVec3Control("position" , temp_position , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
                                       { -100.f , -100.f , -100.f } , { 100.f , 100.f , 100.f } , 0.5f);
-  other::ui::widgets::DrawVec3Control("ambient color" , temp_ambient , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
+  edited = edited || other::ui::widgets::DrawVec3Control("ambient color" , temp_ambient , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
                                       { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
-  other::ui::widgets::DrawVec3Control("diffuse color" , temp_diffuse , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
+  edited = edited || other::ui::widgets::DrawVec3Control("diffuse color" , temp_diffuse , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
                                       { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
-  other::ui::widgets::DrawVec3Control("specular color" , temp_specular , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
+  edited = edited || other::ui::widgets::DrawVec3Control("specular color" , temp_specular , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
                                       { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
   other::ui::BeginProperty("constant");
   other::ui::DragFloat("##constant" , &pl.constant , 0.1f , 0.f , 256.f);
@@ -74,11 +74,13 @@ void RenderPointLight(const std::string& title , other::PointLight& pl) {
   pl.ambient = glm::vec4(temp_ambient , 1.f);
   pl.diffuse = glm::vec4(temp_diffuse , 1.f);
   pl.specular = glm::vec4(temp_specular , 1.f);
-  
+
   ImGui::PopID();
+
+  return edited;
 }
 
-void RenderDirectionLight(const std::string& title , other::DirectionLight& dl) {
+bool RenderDirectionLight(const std::string& title , other::DirectionLight& dl) {
   ImGui::PushID(("##" + title).c_str());
   ImGui::Text("%s" , title.c_str());
 
@@ -88,13 +90,13 @@ void RenderDirectionLight(const std::string& title , other::DirectionLight& dl) 
   glm::vec3 temp_ambient = dl.ambient;
   glm::vec3 temp_diffuse = dl.diffuse;
   glm::vec3 temp_specular = dl.specular;
-  other::ui::widgets::DrawVec3Control("direction" , temp_direction , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
+  edited = edited || other::ui::widgets::DrawVec3Control("direction" , temp_direction , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
                                       { -100.f , -100.f , -100.f } , { 100.f , 100.f , 100.f } , 0.5f);
-  other::ui::widgets::DrawVec3Control("ambient color" , temp_ambient , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
+  edited = edited || other::ui::widgets::DrawVec3Control("ambient color" , temp_ambient , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
                                       { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
-  other::ui::widgets::DrawVec3Control("diffuse color" , temp_diffuse , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
+  edited = edited || other::ui::widgets::DrawVec3Control("diffuse color" , temp_diffuse , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
                                       { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
-  other::ui::widgets::DrawVec3Control("specular color" , temp_specular , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
+  edited = edited || other::ui::widgets::DrawVec3Control("specular color" , temp_specular , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
                                       { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
   
   dl.direction = glm::vec4(temp_direction , 1.f);
@@ -102,6 +104,8 @@ void RenderDirectionLight(const std::string& title , other::DirectionLight& dl) 
   dl.diffuse = glm::vec4(temp_diffuse , 1.f);
   dl.specular = glm::vec4(temp_specular , 1.f);
   ImGui::PopID();
+
+  return edited;
 }
 
 void RenderSettings() {

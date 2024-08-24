@@ -396,7 +396,9 @@ int main(int argc , char* argv[]) {
           other::DefaultUpdateCamera(camera);
         }
         
-        auto environment = scene->GetEnvironment();
+#define USING_CUSTOM_ENV 0
+#if USING_CUSTOM_ENV 
+#endif
 
         scene->EarlyUpdate(0.16f);
         scene->Update(0.16f);
@@ -405,7 +407,9 @@ int main(int argc , char* argv[]) {
         other::Renderer::GetWindow()->Clear();
 
         renderer->SubmitCamera(camera);
+#if USING_CUSTOM_ENV
         renderer->SubmitEnvironment(environment);
+#endif
         scene->Render(renderer);
         renderer->EndScene();
 
@@ -453,38 +457,51 @@ int main(int argc , char* argv[]) {
 
           ImGui::Text(" - Light Controls =====");
 
+#if !USING_CUSTOM_ENV
+          auto environment = scene->GetEnvironment();
+#else
+#endif 
+
           if (ImGui::Button("Add Point Light")) {
             auto* new_pl = scene->CreateEntity(other::fmtstr("point light {}" , environment->point_lights.size()));
             OE_ASSERT(new_pl != nullptr , "new point light is null");
-            auto& new_light = new_pl->AddComponent<other::LightSource>();
+            auto new_light = new_pl->AddComponent<other::LightSource>();
             new_light.type = other::POINT_LIGHT_SRC;
             new_light.pointlight = {};
+            scene->RebuildEnvironment();
           }
           ImGui::SameLine();
           if (ImGui::Button("Add Direction Light")) {
             auto* new_pl = scene->CreateEntity(other::fmtstr("direction light {}" , environment->direction_lights.size()));
             OE_ASSERT(new_pl != nullptr , "new point light is null");
-            auto& new_light = new_pl->AddComponent<other::LightSource>();
+            auto new_light = new_pl->AddComponent<other::LightSource>();
             new_light.type = other::DIRECTION_LIGHT_SRC;
             new_light.direction_light = {};
+            scene->RebuildEnvironment();
           }
           ImGui::Separator();
 
           uint32_t i = 0;
+          edited = false;
           reg.view<other::LightSource , other::Transform>().each([&](other::LightSource& light , other::Transform& transform) {
             switch (light.type) {
-            case other::POINT_LIGHT_SRC:
-                light.pointlight.position = glm::vec4(transform.position , 1.f);
-                RenderPointLight(other::fmtstr("point light [{}]" , i++) , light.pointlight);
+              case other::POINT_LIGHT_SRC:
+                edited = RenderPointLight(other::fmtstr("point light [{}]" , i++) , light.pointlight);
+                transform.position = glm::vec3(light.pointlight.position.x , light.pointlight.position.y , light.pointlight.position.z);
               break;
               case other::DIRECTION_LIGHT_SRC:
-                RenderDirectionLight(other::fmtstr("direction light [{}]" , i++) , light.direction_light);
+                edited = RenderDirectionLight(other::fmtstr("direction light [{}]" , i++) , light.direction_light);
               break;
               default:
               break;
             }
             ++i;
           });
+
+          if (edited) {
+            scene->RebuildEnvironment();
+          }
+
           ImGui::Separator();
         }
         ImGui::End();

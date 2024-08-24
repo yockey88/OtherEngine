@@ -9,7 +9,7 @@
 namespace other {
 
   struct PointLight {
-    glm::vec4 position = { 0.f , 0.f , 0.f , 1.f };
+    glm::vec4 position = { 1.f , 1.f , 1.f , 1.f };
     glm::vec4 ambient = { 1.f , 1.f , 1.f , 1.f };
     glm::vec4 diffuse = { 1.f , 1.f , 1.f , 1.f };
     glm::vec4 specular = { 1.f , 1.f , 1.f , 1.f };

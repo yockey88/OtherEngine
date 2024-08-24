@@ -126,12 +126,7 @@ namespace other {
 
       template <component_type T>
       inline void UpdateComponent(const T& component) {
-        if (!HasComponent<T>()) {
-          auto& c = AddComponent<T>();
-          c = component;
-        } else {
-          registry.patch<T>(handle , [&](auto& comp) { comp = component; });
-        }
+        registry.patch<T>(handle , [&](auto& comp) { comp = component; });
       }
 
       inline entt::entity GetEntity() const { return handle; }

@@ -14,7 +14,7 @@
 namespace other {
 
   enum LightSourceType {
-    DIRECTION_LIGHT_SRC ,
+    DIRECTION_LIGHT_SRC = 0 ,
     POINT_LIGHT_SRC ,
 
     NUM_LIGHT_SRCS , 

@@ -46,6 +46,7 @@ namespace other {
   }
 
   void StaticMeshSerializer::Deserialize(Entity* entity , const ConfigTable& scene_table , Ref<Scene>& scene) const {
+    OE_ASSERT(entity != nullptr && scene != nullptr , "Attempting to deserialize a static-mesh into null entity or scene!");
     std::string key_value = GetComponentSectionKey(entity->Name(), std::string{ kStaticMeshValue });
     
     auto& mesh = entity->AddComponent<StaticMesh>();

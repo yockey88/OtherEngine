@@ -36,6 +36,8 @@ namespace other {
 
   constexpr static size_t kNumComponents = 12;
 
+  /// integers signed because of 'invisible components' 
+  ///   default components attached to all entities that are for internal engine use
   constexpr static int32_t kTagIndex = 0;
   constexpr static int32_t kTransformIndex = 1;
   constexpr static int32_t kRelationshipIndex = 2;
@@ -48,6 +50,9 @@ namespace other {
   constexpr static int32_t kRigidBodyIndex = 9;
   constexpr static int32_t kColliderIndex = 10;
   constexpr static int32_t kLightSourceIndex = 11;
+  /** invisible components
+   *                       kSerializationData = -1
+   **/
 
   using ComponentTagPair = std::pair<std::string_view , size_t>;
   constexpr static std::array<ComponentTagPair , kNumComponents> kComponentTags = {
