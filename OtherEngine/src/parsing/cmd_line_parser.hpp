@@ -47,8 +47,10 @@ namespace other {
       CmdLine() = default;
       CmdLine(int argc , char* argv[]);
 
-      bool HasFlag(const std::string& flag) const;
-      Opt<Arg> GetArg(const std::string& flag) const;
+      void SetFlag(const std::string_view flag , const std::vector<std::string>& flag_args);
+
+      bool HasFlag(const std::string_view flag) const;
+      Opt<Arg> GetArg(const std::string_view flag) const;
 
     private:
       std::string program_name;

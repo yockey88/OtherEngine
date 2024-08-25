@@ -101,9 +101,8 @@ uniform sampler2D g_albedo_spec;
 
 struct PointLight {
   vec4 position;
-  vec4 ambient;
-  vec4 diffuse;
-  vec4 specular;
+  vec4 color;
+  float radius;
   float constant;
   float linear;
   float quadratic;
@@ -111,9 +110,7 @@ struct PointLight {
 
 struct DirectionLight {
   vec4 direction;
-  vec4 ambient;
-  vec4 diffuse;
-  vec4 specular;
+  vec4 color;
 };
 
 layout (std140 , binding = 0) uniform Camera {
@@ -132,21 +129,21 @@ layout (std430 , binding = 3) readonly buffer Lights {
 void main() {
   vec3 frag_pos = texture(g_position , tex_coords).rgb;
   vec3 normal = texture(g_normal , tex_coords).rgb;
-  vec3 albedo = texture(g_albedo_spec , tex_coords).rgb;
+  vec3 diffuse = texture(g_albedo_spec , tex_coords).rgb;
   float specular = texture(g_albedo_spec , tex_coords).a;
 
-  vec3 lighting = albedo * 0.1;
+  vec3 lighting = diffuse * 0.1;
   vec3 view_dir = normalize(viewpoint.xyz - frag_pos);
 
   for (int i = 0; i < num_lights.y; ++i) {
     // diffuse
     vec3 light_dir = normalize(point_lights[i].position.xyz - frag_pos);
-    vec3 diffuse = max(dot(normal , light_dir) , 0.0) * albedo * (point_lights[i].ambient.xyz + point_lights[i].diffuse.xyz);
+    vec3 diffuse = max(dot(normal , light_dir) , 0.0) * diffuse * point_lights[i].color.xyz;
 
     // specular
     vec3 halfway = normalize(light_dir + view_dir);
     float s = pow(max(dot(normal , halfway) , 0.0) , 16.0);
-    vec3 spec = point_lights[i].ambient.xyz * s * specular;
+    vec3 spec = point_lights[i].color.xyz * s * specular;
 
     // attenuation
     float dist = length(point_lights[i].position.xyz - frag_pos);

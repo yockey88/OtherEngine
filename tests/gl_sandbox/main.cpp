@@ -43,6 +43,7 @@
 #include "sandbox_ui.hpp"
 #include "gl_helpers.hpp"
 #include "shader_embed.hpp"
+#include "mock_app.hpp"
 
 struct Quad {
   uint32_t vao = 0 , vbo = 0 , ebo = 0;
@@ -229,15 +230,11 @@ int main(int argc , char* argv[]) {
 
     other::PointLight point_light {
       .position = { 1.2f , 1.0f , 2.0f , 1.f } ,
-      .ambient  = { 0.2f , 0.2f , 0.2f , 1.f } ,
-      .diffuse  = { 0.5f , 0.5f , 0.5f , 1.f } ,
-      .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
+      .color  = { 0.2f , 0.2f , 0.2f , 1.f } ,
     };
     other::DirectionLight dir_light {
       .direction = { -0.2f , 1.0f , -0.3f , 1.f } ,
-      .ambient = { 1.0f , 1.0f , 1.0f , 1.f } ,
-      .diffuse = { 1.0f , 1.0f , 1.0f , 1.f } ,
-      .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
+      .color = { 1.0f , 1.0f , 1.0f , 1.f } ,
     };
 
     CHECK();

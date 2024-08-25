@@ -28,13 +28,24 @@
 namespace other {
   
   enum ExitCode : uint8_t {
+    /// for os (program exit) 
     SUCCESS = 0x00 ,
+    FAILURE = 0x01 ,
+
+    /// for internal use (reboot, reload, etc...)
+    ///   internal good codes
     RELOAD_PROJECT ,
     LOAD_NEW_PROJECT ,
+    NO_EXIT ,
+
+    ///   internal bad codes
+    UNKNOWN_EXCEPTION ,
+    NO_CONFIG_FILE ,
+    CONFIG_PARSE_FAILURE ,
+
 
     NUM_EXIT_CODES ,
-    FAILURE = NUM_EXIT_CODES ,
-    INVALID = FAILURE
+    INVALID =NUM_EXIT_CODES , 
   };
   
   enum ValueType {

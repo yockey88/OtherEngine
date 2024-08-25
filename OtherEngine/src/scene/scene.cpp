@@ -648,7 +648,6 @@ namespace other {
           break;
         }
     });
-    OE_DEBUG("Environment updated : [{} , {}]" , environment->direction_lights.size() , environment->point_lights.size());
   }
       
   void Scene::OnAddRigidBody2D(entt::registry& context , entt::entity entt) {

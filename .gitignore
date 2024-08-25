@@ -2,59 +2,24 @@
 bin/
 bin_obj/
 .cache/
+*.sln
+*.vcxproj*
+*csproj*
+*.lib
+*.dll
+*.exe
 
 ## Project tools
 tools/runtestbed.py
-tools/runsand.py
 tools/gensln.py
 tools/buildsln.py
-
-# Prerequisites
-*.d
+tools/utilities.py
 
 # configuration files
 *.config
 *.ini
-*.xml
 *.json
-
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
-
-# Microsoft files
-*.sln
-*.vcxproj
-*.vcxproj.user
-*.vcxproj.filters
-*.csproj
-*.csproj.user
+*.xml
 
 ## Pycache
 tools/__pycache__/
@@ -67,11 +32,3 @@ tools/__pycache__/
 # other
 *.log
 *.swp
-*.swo
-*.DS_Store
-*.tmp
-*.tmp.*
-*.bak
-*.backup
-*.orig
-*.rej

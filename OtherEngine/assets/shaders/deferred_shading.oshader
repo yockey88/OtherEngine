@@ -21,53 +21,39 @@ fragment {
   void main() {
     vec3 frag_pos = texture(goe_position , tex_coords).rgb;
     vec3 normal = texture(goe_normal , tex_coords).rgb;
-    vec3 albedo = texture(goe_albedo , tex_coords).rgb;
+    vec3 diffuse = texture(goe_albedo , tex_coords).rgb;
     float specular = texture(goe_albedo , tex_coords).a;
 
-    vec3 lighting = albedo * 0.1;
+    vec3 lighting = diffuse * 0.1;
     vec3 view_dir = normalize(view_pos.xyz - frag_pos);
 
     int i = 0
-    for (; i < num_lights.y;) {
-      // // diffuse
-      // vec3 light_dir = normalize(point_lights[i].position.xyz - frag_pos);
-      // vec3 diffuse = max(dot(normal , light_dir) , 0.0) * albedo * (point_lights[i].ambient.xyz + point_lights[i].diffuse.xyz);
-
-      // // specular
-      // vec3 halfway = normalize(light_dir + view_dir);
-      // float s = pow(max(dot(normal , halfway) , 0.0) , 16.0);
-      // vec3 spec = point_lights[i].ambient.xyz * s * specular;
-
-      // // attenuation
-      // float dist = length(point_lights[i].position.xyz - frag_pos);
-      // float attenuation = 1.0 / (1.0 + point_lights[i].linear * dist + point_lights[i].quadratic * dist * dist);
-
-      // diffuse = diffuse * attenuation;
-      // specular = specular * attenuation;
-      // lighting = lighting + diffuse + spec; 
-
-      i = i + 1;
-    }
+    /// direction lights
 
     i = 0;
     for (; i < num_lights.y;) {
-      // diffuse
-      vec3 light_dir = normalize(point_lights[i].position.xyz - frag_pos);
-      vec3 diffuse = max(dot(normal , light_dir) , 0.0) * albedo * (point_lights[i].ambient.xyz + point_lights[i].diffuse.xyz);
+      float distance = length(point_lights[i].position.xyz - frag_pos);
 
-      // specular
-      vec3 halfway = normalize(light_dir + view_dir);
-      float s = pow(max(dot(normal , halfway) , 0.0) , 16.0);
-      vec3 spec = point_lights[i].ambient.xyz * s * specular;
+      if (distance < point_lights[i].radius) {
+        vec3 color = point_lights[i].color.xyz;
 
-      // attenuation
-      float dist = length(point_lights[i].position.xyz - frag_pos);
-      float attenuation = 1.0 / (1.0 + point_lights[i].linear * dist + point_lights[i].quadratic * dist * dist);
+        // diffuse
+        vec3 light_dir = normalize(point_lights[i].position.xyz - frag_pos);
+        vec3 diff = max(dot(normal , light_dir) , 0.0) * diffuse;
+        vec3 diffuse = diff * color;
 
-      diffuse = diffuse * attenuation;
-      specular = specular * attenuation;
-      lighting = lighting + diffuse + spec; 
+        // specular
+        vec3 halfway = normalize(light_dir + view_dir);
+        float s = pow(max(dot(normal , halfway) , 0.0) , 16.0);
+        vec3 spec = color * s * specular;
 
+        // attenuation
+        float attenuation = 1.0 / (1.0 + point_lights[i].linear * distance + point_lights[i].quadratic * distance * distance);
+
+        diffuse = diffuse * attenuation;
+        specular = specular * attenuation;
+        lighting = lighting + diffuse + spec; 
+      }
       i = i + 1;
     }
     FragColor = vec4(lighting , 1.0f);

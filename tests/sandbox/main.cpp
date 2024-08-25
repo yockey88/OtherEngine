@@ -62,6 +62,7 @@
 #include "rendering/ui/ui_helpers.hpp"
 #include "rendering/ui/ui_widgets.hpp"
 
+#include "mock_app.hpp"
 #include "sandbox_ui.hpp"
 
 using other::FNV;
@@ -87,37 +88,6 @@ using other::SceneRenderer;
 
 using other::SceneSerializer;
 
-void CheckGlError(int line);
-
-class TestApp : public other::App {
-  public:
-    TestApp(other::Engine* engine) 
-        : other::App(engine) {}
-    virtual ~TestApp() override {}
-};
-
-#define CHECK() do { CheckGlError(__LINE__); } while (false)
-
-void LaunchMock(const other::ConfigTable& config) {
-  other::IO::Initialize();
-  other::EventQueue::Initialize(config);
-  other::ScriptEngine::Initialize(config);
-  other::PhysicsEngine::Initialize(config);
-  
-  other::Renderer::Initialize(config);
-  other::UI::Initialize(config , other::Renderer::GetWindow());
-}
-
-void ShutdownMock() {
-  other::UI::Shutdown();
-  other::Renderer::Shutdown();
-
-  other::PhysicsEngine::Shutdown();
-  other::ScriptEngine::Shutdown();
-  other::EventQueue::Shutdown();
-  other::IO::Shutdown();
-}
-
 std::vector<float> fb_verts = {
    1.f ,  1.f , 1.f , 1.f ,
   -1.f ,  1.f , 0.f , 1.f ,
@@ -135,30 +105,21 @@ std::vector<uint32_t> fb_layout = {
 
 int main(int argc , char* argv[]) {
   try {
-    other::CmdLine cmd_line(argc , argv);
-
     const other::Path sandbox_dir = "C:/Yock/code/OtherEngine/tests/sandbox";
-
     const other::Path config_path = sandbox_dir / "sandbox.other"; 
-    other::IniFileParser parser(config_path.string());
-    auto config = parser.Parse(); 
 
-    other::Logger::Open(config);
-    other::Logger::Instance()->RegisterThread("Sandbox-Thread");
+    other::CmdLine cmd_line(argc , argv);
+    cmd_line.SetFlag("--project" , { config_path.string() });
 
     /// for test reasons
-    other::Engine mock_engine = other::Engine::Create(cmd_line , config , config_path.string());
-    {
-      Scope<other::App> app_handle = NewScope<TestApp>(&mock_engine);
-      mock_engine.LoadApp(app_handle);
-    }
+    other::Engine mock_engine(cmd_line); 
+    other::Logger::Open(mock_engine.config);
+    other::Logger::Instance()->RegisterThread("Sandbox Thread");
 
-    LaunchMock(config);
+    mock_engine.LoadApp();
     OE_DEBUG("Sandbox Launched");
 
-    mock_engine.PushCoreLayer();
     other::ScriptEngine::LoadProjectModules();
-
 
     const other::Path engine_core_dir = other::Filesystem::GetEngineCoreDir();
     const other::Path assets_dir = engine_core_dir / "OtherEngine" / "assets";
@@ -293,7 +254,6 @@ int main(int argc , char* argv[]) {
         
       CHECKGL();
 
-      glm::vec3 cube_pos1 = glm::vec3(0.f , 0.f , 0.f);
       other::Material cube_material1 = {
         .ambient  = { 1.0f , 0.5f , 0.31f , 1.f } ,
         .diffuse  = { 1.0f , 0.5f , 0.31f , 1.f } ,
@@ -301,7 +261,6 @@ int main(int argc , char* argv[]) {
         .shininess = 32.f ,
       };
       
-      glm::vec3 cube_pos2 = glm::vec3(2.f , 0.f , 0.f);
       other::Material cube_material2 = {
         .ambient  = { 1.0f , 0.31f , 0.5f , 1.f } ,
         .diffuse  = { 1.0f , 0.31f , 0.5f , 1.f } ,
@@ -406,7 +365,7 @@ int main(int argc , char* argv[]) {
 
         other::Renderer::GetWindow()->Clear();
 
-        renderer->SubmitCamera(camera);
+        // renderer->SubmitCamera(camera);
 #if USING_CUSTOM_ENV
         renderer->SubmitEnvironment(environment);
 #endif
@@ -515,11 +474,10 @@ int main(int argc , char* argv[]) {
       scene->Shutdown();
     }
 
-    ShutdownMock();
-
+    mock_engine.UnloadApp();
     OE_INFO("Succesful exit");
-    
     other::Logger::Shutdown();
+    
     return 0;
   } catch (const other::IniException& e) {
     std::cout << "caught ini error : " << e.what() << "\n";
@@ -529,45 +487,7 @@ int main(int argc , char* argv[]) {
     std::cout << "caught std error : " << e.what() << "\n";
   } catch (...) {
     std::cout << "unknown error" << "\n";
-    return 1;
   }
-}
-
-void CheckGlError(int line) {
-  GLenum err = glGetError();
-  while (err != GL_NO_ERROR) {
-    switch (err) {
-      case GL_INVALID_ENUM: 
-        OE_ERROR("OpenGL Error INVALID_ENUM : {}" , line);
-      break;
-      case GL_INVALID_VALUE:
-        OE_ERROR("OpenGL Error INVALID_VALUE : {}" , line);
-      break;
-      case GL_INVALID_OPERATION:
-        OE_ERROR("OpenGL Error INVALID_OPERATION : {}" , line);
-      break;
-      case GL_STACK_OVERFLOW:
-        OE_ERROR("OpenGL Error STACK_OVERFLOW : {}" , line);
-      break;
-      case GL_STACK_UNDERFLOW:
-        OE_ERROR("OpenGL Error STACK_UNDERFLOW : {}" , line);
-      break;
-      case GL_OUT_OF_MEMORY:
-        OE_ERROR("OpenGL Error OUT_OF_MEMORY : {}" , line);
-      break;
-      case GL_INVALID_FRAMEBUFFER_OPERATION:
-        OE_ERROR("OpenGL Error INVALID_FRAMEBUFFER_OPERATION : {}" , line);
-      break;
-      case GL_CONTEXT_LOST:
-        OE_ERROR("OpenGL Error CONTEXT_LOST : {}" , line);
-      break;
-      case GL_TABLE_TOO_LARGE:
-        OE_ERROR("OpenGL Error TABLE_TOO_LARGE : {}" , line);
-      break;
-      default: break;
-    }
-    err = glGetError();
-  }
-
-}
   
+  return 1;
+} 

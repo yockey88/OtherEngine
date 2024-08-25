@@ -10,12 +10,15 @@ OtherTestEngine.files = function()
   files {
     "./src/**.cpp",
     "./src/**.hpp",
+    "./tests/**.cpp" ,
+    "./tests/**.hpp" ,
   }
 end
 
 OtherTestEngine.include_dirs = function()
   includedirs {
     "./src",
+    "./tests" ,
   }
 end
 

@@ -331,9 +331,8 @@ namespace other {
     if (context == FRAGMENT_SHADER) {
       stream << "struct PointLight {\n";
       stream << "  vec4 position;\n";
-      stream << "  vec4 ambient;\n";
-      stream << "  vec4 diffuse;\n";
-      stream << "  vec4 specular;\n";
+      stream << "  vec4 color;\n";
+      stream << "  float radius;\n";
       stream << "  float constant;\n";
       stream << "  float linear;\n";
       stream << "  float quadratic;\n";
@@ -341,9 +340,7 @@ namespace other {
       
       stream << "struct DirectionLight {\n";
       stream << "  vec4 direction;\n";
-      stream << "  vec4 ambient;\n";
-      stream << "  vec4 diffuse;\n";
-      stream << "  vec4 specular;\n";
+      stream << "  vec4 color;\n";
       stream << "};\n\n";
     }
 

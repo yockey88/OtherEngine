@@ -12,6 +12,5 @@ if (config == "debug"):
 if (config == "release"):
     config = "Release"
 
-ret = 0 if utilities.run_project(config, "gl_sandbox", arguments) else 1
-
+ret = 0 if utilities.run_project(config, "sandbox", arguments) else 0
 sys.exit(ret)

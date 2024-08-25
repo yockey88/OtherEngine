@@ -14,4 +14,5 @@ if FILTER != "":
     cmds.append("--gtest_filter={}".format(FILTER))
 
 ret = subprocess.call(cmds, cwd=os.getcwd())
+
 sys.exit(ret)

@@ -5,48 +5,15 @@
 #define OTHER_ENGINE_HPP
 
 #include "core/engine.hpp"
-#include "parsing/cmd_line_parser.hpp"
 
 namespace other {
 
   /// implemented by user
   extern Scope<App> NewApp(Engine* engine);
 
-  class OE {
-    public:
-      static ExitCode Main(int argc , char* argv[]);
+  ExitCode Main(int argc , char* argv[]);
 
-    private:
-      static CmdLine cmd_line;
-      static ConfigTable current_config;
-
-      static Path config_path;
-
-      Engine engine;
-
-      static void Help();
-      static void Version();
-
-      static std::string FindConfigFile();
-      static bool LoadConfig();
-
-      static void CoreInit();
-
-      void Launch();
-      ExitCode Run();
-      void Shutdown();
-      Scope<App> active_app = nullptr;
-      Ref<Project> project_metadata;
-
-      Opt<ExitCode> exit_code = std::nullopt;
-
-      bool engine_unloaded = false;
-      bool full_shutdown = false;
-
-      static void HandleExit(ExitCode code);
-
-      static void CoreShutdown();
-  };
+  int ProcessExitCode(ExitCode code);
 
 } // namespace other
 
@@ -54,6 +21,7 @@ namespace other {
 #include "application/app.hpp"
 
 /// defines the entry poing for clients 
+/// TODO: make this platform specific and add os signal handlers 
 #define OE_APPLICATION(project_name) \
   namespace other { \
     Scope<App> NewApp(Engine* engine) { \
@@ -62,16 +30,8 @@ namespace other {
     } \
   } \
   int main(int argc , char* argv[]) { \
-    try { \
-      other::ExitCode exit = other::OE::Main(argc , argv); \
-      if (exit != other::ExitCode::SUCCESS) { \
-        return 1; \
-      } \
-    } catch (std::exception& e) { \
-      std::cerr << e.what() << std::endl; \
-      return 1; \
-    } \
-    return 0; \
+    other::ExitCode exit = other::Main(argc , argv); \
+    return other::ProcessExitCode(exit); \
   }
 
 #endif // !OTHER_ENGINE_HPP

@@ -219,7 +219,7 @@ namespace other {
 
     ShaderIr ir = ShaderCompiler::Compile(src);
 
-#if 1
+#if 0
     std::cout << "Transpile vertex source : \n\n" << ir.vert_source << "\n------------\n";
     std::cout << "Transpile fragment source : \n\n" << ir.frag_source << "\n------------\n";
 
