@@ -9,6 +9,12 @@
 
 namespace other {
 
+  Material LightSource::debug_light_mat = {
+    .ambient = { 1.f , 1.f , 1.f , 1.f } ,
+    .diffuse = { 1.f , 1.f , 1.f , 1.f } ,
+    .specular = { 1.f , 1.f , 1.f , 1.f } ,
+  };
+
   void LightSourceSerializer::Serialize(std::ostream& stream , Entity* entity , const Ref<Scene>& scene) const {
     auto& light_source = entity->GetComponent<LightSource>();
 

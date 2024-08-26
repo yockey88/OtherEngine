@@ -71,13 +71,15 @@ namespace other {
       Pipeline(PipelineSpec& spec);
       virtual ~Pipeline() override {}
       
-      /// Add materials to model submission
+      /// FIXME: material system needs overhaul
       void SubmitModel(Ref<Model> model , const glm::mat4& transform , const Material& color);
       void SubmitStaticModel(Ref<StaticModel> model , const glm::mat4& transform , const Material& color);
 
       void Render();
       Ref<Framebuffer> GetOutput();
       GBuffer& GetGBuffer();
+
+      void Clear();
       
       struct MeshSubmissionList {
         uint32_t instance_count = 0;

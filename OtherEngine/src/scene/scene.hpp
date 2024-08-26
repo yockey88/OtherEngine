@@ -100,6 +100,8 @@ namespace other {
       
       void OnAddRigidBody(entt::registry& context , entt::entity ent);
       void OnAddCollider(entt::registry& context , entt::entity ent);
+      
+      void GeometryChanged();
 
       virtual void OnInit() {}
       virtual void OnStart() {}
@@ -122,6 +124,9 @@ namespace other {
       bool initialized = false;
       bool running = false;
       bool corrupt = false;
+
+      /// true until first render
+      bool scene_geometry_changed = true;
 
       entt::registry registry;
 

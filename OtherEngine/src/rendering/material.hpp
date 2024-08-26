@@ -9,10 +9,10 @@
 namespace other {
 
   struct Material {
-    glm::vec4 ambient;
-    glm::vec4 diffuse;
-    glm::vec4 specular;
-    float shininess;
+    glm::vec4 ambient{ 0.5f , 0.5f , 0.5f , 1.f };
+    glm::vec4 diffuse{ 0.5f , 0.5f , 0.5f , 1.f };
+    glm::vec4 specular{ 0.5f , 0.5f , 0.5f , 1.f };
+    float shininess = 32.f;
     float padding[3];
   };
 

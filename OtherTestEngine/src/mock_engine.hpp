@@ -38,7 +38,7 @@ namespace other {
       virtual void SetUp() override;
       virtual void TearDown() override;
 
-      Ref<SceneRenderer> GetDefaultSceneRenderer() const;
+      Ref<SceneRenderer> GetDefaultSceneRenderer(const uint32_t max_entities = 100) const;
 
     protected:
       static MockEngine* instance;
@@ -59,6 +59,8 @@ namespace other {
       
   class EngineTest : public ::testing::Test {
     public:
+    protected:
+      void EmptyEventLoop() const;
   };
 
   Scope<App> NewApp(Engine* engine);

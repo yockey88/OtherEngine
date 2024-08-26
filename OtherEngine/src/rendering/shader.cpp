@@ -60,12 +60,7 @@ namespace other {
     
   void Shader::InnerSetUniform(const std::string_view name , const int32_t& value , uint32_t index) {
     uint32_t loc = GetUniformLocation(name);
-
-    CHECKGL();
-
     glUniform1i(loc , value);
-    
-    CHECKGL();
   }
   
   void Shader::InnerSetUniform(const std::string_view name , const float& value , uint32_t index) {

@@ -13,6 +13,7 @@
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <imgui/backends/imgui_impl_sdl2.h>
+#include <rendering/model_factory.hpp>
 
 #include "core/defines.hpp"
 #include "core/logger.hpp"
@@ -242,11 +243,6 @@ int main(int argc , char* argv[]) {
 
       CHECK();
 
-      OE_INFO("Running");
-
-      other::time::DeltaTime dt;
-      dt.Start();
-
       bool running = true;
 
       bool camera_lock = false;
@@ -258,14 +254,14 @@ int main(int argc , char* argv[]) {
         .ambient  = { 1.0f , 0.5f , 0.31f , 1.f } ,
         .diffuse  = { 1.0f , 0.5f , 0.31f , 1.f } ,
         .specular = { 0.5f , 0.5f , 0.50f , 1.f } ,
-        .shininess = 32.f ,
+        .shininess = 16.f ,
       };
       
       other::Material cube_material2 = {
         .ambient  = { 1.0f , 0.31f , 0.5f , 1.f } ,
         .diffuse  = { 1.0f , 0.31f , 0.5f , 1.f } ,
         .specular = { 0.5f , 0.5f , 0.50f , 1.f } ,
-        .shininess = 32.f ,
+        .shininess = 16.f ,
       };
       
       const glm::vec3 light_scale = glm::vec3(0.2f , 0.2f , 0.2f);
@@ -309,7 +305,11 @@ int main(int argc , char* argv[]) {
 
       scene->Initialize();
       scene->Start();
+      
+      OE_INFO("Running");
 
+      other::time::DeltaTime dt;
+      dt.Start();
       while (running) {
         other::IO::Update();
 
@@ -365,7 +365,7 @@ int main(int argc , char* argv[]) {
 
         other::Renderer::GetWindow()->Clear();
 
-        // renderer->SubmitCamera(camera);
+        renderer->SubmitCamera(camera);
 #if USING_CUSTOM_ENV
         renderer->SubmitEnvironment(environment);
 #endif

@@ -121,16 +121,7 @@ namespace other {
     spec.lighting_shader->Bind();
     spec.target_mesh->Draw(other::TRIANGLES);
     target->UnbindFrame();
-
-    /// dont clear the mesh key for a tiny optimization on future submissions
-    for (auto& [mk , sl] : model_submissions) {
-      sl.cpu_model_storage.ZeroMem();
-      sl.cpu_material_storage.ZeroMem();
-      sl.instance_count = 0;
-    }
-
-    CHECKGL();
-  }
+   }
 
   Ref<Framebuffer> Pipeline::GetOutput() {
     return target;
@@ -138,6 +129,16 @@ namespace other {
       
   GBuffer& Pipeline::GetGBuffer() {
     return gbuffer;
+  }
+  
+  void Pipeline::Clear() {
+    /// dont clear the mesh key for a tiny optimization on future submissions
+    for (auto& [mk , sl] : model_submissions) {
+      sl.cpu_model_storage.ZeroMem();
+      sl.cpu_material_storage.ZeroMem();
+      sl.instance_count = 0;
+    }
+    model_submissions.clear();
   }
       
   void Pipeline::RenderMeshes() {
@@ -152,7 +153,6 @@ namespace other {
       mk.vao->Bind();
       glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES , mk.num_elements , GL_UNSIGNED_INT , (void*)0 , sl.instance_count , 0 , 0);
     }
-    CHECKGL();
   }
 
 } // namespace other

@@ -69,6 +69,8 @@ namespace other {
       
       void EndScene();
 
+      void ClearPipelines();
+
       const std::map<UUID , Ref<Framebuffer>>& GetRender() const;
 
     private:

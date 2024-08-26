@@ -10,6 +10,7 @@
 
 #include "rendering/direction_light.hpp"
 #include "rendering/point_light.hpp"
+#include "rendering/material.hpp"
 
 namespace other {
 
@@ -27,6 +28,11 @@ namespace other {
       DirectionLight direction_light;
       PointLight pointlight;
     };
+    
+    Opt<AssetHandle> debug_model = std::nullopt;
+
+    static Material debug_light_mat;
+
     ECS_COMPONENT(LightSource, kLightSourceIndex); 
   };
 

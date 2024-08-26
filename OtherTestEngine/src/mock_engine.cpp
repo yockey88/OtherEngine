@@ -73,7 +73,7 @@ namespace other {
     other::Logger::Shutdown();
   }
       
-  Ref<SceneRenderer> MockEngine::GetDefaultSceneRenderer() const {
+  Ref<SceneRenderer> MockEngine::GetDefaultSceneRenderer(const uint32_t max_entities) const {
     const other::Path deferred_shader_path = shader_dir / "deferred_shading.oshader";
 
     uint32_t camera_binding_pnt = 0;
@@ -85,19 +85,19 @@ namespace other {
 
     uint32_t model_binding_pnt = 1;
     std::vector<Uniform> model_unis = {
-      { "models" , other::ValueType::MAT4 , 100 } ,
+      { "models" , other::ValueType::MAT4 , max_entities } ,
     };
     
     uint32_t material_binding_pnt = 2;
     std::vector<Uniform> material_unis = {
-      { "materials" , other::ValueType::USER_TYPE , 100 , sizeof(other::Material) } ,
+      { "materials" , other::ValueType::USER_TYPE , max_entities , sizeof(other::Material) } ,
     };
     
     uint32_t light_binding_pnt = 3;
     std::vector<Uniform> light_unis = {
       { "num_lights" , other::ValueType::VEC4 } ,
-      { "direction_lights" , other::ValueType::USER_TYPE , 100 , sizeof(other::DirectionLight) } ,
-      { "point_lights" , other::ValueType::USER_TYPE , 100 , sizeof(other::PointLight) } ,
+      { "direction_lights" , other::ValueType::USER_TYPE , max_entities , sizeof(other::DirectionLight) } ,
+      { "point_lights" , other::ValueType::USER_TYPE , max_entities , sizeof(other::PointLight) } ,
     };
     
     other::Layout default_layout = {
@@ -179,6 +179,18 @@ namespace other {
     IO::Shutdown();
 
     OE_INFO("Shutdown complete");
+  }
+
+  void EngineTest::EmptyEventLoop() const {
+    other::IO::Update();
+    SDL_Event e;
+    while (SDL_PollEvent(&e)) {
+      switch (e.type) {
+        default:
+          break;
+      }
+    }
+    other::EventQueue::Clear();
   }
 
   Scope<App> NewApp(Engine* engine) {

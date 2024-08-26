@@ -56,11 +56,25 @@ namespace other {
     registry.on_construct<Mesh>().connect<&OnAddModel>();
     registry.on_construct<StaticMesh>().connect<&OnAddStaticModel>();
 
+    registry.on_construct<Mesh>().connect<&Scene::GeometryChanged>(this);
+    registry.on_construct<StaticMesh>().connect<&Scene::GeometryChanged>(this);
+    registry.on_update<Mesh>().connect<&Scene::GeometryChanged>(this);
+    registry.on_update<StaticMesh>().connect<&Scene::GeometryChanged>(this);
+    registry.on_destroy<Mesh>().connect<&Scene::GeometryChanged>(this);
+    registry.on_destroy<StaticMesh>().connect<&Scene::GeometryChanged>(this);
+
     /// TODO: move this 
     environment = NewRef<Environment>();
   }
 
   Scene::~Scene() {
+    registry.on_destroy<Mesh>().disconnect<&Scene::GeometryChanged>(this);
+    registry.on_destroy<StaticMesh>().disconnect<&Scene::GeometryChanged>(this);
+    registry.on_update<Mesh>().disconnect<&Scene::GeometryChanged>(this);
+    registry.on_update<StaticMesh>().disconnect<&Scene::GeometryChanged>(this);
+    registry.on_construct<Mesh>().disconnect<&Scene::GeometryChanged>(this);
+    registry.on_construct<StaticMesh>().disconnect<&Scene::GeometryChanged>(this);
+
     registry.on_construct<StaticMesh>().disconnect<&OnAddStaticModel>();
     registry.on_construct<Mesh>().disconnect<&OnAddModel>();
 
@@ -102,13 +116,13 @@ namespace other {
     }
 
     OE_DEBUG("Entities in scene [{}]" , entities.size()); 
-    registry.view<Tag>().each([](const Tag& tag) {
-      OE_DEBUG("  > [{}]" , tag.id);
-    });
+    // registry.view<Tag>().each([](const Tag& tag) {
+    //   OE_DEBUG("  > [{}]" , tag.id);
+    // });
 
     registry.view<Script , Tag>().each([](Script& script , Tag& tag) {
       for (auto& [id , obj] : script.scripts) {
-        OE_DEBUG("Setting entity id for script [{}] {}" , id , obj->Name());
+        // OE_DEBUG("Setting entity id for script [{}] {}" , id , obj->Name());
         obj->Initialize();
       }
     });
@@ -238,6 +252,13 @@ namespace other {
     });
     
     /// update environment
+    registry.view<LightSource , Transform>().each([](LightSource& light , Transform& transform) {
+      if (light.type == POINT_LIGHT_SRC) {
+        transform.position = light.pointlight.position;
+        transform.CalcMatrix();
+      } else {
+      }
+    });
 
     /// FIXME: dont deallocate and allocate each frame, only update when needed
     
@@ -300,45 +321,43 @@ namespace other {
   }
       
   void Scene::Render(Ref<SceneRenderer> renderer) {
-    renderer->SubmitEnvironment(environment);
+    if (scene_geometry_changed) {
+      renderer->ClearPipelines();
 
-    registry.view<Camera>().each([&](const Camera& camera) {
-      if (camera.camera->IsPrimary()) {
-        renderer->SubmitCamera(camera.camera); 
-      }
-    });
+      registry.view<Camera>().each([&](const Camera& camera) {
+        if (camera.camera->IsPrimary()) {
+          renderer->SubmitCamera(camera.camera); 
+        }
+      });
 
-    registry.view<Mesh , Transform>().each([&renderer](const Mesh& mesh , const Transform& transform) {
-      if (!AppState::Assets()->IsValid(mesh.handle)) {
-        return;
-      }
-      
-      auto model = AssetManager::GetAsset<Model>(mesh.handle);
-      if (model == nullptr) {
-        return;
-      }
+      registry.view<Mesh , Transform>().each([&renderer](const Mesh& mesh , const Transform& transform) {
+        if (!AppState::Assets()->IsValid(mesh.handle)) {
+          return;
+        }
+        
+        auto model = AssetManager::GetAsset<Model>(mesh.handle);
+        renderer->SubmitModel("Geometry" , model , transform.model_transform , mesh.material);
+      });
 
-      renderer->SubmitModel("Geometry" , model , transform.model_transform , mesh.material);
-    });
+      registry.view<StaticMesh , Transform>().each([&renderer](const StaticMesh& mesh , const Transform& transform) {
+        if (!AppState::Assets()->IsValid(mesh.handle)) {
+          return;
+        }
+        
+        auto model = AssetManager::GetAsset<StaticModel>(mesh.handle);
+        renderer->SubmitStaticModel("Geometry" , model , transform.model_transform , mesh.material);
+      });
 
-    registry.view<StaticMesh , Transform>().each([&renderer](const StaticMesh& mesh , const Transform& transform) {
-      if (!AppState::Assets()->IsValid(mesh.handle)) {
-        return;
-      }
-      
-      auto model = AssetManager::GetAsset<StaticModel>(mesh.handle);
-      if (model == nullptr) {
-        return;
-      }
-
-      renderer->SubmitStaticModel("Geometry" , model , transform.model_transform , mesh.material);
-    });
+      scene_geometry_changed = false; 
+    }
     
-    registry.view<Script>().each([](const Script& script) {
-      for (auto& [id , s] : script.scripts) {
-        s->Render();
-      }
-    });
+    renderer->SubmitEnvironment(environment);
+    
+    // registry.view<Script>().each([](const Script& script) {
+    //   for (auto& [id , s] : script.scripts) {
+    //     s->Render();
+    //   }
+    // });
   }
       
   void Scene::RenderUI() {
@@ -702,6 +721,10 @@ namespace other {
     auto& transform = ent.GetComponent<Transform>();
 
     InitializeCollider(physics_world , body , collider , transform);
+  }
+      
+  void Scene::GeometryChanged() {
+    scene_geometry_changed = true;
   }
  
   void Scene::FixRoots() {

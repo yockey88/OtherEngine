@@ -69,10 +69,17 @@ namespace other {
   }
   
   void SceneRenderer::SubmitModel(const std::string_view pl_name , Ref<Model> model , const glm::mat4& transform , const Material& material) {
+    if (model == nullptr) {
+      return;
+    }
   }
 
   void SceneRenderer::SubmitStaticModel(const std::string_view pl_name , Ref<StaticModel> model , 
                                         const glm::mat4& transform , const Material& material) {
+    if (model == nullptr) {
+      return;
+    }
+
     auto itr = pipelines.find(FNV(pl_name)); 
     if (itr == pipelines.end()) {
       return;
@@ -84,13 +91,19 @@ namespace other {
   
   void SceneRenderer::EndScene() {
     if (!FrameComplete()) {
-      ResetFrame();
+      ResetFrame(); 
       return;
     }
 
     PreRenderSettings();
     FlushDrawList();
-    ResetFrame();
+    ResetFrame(); 
+  }
+      
+  void SceneRenderer::ClearPipelines() {
+    for (auto& [id , pl] : pipelines) {
+      pl->Clear();
+    }
   }
 
   const std::map<UUID , Ref<Framebuffer>>& SceneRenderer::GetRender() const {
@@ -99,7 +112,6 @@ namespace other {
 
 
   void SceneRenderer::Initialize() {
-
     /// already made render passes
     for (auto& rp : spec.ref_passes) {
       passes[FNV(rp->Name())] = rp;

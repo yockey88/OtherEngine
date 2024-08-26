@@ -17,6 +17,12 @@ namespace other {
       static AssetHandle CreateSphere(float radius);
       static AssetHandle CreateCapsule(float radius , float height);
 
+    private:
+      static Opt<AssetHandle> triangle_handle;
+      static Opt<AssetHandle> rect_handle;
+      static Opt<AssetHandle> box_handle;
+      static Opt<AssetHandle> sphere_handle;
+      static Opt<AssetHandle> capsule_handle;
   }; 
 
 } // namespace other
