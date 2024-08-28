@@ -116,13 +116,8 @@ namespace other {
     }
 
     OE_DEBUG("Entities in scene [{}]" , entities.size()); 
-    // registry.view<Tag>().each([](const Tag& tag) {
-    //   OE_DEBUG("  > [{}]" , tag.id);
-    // });
-
     registry.view<Script , Tag>().each([](Script& script , Tag& tag) {
       for (auto& [id , obj] : script.scripts) {
-        // OE_DEBUG("Setting entity id for script [{}] {}" , id , obj->Name());
         obj->Initialize();
       }
     });
@@ -133,6 +128,7 @@ namespace other {
 
   void Scene::Start() {
     OE_ASSERT(initialized , "Starting scene without initialization");
+    FixRoots();
 
     registry.view<RigidBody2D , Tag , Transform>().each([this](RigidBody2D& body , const Tag& tag , const Transform& transform) {
       Initialize2DRigidBody(physics_world_2d , body , tag , transform);
@@ -143,6 +139,8 @@ namespace other {
         s->Start();
       }
     });
+
+    RebuildEnvironment();
 
     OnStart();
     running = true;

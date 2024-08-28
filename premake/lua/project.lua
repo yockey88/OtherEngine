@@ -90,9 +90,11 @@ local function ProcessConfigurations(project , external)
       if project.debug_configuration ~= nil then
         project.debug_configuration()
       else
+        runtime "Debug"
         debugdir "."
         optimize "Off"
         symbols "On"
+        -- conformancemode "On"
       end
       if not external then
         ProcessDependencies("Debug")
@@ -106,8 +108,10 @@ local function ProcessConfigurations(project , external)
       if project.release_configuration ~= nil then
         project.release_configuration()
       else
-        optimize "On"
+        runtime "Release"
+        optimize "Full"
         symbols "Off"
+        -- conformancemode "On"
       end
       if not external then
         ProcessDependencies("Release")

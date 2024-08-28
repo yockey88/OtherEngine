@@ -27,18 +27,21 @@ end
 
 tracy.include_dirs = function()
   includedirs {
-    "./tracy/client" ,
-    "./tracy/common" ,
-    "./tracy/tracy" ,
-    "./tracy/libbacktrace"
+    "./tracy/public" ,
   }
 end
 
 tracy.defines = function()
   defines {
+    "TRACY_HAS_CALLSTACK" ,
     "TRACY_ENABLE" ,
     "TRACY_ON_DEMAND"
   }
+end
+
+tracy.windows_configuration = function()
+  systemversion "latest"
+  links { "DbgHelp" }
 end
 
 AddExternalProject(tracy)

@@ -70,7 +70,7 @@ namespace other {
   }
 
   void Pipeline::Render() {
-    /** Possible passes
+    /** Passes to implement
      * ----------------
      * shadow map pass
      * spot shadow mapp pass
@@ -89,8 +89,6 @@ namespace other {
      * edge detection
      * bloom compute 
      * composite pass
-     * end command buffer
-     * submit command buffer
      **/
     auto itr = model_submissions.begin();
     for (; itr != model_submissions.end();) {
@@ -104,22 +102,14 @@ namespace other {
     material_storage->Clear();
     model_storage->Clear();
 
-    /// geometry pass (gbuffer pass)
     gbuffer.Bind();
     RenderMeshes();
     gbuffer.Unbind();
-    
-    for (uint32_t i = 0; i < GBuffer::NUM_TEX_IDXS; ++i) {
-      glActiveTexture(GL_TEXTURE0 + i);
-      glBindTexture(GL_TEXTURE_2D , gbuffer.textures[i]);
-    }
 
-    /// lighting pass (composition pass)
     target->BindFrame();
-    glActiveTexture(GL_TEXTURE4);
-    glBindTexture(GL_TEXTURE_2D , target->texture);
     spec.lighting_shader->Bind();
-    spec.target_mesh->Draw(other::TRIANGLES);
+    spec.target_mesh->Draw(TRIANGLES);
+    spec.lighting_shader->Unbind();
     target->UnbindFrame();
    }
 
@@ -142,13 +132,11 @@ namespace other {
   }
       
   void Pipeline::RenderMeshes() {
-    Buffer pass_models;
-    Buffer pass_materials;
     for (auto& [mk , sl] : model_submissions) {
-      material_storage->BindBase();
-      material_storage->LoadFromBuffer(sl.cpu_material_storage);
       model_storage->BindBase();
       model_storage->LoadFromBuffer(sl.cpu_model_storage);
+      material_storage->BindBase();
+      material_storage->LoadFromBuffer(sl.cpu_material_storage);
 
       mk.vao->Bind();
       glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES , mk.num_elements , GL_UNSIGNED_INT , (void*)0 , sl.instance_count , 0 , 0);

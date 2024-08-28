@@ -4,8 +4,8 @@ author = "Y"
 version = 0.0.1
 
 [window]
-width = 1200
-height = 800
+width = 800
+height = 600
 title = "Other Engine Sandbox"
 
 [log]

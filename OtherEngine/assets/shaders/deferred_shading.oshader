@@ -32,9 +32,8 @@ fragment {
 
     i = 0;
     for (; i < num_lights.y;) {
-      float distance = length(point_lights[i].position.xyz - frag_pos);
 
-      if (distance < point_lights[i].radius) {
+      // if (distance < point_lights[i].radius) {
         vec3 color = point_lights[i].color.xyz;
 
         // diffuse
@@ -48,12 +47,13 @@ fragment {
         vec3 spec = color * s * specular;
 
         // attenuation
+        float distance = length(point_lights[i].position.xyz - frag_pos);
         float attenuation = 1.0 / (1.0 + point_lights[i].linear * distance + point_lights[i].quadratic * distance * distance);
 
         diffuse = diffuse * attenuation;
         specular = specular * attenuation;
         lighting = lighting + diffuse + spec; 
-      }
+      // }
       i = i + 1;
     }
     FragColor = vec4(lighting , 1.0f);

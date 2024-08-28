@@ -397,8 +397,8 @@ namespace other {
       /// num point lights is num_lights.y
       /// num_lights.z and .w are padding
       stream << "  vec4 num_lights;\n";
-      stream << "  DirectionLight direction_lights[MAX_LIGHTS];\n";
       stream << "  PointLight point_lights[MAX_LIGHTS];\n";
+      stream << "  DirectionLight direction_lights[MAX_LIGHTS];\n";
       stream << "};\n\n";
       stream << "uniform sampler2D goe_position;\n";
       stream << "uniform sampler2D goe_normal;\n";

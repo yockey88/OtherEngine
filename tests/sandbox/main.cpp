@@ -24,10 +24,8 @@
 #include "core/uuid.hpp"
 #include "input/io.hpp"
 #include "parsing/cmd_line_parser.hpp"
-#include "parsing/ini_parser.hpp"
 
 #include "application/app.hpp"
-#include "application/app_state.hpp"
 
 #include "event/event_queue.hpp"
 
@@ -40,7 +38,6 @@
 #include "scene/scene.hpp"
 
 #include "scripting/script_engine.hpp"
-#include "physics/phyics_engine.hpp"
 #include "rendering/rendering_defines.hpp"
 #include "rendering/window.hpp"
 #include "rendering/renderer.hpp"
@@ -180,8 +177,8 @@ int main(int argc , char* argv[]) {
       uint32_t light_binding_pnt = 3;
       std::vector<Uniform> light_unis = {
         { "num_lights" , other::ValueType::VEC4 } ,
-        { "direction_lights" , other::ValueType::USER_TYPE , 100 , sizeof(other::DirectionLight) } ,
         { "point_lights" , other::ValueType::USER_TYPE , 100 , sizeof(other::PointLight) } ,
+        { "direction_lights" , other::ValueType::USER_TYPE , 100 , sizeof(other::DirectionLight) } ,
       };
       
       other::Layout default_layout = {
@@ -251,17 +248,17 @@ int main(int argc , char* argv[]) {
       CHECKGL();
 
       other::Material cube_material1 = {
-        .ambient  = { 1.0f , 0.5f , 0.31f , 1.f } ,
-        .diffuse  = { 1.0f , 0.5f , 0.31f , 1.f } ,
-        .specular = { 0.5f , 0.5f , 0.50f , 1.f } ,
-        .shininess = 16.f ,
+        .ambient = { 1.0f , 0.5f , 0.31f , 1.f } ,
+        .diffuse = { 0.1f , 0.5f , 0.31f , 1.f } ,
+        .specular = { 0.5f , 0.5f , 0.5f , 1.f } ,
+        .shininess = 32.f ,
       };
       
       other::Material cube_material2 = {
-        .ambient  = { 1.0f , 0.31f , 0.5f , 1.f } ,
-        .diffuse  = { 1.0f , 0.31f , 0.5f , 1.f } ,
-        .specular = { 0.5f , 0.5f , 0.50f , 1.f } ,
-        .shininess = 16.f ,
+        .ambient = { 0.1f , 0.5f , 0.31f , 1.f } ,
+        .diffuse = { 1.0f , 0.5f , 0.31f , 1.f } ,
+        .specular = { 0.5f , 0.5f , 0.5f , 1.f } ,
+        .shininess = 32.f ,
       };
       
       const glm::vec3 light_scale = glm::vec3(0.2f , 0.2f , 0.2f);
@@ -298,6 +295,11 @@ int main(int argc , char* argv[]) {
         auto* floor = scene->GetEntity("floor");
         auto& floor_mesh = floor->GetComponent<other::StaticMesh>();
         floor_mesh.material = cube_material2;
+
+        auto* sun = scene->CreateEntity("sun");
+        auto& sun_pl = sun->AddComponent<other::LightSource>();
+        sun_pl.type = other::POINT_LIGHT_SRC;
+        sun_pl.pointlight = {};
       }
 
       other::ScriptEngine::SetSceneContext(scene);
@@ -305,12 +307,16 @@ int main(int argc , char* argv[]) {
 
       scene->Initialize();
       scene->Start();
+
+      OE_DEBUG("Lights [{} , {}]" , scene->GetEnvironment()->direction_lights.size() ,
+                                    scene->GetEnvironment()->point_lights.size());
       
       OE_INFO("Running");
 
       other::time::DeltaTime dt;
       dt.Start();
       while (running) {
+        float delta = dt.Get();
         other::IO::Update();
 
         SDL_Event event;
@@ -347,28 +353,20 @@ int main(int argc , char* argv[]) {
           ImGui_ImplSDL2_ProcessEvent(&event);
         }
 
-        /// dont want event queue to actually dispatch events, so we just clear the buffer to avoid an
-        ///   overflow of the event queue's buffer
         other::EventQueue::Clear();
 
         if (!camera_lock) {
           other::DefaultUpdateCamera(camera);
         }
         
-#define USING_CUSTOM_ENV 0
-#if USING_CUSTOM_ENV 
-#endif
 
-        scene->EarlyUpdate(0.16f);
-        scene->Update(0.16f);
-        scene->LateUpdate(0.16f);
+        scene->EarlyUpdate(delta);
+        scene->Update(delta);
+        scene->LateUpdate(delta);
 
         other::Renderer::GetWindow()->Clear();
 
         renderer->SubmitCamera(camera);
-#if USING_CUSTOM_ENV
-        renderer->SubmitEnvironment(environment);
-#endif
         scene->Render(renderer);
         renderer->EndScene();
 

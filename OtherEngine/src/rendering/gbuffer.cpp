@@ -83,15 +83,19 @@ namespace other {
     glDepthFunc(GL_LESS);
 
     glBindFramebuffer(GL_FRAMEBUFFER , gbuffer_id);
-    shader->Bind();
-
     glClearColor(0.f , 0.f , 0.f , 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
+    shader->Bind();
   }
 
   void GBuffer::Unbind() const {
     shader->Unbind();
     glBindFramebuffer(GL_FRAMEBUFFER , 0);
+    for (uint32_t i = 0; i < NUM_TEX_IDXS; ++i) {
+      glActiveTexture(GL_TEXTURE0 + i);
+      glBindTexture(GL_TEXTURE_2D , textures[i]);
+    }
   }
 
 } // namespace other

@@ -99,6 +99,7 @@ namespace other {
     window_shader->Bind();
     window_shader->SetUniform("oe_screen_tex" , 0);
     window_mesh->Draw(TRIANGLES);
+    window_shader->Unbind();
   }
 
 } // namespace other

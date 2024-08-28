@@ -21,7 +21,6 @@ layout (std430 , binding = 1) readonly buffer ModelData {
   mat4 models[MAX_NUM_MODELS];
 };
 
-
 out vec3 position;
 out vec3 normal;
 out int instanceid;
@@ -153,7 +152,7 @@ void main() {
     specular *= attenuation;
     lighting += diffuse + spec; 
   }
-  frag_color = vec4(lighting , 1.f);
+  frag_color = vec4(lighting , 1.0f);
 }
 )";
 

@@ -5,6 +5,8 @@
 
 #include <stdexcept>
 
+#include <imgui/backends/imgui_impl_sdl2.h>
+
 #include "core/logger.hpp"
 #include "core/errors.hpp"
 #include "parsing/ini_parser.hpp"
@@ -189,6 +191,7 @@ namespace other {
         default:
           break;
       }
+      ImGui_ImplSDL2_ProcessEvent(&e);
     }
     other::EventQueue::Clear();
   }

@@ -16,7 +16,7 @@ configuration.groups = {
     ["OtherEngine"] = { "./OtherEngine" } ,
     ["OtherEngine-CsCore"] = { "./OtherEngine-ScriptCore/cs" } ,
     ["OtherEngine-Tools"] = { "./OtherEngine-Launcher" } ,
-    ["Testing"] = { "./tests" , "./OtherTestEngine/" } ,
+    ["Testing"] = { "./tests" , "./OtherTestEngine" } ,
 }
 
 local choc = {}
@@ -115,7 +115,7 @@ jolt.lib_name = "jolt"
 local tracy = {}
 tracy.name = "tracy"
 tracy.path = "./externals/tracy"
-tracy.include_dir = "%{wks.location}/externals/tracy"
+tracy.include_dir = "%{wks.location}/externals/tracy/tracy"
 tracy.lib_name = "tracy"
 
 AddDependency(choc)
@@ -134,6 +134,6 @@ AddDependency(sol2)
 AddDependency(box2d)
 AddDependency(stb)
 AddDependency(jolt)
-AddDependency(tracy)
+-- AddDependency(tracy)
 
 CppWorkspace(configuration)

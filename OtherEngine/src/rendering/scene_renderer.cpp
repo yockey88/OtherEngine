@@ -49,21 +49,22 @@ namespace other {
       return;
     }
 
+    float num_dir_lights = environment->direction_lights.size();
+    float num_point_lights = environment->point_lights.size();
     glm::vec4 light_count{ 
-      environment->direction_lights.size() , 
-      environment->point_lights.size() ,
+      num_dir_lights ,
+      num_point_lights ,
       0 , 0
     };
     spec.light_uniforms->BindBase();
     spec.light_uniforms->SetUniform("num_lights" , light_count);
-    for (size_t i = 0; i < environment->direction_lights.size(); ++i) {
-      auto& l = environment->direction_lights[i];
-      spec.light_uniforms->SetUniform("direction_lights" , l , i); 
-    }
-
-    for (size_t i = 0; i < environment->point_lights.size(); ++i) {
+    for (size_t i = 0; i < num_point_lights; ++i) {
       auto& l = environment->point_lights[i];
       spec.light_uniforms->SetUniform("point_lights" , l , i); 
+    }
+    for (size_t i = 0; i < num_dir_lights; ++i) {
+      auto& l = environment->direction_lights[i];
+      spec.light_uniforms->SetUniform("direction_lights" , l , i); 
     }
     frame_data.environment = environment;
   }
@@ -121,6 +122,8 @@ namespace other {
     for (auto& pl : spec.pipelines) {
       pipelines[FNV(pl.debug_name)] = NewRef<Pipeline>(pl);
     }
+    spec.camera_uniforms->BindBase();
+    spec.light_uniforms->BindBase();
   }
 
   void SceneRenderer::Shutdown() {

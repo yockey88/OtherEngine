@@ -22,14 +22,6 @@ OtherTestEngine.include_dirs = function()
   }
 end
 
-OtherTestEngine.defines = function()
-  defines {
-    "TRACY_ENABLE" ,
-    "TRACY_ON_DEMAND" ,
-    "TRACY_CALLSTACK=10"
-  }
-end
-
 OtherTestEngine.windows_configuration = function()
   files {
     "./platform/windows/**.hpp",
