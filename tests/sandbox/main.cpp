@@ -3,8 +3,6 @@
  **/
 #include "core/defines.hpp"
 
-#include <ranges>
-
 #include <SDL.h>
 #include <SDL_keyboard.h>
 #include <SDL_mouse.h>
@@ -251,7 +249,7 @@ int main(int argc , char* argv[]) {
         } ,
         .pipeline_to_pass_map = {
           { FNV("Geometry") , { FNV(geom_pass->Name()) } } ,
-          // { FNV("Debug") , { FNV(geom_pass->Name()) , FNV(normal_pass->Name()) } } ,
+          { FNV("Debug") , { FNV(geom_pass->Name()) } } ,
         } ,
       };
       Ref<SceneRenderer> renderer = NewRef<SceneRenderer>(render_spec);
@@ -428,6 +426,11 @@ int main(int argc , char* argv[]) {
         other::UI::BeginFrame();
         const ImVec2 win_size = { (float)other::Renderer::WindowSize().x , (float)other::Renderer::WindowSize().y };
 
+        if (ImGui::Begin("Frames")) {
+          RenderItem(frames.at(FNV("Debug")) , "Debug" , ImVec2(win_size.x / 2 , win_size.y / 2));
+        }
+        ImGui::End();
+
         if (ImGui::Begin("Render Settings")) {
           bool edited = false;
           other::ui::Underline();
@@ -468,9 +471,6 @@ int main(int argc , char* argv[]) {
             switch (light.type) {
               case other::POINT_LIGHT_SRC:
                 edited = RenderPointLight(other::fmtstr("point light [{}]" , i++) , light.pointlight);
-                if (edited) {
-                  transform.position = glm::vec3(light.pointlight.position.x , light.pointlight.position.y , light.pointlight.position.z);
-                }
               break;
               case other::DIRECTION_LIGHT_SRC:
                 edited = RenderDirectionLight(other::fmtstr("direction light [{}]" , i++) , light.direction_light);

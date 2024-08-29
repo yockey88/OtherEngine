@@ -4,10 +4,12 @@ vertex [mesh : default] {
     vec3 normal;
   } vout;
   
-  void main() {
-    mat3 normal_mat = mat3(transpose(inverse(view * models[gl_InstanceID])));
-    vout.normal = normalize(vec3(vec4(normal_mat * voe_normal , 0.0)));
+  uniform sampler2D goe_position;
+  uniform sampler2D goe_normal;
+  uniform sampler2D goe_albedo;
   
+  void main() {
+    vout.normal = texture(goe_normal , voe_uvs).rgb;
     gl_Position = view * models[gl_InstanceID] * vec4(voe_position , 1.0);
   }
 
@@ -33,11 +35,14 @@ geometry {
   uniform float magnitude;
   
   void GenerateLine(int index) {
-    gl_Position = projection * gl_in[index].gl_Position;
+    vec4 glpos = gl_in[index].gl_Position;
+    vec3 normal = gin[index].normal;
+
+    gl_Position = projection * glpos;
     EmitVertex();
   
-    gl_Position = projection * 
-                  (gl_in[index].gl_Position + vec4(gin[index].normal , 0.0) * magnitude);
+    vec4 adjusted_pos = glpos + vec4(normal , 0.0) * magnitude;
+    gl_Position = projection * adjusted_pos;
     EmitVertex();
     EndPrimitive();
   }

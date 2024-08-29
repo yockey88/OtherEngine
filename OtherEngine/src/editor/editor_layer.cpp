@@ -25,6 +25,8 @@
 #include "rendering/model.hpp"
 #include "rendering/model_factory.hpp"
 #include "rendering/perspective_camera.hpp"
+#include "rendering/render_pass.hpp"
+#include "rendering/geometry_pass.hpp"
 #include "rendering/ui/ui_helpers.hpp"
 
 #include "editor/editor.hpp"
@@ -487,6 +489,13 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
     };
 
     glm::vec2 window_size = Renderer::WindowSize();
+      
+    const Path shader_dir = Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders";
+    const Path geom_shader_path = shader_dir / "default.oshader"; 
+    std::vector<Uniform> geometry_unis = {
+    };
+    Ref<Shader> geometry_shader = BuildShader(geom_shader_path);
+    Ref<RenderPass> geom_pass = NewRef<GeometryPass>(geometry_unis , geometry_shader);
 
     SceneRenderSpec spec{
       .camera_uniforms = NewRef<UniformBuffer>("Camera" , cam_unis , camera_binding_pnt) ,
@@ -514,6 +523,12 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
           .material_binding_point = material_binding_pnt ,
           .debug_name = "Geometry" , 
         } ,
+      } ,
+      .passes  {
+        geom_pass
+      } ,
+      .pipeline_to_pass_map = {
+          { FNV("Geometry") , { FNV(geom_pass->Name()) } } ,
       } ,
     }; 
     return NewRef<SceneRenderer>(spec);

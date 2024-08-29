@@ -660,5 +660,12 @@ namespace other {
 
     return false;
   }
+  
+  bool DrawLightSource(Entity* ent) {
+    ui::BeginPropertyGrid();
+
+    ui::EndPropertyGrid();
+    return false;
+  }
 
 } // namespace other

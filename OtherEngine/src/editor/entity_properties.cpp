@@ -19,6 +19,7 @@
 #include "ecs/components/collider_2d.hpp"
 #include "ecs/components/rigid_body.hpp"
 #include "ecs/components/collider.hpp"
+#include "ecs/components/light_source.hpp"
 
 #include "scripting/script_engine.hpp"
 #include "rendering/ui/ui_colors.hpp"
@@ -198,6 +199,7 @@ namespace other {
             edited = DrawAddComponentButton<Collider2D>("Collider 2D") || edited;
             edited = DrawAddComponentButton<RigidBody>("Rigid Body") || edited;
             edited = DrawAddComponentButton<Collider>("Collider") || edited;
+            edited = DrawAddComponentButton<LightSource>("Light Source") || edited;
             
             ImGui::EndTable();
           }
@@ -279,6 +281,7 @@ namespace other {
     edited = DrawComponent<Collider2D>("Collider 2D" , DrawCollider<Collider2D>) || edited;
     edited = DrawComponent<RigidBody>("Rigid Body" , DrawRigidBody<RigidBody>) || edited;
     edited = DrawComponent<Collider>("Collider" , DrawCollider<Collider>) || edited;
+    edited = DrawComponent<LightSource>("Light Source" , DrawLightSource) || edited;
 
     return edited;
   }

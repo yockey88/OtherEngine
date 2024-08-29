@@ -44,6 +44,8 @@ namespace other {
       Ref<CameraBase> GetPrimaryCamera() const;
 
       void Render(Ref<SceneRenderer> scene_renderer);
+      void DebugRender(Ref<SceneRenderer> scene_renderer);
+
       void RenderUI();
 
       void Stop(); 
@@ -101,8 +103,6 @@ namespace other {
       
       void OnAddRigidBody(entt::registry& context , entt::entity ent);
       void OnAddCollider(entt::registry& context , entt::entity ent);      
-
-      void DebugRender();
 
       virtual void OnInit() {}
       virtual void OnStart() {}

@@ -26,6 +26,7 @@
 #include "ecs/components/light_source.hpp"
 #include "ecs/systems/core_systems.hpp"
 
+#include "rendering/camera_base.hpp"
 #include "rendering/model.hpp"
 #include "rendering/model_factory.hpp"
 #include "scripting/script_engine.hpp"
@@ -139,6 +140,10 @@ namespace other {
       for (auto& [id , s] : script.scripts) {
         s->Start();
       }
+    });
+
+    registry.view<Camera>().each([](Camera& camera) {
+      DefaultUpdateCamera(camera.camera);
     });
 
     RebuildEnvironment();
@@ -336,6 +341,7 @@ namespace other {
         
         auto model = AssetManager::GetAsset<Model>(mesh.handle);
         renderer->SubmitModel("Geometry" , model , transform.model_transform , mesh.material);
+        renderer->SubmitModel("Debug" , model , transform.model_transform , mesh.material);
       });
 
       registry.view<StaticMesh , Transform>().each([&renderer](const StaticMesh& mesh , const Transform& transform) {
@@ -345,9 +351,8 @@ namespace other {
         
         auto model = AssetManager::GetAsset<StaticModel>(mesh.handle);
         renderer->SubmitStaticModel("Geometry" , model , transform.model_transform , mesh.material);
+        renderer->SubmitStaticModel("Debug" , model , transform.model_transform , mesh.material);
       });
-
-      scene_geometry_changed = false; 
     }
      
     // registry.view<Script>().each([](const Script& script) {
@@ -355,6 +360,14 @@ namespace other {
     //     s->Render();
     //   }
     // });
+
+    DebugRender(renderer);
+  }
+      
+  void Scene::DebugRender(Ref<SceneRenderer> renderer) {
+    if (scene_geometry_changed) {
+      scene_geometry_changed = false; 
+    }
   }
       
   void Scene::RenderUI() {
@@ -721,9 +734,6 @@ namespace other {
     auto& transform = ent.GetComponent<Transform>();
 
     InitializeCollider(physics_world , body , collider , transform);
-  }
-       
-  void Scene::DebugRender() {
   }
  
   void Scene::FixRoots() {

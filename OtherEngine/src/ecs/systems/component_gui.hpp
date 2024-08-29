@@ -214,6 +214,8 @@ namespace other {
     ui::EndPropertyGrid();
     return false;
   }
+
+  bool DrawLightSource(Entity* ent);
   
   template <component_type C , component_type... ICs>
   bool DrawAddComponentButton(const std::string& name , Ref<Texture2D> icon = nullptr) {
