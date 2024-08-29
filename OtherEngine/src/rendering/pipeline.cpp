@@ -93,6 +93,65 @@ namespace other {
     material_storage->Clear();
     model_storage->Clear();
 
+
+    /** Idea of render-pass chaining for dynamic pipeline construction
+     *
+     *  - implement a chaining utility to dynamically construct render pass chains 
+     *      to allow for custom pipelines 
+     *
+     *  - let E = scene-lighting-environment
+     *      accessible globally
+     *
+     *  - renderpass rp : X -> Y 
+     *      where X is either 
+     *       1 - a scene mesh/uniform set
+     *       2 - a set of render buffers/textures
+     *    ex:
+     *      let g_rp = gbuffer_pass 
+     *      then 
+     *        X = { geometry-data , transforms , materials }
+     *        Y_g = { position , normal , albedo , depth }
+     *
+     *      let l_rp = lighting_pass
+     *      then 
+     *        X = Y_g U { textured-quad-mesh } 
+     *        Y_l = { lit-scene-texture }
+     *      
+     *      so that this hardcoded pipeline below cane be thought of as
+     *        output-frame = l_rp o g_rp = l_rp(g_rp(X))
+     *
+     *  - a generic pipeline then is 
+     *      pl : P -> i,
+     *        P is a subset of Rp (the set of all renderpasses),
+     *          P = { p_0 , ... , p_n }
+     *        i \in I (the set of output images of the engine in a single run)
+     *
+     *      pl : p_n o ... o p_0 = p_n(...p_1(p_0(G))) = i;
+     *        G = { geometry-data , transforms , materials }
+     **/
+
+    /** Pseudocode for above idea
+     *
+     *  - class Pipeline(pass-list) {
+     *      P <- pass-list
+     *    }
+     *
+     *    Image Pipeline::Render(scene-description) {
+     *      G = { 
+     *        scene-description.geometry ,
+     *        scene-description.transforms ,
+     *        scene-description.materials ,
+     *      }
+     *
+     *      return execute_chain(G);
+     *    }
+     *
+     *    Image Pipeline::execute_chain(geometry) {
+     *      return fold_left(P , geometry , (G , func) { return func(G) });
+     *    }
+     *
+     **/
+
     gbuffer.Bind();
     RenderMeshes();
     gbuffer.Unbind();

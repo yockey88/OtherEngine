@@ -252,6 +252,7 @@ namespace other {
     }
 
     active_scene->scene->Render(scene_renderer);
+    scene_renderer->EndScene();
     
     return true;
   }

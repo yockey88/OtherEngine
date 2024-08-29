@@ -18,12 +18,9 @@
 #include "event/event_handler.hpp"
 #include "event/event_queue.hpp"
 
-#include "rendering/camera_base.hpp"
-#include "rendering/geometry_pass.hpp"
-#include "rendering/uniform.hpp"
-#include "scene/environment.hpp"
 #include "scripting/script_engine.hpp"
-
+#include "rendering/camera_base.hpp"
+#include "rendering/uniform.hpp"
 #include "rendering/renderer.hpp"
 #include "rendering/model.hpp"
 #include "rendering/model_factory.hpp"
@@ -74,10 +71,6 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
     model_source = model->GetModelSource();
 
     default_renderer = GetDefaultRenderer();
-
-    const Path fbshader_path = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders" / "deferred_shading.oshader";
-    fbshader = BuildShader(fbshader_path);
-    fb_mesh = NewScope<VertexArray>(fb_verts , fb_indices , fb_layout);
   }
 
   void EditorLayer::OnDetach() {
@@ -141,8 +134,6 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
     }
     
     panel_manager->LateUpdate(dt);
-
-
 
     /// after all early updates, update client and script
     for (const auto& [id , script] : editor_scripts.scripts) {
@@ -472,7 +463,7 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
       
   Ref<SceneRenderer> EditorLayer::GetDefaultRenderer() {
     const Path shader_dir = Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders";
-    const Path default_path = shader_dir / "default.oshader";
+    const Path deferred_shader_path = shader_dir / "default.oshader";
 
     uint32_t camera_binding_pnt = 0;
     std::vector<Uniform> cam_unis = {
@@ -500,19 +491,15 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
 
     glm::vec2 window_size = Renderer::WindowSize();
 
-    std::vector<Uniform> geometry_unis = {
-    };
-    Ref<Shader> geometry_shader = BuildShader(default_path);
-    
-    Ref<RenderPass> geom_pass = NewRef<GeometryPass>(geometry_unis , geometry_shader);
+    Ref<Shader> deferred_shader = BuildShader(deferred_shader_path);
 
     SceneRenderSpec spec{
       .camera_uniforms = NewRef<UniformBuffer>("Camera" , cam_unis , camera_binding_pnt) ,
       .light_uniforms = NewRef<UniformBuffer>("Lights" , light_unis , light_binding_pnt) ,
-      .passes = {
-      } ,
       .pipelines = {
         {
+          .lighting_shader = deferred_shader ,
+          .target_mesh = NewRef<VertexArray>(fb_verts , fb_indices , fb_layout) ,
           .framebuffer_spec = {
             .depth_func = other::LESS_EQUAL ,
             .clear_color = { 0.1f , 0.1f , 0.1f , 1.f } ,
@@ -534,12 +521,6 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
           .material_binding_point = material_binding_pnt ,
           .debug_name = "Geometry" , 
         } ,
-      } ,
-      .ref_passes = {
-        geom_pass ,
-      } ,
-      .pipeline_to_pass_map = {
-        { FNV("Geometry") , { FNV(geom_pass->Name()) } } ,
       } ,
     }; 
     return NewRef<SceneRenderer>(spec);
