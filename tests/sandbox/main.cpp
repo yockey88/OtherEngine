@@ -242,8 +242,12 @@ int main(int argc , char* argv[]) {
 
       bool running = true;
 
-      bool camera_lock = false;
-      other::Mouse::LockCursor();
+      bool camera_lock = true;
+      if (camera_lock) {
+        other::Mouse::FreeCursor();
+      } else {
+        other::Mouse::LockCursor();
+      }
         
       CHECKGL();
 
@@ -276,7 +280,10 @@ int main(int argc , char* argv[]) {
       glm::vec3 outline_color{ 1.f , 0.f , 0.f };
 
       SceneSerializer serializer;
-      Ref<other::Scene> scene = nullptr;
+      Ref<other::Scene> scene = 
+#define LOADING_SCENE 1
+#if LOADING_SCENE
+        nullptr;
       {
         auto loaded_scene = serializer.Deserialize(scenepath.string());
         if (loaded_scene.scene == nullptr) {
@@ -286,20 +293,40 @@ int main(int argc , char* argv[]) {
 
         scene = loaded_scene.scene;
       }
+#else
+        NewRef<other::Scene>();
+        {
+          auto* cube = scene->CreateEntity("cube");
+          cube->AddComponent<other::StaticMesh>();
+          auto* floor = scene->CreateEntity("floor");
+          floor->AddComponent<other::StaticMesh>();
+        }
+#endif // LOADING_SCENE
 
       {
         auto* cube = scene->GetEntity("cube");
         auto& cube_mesh = cube->GetComponent<other::StaticMesh>();
         cube_mesh.material = cube_material1;
-
+        
         auto* floor = scene->GetEntity("floor");
         auto& floor_mesh = floor->GetComponent<other::StaticMesh>();
         floor_mesh.material = cube_material2;
 
         auto* sun = scene->CreateEntity("sun");
         auto& sun_pl = sun->AddComponent<other::LightSource>();
-        sun_pl.type = other::POINT_LIGHT_SRC;
-        sun_pl.pointlight = {};
+        sun_pl.type = other::DIRECTION_LIGHT_SRC;
+        sun_pl.direction_light = {
+          .direction = { 0.f , -1.f , 0.f , 1.f } ,
+          .color = { 0.22f , 0.22f , 0.11f , 1.f } ,
+        };
+        
+        auto* point_light = scene->CreateEntity("point_light");
+        auto& point_light_comp = point_light->AddComponent<other::LightSource>();
+        point_light_comp.type = other::POINT_LIGHT_SRC;
+        point_light_comp.pointlight = {
+          .position = { 1.f , 4.f , 1.f , 1.f } ,
+          .color = { 1.f , 0.2f , 0.2f , 1.f } ,
+        };
       }
 
       other::ScriptEngine::SetSceneContext(scene);
@@ -307,11 +334,14 @@ int main(int argc , char* argv[]) {
 
       scene->Initialize();
       scene->Start();
+      other::DefaultUpdateCamera(camera);
 
       OE_DEBUG("Lights [{} , {}]" , scene->GetEnvironment()->direction_lights.size() ,
                                     scene->GetEnvironment()->point_lights.size());
       
       OE_INFO("Running");
+
+      bool render_to_window = true;
 
       other::time::DeltaTime dt;
       dt.Start();
@@ -340,6 +370,8 @@ int main(int argc , char* argv[]) {
                     other::Mouse::LockCursor();
                   }
                 break;
+                case SDLK_r:
+                break;
                 case SDLK_s: 
                   // if scene started stop scene else start scene
                 break;
@@ -359,7 +391,6 @@ int main(int argc , char* argv[]) {
           other::DefaultUpdateCamera(camera);
         }
         
-
         scene->EarlyUpdate(delta);
         scene->Update(delta);
         scene->LateUpdate(delta);
@@ -373,7 +404,10 @@ int main(int argc , char* argv[]) {
         const auto& frames = renderer->GetRender(); 
         const auto& vp = frames.at(FNV("Geometry"));
 
-        other::Renderer::DrawFramebufferToWindow(vp);
+        if (render_to_window) {
+          other::Renderer::DrawFramebufferToWindow(vp);
+        } else {
+        }
 
 #define UI_ENABLED 1
 #if UI_ENABLED
@@ -413,38 +447,15 @@ int main(int argc , char* argv[]) {
           ImGui::Separator();
 
           ImGui::Text(" - Light Controls =====");
-
-#if !USING_CUSTOM_ENV
-          auto environment = scene->GetEnvironment();
-#else
-#endif 
-
-          if (ImGui::Button("Add Point Light")) {
-            auto* new_pl = scene->CreateEntity(other::fmtstr("point light {}" , environment->point_lights.size()));
-            OE_ASSERT(new_pl != nullptr , "new point light is null");
-            auto new_light = new_pl->AddComponent<other::LightSource>();
-            new_light.type = other::POINT_LIGHT_SRC;
-            new_light.pointlight = {};
-            scene->RebuildEnvironment();
-          }
-          ImGui::SameLine();
-          if (ImGui::Button("Add Direction Light")) {
-            auto* new_pl = scene->CreateEntity(other::fmtstr("direction light {}" , environment->direction_lights.size()));
-            OE_ASSERT(new_pl != nullptr , "new point light is null");
-            auto new_light = new_pl->AddComponent<other::LightSource>();
-            new_light.type = other::DIRECTION_LIGHT_SRC;
-            new_light.direction_light = {};
-            scene->RebuildEnvironment();
-          }
-          ImGui::Separator();
-
           uint32_t i = 0;
           edited = false;
           reg.view<other::LightSource , other::Transform>().each([&](other::LightSource& light , other::Transform& transform) {
             switch (light.type) {
               case other::POINT_LIGHT_SRC:
                 edited = RenderPointLight(other::fmtstr("point light [{}]" , i++) , light.pointlight);
-                transform.position = glm::vec3(light.pointlight.position.x , light.pointlight.position.y , light.pointlight.position.z);
+                if (edited) {
+                  transform.position = glm::vec3(light.pointlight.position.x , light.pointlight.position.y , light.pointlight.position.z);
+                }
               break;
               case other::DIRECTION_LIGHT_SRC:
                 edited = RenderDirectionLight(other::fmtstr("direction light [{}]" , i++) , light.direction_light);

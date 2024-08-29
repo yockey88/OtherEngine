@@ -299,11 +299,10 @@ int main(int argc , char* argv[]) {
         UpdateCamera(camera);
         proj = camera->ProjectionMatrix();
         view = camera->ViewMatrix();
+        glm::vec4 cam_pos = glm::vec4(camera->Position() , 1.f);
 
         camera_uniforms->SetUniform("projection" , camera->ProjectionMatrix());
         camera_uniforms->SetUniform("view" , camera->ViewMatrix());
-
-        glm::vec4 cam_pos = glm::vec4(camera->Position() , 1.f);
         camera_uniforms->SetUniform("viewpoint" , cam_pos);
       }
 
@@ -315,7 +314,6 @@ int main(int argc , char* argv[]) {
       model1 = glm::rotate(model1 , m1_rotation , { 1.f , 1.f , 1.f });
       m1_rotation += 0.1f;
 
-      
 ///> GBUFFER RENDER
       gbuffer.Bind();
 

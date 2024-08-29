@@ -5,6 +5,13 @@ entities = {
   "floor"
 }
 
+
+[physics.2D]
+gravity = { 0 , -9.8 }
+
+[physics.3D]
+
+
 [cube]
 UUID = 12461263173642597452
 components = {
@@ -46,8 +53,3 @@ children = {}
 visible = true
 is-primitive = true
 primitive = 3
-
-[physics.2D]
-gravity = { 0 , -9.8 }
-
-[physics.3D]

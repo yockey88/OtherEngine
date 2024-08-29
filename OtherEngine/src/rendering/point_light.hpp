@@ -11,7 +11,7 @@ namespace other {
   struct PointLight {
     glm::vec4 position = { 1.f , 1.f , 1.f , 1.f };
     glm::vec4 color = { 1.f , 1.f , 1.f , 1.f };
-    float radius = 10.f;
+    float radius = 100.f;
     float constant = 1.f;
     float linear = 0.09f;
     float quadratic = 0.032f;

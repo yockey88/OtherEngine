@@ -22,7 +22,6 @@ namespace other {
     glTexImage2D(GL_TEXTURE_2D , 0 , GL_RGBA16F , size.x , size.y , 0 , GL_RGBA , GL_FLOAT , nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textures[0] , 0);
     
     CHECKGL();
 
@@ -30,7 +29,6 @@ namespace other {
     glTexImage2D(GL_TEXTURE_2D , 0 , GL_RGBA16F , size.x , size.y , 0 , GL_RGBA , GL_FLOAT , nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1 , GL_TEXTURE_2D, textures[1] , 0);
     
     CHECKGL();
     
@@ -38,7 +36,6 @@ namespace other {
     glTexImage2D(GL_TEXTURE_2D , 0 , GL_RGBA , size.x , size.y , 0 , GL_RGBA , GL_UNSIGNED_BYTE , nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, textures[2] , 0);
     
     CHECKGL();
     
@@ -47,10 +44,15 @@ namespace other {
     
     CHECKGL();
 
-    uint32_t render_buffer = 0;
+    render_buffer = 0;
     glGenRenderbuffers(1 , &render_buffer);
     glBindRenderbuffer(GL_RENDERBUFFER , render_buffer);
     glRenderbufferStorage(GL_RENDERBUFFER , GL_DEPTH_COMPONENT , size.x , size.y);
+
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textures[0] , 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1 , GL_TEXTURE_2D, textures[1] , 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, textures[2] , 0);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER , GL_DEPTH_ATTACHMENT , GL_RENDERBUFFER , render_buffer);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
       OE_ERROR("G-Buffer not complete!");

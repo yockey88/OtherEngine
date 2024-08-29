@@ -90,15 +90,6 @@ namespace other {
      * bloom compute 
      * composite pass
      **/
-    auto itr = model_submissions.begin();
-    for (; itr != model_submissions.end();) {
-      if (itr->second.instance_count == 0) {
-        itr = model_submissions.erase(itr);
-      } else {
-        ++itr;
-      }
-    }
-
     material_storage->Clear();
     model_storage->Clear();
 

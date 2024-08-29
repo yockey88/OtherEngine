@@ -65,6 +65,13 @@ namespace other {
 
     std::string debug_name;
   };
+      
+  struct MeshSubmissionList {
+    uint32_t instance_count = 0;
+    Buffer cpu_model_storage;
+    Buffer cpu_material_storage;
+  };
+  using FrameMeshes = std::map<MeshKey , MeshSubmissionList>;
 
   class Pipeline : public RefCounted {
     public:
@@ -81,11 +88,6 @@ namespace other {
 
       void Clear();
       
-      struct MeshSubmissionList {
-        uint32_t instance_count = 0;
-        Buffer cpu_model_storage;
-        Buffer cpu_material_storage;
-      };
       
     private:
       uint32_t vao_id = 0;
@@ -94,13 +96,7 @@ namespace other {
 
       Ref<UniformBuffer> model_storage = nullptr;
       Ref<UniformBuffer> material_storage = nullptr;
-      std::map<MeshKey , MeshSubmissionList> model_submissions;
-      
-      std::vector<float> vertices{};
-      std::vector<uint32_t> indices{};
-
-      uint32_t curr_transform_idx = 0;
-      uint32_t idx_offset = 0;
+      FrameMeshes model_submissions;
       
       Ref<Framebuffer> target = nullptr;
 

@@ -98,6 +98,7 @@ namespace other {
     glBindTexture(GL_TEXTURE_2D , framebuffer->texture);
     window_shader->Bind();
     window_shader->SetUniform("oe_screen_tex" , 0);
+    window_shader->SetUniform("exposure" , 1.f);
     window_mesh->Draw(TRIANGLES);
     window_shader->Unbind();
   }

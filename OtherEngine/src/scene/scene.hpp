@@ -103,6 +103,8 @@ namespace other {
       
       void GeometryChanged();
 
+      void DebugRender();
+
       virtual void OnInit() {}
       virtual void OnStart() {}
 

@@ -33,13 +33,13 @@ namespace other {
       return;
     }
 
-    spec.camera_uniforms->BindBase();
-    spec.camera_uniforms->SetUniform("projection" , camera->ProjectionMatrix());
-    spec.camera_uniforms->SetUniform("view" , camera->ViewMatrix());
-    
+    const glm::mat4& proj = camera->ProjectionMatrix();
+    const glm::mat4& view = camera->ViewMatrix();
     glm::vec4 cam_pos = glm::vec4(camera->Position() , 1.f);
-    spec.camera_uniforms->SetUniform("viewpoint" , cam_pos);
 
+    spec.camera_uniforms->SetUniform("projection" , proj);
+    spec.camera_uniforms->SetUniform("view" , view);
+    spec.camera_uniforms->SetUniform("viewpoint" , cam_pos);
     frame_data.viewpoint = camera;
   }
   
@@ -52,8 +52,7 @@ namespace other {
     float num_dir_lights = environment->direction_lights.size();
     float num_point_lights = environment->point_lights.size();
     glm::vec4 light_count{ 
-      num_dir_lights ,
-      num_point_lights ,
+      num_dir_lights , num_point_lights , 
       0 , 0
     };
     spec.light_uniforms->BindBase();

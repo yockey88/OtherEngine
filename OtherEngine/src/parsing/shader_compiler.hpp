@@ -4,8 +4,6 @@
 #ifndef OTHER_ENGINE_SHADER_COMPILER_HPP
 #define OTHER_ENGINE_SHADER_COMPILER_HPP
 
-#include "parsing/shader_glsl_transpiler.hpp"
-
 #include "rendering/shader.hpp"
 
 namespace other {

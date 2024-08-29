@@ -27,6 +27,7 @@
 #include "ecs/systems/core_systems.hpp"
 
 #include "rendering/model.hpp"
+#include "rendering/model_factory.hpp"
 #include "scripting/script_engine.hpp"
 
 namespace other {
@@ -186,15 +187,13 @@ namespace other {
       return;
     }
 
-    /// update client app if they have custom logic
-    OnUpdate(dt);
-
     /// TODO: check if simulating or just playing
 
     /**
      * order of updates
      *  - physics
-     *      2d then 3d
+     *      2d 
+     *      3d
      *  - scripts, to pick up physics updates and apply script reactions
      *  - update transforms
      *  - apply transform updates to relevant components
@@ -202,7 +201,6 @@ namespace other {
      * use late update to react to other entity's changes
      **/
 
-    /// TODO: fix these to customizeable
     if (physics_world_2d != nullptr) {
       physics_world_2d->Step(dt , 32 , 2);
 
@@ -223,6 +221,19 @@ namespace other {
     
 
     /// TODO: rigid body 3d here
+   
+    /// update environment
+    registry.view<LightSource , Transform>().each([](LightSource& light , Transform& transform) {
+      if (light.type == POINT_LIGHT_SRC) {
+        transform.position = light.pointlight.position;
+      } else {
+      }
+    });
+    
+    /// update transforms after other updates, dont overwrite physics changes
+    registry.view<Transform>(entt::exclude<RigidBody2D , Collider2D , RigidBody , Collider>).each([](Transform& transform) {
+      transform.CalcMatrix();
+    });
     
     /// scripts updated last to give most accurate view of updated state 
     registry.view<Script>().each([&dt](const Script& script) {
@@ -230,35 +241,10 @@ namespace other {
         s->Update(dt);
       }
     });
-
-
-    /// dont reupdate the transforms of things with physics
-    registry.view<Transform>(entt::exclude<RigidBody2D , Collider2D>).each([](Transform& transform) {
-      transform.CalcMatrix();
-    });
-
-
-    /// because every entity has a transform this is equivalent to view<Camera>
-    registry.view<Camera, Transform>().each([](Camera& camera , Transform& transform) {
-      if (camera.pinned_to_entity_position) {
-        camera.camera->SetPosition(transform.position);
-        camera.camera->SetOrientation(transform.erotation);
-        camera.camera->CalculateMatrix();
-      } else {
-        camera.camera->CalculateMatrix();
-      }
-    });
     
-    /// update environment
-    registry.view<LightSource , Transform>().each([](LightSource& light , Transform& transform) {
-      if (light.type == POINT_LIGHT_SRC) {
-        transform.position = light.pointlight.position;
-        transform.CalcMatrix();
-      } else {
-      }
-    });
-
-    /// FIXME: dont deallocate and allocate each frame, only update when needed
+    /// update client app if they have custom logic ,
+    ///   do this last to give client accurate state view
+    OnUpdate(dt);
     
     /// finish scene update
     /// checks if the scene become corrupt on client update
@@ -280,14 +266,25 @@ namespace other {
       Stop();
       return;
     }
-    
-    OnLateUpdate(dt);
+     
+    /// because every entity has a transform this is equivalent to view<Camera>
+    registry.view<Camera, Transform>().each([](Camera& camera , Transform& transform) {
+      if (camera.pinned_to_entity_position) {
+        camera.camera->SetPosition(transform.position);
+        camera.camera->SetOrientation(transform.erotation);
+        camera.camera->CalculateMatrix();
+      } else {
+        camera.camera->CalculateMatrix();
+      }
+    });
 
     registry.view<Script>().each([&dt](const Script& script) {
       for (auto& [id , s] : script.scripts) {
         s->LateUpdate(dt);
       }
     });
+    
+    OnLateUpdate(dt);
     
     /// finish scene update
     /// checks the case the scene become corrupt on client update
@@ -327,7 +324,11 @@ namespace other {
           renderer->SubmitCamera(camera.camera); 
         }
       });
+    }
+    
+    renderer->SubmitEnvironment(environment);
 
+    if (scene_geometry_changed) {
       registry.view<Mesh , Transform>().each([&renderer](const Mesh& mesh , const Transform& transform) {
         if (!AppState::Assets()->IsValid(mesh.handle)) {
           return;
@@ -348,9 +349,7 @@ namespace other {
 
       scene_geometry_changed = false; 
     }
-    
-    renderer->SubmitEnvironment(environment);
-    
+     
     // registry.view<Script>().each([](const Script& script) {
     //   for (auto& [id , s] : script.scripts) {
     //     s->Render();
@@ -655,7 +654,6 @@ namespace other {
     registry.view<LightSource , Transform>().each([this](LightSource& light , Transform& transform) {
         switch (light.type) {
           case POINT_LIGHT_SRC:
-            light.pointlight.position = glm::vec4(transform.position , 1.f);
             environment->point_lights.push_back(light.pointlight);
           break;
           case DIRECTION_LIGHT_SRC:
@@ -723,6 +721,9 @@ namespace other {
       
   void Scene::GeometryChanged() {
     scene_geometry_changed = true;
+  }
+      
+  void Scene::DebugRender() {
   }
  
   void Scene::FixRoots() {
