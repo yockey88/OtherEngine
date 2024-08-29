@@ -647,6 +647,10 @@ namespace other {
     FixRoots();
   }
   
+  void Scene::GeometryChanged() {
+    scene_geometry_changed = true;
+  }
+
   void Scene::RebuildEnvironment() {
     /// rebuild environment on light source change
     environment->point_lights.clear();
@@ -718,11 +722,7 @@ namespace other {
 
     InitializeCollider(physics_world , body , collider , transform);
   }
-      
-  void Scene::GeometryChanged() {
-    scene_geometry_changed = true;
-  }
-      
+       
   void Scene::DebugRender() {
   }
  

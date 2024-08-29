@@ -13,7 +13,7 @@
 #include "rendering/direction_light.hpp"
 
 void RenderItem(uint32_t id , const std::string& title , ImVec2 size = ImVec2(800 , 600));
-void RenderMaterial(const std::string& title , other::Material& mat);
+bool RenderMaterial(const std::string& title , other::Material& mat);
 bool RenderPointLight(const std::string& title , other::PointLight& pl);
 bool RenderDirectionLight(const std::string& title , other::DirectionLight& pl);
 

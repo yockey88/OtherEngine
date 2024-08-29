@@ -21,10 +21,8 @@ namespace other {
     Ref<UniformBuffer> camera_uniforms;
     Ref<UniformBuffer> light_uniforms;
 
-    std::vector<RenderPassSpec> passes;
     std::vector<PipelineSpec> pipelines;
-
-    std::vector<Ref<RenderPass>> ref_passes;
+    std::vector<Ref<RenderPass>> passes;
 
     std::map<UUID , std::vector<UUID>> pipeline_to_pass_map;
   };

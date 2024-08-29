@@ -462,9 +462,6 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
   }
       
   Ref<SceneRenderer> EditorLayer::GetDefaultRenderer() {
-    const Path shader_dir = Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders";
-    const Path deferred_shader_path = shader_dir / "default.oshader";
-
     uint32_t camera_binding_pnt = 0;
     std::vector<Uniform> cam_unis = {
       { "projection" , other::ValueType::MAT4 } ,
@@ -491,15 +488,11 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
 
     glm::vec2 window_size = Renderer::WindowSize();
 
-    Ref<Shader> deferred_shader = BuildShader(deferred_shader_path);
-
     SceneRenderSpec spec{
       .camera_uniforms = NewRef<UniformBuffer>("Camera" , cam_unis , camera_binding_pnt) ,
       .light_uniforms = NewRef<UniformBuffer>("Lights" , light_unis , light_binding_pnt) ,
       .pipelines = {
         {
-          .lighting_shader = deferred_shader ,
-          .target_mesh = NewRef<VertexArray>(fb_verts , fb_indices , fb_layout) ,
           .framebuffer_spec = {
             .depth_func = other::LESS_EQUAL ,
             .clear_color = { 0.1f , 0.1f , 0.1f , 1.f } ,

@@ -38,7 +38,7 @@ namespace other {
       virtual void SetUp() override;
       virtual void TearDown() override;
 
-      Ref<SceneRenderer> GetDefaultSceneRenderer(const uint32_t max_entities = 100) const;
+      Ref<SceneRenderer> GetDefaultSceneRenderer(const uint32_t max_entities = 100);
 
     protected:
       static MockEngine* instance;
@@ -52,6 +52,7 @@ namespace other {
 
       Scope<Engine> engine_stub = nullptr;
       Scope<App> mock_application = nullptr;
+      Ref<SceneRenderer> default_renderer = nullptr;
 
       void InitializeEngineSubSystems();
       void ShutdownEngineSubSystems();

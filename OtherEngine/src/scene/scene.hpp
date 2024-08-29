@@ -86,6 +86,7 @@ namespace other {
       void ParentEntity(UUID id , UUID parent_id);
       void OrphanEntity(UUID id);
       
+      void GeometryChanged();
       void RebuildEnvironment();
 
     protected:
@@ -99,9 +100,7 @@ namespace other {
       void OnAddCollider2D(entt::registry& context , entt::entity ent);
       
       void OnAddRigidBody(entt::registry& context , entt::entity ent);
-      void OnAddCollider(entt::registry& context , entt::entity ent);
-      
-      void GeometryChanged();
+      void OnAddCollider(entt::registry& context , entt::entity ent);      
 
       void DebugRender();
 

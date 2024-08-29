@@ -173,15 +173,11 @@ int main(int argc , char* argv[]) {
     model2 = glm::translate(model2 , glm::vec3(2.f , 0.f , 0.f));
 
     other::Material material1 = {
-      .ambient = { 1.0f , 0.5f , 0.31f , 1.f } ,
-      .diffuse = { 0.1f , 0.5f , 0.31f , 1.f } ,
-      .specular = { 0.5f , 0.5f , 0.5f , 1.f } ,
+      .color = { 1.0f , 0.5f , 0.31f , 1.f } ,
       .shininess = 32.f ,
     };
     other::Material material2 = {
-      .ambient = { 0.1f , 0.5f , 0.31f , 1.f } ,
-      .diffuse = { 1.0f , 0.5f , 0.31f , 1.f } ,
-      .specular = { 0.5f , 0.5f , 0.5f , 1.f } ,
+      .color = { 0.1f , 0.5f , 0.31f , 1.f } ,
       .shininess = 32.f ,
     };
 

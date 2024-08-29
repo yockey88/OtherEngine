@@ -220,8 +220,6 @@ int main(int argc , char* argv[]) {
         .light_uniforms = NewRef<UniformBuffer>("Lights" , light_unis , light_binding_pnt , other::SHADER_STORAGE) ,
         .pipelines = {
           {
-            .lighting_shader = deferred_shader ,
-            .target_mesh = fb_mesh ,
             .framebuffer_spec = {
               .depth_func = other::LESS_EQUAL ,
               .clear_color = { 0.1f , 0.1f , 0.1f , 1.f } ,
@@ -234,7 +232,27 @@ int main(int argc , char* argv[]) {
             .material_binding_point = material_binding_pnt ,
             .debug_name = "Geometry" , 
           } ,
+          {
+            .framebuffer_spec = {
+              .depth_func = other::LESS_EQUAL ,
+              .clear_color = { 0.1f , 0.1f , 0.1f , 1.f } ,
+              .size = other::Renderer::WindowSize() ,
+            } ,
+            .vertex_layout = default_layout ,
+            .model_uniforms = model_unis , 
+            .model_binding_point = model_binding_pnt ,
+            .material_uniforms = material_unis ,
+            .material_binding_point = material_binding_pnt ,
+            .debug_name = "Debug" ,
+          } ,
         } , 
+        .passes = {
+          geom_pass , normal_pass
+        } ,
+        .pipeline_to_pass_map = {
+          { FNV("Geometry") , { FNV(geom_pass->Name()) } } ,
+          // { FNV("Debug") , { FNV(geom_pass->Name()) , FNV(normal_pass->Name()) } } ,
+        } ,
       };
       Ref<SceneRenderer> renderer = NewRef<SceneRenderer>(render_spec);
 
@@ -252,16 +270,12 @@ int main(int argc , char* argv[]) {
       CHECKGL();
 
       other::Material cube_material1 = {
-        .ambient = { 1.0f , 0.5f , 0.31f , 1.f } ,
-        .diffuse = { 0.1f , 0.5f , 0.31f , 1.f } ,
-        .specular = { 0.5f , 0.5f , 0.5f , 1.f } ,
+        .color = { 1.0f , 0.5f , 0.31f , 1.f } ,
         .shininess = 32.f ,
       };
       
       other::Material cube_material2 = {
-        .ambient = { 0.1f , 0.5f , 0.31f , 1.f } ,
-        .diffuse = { 1.0f , 0.5f , 0.31f , 1.f } ,
-        .specular = { 0.5f , 0.5f , 0.5f , 1.f } ,
+        .color = { 0.1f , 0.5f , 0.31f , 1.f } ,
         .shininess = 32.f ,
       };
       
@@ -438,6 +452,7 @@ int main(int argc , char* argv[]) {
           });
           
           ImGui::Text(" - Materials =====");
+
           reg.view<other::Tag , other::StaticMesh>().each([&](other::Tag& tag , other::StaticMesh& mesh) {
             ImGui::PushID((tag.name + "##static-mesh-widget").c_str());
             RenderMaterial(other::fmtstr("{} material" , tag.name) , mesh.material);

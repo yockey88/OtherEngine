@@ -17,6 +17,7 @@
 #include "rendering/model.hpp"
 #include "rendering/material.hpp"
 #include "rendering/gbuffer.hpp"
+#include "rendering/render_pass.hpp"
 
 namespace other {
 
@@ -47,12 +48,7 @@ namespace other {
     DrawMode topology = DrawMode::TRIANGLES;
     bool back_face_culling = true;
     bool depth_test = true;
-    bool depth_write = true;
-    bool wire_frame = false;
     float line_width = 1.f;
-
-    Ref<Shader> lighting_shader = nullptr;
-    Ref<VertexArray> target_mesh = nullptr;
 
     FramebufferSpec framebuffer_spec {};
     Layout vertex_layout;
@@ -77,6 +73,8 @@ namespace other {
     public:
       Pipeline(PipelineSpec& spec);
       virtual ~Pipeline() override {}
+
+      void SubmitRenderPass(const Ref<RenderPass>& render_pass);
       
       /// FIXME: material system needs overhaul
       void SubmitModel(Ref<Model> model , const glm::mat4& transform , const Material& color);
@@ -88,7 +86,6 @@ namespace other {
 
       void Clear();
       
-      
     private:
       uint32_t vao_id = 0;
       PipelineSpec spec{};
@@ -99,8 +96,12 @@ namespace other {
       FrameMeshes model_submissions;
       
       Ref<Framebuffer> target = nullptr;
+      std::vector<Ref<RenderPass>> passes{};
 
-      void RenderMeshes();
+      void PerformPass(Ref<RenderPass>& pass);
+
+      void RenderAll();
+      void RenderMeshes(const MeshKey& mesh_key , uint32_t instance_count , const Buffer& model_buffer , const Buffer& material_buffer);
   };
 
 } // namespace other

@@ -75,8 +75,10 @@ namespace other {
     other::Logger::Shutdown();
   }
       
-  Ref<SceneRenderer> MockEngine::GetDefaultSceneRenderer(const uint32_t max_entities) const {
-    const other::Path deferred_shader_path = shader_dir / "deferred_shading.oshader";
+  Ref<SceneRenderer> MockEngine::GetDefaultSceneRenderer(const uint32_t max_entities) {
+    if (default_renderer != nullptr) {
+      return default_renderer;
+    }
 
     uint32_t camera_binding_pnt = 0;
     std::vector<Uniform> cam_unis = {
@@ -110,36 +112,11 @@ namespace other {
       { other::ValueType::VEC2 , "uvs"      }
     };
     
-    Ref<other::Shader> deferred_shader = other::BuildShader(deferred_shader_path);
-    deferred_shader->Bind();
-    deferred_shader->SetUniform("goe_position" , 0);
-    deferred_shader->SetUniform("goe_normal" , 1);
-    deferred_shader->SetUniform("goe_albedo" , 2);
-    deferred_shader->Unbind();
-      
-    std::vector<float> fb_verts = {
-       1.f ,  1.f , 1.f , 1.f ,
-      -1.f ,  1.f , 0.f , 1.f ,
-      -1.f , -1.f , 0.f , 0.f ,
-       1.f , -1.f , 1.f , 0.f
-    };   
-    
-    std::vector<uint32_t> fb_indices = { 
-      0 , 1 , 3 , 
-      1 , 2 , 3 
-    };
-    std::vector<uint32_t> fb_layout = { 
-      2 , 2 
-    };
-    Ref<VertexArray> fb_mesh = NewRef<VertexArray>(fb_verts , fb_indices , fb_layout);
-
     SceneRenderSpec render_spec {
       .camera_uniforms = NewRef<UniformBuffer>("Camera" , cam_unis , camera_binding_pnt) ,
       .light_uniforms = NewRef<UniformBuffer>("Lights" , light_unis , light_binding_pnt , other::SHADER_STORAGE) ,
       .pipelines = {
         {
-          .lighting_shader = deferred_shader ,
-          .target_mesh = fb_mesh ,
           .framebuffer_spec = {
             .depth_func = other::LESS_EQUAL ,
             .clear_color = { 0.1f , 0.1f , 0.1f , 1.f } ,
@@ -154,7 +131,9 @@ namespace other {
         } ,
       } , 
     };
-    return NewRef<SceneRenderer>(render_spec);
+    default_renderer = NewRef<SceneRenderer>(render_spec);
+
+    return default_renderer;
   }
       
   void MockEngine::InitializeEngineSubSystems() {

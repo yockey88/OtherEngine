@@ -320,9 +320,7 @@ namespace other {
     /// define this in both vertex and fragment 
     if (context == VERTEX_SHADER || context == FRAGMENT_SHADER) {
       stream << "struct Material {\n";
-      stream << "  vec4 ambient;\n";
-      stream << "  vec4 diffuse;\n";
-      stream << "  vec4 specular;\n";
+      stream << "  vec4 color;\n";
       stream << "  float shininess;\n";
       stream << "};\n\n";
     }

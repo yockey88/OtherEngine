@@ -31,6 +31,10 @@ namespace other {
     material_storage = NewRef<UniformBuffer>("MaterialData" , spec.material_uniforms , spec.material_binding_point , SHADER_STORAGE);
   }
 
+  void Pipeline::SubmitRenderPass(const Ref<RenderPass>& render_pass) {
+    passes.push_back(render_pass);
+  }
+
   void Pipeline::SubmitModel(Ref<Model> model , const glm::mat4& transform , const Material& material) {
   }
 
@@ -72,8 +76,10 @@ namespace other {
   void Pipeline::Render() {
     /** Passes to implement
      * ----------------
-     * shadow map pass
-     * spot shadow mapp pass
+     * shadow mapping (expensive) :
+     *  direct light map pass (from viewpoint of primary direct light source)
+     *  spot shadow map pass (from each pointlight ???)
+     *
      * pre depth pass
      * hzb compute
      * pre integration
@@ -93,75 +99,20 @@ namespace other {
     material_storage->Clear();
     model_storage->Clear();
 
-
-    /** Idea of render-pass chaining for dynamic pipeline construction
-     *
-     *  - implement a chaining utility to dynamically construct render pass chains 
-     *      to allow for custom pipelines 
-     *
-     *  - let E = scene-lighting-environment
-     *      accessible globally
-     *
-     *  - renderpass rp : X -> Y 
-     *      where X is either 
-     *       1 - a scene mesh/uniform set
-     *       2 - a set of render buffers/textures
-     *    ex:
-     *      let g_rp = gbuffer_pass 
-     *      then 
-     *        X = { geometry-data , transforms , materials }
-     *        Y_g = { position , normal , albedo , depth }
-     *
-     *      let l_rp = lighting_pass
-     *      then 
-     *        X = Y_g U { textured-quad-mesh } 
-     *        Y_l = { lit-scene-texture }
-     *      
-     *      so that this hardcoded pipeline below cane be thought of as
-     *        output-frame = l_rp o g_rp = l_rp(g_rp(X))
-     *
-     *  - a generic pipeline then is 
-     *      pl : P -> i,
-     *        P is a subset of Rp (the set of all renderpasses),
-     *          P = { p_0 , ... , p_n }
-     *        i \in I (the set of output images of the engine in a single run)
-     *
-     *      pl : p_n o ... o p_0 = p_n(...p_1(p_0(G))) = i;
-     *        G = { geometry-data , transforms , materials }
-     **/
-
-    /** Pseudocode for above idea
-     *
-     *  - class Pipeline(pass-list) {
-     *      P <- pass-list
-     *    }
-     *
-     *    Image Pipeline::Render(scene-description) {
-     *      G = { 
-     *        scene-description.geometry ,
-     *        scene-description.transforms ,
-     *        scene-description.materials ,
-     *      }
-     *
-     *      return execute_chain(G);
-     *    }
-     *
-     *    Image Pipeline::execute_chain(geometry) {
-     *      return fold_left(P , geometry , (G , func) { return func(G) });
-     *    }
-     *
-     **/
-
     gbuffer.Bind();
-    RenderMeshes();
+    RenderAll();
     gbuffer.Unbind();
 
     target->BindFrame();
-    spec.lighting_shader->Bind();
-    spec.target_mesh->Draw(TRIANGLES);
-    spec.lighting_shader->Unbind();
+    for (auto& pass : passes) {
+      if (pass == nullptr) {
+        continue;
+      }
+
+      PerformPass(pass);
+    }
     target->UnbindFrame();
-   }
+  }
 
   Ref<Framebuffer> Pipeline::GetOutput() {
     return target;
@@ -181,16 +132,32 @@ namespace other {
     model_submissions.clear();
   }
       
-  void Pipeline::RenderMeshes() {
-    for (auto& [mk , sl] : model_submissions) {
-      model_storage->BindBase();
-      model_storage->LoadFromBuffer(sl.cpu_model_storage);
-      material_storage->BindBase();
-      material_storage->LoadFromBuffer(sl.cpu_material_storage);
+  void Pipeline::PerformPass(Ref<RenderPass>& pass) {
+    pass->Bind();
+    pass->SetInput("goe_position" , 0);
+    pass->SetInput("goe_normal" , 1);
+    pass->SetInput("goe_albedo" , 2);
 
-      mk.vao->Bind();
-      glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES , mk.num_elements , GL_UNSIGNED_INT , (void*)0 , sl.instance_count , 0 , 0);
+    RenderAll();
+    
+    pass->Unbind();
+  }
+  
+  void Pipeline::RenderAll() {
+    for (auto& [mk , sl] : model_submissions) {
+      RenderMeshes(mk , sl.instance_count , sl.cpu_model_storage , sl.cpu_material_storage);
     }
+  }
+      
+  void Pipeline::RenderMeshes(const MeshKey& mesh_key , uint32_t instance_count , const Buffer& model_buffer , const Buffer& material_buffer) {
+    model_storage->BindBase();
+    material_storage->BindBase();
+
+    model_storage->LoadFromBuffer(model_buffer);
+    material_storage->LoadFromBuffer(material_buffer);
+
+    mesh_key.vao->Bind();
+    glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES , mesh_key.num_elements , GL_UNSIGNED_INT , (void*)0 , instance_count , 0 , 0);
   }
 
 } // namespace other

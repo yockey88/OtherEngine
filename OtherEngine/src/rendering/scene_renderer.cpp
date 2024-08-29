@@ -113,14 +113,33 @@ namespace other {
 
   void SceneRenderer::Initialize() {
     /// already made render passes
-    for (auto& rp : spec.ref_passes) {
-      passes[FNV(rp->Name())] = rp;
+    for (auto& rp : spec.passes) {
+      passes[FNV(rp->Name())] = Ref<RenderPass>::Clone(rp);
     }
 
     /// pipelines
     for (auto& pl : spec.pipelines) {
       pipelines[FNV(pl.debug_name)] = NewRef<Pipeline>(pl);
     }
+
+    for (auto& [pipeline_id , pass_list] : spec.pipeline_to_pass_map) {
+      auto itr = pipelines.find(pipeline_id);
+      if (itr == pipelines.end()) {
+        continue;
+      }
+      auto [_ , pipeline] = *itr;
+
+      for (auto& pass_id : pass_list) {
+        auto pass_itr = passes.find(pass_id);
+        if (pass_itr == passes.end()) {
+          continue;
+        }
+        auto [__ , pass] = *pass_itr;
+
+        pipeline->SubmitRenderPass(pass);
+      }
+    }
+
     spec.camera_uniforms->BindBase();
     spec.light_uniforms->BindBase();
   }

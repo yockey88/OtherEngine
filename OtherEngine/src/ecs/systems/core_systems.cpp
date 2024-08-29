@@ -65,9 +65,7 @@ namespace other {
     Entity ent(context , entt);
     auto& mesh = ent.GetComponent<Mesh>();
     mesh.material = Material {
-      .ambient = { 0.5f , 0.5f , 0.5f , 1.f } ,
-      .diffuse = { 0.5f , 0.6f , 0.7f , 1.f } ,
-      .specular = { 0.3f , 0.3f , 0.3f , 1.f } ,
+      .color = { 0.5f , 0.6f , 0.7f , 1.f } ,
       .shininess = 16.f ,
     };
   }
@@ -76,9 +74,7 @@ namespace other {
     Entity ent(context , entt);
     auto& mesh = ent.GetComponent<StaticMesh>();
     mesh.material = Material {
-      .ambient = { 0.5f , 0.5f , 0.5f , 1.f } ,
-      .diffuse = { 0.5f , 0.6f , 0.7f , 1.f } ,
-      .specular = { 0.3f , 0.3f , 0.3f , 1.f } ,
+      .color = { 0.5f , 0.6f , 0.7f , 1.f } ,
       .shininess = 16.f ,
     };
   }
