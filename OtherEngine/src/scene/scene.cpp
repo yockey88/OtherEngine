@@ -3,6 +3,8 @@
  **/
 #include "scene/scene.hpp"
 
+#include <ranges>
+
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -21,9 +23,12 @@
 #include "ecs/components/camera.hpp"
 #include "ecs/components/rigid_body_2d.hpp"
 #include "ecs/components/collider_2d.hpp"
+#include "ecs/components/light_source.hpp"
 #include "ecs/systems/core_systems.hpp"
 
+#include "rendering/camera_base.hpp"
 #include "rendering/model.hpp"
+#include "rendering/model_factory.hpp"
 #include "scripting/script_engine.hpp"
 
 namespace other {
@@ -46,39 +51,37 @@ namespace other {
     
     registry.on_construct<Collider>().connect<&Scene::OnAddCollider>(this);
     registry.on_update<Collider>().connect<&OnColliderUpdate>();
+    
+    registry.on_update<LightSource>().connect<&Scene::RebuildEnvironment>(this);
+    registry.on_destroy<LightSource>().connect<&Scene::RebuildEnvironment>(this);
 
     registry.on_construct<Mesh>().connect<&OnAddModel>();
     registry.on_construct<StaticMesh>().connect<&OnAddStaticModel>();
 
+    registry.on_construct<Mesh>().connect<&Scene::GeometryChanged>(this);
+    registry.on_construct<StaticMesh>().connect<&Scene::GeometryChanged>(this);
+    registry.on_update<Mesh>().connect<&Scene::GeometryChanged>(this);
+    registry.on_update<StaticMesh>().connect<&Scene::GeometryChanged>(this);
+    registry.on_destroy<Mesh>().connect<&Scene::GeometryChanged>(this);
+    registry.on_destroy<StaticMesh>().connect<&Scene::GeometryChanged>(this);
+
     /// TODO: move this 
     environment = NewRef<Environment>();
-    environment->point_lights = {
-      {
-        .position = { 3.0f , 5.f , 1.f , 1.f },
-        .ambient  = { 0.2f , 0.2f , 0.2f , 1.f } ,
-        .diffuse  = { 0.5f , 0.5f , 0.5f , 1.f } ,
-        .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
-      } ,
-      {
-        .position = { -3.f , 5.f , 1.f , 1.f },
-        .ambient  = { 0.5f , 0.5f , 0.5f , 1.f } ,
-        .diffuse  = { 0.2f , 0.2f , 0.2f , 1.f } ,
-        .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
-      } ,
-    };
-    environment->direction_lights = {
-      {
-        .direction = { -0.2f , -1.f , -0.3f , 1.f } ,
-        .ambient  = { 0.2f , 0.2f , 0.2f , 1.f } ,
-        .diffuse  = { 0.5f , 0.5f , 0.5f , 1.f } ,
-        .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
-      } ,
-    };
   }
 
   Scene::~Scene() {
+    registry.on_destroy<Mesh>().disconnect<&Scene::GeometryChanged>(this);
+    registry.on_destroy<StaticMesh>().disconnect<&Scene::GeometryChanged>(this);
+    registry.on_update<Mesh>().disconnect<&Scene::GeometryChanged>(this);
+    registry.on_update<StaticMesh>().disconnect<&Scene::GeometryChanged>(this);
+    registry.on_construct<Mesh>().disconnect<&Scene::GeometryChanged>(this);
+    registry.on_construct<StaticMesh>().disconnect<&Scene::GeometryChanged>(this);
+
     registry.on_construct<StaticMesh>().disconnect<&OnAddStaticModel>();
     registry.on_construct<Mesh>().disconnect<&OnAddModel>();
+
+    registry.on_destroy<LightSource>().disconnect<&Scene::RebuildEnvironment>(this);
+    registry.on_update<LightSource>().disconnect<&Scene::RebuildEnvironment>(this);
     
     registry.on_update<Collider>().disconnect();
     registry.on_construct<Collider>().disconnect();
@@ -115,23 +118,26 @@ namespace other {
     }
 
     OE_DEBUG("Entities in scene [{}]" , entities.size()); 
-    registry.view<Tag>().each([](const Tag& tag) {
-      OE_DEBUG("  > [{}]" , tag.id);
-    });
-
     registry.view<Script , Tag>().each([](Script& script , Tag& tag) {
       for (auto& [id , obj] : script.scripts) {
-        OE_DEBUG("Setting entity id for script [{}] {}" , id , obj->Name());
         obj->Initialize();
       }
     });
+    
+    RefreshCameraTransforms();
 
     OnInit(); 
     initialized = true;
+    
+    BuildGroups();
+    RebuildEnvironment();
   }
 
-  void Scene::Start() {
+  void Scene::Start(EngineMode mode) {
     OE_ASSERT(initialized , "Starting scene without initialization");
+
+    current_mode = mode;
+    FixRoots();
 
     registry.view<RigidBody2D , Tag , Transform>().each([this](RigidBody2D& body , const Tag& tag , const Transform& transform) {
       Initialize2DRigidBody(physics_world_2d , body , tag , transform);
@@ -143,7 +149,13 @@ namespace other {
       }
     });
 
+    RefreshCameraTransforms();
+
     OnStart();
+
+    /// do this after client in case the modify environment
+    RebuildEnvironment();
+
     running = true;
   }
 
@@ -187,15 +199,13 @@ namespace other {
       return;
     }
 
-    /// update client app if they have custom logic
-    OnUpdate(dt);
-
     /// TODO: check if simulating or just playing
 
     /**
      * order of updates
      *  - physics
-     *      2d then 3d
+     *      2d 
+     *      3d
      *  - scripts, to pick up physics updates and apply script reactions
      *  - update transforms
      *  - apply transform updates to relevant components
@@ -203,7 +213,6 @@ namespace other {
      * use late update to react to other entity's changes
      **/
 
-    /// TODO: fix these to customizeable
     if (physics_world_2d != nullptr) {
       physics_world_2d->Step(dt , 32 , 2);
 
@@ -221,9 +230,23 @@ namespace other {
     }
     
     /// TODO: add 3d physics update here
-    
 
     /// TODO: rigid body 3d here
+   
+    /// update environment
+    registry.view<LightSource , Transform>().each([](LightSource& light , Transform& transform) {
+      if (light.type == POINT_LIGHT_SRC) {
+        /// sync pointlight transforms to pointlight data
+        transform.position = light.pointlight.position;
+        transform.scale = glm::vec3(0.2f);
+      } else {
+      }
+    });
+    
+    /// update transforms after other updates, dont overwrite physics changes
+    registry.view<Transform>(entt::exclude<RigidBody2D , Collider2D , RigidBody , Collider>).each([](Transform& transform) {
+      transform.CalcMatrix();
+    });
     
     /// scripts updated last to give most accurate view of updated state 
     registry.view<Script>().each([&dt](const Script& script) {
@@ -231,25 +254,10 @@ namespace other {
         s->Update(dt);
       }
     });
-
-
-    /// dont reupdate the transforms of things with physics
-    registry.view<Transform>(entt::exclude<RigidBody2D , Collider2D>).each([](Transform& transform) {
-      transform.CalcMatrix();
-    });
-
-
-    /// because every entity has a transform this is equivalent to view<Camera>
-    registry.view<Camera, Transform>().each([](Camera& camera , Transform& transform) {
-      if (camera.pinned_to_entity_position) {
-        camera.camera->SetPosition(transform.position);
-        camera.camera->SetOrientation(transform.erotation);
-        camera.camera->CalculateMatrix();
-      } else {
-        camera.camera->CalculateMatrix();
-      }
-    });
     
+    /// update client app if they have custom logic ,
+    ///   do this last to give client accurate state view
+    OnUpdate(dt);
     
     /// finish scene update
     /// checks if the scene become corrupt on client update
@@ -271,14 +279,25 @@ namespace other {
       Stop();
       return;
     }
-    
-    OnLateUpdate(dt);
+     
+    /// because every entity has a transform this is equivalent to view<Camera>
+    registry.view<Camera, Transform>().each([](Camera& camera , Transform& transform) {
+      if (camera.pinned_to_entity_position) {
+        camera.camera->SetPosition(transform.position);
+        camera.camera->SetOrientation(transform.erotation);
+        camera.camera->CalculateMatrix();
+      } else {
+        camera.camera->CalculateMatrix();
+      }
+    });
 
     registry.view<Script>().each([&dt](const Script& script) {
       for (auto& [id , s] : script.scripts) {
         s->LateUpdate(dt);
       }
     });
+    
+    OnLateUpdate(dt);
     
     /// finish scene update
     /// checks the case the scene become corrupt on client update
@@ -310,39 +329,21 @@ namespace other {
   }
       
   void Scene::Render(Ref<SceneRenderer> renderer) {
-    /// environment (set pipeline inputs) 
+    renderer->ClearPipelines();
 
-    registry.view<Mesh , Transform>().each([&renderer](const Mesh& mesh , const Transform& transform) {
-      if (!AppState::Assets()->IsValid(mesh.handle)) {
-        return;
+    registry.view<Camera>().each([&](const Camera& camera) {
+      if (camera.camera->IsPrimary()) {
+        renderer->SubmitCamera(camera.camera); 
       }
-      
-      auto model = AssetManager::GetAsset<Model>(mesh.handle);
-      if (model == nullptr) {
-        return;
-      }
-
-      renderer->SubmitModel("Geometry" , model , transform.model_transform , mesh.material);
-    });
-
-    registry.view<StaticMesh , Transform>().each([&renderer](const StaticMesh& mesh , const Transform& transform) {
-      if (!AppState::Assets()->IsValid(mesh.handle)) {
-        return;
-      }
-      
-      auto model = AssetManager::GetAsset<StaticModel>(mesh.handle);
-      if (model == nullptr) {
-        return;
-      }
-
-      renderer->SubmitStaticModel("Geometry" , model , transform.model_transform , mesh.material);
     });
     
-    registry.view<Script>().each([](const Script& script) {
-      for (auto& [id , s] : script.scripts) {
-        s->Render();
-      }
-    });
+    renderer->SubmitEnvironment(environment);
+
+    RenderToPipeline("Geometry" , renderer);
+
+    if (current_mode == EngineMode::DEBUG) {
+      RenderToPipeline("Debug" , renderer , true);
+    }
   }
       
   void Scene::RenderUI() {
@@ -352,9 +353,9 @@ namespace other {
   void Scene::Stop() {
     OE_ASSERT(initialized , "Updating scene without initialization");
     if (!running) {
-      OE_WARN("Scene not running, nothing to stop");
       return;
     }
+    running = false;
     
     registry.view<Script>().each([](Script& script) {
       for (auto& [id , s] : script.scripts) {
@@ -366,8 +367,8 @@ namespace other {
       physics_world_2d->DestroyBody(body.physics_body);
     });
 
-    running = false;
     OnStop();
+    current_mode = EngineMode::DEBUG; 
 
     if (scene_object == nullptr) {
       return;
@@ -379,6 +380,11 @@ namespace other {
   void Scene::Shutdown() {
     OE_ASSERT(initialized , "Shutting down scene before initialization");
     initialized = false;
+
+    if (running) {
+      Stop();
+    }
+
     OnShutdown();
 
     registry.view<Script>().each([](Script& script) {
@@ -423,15 +429,13 @@ namespace other {
   }
 
   bool Scene::EntityExists(UUID id) const {
-    return std::find_if(entities.begin() , entities.end() , [&id](const auto& ent_pair) ->bool {
+    return std::find_if(entities.begin() , entities.end() , [&id](const auto& ent_pair) -> bool {
       return id == ent_pair.first; 
     }) != entities.end();
   }
 
   bool Scene::EntityExists(const std::string& name) const {
-    return std::find_if(entities.begin() , entities.end() , [&name](const auto& ent_pair) ->bool {
-      return name == ent_pair.second->Name(); 
-    }) != entities.end();
+    return EntityExists(FNV(name));
   }
 
   size_t Scene::NumCameras() const {
@@ -539,7 +543,6 @@ namespace other {
       root_entities.erase(itr2);
     }
     
-
     registry.destroy(handle);
   }
       
@@ -634,6 +637,71 @@ namespace other {
 
     FixRoots();
   }
+  
+  void Scene::GeometryChanged() {
+    scene_geometry_changed = true;
+  }
+
+  void Scene::RebuildEnvironment() {
+    /// rebuild environment on light source change
+    environment->point_lights.clear();
+    environment->direction_lights.clear();
+    registry.view<LightSource , Transform>().each([this](LightSource& light , Transform& transform) {
+        switch (light.type) {
+          case POINT_LIGHT_SRC:
+            environment->point_lights.push_back(light.pointlight);
+          break;
+          case DIRECTION_LIGHT_SRC:
+            environment->direction_lights.push_back(light.direction_light);
+          break;
+          default:
+          break;
+        }
+    });
+  }
+      
+  void Scene::RenderToPipeline(const std::string_view plname , Ref<SceneRenderer> renderer , bool do_debug) {
+    dynamic_mesh_group.each([&renderer , plname](const Mesh& mesh , const Transform& transform) {
+      if (!AppState::Assets()->IsValid(mesh.handle)) {
+        return;
+      }
+      
+      auto model = AssetManager::GetAsset<Model>(mesh.handle);
+      renderer->SubmitModel(plname , model , transform.model_transform , mesh.material);
+    });
+
+    static_mesh_group.each([&renderer , plname](const StaticMesh& mesh , const Transform& transform) {
+      if (!AppState::Assets()->IsValid(mesh.handle)) {
+        return;
+      }
+      
+      auto model = AssetManager::GetAsset<StaticModel>(mesh.handle);
+      renderer->SubmitStaticModel(plname , model , transform.model_transform , mesh.material);
+    });
+
+    if (!do_debug || light_group.empty()) {
+      return;
+    }
+
+    AssetHandle cube_handle = ModelFactory::CreateBox();
+
+    light_group.each([&renderer , cube_handle , plname](const LightSource& light , const Transform& transform) {
+      if (light.type == DIRECTION_LIGHT_SRC) {
+        return;
+      }  
+
+      if (!AppState::Assets()->IsValid(cube_handle)) {
+        return;
+      }
+
+      Material light_material = {
+        .color = light.pointlight.color ,
+      };
+      
+      auto model = AssetManager::GetAsset<StaticModel>(cube_handle);
+      renderer->SubmitStaticModel(plname , model , transform.model_transform , light_material);
+    });
+  }
       
   void Scene::OnAddRigidBody2D(entt::registry& context , entt::entity entt) {
     OE_ASSERT(physics_world_2d != nullptr , "Somehow created a rigid body 2D component without active 2D physics");
@@ -688,7 +756,13 @@ namespace other {
 
     InitializeCollider(physics_world , body , collider , transform);
   }
-      
+
+  void Scene::RefreshCameraTransforms() {
+    registry.view<Camera>().each([](Camera& camera) {
+      other::DefaultUpdateCamera(camera.camera);
+    });
+  }
+ 
   void Scene::FixRoots() {
     /// add any entities that should be root entities to roots
     for (auto itr = entities.begin(); itr != entities.end();) {
@@ -710,6 +784,15 @@ namespace other {
         ++itr;
       }
     }
+  }
+
+  void Scene::BuildGroups() {
+    connection_group = GetGroup<Relationship>(); 
+    light_group = GetGroup<LightSource , Transform>();
+    script_group = GetGroup<Script>();
+
+    dynamic_mesh_group = GetGroup<Mesh , Transform>();
+    static_mesh_group = GetGroup<StaticMesh , Transform>();
   }
 
 } // namespace other

@@ -16,15 +16,15 @@
 #include "rendering/framebuffer.hpp"
 #include "rendering/model.hpp"
 #include "rendering/material.hpp"
-#include "rendering/render_pass.hpp"
 #include "rendering/gbuffer.hpp"
+#include "rendering/render_pass.hpp"
 
 namespace other {
 
   using RenderFn = std::function<void(void*)>;
 
   struct MeshKey {
-    AssetHandle model_handle;
+    AssetHandle source_handle;
     Ref<VertexArray> vao = nullptr;
 
     size_t num_elements = 0;
@@ -48,12 +48,7 @@ namespace other {
     DrawMode topology = DrawMode::TRIANGLES;
     bool back_face_culling = true;
     bool depth_test = true;
-    bool depth_write = true;
-    bool wire_frame = false;
     float line_width = 1.f;
-
-    Ref<Shader> lighting_shader = nullptr;
-    Ref<VertexArray> target_mesh = nullptr;
 
     FramebufferSpec framebuffer_spec {};
     Layout vertex_layout;
@@ -66,25 +61,30 @@ namespace other {
 
     std::string debug_name;
   };
+      
+  struct MeshSubmissionList {
+    uint32_t instance_count = 0;
+    Buffer cpu_model_storage;
+    Buffer cpu_material_storage;
+  };
+  using FrameMeshes = std::map<MeshKey , MeshSubmissionList>;
 
   class Pipeline : public RefCounted {
     public:
       Pipeline(PipelineSpec& spec);
       virtual ~Pipeline() override {}
+
+      void SubmitRenderPass(const Ref<RenderPass>& render_pass);
       
-      /// Add materials to model submission
+      /// FIXME: material system needs overhaul
       void SubmitModel(Ref<Model> model , const glm::mat4& transform , const Material& color);
       void SubmitStaticModel(Ref<StaticModel> model , const glm::mat4& transform , const Material& color);
 
       void Render();
       Ref<Framebuffer> GetOutput();
       GBuffer& GetGBuffer();
-      
-      struct MeshSubmissionList {
-        uint32_t instance_count = 0;
-        Buffer cpu_model_storage;
-        Buffer cpu_material_storage;
-      };
+
+      void Clear();
       
     private:
       uint32_t vao_id = 0;
@@ -93,17 +93,15 @@ namespace other {
 
       Ref<UniformBuffer> model_storage = nullptr;
       Ref<UniformBuffer> material_storage = nullptr;
-      std::map<MeshKey , MeshSubmissionList> model_submissions;
-      
-      std::vector<float> vertices{};
-      std::vector<uint32_t> indices{};
-
-      uint32_t curr_transform_idx = 0;
-      uint32_t idx_offset = 0;
+      FrameMeshes model_submissions;
       
       Ref<Framebuffer> target = nullptr;
+      std::vector<Ref<RenderPass>> passes{};
 
-      void RenderMeshes();
+      void PerformPass(Ref<RenderPass>& pass);
+
+      void RenderAll();
+      void RenderMeshes(const MeshKey& mesh_key , uint32_t instance_count , const Buffer& model_buffer , const Buffer& material_buffer);
   };
 
 } // namespace other

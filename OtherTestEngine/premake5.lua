@@ -10,20 +10,15 @@ OtherTestEngine.files = function()
   files {
     "./src/**.cpp",
     "./src/**.hpp",
+    "./tests/**.cpp" ,
+    "./tests/**.hpp" ,
   }
 end
 
 OtherTestEngine.include_dirs = function()
   includedirs {
     "./src",
-  }
-end
-
-OtherTestEngine.defines = function()
-  defines {
-    "TRACY_ENABLE" ,
-    "TRACY_ON_DEMAND" ,
-    "TRACY_CALLSTACK=10"
+    "./tests" ,
   }
 end
 

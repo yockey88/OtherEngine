@@ -23,18 +23,29 @@ namespace time {
   void Timer::Pause() {
     if (running) {
       end = Clock::now();
-      paused_duration = end - start;
+      paused_duration = std::chrono::duration_cast<Duration>(end - start);
       running = false;
     }
   }
 
   bool Timer::Tick() {
-    if (running) {
-      end = Clock::now();
-      remaining_time = duration - (end - start);
-      if (remaining_time.count() <= 0)
-          running = false;
+    if (!running) {
+      return false;
     }
+
+    end = Clock::now();
+    auto passed = std::chrono::duration_cast<Duration>(end - start);
+    if (passed >= duration) {
+      remaining_time = Duration(0);
+      running = false; 
+      return running;
+    }
+
+    remaining_time = std::chrono::duration_cast<Duration>(duration - passed);
+    if (remaining_time == Duration(0)) {
+      running = false;
+    }
+
     return running;
   }
 
@@ -45,6 +56,22 @@ namespace time {
     running = true;
   }
 
+  bool Timer::Running() const { 
+    return running; 
+  }
+
+  bool Timer::Finished() const { 
+    return !running; 
+  }
+
+  uint64_t Timer::GetRemainingTime() const { 
+    return remaining_time.count(); 
+  }
+
+  uint64_t Timer::GetDuration() const { 
+    return duration.count(); 
+  }
+
   void Stopwatch::Start() { 
     if (!running) {
       start = Clock::now();
@@ -53,7 +80,7 @@ namespace time {
 
     if (paused) {
       TimePoint unpaused_time = Clock::now();
-      paused_duration = unpaused_time - end;
+      paused_duration = std::chrono::duration_cast<Duration>(unpaused_time - end);
       paused = false;
     }
   }
@@ -61,7 +88,7 @@ namespace time {
   void Stopwatch::Pause() { 
     if (running) {
       end = Clock::now();
-      duration = end - start;
+      duration = std::chrono::duration_cast<Duration>(end - start);
       running = false;
       paused = true;
     }
@@ -69,14 +96,14 @@ namespace time {
   
   void Stopwatch::Tick() {
     if (running && !paused) {
-      duration = Clock::now() - start;
+      duration = std::chrono::duration_cast<Duration>(Clock::now() - start);
     }
   }
   
   void Stopwatch::Stop() {
     if (running) {
       end = Clock::now();
-      duration = end - start;
+      duration = std::chrono::duration_cast<Duration>(end - start);
       running = false;
       paused = false;
     }
@@ -85,11 +112,15 @@ namespace time {
   void Stopwatch::Reset() {
     if (running && !paused) {
       end = Clock::now();
-      duration = end - start;
+      duration = std::chrono::duration_cast<Duration>(end - start);
     } else {
       duration = Duration(0);
       paused_duration = Duration(0);
     }
+  }
+      
+  uint64_t Stopwatch::GetDuration() { 
+    return duration.count(); 
   }
 
 } // namespace time

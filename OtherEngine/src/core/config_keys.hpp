@@ -73,6 +73,9 @@ namespace other {
   constexpr static std::string_view kAssetsValue = "ASSETS";
   constexpr static uint64_t kAssetsValueHash = FNV(kAssetsValue);
 
+  constexpr static std::string_view kPrimarySceneValue = "PRIMARY-SCENE";
+  constexpr static uint64_t kPrimarySceneHash = FNV(kPrimarySceneValue);
+
   constexpr static std::string_view kHeightValue = "HEIGHT";
   constexpr static uint64_t kHeightValueHash = FNV(kHeightValue);
 

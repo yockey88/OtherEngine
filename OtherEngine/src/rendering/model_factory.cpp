@@ -10,7 +10,17 @@
 
 namespace other {
 
+  Opt<AssetHandle> ModelFactory::triangle_handle = std::nullopt;
+  Opt<AssetHandle> ModelFactory::rect_handle = std::nullopt;
+  Opt<AssetHandle> ModelFactory::box_handle = std::nullopt;
+  Opt<AssetHandle> ModelFactory::sphere_handle = std::nullopt;
+  Opt<AssetHandle> ModelFactory::capsule_handle = std::nullopt;
+
   AssetHandle ModelFactory::CreateTriangle(const glm::vec2& half_extents) {
+    if (triangle_handle.has_value()) {
+      return triangle_handle.value();
+    }
+
     std::vector<Vertex> vertices{};
     vertices.resize(3);
 
@@ -30,10 +40,16 @@ namespace other {
     Ref<ModelSource> source = AssetManager::GetAsset<ModelSource>(source_handle);
 
     AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>(source);
+    triangle_handle = handle;
+
     return handle;
   }
       
   AssetHandle ModelFactory::CreateRect(const glm::vec2& half_extents) {
+    if (rect_handle.has_value()) {
+      return rect_handle.value();
+    }
+
     std::vector<Vertex> vertices{};
     vertices.resize(6);
 
@@ -58,10 +74,15 @@ namespace other {
     AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>(source);
 
     OE_DEBUG("Created rect mesh : [{}]" , handle);
+    rect_handle = handle;
     return handle;
   }
 
   AssetHandle ModelFactory::CreateBox(const glm::vec3& size) {
+    if (box_handle.has_value()) {
+      return box_handle.value();
+    }
+
     std::vector<Vertex> vertices;
     vertices.resize(8);
 
@@ -103,6 +124,7 @@ namespace other {
     AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>(mesh_source);
 
     OE_DEBUG("Created cube mesh [{}]" , handle);
+    box_handle = handle;
     return handle; 
   }
   

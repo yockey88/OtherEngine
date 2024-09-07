@@ -109,7 +109,7 @@ namespace other {
       glGenTextures(1 , &color_attachment);
       glBindTexture(GL_TEXTURE_2D , color_attachment);
 
-      glTexImage2D(GL_TEXTURE_2D , 0 , GL_RGB , spec.size.x , spec.size.y , 0 , GL_RGB , GL_UNSIGNED_BYTE , nullptr);
+      glTexImage2D(GL_TEXTURE_2D , 0 , GL_RGBA , spec.size.x , spec.size.y , 0 , GL_RGBA , GL_UNSIGNED_BYTE , nullptr);
       glTexParameteri(GL_TEXTURE_2D , GL_TEXTURE_WRAP_S , GL_REPEAT); 
       glTexParameteri(GL_TEXTURE_2D , GL_TEXTURE_WRAP_T , GL_REPEAT); 
       glTexParameteri(GL_TEXTURE_2D , GL_TEXTURE_MIN_FILTER , GL_LINEAR); 

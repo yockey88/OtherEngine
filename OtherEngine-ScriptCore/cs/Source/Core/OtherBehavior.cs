@@ -9,7 +9,7 @@ namespace Other {
     /// <summary>
     ///  ID of the engine object using this behavior
     /// </summary>
-    private UInt64 object_id = 0;
+    private UUID object_id = 0;
 
     /// <summary>
     /// ID of the behavior for the scripting engine
@@ -94,7 +94,7 @@ namespace Other {
       return object_id == other.object_id;
     }
 
-    public override int GetHashCode() => (int)object_id; 
+    public override int GetHashCode() => object_id.GetHashCode(); 
 
     public static bool operator ==(OtherBehavior left , OtherBehavior right) => left is null ? right is null : left.Equals(right);
     public static bool operator !=(OtherBehavior left , OtherBehavior right) => !(left == right);

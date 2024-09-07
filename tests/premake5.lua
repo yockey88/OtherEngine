@@ -12,6 +12,7 @@ sandbox.files = function()
     "./sandbox/**.hpp",
     "./sandbox_ui.cpp" ,
     "./sandbox_ui.hpp" ,
+    "./mock_app.cpp"
   }
 end
 
@@ -52,9 +53,9 @@ sandbox_scripts.kind = "SharedLib"
 sandbox_scripts.language = "C#"
 
 sandbox_scripts.files = function() 
-  files { 
-    "./sandbox/*.cs" 
-  } 
+  files {
+    "./sandbox/*.cs" ,
+  }
 end
 
 sandbox_scripts.components = {}
@@ -77,6 +78,7 @@ gl_sandbox.files = function()
     "./gl_sandbox/**.hpp",
     "./sandbox_ui.cpp" ,
     "./sandbox_ui.hpp" ,
+    "./mock_app.cpp"
   }
 end
 
@@ -111,60 +113,6 @@ gl_sandbox.post_build_commands = function()
 end
 
 AddProject(gl_sandbox)
-
-local OctreeTests = {}
-
-OctreeTests.name = "OctreeTests"
-OctreeTests.path = "./octree-tests"
-OctreeTests.kind = "ConsoleApp"
-OctreeTests.language = "C++"
-OctreeTests.cppdialect = "C++latest"
-
-OctreeTests.files = function()
-  files {
-    "./octree-tests/**.cpp",
-    "./octree-tests/**.hpp",
-  }
-end
-
-OctreeTests.include_dirs = function()
-  includedirs {
-    "./octree-tests",
-  }
-end
-
-OctreeTests.components = {}
-OctreeTests.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
-OctreeTests.components["gtest"] = "%{wks.location}/externals/gtest/googletest/include"
-OctreeTests.components[""] = "%{wks.location}/externals/gtest/googlemock/include"
-
-AddProject(OctreeTests)
-
-local sandbox = {}
-
-sandbox.name = "sandbox"
-sandbox.path = "./sandbox"
-sandbox.kind = "ConsoleApp"
-sandbox.language = "C++"
-sandbox.cppdialect = "C++latest"
-
-sandbox.files = function()
-  files {
-    "./sandbox/**.cpp",
-    "./sandbox/**.hpp",
-  }
-end
-
-sandbox.include_dirs = function()
-  includedirs {
-    "./sandbox",
-  }
-end
-
-sandbox.components = {}
-sandbox.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
-sandbox.components["gtest"] = "%{wks.location}/externals/gtest/googletest/include"
-sandbox.components[""] = "%{wks.location}/externals/gtest/googlemock/include"
 
 local scripting_tests = {}
 

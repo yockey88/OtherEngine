@@ -14,7 +14,7 @@ fragment {
   out vec4 FragColor;
 
   void main () {
-    FragColor = material.ambient;
+    FragColor = material.color;
   };
 
 }

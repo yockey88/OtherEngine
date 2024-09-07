@@ -21,10 +21,10 @@ namespace other {
     std::map<MonoType* , std::function<bool(Entity*)>> component_checkers{};
     std::map<MonoType* , std::function<void(Entity*)>> component_destroyers{};
 
-    template <component_type C>
+    template <ComponentType C>
     static std::map<MonoType* , std::function<bool(Entity* , C*)>> component_getters;
 
-    template <component_type C>
+    template <ComponentType C>
     static std::map<MonoType* , std::function<void(Entity* , C*)>> component_setters;
   };
 

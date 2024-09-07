@@ -10,9 +10,6 @@
 namespace other {
 namespace cs_script_bindings {
 
-  void NativeDrawLine(const Line* line , const RgbColor* color);
-  void NativeDrawTriangle(const Triangle* triangle , const RgbColor* color);
-  void NativeDrawRect(const Rect* rect , const RgbColor* color);
 
 } // namespace cs_script_bindings
 } // namespace other

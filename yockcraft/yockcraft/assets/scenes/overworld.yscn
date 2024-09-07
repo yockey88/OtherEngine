@@ -1,0 +1,73 @@
+[metadata]
+name = "Overworld"
+entities = {
+  "camera" ,
+  "sun" ,
+  "plight" ,
+  "terrain"
+}
+
+[physics.2D]
+gravity = { 0 , -9.8 }
+
+[physics.3D]
+
+[camera]
+UUID = 4220486183894562136
+components = {
+  script
+}
+
+[camera.transform]
+position = { 0 , 0 , 0 }
+rotation = { 0 , 0 , 0 , 0 }
+scale = { 1 , 1 , 1 }
+
+## [camera.camera]
+## type = "perspective"
+
+[camera.script]
+YockCraftScripts = { "Yockcraft::CameraController" }
+
+[sun]
+UUID = 4025795962345870502
+components = {
+  light-source
+}
+
+[sun.transform]
+position = { 0 , 0 , 0 }
+rotation = { 0 , 0 , 0 , 0 }
+scale = { 1 , 1 , 1 }
+
+[sun.light-source]
+type = 0
+
+[plight]
+UUID = 5187631263640703325
+components = {
+  light-source
+}
+
+[plight.light-source]
+type = 1
+
+[terrain]
+UUID = 4009018379399950635
+components = {
+  script ,
+  static-mesh
+}
+
+[terrain.transform]
+position = { 0 , 0 , 0 }
+rotation = { 0 , 0 , 0 , 0 }
+scale = { 1 , 1 , 1 }
+
+[terrain.script]
+YockCraftScripts = { "Yockcraft::Terrain" }
+
+[terrain.static-mesh]
+visible = true
+is-primitive = true
+primitive = 3

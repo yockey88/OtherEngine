@@ -1,45 +1,25 @@
-import os, sys
-import subprocess
+import sys
 
-TOOLS_DIR = "tools"
+from tools import other
 
-def RunCmnd(cmnds):
-    ret = 0
-    cmnds[0] =  "{}/{}/{}.py".format(os.getcwd() , TOOLS_DIR , cmnds[0])
-    if os.path.exists(cmnds[0]):
-        cmnds.insert(0 , "python3")
-        ret = subprocess.call(cmnds)
-    else:
-        print("Invalid Commands [{}]".format(cmnds))
-        ret = -1
+if __name__ == "__main__":
+    # other.env.init()
+    parser = other.initialize_parser()
+    if len(sys.argv) == 0:
+        parser.print_help()
+        sys.exit(0)
 
-    return ret
+    other.env.parse_args(parser)
 
-build_cmnds = ["buildsln" , "run"]
+    verbose: bool = other.env.is_verbose()
 
-def InBuildCmnds(cmnd):
-    for x in build_cmnds:
-        if x == cmnd:
-            return True
-    return False
+    if verbose:
+        print("Verbose Logging toggled on")
+        print("config : {}".format(other.env.configuration()))
 
-argc = len(sys.argv)
-i = 1
-while i < argc:
-    cmnds = [sys.argv[i]]
+    if other.env.is_legacy():
+        if verbose:
+            print("> running legacy commands")
+        sys.exit(other.do_legacy_cmds())
 
-    while True:
-        if i < argc - 1 and not InBuildCmnds(sys.argv[i + 1]):
-            cmnds.append(sys.argv[i + 1])
-            i = i + 1
-        else :
-            break
-
-    print("\n---------------------------")
-    print("[Executing Command] -> " , cmnds[0])
-    if len(cmnds) > 1:
-        print("\t[Flags] -> {}\n".format(" , ".join(cmnds[1:])))
-    if RunCmnd(cmnds) != 0:
-        break
-    print("\n")
-    i = i + 1
+    other.pipeline.try_build()

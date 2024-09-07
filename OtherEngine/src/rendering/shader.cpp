@@ -34,7 +34,7 @@ namespace other {
     }
 
     if (!Compile(vsrc_ptr , fsrc_ptr , gsrc_ptr)) {
-      OE_ERROR("Failed to compile shader!");
+      OE_ERROR("Failed to compile shader : {}!" , src.name);
       valid = false;
     }
   }
@@ -60,12 +60,7 @@ namespace other {
     
   void Shader::InnerSetUniform(const std::string_view name , const int32_t& value , uint32_t index) {
     uint32_t loc = GetUniformLocation(name);
-
-    CHECKGL();
-
     glUniform1i(loc , value);
-    
-    CHECKGL();
   }
   
   void Shader::InnerSetUniform(const std::string_view name , const float& value , uint32_t index) {
@@ -218,46 +213,9 @@ namespace other {
     }
 
     ShaderIr ir = ShaderCompiler::Compile(src);
-
-#if 1
-    std::cout << "Transpile vertex source : \n\n" << ir.vert_source << "\n------------\n";
-    std::cout << "Transpile fragment source : \n\n" << ir.frag_source << "\n------------\n";
-
-    if (ir.geom_source.has_value()) {
-      std::cout << "Transpile geometry source : \n\n" << ir.geom_source.value() << "\n------------\n";
-    }
-#endif
+    ir.name = path.filename().string();
 
     return NewRef<Shader>(ir);
-  }
-  
-  Ref<Shader> BuildShader(const Path& vpath , const Path& fpath , const Opt<Path>& gpath) {
-    OE_ASSERT(false , "UNIMPLEMENTED");
-    // std::string vsrc = Filesystem::ReadFile(vpath);
-    // std::string fsrc = Filesystem::ReadFile(fpath);
-    // Opt<std::string> gsrc  = std::nullopt;
-
-    // if (gpath.has_value()) {
-    //   gsrc = Filesystem::ReadFile(gpath.value());
-    // }
-
-    // ShaderIr vert_ir = ShaderCompiler::Compile(VERTEX_SHADER , vsrc);
-    // ShaderIr frag_ir = ShaderCompiler::Compile(FRAGMENT_SHADER , fsrc);
-    // Opt<ShaderIr> geom_ir = std::nullopt;
-
-    // if (gsrc.has_value()) {
-    //   geom_ir = ShaderCompiler::Compile(GEOMETRY_SHADER , gsrc.value());
-    // }
-
-    // ShaderIr real_ir;
-    // real_ir.vert_source = vert_ir.vert_source;
-    // real_ir.frag_source = vert_ir.frag_source;
-
-    // if (geom_ir.has_value()) {
-    //   real_ir.geom_source = geom_ir.value().geom_source;
-    // }
-
-    // return NewRef<Shader>(real_ir);
   }
 
 } // namespace yockcraft

@@ -60,9 +60,6 @@ namespace other {
     glStencilMask(0xFF);
     glStencilOp(GL_KEEP , GL_KEEP , GL_REPLACE);
 
-    /// gamma correction 
-    // glEnable(GL_FRAMEBUFFER_SRGB);
-
     CHECKGL();
 
     SetRenderState();

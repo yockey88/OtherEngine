@@ -22,6 +22,7 @@ namespace other {
     std::map<UUID , ShaderStorage> storages;
     std::map<UUID , Uniform> uniforms;
 
+    std::string name = "";
     std::string vert_source = ""; 
     std::string frag_source = "";
     Opt<std::string> geom_source = std::nullopt;
@@ -76,7 +77,6 @@ namespace other {
   };
 
   Ref<Shader> BuildShader(const Path& path);
-  Ref<Shader> BuildShader(const Path& vpath , const Path& fpath , const Opt<Path>& gpath = std::nullopt);
 
 } // namespace other 
 

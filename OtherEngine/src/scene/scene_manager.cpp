@@ -7,13 +7,12 @@
 
 #include "core/defines.hpp"
 #include "core/logger.hpp"
+#include "application/app_state.hpp"
 
 #include "ecs/entity.hpp"
-
 #include "scene/scene_serializer.hpp"
 
 #include "rendering/renderer.hpp"
-
 #include "scripting/script_engine.hpp"
 
 namespace other {
@@ -53,7 +52,7 @@ namespace other {
     UUID id = FNV(path.string());
     auto find_scene = loaded_scenes.find(id);
     if (find_scene == loaded_scenes.end()) {
-      OE_WARN("Scene : {} does not exist! Cant not set as active" , path);
+      OE_ERROR("Scene : {} does not exist! Cant not set as active" , path);
       return;
     } else {
       OE_DEBUG("Setting {} as active scene" , path);
@@ -68,7 +67,7 @@ namespace other {
   }
       
   void SceneManager::StartScene() {
-    if (active_scene == nullptr) {
+    if (!HasActiveScene()) {
       return;
     } 
 
@@ -76,6 +75,10 @@ namespace other {
   }
 
   bool SceneManager::IsPlaying() const {
+    if (!HasActiveScene()) {
+      return false;
+    }
+
     return active_scene->scene->IsRunning();
   }
   
@@ -194,7 +197,7 @@ namespace other {
     StateStack::RestoreState(ActiveScene()->scene , capture);
 
     if (scene_playing) {
-      active_scene->scene->Start();
+      active_scene->scene->Start(AppState::mode);
     }
   }
     
@@ -247,17 +250,10 @@ namespace other {
       return true;
     }
     
-    if (viewpoint == nullptr) {
-      viewpoint = active_scene->scene->GetPrimaryCamera();
-      if (viewpoint == nullptr) {
-        return false;
-      }
+    if (viewpoint != nullptr) {
+      scene_renderer->SubmitCamera(viewpoint);
     }
 
-    auto environment = active_scene->scene->GetEnvironment();
-    OE_ASSERT(environment != nullptr , "Scene environment can not be null!");
-    
-    scene_renderer->BeginScene(viewpoint , environment);
     active_scene->scene->Render(scene_renderer);
     scene_renderer->EndScene();
     

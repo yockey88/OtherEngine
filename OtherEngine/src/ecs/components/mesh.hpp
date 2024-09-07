@@ -42,7 +42,7 @@ namespace other {
 
     ECS_COMPONENT(StaticMesh , kStaticMeshIndex);
   }; 
-
+  
   class MeshSerializer : public ComponentSerializer {
     public:
       COMPONENT_SERIALIZERS(Mesh);

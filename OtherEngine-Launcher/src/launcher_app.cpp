@@ -8,6 +8,7 @@
 #include "event/core_events.hpp"
 #include "event/key_events.hpp"
 #include "event/event_handler.hpp"
+#include "event/event_queue.hpp"
 
 #include "input/keyboard.hpp"
 

@@ -13,8 +13,8 @@
 namespace std {
   
   bool less<other::MeshKey>::operator()(const other::MeshKey& lhs , const other::MeshKey& rhs) const {
-    if (lhs.model_handle.Get() != rhs.model_handle.Get()) {
-      return lhs.model_handle.Get() < rhs.model_handle.Get();
+    if (lhs.source_handle.Get() != rhs.source_handle.Get()) {
+      return lhs.source_handle.Get() < rhs.source_handle.Get();
     }
     
     return lhs.selected && !rhs.selected;
@@ -31,12 +31,18 @@ namespace other {
     material_storage = NewRef<UniformBuffer>("MaterialData" , spec.material_uniforms , spec.material_binding_point , SHADER_STORAGE);
   }
 
+  void Pipeline::SubmitRenderPass(const Ref<RenderPass>& render_pass) {
+    passes.push_back(render_pass);
+  }
+
   void Pipeline::SubmitModel(Ref<Model> model , const glm::mat4& transform , const Material& material) {
   }
 
   void Pipeline::SubmitStaticModel(Ref<StaticModel> model , const glm::mat4& transform , const Material& material) {
+    Ref<ModelSource> source = model->GetModelSource();
+
     auto itr = std::ranges::find_if(model_submissions , [&](const auto& pair) -> bool {
-      return model->handle == pair.first.model_handle;
+      return source->handle == pair.first.source_handle;
     });
     
 
@@ -52,7 +58,7 @@ namespace other {
       }
 
       MeshKey key = {
-        .model_handle = model->handle ,
+        .source_handle = source->handle ,
         .vao = NewRef<VertexArray>(verts , indices) ,
       };
       key.num_elements = key.vao->NumElements();
@@ -68,10 +74,12 @@ namespace other {
   }
 
   void Pipeline::Render() {
-    /** Possible passes
+    /** Passes to implement
      * ----------------
-     * shadow map pass
-     * spot shadow mapp pass
+     * shadow mapping (expensive) :
+     *  direct light map pass (from viewpoint of primary direct light source)
+     *  spot shadow map pass (from each pointlight ???)
+     *
      * pre depth pass
      * hzb compute
      * pre integration
@@ -87,47 +95,23 @@ namespace other {
      * edge detection
      * bloom compute 
      * composite pass
-     * end command buffer
-     * submit command buffer
      **/
-    auto itr = model_submissions.begin();
-    for (; itr != model_submissions.end();) {
-      if (itr->second.instance_count == 0) {
-        itr = model_submissions.erase(itr);
-      } else {
-        ++itr;
-      }
-    }
-
     material_storage->Clear();
     model_storage->Clear();
 
-    /// geometry pass (gbuffer pass)
     gbuffer.Bind();
-    RenderMeshes();
+    RenderAll();
     gbuffer.Unbind();
-    
-    for (uint32_t i = 0; i < GBuffer::NUM_TEX_IDXS; ++i) {
-      glActiveTexture(GL_TEXTURE0 + i);
-      glBindTexture(GL_TEXTURE_2D , gbuffer.textures[i]);
-    }
 
-    /// lighting pass (composition pass)
     target->BindFrame();
-    glActiveTexture(GL_TEXTURE4);
-    glBindTexture(GL_TEXTURE_2D , target->texture);
-    spec.lighting_shader->Bind();
-    spec.target_mesh->Draw(other::TRIANGLES);
-    target->UnbindFrame();
+    for (auto& pass : passes) {
+      if (pass == nullptr) {
+        continue;
+      }
 
-    /// dont clear the mesh key for a tiny optimization on future submissions
-    for (auto& [mk , sl] : model_submissions) {
-      sl.cpu_model_storage.ZeroMem();
-      sl.cpu_material_storage.ZeroMem();
-      sl.instance_count = 0;
+      PerformPass(pass);
     }
-
-    CHECKGL();
+    target->UnbindFrame();
   }
 
   Ref<Framebuffer> Pipeline::GetOutput() {
@@ -137,20 +121,43 @@ namespace other {
   GBuffer& Pipeline::GetGBuffer() {
     return gbuffer;
   }
-      
-  void Pipeline::RenderMeshes() {
-    Buffer pass_models;
-    Buffer pass_materials;
+  
+  void Pipeline::Clear() {
+    /// dont clear the mesh key for a tiny optimization on future submissions
     for (auto& [mk , sl] : model_submissions) {
-      material_storage->BindBase();
-      material_storage->LoadFromBuffer(sl.cpu_material_storage);
-      model_storage->BindBase();
-      model_storage->LoadFromBuffer(sl.cpu_model_storage);
-
-      mk.vao->Bind();
-      glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES , mk.num_elements , GL_UNSIGNED_INT , (void*)0 , sl.instance_count , 0 , 0);
+      sl.cpu_model_storage.ZeroMem();
+      sl.cpu_material_storage.ZeroMem();
+      sl.instance_count = 0;
     }
-    CHECKGL();
+    model_submissions.clear();
+  }
+      
+  void Pipeline::PerformPass(Ref<RenderPass>& pass) {
+    pass->Bind();
+    pass->SetInput("goe_position" , 0);
+    pass->SetInput("goe_normal" , 1);
+    pass->SetInput("goe_albedo" , 2);
+
+    RenderAll();
+    
+    pass->Unbind();
+  }
+  
+  void Pipeline::RenderAll() {
+    for (auto& [mk , sl] : model_submissions) {
+      RenderMeshes(mk , sl.instance_count , sl.cpu_model_storage , sl.cpu_material_storage);
+    }
+  }
+      
+  void Pipeline::RenderMeshes(const MeshKey& mesh_key , uint32_t instance_count , const Buffer& model_buffer , const Buffer& material_buffer) {
+    model_storage->BindBase();
+    material_storage->BindBase();
+
+    model_storage->LoadFromBuffer(model_buffer);
+    material_storage->LoadFromBuffer(material_buffer);
+
+    mesh_key.vao->Bind();
+    glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES , mesh_key.num_elements , GL_UNSIGNED_INT , (void*)0 , instance_count , 0 , 0);
   }
 
 } // namespace other

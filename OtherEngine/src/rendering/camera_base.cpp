@@ -65,18 +65,15 @@ namespace other {
     SetPosition(Position());
   }
 
-  const glm::mat4& CameraBase::GetMatrix() {
-    CalculateMatrix();
+  const glm::mat4& CameraBase::GetMatrix() const {
     return mvp;     
   }                
                    
-  const glm::mat4& CameraBase::ViewMatrix() {
-    CalculateMatrix();
+  const glm::mat4& CameraBase::ViewMatrix() const {
     return view;
   }
 
-  const glm::mat4& CameraBase::ProjectionMatrix() {
-    CalculateMatrix();
+  const glm::mat4& CameraBase::ProjectionMatrix() const {
     return projection;
   }
 

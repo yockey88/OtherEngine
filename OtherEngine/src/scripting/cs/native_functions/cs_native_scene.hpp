@@ -8,6 +8,8 @@
 
 #include <glm/glm.hpp>
 
+#include "rendering/material.hpp"
+
 namespace other {
 namespace cs_script_bindings {
 
@@ -40,6 +42,9 @@ namespace cs_script_bindings {
   void NativeGet2DColliderSize(uint64_t id , glm::vec2* out_size);
   float NativeGet2DColliderDensity(uint64_t id);
   float NativeGet2DColliderFriction(uint64_t id);
+
+  uint64_t NativeGetStaticMeshHandle(uint64_t id);
+  void NativeGetStaticMeshMaterial(uint64_t id , Material* material);
   
   /// internal setters
   void NativeSetScale(uint64_t id , glm::vec3* out_scale);
@@ -60,6 +65,9 @@ namespace cs_script_bindings {
   void NativeSet2DColliderSize(uint64_t id , glm::vec2* size);
   void NativeSet2DColliderDensity(uint64_t id , float* density);
   void NativeSet2DColliderFriction(uint64_t id , float* friction);
+
+  void NativeSetStaticMeshHandle(uint64_t id , uint64_t handle);
+  void NativeSetStaticMeshMaterial(uint64_t id , Material* material);
 
   void NativeAddComponent(uint64_t id , MonoReflectionType* rtype);
   bool NativeHasComponent(uint64_t id , MonoReflectionType* rtype);

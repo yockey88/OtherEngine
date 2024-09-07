@@ -47,27 +47,27 @@ namespace other {
       operator bool() const { return handle != entt::null; }
       operator entt::entity() const { return handle; }
       
-      template <component_type... T>
+      template <ComponentType... T>
       inline bool HasComponent() const { 
         return registry.try_get<T...>(handle) != nullptr; 
       }
 
-      template <component_type T>
+      template <ComponentType T>
       inline T& GetComponent() {
         return registry.get<T>(handle);
       }
       
-      template <component_type T>
+      template <ComponentType T>
       inline const T& ReadComponent() const {
         return registry.get<const T>(handle);
       }
       
-      template <component_type T>
+      template <ComponentType T>
       inline T GetComponent() const {
         return registry.get<T>(handle);
       }
 
-      template <component_type T , typename... Args>
+      template <ComponentType T , typename... Args>
       inline T& AddComponent(Args&&... args) {
         if (HasComponent<T>()) {
           OE_WARN("Component already exists on entity {}" , Name()); 
@@ -87,7 +87,7 @@ namespace other {
         return registry.emplace<T>(handle , std::forward<Args>(args)...);
       }
 
-      template<component_type T , typename... Args>
+      template<ComponentType T , typename... Args>
         requires std::constructible_from<T , Args...>
       inline T& AddOrReplace(Args&&... args) {
         if (!HasComponent<T>()) {
@@ -97,13 +97,13 @@ namespace other {
         }
       }
 
-      template<component_type T , typename... Args>
+      template<ComponentType T , typename... Args>
         requires std::constructible_from<T , Args...>
       inline T& ReplaceComponent(Args&&... args) {
         return registry.replace<T>(handle , std::forward<Args>(args)...);
       }
 
-      template <component_type T>
+      template <ComponentType T>
       inline void RemoveComponent() {
         if (!HasComponent<T>()) {
           OE_WARN("Entity does not have component!");
@@ -124,14 +124,9 @@ namespace other {
         sdata.entity_components.erase(itr);
       }
 
-      template <component_type T>
+      template <ComponentType T>
       inline void UpdateComponent(const T& component) {
-        if (!HasComponent<T>()) {
-          auto& c = AddComponent<T>();
-          c = component;
-        } else {
-          registry.patch<T>(handle , [&](auto& comp) { comp = component; });
-        }
+        registry.patch<T>(handle , [&](auto& comp) { comp = component; });
       }
 
       inline entt::entity GetEntity() const { return handle; }

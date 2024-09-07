@@ -1,0 +1,1 @@
+require("yockcraft.premake5")

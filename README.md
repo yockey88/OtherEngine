@@ -14,4 +14,5 @@ To build the engine, you need python 3+ installed and then from the root of the 
 
 ## Important Notes
 
-- The engine is still in a very early stage and stability is not guaranteed, if you encounter any bugs, feel free to open an issue or even submit a PR to fix it. 
+- The engine is still in a very early stage and stability is not guaranteed, if you encounter any bugs, 
+    feel free to open an issue or even submit a PR to fix it. 

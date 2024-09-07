@@ -1456,8 +1456,8 @@ EGLAPI EGLBoolean EGLAPIENTRY eglGetMscRateANGLE (EGLDisplay dpy, EGLSurface sur
 
 #ifndef EGL_ARM_image_format
 #define EGL_ARM_image_format 1
-#define EGL_COLOR_COMPONENT_TYPE_UNSIGNED_INTEGER_ARM 0x3287
-#define EGL_COLOR_COMPONENT_TYPE_INTEGER_ARM 0x3288
+#define EGL_COLOR_ComponentType_UNSIGNED_INTEGER_ARM 0x3287
+#define EGL_COLOR_ComponentType_INTEGER_ARM 0x3288
 #endif /* EGL_ARM_image_format */
 
 #ifndef EGL_ARM_implicit_external_sync
@@ -1737,9 +1737,9 @@ EGLAPI const char *EGLAPIENTRY eglQueryOutputPortStringEXT (EGLDisplay dpy, EGLO
 
 #ifndef EGL_EXT_pixel_format_float
 #define EGL_EXT_pixel_format_float 1
-#define EGL_COLOR_COMPONENT_TYPE_EXT      0x3339
-#define EGL_COLOR_COMPONENT_TYPE_FIXED_EXT 0x333A
-#define EGL_COLOR_COMPONENT_TYPE_FLOAT_EXT 0x333B
+#define EGL_COLOR_ComponentType_EXT      0x3339
+#define EGL_COLOR_ComponentType_FIXED_EXT 0x333A
+#define EGL_COLOR_ComponentType_FLOAT_EXT 0x333B
 #endif /* EGL_EXT_pixel_format_float */
 
 #ifndef EGL_EXT_platform_base

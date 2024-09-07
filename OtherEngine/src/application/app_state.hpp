@@ -27,6 +27,8 @@ namespace other {
 
       static UUID PushUIWindow(Ref<UIWindow> window);
 
+      inline static EngineMode mode = EngineMode::DEBUG;
+
     private:
       struct Data {
         App* app_handle; /// do not delete

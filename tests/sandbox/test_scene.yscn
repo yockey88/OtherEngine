@@ -2,33 +2,16 @@
 name = "Test Scene"
 entities = {
   "cube" , 
-  "floor" , 
-  "rect"
+  "sun" ,
+  "floor"
 }
-# "triangle" , 
 
-# [triangle]
-# UUID = 3101282800879664663
-# components = {
-#   static-mesh , 
-#   script
-# }
-# 
-# [triangle.transform]
-# position = { -2 , 0 , 0 }
-# rotation = { 0 , 0 , -0.327056 , 0.945005 }
-# scale = { 1 , 1 , 1 }
-# 
-# [triangle.relationship]
-# children = {}
-# 
-# [triangle.static-mesh]
-# visible = true
-# is-primitive = true
-# primitive = 1
-# 
-# [triangle.script]
-# TestbedScripts = { "Other::TestScript3" }
+
+[physics.2D]
+gravity = { 0 , -9.8 }
+
+[physics.3D]
+
 
 [cube]
 UUID = 12461263173642597452
@@ -39,7 +22,7 @@ components = {
 
 [cube.transform]
 position = { 0 , 0 , 0 }
-rotation = { -2.14068e-06 , 0.17519 , 3.9613e-07 , 0.984535 }
+rotation = { 0 , 0 , 0 , 0 }
 scale = { 1 , 1 , 1 }
 
 [cube.relationship]
@@ -52,6 +35,16 @@ primitive = 3
 
 [cube.script]
 TestbedScripts = { "Other::TestScript" }
+
+[sun]
+UUID = 4025795962345870502
+components = {
+  light-source
+}
+
+[sun.light-source]
+type = 0
+
 
 [floor]
 UUID = 14382231788964811176
@@ -71,31 +64,3 @@ children = {}
 visible = true
 is-primitive = true
 primitive = 3
-
-[rect]
-UUID = 14641789472187249881
-components = {
-  static-mesh , 
-  script
-}
-
-[rect.transform]
-position = { 2 , 0 , 0 }
-rotation = { 0.175195 , 0 , 0 , 0.984534 }
-scale = { 1 , 1 , 1 }
-
-[rect.relationship]
-children = {}
-
-[rect.static-mesh]
-visible = true
-is-primitive = true
-primitive = 2
-
-[rect.script]
-TestbedScripts = { "Other::TestScript2" }
-
-[physics.2D]
-gravity = { 0 , -9.8 }
-
-[physics.3D]

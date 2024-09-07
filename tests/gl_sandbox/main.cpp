@@ -17,18 +17,20 @@
 
 #include <box2d/box2d.h>
 #include <box2d/b2_world.h>
+#include <rendering/gbuffer.hpp>
 
 #include "core/defines.hpp"
 #include "core/logger.hpp"
 #include "core/errors.hpp"
 #include "core/ref.hpp"
 #include "core/filesystem.hpp"
-#include "parsing/ini_parser.hpp"
+#include "core/engine.hpp"
 
 #include "event/event_queue.hpp"
 #include "input/io.hpp"
 
 #include "rendering/rendering_defines.hpp"
+#include "rendering/renderer.hpp"
 #include "rendering/window.hpp"
 #include "rendering/vertex.hpp"
 #include "rendering/shader.hpp"
@@ -39,10 +41,12 @@
 #include "rendering/material.hpp"
 #include "rendering/point_light.hpp"
 #include "rendering/direction_light.hpp"
+#include "rendering/ui/ui.hpp"
 
 #include "sandbox_ui.hpp"
 #include "gl_helpers.hpp"
 #include "shader_embed.hpp"
+#include "mock_app.hpp"
 
 struct Quad {
   uint32_t vao = 0 , vbo = 0 , ebo = 0;
@@ -100,73 +104,18 @@ void UpdateCamera(other::Ref<CameraBase>& camera);
 
 int main(int argc , char* argv[]) {
   try {
-    other::IniFileParser parser("C:/Yock/code/OtherEngine/tests/gl_sandbox/sandbox.other");
-    auto config = parser.Parse(); 
+    const other::Path glsandbox_dir = "C:/Yock/code/OtherEngine/tests/gl_sandbox";
+    const other::Path config_path = glsandbox_dir / "sandbox.other";
 
-    other::Logger::Open(config);
+    other::CmdLine cmd_line(argc , argv);
+    cmd_line.SetFlag("--project" , { config_path.string() });
+
+    other::Engine mock_engine(cmd_line);
+    other::Logger::Open(mock_engine.config);
     other::Logger::Instance()->RegisterThread("Sandbox-Thread");
     
-    if (SDL_InitSubSystem(SDL_INIT_VIDEO) < 0) {
-      throw std::runtime_error("failed to init sdl2");
-    } else {
-      OE_INFO("SDL initialized successfully");
-    }
-  
-    other::WindowContext context;
-    context.window = SDL_CreateWindow("Sandbox" , SDL_WINDOWPOS_CENTERED , SDL_WINDOWPOS_CENTERED , 
-                                      win_w , win_h , SDL_WINDOW_OPENGL);
-    if (context.window == nullptr) {
-      throw std::runtime_error("Failed to create sdl window");
-    } else {
-      OE_INFO("Window created successfully");
-    }
-  
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION , 4);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION , 6);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK , SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER , 1);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE , 24);
-    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE , 8);
-    SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL , 1);
-    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS , 1);
-    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES , 16);
-    SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE , 1);
-
-    SDL_GL_SetSwapInterval(1);
-  
-    context.context = SDL_GL_CreateContext(context.window);
-    if (context.context == nullptr) {
-      std::string err_str{ SDL_GetError() };
-      SDL_DestroyWindow(context.window);
-      throw std::runtime_error("failed to create OpenGL context");
-    } else {
-      OE_INFO("OpenGL context created successfully");
-    }
-  
-    if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
-      SDL_GL_DeleteContext(context.context);
-      SDL_DestroyWindow(context.window);
-      throw std::runtime_error("Failed to load OpenGL");
-    } else {
-      OE_INFO("GLAD initialized successfully");
-    }
-    
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-
-    ImGui::StyleColorsDark();
-
-    ImGui_ImplSDL2_InitForOpenGL(context.window, context.context);
-    ImGui_ImplOpenGL3_Init("#version 460 core");
-
-    other::IO::Initialize();
-    other::EventQueue::Initialize(config);
-
-    OE_INFO("ImGui Initialized successfully"); 
+    mock_engine.LoadApp();
+    OE_DEBUG("GL Sandbox Launched");
 
     uint32_t shader1 = other::GetShader(vert1 , frag1);
     uint32_t shader2 = other::GetShader(vert2 , frag2);
@@ -180,7 +129,7 @@ int main(int argc , char* argv[]) {
 
     OE_INFO("VAOs created");
 
-    Scope<Framebuffer> frame = NewScope<Framebuffer>(other::FramebufferSpec{});
+    Ref<Framebuffer> frame = NewRef<Framebuffer>(other::FramebufferSpec{});
 
     std::vector<float> fb_verts = {
        1.f ,  1.f , 1.f , 1.f ,
@@ -201,7 +150,16 @@ int main(int argc , char* argv[]) {
     
     const other::Path shader_dir = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders";
     const other::Path fbshader_path = shader_dir / "fbshader.oshader";
+    const other::Path gbuffer_shader_path = shader_dir / "gbuffer.oshader";
+    const other::Path deferred_shader_path = shader_dir / "deferred_shading.oshader";
     Ref<Shader> fb_shader = other::BuildShader(fbshader_path);
+    Ref<Shader> gbuffer_shader = other::BuildShader(gbuffer_shader_path);
+    Ref<Shader> deferred_shader = other::BuildShader(deferred_shader_path);
+    deferred_shader->Bind();
+    deferred_shader->SetUniform("goe_position" , 0);
+    deferred_shader->SetUniform("goe_normal" , 1);
+    deferred_shader->SetUniform("goe_albedo" , 2);
+    deferred_shader->Unbind();
 
     other::Ref<CameraBase> camera = other::NewRef<PerspectiveCamera>(glm::ivec2{ win_w , win_h });
     camera->SetPosition({ 0.f , 0.f , 3.f });
@@ -215,29 +173,21 @@ int main(int argc , char* argv[]) {
     model2 = glm::translate(model2 , glm::vec3(2.f , 0.f , 0.f));
 
     other::Material material1 = {
-      .ambient = { 1.0f , 0.5f , 0.31f , 1.f } ,
-      .diffuse = { 0.1f , 0.5f , 0.31f , 1.f } ,
-      .specular = { 0.5f , 0.5f , 0.5f , 1.f } ,
+      .color = { 1.0f , 0.5f , 0.31f , 1.f } ,
       .shininess = 32.f ,
     };
     other::Material material2 = {
-      .ambient = { 0.1f , 0.5f , 0.31f , 1.f } ,
-      .diffuse = { 1.0f , 0.5f , 0.31f , 1.f } ,
-      .specular = { 0.5f , 0.5f , 0.5f , 1.f } ,
+      .color = { 0.1f , 0.5f , 0.31f , 1.f } ,
       .shininess = 32.f ,
     };
 
     other::PointLight point_light {
       .position = { 1.2f , 1.0f , 2.0f , 1.f } ,
-      .ambient  = { 0.2f , 0.2f , 0.2f , 1.f } ,
-      .diffuse  = { 0.5f , 0.5f , 0.5f , 1.f } ,
-      .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
+      .color  = { 0.2f , 0.2f , 0.2f , 1.f } ,
     };
     other::DirectionLight dir_light {
       .direction = { -0.2f , 1.0f , -0.3f , 1.f } ,
-      .ambient = { 1.0f , 1.0f , 1.0f , 1.f } ,
-      .diffuse = { 1.0f , 1.0f , 1.0f , 1.f } ,
-      .specular = { 1.0f , 1.0f , 1.0f , 1.f } ,
+      .color = { 1.0f , 1.0f , 1.0f , 1.f } ,
     };
 
     CHECK();
@@ -280,11 +230,6 @@ int main(int argc , char* argv[]) {
     
     other::Buffer model_buffer;
     other::Buffer material_buffer;
-    
-    uint32_t gbuffer = 0;
-    uint32_t gbuffer_textures[4] = {
-      0 , 0 , 0 , 0
-    };
 
     glUseProgram(shader2);
     glUniform1i(glGetUniformLocation(shader2 , "g_position") , 0);
@@ -294,43 +239,7 @@ int main(int argc , char* argv[]) {
 
     OE_DEBUG("Uniforms Set");
 
-    glGenFramebuffers(1 , &gbuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER , gbuffer);
-    glGenTextures(3 , gbuffer_textures);
-
-    glBindTexture(GL_TEXTURE_2D , gbuffer_textures[0]);
-    glTexImage2D(GL_TEXTURE_2D , 0 , GL_RGBA16F , win_w , win_h , 0 , GL_RGBA , GL_FLOAT , nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gbuffer_textures[0] , 0);
-
-    glBindTexture(GL_TEXTURE_2D , gbuffer_textures[1]);
-    glTexImage2D(GL_TEXTURE_2D , 0 , GL_RGBA16F , win_w , win_h , 0 , GL_RGBA , GL_FLOAT , nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1 , GL_TEXTURE_2D, gbuffer_textures[1] , 0);
-    
-    glBindTexture(GL_TEXTURE_2D , gbuffer_textures[2]);
-    glTexImage2D(GL_TEXTURE_2D , 0 , GL_RGBA , win_w , win_h , 0 , GL_RGBA , GL_UNSIGNED_BYTE , nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gbuffer_textures[2] , 0);
-
-    uint32_t attachments[3] = { GL_COLOR_ATTACHMENT0 , GL_COLOR_ATTACHMENT1 , GL_COLOR_ATTACHMENT2 };
-    glDrawBuffers(3 , attachments);
-
-    uint32_t render_buffer = 0;
-    glGenRenderbuffers(1 , &render_buffer);
-    glBindRenderbuffer(GL_RENDERBUFFER , render_buffer);
-    glRenderbufferStorage(GL_RENDERBUFFER , GL_DEPTH_COMPONENT , win_w , win_h);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER , GL_DEPTH_ATTACHMENT , GL_RENDERBUFFER , render_buffer);
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-      OE_ERROR("G-Buffer not complete!");
-    }
-
-    glBindFramebuffer(GL_FRAMEBUFFER , 0);
-
-    glEnable(GL_DEPTH_TEST);
+    other::GBuffer gbuffer({ win_w , win_h });
 
     OE_INFO("Running");
 
@@ -377,6 +286,8 @@ int main(int argc , char* argv[]) {
       }
 
       other::EventQueue::Clear();
+      
+      other::Renderer::GetWindow()->Clear();
 
       /// update camera uniforms
       if (!camera_lock || force_update) {
@@ -384,11 +295,10 @@ int main(int argc , char* argv[]) {
         UpdateCamera(camera);
         proj = camera->ProjectionMatrix();
         view = camera->ViewMatrix();
+        glm::vec4 cam_pos = glm::vec4(camera->Position() , 1.f);
 
         camera_uniforms->SetUniform("projection" , camera->ProjectionMatrix());
         camera_uniforms->SetUniform("view" , camera->ViewMatrix());
-
-        glm::vec4 cam_pos = glm::vec4(camera->Position() , 1.f);
         camera_uniforms->SetUniform("viewpoint" , cam_pos);
       }
 
@@ -400,15 +310,8 @@ int main(int argc , char* argv[]) {
       model1 = glm::rotate(model1 , m1_rotation , { 1.f , 1.f , 1.f });
       m1_rotation += 0.1f;
 
-      /// clear window
-      glClearColor(0.f , 0.f , 0.f , 1.f);
-      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // GL_STENCIL_BUFFER_BIT);
-      
 ///> GBUFFER RENDER
-      glBindFramebuffer(GL_FRAMEBUFFER , gbuffer);
-      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-      glUseProgram(shader1);
+      gbuffer.Bind();
 
       model_buffer.ZeroMem();
       material_buffer.ZeroMem();
@@ -421,109 +324,61 @@ int main(int argc , char* argv[]) {
 
       model_uniforms->BindBase();
       model_uniforms->LoadFromBuffer(model_buffer);
-
       material_uniforms->BindBase();
       material_uniforms->LoadFromBuffer(material_buffer);
 
       cube.Draw(other::TRIANGLES , 2);
       
-      glBindFramebuffer(GL_FRAMEBUFFER , 0);
-/// > END GBUFFER RENDER
-
-/// > DEBUG
-#define DEBUG 0
-#if DEBUG
-      glActiveTexture(GL_TEXTURE0);
-      glBindTexture(GL_TEXTURE_2D , gbuffer_textures[1]);
-      fb_shader->SetUniform("screen_tex" , 0);
-      fb_mesh->Draw(other::TRIANGLES);
-#endif 
-/// > END DEBUG
+      gbuffer.Unbind();
+/// > GBUFFER RENDER
 
 /// > LIGHTING PASS
-#if !DEBUG
-      glUseProgram(shader2);
-      
-      model_uniforms->BindBase();
-      model_uniforms->SetUniform("models" , model_buffer);
-
-      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-      glActiveTexture(GL_TEXTURE0);
-      glBindTexture(GL_TEXTURE_2D , gbuffer_textures[0]);
-      glActiveTexture(GL_TEXTURE1);
-      glBindTexture(GL_TEXTURE_2D , gbuffer_textures[1]);
-      glActiveTexture(GL_TEXTURE2);
-      glBindTexture(GL_TEXTURE_2D , gbuffer_textures[2]);
-
+      frame->BindFrame();
+      deferred_shader->Bind();
       fb_mesh->Draw(other::TRIANGLES);
-
-      glBindFramebuffer(GL_FRAMEBUFFER , 0);
-#endif
-/// > END LIGHTING PASS
-
-/// > copy final results default
-      // glBindFramebuffer(GL_READ_FRAMEBUFFER, gbuffer);
-      // glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); // write to default framebuffer
-      // // blit to default framebuffer. Note that this may or may not work as the internal formats of 
-      // //    both the FBO and default framebuffer have to match.
-      // // the internal formats are implementation defined. This works on all of my systems, 
-      // //    but if it doesn't on yours you'll likely have to write to th 
-      // // depth buffer in another shader stage (or somehow see to match the default 
-      // //    framebuffer's internal format with the FBO's internal format).
-      // glBlitFramebuffer(0, 0, win_w, win_h, 0, 0, win_w, win_h, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-      // glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-/// set gbuffer data
+      deferred_shader->Unbind();
+      frame->UnbindFrame();
+/// > LIGHTING PASS
   
+/// > DRAW TO SCREEN
+      other::Renderer::DrawFramebufferToWindow(frame);
+/// > DRAW TO SCREEN
+
 #define UI_ENABLED 1
 #if UI_ENABLED
-      ImGui_ImplOpenGL3_NewFrame();
-      ImGui_ImplSDL2_NewFrame(context.window);
-      ImGui::NewFrame();
+      other::UI::BeginFrame();
 
       if (ImGui::Begin("GBuffer")) {
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D , gbuffer_textures[0]);
-        RenderItem(gbuffer_textures[0] , "Position" , ImVec2((float)win_w / 2 , (float)win_h / 2));
+        RenderItem(gbuffer.textures[0] , "Position" , ImVec2((float)win_w / 2 , (float)win_h / 2));
         ImGui::SameLine();
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D , gbuffer_textures[1]);
-        RenderItem(gbuffer_textures[1] , "Normals" , ImVec2((float)win_w / 2 , (float)win_h / 2));
+        RenderItem(gbuffer.textures[1] , "Normals" , ImVec2((float)win_w / 2 , (float)win_h / 2));
         ImGui::SameLine();
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D , gbuffer_textures[2]);
-        RenderItem(gbuffer_textures[2] , "Albedo" , ImVec2((float)win_w / 2 , (float)win_h / 2));
+        RenderItem(gbuffer.textures[2] , "Albedo" , ImVec2((float)win_w / 2 , (float)win_h / 2));
       }
       ImGui::End();
-
-      ImGui::Render();
-      ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-      ImGui::UpdatePlatformWindows();
-      ImGui::RenderPlatformWindowsDefault();
+      other::UI::EndFrame();
 #endif
 
-      SDL_GL_MakeCurrent(context.window , context.context);
-      SDL_GL_SwapWindow(context.window);  
+      other::Renderer::GetWindow()->SwapBuffers();
     }
 
     glDeleteProgram(shader1);
     glDeleteProgram(shader2);
 
+    other::Renderer::Shutdown();
     other::EventQueue::Shutdown();
     other::IO::Shutdown();
 
-    return 1;
+    return 0;
   } catch (const other::IniException& e) {
     std::cout << "caught ini error : " << e.what() << "\n";
-    other::EventQueue::Shutdown();
-    other::IO::Shutdown();
   } catch(const std::exception& e) {
     std::cout << "caught std error : " << e.what() << "\n";
   } catch (...) {
     std::cout << "unknown error" << "\n";
   }
 
+  other::Renderer::Shutdown();
   other::EventQueue::Shutdown();
   other::IO::Shutdown();
 

@@ -40,8 +40,10 @@ namespace other {
   void ScriptEngine::LoadProjectModules() {
     auto project_metadata = AppState::ProjectContext();
     
-    OE_DEBUG("Loading C# script modules");
     Ref<LanguageModule> cs_language_module = ScriptEngine::GetModule(CS_MODULE);
+    Ref<LanguageModule> lua_language_module = ScriptEngine::GetModule(LUA_MODULE);
+    
+    OE_DEBUG("Loading C# script modules");
     if (cs_language_module != nullptr) {
       std::string real_key = std::string{ kScriptingSection } + "." + std::string{ kCsModuleSection };
       auto cs_modules = config.Get(real_key , kPathsValue);
@@ -72,7 +74,6 @@ namespace other {
     }
 
     OE_DEBUG("Loading Lua script modules");
-    Ref<LanguageModule> lua_language_module = ScriptEngine::GetModule(LUA_MODULE);
     if (lua_language_module != nullptr) {
       std::string real_key = std::string{ kScriptingSection } + "." + std::string{ kLuaModuleSection };
       auto lua_modules = config.Get(real_key , kPathsValue);
@@ -197,10 +198,11 @@ namespace other {
   }
 
   ScriptModule* ScriptEngine::GetScriptModule(UUID id) {
-    if (std::find_if(loaded_modules.begin() , loaded_modules.end() , [&](const auto& module) -> bool {
+    auto itr = std::find_if(loaded_modules.begin() , loaded_modules.end() , [&](const auto& module) -> bool {
       return module.first == id;
-    }) != loaded_modules.end()) {
-      return loaded_modules[id];
+    });
+    if (itr != loaded_modules.end()) {
+      return itr->second;
     }
 
     for (auto& [lid , lang] : language_modules) {

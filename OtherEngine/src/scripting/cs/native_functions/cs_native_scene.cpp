@@ -255,6 +255,27 @@ namespace cs_script_bindings {
     });
   }
   
+  uint64_t NativeGetStaticMeshHandle(uint64_t id) {
+    return NativeDoThing<uint64_t>(id , [](Entity* entity) -> float {
+      if (!entity->HasComponent<StaticMesh>()) {
+        OE_ERROR("Retrieving static mesh from entity without a collider : {}" , entity->Name());
+        return 0;
+      }
+
+      return entity->ReadComponent<StaticMesh>().handle.Get();
+    });
+  }
+  
+  void NativeGetStaticMeshMaterial(uint64_t id , Material* material) {
+    NativeDoThing<void>(id , [&](Entity* entity) {
+      if (!entity->HasComponent<StaticMesh>()) {
+        return;
+      }
+
+      *material = entity->GetComponent<StaticMesh>().material;
+    });
+  }
+  
   void NativeSetScale(uint64_t id , glm::vec3* scale) {
     NativeDoThing<void>(id , [&scale](Entity* ent) {
       ent->GetComponent<Transform>().scale = *scale;
@@ -400,6 +421,28 @@ namespace cs_script_bindings {
       }
       
       ent->GetComponent<Collider2D>().friction = *friction;
+    });
+  }
+  
+  void NativeSetStaticMeshHandle(uint64_t id , uint64_t handle) {
+    NativeDoThing<void>(id , [&handle](Entity* ent) {
+      if (!ent->HasComponent<StaticMesh>()) {
+        OE_ERROR("Setting Static Mesh handle on entity without a static mesh : {}" , ent->Name());
+        return;
+      }
+
+      ent->GetComponent<StaticMesh>().handle = handle;
+    });
+  }
+
+  void NativeSetStaticMeshMaterial(uint64_t id , Material* material) {
+    NativeDoThing<void>(id , [&material](Entity* ent) {
+      if (!ent->HasComponent<StaticMesh>()) {
+        OE_ERROR("Setting Static Mesh handle on entity without a static mesh : {}" , ent->Name());
+        return;
+      }
+
+      ent->GetComponent<StaticMesh>().material = *material;
     });
   }
   

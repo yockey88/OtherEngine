@@ -3,8 +3,6 @@
  */
 #include "application\app.hpp"
 
-#include <tracy/tracy/Tracy.hpp>
-
 #include "core/logger.hpp"
 #include "core/time.hpp"  
 #include "core/engine.hpp"
@@ -25,6 +23,8 @@
 #include "scripting/script_engine.hpp"
 
 #include "physics/phyics_engine.hpp"
+#include <filesystem>
+#include <string_view>
 
 namespace other {
 namespace {
@@ -58,6 +58,11 @@ namespace {
 
   void App::Run() {
     Attach();
+
+    auto& proj_data = project_metadata->GetMetadata();
+    if (proj_data.primary_scene.has_value()) {
+      LoadSceneByName(*proj_data.primary_scene);
+    }
 
     CHECKGL();
 
@@ -256,6 +261,17 @@ namespace {
     ui_windows[id] = nullptr;
     ui_windows.erase(itr);
     return true;
+  }
+
+  void App::LoadSceneByName(const std::string_view name) {
+    auto scene_dir = project_metadata->GetMetadata().assets_dir / "scenes";
+    OE_DEBUG("Searching for {} in {}" , name , scene_dir.string());
+    for (auto& entry : std::filesystem::directory_iterator(scene_dir)) {
+      if (entry.is_regular_file() && entry.path().stem() == name) {
+        LoadScene(entry.path());
+        return;
+      }
+    }
   }
   
   void App::LoadScene(const Path& path) {
