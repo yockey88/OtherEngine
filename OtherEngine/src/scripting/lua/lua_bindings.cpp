@@ -3,13 +3,18 @@
  **/
 #include "scripting/lua/lua_bindings.hpp"
 
-#include <entt/entity/fwd.hpp>
 #include <sol/raii.hpp>
 #include <entt/entt.hpp>
 
+#include "core/logger.hpp"
 #include "input/mouse.hpp"
 #include "input/keyboard.hpp"
+
 #include "scripting/lua/native_functions/lua_native_logging.hpp"
+#include "scripting/lua/lua_math_bindings.hpp"
+#include "scripting/lua/lua_component_bindings.hpp"
+#include "scripting/lua/lua_scene_bindings.hpp"
+#include "scripting/lua/lua_ui_bindings.hpp"
 
 namespace other {
 namespace lua_script_bindings {
@@ -66,60 +71,42 @@ namespace lua_script_bindings {
       "MouseDeltaPos" , []() -> glm::vec2 { return { Mouse::GetDX() , Mouse::GetDY() }; }
     );
   }
+  
+  void BindAll(sol::state& lua_state) {
+    BindGlmTypes(lua_state);
+    BindCoreTypes(lua_state);
+    BindEcsTypes(lua_state);
+    BindScene(lua_state);
+    BindUiTypes(lua_state);
+  }
 
 namespace {
 
-  // [[nodiscard]] static inline entt::id_type GetTypeId(const sol::table& obj) {
-  //   const auto f = obj["type_id"].get<sol::function>();
-  //   OE_ASSERT(f.valid() , "TypeId not exposed to LUA");
-  //   return f.valid() ? f().get<entt::id_type>() : -1;
-  // }
+  [[nodiscard]] static inline entt::id_type GetTypeId(const sol::table& obj) {
+    const auto f = obj["type_id"].get<sol::function>();
+    OE_ASSERT(f.valid() , "TypeId not exposed to LUA");
+    return f.valid() ? f().get<entt::id_type>() : -1;
+  }
 
-  // template <typename... Args>
-  // static inline auto InvokeMetaFunc(entt::meta_type meta_type , entt::id_type function_id , Args&&... args) {
-  //   if (!meta_type) {
+  template <typename... Args>
+  static inline auto InvokeMetaFunc(entt::meta_type meta_type , entt::id_type function_id , Args&&... args) {
+    if (!meta_type) {
 
-  //   } else {
-  //     if (auto&& meta_function = meta_type.func(function_id); meta_function) {
-  //       return meta_function.invoke({} , std::forward<Args>(args)...);
-  //     }
-  //   }
-  //   return entt::meta_any{};
-  // }
+    } else {
+      if (auto&& meta_function = meta_type.func(function_id); meta_function) {
+        return meta_function.invoke({} , std::forward<Args>(args)...);
+      }
+    }
+    return entt::meta_any{};
+  }
 
-  // template <typename... Args>
-  // static inline auto InvokeMetaFunc(entt::id_type type_id , entt::id_type function_id , Args&&... args) {
-  //   return InvokeMetaFunc(entt::resolve(type_id) , function_id , std::forward<Args>(args)...);
-  // }
+  template <typename... Args>
+  static inline auto InvokeMetaFunc(entt::id_type type_id , entt::id_type function_id , Args&&... args) {
+    return InvokeMetaFunc(entt::resolve(type_id) , function_id , std::forward<Args>(args)...);
+  }
 
 } // anonyomous namespace 
       
-  // void LuaScriptBindings::BindEcsTypes(sol::state& lua_state) {
-  //   using namespace entt::literals;
-
-  //   // lua_state.new_usertype<entt::registry>(
-  //   //   "registry" , 
-  //   //   sol::meta_function::construct , sol::factories([]() -> entt::registry { return entt::registry{}; }) ,
-  //   //   "size" , [](const entt::registry& self) -> size_t { return self.storage<entt::entity>()->size(); } ,
-  //   //   "alive" , [](const entt::registry& self) -> bool { return self.storage<entt::entity>()->free_list(); } ,
-  //   //   "valid" , &entt::registry::valid , 
-  //   //   "current" , &entt::registry::current , 
-  //   //   "create" , [](entt::registry& self) -> entt::entity { return self.create(); } ,
-  //   //   "destroy" , [](entt::registry& self , entt::entity handle) { return self.destroy(handle); } // ,
-  //   //   /// TODO: implement entt::meta reflection bindings to complete binding ecs to lua 
-  //   //   // "emplace" , [](entt::registry& self , entt::entity entity , const sol::table& comp , sol::this_state s) -> sol::object {
-  //   //   //   if (!comp.valid()) {
-  //   //   //     return sol::lua_nil_t{};
-  //   //   //   }
-
-  //   //   //   const auto maybe_any = InvokeMetaFunc(GetTypeId(comp) , "emplace"_hs , &self , entity , comp , s);
-  //   //   //   return maybe_any ? 
-  //   //   //     maybe_any.cast<sol::reference>() : 
-  //   //   //     sol::lua_nil_t{};
-  //   //   // }
-  //   // );
-  // }
-
   void BindKeyEnums(sol::state& lua_state) {
     lua_state["Key"] = lua_state.create_table_with(
       "A" , Keyboard::Key::OE_A ,

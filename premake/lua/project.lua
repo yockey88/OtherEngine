@@ -202,6 +202,7 @@ function AddProject(project)
   end
 
   project.include_dirs = project.include_dirs or function() end
+  project.links = project.links or function() end
   project.defines = project.defines or function() end
   project.post_build_commands = project.post_build_commands or function() end
 
@@ -212,6 +213,7 @@ function AddProject(project)
 
     ProcessProjectComponents(project)
 
+    project.links()
     project.defines()
 
     ProcessConfigurations(project)

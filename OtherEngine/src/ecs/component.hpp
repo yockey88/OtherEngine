@@ -12,6 +12,7 @@
 #include <map>
 
 #include <entt/entt.hpp>
+#include <entt/entity/group.hpp>
 #include <entt/meta/meta.hpp>
 
 #include "core/uuid.hpp"
@@ -52,6 +53,7 @@ namespace other {
   constexpr static int32_t kLightSourceIndex = 11;
   /** invisible components
    *                       kSerializationData = -1
+   *                       kNullComponent = -999
    **/
 
   using ComponentTagPair = std::pair<std::string_view , size_t>;
@@ -86,17 +88,46 @@ namespace other {
     virtual std::string GetComponentName() const = 0;
   };
 
-  template <typename T>
-  concept component_type = std::is_base_of<Component, T>::value;
-
-#define ECS_COMPONENT_CUSTOM_DTOR(name , idx) \
+#define ECS_COMPONENT(name , idx) \
   name() : Component(idx) {} \
+  virtual ~name() override {} \
   virtual std::string GetComponentName() const override { return "Component[" #name "]"; }
 
-#define ECS_COMPONENT(name , idx) \
-  virtual ~name() override {} \
-  ECS_COMPONENT_CUSTOM_DTOR(name , idx);
+  struct NullComponent : public Component {
+    ECS_COMPONENT(NullComponent , -999);
+  };
 
+  /// Useful concepts
+  
+  template <typename T>
+  concept ComponentType = std::is_base_of<Component, T>::value;
+
+  template <typename T>
+  concept NullComponentType = ComponentType<T> && std::same_as<T , NullComponent>;
+
+  template <typename C>
+  concept RenderableComp = 
+    ComponentType<C> && 
+    requires (C comp) {
+      comp.handle; /// asset handle
+      comp.material;
+    };
+  
+  template <typename C>
+  concept DebugRenderableComp = 
+    ComponentType<C> &&
+    (RenderableComp<C> ||
+    requires (C comp) {
+      comp.handle; /// asset handle
+      comp.material;
+    });
+      
+  template <ComponentType RC , ComponentType TC = NullComponent, ComponentType EC = NullComponent>
+  using SystemGroup = entt::basic_group<
+                        entt::owned_t<entt::registry::storage_for_type<RC>> , 
+                        entt::get_t<entt::registry::storage_for_type<TC>> , 
+                        entt::exclude_t<entt::registry::storage_for_type<EC>>
+                      >;
 
 } // namespace other
 

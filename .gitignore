@@ -10,10 +10,10 @@ bin_obj/
 *.exe
 
 ## Project tools
+tool_dev/
+
+# contains local path, no online sharing
 tools/runtestbed.py
-tools/gensln.py
-tools/buildsln.py
-tools/utilities.py
 
 # configuration files
 *.config

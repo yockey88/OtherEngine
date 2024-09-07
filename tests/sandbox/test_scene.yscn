@@ -2,6 +2,7 @@
 name = "Test Scene"
 entities = {
   "cube" , 
+  "sun" ,
   "floor"
 }
 
@@ -34,6 +35,16 @@ primitive = 3
 
 [cube.script]
 TestbedScripts = { "Other::TestScript" }
+
+[sun]
+UUID = 4025795962345870502
+components = {
+  light-source
+}
+
+[sun.light-source]
+type = 0
+
 
 [floor]
 UUID = 14382231788964811176

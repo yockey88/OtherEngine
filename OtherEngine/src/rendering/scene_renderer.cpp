@@ -82,11 +82,11 @@ namespace other {
 
     auto itr = pipelines.find(FNV(pl_name)); 
     if (itr == pipelines.end()) {
+      OE_ERROR("Submitting model to unknown pipeline {}!" , pl_name);
       return;
     }
 
-    auto& [id , pl] = *itr;
-    pl->SubmitStaticModel(model , transform , material);
+    itr->second->SubmitStaticModel(model , transform , material);
   }
   
   void SceneRenderer::EndScene() {

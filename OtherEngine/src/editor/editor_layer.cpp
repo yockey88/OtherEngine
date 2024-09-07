@@ -67,10 +67,6 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
 
     panel_manager = NewScope<PanelManager>();
     panel_manager->Attach((Editor*)ParentApp() , AppState::ProjectContext() , editor_config);
-      
-    model_handle = ModelFactory::CreateBox({ 1.f , 1.f , 1.f });
-    model = AssetManager::GetAsset<StaticModel>(model_handle);
-    model_source = model->GetModelSource();
 
     default_renderer = GetDefaultRenderer();
   }

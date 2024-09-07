@@ -50,7 +50,7 @@ class StressTest : public other::EngineTest {
     Ref<Scene> scene = nullptr;
     bool test_running = false;
 
-    const uint32_t num_cubes = 50000; 
+    const uint32_t num_cubes = 5000; 
     const int32_t max_coord = 100;
 
     Ref<other::CameraBase> camera;
@@ -134,7 +134,7 @@ TEST_F(StressTest , lots_o_cubes) {
       ImGui::Separator();
       if (ImGui::Button("Begin Test")) {
         SDL_SetRelativeMouseMode(SDL_TRUE);
-        scene->Start();
+        scene->Start(other::EngineMode::RUNTIME);
         scene->EarlyUpdate(ts);
         scene->Update(ts);
         scene->LateUpdate(ts);

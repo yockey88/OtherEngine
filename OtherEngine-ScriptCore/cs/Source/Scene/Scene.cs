@@ -72,6 +72,15 @@ namespace Other {
     [MethodImpl(MethodImplOptions.InternalCall)]
     private static extern float NativeGet2DColliderFriction(ulong id);
 
+    // [MethodImpl(MethodImplOptions.InternalCall)]
+    // private static extern void NativeGetMeshHandle(ulong id , out UUID handle);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern UInt64 NativeGetStaticMeshHandle(ulong id);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern void NativeGetStaticMeshMaterial(ulong id , out Material material);
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     private static extern void NativeAddComponent(ulong id , Type type);
 
@@ -217,6 +226,18 @@ namespace Other {
       return NativeGet2DColliderFriction(id);
     }
 
+    // static public void GetMeshHandle(ulong id , out UUID handle) {
+    //   NativeGetMeshHandle(id , out handle);
+    // }
+
+    static public UUID GetStaticMeshHandle(ulong id) {
+      return NativeGetStaticMeshHandle(id);
+    }
+
+    static public void GetStaticMeshMaterial(ulong id , out Material material) {
+      NativeGetStaticMeshMaterial(id , out material);
+    }
+
     static public void AddComponent(ulong id , Type type) {
       NativeAddComponent(id , type);
     }
@@ -276,6 +297,12 @@ namespace Other {
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     private static extern void NativeSet2DColliderFriction(ulong id , float friction);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern void NativeSetStaticMeshHandle(ulong id , UInt64 handle);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern void NativeSetStaticMeshMaterial(ulong id , ref Material material);
 
     // [MethodImpl(MethodImplOptions.InternalCall)]
     // private static extern void NativeSetParent(ulong id , ref Vec3 scale);
@@ -340,6 +367,14 @@ namespace Other {
 
     static public void SetFriction(ulong id , float friction) {
       NativeSet2DColliderFriction(id , friction);
+    }
+
+    static public void SetStaticMeshHandle(ulong id , ulong handle) {
+      NativeSetStaticMeshHandle(id , handle);
+    }
+
+    static public void SetStaticMeshMaterial(ulong id , ref Material material) {
+      NativeSetStaticMeshMaterial(id , ref material);
     }
 
     static public void InitializeScene() {

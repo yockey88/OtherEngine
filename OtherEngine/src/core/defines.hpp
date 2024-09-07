@@ -26,6 +26,14 @@
 #endif
 
 namespace other {
+
+  enum class EngineMode {
+    DEBUG ,
+    RUNTIME ,
+
+    NUM_ENGINE_MODES ,
+    INVALID_ENGINE_MODE = NUM_ENGINE_MODES ,
+  };
   
   enum ExitCode : uint8_t {
     /// for os (program exit) 

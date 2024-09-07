@@ -1,4 +1,4 @@
-/**
+/**engine.c
  * \file core/engine.cpp
  */
 #include "core/engine.hpp"
@@ -10,6 +10,7 @@
 #include "core/config.hpp"
 #include "core/filesystem.hpp"
 
+#include "editor/test_editor_layer.hpp"
 #include "input/io.hpp"
 
 #include "parsing/ini_parser.hpp"
@@ -111,7 +112,13 @@ namespace other {
 
     Ref<Layer> core_layer = nullptr;
     if (in_editor) {
-      core_layer = NewRef<EditorLayer>(active_app.get());
+      core_layer = 
+#define TESTING_NEW_EDITOR 1
+#if TESTING_NEW_EDITOR
+        NewRef<TEditorLayer>(active_app.get());
+#else
+        NewRef<EditorLayer>(active_app.get());
+#endif // TESTING_NEW_EDITOR
     } else {
       core_layer = NewRef<RuntimeLayer>(active_app.get() , active_app->config);
     }

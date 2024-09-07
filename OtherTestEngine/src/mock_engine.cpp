@@ -111,6 +111,19 @@ namespace other {
       { other::ValueType::VEC3 , "binormal" } ,
       { other::ValueType::VEC2 , "uvs"      }
     };
+
+
+    const other::Path engine_dir = other::Filesystem::GetEngineCoreDir() / "OtherEngine";
+    const other::Path shader_dir = engine_dir / "assets" / "shaders";
+    other::Path shader_path = shader_dir / "pure_geometry.oshader";
+    other::RenderPassSpec geom_pass_spec = {
+      .name = "StressTestRenderPass" , 
+      .tag_col = { 0.f , 0.f , 1.f , 1.f } ,
+      .uniforms = {
+      } ,
+      .shader = other::BuildShader(shader_path) ,
+    };
+    other::Ref<other::RenderPass> test_pass = other::NewRef<other::RenderPass>(geom_pass_spec);
     
     SceneRenderSpec render_spec {
       .camera_uniforms = NewRef<UniformBuffer>("Camera" , cam_unis , camera_binding_pnt) ,
@@ -130,6 +143,12 @@ namespace other {
           .debug_name = "Geometry" , 
         } ,
       } , 
+      .passes = {
+        test_pass ,
+      } ,
+      .pipeline_to_pass_map = {
+        { FNV("Geometry") , { FNV(test_pass->Name()) } } ,
+      } ,
     };
     default_renderer = NewRef<SceneRenderer>(render_spec);
 

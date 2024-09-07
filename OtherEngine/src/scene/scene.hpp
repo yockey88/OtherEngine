@@ -4,7 +4,6 @@
 #ifndef OTHER_ENGINE_SCENE_HPP
 #define OTHER_ENGINE_SCENE_HPP
 
-#include <entt/entity/fwd.hpp>
 #include <map>
 
 #include <entt/entt.hpp>
@@ -12,6 +11,13 @@
 #include "core/uuid.hpp"
 #include "core/ref.hpp"
 #include "asset/asset.hpp"
+
+#include "ecs/component.hpp"
+#include "ecs/components/relationship.hpp"
+#include "ecs/components/transform.hpp"
+#include "ecs/components/mesh.hpp"
+#include "ecs/components/light_source.hpp"
+#include "ecs/components/script.hpp"
 
 #include "scene/octree.hpp"
 #include "scene/environment.hpp"
@@ -35,7 +41,7 @@ namespace other {
       ~Scene();
 
       void Initialize();
-      void Start(); 
+      void Start(EngineMode mode = EngineMode::DEBUG); 
 
       void EarlyUpdate(float dt);
       void Update(float dt);
@@ -44,7 +50,6 @@ namespace other {
       Ref<CameraBase> GetPrimaryCamera() const;
 
       void Render(Ref<SceneRenderer> scene_renderer);
-      void DebugRender(Ref<SceneRenderer> scene_renderer);
 
       void RenderUI();
 
@@ -98,11 +103,15 @@ namespace other {
 
       Ref<Environment> environment = nullptr;
 
+      void RenderToPipeline(const std::string_view plname , Ref<SceneRenderer> scene_renderer , bool do_debug = false);
+
       void OnAddRigidBody2D(entt::registry& context , entt::entity ent);
       void OnAddCollider2D(entt::registry& context , entt::entity ent);
       
       void OnAddRigidBody(entt::registry& context , entt::entity ent);
       void OnAddCollider(entt::registry& context , entt::entity ent);      
+
+      void RefreshCameraTransforms();
 
       virtual void OnInit() {}
       virtual void OnStart() {}
@@ -126,6 +135,8 @@ namespace other {
       bool running = false;
       bool corrupt = false;
 
+      EngineMode current_mode = EngineMode::DEBUG;
+
       /// true until first render
       bool scene_geometry_changed = true;
 
@@ -133,13 +144,29 @@ namespace other {
 
       ScriptObject* scene_object = nullptr;
 
+      SystemGroup<Relationship> connection_group;
+      SystemGroup<LightSource , Transform> light_group;
+      SystemGroup<Script> script_group;
+  
+      template <RenderableComp RC>
+      using RenderGroup = SystemGroup<RC , Transform>;
+
+      RenderGroup<Mesh> dynamic_mesh_group;
+      RenderGroup<StaticMesh> static_mesh_group;
+
       Ref<PhysicsWorld2D> physics_world_2d;
       Ref<PhysicsWorld> physics_world;
 
       std::map<UUID , Entity*> root_entities{};
       std::map<UUID , Entity*> entities{};
 
+      template <ComponentType T1 , ComponentType T2 = NullComponent , ComponentType T3 = NullComponent>
+      auto GetGroup() -> SystemGroup<T1 , T2 , T3> {
+        return registry.group<T1>(entt::get<T2> , entt::exclude<T3>);
+      }
+
       void FixRoots();
+      void BuildGroups();
   };
 
 } // namespace other

@@ -194,12 +194,6 @@ int main(int argc , char* argv[]) {
       };
       Ref<other::Shader> outline_shader = other::BuildShader(outline_path);
       Ref<other::Shader> geometry_shader = other::BuildShader(default_path);
-      Ref<other::Shader> deferred_shader = other::BuildShader(deferred_shader_path);
-      deferred_shader->Bind();
-      deferred_shader->SetUniform("goe_position" , 0);
-      deferred_shader->SetUniform("goe_normal" , 1);
-      deferred_shader->SetUniform("goe_albedo" , 2);
-      deferred_shader->Unbind();
         
       other::RenderPassSpec normal_pass_spec {
         .name = "Draw Normals" , 
@@ -210,6 +204,17 @@ int main(int argc , char* argv[]) {
         .shader = other::BuildShader(normals_path) ,
       };
       Ref<other::RenderPass> normal_pass = NewRef<other::RenderPass>(normal_pass_spec);
+      normal_pass->SetInput("magnitude" , 0.2f);
+      
+      other::RenderPassSpec pure_geom_pass_spec {
+        .name = "Pure Geometry" , 
+        .tag_col = { 0.f , 0.f , 1.f , 1.f } ,
+        .uniforms = {
+        } ,
+        .shader = other::BuildShader(pure_geometry_path) ,
+      };
+      Ref<other::RenderPass> pure_geom_pass = NewRef<other::RenderPass>(pure_geom_pass_spec);
+
       Ref<other::RenderPass> geom_pass = NewRef<other::GeometryPass>(geometry_unis , geometry_shader);
       Ref<other::RenderPass> outline_pass = NewRef<other::OutlinePass>(outline_unis , outline_shader);
 
@@ -245,28 +250,24 @@ int main(int argc , char* argv[]) {
           } ,
         } , 
         .passes = {
-          geom_pass , normal_pass
+          geom_pass , normal_pass , pure_geom_pass ,
         } ,
         .pipeline_to_pass_map = {
           { FNV("Geometry") , { FNV(geom_pass->Name()) } } ,
-          { FNV("Debug") , { FNV(geom_pass->Name()) } } ,
+          { FNV("Debug") , { FNV(geom_pass->Name()) , FNV(normal_pass->Name()) } } ,
         } ,
       };
       Ref<SceneRenderer> renderer = NewRef<SceneRenderer>(render_spec);
 
-      CHECK();
-
       bool running = true;
-
       bool camera_lock = true;
+
       if (camera_lock) {
         other::Mouse::FreeCursor();
       } else {
         other::Mouse::LockCursor();
       }
         
-      CHECKGL();
-
       other::Material cube_material1 = {
         .color = { 1.0f , 0.5f , 0.31f , 1.f } ,
         .shininess = 32.f ,
@@ -295,7 +296,7 @@ int main(int argc , char* argv[]) {
       Ref<other::Scene> scene = 
 #define LOADING_SCENE 1
 #if LOADING_SCENE
-        nullptr;
+        /* scene = */ nullptr;
       {
         auto loaded_scene = serializer.Deserialize(scenepath.string());
         if (loaded_scene.scene == nullptr) {
@@ -306,7 +307,7 @@ int main(int argc , char* argv[]) {
         scene = loaded_scene.scene;
       }
 #else
-        NewRef<other::Scene>();
+        /* scene = */ NewRef<other::Scene>();
         {
           auto* cube = scene->CreateEntity("cube");
           cube->AddComponent<other::StaticMesh>();
@@ -324,21 +325,19 @@ int main(int argc , char* argv[]) {
         auto& floor_mesh = floor->GetComponent<other::StaticMesh>();
         floor_mesh.material = cube_material2;
 
-        auto* sun = scene->CreateEntity("sun");
-        auto& sun_pl = sun->AddComponent<other::LightSource>();
-        sun_pl.type = other::DIRECTION_LIGHT_SRC;
-        sun_pl.direction_light = {
+        auto* sun = scene->GetEntity("sun");
+        auto& sun_l = sun->GetComponent<other::LightSource>();
+        sun_l.direction_light = {
           .direction = { 0.f , -1.f , 0.f , 1.f } ,
           .color = { 0.22f , 0.22f , 0.11f , 1.f } ,
         };
         
-        auto* point_light = scene->CreateEntity("point_light");
-        auto& point_light_comp = point_light->AddComponent<other::LightSource>();
-        point_light_comp.type = other::POINT_LIGHT_SRC;
-        point_light_comp.pointlight = {
-          .position = { 1.f , 4.f , 1.f , 1.f } ,
-          .color = { 1.f , 0.2f , 0.2f , 1.f } ,
-        };
+        auto* point_light = scene->GetEntity("plight");
+        // auto& point_light_comp = point_light->GetComponent<other::LightSource>();
+        // point_light_comp.pointlight = {
+        //   .position = { 1.f , 4.f , 1.f , 1.f } ,
+        //   .color = { 1.f , 0.2f , 0.2f , 1.f } ,
+        // };
       }
 
       other::ScriptEngine::SetSceneContext(scene);
@@ -427,7 +426,7 @@ int main(int argc , char* argv[]) {
         const ImVec2 win_size = { (float)other::Renderer::WindowSize().x , (float)other::Renderer::WindowSize().y };
 
         if (ImGui::Begin("Frames")) {
-          RenderItem(frames.at(FNV("Debug")) , "Debug" , ImVec2(win_size.x / 2 , win_size.y / 2));
+          RenderItem(frames.at(FNV("Debug"))->texture , "Debug" , ImVec2(win_size.x , win_size.y));
         }
         ImGui::End();
 
@@ -470,10 +469,10 @@ int main(int argc , char* argv[]) {
           reg.view<other::LightSource , other::Transform>().each([&](other::LightSource& light , other::Transform& transform) {
             switch (light.type) {
               case other::POINT_LIGHT_SRC:
-                edited = RenderPointLight(other::fmtstr("point light [{}]" , i++) , light.pointlight);
+                edited = edited || RenderPointLight(other::fmtstr("point light [{}]" , i++) , light.pointlight);
               break;
               case other::DIRECTION_LIGHT_SRC:
-                edited = RenderDirectionLight(other::fmtstr("direction light [{}]" , i++) , light.direction_light);
+                edited = edited || RenderDirectionLight(other::fmtstr("direction light [{}]" , i++) , light.direction_light);
               break;
               default:
               break;

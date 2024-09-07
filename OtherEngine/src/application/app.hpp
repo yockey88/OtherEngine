@@ -47,6 +47,7 @@ namespace other {
       bool RemoveUIWindow(const std::string& name);
       bool RemoveUIWindow(UUID id);
 
+      void LoadSceneByName(const std::string_view name);
       void LoadScene(const Path& path);
       bool HasActiveScene();
       SceneMetadata* ActiveScene();

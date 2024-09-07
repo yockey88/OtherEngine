@@ -9,8 +9,11 @@ vertex [mesh : default] {
   uniform sampler2D goe_albedo;
   
   void main() {
-    vout.normal = texture(goe_normal , voe_uvs).rgb;
-    gl_Position = view * models[gl_InstanceID] * vec4(voe_position , 1.0);
+    mat4 model = models[gl_InstanceID];
+
+    mat3 normal_matrix = mat3(transpose(inverse(view * model)));
+    vout.normal = vec3(vec4(normal_matrix * voe_normal , 0.0));
+    gl_Position = view * model * vec4(voe_position , 1.0);
   }
 
 }

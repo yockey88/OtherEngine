@@ -55,14 +55,6 @@ namespace other {
       Ref<SceneRenderer> default_renderer = nullptr;
       Ref<SceneRenderer> scene_renderer = nullptr;
       Ref<Framebuffer> viewport = nullptr;
-      Scope<VertexArray> fb_mesh = nullptr;
-      Ref<Shader> fbshader = nullptr;
-      
-      glm::mat4 model1 = glm::mat4(1.f);
-
-      other::AssetHandle model_handle;
-      Ref<StaticModel> model = nullptr;
-      Ref<ModelSource> model_source = nullptr;
       
       /// TODO: move this somewhere else
       void SaveActiveScene();

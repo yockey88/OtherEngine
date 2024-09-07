@@ -66,6 +66,8 @@ namespace other {
 
     Opt<Path> script_bin_dir = std::nullopt;
 
+    Opt<std::string> primary_scene = std::nullopt;
+
     Path cs_project_file = "";
     Path cs_editor_project_file = "";
 
@@ -92,6 +94,9 @@ namespace other {
       bool RegenProjectFile();
       void CreateScriptWatchers();
 
+      const CmdLine& cmdline;
+      const ConfigTable& config;
+
       ProjectMetadata& GetMetadata() { return metadata; }
       bool EditorDirectoryChanged();
       bool ScriptDirectoryChanged();
@@ -104,8 +109,6 @@ namespace other {
       }
 
     private:
-      const CmdLine& cmdline;
-      const ConfigTable& config;
       ProjectMetadata metadata;
       
       void CreateFileWatchers(const Path& dirpath);

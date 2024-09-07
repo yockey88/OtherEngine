@@ -20,18 +20,19 @@
 #include "scripting/cs/native_functions/cs_native_input.hpp"
 #include "scripting/cs/native_functions/cs_native_rendering.hpp"
 #include "scripting/cs/native_functions/cs_native_scene.hpp"
+#include "scripting/cs/native_functions/cs_native_model_factory.hpp"
 
 namespace other {
 
   static FunctionMaps* function_maps = nullptr;
 
-  template <component_type C>
+  template <ComponentType C>
   std::map<MonoType* , std::function<bool(Entity* , C*)>> FunctionMaps::component_getters{};
 
-  template <component_type C>
+  template <ComponentType C>
   std::map<MonoType* , std::function<void(Entity* , C*)>> FunctionMaps::component_setters{};
 
-  template <component_type C>
+  template <ComponentType C>
   static void RegisterComponentType(MonoImage* asm_image) {
     std::string_view name = TypeData<C , true>().Name();
 
@@ -88,7 +89,7 @@ namespace other {
     };
   }
 
-  template <component_type C>
+  template <ComponentType C>
   static void UnloadComponentFunctions() {
     function_maps->component_getters<C>.clear();
     function_maps->component_setters<C>.clear();
@@ -108,6 +109,7 @@ namespace other {
     RegisterComponentType<Mesh>(asm_image);
     RegisterComponentType<Camera>(asm_image);
     RegisterComponentType<RigidBody2D>(asm_image);
+    RegisterComponentType<StaticMesh>(asm_image);
 
     RegisterNativeFunctions(asm_image);
   }
@@ -124,6 +126,7 @@ namespace other {
     UnloadComponentFunctions<Mesh>();
     UnloadComponentFunctions<Camera>();
     UnloadComponentFunctions<RigidBody2D>();
+    UnloadComponentFunctions<StaticMesh>();
 
     delete function_maps;
     function_maps = nullptr;
@@ -185,10 +188,6 @@ namespace other {
   REGISTER_NATIVE_FUNCTION(Mouse , MousePreviousPos);
   REGISTER_NATIVE_FUNCTION(Mouse , MouseDeltaPos);
 
-  REGISTER_NATIVE_FUNCTION(Renderer , NativeDrawLine);
-  REGISTER_NATIVE_FUNCTION(Renderer , NativeDrawTriangle);
-  REGISTER_NATIVE_FUNCTION(Renderer , NativeDrawRect);
-
   REGISTER_NATIVE_FUNCTION(Scene , NativeGetName);
   REGISTER_NATIVE_FUNCTION(Scene , NativeGetObjectByName);
   REGISTER_NATIVE_FUNCTION(Scene , NativeHasObjectById);
@@ -215,6 +214,9 @@ namespace other {
   REGISTER_NATIVE_FUNCTION(Scene , NativeGet2DColliderDensity);
   REGISTER_NATIVE_FUNCTION(Scene , NativeGet2DColliderFriction);
 
+  REGISTER_NATIVE_FUNCTION(Scene , NativeGetStaticMeshHandle);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeGetStaticMeshMaterial);
+
   REGISTER_NATIVE_FUNCTION(Scene , NativeAddComponent);
   REGISTER_NATIVE_FUNCTION(Scene , NativeHasComponent);
   REGISTER_NATIVE_FUNCTION(Scene , NativeRemoveComponent);
@@ -237,6 +239,11 @@ namespace other {
   REGISTER_NATIVE_FUNCTION(Scene , NativeSet2DColliderSize);
   REGISTER_NATIVE_FUNCTION(Scene , NativeSet2DColliderDensity);
   REGISTER_NATIVE_FUNCTION(Scene , NativeSet2DColliderFriction);
+
+  REGISTER_NATIVE_FUNCTION(Scene , NativeSetStaticMeshHandle);
+  REGISTER_NATIVE_FUNCTION(Scene , NativeSetStaticMeshMaterial);
+
+  REGISTER_NATIVE_FUNCTION(ModelFactory , NativeCreateBox);
 
 #undef REGISTER_NATIVE_FUNCTION
 

@@ -12,5 +12,5 @@ if (config == "debug"):
 if (config == "release"):
     config = "Release"
 
-ret = 0 if utilities.run_project(config, "sandbox", arguments) else 0
+ret = 0 if utilities.run_project(config, "sandbox", arguments) else 1
 sys.exit(ret)

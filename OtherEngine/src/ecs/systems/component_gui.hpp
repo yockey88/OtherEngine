@@ -27,7 +27,7 @@
 
 namespace other {
 
-  template <component_type C , typename Func>
+  template <ComponentType C , typename Func>
   bool DrawComponent(const std::string& name , Func ui_function) {
     // bool should_draw = true;
 
@@ -217,7 +217,7 @@ namespace other {
 
   bool DrawLightSource(Entity* ent);
   
-  template <component_type C , component_type... ICs>
+  template <ComponentType C , ComponentType... ICs>
   bool DrawAddComponentButton(const std::string& name , Ref<Texture2D> icon = nullptr) {
     auto selection = SelectionManager::ActiveSelection();
     if (selection == nullptr) {
@@ -294,7 +294,7 @@ namespace other {
   template <typename Fn>
   concept entity_modifier = std::is_invocable_v<Fn , Entity*>;
 
-  template <component_type C , entity_modifier Fn , component_type... ICs>
+  template <ComponentType C , entity_modifier Fn , ComponentType... ICs>
   bool DrawAddComponentButton(const std::string& name , Fn on_added , Ref<Texture2D> icon = nullptr) {
     DrawAddComponentButton<C , ICs...>(name);
 

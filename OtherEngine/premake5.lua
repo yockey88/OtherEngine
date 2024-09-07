@@ -19,13 +19,6 @@ OtherEngine.include_dirs = function()
   }
 end
 
-OtherEngine.defines = function()
-  defines {
-    "TRACY_ENABLE" ,
-    "TRACY_ON_DEMAND" ,
-  }
-end
-
 OtherEngine.windows_configuration = function()
   files {
     "./platform/windows/**.hpp",
@@ -39,7 +32,9 @@ OtherEngine.windows_configuration = function()
 end
 
 OtherEngine.windows_debug_configuration = function()
-  links { "DbgHelp" }
+  links {
+    "DbgHelp",
+  }
   defines {
     "TRACY_ENABLE" ,
     "TRACY_ON_DEMAND" ,
