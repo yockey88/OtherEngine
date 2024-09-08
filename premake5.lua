@@ -120,6 +120,10 @@ tracy.path = "./externals/tracy"
 tracy.include_dir = "%{wks.location}/externals/tracy/tracy"
 tracy.lib_name = "tracy"
 
+local boost = {}
+boost.name = "boost"
+boost.include_dir = "%{wks.location}/externals/boost"
+
 AddDependency(choc)
 AddDependency(entt)
 AddDependency(glad)
@@ -136,6 +140,7 @@ AddDependency(sol2)
 AddDependency(box2d)
 AddDependency(stb)
 AddDependency(jolt)
+AddDependency(boost)
 -- AddDependency(tracy)
 
 CppWorkspace(configuration)

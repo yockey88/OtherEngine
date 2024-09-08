@@ -1,1 +1,1 @@
-require("fnv.premake5")
+require("other.fnv.premake5")

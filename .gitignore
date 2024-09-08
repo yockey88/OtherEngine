@@ -9,6 +9,9 @@ bin_obj/
 *.dll
 *.exe
 
+# idk yet
+externals/boost
+
 ## Project tools
 tool_dev/
 
