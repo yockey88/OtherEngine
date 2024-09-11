@@ -7,8 +7,7 @@ Only supports Windows at the moment
 To build the engine, you need python 3+ installed and then from the root of the repo run the following commands:
 
 ```bash
-    python3 cli.py gensln
-    python3 cli.py buildsln
+    python3 cli.py --generate-projects --build --run
 ```
 > you can also open `OtherEngine.sln` created by the first command and build in Visual Studio
 
