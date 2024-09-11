@@ -18,12 +18,17 @@ class OtherCliPipeline(Pipeline):
         if env.get_settings().generate_projects or env.get_settings().generate_files:
           self._process_error(self._gen_projects(), " > project generation successful", " !> project generation failed!")
         self._process_error(self._try_build())
+        self._process_error(self._try_run())
         return 0
 
 if __name__ == "__main__":
     # if cli.py is begin called then we use engine configuration
     env.init("tools/other/other.cfg")
     verbose: bool = env.is_verbose()
+
+    if env.get_settings().view_platform:
+        utilities.print_platform_string()
+
     if env.is_legacy() and not env.help_was_printed():
         if verbose:
             print("> running legacy commands")

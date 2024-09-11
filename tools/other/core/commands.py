@@ -129,5 +129,11 @@ engine_cmds: list[Command] = [
         "-fnv", "--fnv",
         "runs the fnv hash on the input item",
         action='store_true', nargs=1, metavar="item"
+    ),
+
+    # view platform
+    Command(
+        "-vp", "--view-platform",
+        "prints the current platform"
     )
 ]

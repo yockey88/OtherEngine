@@ -9,8 +9,9 @@ bin_obj/
 *.dll
 *.exe
 
-# idk yet
-externals/boost
+# python bindings
+tools/build
+tools/other.egg-info/
 
 ## Project tools
 tool_dev/
@@ -25,7 +26,7 @@ tools/runtestbed.py
 *.xml
 
 ## Pycache
-tools/__pycache__/
+*__pycache__*
 
 ## Editor directories and files
 .idea/

@@ -14,7 +14,7 @@ from other.core.project_builders import gen_projects, full_build, build_project
 from other.core.file_generators import generate_engine_files
 
 from other.pipeline.pipeline_env import oe_env
-from other.pipeline.pipeline_config import PipelineConfig
+from other.pipeline.pipeline_env import PipelineConfig
 
 class Pipeline(Singleton):
   config: PipelineConfig = None
@@ -71,7 +71,7 @@ class Pipeline(Singleton):
       do_full_build = True
     
     if do_full_build:
-      res = full_build()
+      res = full_build(config, verbose)
       self._process_error(res, " > full build successful", " !> full build failed!")
       return res
     else:
@@ -81,6 +81,23 @@ class Pipeline(Singleton):
         if res != 0:
           break
       return res
+    
+  @classmethod
+  def _try_run(self):
+    if oe_env.get_settings().run is None:
+      return 0
+    
+    config = oe_env.project_configuration()
+    verbose: bool = oe_env.is_verbose()
+
+    print(os.getcwd())
+
+    name: str = oe_env.get_settings().run[0]
+    ## TODO - add arguments for project and cwd
+    res = utilities.run_project(config, name, [
+      "--project", "{}/{}/{}.other".format(os.getcwd(), name, name),
+      "--cwd", "./{}".format(name) 
+    ])
 
   @abstractmethod
   def run(self):

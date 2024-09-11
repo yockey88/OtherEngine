@@ -5,7 +5,9 @@
 #ifndef OTHER_ENGINE_PYTHON_SCRIPT_HPP
 #define OTHER_ENGINE_PYTHON_SCRIPT_HPP
 
-#include "boost/python.hpp"
+#if !OE_MODULE
+  #include <pybind11/pybind11.h>
+#endif
 
 #include "scripting/script_defines.hpp"
 #include "scripting/script_module.hpp"
@@ -26,6 +28,8 @@ namespace other {
       virtual ScriptObject* GetScript(const std::string& name , const std::string& nspace = "") override { return nullptr; }
 
       virtual std::vector<ScriptObjectTag> GetObjectTags() override { return {}; }
+
+    private:
   };
 
 } // namespace other

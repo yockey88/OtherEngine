@@ -1,14 +1,16 @@
-/**
+/*
  * \file tests/scripting-tests/main.cpp
  **/
 #include <spdlog/fmt/fmt.h>
 
-#include <sol/sol.hpp>
+#include <pybind11/pybind11.h>
+#include <pybind11/embed.h>
 
 #include "core/defines.hpp"
-#include "core/filesystem.hpp"
 
 using other::Path;
+
+namespace py = pybind11;
 
 class C {
   public:
@@ -24,79 +26,40 @@ class C {
     }
 };
 
+PYBIND11_EMBEDDED_MODULE(engine , m) {
+  py::class_<C>(m , "C")
+    .def_static("CheckNum" , &C::CheckNum);
+
+  pybind11::enum_<C::Number>(m , "Number")
+    .value("ZERO" , C::Number::ZERO)
+    .value("ONE" , C::Number::ONE)
+    .value("TWO" , C::Number::TWO)
+    .value("THREE" , C::Number::THREE);
+
+  m.def("CheckNum" , &C::CheckNum);
+}
+
+PYBIND11_EMBEDDED_MODULE(mod , m) {
+  m.doc() = "test module";
+  m.def("add" , [](int i, int j) {
+    return i + j;
+  });
+}
+
 int main(int argc , char* argv[]) {
-  /// setup
-  sol::state lua;
+  py::scoped_interpreter guard{};
 
-  lua.open_libraries(sol::lib::io , sol::lib::string);
+  auto mod = py::module_::import("mod");
+  auto res = mod.attr("add")(1 , 2).cast<int32_t>();
 
-#if 0 // enum and statuc function tests
-  lua["Number"] = lua.create_table_with(
-    "Zero" , C::Number::ZERO , 
-    "One" , C::Number::ONE , 
-    "Two" , C::Number::TWO , 
-    "Three" , C::Number::THREE
-  );
-
-  lua.set_function("print" , [](const std::string& str) { std::cout << str << "\n"; });
-
-  lua.new_usertype<C>(
-    "Class" ,
-    "CheckNum" , C::CheckNum 
-  );
-
-  lua.script(R"(
-    if Class.CheckNum(Number.Three) then
-      print("Hell ya!");
-    end
+  py::exec(R"(
+    from engine import C
+    from engine import Number
+    print(C.CheckNum(Number.TWO))
   )");
-#else
-  // std::vector<Path> premake_paths;
-  // Path premake_dir = "./OtherEngine-ScriptCore/lua/premake";
-  // Path vstudio_dir = "./OtherEngine-ScriptCore/lua/vstudio";
-  // Path main_file;
-  // for (auto entry : std::filesystem::recursive_directory_iterator(premake_dir)) {
-  //   if (!entry.is_regular_file()) {
-  //     continue;
-  //   }
 
-  //   if (entry.path().filename().string() == "_premake_main.lua") {
-  //     main_file = entry.path();
-  //     continue;
-  //   } else if (entry.path().extension().string() != ".lua") {
-  //     continue;
-  //   } 
+  std::cout << res << std::endl;
 
-  //   lua.load_file(entry.path().string());
-  // }
-  // for (auto entry : std::filesystem::recursive_directory_iterator(vstudio_dir)) {
-  //   lua.load_file(entry.path().string());
-  // }
-
-  // lua["getEmbeddedResources"] = [](lua_State* L) {
-  //   const char* filename = luaL_checkstring(L , 1);
-  //   const buildin_mapping* chunk = premake_find_embedded_script(filename);
-  //   if (chunk == nullptr) {
-  //     return 0;
-  //   }
-
-  //   lua_pushlstring(L , (const char*)chunk->bytecode , chunk->length);
-  //   return 1;
-  // };
-
-  const char* args[] = {
-    "premake" , "vs2022"
-  };
-
-  // Path premake_path = other::Filesystem::GetEngineCoreDir() / "premake" / "premake5.exe";
-  // std::string cmd = other::fmtstr("{} vs2022" , premake_path.string());
-  // std::replace(cmd.begin() , cmd.begin() , '/' , '\\');
-
-  // std::cout << cmd << std::endl;
-
-  // system(cmd.c_str());
-
-#endif 
-
+  std::cout << "YAY!" << std::endl;
   return 0;
 }

@@ -1,14 +1,23 @@
 import os
 import subprocess
+import sys
 
 from pathlib import Path
 
 from . import project_settings
 from . import utilities
 
-MSBUILD = os.environ["MSBUILD"][8:-1]
-MSBUILD.replace("/", "\\")
-MSBUILD = "C:\\\\" + MSBUILD
+MSBUILD = "MSBuild.exe"
+if sys.platform == "win32" or sys.platform == "cygwin":
+    try:
+        MSBUILD = os.environ["MSBUILD"]
+    except KeyError:
+        MSBUILD = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe"
+elif sys.platform == "linux":
+    try:
+        MSBUILD = os.environ["MSBUILD"][1:-1]
+    except KeyError:
+        MSBUILD = "/mnt/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/MSBuild.exe"
 
 
 def is_project_file(filename, test_name):
@@ -32,12 +41,28 @@ def full_build(config, verbose):
     print(" > Performing full rebuild in [{}] Configuration".format(
         config
     ))
+    
+    msbuild = MSBUILD
+    if sys.platform == "linux":
+        if not os.path.exists(msbuild):
+            print(" > Failed to find MSBuild at [{}]".format(msbuild))
+            print("   > Ensure that MSBuild is installed and available in PATH and MSBUILD environment variable is set")
+            return
+        else:
+            ### must be a linux path
+            msbuild = "C:\\\\" + msbuild[7:].replace("/", "\\")
+    elif not os.path.exists(msbuild):
+        print(" > Failed to find MSBuild at [{}]".format(msbuild))
+        print("   > Ensure that MSBuild is installed and available in PATH and MSBUILD environment variable is set")
+        return
+    else:
+        print(" > Found MSBuild at [{}]".format(msbuild))
 
     ret = 0
     if utilities.is_windows():
         ret = subprocess.call(
             [
-                "cmd.exe", "/c", MSBUILD,
+                "cmd.exe", "/c", msbuild,
                 "{}.sln".format(project_settings.PROJECT_NAME),
                 "/p:Configuration={}".format(config)
             ],
@@ -109,13 +134,13 @@ def build_project(config, verbose, filename):
 
 
 def gen_projects():
-  verbose: bool = True  # oe_env.is_verbose()
+    verbose: bool = True  # oe_env.is_verbose()
 
-  stdout = subprocess.DEVNULL if verbose is False else None
-  stderr = subprocess.DEVNULL if verbose is False else None
+    stdout = subprocess.DEVNULL if verbose is False else None
+    stderr = subprocess.DEVNULL if verbose is False else None
 
-  print(" > Generating project files...")
-  return subprocess.call(
-      ["cmd.exe", "/c", "premake\\premake5.exe", "vs2022"],
-      stdout=stdout, stdin=stderr
-  )
+    print(" > Generating project files...")
+    return subprocess.call(
+        ["cmd.exe", "/c", "premake\\premake5.exe", "vs2022"],
+        stdout=stdout, stdin=stderr
+    )

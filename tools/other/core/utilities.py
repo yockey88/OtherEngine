@@ -10,11 +10,21 @@ from . import project_settings
 
 TOOLS_DIR = project_settings.TOOLS_DIR
 PLATFORM = sys.platform
-for x in platform.uname():
-    if "microsoft" in x.lower():
-        PLATFORM = "windows"
-        break
 
+if sys.platform == "win32":
+    PLATFORM = "windows"
+else:
+    for x in platform.uname():
+        if "microsoft" in x.lower():
+            PLATFORM = "windows"
+            break
+
+# TODO - add support for linux and mac
+if PLATFORM != "windows":
+    raise EnvironmentError("Unsupported platform detected: {}".format(PLATFORM))
+
+def print_platform_string():
+    print("Platform: {}".format(PLATFORM))
 
 def normalize_config_str(config):
     if config == "debug":
@@ -27,6 +37,7 @@ def normalize_config_str(config):
 
 def run_project(config, name, arguments):
     if is_windows():
+        print(" > running {}".format(name))
         proc_args = ["cmd.exe", "/c",
                      "{}\\run.bat".format(TOOLS_DIR),
                      config, name]
