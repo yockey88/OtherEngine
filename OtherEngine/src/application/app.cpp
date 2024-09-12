@@ -6,6 +6,7 @@
 #include "core/logger.hpp"
 #include "core/time.hpp"  
 #include "core/engine.hpp"
+#include "core/engine_state.hpp"
 #include "input/io.hpp"
 
 #include "asset/runtime_asset_handler.hpp"
@@ -15,6 +16,7 @@
 #include "event/event_handler.hpp"
 #include "event/ui_events.hpp"
 
+#include "parsing/cmd_line_parser.hpp"
 #include "rendering/renderer.hpp"
 #include "rendering/rendering_defines.hpp"
 #include "rendering/ui/ui.hpp"
@@ -31,8 +33,8 @@ namespace {
 
 } /// anonymous namespace
 
-  App::App(Engine* engine) 
-      : engine_handle(engine) , cmdline(engine->cmd_line) , config(engine->config) {}
+  App::App(const CmdLine& cmdline , const ConfigTable& config)
+      : cmdline(cmdline) , config(config) {}
 
   App::~App() {}
       
@@ -68,7 +70,7 @@ namespace {
 
     time::DeltaTime delta_time;
     delta_time.Start();
-    while (!GetEngine()->ShouldQuit()) {
+    while (!EngineState::exit_code.has_value()) {
       float dt = delta_time.Get();
       
       // updates mouse/keyboard/any connected controllers
@@ -79,7 +81,7 @@ namespace {
       }
       
       /// process all events queued from io/early update/physics steps
-      EventQueue::Poll(GetEngine() , this);
+      EventQueue::Poll(this);
 
       /// process any updates that are the result of events here
       
@@ -187,12 +189,23 @@ namespace {
     }
 
     for (auto itr = layer_stack->end(); itr != layer_stack->begin();) {
-      (*--itr)->ProcessEvent(event);
+      --itr;
+      (*itr)->ProcessEvent(event);
     
       if (event->handled) {
         itr = layer_stack->begin();
       }
     }
+    
+    if (event->handled) {
+      return;
+    }
+
+    EventHandler handler(event);
+    handler.Handle<ShutdownEvent>([this](ShutdownEvent& sd) -> bool { 
+      EngineState::exit_code = sd.GetExitCode(); 
+      return true;
+    });
   }
 
   static Ref<UIWindow> null_window = nullptr;

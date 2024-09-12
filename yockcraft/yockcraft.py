@@ -1,9 +1,26 @@
-from other.pipeline import env
+import os
 
-from typing import override 
-  
-from other.native import engine
+from typing import override
+
+from other.core import utilities
+from other.pipeline import env
+from other.pipeline.pipeline import Pipeline
+from other.native import engine as oe
+
+class YockcraftPipeline(Pipeline):
+  @override
+  def run(self):
+
+    # self._process_error(self._try_build())
+    # self._process_error(self._try_run())
+
+    return 0
 
 if __name__ == "__main__":
-  print("> running yockcraft build pipeline")
-  env.init("yockcraft/config/toolchain.cfg")
+  cfg_path = "yockcraft/config/toolchain.cfg"
+  env.init(cfg_path, False)
+  oe.Native.set_cfg_path(cfg_path)
+  oe.open_scene("./yockcraft/yockcraft/assets/scenes/overworld.yscn")
+
+  # pipeline = YockcraftPipeline()
+  # pipeline.run()

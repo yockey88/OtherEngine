@@ -135,8 +135,6 @@ namespace other {
       bool running = false;
       bool corrupt = false;
 
-      EngineMode current_mode = EngineMode::DEBUG;
-
       /// true until first render
       bool scene_geometry_changed = true;
 

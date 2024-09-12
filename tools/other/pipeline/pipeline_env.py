@@ -44,7 +44,7 @@ class OtherEnginePipelineEnvironment(Singleton):
   def _configure(self):
     ...
 
-  def init(self, path="default"):
+  def init(self, path="default", parse_cmds=True):
     p = Path(os.getcwd()) / path
     if not os.path.exists(p):
       raise IOError(
@@ -54,13 +54,7 @@ class OtherEnginePipelineEnvironment(Singleton):
         )
       )
 
-    parser = parsers.initialize_parser()
-    if len(sys.argv) == 1:
-      parser.print_help()
-      self.help_printed = True
-
     table = parsers.parse_config(p)
-
     pipeline_config = self._process_config_table(table)
 
     if pipeline_config is None:
@@ -68,8 +62,22 @@ class OtherEnginePipelineEnvironment(Singleton):
         "NO pipeline configuration found for tool pipeline"
       )
     
-    self.parse_args(parser)
-    
+    if parse_cmds:
+      parser = parsers.initialize_parser()
+      if len(sys.argv) == 1:
+        parser.print_help()
+        self.help_printed = True
+      self.parse_args(parser)
+    else:
+      self.settings = Namespace()
+      self.settings.verbose = False
+      self.settings.legacy_cmd = False
+      self.settings.build = None
+      self.settings.config = None
+
+    if self.settings is None:
+      self.settings = Namespace()
+      
     if self.settings.verbose:
       print("Pipeline settings loaded")
       print("Project configuration: {}".format(self.project_config))
@@ -89,6 +97,7 @@ class OtherEnginePipelineEnvironment(Singleton):
           ))
       else:
         print("No projects found in pipeline configuration")
+      
 
   def get_settings(self):
     return self.settings

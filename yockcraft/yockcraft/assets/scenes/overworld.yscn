@@ -23,8 +23,8 @@ position = { 0 , 0 , 0 }
 rotation = { 0 , 0 , 0 , 0 }
 scale = { 1 , 1 , 1 }
 
-## [camera.camera]
-## type = "perspective"
+[camera.camera]
+type = "perspective"
 
 [camera.script]
 YockCraftScripts = { "Yockcraft::CameraController" }
@@ -55,8 +55,7 @@ type = 1
 [terrain]
 UUID = 4009018379399950635
 components = {
-  script ,
-  static-mesh
+  script
 }
 
 [terrain.transform]
@@ -66,8 +65,3 @@ scale = { 1 , 1 , 1 }
 
 [terrain.script]
 YockCraftScripts = { "Yockcraft::Terrain" }
-
-[terrain.static-mesh]
-visible = true
-is-primitive = true
-primitive = 3

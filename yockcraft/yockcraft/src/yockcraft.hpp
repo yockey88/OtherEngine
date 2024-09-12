@@ -10,8 +10,8 @@ using namespace other;
 
 class YockCraft : public App {
   public:
-    YockCraft(other::Engine* engine) 
-      : App(engine) {}
+    YockCraft(const CmdLine& cmd_line, const ConfigTable& config) 
+      : App(cmd_line, config) {}
     virtual ~YockCraft() override {}
 
     virtual void OnAttach() override;

@@ -12,12 +12,12 @@ if sys.platform == "win32" or sys.platform == "cygwin":
     try:
         MSBUILD = os.environ["MSBUILD"]
     except KeyError:
-        MSBUILD = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe"
+        MSBUILD = "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe"
 elif sys.platform == "linux":
     try:
         MSBUILD = os.environ["MSBUILD"][1:-1]
     except KeyError:
-        MSBUILD = "/mnt/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/MSBuild/Current/Bin/MSBuild.exe"
+        MSBUILD = "/mnt/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe"
 
 
 def is_project_file(filename, test_name):

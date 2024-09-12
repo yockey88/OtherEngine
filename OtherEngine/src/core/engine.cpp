@@ -9,6 +9,7 @@
 #include "core/logger.hpp"
 #include "core/config.hpp"
 #include "core/filesystem.hpp"
+#include "core/engine_state.hpp"
 
 #include "editor/test_editor_layer.hpp"
 #include "input/io.hpp"
@@ -34,9 +35,11 @@
 
 namespace other {  
 
+  Engine::Engine() {}
+
   Engine::Engine(const CmdLine& cmdline)
       : cmd_line(cmdline) {
-    exit_code = LoadConfig();
+    EngineState::exit_code = LoadConfig();
   }
       
   ExitCode Engine::Run() {
@@ -44,17 +47,17 @@ namespace other {
     println("Running Other Engine in {}" , std::filesystem::current_path().string());
 #endif // OE_DEBUG_BUILD
 
-    if (!exit_code.has_value()) {
+    if (!EngineState::exit_code.has_value()) {
       println("Engine in invalid state for Engine::Run(). config never loaded"); 
       return ExitCode::FAILURE;
     }
 
-    if (exit_code.value() != ExitCode::NO_EXIT) {
+    if (EngineState::exit_code.value() != ExitCode::NO_EXIT) {
       println("Failed to load configuration!");
       return ExitCode::FAILURE;
     }
 
-    exit_code = std::nullopt;
+    EngineState::exit_code = std::nullopt;
     ExitCode ec;
 
     /// TODO: initialize allocators
@@ -73,8 +76,8 @@ namespace other {
         LoadApp();
         active_app->Run();
         UnloadApp();
-      } while (!exit_code.has_value());
-      ec = exit_code.value();
+      } while (!EngineState::exit_code.has_value());
+      ec = EngineState::exit_code.value();
     } catch (const std::exception& e) {
       OE_CRITICAL("Fatal error caught (std::exception) : {}" , e.what());
       ec = ExitCode::FAILURE;
@@ -91,14 +94,14 @@ namespace other {
   }
   
   void Engine::LoadApp() {
-    auto app = NewApp(this);
+    auto app = NewApp(cmd_line , config);
     OE_ASSERT(app != nullptr , "Attempting to load a null application (client implementation of other::NewApp(Engine*) is invalid)");
 
     println("Loading application");
     bool in_editor = cmd_line.HasFlag("--editor");
 
     if (in_editor) {
-      auto editor_app = NewScope<Editor>(this /* , app */);
+      auto editor_app = NewScope<Editor>(cmd_line , config /* , app */);
       active_app = std::move(editor_app);
     } else {
       active_app = std::move(app);
@@ -172,20 +175,6 @@ namespace other {
 
     OE_INFO("Shutdown complete");
   }
-
-  void Engine::ProcessEvent(Event* event) {
-    OE_ASSERT(event != nullptr , "Attempting to process a null event");
-    
-    if (event->handled) {
-      return;
-    }
-
-    EventHandler handler(event);
-    handler.Handle<ShutdownEvent>([this](ShutdownEvent& sd) -> bool { 
-      exit_code = sd.GetExitCode(); 
-      return true;
-    });
-  }
        
   Opt<Path> Engine::FindConfigFile() {
     Opt<Path> cwd = std::nullopt;
@@ -256,7 +245,6 @@ namespace other {
         return code;
 
       default:
-        /// should never default
         return ExitCode::FAILURE;
     }
   }
@@ -289,19 +277,17 @@ namespace other {
   void Engine::ProcessSingleArg(const std::string_view lflag , uint32_t min_args , std::function<bool(Arg&)> processor) {
     auto arg = cmd_line.GetArg(lflag);
 
-    if (arg.has_value()) {
-      if (arg.value().args.size() < min_args) {
-        println("Invalid number of arguments for {}" , lflag);
-        return;
-      }
+    if (!arg.has_value()) {
+      return;
+    }
+    
+    if (arg.value().args.size() < min_args) {
+      println("Invalid number of arguments for {}" , lflag);
+      return;
+    }
 
-      if (processor == nullptr) {
-        return;
-      }
-
-      if (!processor(arg.value())) {
-        println("Failed to process arg : {}" , lflag);
-      }
+    if (processor == nullptr || !processor(arg.value())) {
+      println("Failed to process arg : {}" , lflag);
     } 
   }
 

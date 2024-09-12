@@ -13,13 +13,11 @@ namespace other {
   class Event;
   
   /// implemented by client 
-  extern Scope<App> NewApp(Engine* engine);
+  extern Scope<App> NewApp(const CmdLine& cmd_line, const ConfigTable& config);
 
   class Engine {
     public:
-      Opt<ExitCode> exit_code = std::nullopt;
-
-      Engine() = default;
+      Engine();
       Engine(const CmdLine& cmd_line);
 
       ExitCode Run();
@@ -31,8 +29,6 @@ namespace other {
       void Shutdown();
 
       void ProcessEvent(Event* event);
-
-      inline bool ShouldQuit() const { return exit_code.has_value(); }
 
       CmdLine cmd_line;
       ConfigTable config;

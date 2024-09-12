@@ -1,6 +1,7 @@
 from argparse import Action
 from argparse import ArgumentParser
 
+from .actions import EditAction
 from .actions import BuildAction
 from .actions import RunAction
 from .actions import GenFileAction
@@ -81,6 +82,13 @@ engine_cmds: list[Command] = [
     Command(
         "-v", "--verbose",
         "output verbose logging (trace level logging)"
+    ),
+
+    # edit project
+    Command(
+        "-e", "--edit",
+        "opens the project specified by 'project' in the default editor",
+        nargs=1, metavar="project", action=EditAction()
     ),
 
     # build project

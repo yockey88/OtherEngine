@@ -7,7 +7,6 @@
 #include "ecs/components/light_source.hpp"
 
 void YockCraft::OnAttach() {
-  
 }
     
 void YockCraft::OnSceneLoad(const SceneMetadata* scene_md) {

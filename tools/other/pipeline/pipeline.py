@@ -55,6 +55,19 @@ class Pipeline(Singleton):
   @classmethod
   def _gen_projects(self):
     return gen_projects()
+  
+  @classmethod
+  def _open_editor(self):
+    if not oe_env.get_settings().edit is None:
+      return 0
+    
+    config = oe_env.project_configuration()
+    verbose: bool = oe_env.is_verbose()
+
+    # name: str = oe_env.get_settings().edit[0]
+    # res = utilities.open_project(config, name)
+    # self._process_error(res, " > project opened in editor", " !> failed to open project in editor")
+    return 1
 
   @classmethod
   def _try_build(self):
@@ -83,6 +96,24 @@ class Pipeline(Singleton):
       return res
     
   @classmethod
+  def _process_linux_path(path: Path):
+    c_offset = 0
+    cpath = ""
+
+    for part in path.parts:
+      cpath += path + "/"
+
+      c_offset += 1
+      if part == '/' or part == '.':
+        continue
+
+      c_offset += len(part)
+      if part == "c":
+        break
+
+    return c_offset, cpath
+    
+  @classmethod
   def _try_run(self):
     if oe_env.get_settings().run is None:
       return 0
@@ -90,12 +121,35 @@ class Pipeline(Singleton):
     config = oe_env.project_configuration()
     verbose: bool = oe_env.is_verbose()
 
-    print(os.getcwd())
+    project = oe_env.get_settings().run[0]
 
-    name: str = oe_env.get_settings().run[0]
-    ## TODO - add arguments for project and cwd
+    path_dir = Path(".")
+    candidates: list[Path] = []
+    for _, _, paths in os.walk(".", False):
+      for path in paths:
+        p = Path(path)
+        if p.suffix == ".other" and p.stem == project:
+          candidates.append(p) 
+          path_dir = p.parent.absolute()
+
+    if len(candidates) == 0:
+      print(" > no project found for {}".format(project))
+      return 1
+    
+    if len(candidates) > 1:
+      print(" > multiple projects found named {}!".format(project))
+      return 1
+    
+    name = candidates[0].stem
+    filename = candidates[0].name
+
+    if sys.platform == "linux":
+      c_offset, cpath = _process_linux_path(path_dir)
+      path_dir = Path(cpath)
+
+    print("{}/{}/{}".format(path_dir, name, filename))
     res = utilities.run_project(config, name, [
-      "--project", "{}/{}/{}.other".format(os.getcwd(), name, name),
+      "--project", "{}/{}/{}.other".format(path_dir, name, name),
       "--cwd", "./{}".format(name) 
     ])
 

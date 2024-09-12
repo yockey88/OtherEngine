@@ -136,7 +136,6 @@ namespace other {
   void Scene::Start(EngineMode mode) {
     OE_ASSERT(initialized , "Starting scene without initialization");
 
-    current_mode = mode;
     FixRoots();
 
     registry.view<RigidBody2D , Tag , Transform>().each([this](RigidBody2D& body , const Tag& tag , const Transform& transform) {
@@ -341,7 +340,8 @@ namespace other {
 
     RenderToPipeline("Geometry" , renderer);
 
-    if (current_mode == EngineMode::DEBUG) {
+    /// TODO: flesh this out
+    if (AppState::mode == EngineMode::DEBUG) {
       RenderToPipeline("Debug" , renderer , true);
     }
   }
@@ -368,7 +368,6 @@ namespace other {
     });
 
     OnStop();
-    current_mode = EngineMode::DEBUG; 
 
     if (scene_object == nullptr) {
       return;

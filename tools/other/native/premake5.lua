@@ -22,11 +22,13 @@ local oe_native = {
 
   links = function()
     libdirs { 
-      PythonPaths.lib_path
+      PythonPaths.lib_path,
+      -- "%{wks.location}/bin/%{cfg.buildcfg}/OtherEngine"
     }
 
     links { 
-      PythonPaths.lib
+      PythonPaths.lib,
+      "OtherEngine"
     }
   end,
 
