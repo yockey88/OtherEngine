@@ -34,6 +34,16 @@ or
 ```
 > If the build fails try running it again with the verbose flag (`--verbose`/`-v`) to see the failure.
 
+To do this in one command you can run the commands all at the same time:
+
+```bash
+    python cli.py -gp -b
+```
+or for verbose output
+```bash
+    python cli.py -v -gp -b
+```
+
 For more of the cli toolset commands run 
 ```bash
     python cli.py --help
