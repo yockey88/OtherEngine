@@ -34,6 +34,15 @@ or
 ```
 > If the build fails try running it again with the verbose flag (`--verbose`/`-v`) to see the failure.
 
+For more of the cli toolset commands run 
+```bash
+    python cli.py --help
+```
+or
+```bash
+    python cli.py -h
+```
+
 ## Important Notes
 
 - The engine is still in a very early stage and stability is not guaranteed, if you encounter any bugs, 
