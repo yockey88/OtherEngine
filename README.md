@@ -4,7 +4,8 @@
 
 Only supports Windows at the moment
 
-To build the engine, you need python 3.12+ installed and also the python3 OtherEngine toolset installed. To install the toolset run the following command from the root of the repo:
+To build the engine, you need python 3.12+ installed as well as the OtherEngine toolset installed. 
+To install the toolset run the following command from the root of the repo:
 
 ```bash
     python -m pip install ./tools
