@@ -181,11 +181,10 @@ bool Host::InitializeHost() {
 }
 
 void Host::LoadManagedFunctions() {
-  interop::function_table.create_assembly_load_context = LoadManagedFunction<CreateAssemblyLoadContextFn>(DO_STR("DotOther.Managed.AssemblyLoader"), DO_STR("UnloadAssemblyLoadContext"));
-  interop::function_table.unload_assembly_load_context = LoadManagedFunction<UnloadAssemblyLoadContextFn>(DO_STR("DotOther.Managed.AssemblyLoader"), DO_STR("UnloadAssemblyLoadContext"));
-  // interop::function_table.set_internal_calls(nullptr, 0);
-  // interop::function_table.load_managed_assembly(0, nullptr);
-  // interop::function_table.get_assembly_name(0);
+  interop::function_table.create_assembly_load_context = LoadManagedFunction<CreateAssemblyLoadContextFn>(DO_STR("DotOther.Managed.AssemblyLoader, DotOther.Managed"), DO_STR("UnloadAssemblyLoadContext"));
+  interop::function_table.unload_assembly_load_context = LoadManagedFunction<UnloadAssemblyLoadContextFn>(DO_STR("DotOther.Managed.AssemblyLoader, DotOther.Managed"), DO_STR("UnloadAssemblyLoadContext"));
+  interop::function_table.load_managed_assembly = LoadManagedFunction<LoadManagedAssemblyFn>(DO_STR("DotOther.Managed.AssemblyLoader, DotOther.Managed"), DO_STR("LoadManagedAssembly"));
+  interop::function_table.get_assembly_name = LoadManagedFunction<GetAssemblyNameFn>(DO_STR("DotOther.Managed.AssemblyLoader, DotOther.Managed"), DO_STR("GetAssemblyName"));
 }
 
 std::optional<std::filesystem::path> Host::GetHostPath() {
