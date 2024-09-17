@@ -3,35 +3,33 @@
  */
 #include "application\app.hpp"
 
+#include <filesystem>
+#include <string_view>
+
+#include "core/config_keys.hpp"
 #include "core/logger.hpp"
 #include "core/time.hpp"  
 #include "core/engine.hpp"
 #include "core/engine_state.hpp"
+#include "event/core_events.hpp"
 #include "input/io.hpp"
+#include "parsing/cmd_line_parser.hpp"
+#include "application/app_state.hpp"
 
 #include "asset/runtime_asset_handler.hpp"
-
 #include "event/event_queue.hpp"
 #include "event/app_events.hpp"
 #include "event/event_handler.hpp"
 #include "event/ui_events.hpp"
 
-#include "parsing/cmd_line_parser.hpp"
+#include "scripting/script_defines.hpp"
+#include "scripting/script_engine.hpp"
 #include "rendering/renderer.hpp"
 #include "rendering/rendering_defines.hpp"
 #include "rendering/ui/ui.hpp"
-
-#include "scripting/script_defines.hpp"
-#include "scripting/script_engine.hpp"
-
 #include "physics/phyics_engine.hpp"
-#include <filesystem>
-#include <string_view>
 
 namespace other {
-namespace {
-
-} /// anonymous namespace
 
   App::App(const CmdLine& cmdline , const ConfigTable& config)
       : cmdline(cmdline) , config(config) {}
@@ -60,13 +58,6 @@ namespace {
 
   void App::Run() {
     Attach();
-
-    auto& proj_data = project_metadata->GetMetadata();
-    if (proj_data.primary_scene.has_value()) {
-      LoadSceneByName(*proj_data.primary_scene);
-    }
-
-    CHECKGL();
 
     time::DeltaTime delta_time;
     delta_time.Start();
@@ -374,9 +365,24 @@ namespace {
   }
 
   void App::Attach() {
+    CHECKGL();
+
+
     GetProjectContext()->LoadFiles();
     ScriptEngine::LoadProjectModules();
     OnAttach();
+    
+    bool need_primary = config.GetVal<bool>(kProjectSection, kNeedPrimarySceneValue).value_or(true);
+    if (need_primary) {
+      auto& proj_data = project_metadata->GetMetadata();
+      if (proj_data.primary_scene.has_value()) {
+        LoadSceneByName(*proj_data.primary_scene);
+      }
+    } else if (AppState::mode == EngineMode::RUNTIME) {
+      OE_ERROR("Can not run Other Engine in a runtime configuration without a primary scene!");
+      EventQueue::PushEvent<ShutdownEvent>(ExitCode::CORRUPT_CONFIGURATION);
+      return;
+    }
   }
 
   /// TODO: add early update to layers and scene

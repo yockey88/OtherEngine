@@ -3,13 +3,12 @@
  **/
 #include "application/runtime_layer.hpp"
 
+#include "core/defines.hpp"
 #include "core/config_keys.hpp"
 #include "core/filesystem.hpp"
 
 #include "application/app.hpp"
 #include "application/app_state.hpp"
-
-#include "layers/debug_layer.hpp"
 
 #include "rendering/renderer.hpp"
 #include "rendering/geometry_pass.hpp"
@@ -17,12 +16,9 @@
 namespace other {
 
   void RuntimeLayer::OnAttach() {
-    auto debug = config.GetVal<bool>(kProjectSection , kDebugValue);
-    if (debug.has_value() && debug.value()) {
-      OE_DEBUG("Pushing debug layer");
-
-      Ref<Layer> debug_layer = NewRef<DebugLayer>(ParentApp());
-      ParentApp()->PushLayer(debug_layer);
+    auto scenes = config.Get(kProjectSection , kScenesValue);
+    for (const auto& scene : scenes) {
+      AppState::Scenes()->LoadScene(scene);
     }
 
     uint32_t camera_binding_pnt = 0;
@@ -94,8 +90,11 @@ namespace other {
     }; 
 
     scene_renderer = NewRef<SceneRenderer>(spec);
+    AppState::Scenes()->StartScene();
+  }
 
-    AppState::mode = EngineMode::RUNTIME;
+  void RuntimeLayer::OnDetach() {
+    AppState::Scenes()->StopScene();
   }
 
   void RuntimeLayer::OnEarlyUpdate(float dt) {
@@ -111,7 +110,15 @@ namespace other {
   }
 
   void RuntimeLayer::OnRender() {
-    AppState::Scenes()->RenderScene(scene_renderer);
+    bool scene_active = AppState::Scenes()->RenderScene(scene_renderer);
+    OE_ASSERT(scene_active , "Runtime Layer rendering without scene active!");
+
+    /// draw final frame to framebuffer
+    const auto& frames = scene_renderer->GetRender();
+    const auto itr = frames.find(FNV("Geometry"));
+    OE_ASSERT(itr != frames.end() , "Runtime Layer rendering without pipeline!");
+    const auto& [_, vp] = *itr;
+    other::Renderer::DrawFramebufferToWindow(vp);
   }
 
   void RuntimeLayer::OnUIRender() {

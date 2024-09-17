@@ -36,7 +36,7 @@ def parse_legacy_args(argv):
 
 
 def run_cmnd(cmnds):
-    cmnds[0] = "{}/{}/legacy/{}.py".format(os.getcwd(), TOOLS_DIR, cmnds[0])
+    cmnds[0] = "{}/{}/other/legacy/{}.py".format(os.getcwd(), TOOLS_DIR, cmnds[0])
     print("[Command] -> {}".format(cmnds))
 
     ret = 0

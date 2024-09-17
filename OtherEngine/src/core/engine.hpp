@@ -13,7 +13,9 @@ namespace other {
   class Event;
   
   /// implemented by client 
+#ifndef OTHERENGINE_DLL
   extern Scope<App> NewApp(const CmdLine& cmd_line, const ConfigTable& config);
+#endif // !OTHERENGINE_DLL
 
   class Engine {
     public:

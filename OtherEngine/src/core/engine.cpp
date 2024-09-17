@@ -5,24 +5,18 @@
 
 #include <optional>
 
+#include "core/config_keys.hpp"
 #include "core/defines.hpp"
 #include "core/logger.hpp"
 #include "core/config.hpp"
 #include "core/filesystem.hpp"
 #include "core/engine_state.hpp"
-
-#include "editor/test_editor_layer.hpp"
 #include "input/io.hpp"
-
 #include "parsing/ini_parser.hpp"
-
-#include "event/event.hpp"
-#include "event/core_events.hpp"
-#include "event/event_handler.hpp"
-#include "event/event_queue.hpp"
-
 #include "application/app_state.hpp"
 #include "application/runtime_layer.hpp"
+
+#include "event/event_queue.hpp"
 
 #include "scripting/script_engine.hpp"
 #include "physics/phyics_engine.hpp"
@@ -30,6 +24,7 @@
 #include "rendering/ui/ui.hpp"
 
 #include "editor/editor.hpp"
+#include "editor/test_editor_layer.hpp"
 #include "editor/editor_layer.hpp"
 #include "editor/editor_console_sink.hpp"
 
@@ -94,6 +89,7 @@ namespace other {
   }
   
   void Engine::LoadApp() {
+#ifndef OTHERENGINE_DLL
     auto app = NewApp(cmd_line , config);
     OE_ASSERT(app != nullptr , "Attempting to load a null application (client implementation of other::NewApp(Engine*) is invalid)");
 
@@ -115,15 +111,15 @@ namespace other {
 
     Ref<Layer> core_layer = nullptr;
     if (in_editor) {
-      core_layer = 
-#define TESTING_NEW_EDITOR 1
-#if TESTING_NEW_EDITOR
-        NewRef<TEditorLayer>(active_app.get());
-#else
-        NewRef<EditorLayer>(active_app.get());
-#endif // TESTING_NEW_EDITOR
+      if (config.GetVal<bool>(kDebugSection , "TEST-EDITOR").value_or(false)) {
+        core_layer = NewRef<TEditorLayer>(active_app.get(), active_app->config);
+      } else {
+        core_layer = NewRef<EditorLayer>(active_app.get(), active_app->config);
+      }
+      AppState::mode = EngineMode::DEBUG;
     } else {
       core_layer = NewRef<RuntimeLayer>(active_app.get() , active_app->config);
+      AppState::mode = EngineMode::RUNTIME;
     }
     active_app->PushLayer(core_layer);
 
@@ -137,9 +133,11 @@ namespace other {
         } , 
       });
     }
+#endif // !OTHERENGINE_DLL
   }
       
   void Engine::UnloadApp() {
+#ifndef OTHERENGINE_DLL
     Shutdown();
 
     OE_ASSERT(active_app != nullptr , "Attempting to unload a null application");
@@ -148,6 +146,7 @@ namespace other {
     active_app = nullptr;
 
     OE_DEBUG("Engine unloaded");
+#endif // !OTHERENGINE_DLL
   }
   
   void Engine::Launch() {

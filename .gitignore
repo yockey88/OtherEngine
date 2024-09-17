@@ -4,7 +4,8 @@ bin_obj/
 .cache/
 *.sln
 *.vcxproj*
-*csproj*
+*csproj
+*csproj.user
 *.lib
 *.dll
 *.exe
@@ -15,6 +16,10 @@ tools/other.egg-info/
 
 ## Project tools
 tool_dev/
+CsBindingGenerator/
+
+## C# stuff
+packages/
 
 # contains local path, no online sharing
 tools/runtestbed.py

@@ -19,6 +19,7 @@
 #include "event/event_queue.hpp"
 
 #include "scripting/script_engine.hpp"
+#include "rendering/vertex.hpp"
 #include "rendering/camera_base.hpp"
 #include "rendering/uniform.hpp"
 #include "rendering/renderer.hpp"
@@ -52,6 +53,7 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
     editor_camera = NewRef<PerspectiveCamera>(Renderer::WindowSize());
     editor_camera->SetPosition({ 0.f , 0.f , 3.f });
     editor_camera->SetDirection({ 0.f , 0.f , -1.f });
+    DefaultUpdateCamera(editor_camera);
     
     READ_INI_INTO(editor , editor_config , "editor.other");
     
@@ -112,10 +114,6 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
   }
 
   void EditorLayer::OnUpdate(float dt) {
-    if (camera_free) {
-      DefaultUpdateCamera(editor_camera);
-    }
-    
     panel_manager->Update(dt);
 
     /// after all early updates, update client and script
@@ -127,10 +125,6 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
   }
   
   void EditorLayer::OnLateUpdate(float dt) {
-    if (camera_free) {
-      // DefaultLateUpdateCamera(editor_camera);
-    }
-    
     panel_manager->LateUpdate(dt);
 
     /// after all early updates, update client and script
@@ -139,9 +133,13 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
     }
 
     AppState::Scenes()->LateUpdateScene(dt);
+    if (camera_free && !playing) {
+      DefaultUpdateCamera(editor_camera);
+    }
   }
 
   void EditorLayer::OnRender() {
+    /// TODO add the ability to see scene without editor camera
     bool scene_active = AppState::Scenes()->RenderScene(default_renderer , editor_camera);
     if (scene_active) {
       return;
@@ -234,13 +232,6 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
       
       ImGui::Text("Camera Direction :: [%f , %f , %f]" , 
                   editor_camera->Direction().x , editor_camera->Direction().y , editor_camera->Direction().z);
-
-      if (saved_scene.has_value() && ImGui::Button("Undo")) {
-        AppState::Scenes()->LoadCapture(saved_scene.value());
-        saved_scene = std::nullopt;
-      } else if (ImGui::Button("Save Scene")) {
-        AppState::Scenes()->SaveActiveScene();
-      }
     }
     ImGui::End();
 
@@ -248,17 +239,14 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
       script->RenderUI();
     }
 
-    /// true => something changed
-    if (panel_manager->RenderUI() && !saved_scene.has_value()) {
-      saved_scene = AppState::Scenes()->CaptureScene();
-    }
+    panel_manager->RenderUI();
 #endif
   }
 
   void EditorLayer::OnEvent(Event* event) {
     EventHandler handler(event);
     handler.Handle<ProjectDirectoryUpdateEvent>([this](ProjectDirectoryUpdateEvent& e) -> bool {
-        AppState::ProjectContext()->CreateScriptWatchers();
+      AppState::ProjectContext()->CreateScriptWatchers();
 
       if (!AppState::ProjectContext()->RegenProjectFile()) {
         OE_ERROR("Failed to generate project files! Project metadata corrupted!");
@@ -266,7 +254,6 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
       } 
 
       ReloadScripts();
-
       return true;
     });
 
@@ -276,9 +263,15 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
     });
 
     handler.Handle<KeyPressed>([this](KeyPressed& key) -> bool {
-      if (key.Key() == Keyboard::Key::OE_ESCAPE && camera_free) {
+      if (key.Key() == Keyboard::Key::OE_ESCAPE) {
+        if (playing) {
+          AppState::Scenes()->StopScene();
+          playing = false;
+        }
+
         Mouse::FreeCursor();
         camera_free = false;
+      
         return true;
       } 
 
@@ -290,10 +283,10 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
     });
 
     handler.Handle<MouseButtonPressed>([this](MouseButtonPressed& e) -> bool {
-      if (e.Button() == Mouse::MIDDLE && !camera_free) {
+      if (e.Button() == Mouse::MIDDLE && !playing) {
         Mouse::LockCursor();
-        DefaultUpdateCamera(editor_camera);
         camera_free = true;
+        DefaultUpdateCamera(editor_camera);
         return true;
       }
 
@@ -493,32 +486,45 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
     Ref<Shader> geometry_shader = BuildShader(geom_shader_path);
     Ref<RenderPass> geom_pass = NewRef<GeometryPass>(geometry_unis , geometry_shader);
 
+    Layout layout{
+      { other::ValueType::VEC3 , "position" } ,
+      { other::ValueType::VEC3 , "normal"   } ,
+      { other::ValueType::VEC3 , "tangent"  } ,
+      { other::ValueType::VEC3 , "binormal" } ,
+      { other::ValueType::VEC2 , "uvs"      } ,
+    };
+
+    FramebufferSpec fb_spec{
+      .depth_func = other::LESS_EQUAL ,
+      .clear_color = { 0.1f , 0.1f , 0.1f , 1.f } ,
+      .size =  {
+        window_size.x ,
+        window_size.y ,
+      },
+    };
+
     SceneRenderSpec spec{
       .camera_uniforms = NewRef<UniformBuffer>("Camera" , cam_unis , camera_binding_pnt) ,
       .light_uniforms = NewRef<UniformBuffer>("Lights" , light_unis , light_binding_pnt) ,
       .pipelines = {
         {
-          .framebuffer_spec = {
-            .depth_func = other::LESS_EQUAL ,
-            .clear_color = { 0.1f , 0.1f , 0.1f , 1.f } ,
-            .size =  {
-              window_size.x ,
-              window_size.y ,
-            },
-          } ,
-          .vertex_layout = {
-            { other::ValueType::VEC3 , "position" } ,
-            { other::ValueType::VEC3 , "normal"   } ,
-            { other::ValueType::VEC3 , "tangent"  } ,
-            { other::ValueType::VEC3 , "binormal" } ,
-            { other::ValueType::VEC2 , "uvs"      }
-          } ,
+          .framebuffer_spec = fb_spec ,
+          .vertex_layout = layout,
           .model_uniforms = model_unis , 
           .model_binding_point = model_binding_pnt ,
           .material_uniforms = material_unis ,
           .material_binding_point = material_binding_pnt ,
           .debug_name = "Geometry" , 
         } ,
+        {
+          .framebuffer_spec = fb_spec ,
+          .vertex_layout = layout,
+          .model_uniforms = model_unis , 
+          .model_binding_point = model_binding_pnt ,
+          .material_uniforms = material_unis ,
+          .material_binding_point = material_binding_pnt ,
+          .debug_name = "Debug" ,
+        }
       } ,
       .passes  {
         geom_pass

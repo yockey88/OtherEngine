@@ -17,7 +17,7 @@ namespace other {
         : Layer(app , "RuntimeLayer") , config(config) {}
 
       virtual void OnAttach() override;
-      virtual void OnDetach() override {}
+      virtual void OnDetach() override;
       virtual void OnEarlyUpdate(float dt) override;
       virtual void OnUpdate(float dt) override;
       virtual void OnLateUpdate(float dt) override;

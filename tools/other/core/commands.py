@@ -4,6 +4,7 @@ from argparse import ArgumentParser
 from .actions import EditAction
 from .actions import BuildAction
 from .actions import RunAction
+from .actions import RunDotnetAction
 from .actions import GenFileAction
 
 
@@ -103,8 +104,14 @@ engine_cmds: list[Command] = [
     # run project
     Command(
         "-r", "--run",
-        "runs the project specified by 'project' if it exists",
+        "runs the project specified by 'project' if it exists followed by the command line arguments",
         action=RunAction(), nargs='*', metavar="project"
+    ),
+
+    Command(
+        "-rdn", "--run-dotnet",
+        "runs the dotnet project specified by 'project' if it exists",
+        action=RunDotnetAction(), nargs='*', metavar="project"
     ),
 
     # configuration

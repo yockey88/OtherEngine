@@ -15,9 +15,19 @@ configuration.platforms = { "Windows" }
 configuration.groups = {
     ["OtherEngine"] = { "./OtherEngine" } ,
     ["OtherEngine-CsCore"] = { "./OtherEngine-ScriptCore/cs" } ,
+    ["DotOther"] = { "./DotOther" } ,
+
     ["OtherEngine-Tools"] = { "./OtherEngine-Launcher" } ,
-    ["Testing"] = { "./tests" , "./OtherTestEngine" } ,
-    ["Tools"] = { "./tools" } ,
+
+    ["Testing"] = { 
+      "./tests" , 
+      "./OtherTestEngine" 
+    } ,
+
+    ["Tools"] = { 
+      "./tools" ,
+      "./CsBindingGenerator" ,
+    } ,
     ["Games"] = { "./yockcraft" } ,
 }
 

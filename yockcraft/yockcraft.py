@@ -19,8 +19,7 @@ class YockcraftPipeline(Pipeline):
 if __name__ == "__main__":
   cfg_path = "yockcraft/config/toolchain.cfg"
   env.init(cfg_path, False)
-  oe.Native.set_cfg_path(cfg_path)
-  oe.open_scene("./yockcraft/yockcraft/assets/scenes/overworld.yscn")
+  print(oe.open_scene("./yockcraft/assets/scenes/overworld.yscn"))
 
   # pipeline = YockcraftPipeline()
   # pipeline.run()

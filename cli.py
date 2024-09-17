@@ -2,24 +2,25 @@ import sys
 
 from typing import override
 
-from other.core import utilities
-from other.core.legacy import do_legacy_cmds
-from other.pipeline import env
-from other.pipeline.pipeline import Pipeline
+from tools.other.core import utilities
+from tools.other.core.legacy import do_legacy_cmds
+from tools.other.pipeline import env
+from tools.other.pipeline.pipeline import Pipeline
 
 class OtherCliPipeline(Pipeline):
     @override
     def run(self):
-        print("> running pipeline")
-        if env.get_settings().fnv:
-          return utilities.fnv(env.get_settings().fnv)
-        if env.get_settings().generate_files:
-          self._process_error(self._gen_files(), " > file generation successful", " !> file generation failed!")
-        if env.get_settings().generate_projects or env.get_settings().generate_files:
-          self._process_error(self._gen_projects(), " > project generation successful", " !> project generation failed!")
-        self._process_error(self._try_build())
-        self._process_error(self._try_run())
-        return 0
+      print("> running pipeline")
+      if env.get_settings().fnv:
+        return utilities.fnv(env.get_settings().fnv)
+      if env.get_settings().generate_files:
+        self._process_error(self._gen_files(), " > file generation successful", " !> file generation failed!")
+      if env.get_settings().generate_projects or env.get_settings().generate_files:
+        self._process_error(self._gen_projects(), " > project generation successful", " !> project generation failed!")
+      self._process_error(self._try_build())
+      self._process_error(self._open_editor())
+      self._process_error(self._try_run())
+      return 0
 
 if __name__ == "__main__":
     # if cli.py is begin called then we use engine configuration

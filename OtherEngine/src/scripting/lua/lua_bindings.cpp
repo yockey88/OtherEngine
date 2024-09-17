@@ -82,28 +82,28 @@ namespace lua_script_bindings {
 
 namespace {
 
-  [[nodiscard]] static inline entt::id_type GetTypeId(const sol::table& obj) {
-    const auto f = obj["type_id"].get<sol::function>();
-    OE_ASSERT(f.valid() , "TypeId not exposed to LUA");
-    return f.valid() ? f().get<entt::id_type>() : -1;
-  }
+  // [[nodiscard]] static inline entt::id_type GetTypeId(const sol::table& obj) {
+  //   const auto f = obj["type_id"].get<sol::function>();
+  //   OE_ASSERT(f.valid() , "TypeId not exposed to LUA");
+  //   return f.valid() ? f().get<entt::id_type>() : -1;
+  // }
 
-  template <typename... Args>
-  static inline auto InvokeMetaFunc(entt::meta_type meta_type , entt::id_type function_id , Args&&... args) {
-    if (!meta_type) {
+  // template <typename... Args>
+  // static inline auto InvokeMetaFunc(entt::meta_type meta_type , entt::id_type function_id , Args&&... args) {
+  //   if (!meta_type) {
 
-    } else {
-      if (auto&& meta_function = meta_type.func(function_id); meta_function) {
-        return meta_function.invoke({} , std::forward<Args>(args)...);
-      }
-    }
-    return entt::meta_any{};
-  }
+  //   } else {
+  //     if (auto&& meta_function = meta_type.func(function_id); meta_function) {
+  //       return meta_function.invoke({} , std::forward<Args>(args)...);
+  //     }
+  //   }
+  //   return entt::meta_any{};
+  // }
 
-  template <typename... Args>
-  static inline auto InvokeMetaFunc(entt::id_type type_id , entt::id_type function_id , Args&&... args) {
-    return InvokeMetaFunc(entt::resolve(type_id) , function_id , std::forward<Args>(args)...);
-  }
+  // template <typename... Args>
+  // static inline auto InvokeMetaFunc(entt::id_type type_id , entt::id_type function_id , Args&&... args) {
+  //   return InvokeMetaFunc(entt::resolve(type_id) , function_id , std::forward<Args>(args)...);
+  // }
 
 } // anonyomous namespace 
       
@@ -209,18 +209,18 @@ namespace {
       // "Application" , Keyboard::Key::OE_APPLICATION  ,
       // "Power" , Keyboard::Key::OE_POWER  ,
       // "KpEquals" , Keyboard::Key::OE_KP_EQUALS ,
-      "F13" , Keyboard::Key::OE_F13 ,
-      "F14" , Keyboard::Key::OE_F14 ,
-      "F15" , Keyboard::Key::OE_F15 ,
-      "F16" , Keyboard::Key::OE_F16 ,
-      "F17" , Keyboard::Key::OE_F17 ,
-      "F18" , Keyboard::Key::OE_F18 ,
-      "F19" , Keyboard::Key::OE_F19 ,
-      "F20" , Keyboard::Key::OE_F20 ,
-      "F21" , Keyboard::Key::OE_F21 ,
-      "F22" , Keyboard::Key::OE_F22 ,
-      "F23" , Keyboard::Key::OE_F23 ,
-      "F24" , Keyboard::Key::OE_F24 ,
+      // "F13" , Keyboard::Key::OE_F13 ,
+      // "F14" , Keyboard::Key::OE_F14 ,
+      // "F15" , Keyboard::Key::OE_F15 ,
+      // "F16" , Keyboard::Key::OE_F16 ,
+      // "F17" , Keyboard::Key::OE_F17 ,
+      // "F18" , Keyboard::Key::OE_F18 ,
+      // "F19" , Keyboard::Key::OE_F19 ,
+      // "F20" , Keyboard::Key::OE_F20 ,
+      // "F21" , Keyboard::Key::OE_F21 ,
+      // "F22" , Keyboard::Key::OE_F22 ,
+      // "F23" , Keyboard::Key::OE_F23 ,
+      // "F24" , Keyboard::Key::OE_F24 ,
     //   "Exec" , Keyboard::Key::OE_EXEC ,
     //   "Help" , Keyboard::Key::OE_HELP ,
     //   "Menu" , Keyboard::Key::OE_MENU ,

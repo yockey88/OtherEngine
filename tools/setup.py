@@ -13,7 +13,7 @@ if __name__ == "__main__":
           version='0.1',
           description='Other Engine',
           license='MIT',
-          packages=find_packages(),
+          packages=find_packages(exclude=['*/bin/*']),
           include_package_data=True,
           zip_safe=False
         )

@@ -22,8 +22,7 @@ local oe_native = {
 
   links = function()
     libdirs { 
-      PythonPaths.lib_path,
-      -- "%{wks.location}/bin/%{cfg.buildcfg}/OtherEngine"
+      PythonPaths.lib_path
     }
 
     links { 
@@ -37,13 +36,6 @@ local oe_native = {
       "OE_MODULE",
     }
   end,
-
-  post_build_commands = function()
-    filter { "system:windows" }
-      postbuildcommands {
-        "{COPY} %{cfg.buildtarget.abspath} %{wks.location}/tools/other/native"
-      }
-  end
 }
 
 AddModule(oe_native)

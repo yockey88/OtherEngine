@@ -27,7 +27,12 @@ local OtherEngine = {
       "./platform",
     }
     systemversion "latest"
-    buildoptions { "/EHsc" , "/Zc:preprocessor" , "/Zc:__cplusplus" }
+    buildoptions { 
+      "/EHsc" , 
+      "/Zc:preprocessor" , 
+      "/Zc:__cplusplus" ,
+      "/Zm10",
+    }
   end,
   
   windows_debug_configuration = function()
@@ -38,11 +43,7 @@ local OtherEngine = {
       "TRACY_ENABLE" ,
       "TRACY_ON_DEMAND" ,
     }
-  
-    systemversion "latest"
-    buildoptions { "/EHsc" , "/Zc:preprocessor" , "/Zc:__cplusplus" }
   end,
 }
-
 
 AddProject(OtherEngine)

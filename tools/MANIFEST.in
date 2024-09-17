@@ -1,1 +1,5 @@
 recursive-include other *.pyd
+include other/native/*.dll
+
+recursive-exclude other *.vcxproj*
+recursive-exclude other *.lua

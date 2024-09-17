@@ -41,6 +41,10 @@ namespace {
     return ec;
   }
 
+  OE_API void PrintHello() {
+    println("Hello from OtherEngine!");
+  }
+
 namespace {
 
   void Help() {

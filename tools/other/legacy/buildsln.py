@@ -1,4 +1,4 @@
-from project.project_builders import full_build
+from other.core.project_builders import full_build
 
 if __name__ == "__main__":
     try:
@@ -8,6 +8,5 @@ if __name__ == "__main__":
             print(" > rebuild successful")
         else:
             print(" !> rebuild failed!")
-
     except EnvironmentError:
         print("Other Engine does not yet support anything but windows!")

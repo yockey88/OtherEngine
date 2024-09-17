@@ -6,15 +6,12 @@ from abc import abstractmethod
 
 from pathlib import Path
 
-from other.core import utilities
-from other.core.utilities import Singleton
-
-from other.core.project_builders import gen_projects, full_build, build_project
-
-from other.core.file_generators import generate_engine_files
-
-from other.pipeline.pipeline_env import oe_env
-from other.pipeline.pipeline_env import PipelineConfig
+from ..core import utilities
+from ..core.utilities import Singleton
+from ..core.project_builders import gen_projects, full_build, build_project
+from ..core.file_generators import generate_engine_files
+from ..pipeline.pipeline_env import oe_env
+from ..pipeline.pipeline_env import PipelineConfig
 
 class Pipeline(Singleton):
   config: PipelineConfig = None
@@ -58,16 +55,49 @@ class Pipeline(Singleton):
   
   @classmethod
   def _open_editor(self):
-    if not oe_env.get_settings().edit is None:
+    if oe_env.get_settings().edit is None:
       return 0
     
     config = oe_env.project_configuration()
     verbose: bool = oe_env.is_verbose()
 
-    # name: str = oe_env.get_settings().edit[0]
-    # res = utilities.open_project(config, name)
-    # self._process_error(res, " > project opened in editor", " !> failed to open project in editor")
-    return 1
+    project = oe_env.get_settings().edit[0]
+
+    path_dir = Path(".")
+    candidates: list[Path] = []
+    for _, _, paths in os.walk(".", False):
+      for path in paths:
+        p = Path(path)
+        if p.suffix == ".other" and p.stem == project:
+          candidates.append(p) 
+          path_dir = p.parent.absolute()
+
+    if len(candidates) == 0:
+      print(" > no project found for {}".format(project))
+      return 1
+    
+    if len(candidates) > 1:
+      print(" > multiple projects found named {}!".format(project))
+      return 1
+    
+    name = candidates[0].stem
+    filename = candidates[0].name
+
+    if sys.platform == "linux":
+      c_offset, cpath = _process_linux_path(path_dir)
+      path_dir = Path(cpath)
+
+    print("{}/{}/{}".format(path_dir, name, filename))
+    res = utilities.run_project(config, name, [
+      "--project", "{}/{}/{}.other".format(path_dir, name, name),
+      "--cwd", "./{}".format(name) ,
+      "--editor"
+    ])
+
+    if oe_env.get_settings().run is not None:
+      oe_env.get_settings().run = None
+
+    return res
 
   @classmethod
   def _try_build(self):
@@ -112,12 +142,9 @@ class Pipeline(Singleton):
         break
 
     return c_offset, cpath
-    
+  
   @classmethod
-  def _try_run(self):
-    if oe_env.get_settings().run is None:
-      return 0
-    
+  def _run_project(self):
     config = oe_env.project_configuration()
     verbose: bool = oe_env.is_verbose()
 
@@ -133,8 +160,9 @@ class Pipeline(Singleton):
           path_dir = p.parent.absolute()
 
     if len(candidates) == 0:
-      print(" > no project found for {}".format(project))
-      return 1
+      ## if no candidates, attempt to just run diurectly from the name
+      print(" > attempting to run project {} directly".format(project))
+      return utilities.run_project(config, project, oe_env.get_settings().run[1:])
     
     if len(candidates) > 1:
       print(" > multiple projects found named {}!".format(project))
@@ -150,8 +178,34 @@ class Pipeline(Singleton):
     print("{}/{}/{}".format(path_dir, name, filename))
     res = utilities.run_project(config, name, [
       "--project", "{}/{}/{}.other".format(path_dir, name, name),
-      "--cwd", "./{}".format(name) 
+      "--cwd", "./{}".format(name)
     ])
+
+  @classmethod 
+  def _run_dotnet_project(self):
+    config = oe_env.project_configuration()
+    verbose: bool = oe_env.is_verbose()
+
+    project = oe_env.get_settings().run_dotnet[0]
+
+    if sys.platform == "linux":
+      c_offset, cpath = _process_linux_path(path_dir)
+      path_dir = Path(cpath)
+
+    print("dotnet {}".format(project))
+    res = utilities.run_dotnet_project(config, project, oe_env.get_settings().run_dotnet[1:])
+
+    return res
+    
+  @classmethod
+  def _try_run(self):
+    if oe_env.get_settings().run is None and oe_env.get_settings().run_dotnet is None:
+      return 0
+    
+    if oe_env.get_settings().run is not None:
+      return self._run_project()
+    else:
+      return self._run_dotnet_project()
 
   @abstractmethod
   def run(self):

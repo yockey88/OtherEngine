@@ -38,15 +38,26 @@ def normalize_config_str(config):
 def run_project(config, name, arguments):
     if is_windows():
         print(" > running {}".format(name))
-        proc_args = ["cmd.exe", "/c",
-                     "{}\\run.bat".format(TOOLS_DIR),
-                     config, name]
+        proc_args = ["cmd.exe", "/c", "{}\\run.bat".format(TOOLS_DIR), config, name]
         proc_args.extend(arguments)
         ret = subprocess.call(proc_args, cwd=os.getcwd())
         return True if ret == 0 else False
     else:
         return False
 
+def run_dotnet_project(config, name, arguments = []):
+    if is_windows():
+        print(" > running {}".format(name))
+        proc_args = ["pwsh" , "-Command", 
+                     "& ./bin/{}/net8.0/{}.exe".format(config,name,name)]
+        
+        if len(arguments) > 0:
+            proc_args.extend(arguments)
+
+        ret = subprocess.call(proc_args, cwd=os.getcwd())
+        return True if ret == 0 else False
+    else:
+        return False
 
 def is_windows():
     return PLATFORM == "windows"

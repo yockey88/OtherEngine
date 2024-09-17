@@ -81,19 +81,19 @@ ExitCode OpenScene(const std::string_view scene) {
   }
   
   try {
-    println("Loading other environment...");
-    LoadSystems();
+    // println("Loading other environment...");
+    // LoadSystems();
     
-    // // AppState::Scenes()->LoadScene(scene);
-    // // AppState::Scenes()->SetAsActive(scene);
+    // AppState::Scenes()->LoadScene(scene);
+    // AppState::Scenes()->SetAsActive(scene);
 
-    // println("running...");
-    // do {
-    //   PyEnv::application->Run();
-    // } while (!PyEnv::exit_code.has_value());
+    println("opening scene : {}", scene);
+    // PyEnv::application->Run();
+    while (true) {
+    }
 
-    println("shutting down environment...");
-    ShutdownSystems();
+    // println("shutting down environment...");
+    // ShutdownSystems();
   } catch (std::exception& e) {
     println("Failed to load environment : {}", e.what());
     return ExitCode::FAILURE;
@@ -102,8 +102,8 @@ ExitCode OpenScene(const std::string_view scene) {
     return ExitCode::FAILURE;
   }
 
-  // println("exiting with code {}", PyEnv::exit_code.value());
-  return ExitCode::SUCCESS; //PyEnv::exit_code.value();
+  println("exiting with code {}", PyEnv::exit_code.value());
+  return PyEnv::exit_code.value();
 }
 
 struct LogWrapper {
@@ -127,19 +127,13 @@ PYBIND11_MODULE(engine, m) {
     .def("critical", &LogWrapper::Critical);
 
   py::class_<PyEnv>(m, "Native")
-    .def("set_cfg_path", [&](const std::string& str) { PyEnv::env_cfg_path = str; })
-    .def("get_cfg_path", []() { return PyEnv::env_cfg_path.value_or("<empty>"); });
+    .def("set_config_path", [&](const std::string& str) { PyEnv::env_cfg_path = str; })
+    .def("get_config_path", []() { return PyEnv::env_cfg_path.value_or("<empty>"); });
 
   py::enum_<ExitCode>(m, "ExitCode")
     .value("SUCCESS", ExitCode::SUCCESS)
     .value("FAILURE", ExitCode::FAILURE)
     .value("NO_EXIT", ExitCode::NO_EXIT);
-
-  // py::class_<Arg>(m, "Arg")
-  //   .def(py::init<>())
-  //   .def_readwrite("hash", &Arg::hash)
-  //   .def_readwrite("flag", &Arg::flag)
-  //   .def_readwrite("args", &Arg::args);
 
   m.def("open_scene", &OpenScene);
   m.def("fnv_hash" , &FNV);
@@ -148,6 +142,7 @@ PYBIND11_MODULE(engine, m) {
 namespace {
   
 void EnvironmentApp::OnAttach() {
+  println(" > EnvironmentApp::OnAttach");
 }
 
 void EnvironmentApp::OnEvent(Event* event) {
@@ -167,12 +162,15 @@ void EnvironmentApp::OnEvent(Event* event) {
 }
 
 void EnvironmentApp::Update(float dt) {
+  println(" > EnvironmentApp::Update({})", dt);
 }
 
 void EnvironmentApp::Render() {
+  println(" > EnvironmentApp::Render");
 }
 
 void EnvironmentApp::OnDetach() {
+  println(" > EnvironmentApp::OnDetach");
 }
 
 Ref<AssetHandler> EnvironmentApp::CreateAssetHandler() {
@@ -195,42 +193,32 @@ bool ValidateConfigPath() {
 }
 
 bool LoadConfig() {
-  try {
-    if (!ValidateConfigPath()) {
-      println(" > Environment config path is not valid");
-      return false;
-    }
-
-    IniFileParser parser(PyEnv::env_cfg_path->string());
-    try {
-      PyEnv::config = parser.Parse();
-    } catch (IniException& e) {
-      println(" > Failed to parse INI file : {}", e.what());
-      return false;
-    }
-    println(" > Environment config loaded");
-  } catch (std::exception& e) {
-    println("> Failed to load environment config : {}", e.what());
-    return false;
-  } catch (...) {
-    println(" > Failed to load environment config : unknown error");
+  if (!ValidateConfigPath()) {
+    println(" > Config path is not valid");
     return false;
   }
 
+  IniFileParser parser(PyEnv::env_cfg_path->string());
+  try {
+    PyEnv::config = parser.Parse();
+  } catch (IniException& e) {
+    println(" > Failed to parse INI file : {}", e.what());
+    return false;
+  }
+
+  println(" > Config config loaded");
   return true;
 }
 
 void LoadSystems() {
   other::Logger::Open(*PyEnv::config);
   other::Logger::Instance()->RegisterThread("Other Environment");
-  
 
-
-  // PyEnv::application = NewScope<EnvironmentApp>(PyEnv::cmd_line, *PyEnv::config);
-  // PyEnv::application->Load();
-  // AppState::Initialize(PyEnv::application.get() , PyEnv::application->layer_stack , 
-  //                       PyEnv::application->scene_manager , PyEnv::application->asset_handler , 
-  //                       PyEnv::application->project_metadata);
+  PyEnv::application = NewScope<EnvironmentApp>(PyEnv::cmd_line, *PyEnv::config);
+  PyEnv::application->Load();
+  AppState::Initialize(PyEnv::application.get() , PyEnv::application->layer_stack , 
+                        PyEnv::application->scene_manager , PyEnv::application->asset_handler , 
+                        PyEnv::application->project_metadata);
   
   IO::Initialize();
   EventQueue::Initialize(*PyEnv::config);
@@ -254,7 +242,7 @@ void ShutdownSystems() {
   EventQueue::Shutdown();
   IO::Shutdown();
 
-  // PyEnv::application->Unload();
+  PyEnv::application->Unload();
   other::Logger::Shutdown();
 }
 

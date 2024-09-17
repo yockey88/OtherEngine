@@ -49,7 +49,7 @@ namespace other {
 
       Ref<CameraBase> GetPrimaryCamera() const;
 
-      void Render(Ref<SceneRenderer> scene_renderer);
+      void Render(Ref<SceneRenderer>& scene_renderer);
 
       void RenderUI();
 
@@ -103,7 +103,7 @@ namespace other {
 
       Ref<Environment> environment = nullptr;
 
-      void RenderToPipeline(const std::string_view plname , Ref<SceneRenderer> scene_renderer , bool do_debug = false);
+      void RenderToPipeline(const std::string_view plname , Ref<SceneRenderer>& scene_renderer , bool do_debug = false);
 
       void OnAddRigidBody2D(entt::registry& context , entt::entity ent);
       void OnAddCollider2D(entt::registry& context , entt::entity ent);

@@ -57,12 +57,12 @@ def generate_engine_files(project="", directory="", filename=""):
 
     with open(hpp, "w") as f:
       f.write(template_hpp.format(directory, filename, uc_hname, uc_hname, uc_hname))
-        
+
     with open(cpp, "w") as f:
       f.write(template_cpp.format(directory, filename, directory, filename))
 
     return 0
-        
+
 def generate_config_file(name="", path=""):
     if name == "":
       print("Please provide a name for the project (-n)")
@@ -84,6 +84,7 @@ def generate_config_file(name="", path=""):
         f.write("name = \"{}\"\n".format(name))
         f.write("author = \"<no-author>\"\n")
         f.write("version = 0.0.1\n")
+        f.write("need-primary-scene = false\n")
         f.write("\n")
         f.write("[window]\n")
         f.write("width = 1280\n")

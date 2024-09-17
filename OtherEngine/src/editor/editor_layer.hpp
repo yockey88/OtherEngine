@@ -19,8 +19,8 @@ namespace other {
 
   class EditorLayer : public Layer {
     public:
-      EditorLayer(App* editor)
-          : Layer(editor , "EditorLayer") {} 
+      EditorLayer(App* editor, const ConfigTable& app_config)
+          : Layer(editor , "EditorLayer") , app_config(app_config) {} 
       virtual ~EditorLayer() override {};
 
       virtual void OnAttach() override;
@@ -38,6 +38,7 @@ namespace other {
       virtual void OnScriptReload() override;
 
     private:
+      const ConfigTable& app_config;
       ConfigTable editor_config;
 
       Opt<StateCapture> saved_scene;

@@ -16,11 +16,16 @@
 #include "ecs/components/camera.hpp"
 #include "ecs/components/rigid_body_2d.hpp"
 
+#include "scripting/cs/native_functions/cs_native_helpers.hpp"
 #include "scripting/cs/native_functions/cs_native_logging.hpp"
 #include "scripting/cs/native_functions/cs_native_input.hpp"
 #include "scripting/cs/native_functions/cs_native_rendering.hpp"
-#include "scripting/cs/native_functions/cs_native_scene.hpp"
+#include "scripting/cs/native_functions/cs_native_entity.hpp"
+#include "scripting/cs/native_functions/cs_native_core_components.hpp"
+#include "scripting/cs/native_functions/cs_native_physics_components.hpp"
 #include "scripting/cs/native_functions/cs_native_model_factory.hpp"
+#include "scripting/cs/native_functions/cs_native_helpers.hpp"
+#include <mono/metadata/loader.h>
 
 namespace other {
 
@@ -163,6 +168,17 @@ namespace other {
   }
 
   void CsScriptBindings::RegisterNativeFunctions(MonoImage* asm_image) {
+#define BIND_CS_READWRITE_PROPERTY(name, vt , c , m)                                                                                      \
+  cs_script_bindings::NativeRetrieveThing<vt, c, &c::m>::type NativeGet##name = &cs_script_bindings::NativeRetrieveThingFn<vt, c, &c::m>; \
+  cs_script_bindings::NativeSetThing<vt, c, &c::m>::type NativeSet##name = &cs_script_bindings::NativeSetThingFn<vt, c, &c::m>;
+
+#define _REGISTER_NATIVE_FUNCTION(class_name , comp_name , vt , m)                                         \
+    {                                                                                                      \
+      BIND_CS_READWRITE_PROPERTY(comp_name, vt , comp_name , m);                                           \
+      mono_add_internal_call("Other." #class_name "::NativeGet" #comp_name , (void*)NativeGet##comp_name); \
+      mono_add_internal_call("Other." #class_name "::NativeSet" #comp_name , (void*)NativeSet##comp_name); \
+    }
+
 #define REGISTER_NATIVE_FUNCTION(class_name , name) \
     mono_add_internal_call("Other." #class_name "::" #name , (void*)cs_script_bindings::name);
 
@@ -175,6 +191,20 @@ namespace other {
   ///
   /// Still other functions might require the transfer of non-primitive types that are given to the .NET runtime as out parameters
   ///   like the MouseXXXPos calls, which have glm::vec2* parameters natively, but are passed Other.Vec2 out parameters from the .NET runtime
+
+  REGISTER_NATIVE_FUNCTION(Transform , NativeGetScale);
+  REGISTER_NATIVE_FUNCTION(Transform , NativeSetScale);
+
+  REGISTER_NATIVE_FUNCTION(Transform , NativeGetPosition);
+  REGISTER_NATIVE_FUNCTION(Transform , NativeSetPosition);
+
+  REGISTER_NATIVE_FUNCTION(Transform , NativeGetRotation);
+  REGISTER_NATIVE_FUNCTION(Transform , NativeSetRotation);
+  REGISTER_NATIVE_FUNCTION(Transform , NativeRotateObject);
+
+  REGISTER_NATIVE_FUNCTION(Transform , NativeGetQuaternion);
+  REGISTER_NATIVE_FUNCTION(Transform , NativeSetQuaternion);
+  // _REGISTER_NATIVE_FUNCTION(Transform , Quaternion, glm::quat, qrotation);
 
   REGISTER_NATIVE_FUNCTION(Logger , WriteLine); 
   REGISTER_NATIVE_FUNCTION(Logger , WriteTrace); 
@@ -193,9 +223,6 @@ namespace other {
   REGISTER_NATIVE_FUNCTION(Scene , NativeHasObjectById);
   REGISTER_NATIVE_FUNCTION(Scene , NativeHasObjectByName);
 
-  REGISTER_NATIVE_FUNCTION(Scene , NativeGetScale);
-  REGISTER_NATIVE_FUNCTION(Scene , NativeGetPosition);
-  REGISTER_NATIVE_FUNCTION(Scene , NativeGetRotation);
 
   REGISTER_NATIVE_FUNCTION(Scene , NativeGetParent);
   REGISTER_NATIVE_FUNCTION(Scene , NativeGetNumChildren);
@@ -220,12 +247,6 @@ namespace other {
   REGISTER_NATIVE_FUNCTION(Scene , NativeAddComponent);
   REGISTER_NATIVE_FUNCTION(Scene , NativeHasComponent);
   REGISTER_NATIVE_FUNCTION(Scene , NativeRemoveComponent);
-
-  REGISTER_NATIVE_FUNCTION(Scene , NativeSetScale);
-  REGISTER_NATIVE_FUNCTION(Scene , NativeSetPosition);
-  REGISTER_NATIVE_FUNCTION(Scene , NativeSetRotation);
-
-  REGISTER_NATIVE_FUNCTION(Scene , NativeRotateObject);
   
   REGISTER_NATIVE_FUNCTION(Scene , NativeSetPhysicsBodyType);
   REGISTER_NATIVE_FUNCTION(Scene , NativeSetMass);

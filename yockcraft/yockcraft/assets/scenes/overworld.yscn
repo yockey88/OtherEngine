@@ -1,33 +1,34 @@
 [metadata]
 name = "Overworld"
 entities = {
-  "camera" ,
-  "sun" ,
-  "plight" ,
-  "terrain"
+  "terrain" , 
+  "sun" , 
+  "camera" , 
+  "plight"
 }
 
-[physics.2D]
-gravity = { 0 , -9.8 }
-
-[physics.3D]
-
-[camera]
-UUID = 4220486183894562136
+[terrain]
+UUID = 4009018379399950635
 components = {
+  static-mesh , 
   script
 }
 
-[camera.transform]
+[terrain.transform]
 position = { 0 , 0 , 0 }
-rotation = { 0 , 0 , 0 , 0 }
+rotation = { -1.45616e-09 , 0.935052 , 1.48382e-07 , 0.354511 }
 scale = { 1 , 1 , 1 }
 
-[camera.camera]
-type = "perspective"
+[terrain.relationship]
+children = {}
 
-[camera.script]
-YockCraftScripts = { "Yockcraft::CameraController" }
+[terrain.static-mesh]
+visible = true
+is-primitive = true
+primitive = 3
+
+[terrain.script]
+YockCraftScripts = { "Yockcraft::Terrain" }
 
 [sun]
 UUID = 4025795962345870502
@@ -37,11 +38,49 @@ components = {
 
 [sun.transform]
 position = { 0 , 0 , 0 }
-rotation = { 0 , 0 , 0 , 0 }
+rotation = { 0 , 0 , 0 , 1 }
 scale = { 1 , 1 , 1 }
 
+[sun.relationship]
+children = {}
+
 [sun.light-source]
-type = 0
+
+
+[camera]
+UUID = 4220486183894562136
+components = {
+  script , 
+  camera
+}
+
+[camera.transform]
+position = { 0 , 0 , 3 }
+rotation = { 0 , 0 , 0 , 1 }
+scale = { 1 , 1 , 1 }
+
+[camera.relationship]
+children = {}
+
+# [camera.script]
+# YockCraftScripts = { "Yockcraft::CameraController" }
+
+[camera.camera]
+type = perspective
+position = { 0 , 0 , 0 }
+direction = { 1 , 0 , 0 }
+up = { 0 , 0 , 1 }
+world-up = { 0 , 1 , 0 }
+right = { 0 , 0 , 1 }
+rotation = { 0 , 0 , 0 }
+viewport = { 1920 , 1080 }
+clip = { 0.1 , 10000 }
+speed = 0.1
+sensitivity = 0.2
+fov = 75
+zoom = 45
+constrain-pitch = true
+primary = true
 
 [plight]
 UUID = 5187631263640703325
@@ -49,19 +88,19 @@ components = {
   light-source
 }
 
-[plight.light-source]
-type = 1
-
-[terrain]
-UUID = 4009018379399950635
-components = {
-  script
-}
-
-[terrain.transform]
+[plight.transform]
 position = { 0 , 0 , 0 }
-rotation = { 0 , 0 , 0 , 0 }
-scale = { 1 , 1 , 1 }
+rotation = { 0 , 0 , 0 , 1 }
+scale = { 0.2 , 0.2 , 0.2 }
 
-[terrain.script]
-YockCraftScripts = { "Yockcraft::Terrain" }
+[plight.relationship]
+children = {}
+
+[plight.light-source]
+type = 0
+
+[physics.2D]
+gravity = { 0 , -9.8 }
+
+[physics.3D]
+

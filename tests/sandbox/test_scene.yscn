@@ -64,3 +64,34 @@ children = {}
 visible = true
 is-primitive = true
 primitive = 3
+
+# [camera]
+# UUID = 4220486183894562136
+# components = {
+#   camera
+# }
+# 
+# [camera.transform]
+# position = { 0 , 0 , 0 }
+# rotation = { 0 , 0 , 0 , 1 }
+# scale = { 1 , 1 , 1 }
+# 
+# [camera.relationship]
+# children = {}
+# 
+# [camera.camera]
+# type = perspective
+# position = { 0 , 0 , 0 }
+# direction = { 1 , 0 , 0 }
+# up = { 0 , 0 , 1 }
+# world-up = { 0 , 1 , 0 }
+# right = { 0 , 0 , 1 }
+# rotation = { 0 , 0 , 0 }
+# viewport = { 1920 , 1080 }
+# clip = { 0.1 , 10000 }
+# speed = 0.1
+# sensitivity = 0.2
+# fov = 75
+# zoom = 45
+# constrain-pitch = true
+# primary = true

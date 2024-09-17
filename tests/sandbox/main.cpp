@@ -30,6 +30,7 @@
 #include "ecs/entity.hpp"
 #include "ecs/components/mesh.hpp"
 #include "ecs/components/light_source.hpp"
+#include "ecs/components/camera.hpp"
 
 #include "scene/scene_serializer.hpp"
 #include "scene/environment.hpp"
@@ -293,10 +294,7 @@ int main(int argc , char* argv[]) {
       glm::vec3 outline_color{ 1.f , 0.f , 0.f };
 
       SceneSerializer serializer;
-      Ref<other::Scene> scene = 
-#define LOADING_SCENE 1
-#if LOADING_SCENE
-        /* scene = */ nullptr;
+      Ref<other::Scene> scene = nullptr;
       {
         auto loaded_scene = serializer.Deserialize(scenepath.string());
         if (loaded_scene.scene == nullptr) {
@@ -306,15 +304,6 @@ int main(int argc , char* argv[]) {
 
         scene = loaded_scene.scene;
       }
-#else
-        /* scene = */ NewRef<other::Scene>();
-        {
-          auto* cube = scene->CreateEntity("cube");
-          cube->AddComponent<other::StaticMesh>();
-          auto* floor = scene->CreateEntity("floor");
-          floor->AddComponent<other::StaticMesh>();
-        }
-#endif // LOADING_SCENE
 
       {
         auto* cube = scene->GetEntity("cube");
@@ -331,6 +320,12 @@ int main(int argc , char* argv[]) {
           .direction = { 0.f , -1.f , 0.f , 1.f } ,
           .color = { 0.22f , 0.22f , 0.11f , 1.f } ,
         };
+
+        auto* cam_ent = scene->CreateEntity("camera");
+        auto& camera_comp = cam_ent->AddComponent<other::Camera>();
+        camera_comp.is_primary = true;
+        camera_comp.camera = NewRef<other::PerspectiveCamera>(other::Renderer::GetWindow()->Size());
+        camera_comp.camera->SetPosition({ 0.f , 0.f , 3.f });
         
         auto* point_light = scene->GetEntity("plight");
         // auto& point_light_comp = point_light->GetComponent<other::LightSource>();
@@ -408,17 +403,21 @@ int main(int argc , char* argv[]) {
 
         other::Renderer::GetWindow()->Clear();
 
-        renderer->SubmitCamera(camera);
+        // renderer->SubmitCamera(camera);
         scene->Render(renderer);
         renderer->EndScene();
 
         const auto& frames = renderer->GetRender(); 
-        const auto& vp = frames.at(FNV("Geometry"));
-
-        if (render_to_window) {
-          other::Renderer::DrawFramebufferToWindow(vp);
-        } else {
+        
+        auto itr = frames.find(FNV("Geometry"));
+        if (itr != frames.end()) {
+          const auto& vp = frames.at(FNV("Geometry"));
+          if (render_to_window) {
+            other::Renderer::DrawFramebufferToWindow(vp);
+          } else {
+          }
         }
+
 
 #define UI_ENABLED 1
 #if UI_ENABLED
@@ -426,7 +425,9 @@ int main(int argc , char* argv[]) {
         const ImVec2 win_size = { (float)other::Renderer::WindowSize().x , (float)other::Renderer::WindowSize().y };
 
         if (ImGui::Begin("Frames")) {
-          RenderItem(frames.at(FNV("Debug"))->texture , "Debug" , ImVec2(win_size.x , win_size.y));
+          if (auto frame = frames.find(FNV("Debug")); frame != frames.end()) {
+            RenderItem(frame->second->texture, "Debug", ImVec2(win_size.x, win_size.y));
+          }
         }
         ImGui::End();
 

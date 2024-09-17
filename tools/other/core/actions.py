@@ -24,6 +24,13 @@ class RunAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string):
         setattr(namespace, self.dest, values)
 
+class RunDotnetAction(argparse.Action):
+    def __init__(self, **kwargs):
+        super().__init__("-rd", "--run-dotnet", nargs='*', **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string):
+        setattr(namespace, self.dest, values)
+
 class GenFileAction(argparse.Action):
     def __init__(self, **kwargs):
         super().__init__("-g", "--gen-file", nargs=1, **kwargs)

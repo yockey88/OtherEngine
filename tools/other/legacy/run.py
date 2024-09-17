@@ -2,8 +2,8 @@ import sys
 import os
 import subprocess
 
-import core.project_settings as project_settings
-import core.utilities as utilities
+import other.core.project_settings as project_settings
+import other.core.utilities as utilities
 
 def run_default():
     arguments = sys.argv[1:]

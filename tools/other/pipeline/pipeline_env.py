@@ -8,9 +8,10 @@ from typing import override
 from argparse import Namespace
 from pathlib import Path
 
-from other.core import Singleton
-from other.core import utilities
-from other.core import parsers
+from ..core import Singleton
+from ..core import utilities
+from ..core import parsers
+from ..native import engine as oe
 
 from dataclasses import dataclass
 
@@ -62,6 +63,12 @@ class OtherEnginePipelineEnvironment(Singleton):
         "NO pipeline configuration found for tool pipeline"
       )
     
+    self.pipeline_config = pipeline_config
+    cfg = self.pipeline_config.find_project("yockcraft")
+    if cfg is not None:
+      print("Found project configuration for 'yockcraft' at [{}]".format(cfg[1]))
+      oe.Native.set_cfg_path(str(p))
+
     if parse_cmds:
       parser = parsers.initialize_parser()
       if len(sys.argv) == 1:

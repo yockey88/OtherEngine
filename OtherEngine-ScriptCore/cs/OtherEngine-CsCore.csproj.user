@@ -1,5 +1,0 @@
-<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup>
-    <ReferencePath>..\..\bin\Debug\glad;..\..\bin\Debug\gtest;..\..\bin\Debug\imgui;..\..\bin\Debug\nfd;..\..\externals\sdl2\lib\Debug;..\..\bin\Debug\spdlog;..\..\externals\mono\lib</ReferencePath>
-  </PropertyGroup>
-</Project>

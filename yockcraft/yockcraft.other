@@ -1,3 +1,6 @@
+[debug]
+test-editor = false
+
 [project]
 name = "yockcraft"
 author = "Y"
@@ -11,16 +14,16 @@ primary-scene = "overworld"
 bin-dir = "../bin/Debug/"
 script-bin-dir = "YockCraftScripts"
 
+[log]
+console-level = "trace"
+file-level = "trace"
+path = "./logs/yockcraft.log"
+
 [window]
 width = 1200
 height = 800
 title = "YockCraft"
 clear-color = { 0.3 , 0.3 , 0.3 , 1.0 }
-
-[log]
-console-level = "info" 
-file-level = "trace"
-path = "./logs/yockcraft.log"
 
 [script-engine.C#]
 paths = {

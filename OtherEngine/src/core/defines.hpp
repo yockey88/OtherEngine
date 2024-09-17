@@ -51,6 +51,8 @@ namespace other {
     NO_CONFIG_FILE ,
     CONFIG_PARSE_FAILURE ,
 
+    /// for user (config, etc...)
+    CORRUPT_CONFIGURATION  ,
 
     NUM_EXIT_CODES ,
     INVALID =NUM_EXIT_CODES , 
