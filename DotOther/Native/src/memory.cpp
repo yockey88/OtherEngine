@@ -3,54 +3,54 @@
  **/
 #include "memory.hpp"
 
-#include "defines.hpp"
-
 namespace dotother {
 
   void* Memory::AllocHGlobal(size_t InSize) {
-#if defined(_WIN32)
+#ifdef _WIN32
     return LocalAlloc(LMEM_FIXED | LMEM_ZEROINIT, InSize);
 #else
     return malloc(InSize);
-#endif
+#endif // _WIN32
   }
 
   void Memory::FreeHGlobal(void* InPtr) {
-#if defined(_WIN32)
+#ifdef _WIN32
     LocalFree(InPtr);
 #else
     free(InPtr);
-#endif
+#endif // _WIN32
   }
 
-// 	  static wchar_t* StringToCoTaskMemAuto(std::string_view InString) {
-// 		  size_t length = InString.length() + 1;
-// 		  size_t size = length * sizeof(wchar_t);
+  dochar* Memory::NStringToCoTaskMemAuto(dostring_view str) {
+    size_t length = str.length() + 1;
+    size_t size = length * sizeof(dochar);
 
-// #if defined(_WIN32)
-// 		  auto* buffer = static_cast<wchar_t*>(CoTaskMemAlloc(size));
+    auto* buffer = static_cast<dochar*>(
+#ifdef _WIN32
+      CoTaskMemAlloc(size)
+#else
+      AllocHGlobal(size)
+#endif // _WIN32
+      );
 
-//       if (buffer != nullptr) {
-//         memset(buffer, 0xCE, size);
-//         wcscpy(buffer, InString.data());
-//       }
-// #else
-//       auto* buffer = static_cast<wchar_t*>(AllocHGlobal(size));
-
-//       if (buffer != nullptr) {
-//         memset(buffer, 0, size);
-//         strcpy(buffer, InString.data());
-//       }
-// #endif
-// 		  return buffer;
-//   	}
+    if (buffer != nullptr) {
+#ifdef _WIN32
+      memset(buffer, 0xCE, size);
+      wcscpy(buffer, str.data());
+#else
+      memset(buffer, 0, size);
+      strcpy(buffer, str.data());
+#endif // _WIN32
+    }
+    return buffer;
+  }
 
   void Memory::FreeCoTaskMem(void* InMemory) {
-#if defined(_WIN32)
+#ifdef _WIN32
     CoTaskMemFree(InMemory);
 #else
     FreeHGlobal(InMemory);
-#endif
+#endif // _WIN32
   }
 
 } // namespace dotother

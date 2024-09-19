@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
-namespace DotOther.Managed.Interop {
+namespace DotOther.Managed {
 
   [StructLayout(LayoutKind.Sequential, Pack = 1)]
   public struct NBool32 {
@@ -172,7 +172,9 @@ namespace DotOther.Managed.Interop {
       type_id = id;
     }
 
-    // public static implicit operator ReflectionType(Type? type) => new(TypeInterface.CachedTypes.Add(type));
+#nullable enable
+    // public static implicit operator ReflectionType(Type? type) => new(InteropInterface.CachedTypes.Add(type));
+#nullable disable
   }
 
 }

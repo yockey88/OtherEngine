@@ -4,6 +4,8 @@
 #ifndef DOTOTHER_NATIVE_MEMORY_HPP
 #define DOTOTHER_NATIVE_MEMORY_HPP
 
+#include "defines.hpp"
+
 namespace dotother {
 
 class Memory {
@@ -11,7 +13,7 @@ class Memory {
 	  static void* AllocHGlobal(size_t size);
 	  static void FreeHGlobal(void* ptr);
 
-// 	  static wchar_t* StringToCoTaskMemAuto(std::string_view InString);
+	  static dochar* NStringToCoTaskMemAuto(dostring_view InString);
 
 	  static void FreeCoTaskMem(void* handle);
 };

@@ -1,0 +1,6 @@
+namespace DotOther {
+
+  class DoAssembly {
+  }
+
+}

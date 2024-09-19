@@ -1,45 +1,45 @@
 using System;
 using System.Runtime.InteropServices;
 
-/// <summary>
-/// This namespace contains the managed code for the DotOther library.
-/// 
-/// Naming Convention:
-///   - All typesused for internal interop prefixed with 'N'.
-/// </summary>
-
 using DotOther.Managed.Interop;
 
 namespace DotOther.Managed {
 
   internal enum MessageLevel {
-    Info = 1,
-    Warning = 2,
-    Error = 4
+    Trace = 0,
+    Debug = 1,
+    Info = 2,
+    Warning = 3,
+    Error = 4,
+    Critical = 5,
+
+    Message = 6,
+    Bad = 7,
+    All = 8
   }
 
   [StructLayout(LayoutKind.Sequential, Pack = 1)]
   struct DotOtherArgs {
     public unsafe delegate*<NString , void> ExceptionCallback;
-    public unsafe delegate*<NString , Int32, void> LogCallback;
+    public unsafe delegate*<NString , MessageLevel, void> LogCallback;
   }
 
 
   internal static class DotOtherHost {
     private static unsafe delegate*<NString , void> ExceptionCallback;
-    private static unsafe delegate*<NString , Int32, void> LogCallback;
+    private static unsafe delegate*<NString , MessageLevel, void> LogCallback;
 
     [UnmanagedCallersOnly]
     private static unsafe void EntryPoint(DotOtherArgs args) {
       ExceptionCallback = args.ExceptionCallback;
       LogCallback = args.LogCallback;
-      LogCallback("DotOtherHost: Initialized", (Int32)MessageLevel.Info);
+      LogCallback("DotOtherHost: Initialized", MessageLevel.Info);
     }
 
     internal static void LogMessage(string message, MessageLevel level) {
       unsafe {
         NString msg = message;
-        LogCallback(msg, (Int32)level);
+        LogCallback(msg, level);
       }
     }
 

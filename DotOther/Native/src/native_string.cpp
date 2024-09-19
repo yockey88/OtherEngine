@@ -3,6 +3,7 @@
  */
 #include "native_string.hpp"
 
+#include "defines.hpp"
 #include "memory.hpp"
 
 
@@ -13,6 +14,7 @@ namespace dotother {
     result.Assign(str);
     return result;
   }
+
   NString NString::New(std::string_view str) {
     NString result;
     result.Assign(str);
@@ -31,12 +33,17 @@ namespace dotother {
     if (string != nullptr)
       Memory::FreeCoTaskMem(string);
 
-    // string = Memory::NStringToCoTaskMemAuto(NStringHelper::ConvertUtf8ToWide(str));
+    string = Memory::NStringToCoTaskMemAuto(util::CharToWide(str));
   }
 
   NString::operator std::string() const {
-    std::wstring_view str(string);
-    return ""; // NStringHelper::ConvertWideToUtf8(str);
+    dostring_view str(string);
+    return 
+#ifdef _WIN32
+      util::WideToChar(str);
+#else
+      std::string(str);
+#endif // _WIN32
   }
 
   bool NString::operator==(const NString& InOther) const {
@@ -61,6 +68,39 @@ namespace dotother {
 
   const wchar_t* NString::Data() const { 
     return string; 
+  }
+
+  
+  NScopedString::~NScopedString() {
+    NString::Free(string);
+  }
+
+  NScopedString& NScopedString::operator=(NString str) {
+    NString::Free(string);
+    string = str;
+    return *this;
+  }
+
+  NScopedString& NScopedString::operator=(const NString& str) {
+    NString::Free(string);
+    string = str;
+    return *this;
+  }
+
+  NScopedString::operator std::string() const {
+    return string;
+  }
+
+  NScopedString::operator NString() const {
+    return string;
+  }
+
+  bool NScopedString::operator==(const NScopedString& other) const {
+    return string == other.string;
+  }
+
+  bool NScopedString::operator==(std::string_view other) const {
+    return string == other;
   }
 
 } // namespace dotother

@@ -53,4 +53,7 @@ premake.override(dotnetbase, "projectProperties", function(base, prj)
 end)
 
 include "Native/premake5.lua"
+include "Tests/Native/premake5.lua"
+
 include "Managed/premake5.lua"
+include "Tests/Managed/premake5.lua"

@@ -11,6 +11,7 @@
 
 #include "defines.hpp"
 #include "native_string.hpp"
+#include "assembly.hpp"
 
 namespace dotother {
 
@@ -45,6 +46,9 @@ namespace dotother {
       bool LoadHost();
       void CallEntryPoint(/* const DotOtherArgs */);
       void UnloadHost();
+
+      AssemblyContext CreateAsmContext(const std::string_view);
+      void UnloadAssemblyContext(AssemblyContext& InLoadContext);
 
     private:
       hostfxr_handle host_fxr = nullptr;
