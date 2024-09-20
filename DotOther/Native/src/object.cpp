@@ -3,7 +3,6 @@
  **/
 #include "object.hpp"
 
-#include "utilities.hpp"
 #include "native_string.hpp"
 #include "interop_interface.hpp"
 

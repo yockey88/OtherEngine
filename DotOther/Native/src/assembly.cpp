@@ -47,7 +47,7 @@ namespace dotother {
       return nullptr;
     }
 
-    size_t idx = assemblies.size();
+    // size_t idx = assemblies.size();
     auto& assembly = assemblies.emplace_back(new_ref<Assembly>(host));
     
     assembly->host = host;
