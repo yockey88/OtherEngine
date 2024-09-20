@@ -4,10 +4,18 @@
 #ifndef DOTOTHER_NATIVE_ASSEMBLY_HPP
 #define DOTOTHER_NATIVE_ASSEMBLY_HPP
 
-#include "defines.hpp"
-#include <filesystem>
+#include <expected>
 #include <string>
 #include <string_view>
+#include <vector>
+
+#include <gtest/gtest_prod.h> /// for GTEST_FRIEND_TEST
+
+#include "defines.hpp"
+#include "type.hpp"
+
+class DoTest;
+class HostTests;
 
 namespace dotother {
 
@@ -15,14 +23,17 @@ namespace dotother {
 
   class Assembly {
     public:
+      Assembly(Host* host)
+        : host(host) {}
+
       int32_t GetId() const;
       AssemblyLoadStatus LoadStatus() const;
       std::string_view Name() const;
 
-      void SetInternalCall(const std::string_view klass, const std::string_view call_name, void* fn);
+      // void SetInternalCall(const std::string_view klass, const std::string_view call_name, void* fn);
       // void UploadInternalCalls();
 
-      // Type& GetType(const std::string_view klass) const;
+      Type& GetType(const std::string_view klass) const;
       // const std::vector<Type*>& GetTypes() const;
 
     private:
@@ -40,21 +51,26 @@ namespace dotother {
 
       std::vector<InternalCall> internal_calls = {};
 
-      // std::vector<Type*> types = {};
+      std::vector<Type*> types = {};
 
       friend class Host;
       friend class AssemblyContext;
+      
+      FRIEND_TEST(HostTests, load_asm_and_call_functions);
   };
 
   class AssemblyContext {
     public:
-      Assembly& LoadAssembly(const std::string_view path);
-      const std::vector<Assembly> GetAssemblies() const;
+      AssemblyContext(Host* host)
+        : host(host) {}
+
+      ref<Assembly> LoadAssembly(const std::string_view path);
+      const std::vector<ref<Assembly>>& GetAssemblies() const;
 
       int32_t context_id = -1;
 
     private:
-      std::vector<Assembly> assemblies{};
+      std::vector<ref<Assembly>> assemblies{};
 
       Host* host = nullptr;
       friend class Host;

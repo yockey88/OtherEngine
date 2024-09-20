@@ -11,6 +11,7 @@ namespace DotOther.Managed {
       return elements.ContainsKey(id);
     }
 
+#nullable enable
     public Int32 Add(T? element) {
       if (element == null) {
         throw new ArgumentNullException(nameof(element));
@@ -28,6 +29,7 @@ namespace DotOther.Managed {
     public void Clear() {
       elements.Clear();
     }
+#nullable disable
   }
 
 }

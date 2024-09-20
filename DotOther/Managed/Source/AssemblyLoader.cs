@@ -31,7 +31,7 @@ namespace DotOther.Managed {
 
     private static AsmLoadStatus last_load_status = AsmLoadStatus.Success;
 #nullable enable
-    private static readonly AssemblyLoadContext? dotother_asm_context;
+    private static readonly AssemblyLoadContext? dotother_asm_context = AssemblyLoadContext.Default;
 #nullable disable
 
     static AssemblyLoader() {
@@ -127,8 +127,10 @@ namespace DotOther.Managed {
     }
     
     [UnmanagedCallersOnly]
-    private static Int32 LoadAssembly(Int32 context_id, NString file_path) {
+    private static int LoadAssembly(int context_id, NString file_path) {
       try {
+        LogMessage($"Loading assembly '{file_path}' [{context_id}]", MessageLevel.Info);
+
         if (string.IsNullOrEmpty(file_path)) {
           last_load_status = AsmLoadStatus.InvalidPath;
           return -1;
@@ -137,16 +139,22 @@ namespace DotOther.Managed {
         if (!File.Exists(file_path)) {
           LogMessage($"Failed to load assembly : '{file_path}', file not found", MessageLevel.Error);
           return -1;
+        } else {
+          LogMessage($"Found assembly file '{file_path}'", MessageLevel.Trace);
         }
 
         if (!contexts.TryGetValue(context_id, out var alc)) {
           LogMessage($"Failed to load assembly '{file_path}', couldn't find Load Context with id '{context_id}'", MessageLevel.Error);
           return -1;
+        } else {
+          LogMessage($"Found Load Context with id '{context_id}'", MessageLevel.Trace);
         }
 
         if (alc == null) {
           LogMessage($"Failed to load assembly '{file_path}', Load Context with id '{context_id}' is null", MessageLevel.Error);
           return -1;
+        } else {
+          LogMessage($"Load Context with id '{context_id}' is not null", MessageLevel.Trace);
         }
 
         Assembly? asm = null;
@@ -158,8 +166,15 @@ namespace DotOther.Managed {
 
         var name = asm.GetName();
         LogMessage($"Loading assembly : '{name}' [{context_id}]", MessageLevel.Info);
+        
         Int32 asm_id = name.Name!.GetHashCode();
-        assemblies.Add(asm_id, asm);
+        try {
+          assemblies.Add(asm_id, asm);
+        } catch (Exception e) {
+          HandleException(e);
+          return -1;
+        }
+
         last_load_status = AsmLoadStatus.Success;
         return asm_id;
       } catch (Exception e) {

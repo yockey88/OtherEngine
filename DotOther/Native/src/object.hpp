@@ -4,31 +4,63 @@
 #ifndef DOTOTHER_OBJECT_HPP
 #define DOTOTHER_OBJECT_HPP
 
-#include "defines.hpp"
 #include <string_view>
-#include <utility>
+
+#include "defines.hpp"
+#include "utilities.hpp"
+
 namespace dotother {
+
+  class Assembly;
+  class Type;
 
   class Object {
     public:
-      template <typename Ret , typename... Args>
-      Ret Invoke(const std::string_view name, Args&&... params) {
-        constexpr size_t param_count = sizeof...(Args);
-        Ret res;
+      template <typename... Args>
+      void Invoke(const std::string_view name, Args&&... params) {
+        constexpr size_t argc = sizeof...(params);
 
-        if constexpr (param_count > 0) {
-            const void* param_vals[param_count] = {0};
-            ManagedType param_types[param_count] = {ManagedType::UNKNOWN};
-            util::AddToArrayAt<Args...>(param_vals , param_types , 
-                                        std::forward<Args>(params)..., std::make_index_sequence<param_count>{});
-            InvokeMethodRetInternal(name, param_vals, param_types, param_count, &res);
+        if constexpr (argc > 0) {
+          const void* params[argc] = {0};
+          ManagedType param_types[argc] = {0};
+
+          util::AddToArray<Args...>(params, param_types, std::forward<Args>(params)..., std::make_index_sequence<argc>{});
+          InvokeMethod(name, params, param_types, argc, nullptr);
         } else {
-
+          InvokeMethod(name, nullptr, nullptr, 0);
         }
       }
 
+      template <typename Ret , typename... Args>
+      Ret Invoke(const std::string_view name, Args&&... params) {
+        constexpr size_t argc = sizeof...(params);
+
+        Ret res;
+        if constexpr (argc > 0) {
+          const void* params[argc] = {0};
+          ManagedType param_types[argc] = {0};
+
+          util::AddToArray<Args...>(params, param_types, std::forward<Args>(params)..., std::make_index_sequence<argc>{});
+          InvokeReturningMethod(name, params, param_types, argc, &res);
+        } else {
+          InvokeReturningMethod(name, nullptr, nullptr, 0, &res);
+        }
+      }
+
+
     private:
-      void InvokeMethodRetInternal(const std::string_view name, const void** args, ManagedType* param_types, size_t param_count, void* ret);
+      /// the .NET object existing in the managed runtime
+      void* managed_handle = nullptr;
+      Type* type = nullptr;
+
+      void InvokeMethod(std::string_view method_name, const void** params, const ManagedType* types, size_t argc);
+      void InvokeReturningMethod(std::string_view method_name, const void** params, const ManagedType* types, 
+                                 size_t argc, void* ret);
+
+
+      friend class Host;
+      friend class ManagedAssembly;
+      friend class Type;
   };
 
 } // namespace dotother

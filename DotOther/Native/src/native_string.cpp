@@ -4,8 +4,8 @@
 #include "native_string.hpp"
 
 #include "defines.hpp"
+#include "utilities.hpp"
 #include "memory.hpp"
-
 
 namespace dotother {
 

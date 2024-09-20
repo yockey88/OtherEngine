@@ -15,7 +15,6 @@ namespace DotOther.Managed.Interop {
 
 #nullable enable
     public static void MarshalReturn(object? val, Type? type, IntPtr result) {
-#nullable disable
       if (type == null) {
         return;
       }
@@ -52,6 +51,16 @@ namespace DotOther.Managed.Interop {
     struct ArrayObject {
       public IntPtr handle;
       public Int32 padding;
+
+      public ArrayObject() {
+        this.handle = IntPtr.Zero;
+        this.padding = 0;
+      }
+
+      public ArrayObject(IntPtr handle) {
+        this.handle = handle;
+        this.padding = 0;
+      }
     }
 
     public static object? MarshalArray(IntPtr arr, Type? elt_type) {
@@ -201,6 +210,7 @@ namespace DotOther.Managed.Interop {
 
       return res;
     }
+#nullable disable
   }
 
 }

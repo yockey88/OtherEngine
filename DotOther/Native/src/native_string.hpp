@@ -31,7 +31,7 @@ namespace dotother {
 
   private:
     wchar_t* string = nullptr;
-    dobool disposed = false;
+    nbool32 disposed = false;
 };
 
   class NScopedString {

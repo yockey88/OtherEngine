@@ -34,6 +34,10 @@ local native = {
       "DOTOTHER_WINDOWS" ,
     }
   end,
+
+  components = {
+    ["gtest"] = "%{wks.location}/externals/gtest/googletest/include"
+  } ,
 }
 
 AddProject(native)

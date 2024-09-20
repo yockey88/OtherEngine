@@ -8,7 +8,7 @@ local test_module1 = {
 
   files = function()
     files {
-      "./DotOther/Tests/Source/**.cs" ,
+      "./Source/**.cs" ,
     }
   end,
 

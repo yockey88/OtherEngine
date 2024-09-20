@@ -53,20 +53,21 @@ namespace DotOther.Managed {
 
     public NArray(IntPtr len) {
       this.array = Marshal.AllocHGlobal(len * Marshal.SizeOf<T>());
-      this.length = length;
+      this.length = Marshal.ReadInt32(len);
     }
 
-    public NArray([DisallowNull] T?[] array) {
-      this.array = Marshal.AllocHGlobal(array.Length * Marshal.SizeOf<T>());
-      this.length = array.Length;
+#nullable enable
+    public NArray([DisallowNull] T?[] arr) {
+      this.array = Marshal.AllocHGlobal(arr.Length * Marshal.SizeOf<T>());
+      this.length = arr.Length;
 
-      for (int i = 0; i < array.Length; i++) {
-        var elem = array[i];
+      for (int i = 0; i < arr.Length; i++) {
+        var elem = arr[i];
         if (elem == null) {
           continue;
         }
 
-        Marshal.StructureToPtr(array[i], IntPtr.Add(this.array, i * Marshal.SizeOf<T>()), false);
+        Marshal.StructureToPtr(arr[i]!, IntPtr.Add(this.array, i * Marshal.SizeOf<T>()), false);
       }
     }
 
@@ -172,7 +173,6 @@ namespace DotOther.Managed {
       type_id = id;
     }
 
-#nullable enable
     // public static implicit operator ReflectionType(Type? type) => new(InteropInterface.CachedTypes.Add(type));
 #nullable disable
   }

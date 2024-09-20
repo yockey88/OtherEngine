@@ -6,17 +6,16 @@
 
 #include <filesystem>
 #include <optional>
+#include <string_view>
 
 #include "hostfxr.h"
 
 #include "defines.hpp"
-#include "native_string.hpp"
+#include "hook_definitions.hpp"
+#include "interop_interface.hpp"
 #include "assembly.hpp"
 
 namespace dotother {
-
-	using exception_callback_t = void(*)(const NString message);
-	using log_callback_t = void(*)(const NString message, MessageLevel level);
   
   struct DotOtherArgs {
     exception_callback_t exception_callback = nullptr;
@@ -33,14 +32,19 @@ namespace dotother {
 		dostring_t entry_point;
 		const dochar* delegate_type = DOTNET_UNMANAGED_FUNCTION;
 
+    MessageLevel log_level = MessageLevel::MESSAGE;
+
 		exception_callback_t exception_callback = nullptr;
 		log_callback_t log_callback = nullptr;
+
+    coreclr_error_callback_t coreclr_error_callback = nullptr;
+    internal_logging_hook_t internal_logging_hook = nullptr;
   };
 
   class Host {
     public:
       Host(const HostConfig& config) 
-        : config(config) {}
+          : config(config) {}
       ~Host() {}
       
       bool LoadHost();
@@ -49,6 +53,8 @@ namespace dotother {
 
       AssemblyContext CreateAsmContext(const std::string_view);
       void UnloadAssemblyContext(AssemblyContext& InLoadContext);
+
+      interface_bindings::FunctionTable& GetInteropInterface();
 
     private:
       hostfxr_handle host_fxr = nullptr;

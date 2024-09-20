@@ -19,7 +19,6 @@ using static DotOtherHost;
 	}
 
 	internal static class InteropInterface {
-
 		internal readonly static Set<Type> cached_types = new();
 		internal readonly static Set<MethodInfo> cached_methods = new();
 		internal readonly static Set<FieldInfo> cached_fields = new();
@@ -321,16 +320,19 @@ using static DotOtherHost;
 					*count = 0;
 					return;
 				}
+				LogMessage($"Found {methods.Length} methods for type {t.FullName}", MessageLevel.Trace);
 
 				*count = methods.Length;
-
 				if (method_arr == null) {
 					return;
 				}
 
 				for (Int32 i = 0; i < methods.Length; i++) {
+					LogMessage($"  > Adding method {methods[i].Name} to cache", MessageLevel.Trace);
 					method_arr[i] = cached_methods.Add(methods[i]);
 				}
+
+				LogMessage($"  > Added {methods.Length} methods to cache", MessageLevel.Trace);
 			} catch (Exception ex) {
 				HandleException(ex);
 			}
@@ -450,7 +452,7 @@ using static DotOtherHost;
 		}
 
 		[UnmanagedCallersOnly]
-		private static unsafe NString GetMethosNames(Int32 method_info) {
+		private static unsafe NString GetMethodName(Int32 method_info) {
 			try {
 				if (!cached_methods.TryGet(method_info, out var minfo)) {
 					return NString.Null();
@@ -464,7 +466,7 @@ using static DotOtherHost;
 		}
 
 		[UnmanagedCallersOnly]
-		private static unsafe void GetMethodInfoReturnType(Int32 method_info, Int32* out_type) {
+		private static unsafe void GetMethodReturnType(Int32 method_info, Int32* out_type) {
 			try {
 				if (!cached_methods.TryGet(method_info, out var minfo) || out_type == null)
 					return;
@@ -476,7 +478,7 @@ using static DotOtherHost;
 		}
 
 		[UnmanagedCallersOnly]
-		private static unsafe void GetMethodInfoParameterTypes(Int32 minfo, Int32* out_param_types, Int32* count) {
+		private static unsafe void GetMethodParameterTypes(Int32 minfo, Int32* out_param_types, Int32* count) {
 			try {
 				if (!cached_methods.TryGet(minfo, out var methodInfo)) {
 					return;
@@ -504,7 +506,7 @@ using static DotOtherHost;
 		}
 
 		[UnmanagedCallersOnly]
-		private static unsafe void GetMethodInfoAttributes(Int32 minfo, Int32* out_attrs, Int32* count) {
+		private static unsafe void GetMethodAttributes(Int32 minfo, Int32* out_attrs, Int32* count) {
 			try {
 				if (!cached_methods.TryGet(minfo, out var methodInfo)) {
 					*count = 0;
@@ -530,7 +532,7 @@ using static DotOtherHost;
 			} catch (Exception ex) {
 				HandleException(ex);
 			}
-		}
+		} 
 
 		[UnmanagedCallersOnly]
 		private static unsafe TypeAccessibility GetMethodAccessibility(Int32 id) {
@@ -673,7 +675,7 @@ using static DotOtherHost;
 		}
 
 		[UnmanagedCallersOnly]
-		private static unsafe void GetAttributeFieldValue(Int32 attr, NString name, IntPtr out_val) {
+		private static unsafe void GetAttributeValue(Int32 attr, NString name, IntPtr out_val) {
 			try {
 				if (!cached_attributes.TryGet(attr, out var attribute)) {
 					return;

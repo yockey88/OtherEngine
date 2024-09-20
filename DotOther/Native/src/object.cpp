@@ -3,14 +3,24 @@
  **/
 #include "object.hpp"
 
+#include "utilities.hpp"
 #include "native_string.hpp"
 #include "interop_interface.hpp"
 
 namespace dotother {
 
-  void Object::InvokeMethodRetInternal(const std::string_view name, const void** args, ManagedType* param_types, size_t param_count, void* ret) {
-    auto method_name = NString::New(name);
-    interop::invoke_method_ret(this, method_name, args, param_types, param_count, ret);
+  void Object::InvokeMethod(std::string_view method_name, const void** params, const ManagedType* types, size_t argc) {
+    auto name = NString::New(method_name);
+    Interop().invoke_method(managed_handle, name, params, types, static_cast<int32_t>(argc));
+    NString::Free(name);
   }
+
+  void Object::InvokeReturningMethod(std::string_view method_name, const void** params, const ManagedType* types, 
+                                            size_t argc, void* ret) {
+    auto name = NString::New(method_name);
+    Interop().invoke_method_ret(managed_handle, name, params, types, static_cast<int32_t>(argc), ret);
+    NString::Free(name);
+  }
+
 
 } // namespace dotother
