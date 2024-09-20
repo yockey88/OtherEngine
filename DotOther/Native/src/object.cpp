@@ -22,5 +22,28 @@ namespace dotother {
     NString::Free(name);
   }
 
+  void Object::WriteToField(const std::string_view name, void* value) {
+    auto name_str = NString::New(name);
+    Interop().set_field(managed_handle, name_str, value);
+    NString::Free(name_str);
+  }
+
+  void Object::ReadFromField(const std::string_view name, void* value) {
+    auto name_str = NString::New(name);
+    Interop().get_field(managed_handle, name_str, value);
+    NString::Free(name_str);
+  }
+
+  void Object::WriteToProperty(const std::string_view name, void* value) {
+    auto name_str = NString::New(name);
+    Interop().set_property(managed_handle, name_str, value);
+    NString::Free(name_str);
+  }
+
+  void Object::ReadFromProperty(const std::string_view name, void* value) {
+    auto name_str = NString::New(name);
+    Interop().get_property(managed_handle, name_str, value);
+    NString::Free(name_str);
+  }
 
 } // namespace dotother

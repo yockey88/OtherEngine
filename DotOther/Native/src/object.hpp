@@ -21,11 +21,11 @@ namespace dotother {
         constexpr size_t argc = sizeof...(params);
 
         if constexpr (argc > 0) {
-          const void* params[argc] = {0};
-          ManagedType param_types[argc] = {0};
+          const void* parameters[argc] = {0};
+          ManagedType param_types[argc] = {};
 
-          util::AddToArray<Args...>(params, param_types, std::forward<Args>(params)..., std::make_index_sequence<argc>{});
-          InvokeMethod(name, params, param_types, argc, nullptr);
+          util::AddToArray<Args...>(parameters, param_types, std::forward<Args>(params)..., std::make_index_sequence<argc>{});
+          InvokeMethod(name, parameters, param_types, argc);
         } else {
           InvokeMethod(name, nullptr, nullptr, 0);
         }
@@ -37,16 +37,39 @@ namespace dotother {
 
         Ret res;
         if constexpr (argc > 0) {
-          const void* params[argc] = {0};
-          ManagedType param_types[argc] = {0};
+          const void* parameters[argc] = {0};
+          ManagedType param_types[argc] = {};
 
-          util::AddToArray<Args...>(params, param_types, std::forward<Args>(params)..., std::make_index_sequence<argc>{});
-          InvokeReturningMethod(name, params, param_types, argc, &res);
+          util::AddToArray<Args...>(parameters, param_types, std::forward<Args>(params)..., std::make_index_sequence<argc>{});
+          InvokeReturningMethod(name, parameters, param_types, argc, &res);
         } else {
           InvokeReturningMethod(name, nullptr, nullptr, 0, &res);
         }
       }
 
+      template <typename T>
+      void SetField(const std::string_view name, T value) {
+        WriteToField(name, &value);
+      }
+
+      template <typename T>
+      T GetField(const std::string_view name) {
+        T res;
+        ReadFromField(name, &res);
+        return res;
+      }
+
+      template <typename T>
+      void SetProperty(const std::string_view name, T value) {
+        WriteToProperty(name, &value);
+      }
+
+      template <typename T>
+      T GetProperty(const std::string_view name) {
+        T res;
+        ReadFromProperty(name, &res);
+        return res;
+      }
 
     private:
       /// the .NET object existing in the managed runtime
@@ -57,9 +80,15 @@ namespace dotother {
       void InvokeReturningMethod(std::string_view method_name, const void** params, const ManagedType* types, 
                                  size_t argc, void* ret);
 
+      void WriteToField(const std::string_view name, void* value);
+      void ReadFromField(const std::string_view name, void* value);
+
+      void WriteToProperty(const std::string_view name, void* value);
+      void ReadFromProperty(const std::string_view name, void* value);
 
       friend class Host;
       friend class ManagedAssembly;
+
       friend class Type;
   };
 

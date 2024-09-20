@@ -24,10 +24,7 @@ configuration.groups = {
       "./OtherTestEngine" 
     } ,
 
-    ["Tools"] = { 
-      "./tools" ,
-      "./CsBindingGenerator" ,
-    } ,
+    ["Tools"] = { "./tools" } ,
     ["Games"] = { "./yockcraft" } ,
 }
 

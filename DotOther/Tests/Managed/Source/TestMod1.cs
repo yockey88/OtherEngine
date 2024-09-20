@@ -3,12 +3,14 @@ using System;
 namespace DotOther.Tests {
 
   public class Mod1 {
-    // private Int32 my_num;
+    private Int32 my_num;
 
-    // public Int32 MyNum {
-    //   get => my_num;
-    //   set => my_num = value;
-    // }
+    public Int32 MyNum {
+      get => my_num;
+      set => my_num = value;
+    }
+
+    public float number = 0.0f;
 
     // public Mod1() {
     //   my_num = 0;
@@ -22,9 +24,9 @@ namespace DotOther.Tests {
       Console.WriteLine("Mod1.Test");
     }
 
-    // public void Test(Int32 num) {
-    //   Console.WriteLine("Mod1.Test: " + num);
-    // }
+    public void Test(Int32 num) {
+      Console.WriteLine("Mod1.Test: " + num);
+    }
   }
 
 

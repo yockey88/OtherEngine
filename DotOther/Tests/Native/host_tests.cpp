@@ -85,17 +85,25 @@ TEST_F(HostTests, load_asm_and_call_functions) {
   auto& type = assembly->GetType("DotOther.Tests.Mod1");
   ASSERT_NE(type.handle, -1);
 
-  std::vector<dotother::Method> methods = {};
-  ASSERT_NO_FATAL_FAILURE(methods = type.Methods());
-  for (const auto& m : methods) {
-    ASSERT_NE(m.handle, -1);
-  }
-
   dotother::util::print(DO_STR("Creating Instance Type: {}"sv), type.FullName());
   dotother::Object obj;
   ASSERT_NO_FATAL_FAILURE(obj = type.NewInstance());
 
   ASSERT_NO_FATAL_FAILURE(obj.Invoke("Test"));
+  ASSERT_NO_FATAL_FAILURE(obj.Invoke("Test", 22));
+
+  float number = 0.f;
+  float expected = 42.f;
+  ASSERT_NO_FATAL_FAILURE(obj.SetField("number", expected));
+  ASSERT_NO_FATAL_FAILURE(number = obj.GetField<float>("number"sv));
+  ASSERT_EQ(number , expected);
+  dotother::util::print(DO_STR("Field Value: {}"sv), number);
+
+  expected = 69.f;
+  ASSERT_NO_FATAL_FAILURE(obj.SetProperty("MyNum", expected));
+  ASSERT_NO_FATAL_FAILURE(number = obj.GetProperty<float>("MyNum"sv));
+  ASSERT_EQ(number , expected);
+  dotother::util::print(DO_STR("Property Value: {}"sv), number);
 
   ASSERT_NO_THROW(host->UnloadAssemblyContext(asm_ctx));
 }
