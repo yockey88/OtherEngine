@@ -3,8 +3,6 @@
  **/
 #include "interop_interface.hpp"
 
-#include "utilities.hpp"
-
 namespace dotother {
 namespace interface_bindings {
   

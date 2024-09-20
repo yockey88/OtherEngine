@@ -16,7 +16,6 @@ tools/other.egg-info/
 
 ## Project tools
 tool_dev/
-CsBindingGenerator/
 
 ## C# stuff
 packages/

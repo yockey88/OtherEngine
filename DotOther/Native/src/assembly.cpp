@@ -10,7 +10,6 @@
 #include "utilities.hpp"
 #include "interop_interface.hpp"
 #include "native_string.hpp"
-#include "host.hpp"
 #include "type_cache.hpp"
 
 namespace dotother {

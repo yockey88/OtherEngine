@@ -78,7 +78,7 @@ namespace DotOther.Managed {
 				}
 			}
 
-			var mkey = new MethodKey(type.FullName, name, param_types, count);
+			var mkey = new MethodKey(type.FullName!, name!, param_types, count);
 
 			if (!methods.TryGetValue(mkey, out minfo)) {
 				List<MethodInfo> methods = new(type.GetMethods(flags));
