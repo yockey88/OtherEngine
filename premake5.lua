@@ -19,9 +19,9 @@ configuration.groups = {
 
     ["OtherEngine-Tools"] = { "./OtherEngine-Launcher" } ,
 
-    ["Testing"] = { 
-      "./tests" , 
-      "./OtherTestEngine" 
+    ["Testing"] = {
+      "./tests" ,
+      "./OtherTestEngine"
     } ,
 
     ["Tools"] = { "./tools" } ,
@@ -35,6 +35,10 @@ choc.include_dir = "%{wks.location}/externals/choc"
 local entt = {}
 entt.name = "entt"
 entt.include_dir = "%{wks.location}/externals/entt"
+
+local refl = {}
+refl.name = "refl"
+refl.include_dir = "%{wks.location}/externals/refl-cpp"
 
 local glad = {}
 glad.name = "glad"
@@ -186,6 +190,7 @@ pybind.lib_name = "pybind11"
 
 AddDependency(choc)
 AddDependency(entt)
+AddDependency(refl)
 AddDependency(glad)
 AddDependency(glm)
 AddDependency(gtest)

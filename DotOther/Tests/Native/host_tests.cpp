@@ -1,5 +1,5 @@
 /**
- * \file Tests/Managed/host_tests.cpp
+ * \file Tests/Native/host_tests.cpp
  **/
 #include <gtest/gtest.h>
 
@@ -7,12 +7,12 @@
 #include <print>
 
 #include "dotest.hpp"
-#include "defines.hpp"
-#include "utilities.hpp"
-#include "assembly.hpp"
-#include "host.hpp"
-#include "interop_interface.hpp"
-#include "method.hpp"
+#include "core/defines.hpp"
+#include "core/utilities.hpp"
+#include "hosting/assembly.hpp"
+#include "hosting/host.hpp"
+#include "hosting/interop_interface.hpp"
+#include "hosting/method.hpp"
 
 using namespace dotother::literals;
 using namespace std::string_view_literals;
@@ -86,7 +86,7 @@ TEST_F(HostTests, load_asm_and_call_functions) {
   ASSERT_NE(type.handle, -1);
 
   dotother::util::print(DO_STR("Creating Instance Type: {}"sv), type.FullName());
-  dotother::Object obj;
+  dotother::HostedObject obj;
   ASSERT_NO_FATAL_FAILURE(obj = type.NewInstance());
 
   ASSERT_NO_FATAL_FAILURE(obj.Invoke("Test"));

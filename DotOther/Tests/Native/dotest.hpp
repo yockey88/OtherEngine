@@ -1,5 +1,5 @@
 /**
- * \file dotest.hpp
+ * \file Tests/Native/dotest.hpp
  **/
 #ifndef DOTOTHER_DOTEST_HPP
 #define DOTOTHER_DOTEST_HPP
