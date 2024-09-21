@@ -92,7 +92,7 @@ TEST_F(HostTests, load_asm_and_call_functions) {
   ASSERT_NE(assembly , nullptr);
   ASSERT_NE(assembly->GetId(), -1);
   
-  assembly->SetInternalCall("DotOther.NObject", "CreateObject", (void*)&HostTests::GetNativeObject);
+  assembly->SetInternalCall("DotOther.Tests.Mod1", "CreateObject", (void*)&HostTests::GetNativeObject);
   ASSERT_NO_THROW(assembly->UploadInternalCalls());
 
   auto& type = assembly->GetType("DotOther.Tests.Mod1");

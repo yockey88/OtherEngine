@@ -22,6 +22,10 @@ local test_module1 = {
       "CS8500" ,
     }
   end,
+
+  components = {
+    ["DotOther.Managed"] = "",
+  }
 }
 
 AddModule(test_module1)

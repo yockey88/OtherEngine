@@ -1,8 +1,12 @@
 using System;
+using System.Runtime.CompilerServices;
+using DotOther;
 
 namespace DotOther.Tests {
 
   public class Mod1 {
+    public static unsafe delegate*<NObject> CreateObject;
+
     private Int32 my_num;
 
     public Int32 MyNum {

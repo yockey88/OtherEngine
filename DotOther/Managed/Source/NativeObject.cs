@@ -5,7 +5,7 @@ using DotOther.Managed.Interop;
 
 namespace DotOther {
 
-  class NObject {
+  public class NObject {
     private UInt64 native_handle;
 
     public UInt64 NHandle {
