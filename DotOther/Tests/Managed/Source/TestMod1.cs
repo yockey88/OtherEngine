@@ -5,7 +5,8 @@ using DotOther;
 namespace DotOther.Tests {
 
   public class Mod1 {
-    public static unsafe delegate*<NObject> CreateObject;
+    
+    internal unsafe delegate NObject GetNativeObject();
 
     private Int32 my_num;
 
@@ -17,11 +18,8 @@ namespace DotOther.Tests {
     public float number = 0.0f;
 
     public Mod1() {
+      Console.WriteLine($" Mod1 Asm Name : {this.GetType().AssemblyQualifiedName}");
       my_num = 0;
-    }
-
-    public Mod1(Int32 num) {
-      my_num = num;
     }
 
     public void Test() {

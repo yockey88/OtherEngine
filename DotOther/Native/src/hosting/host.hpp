@@ -8,6 +8,7 @@
 #include <optional>
 #include <string_view>
 
+#include "coreclr_delegates.h"
 #include "hostfxr.h"
 
 #include "core/defines.hpp"
@@ -26,17 +27,16 @@ namespace dotother {
 
   struct HostConfig {
     std::filesystem::path host_config_path;
-		std::filesystem::path managed_asm_path;
-
-		dostring dotnet_type;
-		dostring entry_point;
-		const dochar* delegate_type = DOTNET_UNMANAGED_FUNCTION;
+    std::filesystem::path managed_asm_path;
+    
+    dostring dotnet_type;
+    dostring entry_point;
+    const dochar* delegate_type = DOTNET_UNMANAGED_FUNCTION;
 
     MessageLevel log_level = MessageLevel::MESSAGE;
 
-		exception_callback_t exception_callback = nullptr;
-		log_callback_t log_callback = nullptr;
-
+    exception_callback_t exception_callback = nullptr;
+    log_callback_t log_callback = nullptr;
     coreclr_error_callback_t coreclr_error_callback = nullptr;
     internal_logging_hook_t internal_logging_hook = nullptr;
   };
@@ -76,7 +76,8 @@ namespace dotother {
 
       std::optional<std::filesystem::path> GetHostPath();
 
-      void* LoadManagedFunction(const std::filesystem::path& asm_path, const dostring& typ_name, const dostring& method_name, const dochar* delegate_type = DOTNET_UNMANAGED_FUNCTION) const;
+      void* LoadManagedFunction(const std::filesystem::path& asm_path, const dostring& typ_name, const dostring& method_name, 
+                                const dochar* delegate_type = DOTNET_UNMANAGED_FUNCTION) const;
 
       template <typename Fn>
       Fn LoadManagedFunction(const dostring& type_name, const dostring& method_name , const dochar* delegate_type = DOTNET_UNMANAGED_FUNCTION) const {

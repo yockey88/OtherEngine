@@ -7,16 +7,7 @@ using System.Runtime.InteropServices;
 
 namespace DotOther.Managed {
 
-using static DotOtherHost;
-	[StructLayout(LayoutKind.Sequential, Pack = 1)]
-	public readonly struct InternalCall {
-		public readonly NString NName;
-		public readonly IntPtr Target;
-
-#nullable enable
-		public string? Name => NName.ToString();
-#nullable disable
-	}
+	using static DotOtherHost;
 
 	internal static class InteropInterface {
 		internal readonly static Set<Type> cached_types = new();

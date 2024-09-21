@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DotOther.Managed")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0c9815b77aee9b009536c64f1c94c3a8687b661b")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+184e72808f4cc4cdaf3c7366bdbeec4b7c53ce2f")]
 [assembly: System.Reflection.AssemblyProductAttribute("DotOther.Managed")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DotOther.Managed")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

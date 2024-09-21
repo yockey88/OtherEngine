@@ -39,7 +39,7 @@ class HostTests : public DoTest {
         //   return;
         // }
 
-        dotother::util::print(DO_STR("{} [{}]"sv), message, level);
+        fmt::print("{} [{}]\n"sv, message, level);
       } ,
 
       .internal_logging_hook = [](const std::string_view message, dotother::MessageLevel level, bool verbose) {
@@ -48,15 +48,9 @@ class HostTests : public DoTest {
         //   return;
         // }
 
-        fmt::print("{} [{}]\n", message, level);
+        fmt::print("{} [{}]\n"sv, message, level);
       }
     };
-
-    void TearDown() override {
-      if (host != nullptr) {
-        host->UnloadHost();
-      }
-    }
 
     dotother::owner<dotother::Host> host = nullptr;
 
@@ -92,11 +86,12 @@ TEST_F(HostTests, load_asm_and_call_functions) {
   ASSERT_NE(assembly , nullptr);
   ASSERT_NE(assembly->GetId(), -1);
   
-  assembly->SetInternalCall("DotOther.Tests.Mod1", "CreateObject", (void*)&HostTests::GetNativeObject);
-  ASSERT_NO_THROW(assembly->UploadInternalCalls());
-
   auto& type = assembly->GetType("DotOther.Tests.Mod1");
   ASSERT_NE(type.handle, -1);
+  
+  assembly->SetInternalCall("DotOther.Tests.Mod1", "GetNativeObject", (void*)&HostTests::GetNativeObject);
+  ASSERT_NO_THROW(assembly->UploadInternalCalls());
+
 
   dotother::util::print(DO_STR("Creating Instance Type: {}"sv), type.FullName());
   dotother::HostedObject obj;
@@ -120,7 +115,7 @@ TEST_F(HostTests, load_asm_and_call_functions) {
 
   ASSERT_NO_THROW(host->UnloadAssemblyContext(asm_ctx));
 
-
+  ASSERT_NO_FATAL_FAILURE(host->UnloadHost());
 }
 
 int main(int argc, char** argv) {

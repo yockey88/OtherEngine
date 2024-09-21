@@ -13,15 +13,14 @@
 #include <iostream>
 
 #include <spdlog/fmt/fmt.h>
-#include <wincrypt.h>
 
-#include "assembly.hpp"
-#include "coreclr_delegates.h"
+#include "nethost.h"
 
 #include "core/defines.hpp"
 #include "core/utilities.hpp"
-#include "hosting/interop_interface.hpp"
 #include "hosting/native_string.hpp"
+#include "hosting/interop_interface.hpp"
+#include "hosting/assembly.hpp"
 
 using namespace dotother::literals;
 
@@ -103,7 +102,8 @@ namespace dotother {
           return;
         }
 
-		    std::cout << message << std::endl;
+        //// default to simply writing to stdout
+        fmt::print(" [DotOther] > {} [{}]\n", message, level);
       };
     }
 

@@ -8,6 +8,15 @@ namespace DotOther.Managed {
 
   using static DotOtherHost;
   
+#nullable enable
+  [StructLayout(LayoutKind.Sequential, Pack = 1)]
+	public readonly struct InternalCall {
+		private readonly IntPtr NName;
+		public readonly IntPtr Target;
+		public string? Name => Marshal.PtrToStringAuto(NName);
+	}
+#nullable disable
+
   internal static class InternalCallManager {
     private static void RegisterInternalCall(InternalCall call) {
       try {
@@ -21,7 +30,9 @@ namespace DotOther.Managed {
         var name_start = name.IndexOf('+');
         var name_end = name.IndexOf(",", name_start, StringComparison.CurrentCulture);
         var field_name = name.Substring(name_start + 1, name_end - name_start - 1);
+        LogMessage($"  > field name = {field_name}", MessageLevel.Info);
         var containing_type_name = name.Remove(name_start, name_end - name_start);
+        LogMessage($"  > containing type name = {containing_type_name}", MessageLevel.Info);
 
         var type = InteropInterface.FindType(containing_type_name);
 
