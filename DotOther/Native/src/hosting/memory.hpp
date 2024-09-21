@@ -8,15 +8,15 @@
 
 namespace dotother {
 
-class Memory {
-  public:
-	  static void* AllocHGlobal(size_t size);
-	  static void FreeHGlobal(void* ptr);
-
-	  static dochar* NStringToCoTaskMemAuto(dostring_view InString);
-
-	  static void FreeCoTaskMem(void* handle);
-};
+  class Memory {
+    public:
+    static void* AllocHGlobal(size_t size);
+    static void FreeHGlobal(void* ptr);
+    
+    static dochar* NStringToCoTaskMemAuto(dostring_view InString);
+    
+    static void FreeCoTaskMem(void* handle);
+  };
 
 } // namespace dotother
 
