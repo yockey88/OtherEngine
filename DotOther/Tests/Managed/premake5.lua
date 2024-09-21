@@ -12,6 +12,12 @@ local test_module1 = {
     }
   end,
 
+  links = function()
+    links {
+      "DotOther.Managed",
+    }
+  end,
+
   windows_configuration = function()
     propertytags {
       { "AppendFrameworkToOutputPath", "false" } ,
@@ -22,10 +28,6 @@ local test_module1 = {
       "CS8500" ,
     }
   end,
-
-  components = {
-    ["DotOther.Managed"] = "",
-  }
 }
 
 AddModule(test_module1)

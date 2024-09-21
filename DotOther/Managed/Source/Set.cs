@@ -11,6 +11,18 @@ namespace DotOther.Managed {
       return elements.ContainsKey(id);
     }
 
+    public Int32 Size {
+      get {
+        return elements.Count;
+      }
+    }
+
+    public IEnumerable<T> Elements {
+      get {
+        return elements.Values;
+      }
+    }
+
 #nullable enable
     public Int32 Add(T? element) {
       if (element == null) {

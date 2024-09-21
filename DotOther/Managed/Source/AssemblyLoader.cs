@@ -35,26 +35,49 @@ namespace DotOther.Managed {
 #nullable disable
 
     static AssemblyLoader() {
+      load_errors.Add(typeof(BadImageFormatException), AsmLoadStatus.InvalidAssembly);
+      load_errors.Add(typeof(FileNotFoundException), AsmLoadStatus.NotFound);
+      load_errors.Add(typeof(FileLoadException), AsmLoadStatus.Failed);
+      load_errors.Add(typeof(ArgumentNullException), AsmLoadStatus.InvalidPath);
+      load_errors.Add(typeof(ArgumentException), AsmLoadStatus.InvalidPath);
+
+      dotother_asm_context = AssemblyLoadContext.GetLoadContext(typeof(AssemblyLoader).Assembly);
+      dotother_asm_context!.Resolving += ResolveAssembly;
+      CacheDotOtherAssemblies();
     }
 
     private static void CacheDotOtherAssemblies() {
+      foreach (var assembly in dotother_asm_context!.Assemblies)  {
+        int assemblyId = assembly.GetName().Name!.GetHashCode();
+        assemblies.Add(assemblyId, assembly);
+      }
     }
-
 
 #nullable enable
     internal static bool TryGetAssembly(Int32 id , out Assembly? asm) {
       return assemblies.TryGetValue(id, out asm);
     }
 
-    internal static Assembly? ResolveAssembly(AssemblyLoadContext? context, AssemblyName assemblyName) {
-      // if (LoadedAssemblies.TryGetValue(assemblyName.Name, out var asm)) {
-      //   return asm;
-      // }
+    internal static Assembly? ResolveAssembly(AssemblyLoadContext? context, AssemblyName asm_name) {
+      try {
+        Int32 asm_id = asm_name.Name!.GetHashCode();
+        if (assemblies.TryGetValue(asm_id, out var asm)) {
+          return asm;
+        }
 
-      // if (AssemblyContexts.TryGetValue(assemblyName.Name, out var asmCtx)) {
-      //   return asmCtx.LoadAssembly(assemblyName);
-      // }
+        foreach (var alc in contexts.Values) {
+          foreach (var assembly  in alc.Assemblies) {
+            if (assembly.GetName().Name != asm_name.Name) {
+              continue;
+            }
 
+            assemblies.Add(asm_id, assembly);
+            return assembly;
+          }
+        }
+      } catch (Exception e) {
+        HandleException(e);
+      }
       return null;
     }
 

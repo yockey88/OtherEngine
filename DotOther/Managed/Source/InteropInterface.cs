@@ -61,6 +61,14 @@ namespace DotOther.Managed {
 		}
 
 #nullable enable
+
+		internal static void DumpTypes() {
+			LogMessage($"Cached Types: {cached_types.Size}", MessageLevel.Trace);
+			foreach (var type in cached_types.Elements) {
+				LogMessage($"  > {type.FullName}", MessageLevel.Trace);
+			}
+		}
+
 		internal static Type? FindType(string? name) {
 			var type = Type.GetType(name!,
 				(name) => AssemblyLoader.ResolveAssembly(null, name),

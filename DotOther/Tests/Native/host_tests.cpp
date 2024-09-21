@@ -22,7 +22,7 @@ class HostTests : public DoTest {
   public:
   protected:
     dotother::HostConfig config = {
-      .host_config_path = DO_STR("./bin/Debug/DotOther.Managed/net8.0/DotOther.Managed.runtimeconfig.json") ,
+      .host_config_path = DO_STR("./DotOther/Managed/DotOther.Managed.runtimeconfig.json") ,
       .managed_asm_path = DO_STR("./bin/Debug/DotOther.Managed/net8.0/DotOther.Managed.dll") ,
       .dotnet_type = DO_STR("DotOther.Managed.DotOtherHost, DotOther.Managed") ,
       .entry_point = DO_STR("EntryPoint") ,
@@ -30,7 +30,7 @@ class HostTests : public DoTest {
       .log_level = dotother::MessageLevel::INFO,
 
       .exception_callback = [](const dotother::NString message) {
-        dotother::util::print(DO_STR("Exception: {}"sv), message);
+        dotother::util::print(DO_STR("C# Exception Caught : \n\t{}"sv), message);
         FAIL();
       } ,
       .log_callback = [](const dotother::NString message, dotother::MessageLevel level) {
@@ -58,6 +58,7 @@ class HostTests : public DoTest {
 
   public:
     static dotother::NObject& GetNativeObject() {
+      dotother::util::print(DO_STR("Getting Native Object Handle: {:#08x}"sv), native_object.handle);
       return native_object;
     }
 };
@@ -65,6 +66,10 @@ class HostTests : public DoTest {
 dotother::NObject HostTests::native_object = dotother::NObject();
 
 TEST_F(HostTests, load_asm_and_call_functions) {
+  // native_object.handle(0xdeadbeef);
+  // dotother::util::print(DO_STR("Native Object Handle: {:#08x}"sv), native_object.target.handle);
+  native_object.handle = 0xdeadbeef;
+
   host = dotother::new_owner<dotother::Host>(config);
   ASSERT_NO_THROW(host->LoadHost());
   ASSERT_NO_THROW(host->CallEntryPoint());
@@ -86,12 +91,11 @@ TEST_F(HostTests, load_asm_and_call_functions) {
   ASSERT_NE(assembly , nullptr);
   ASSERT_NE(assembly->GetId(), -1);
   
-  auto& type = assembly->GetType("DotOther.Tests.Mod1");
-  ASSERT_NE(type.handle, -1);
-  
   assembly->SetInternalCall("DotOther.Tests.Mod1", "GetNativeObject", (void*)&HostTests::GetNativeObject);
   ASSERT_NO_THROW(assembly->UploadInternalCalls());
-
+  
+  auto& type = assembly->GetType("DotOther.Tests.Mod1");
+  ASSERT_NE(type.handle, -1);
 
   dotother::util::print(DO_STR("Creating Instance Type: {}"sv), type.FullName());
   dotother::HostedObject obj;
@@ -99,6 +103,8 @@ TEST_F(HostTests, load_asm_and_call_functions) {
 
   ASSERT_NO_FATAL_FAILURE(obj.Invoke("Test"));
   ASSERT_NO_FATAL_FAILURE(obj.Invoke("Test", 22));
+
+  ASSERT_NO_FATAL_FAILURE(obj.Invoke("TestInternalCall"));
 
   float number = 0.f;
   float expected = 42.f;

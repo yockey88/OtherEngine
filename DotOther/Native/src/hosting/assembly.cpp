@@ -40,10 +40,22 @@ namespace dotother {
   }
 
   void Assembly::SetInternalCall(const std::string_view klass, const std::string_view method_name , void* fn) {
-    std::string call_asm_name = GetAsmQualifiedName(klass, method_name);
-    const dostring& name = internal_call_names.emplace_back(util::CharToWide(call_asm_name));
+    using namespace std::string_view_literals;
+    if (fn == nullptr) {
+      util::GetUtils().log_sink(fmt::format("Attempting to register an internall call ({}.{}) using a null pointer!"sv, klass, method_name),
+                                MessageLevel::ERR, true);
+      return;
+    }
+
+    std::string asm_name{ klass };
+    asm_name += "+";
+    asm_name += method_name;
+    asm_name += ", ";
+    asm_name += name;
+
+    const dostring& internal_name = internal_call_names.emplace_back(util::CharToWide(asm_name));
     internal_calls.push_back({
-      .name = name.c_str() ,
+      .name = internal_name.c_str() ,
       .native_function = fn
     });
   }

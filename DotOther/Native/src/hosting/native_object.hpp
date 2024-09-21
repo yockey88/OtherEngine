@@ -6,21 +6,26 @@
 
 #include <refl/refl.hpp>
 
-#include "core/utilities.hpp"
-
-#include "reflection/echo_defines.hpp"
-#include "reflection/serializable.hpp"
-
 namespace dotother {
 namespace echo {
 
   template <typename T>
   struct ObjectProxy : refl::runtime::proxy<ObjectProxy<T>, T> {
+    T target;
+
+    constexpr ObjectProxy(const T& target) 
+      : target(target) {}
+
+    constexpr ObjectProxy(T&& target)
+      : target(std::move(target)) {}
+
+    template <typename... Args>
+    constexpr ObjectProxy(Args&&... args)
+      : target(std::forward<Args>(args)...) {}
+
     template <typename Member , typename Self , typename... Args>
     static constexpr decltype(auto) invoke_impl(Self&& self, Args&&... args) {
       constexpr Member member{};
-      util::print(DO_STR("Calling {}") , refl::descriptor::get_debug_name(member));
-
       if constexpr (refl::descriptor::is_field(member)) {
         static_assert(sizeof...(Args) <= 1 , "Invalid number of arguments provided for property!");
 
@@ -38,9 +43,10 @@ namespace echo {
   }; 
 
 } // namespace echo
+// namespace detail {
 
-  class NObject : echo::serializable {
-    ECHO_REFLECT();
+  class NObject {
+    // ECHO_REFLECT();
     public:
       NObject() {}
       ~NObject() {}
@@ -50,11 +56,19 @@ namespace echo {
     private:
   };
 
+// } // namespace detail
 } // namespace dotother
 
-ECHO_TYPE(
-  type(dotother::NObject) ,
-  field(handle , dotother::echo::serializable_field())
-);
+
+// ECHO_TYPE(
+//   type(dotother::detail::NObject) ,
+//   field(handle)
+// );
+
+namespace dotother {
+
+  // using NObject = echo::ObjectProxy<detail::NObject>;
+
+} // namespace dotother
 
 #endif // !DOTOTHER_NATIVE_OBJECT_HPP

@@ -1,12 +1,12 @@
 using System;
 using System.Runtime.CompilerServices;
-using DotOther;
+using System.Runtime.InteropServices;
+using DotOther.Managed;
 
 namespace DotOther.Tests {
 
   public class Mod1 {
-    
-    internal unsafe delegate NObject GetNativeObject();
+    internal static unsafe delegate*<IntPtr> GetNativeObject;
 
     private Int32 my_num;
 
@@ -28,6 +28,22 @@ namespace DotOther.Tests {
 
     public void Test(Int32 num) {
       Console.WriteLine("Mod1.Test: " + num);
+    }
+
+    public unsafe void TestInternalCall() {
+      try {
+        if (GetNativeObject == null) {
+          Console.WriteLine("GetNativeObject is null");
+          return;
+        }
+
+        NObject obj = Marshal.PtrToStructure<NObject>(GetNativeObject());
+        obj.Invoke("Test");
+        
+        Console.WriteLine($"NObject Handle: {obj.NHandle:x8}");
+      } catch (Exception e) {
+        Console.WriteLine($"Exception in TestInternalCall: {e.Message} |\n{e.StackTrace}");
+      }
     }
   }
 

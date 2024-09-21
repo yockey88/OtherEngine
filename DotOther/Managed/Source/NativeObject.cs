@@ -5,6 +5,7 @@ using DotOther.Managed.Interop;
 
 namespace DotOther {
 
+  [StructLayout(LayoutKind.Sequential, Pack = 1)]
   public class NObject {
     private UInt64 native_handle;
 
@@ -12,13 +13,15 @@ namespace DotOther {
       get => native_handle;
     }
 
-    public NObject(UInt64 ptr) {
-      native_handle = ptr;
+    public NObject() {
     }
-  }
 
-  internal static class NObjectInterface {
-    private static unsafe delegate*<NObject> CreateObject;
+    public void Invoke(string method) {
+      try {
+      } catch (Exception e) {
+        Console.WriteLine($"Exception in Invoke: {e.Message} |\n{e.StackTrace}");
+      }
+    }
   }
 
 }
