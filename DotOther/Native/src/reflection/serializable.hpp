@@ -9,7 +9,6 @@
 
 #include <refl/refl.hpp>
 
-#include "core/utilities.hpp"
 #include "reflection/reflected_object.hpp"
 
 namespace dotother {
@@ -17,8 +16,7 @@ namespace echo {
 
   struct serializable : reflectable, refl::attr::usage::any {};
 
-  struct serializable_field : echo_attr, 
-                              refl::attr::usage::field {};
+  struct serializable_field : echo_attr, refl::attr::usage::field {};
 
   template <typename T>
   concept field_t = 

@@ -309,6 +309,9 @@ namespace dotother {
     interop.get_method_attributes = LoadManagedFunction<GetMethodAttributes>(DO_STR("DotOther.Managed.InteropInterface, DotOther.Managed"), DO_STR("GetMethodAttributes"));
     interop.get_method_accessibility = LoadManagedFunction<GetMethodAccessibility>(DO_STR("DotOther.Managed.InteropInterface, DotOther.Managed"), DO_STR("GetMethodAccessibility"));
 
+    interop.set_internal_calls = LoadManagedFunction<SetInternalCalls>(DO_STR("DotOther.Managed.InternalCallManager, DotOther.Managed"), DO_STR("SetInternalCalls"));
+    interop.set_internal_call = LoadManagedFunction<SetInternalCall>(DO_STR("DotOther.Managed.InternalCallManager, DotOther.Managed"), DO_STR("SetInternalCall"));
+
     interop.create_object = LoadManagedFunction<CreateObject>(DO_STR("DotOther.Managed.ManagedObject, DotOther.Managed"), DO_STR("CreateObject"));
     interop.destroy_object = LoadManagedFunction<DestroyObject>(DO_STR("DotOther.Managed.ManagedObject, DotOther.Managed"), DO_STR("DestroyObject"));
 
@@ -356,7 +359,7 @@ namespace dotother {
     return host_path;
   }
 
-  void* Host::LoadManagedFunction(const std::filesystem::path& asm_path, const dostring_t& type_name, const dostring_t& method_name, const dochar* delegate_type) const {
+  void* Host::LoadManagedFunction(const std::filesystem::path& asm_path, const dostring& type_name, const dostring& method_name, const dochar* delegate_type) const {
     if (!std::filesystem::exists(asm_path)) {
       using namespace std::string_view_literals;
       util::print(DO_STR("Assembly {} does not exist!"sv), asm_path.string());

@@ -10,11 +10,11 @@ namespace DotOther.Managed {
 using static DotOtherHost;
 	[StructLayout(LayoutKind.Sequential, Pack = 1)]
 	public readonly struct InternalCall {
-		public readonly IntPtr NName;
+		public readonly NString NName;
 		public readonly IntPtr Target;
 
 #nullable enable
-		public string? Name => Marshal.PtrToStringAnsi(NName);
+		public string? Name => NName.ToString();
 #nullable disable
 	}
 

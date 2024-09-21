@@ -55,6 +55,9 @@ namespace interface_bindings {
       get_method_attributes    != nullptr &&
       get_method_accessibility != nullptr &&
 
+      set_internal_calls != nullptr &&
+      set_internal_call != nullptr &&
+
       /// object functions
       create_object          != nullptr &&
       destroy_object         != nullptr &&

@@ -3,6 +3,7 @@
  **/
 #include "dotest.hpp"
 
+#include <cstdint>
 #include <iostream>
 
 #include <gtest.h>
@@ -29,21 +30,29 @@ struct MyStruct : echo::serializable {
       : x(x), y(y), z(z) {}
 };
 
-struct Foo : echo::callable {
+struct Foo : echo::callable, echo::static_callable {
   ECHO_REFLECT();
 
   uint32_t operator()() {
-    std::cout << "Foo::operator()" << std::endl;
+    dotother::util::print(DO_STR("Foo called"));
     return 69;
+  }
+
+  static void Call(float f , uint32_t i) {
+    dotother::util::print(DO_STR("Foo static called w args: {:f} , {}"), f, i);
   }
 };
 
-struct Bar : echo::static_callable {
+struct Bar : echo::callable, echo::static_callable {
   ECHO_REFLECT();
 
   static float Call() {
-    std::cout << "Bar::operator()" << std::endl;
+    dotother::util::print(DO_STR("Bar static called"));
     return 420.f;
+  }
+
+  void operator()(float f , uint32_t i) {
+    dotother::util::print(DO_STR("Bar called w args: {:f} , {}"), f, i);
   }
 };
 
@@ -90,11 +99,10 @@ TEST_F(ReflectionTests , refl_test) {
     Foo{},
     Foo{}
   };
-  DumpDebugData_refl(structs);
   {
     std::stringstream ss;  
     SerializeData_refl(ss, structs);
-    std::cout << ss.str() << std::endl;
+    EXPECT_NE(ss.str() , "");
   }
 
   {
@@ -107,19 +115,24 @@ TEST_F(ReflectionTests , refl_test) {
   MyStruct test { 2.f }; 
   echo::reflectable& r = test;
   const dotother::echo::TypeMetadata& tmd = r.ReadMetadata();
+  EXPECT_EQ(tmd.name , "MyStruct");
+  EXPECT_EQ(tmd.methods.size() , 0);
+  EXPECT_EQ(tmd.fields.size() , 3);
 
   Foo foothing;
   uint32_t res = dotother::Invoke<Foo, uint32_t>(foothing);
-  EXPECT_EQ(res, 69);
+  dotother::Invoke<Foo>(1.f, 2);
 
+  EXPECT_EQ(res, 69); 
+
+  Bar barthing;
   float fres = dotother::Invoke<Bar, float>();
   EXPECT_EQ(fres, 420.f);
+  dotother::Invoke<Bar>(barthing, 1.f, 2);
 
-  dotother::Invoke<MyStruct>();
-
-  MyStruct test2 { 1.f, 2.f, 3.f };
-  dotother::Invoke<MyStruct>(test2);
+  EXPECT_EQ(fres, 420.f);
 }
+
 template <typename T>
 void ReflectionTests::PrintTypeMembers_refl() {
   auto reflection = refl::reflect<T>();

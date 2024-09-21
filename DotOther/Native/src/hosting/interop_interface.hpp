@@ -12,7 +12,11 @@
 
 namespace dotother {
 
-	using SetInternalCalls = void(*)(void*, int32_t);
+	struct InternalCall {
+    const dochar* name;
+		void* native_function;
+	};
+
 	using CreateAssemblyLoadContext = int32_t(*)(NString);
 	using UnloadAssemblyLoadContext = void(*)(int32_t);
 	using LoadAssembly = int32_t(*)(int32_t, NString);
@@ -67,6 +71,9 @@ namespace dotother {
 	using GetMethodAttributes = void(*)(int32_t, int32_t*, int32_t*);
 #pragma endregion
 
+	using SetInternalCalls = void(*)(void*, int32_t);
+	using SetInternalCall = void(*)(InternalCall);
+
 	using CreateObject = void*(*)(int32_t, nbool32, const void**, const ManagedType*, int32_t);
 	using DestroyObject = void(*)(void*);
 	
@@ -88,7 +95,6 @@ namespace dotother {
 namespace interface_bindings {
 
 	struct FunctionTable {
-		SetInternalCalls set_internal_calls = nullptr;
 		CreateAssemblyLoadContext create_assembly_load_context = nullptr;
 		UnloadAssemblyLoadContext unload_assembly_load_context = nullptr;
 		LoadAssembly load_assembly = nullptr;
@@ -118,10 +124,10 @@ namespace interface_bindings {
 #pragma endregion
 		
 #pragma region Field
-			GetFieldName get_field_name = nullptr;
-			GetFieldType get_field_type = nullptr;
-			GetFieldAccessibility get_field_accessibility = nullptr;
-			GetFieldAttributes get_field_attributes = nullptr;
+		GetFieldName get_field_name = nullptr;
+		GetFieldType get_field_type = nullptr;
+		GetFieldAccessibility get_field_accessibility = nullptr;
+		GetFieldAttributes get_field_attributes = nullptr;
 #pragma endregion
 
 #pragma region Property
@@ -136,12 +142,15 @@ namespace interface_bindings {
 #pragma endregion
 
 #pragma region Method
-			GetMethodName get_method_name = nullptr;
-			GetMethodReturnType get_method_return_type = nullptr;
-			GetMethodParameterTypes get_method_param_types = nullptr;
-			GetMethodAttributes get_method_attributes = nullptr;
-			GetMethodAccessibility get_method_accessibility = nullptr;
+		GetMethodName get_method_name = nullptr;
+		GetMethodReturnType get_method_return_type = nullptr;
+		GetMethodParameterTypes get_method_param_types = nullptr;
+		GetMethodAttributes get_method_attributes = nullptr;
+		GetMethodAccessibility get_method_accessibility = nullptr;
 #pragma endregion
+
+		SetInternalCalls set_internal_calls = nullptr;
+		SetInternalCall set_internal_call = nullptr;
 
 		CreateObject create_object = nullptr;
 		DestroyObject destroy_object = nullptr;

@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <string_view>
 
 #include "core/defines.hpp"
 #include "core/utilities.hpp"
@@ -31,6 +32,41 @@ namespace dotother {
     Type* type = TypeCache::Instance().GetType(name);
     return type != nullptr ? 
       *type : null_type;
+  }
+
+  std::string Assembly::GetAsmQualifiedName(const std::string_view klass, const std::string_view method_name) const {
+    return (std::string {klass} + "+" + 
+            std::string{method_name} + ", " + name);
+  }
+
+  void Assembly::SetInternalCall(const std::string_view klass, const std::string_view method_name , void* fn) {
+    std::string call_asm_name = GetAsmQualifiedName(klass, method_name);
+    const dostring& name = internal_call_names.emplace_back(util::CharToWide(call_asm_name));
+    internal_calls.push_back({
+      .name = name.c_str() ,
+      .native_function = fn
+    });
+  }
+
+  void Assembly::UploadInternalCalls() {
+    if (host == nullptr) {
+      util::print(DO_STR("Host is not initialized!"));
+      throw std::runtime_error("Host is not initialized!");
+    }
+
+    if (!Interop().BoundToAsm()) {
+      util::print(DO_STR("Interop is not bound to assembly!"));
+      throw std::runtime_error("Interop is not bound to assembly!");
+    }
+
+    if (internal_call_names.empty()) {
+      return;
+    }
+    Interop().set_internal_calls(internal_calls.data() , static_cast<int32_t>(internal_calls.size()));
+  }
+
+  void Assembly::AddCall(const std::string& name , void* fn) {
+
   }
 
   ref<Assembly> AssemblyContext::LoadAssembly(const std::string_view path) {

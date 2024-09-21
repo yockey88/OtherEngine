@@ -172,7 +172,6 @@ namespace DotOther.Managed {
     public ReflectionType(Int32 id) {
       type_id = id;
     }
-
     // public static implicit operator ReflectionType(Type? type) => new(InteropInterface.CachedTypes.Add(type));
 #nullable disable
   }

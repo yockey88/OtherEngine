@@ -7,6 +7,7 @@
 #include <memory>
 #include <string_view>
 #include <optional>
+#include <functional>
 
 #include <spdlog/fmt/fmt.h>
 
@@ -39,9 +40,13 @@
 
 namespace dotother {
 
-	using dochar = char_t;
+#ifdef DOTOTHER_WIDE_CHARS
+	using dochar = wchar_t;
+#else
+	using dochar = char;
+#endif
+	using dostring = std::basic_string<dochar>;
 	using dostring_view = std::basic_string_view<dochar>;
-	using dostring_t = std::basic_string<dochar>;
 
 	using dotypeid = int32_t;
 	using dohandle = int32_t;
@@ -145,11 +150,6 @@ namespace literals {
 		INTERNAL,
 		PROTECTED_PUBLIC,
 		PRIVATE_PROTECTED
-	};
-
-	struct InternalCall {
-		const dochar* Name;
-		void* NativeFunctionPtr;
 	};
 
 } // namespace dotother

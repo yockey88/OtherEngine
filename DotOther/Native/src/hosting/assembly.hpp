@@ -4,15 +4,17 @@
 #ifndef DOTOTHER_NATIVE_ASSEMBLY_HPP
 #define DOTOTHER_NATIVE_ASSEMBLY_HPP
 
-#include <expected>
 #include <string>
 #include <string_view>
 #include <vector>
+#include <functional>
 
 #include <gtest/gtest_prod.h> /// for GTEST_FRIEND_TEST
 
 #include "core/defines.hpp"
 #include "hosting/type.hpp"
+#include "hosting/interop_interface.hpp"
+#include "reflection/echo_type.hpp"
 
 class DoTest;
 class HostTests;
@@ -30,8 +32,8 @@ namespace dotother {
       AssemblyLoadStatus LoadStatus() const;
       std::string_view Name() const;
 
-      // void SetInternalCall(const std::string_view klass, const std::string_view call_name, void* fn);
-      // void UploadInternalCalls();
+      void SetInternalCall(const std::string_view klass, const std::string_view name , void* fn);
+      void UploadInternalCalls();
 
       Type& GetType(const std::string_view klass) const;
       // const std::vector<Type*>& GetTypes() const;
@@ -43,19 +45,20 @@ namespace dotother {
 
       std::string name;
 
-#ifdef DOTOTHER_WIDE_CHARS
-      std::vector<std::wstring> internal_call_names = {};
-#else
-      std::vector<std::string> internal_call_names = {};
-#endif // !DOTOTHER_WIDE_CHARS
+      std::vector<dostring> internal_call_names = {};
 
       std::vector<InternalCall> internal_calls = {};
 
       std::vector<Type*> types = {};
 
+      std::string GetAsmQualifiedName(const std::string_view klass, const std::string_view method_name) const;
+
+      void AddCall(const std::string& name , void* fn);
+
       friend class Host;
       friend class AssemblyContext;
-      
+
+      friend class DoTest;
       FRIEND_TEST(HostTests, load_asm_and_call_functions);
   };
 

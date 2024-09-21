@@ -4,6 +4,7 @@
 #ifndef DOTOTHER_ECHO_HPP
 #define DOTOTHER_ECHO_HPP
 
+#include "core/utilities.hpp"
 #include "reflection/echo_type.hpp"
 
 namespace dotother {
@@ -30,17 +31,33 @@ namespace echo {
       }
     }); 
   }
-
-  template <typename T, typename R>
-    requires (echo::is_callable_v<T, R> && !echo::is_static_callable_v<T, R>)
-  R InvokeCallable(T& object) {
-    return object();
+  
+  template <typename T, typename R, typename... Args>
+    requires echo::is_static_callable_v<T, R, Args...>
+  static constexpr R InvokeStaticCallable(Args&&... args) {
+    if constexpr (std::is_void_v<R> && sizeof...(Args) == 0) {
+      T::Call();
+    } else if constexpr (std::is_void_v<R>) {
+      T::Call(std::forward<Args>(args)...);
+    } else if constexpr (sizeof...(Args) == 0) {
+      return T::Call();
+    } else {
+      return T::Call(std::forward<Args>(args)...);
+    }
   }
 
-  template <typename T, typename R>
-    requires echo::is_static_callable_v<T, R>
-  R InvokeStaticCallable() {
-    return T::Call();
+  template <typename T, typename R, typename... Args>
+    requires echo::is_callable_v<T, R, Args...>
+  static constexpr R InvokeCallable(T& object, Args&&... args) {
+    if constexpr (std::is_void_v<R> && sizeof...(Args) == 0) {
+      object();
+    } else if constexpr (std::is_void_v<R>) {
+      object(std::forward<Args>(args)...);
+    } else if constexpr (sizeof...(Args) == 0) {
+      return object();
+    } else {
+      return object(std::forward<Args>(args)...);
+    }
   }
 
 } // namespace echo
@@ -52,37 +69,34 @@ namespace echo {
     }
     echo::SerializeObject<T, IOS>(stream, std::forward<T>(object));
   }
-
-  template <typename T, typename R = void>
-    requires (!echo::is_static_callable_v<T, R> && !echo::is_callable_v<T, R>)
-  R Invoke() {
-    if constexpr (std::same_as<R, void>) {
-      return;
-    }
-
-    return R{};
-  }
-
-  template <typename T, typename R = void>
-    requires (!echo::is_static_callable_v<T, R> && !echo::is_callable_v<T, R>)
-  R Invoke(T& object) {
-    if constexpr (std::same_as<R, void>) {
-      return;
-    }
-
-    return R{};
-  }
   
-  template <typename T, typename R = void>
-    requires echo::is_static_callable_v<T, R>
-  R Invoke() {
-    return echo::InvokeStaticCallable<T, R>();
+  template <typename T, typename R, typename... Args>
+    requires echo::is_static_callable_v<T, R, Args...>
+  struct StaticInvoker {
+    R operator()(Args&&... args) {
+      return echo::InvokeStaticCallable<T, R, Args...>(std::forward<Args>(args)...);
+    }
+  };
+
+  template <typename T, typename R, typename... Args>
+    requires echo::is_callable_v<T, R, Args...>
+  struct Invoker {
+    R operator()(T& object, Args&&... args) {
+      return echo::InvokeCallable<T, R, Args...>(object, std::forward<Args>(args)...);
+    }
+  };
+
+
+  template <typename T, typename R = void, typename... Args>
+    requires echo::is_callable_v<T, R, Args...>
+  R Invoke(T& object, Args&&... args) {
+    return Invoker<T, R, Args...>{}(object, std::forward<Args>(args)...);
   }
 
-  template <typename T, typename R = void>
-    requires (echo::is_callable_v<T, R> && !echo::is_static_callable_v<T, R>)
-  R Invoke(T& object) {
-    return echo::InvokeCallable<T, R>(object);
+  template <typename T , typename R = void , typename... Args>
+    requires echo::is_static_callable_v<T, R, Args...>
+  R Invoke(Args&&... args) {
+    return StaticInvoker<T, R, Args...>{}(std::forward<Args>(args)...);
   }
 
 } // namespace dotother

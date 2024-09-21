@@ -12,13 +12,13 @@ namespace DotOther.Tests {
 
     public float number = 0.0f;
 
-    // public Mod1() {
-    //   my_num = 0;
-    // }
+    public Mod1() {
+      my_num = 0;
+    }
 
-    // public Mod1(Int32 num) {
-    //   my_num = num;
-    // }
+    public Mod1(Int32 num) {
+      my_num = num;
+    }
 
     public void Test() {
       Console.WriteLine("Mod1.Test");

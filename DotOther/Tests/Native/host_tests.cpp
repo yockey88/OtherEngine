@@ -13,6 +13,7 @@
 #include "hosting/host.hpp"
 #include "hosting/interop_interface.hpp"
 #include "hosting/method.hpp"
+#include "hosting/native_object.hpp"
 
 using namespace dotother::literals;
 using namespace std::string_view_literals;
@@ -58,7 +59,16 @@ class HostTests : public DoTest {
     }
 
     dotother::owner<dotother::Host> host = nullptr;
+
+    static dotother::NObject native_object;
+
+  public:
+    static dotother::NObject& GetNativeObject() {
+      return native_object;
+    }
 };
+
+dotother::NObject HostTests::native_object = dotother::NObject();
 
 TEST_F(HostTests, load_asm_and_call_functions) {
   host = dotother::new_owner<dotother::Host>(config);
@@ -81,6 +91,9 @@ TEST_F(HostTests, load_asm_and_call_functions) {
   ASSERT_NO_THROW(assembly = asm_ctx.LoadAssembly(mod1_path.string()));
   ASSERT_NE(assembly , nullptr);
   ASSERT_NE(assembly->GetId(), -1);
+  
+  assembly->SetInternalCall("DotOther.NObject", "CreateObject", (void*)&HostTests::GetNativeObject);
+  ASSERT_NO_THROW(assembly->UploadInternalCalls());
 
   auto& type = assembly->GetType("DotOther.Tests.Mod1");
   ASSERT_NE(type.handle, -1);
@@ -106,6 +119,8 @@ TEST_F(HostTests, load_asm_and_call_functions) {
   dotother::util::print(DO_STR("Property Value: {}"sv), number);
 
   ASSERT_NO_THROW(host->UnloadAssemblyContext(asm_ctx));
+
+
 }
 
 int main(int argc, char** argv) {

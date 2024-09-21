@@ -28,8 +28,8 @@ namespace dotother {
     std::filesystem::path host_config_path;
 		std::filesystem::path managed_asm_path;
 
-		dostring_t dotnet_type;
-		dostring_t entry_point;
+		dostring dotnet_type;
+		dostring entry_point;
 		const dochar* delegate_type = DOTNET_UNMANAGED_FUNCTION;
 
     MessageLevel log_level = MessageLevel::MESSAGE;
@@ -76,10 +76,10 @@ namespace dotother {
 
       std::optional<std::filesystem::path> GetHostPath();
 
-      void* LoadManagedFunction(const std::filesystem::path& asm_path, const dostring_t& typ_name, const dostring_t& method_name, const dochar* delegate_type = DOTNET_UNMANAGED_FUNCTION) const;
+      void* LoadManagedFunction(const std::filesystem::path& asm_path, const dostring& typ_name, const dostring& method_name, const dochar* delegate_type = DOTNET_UNMANAGED_FUNCTION) const;
 
       template <typename Fn>
-      Fn LoadManagedFunction(const dostring_t& type_name, const dostring_t& method_name , const dochar* delegate_type = DOTNET_UNMANAGED_FUNCTION) const {
+      Fn LoadManagedFunction(const dostring& type_name, const dostring& method_name , const dochar* delegate_type = DOTNET_UNMANAGED_FUNCTION) const {
         return (Fn)(LoadManagedFunction(config.managed_asm_path, type_name, method_name, delegate_type));
       }
   };
