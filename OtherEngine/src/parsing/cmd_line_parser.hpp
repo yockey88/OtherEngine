@@ -26,19 +26,19 @@ namespace other {
       : sflag(sflag), lflag(lflag), description(description), has_args(has_args) , num_args(num_args) {}
   };
   
-  constexpr static size_t kNumArgs = 5; 
+  constexpr static size_t kNumArgs = 6; 
   constexpr static std::array<RawArg, kNumArgs> kRawArgs = {
-    RawArg("-h", "--help", "Prints this help message", false),
-    RawArg("-v", "--version", "Prints the version of the program", false),
-    RawArg("-p", "--project", "Specifies the project file to use", true , 1),
-    RawArg("-cd", "--cwd", "Sets the current working directory", true , 1) ,
-    RawArg("-e", "--editor" , "Specifies the editor is to be opened and not the project", false) ,
+    RawArg("-h"   , "--help"             , "Prints this help message", false),
+    RawArg("-v"   , "--version"          , "Prints the version of the program", false),
+    RawArg("-p"   , "--project"          , "Specifies the project file to use", true , 1),
+    RawArg("-cd"  , "--cwd"              , "Sets the current working directory", true , 1) ,
+    RawArg("-e"   , "--editor"           , "Specifies the editor is to be opened and not the project", false) ,
+    RawArg("-oe" , "--other-environment" , "Opens dynamic other engine environment terminal", false)
   };
 
   struct Arg {
     uint64_t hash = 0;
     std::string_view flag;
-
     std::vector<std::string> args;
   };
 
@@ -47,8 +47,10 @@ namespace other {
       CmdLine() = default;
       CmdLine(int argc , char* argv[]);
 
-      bool HasFlag(const std::string& flag) const;
-      Opt<Arg> GetArg(const std::string& flag) const;
+      void SetFlag(const std::string_view flag , const std::vector<std::string>& flag_args);
+
+      bool HasFlag(const std::string_view flag) const;
+      Opt<Arg> GetArg(const std::string_view flag) const;
 
     private:
       std::string program_name;

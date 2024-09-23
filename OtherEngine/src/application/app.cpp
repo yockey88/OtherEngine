@@ -3,36 +3,36 @@
  */
 #include "application\app.hpp"
 
-#include <tracy/tracy/Tracy.hpp>
+#include <filesystem>
+#include <string_view>
 
+#include "core/config_keys.hpp"
 #include "core/logger.hpp"
 #include "core/time.hpp"  
 #include "core/engine.hpp"
+#include "core/engine_state.hpp"
+#include "event/core_events.hpp"
 #include "input/io.hpp"
+#include "parsing/cmd_line_parser.hpp"
+#include "application/app_state.hpp"
 
 #include "asset/runtime_asset_handler.hpp"
-
 #include "event/event_queue.hpp"
 #include "event/app_events.hpp"
 #include "event/event_handler.hpp"
 #include "event/ui_events.hpp"
 
+#include "scripting/script_defines.hpp"
+#include "scripting/script_engine.hpp"
 #include "rendering/renderer.hpp"
 #include "rendering/rendering_defines.hpp"
 #include "rendering/ui/ui.hpp"
-
-#include "scripting/script_defines.hpp"
-#include "scripting/script_engine.hpp"
-
 #include "physics/phyics_engine.hpp"
 
 namespace other {
-namespace {
 
-} /// anonymous namespace
-
-  App::App(Engine* engine) 
-      : engine_handle(engine) , cmdline(engine->cmd_line) , config(engine->config) {}
+  App::App(const CmdLine& cmdline , const ConfigTable& config)
+      : cmdline(cmdline) , config(config) {}
 
   App::~App() {}
       
@@ -59,11 +59,9 @@ namespace {
   void App::Run() {
     Attach();
 
-    CHECKGL();
-
     time::DeltaTime delta_time;
     delta_time.Start();
-    while (!GetEngine()->ShouldQuit()) {
+    while (!EngineState::exit_code.has_value()) {
       float dt = delta_time.Get();
       
       // updates mouse/keyboard/any connected controllers
@@ -74,7 +72,7 @@ namespace {
       }
       
       /// process all events queued from io/early update/physics steps
-      EventQueue::Poll(GetEngine() , this);
+      EventQueue::Poll(this);
 
       /// process any updates that are the result of events here
       
@@ -182,12 +180,23 @@ namespace {
     }
 
     for (auto itr = layer_stack->end(); itr != layer_stack->begin();) {
-      (*--itr)->ProcessEvent(event);
+      --itr;
+      (*itr)->ProcessEvent(event);
     
       if (event->handled) {
         itr = layer_stack->begin();
       }
     }
+    
+    if (event->handled) {
+      return;
+    }
+
+    EventHandler handler(event);
+    handler.Handle<ShutdownEvent>([this](ShutdownEvent& sd) -> bool { 
+      EngineState::exit_code = sd.GetExitCode(); 
+      return true;
+    });
   }
 
   static Ref<UIWindow> null_window = nullptr;
@@ -256,6 +265,17 @@ namespace {
     ui_windows[id] = nullptr;
     ui_windows.erase(itr);
     return true;
+  }
+
+  void App::LoadSceneByName(const std::string_view name) {
+    auto scene_dir = project_metadata->GetMetadata().assets_dir / "scenes";
+    OE_DEBUG("Searching for {} in {}" , name , scene_dir.string());
+    for (auto& entry : std::filesystem::directory_iterator(scene_dir)) {
+      if (entry.is_regular_file() && entry.path().stem() == name) {
+        LoadScene(entry.path());
+        return;
+      }
+    }
   }
   
   void App::LoadScene(const Path& path) {
@@ -345,9 +365,24 @@ namespace {
   }
 
   void App::Attach() {
+    CHECKGL();
+
+
     GetProjectContext()->LoadFiles();
     ScriptEngine::LoadProjectModules();
     OnAttach();
+    
+    bool need_primary = config.GetVal<bool>(kProjectSection, kNeedPrimarySceneValue).value_or(true);
+    if (need_primary) {
+      auto& proj_data = project_metadata->GetMetadata();
+      if (proj_data.primary_scene.has_value()) {
+        LoadSceneByName(*proj_data.primary_scene);
+      }
+    } else if (AppState::mode == EngineMode::RUNTIME) {
+      OE_ERROR("Can not run Other Engine in a runtime configuration without a primary scene!");
+      EventQueue::PushEvent<ShutdownEvent>(ExitCode::CORRUPT_CONFIGURATION);
+      return;
+    }
   }
 
   /// TODO: add early update to layers and scene

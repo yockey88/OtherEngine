@@ -603,9 +603,7 @@ namespace other {
       "Orthographic"
     };
 
-    bool primary = camera.camera->IsPrimary();
-    if (ImGui::Checkbox("Primary Camera" , &primary)) {
-      camera.camera->SetPrimary(primary);
+    if (ImGui::Checkbox("Primary Camera" , &camera.is_primary)) {
     }
 
     uint32_t current_proj = camera.camera->GetCameraProjectionType();
@@ -658,6 +656,13 @@ namespace other {
 
     ui::EndPropertyGrid();
 
+    return false;
+  }
+  
+  bool DrawLightSource(Entity* ent) {
+    ui::BeginPropertyGrid();
+
+    ui::EndPropertyGrid();
     return false;
   }
 

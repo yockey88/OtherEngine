@@ -6,6 +6,7 @@
 #include "core/filesystem.hpp"
 #include "application/app_state.hpp"
 
+#include "scripting/lua/lua_bindings.hpp"
 #include "scripting/lua/lua_script.hpp"
 #include <cctype>
 #include <iterator>
@@ -96,9 +97,11 @@ namespace other {
     auto project = AppState::ProjectContext();
     Path real_path = project->GetMetadata().assets_dir / module_info.paths[0];
     if (!Filesystem::PathExists(real_path)) {
-      OE_ERROR("Script module {} path {} does not exist" , module_info.name , real_path.filename().string());
+      OE_ERROR("Script module {} ({}) does not exist" , module_info.name , real_path.string());
       return nullptr;
     }
+
+    OE_DEBUG("Script module {} ({}) loaded" , module_info.name , real_path.string());
 
     Path mod_path = module_info.paths[0];
     std::string mod_path_str = mod_path.filename().string();

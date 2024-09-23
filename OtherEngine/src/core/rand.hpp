@@ -11,7 +11,7 @@
 namespace other {
 
   template <typename T>
-  concept numeric = std::is_integral_v<T> || std::floating_point<T>;
+  concept numeric = std::is_integral_v<T>;
   
   template <numeric T>
   class RandomGenerator {

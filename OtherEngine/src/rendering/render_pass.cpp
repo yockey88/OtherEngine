@@ -49,19 +49,20 @@ namespace other {
       return;
     }
     
+    CHECKGL();
+    
     /// reset to sane default for next render pass
     /// depth
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
+    
+    CHECKGL();
 
     /// stencil
     glEnable(GL_STENCIL_TEST);
     glStencilFunc(GL_ALWAYS , 1 , 0xFF);
     glStencilMask(0xFF);
     glStencilOp(GL_KEEP , GL_KEEP , GL_REPLACE);
-
-    /// gamma correction 
-    // glEnable(GL_FRAMEBUFFER_SRGB);
 
     CHECKGL();
 

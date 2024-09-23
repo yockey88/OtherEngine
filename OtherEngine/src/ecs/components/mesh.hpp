@@ -22,6 +22,7 @@ namespace other {
     ECS_COMPONENT(Mesh , kMeshIndex);
   }; 
 
+  /// primitive mesh types
   constexpr static uint32_t kEmptyIdx = 0;
   constexpr static uint32_t kTriangleIdx = 1;
   constexpr static uint32_t kRectIdx = 2;
@@ -37,12 +38,12 @@ namespace other {
     bool visible = true;
 
     bool is_primitive = false;
-    uint32_t primitive_id = 0; /// 1 = cube , 2 = sphere , 3 = capsule
+    uint32_t primitive_id = 0;
     uint32_t primitive_selection = 0;
 
     ECS_COMPONENT(StaticMesh , kStaticMeshIndex);
   }; 
-
+  
   class MeshSerializer : public ComponentSerializer {
     public:
       COMPONENT_SERIALIZERS(Mesh);

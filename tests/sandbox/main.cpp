@@ -11,6 +11,7 @@
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <imgui/backends/imgui_impl_sdl2.h>
+#include <rendering/model_factory.hpp>
 
 #include "core/defines.hpp"
 #include "core/logger.hpp"
@@ -21,23 +22,21 @@
 #include "core/uuid.hpp"
 #include "input/io.hpp"
 #include "parsing/cmd_line_parser.hpp"
-#include "parsing/ini_parser.hpp"
 
 #include "application/app.hpp"
-#include "application/app_state.hpp"
-#include "asset/asset_manager.hpp"
 
 #include "event/event_queue.hpp"
 
 #include "ecs/entity.hpp"
 #include "ecs/components/mesh.hpp"
+#include "ecs/components/light_source.hpp"
+#include "ecs/components/camera.hpp"
 
 #include "scene/scene_serializer.hpp"
 #include "scene/environment.hpp"
 #include "scene/scene.hpp"
 
 #include "scripting/script_engine.hpp"
-#include "physics/phyics_engine.hpp"
 #include "rendering/rendering_defines.hpp"
 #include "rendering/window.hpp"
 #include "rendering/renderer.hpp"
@@ -48,20 +47,19 @@
 #include "rendering/framebuffer.hpp"
 #include "rendering/uniform.hpp"
 #include "rendering/model.hpp"
-#include "rendering/model_factory.hpp"
 #include "rendering/material.hpp"
 #include "rendering/point_light.hpp"
 #include "rendering/direction_light.hpp"
 #include "rendering/geometry_pass.hpp"
 #include "rendering/outline_pass.hpp"
 #include "rendering/render_pass.hpp"
-#include "rendering/pipeline.hpp"
 #include "rendering/point_light.hpp"
 #include "rendering/scene_renderer.hpp"
 #include "rendering/ui/ui.hpp"
 #include "rendering/ui/ui_helpers.hpp"
 #include "rendering/ui/ui_widgets.hpp"
 
+#include "mock_app.hpp"
 #include "sandbox_ui.hpp"
 
 using other::FNV;
@@ -87,37 +85,6 @@ using other::SceneRenderer;
 
 using other::SceneSerializer;
 
-void CheckGlError(int line);
-
-class TestApp : public other::App {
-  public:
-    TestApp(other::Engine* engine) 
-        : other::App(engine) {}
-    virtual ~TestApp() override {}
-};
-
-#define CHECK() do { CheckGlError(__LINE__); } while (false)
-
-void LaunchMock(const other::ConfigTable& config) {
-  other::IO::Initialize();
-  other::EventQueue::Initialize(config);
-  other::ScriptEngine::Initialize(config);
-  other::PhysicsEngine::Initialize(config);
-  
-  other::Renderer::Initialize(config);
-  other::UI::Initialize(config , other::Renderer::GetWindow());
-}
-
-void ShutdownMock() {
-  other::UI::Shutdown();
-  other::Renderer::Shutdown();
-
-  other::PhysicsEngine::Shutdown();
-  other::ScriptEngine::Shutdown();
-  other::EventQueue::Shutdown();
-  other::IO::Shutdown();
-}
-
 std::vector<float> fb_verts = {
    1.f ,  1.f , 1.f , 1.f ,
   -1.f ,  1.f , 0.f , 1.f ,
@@ -135,30 +102,21 @@ std::vector<uint32_t> fb_layout = {
 
 int main(int argc , char* argv[]) {
   try {
-    other::CmdLine cmd_line(argc , argv);
-
     const other::Path sandbox_dir = "C:/Yock/code/OtherEngine/tests/sandbox";
-
     const other::Path config_path = sandbox_dir / "sandbox.other"; 
-    other::IniFileParser parser(config_path.string());
-    auto config = parser.Parse(); 
 
-    other::Logger::Open(config);
-    other::Logger::Instance()->RegisterThread("Sandbox-Thread");
+    other::CmdLine cmd_line(argc , argv);
+    cmd_line.SetFlag("--project" , { config_path.string() });
 
     /// for test reasons
-    other::Engine mock_engine = other::Engine::Create(cmd_line , config , config_path.string());
-    {
-      Scope<other::App> app_handle = NewScope<TestApp>(&mock_engine);
-      mock_engine.LoadApp(app_handle);
-    }
+    other::Engine mock_engine(cmd_line); 
+    other::Logger::Open(mock_engine.config);
+    other::Logger::Instance()->RegisterThread("Sandbox Thread");
 
-    LaunchMock(config);
+    mock_engine.LoadApp();
     OE_DEBUG("Sandbox Launched");
 
-    mock_engine.PushCoreLayer();
     other::ScriptEngine::LoadProjectModules();
-
 
     const other::Path engine_core_dir = other::Filesystem::GetEngineCoreDir();
     const other::Path assets_dir = engine_core_dir / "OtherEngine" / "assets";
@@ -193,7 +151,10 @@ int main(int argc , char* argv[]) {
 
       Ref<Shader> fbshader = other::BuildShader(fbshader_path);
 
-      Scope<VertexArray> fb_mesh = NewScope<VertexArray>(fb_verts , fb_indices , fb_layout);
+      Ref<VertexArray> fb_mesh = NewRef<VertexArray>(fb_verts , fb_indices , fb_layout);
+      Ref<other::Framebuffer> framebuffer = NewRef<other::Framebuffer>(other::FramebufferSpec{
+        .size = win_size ,
+      });
     
       uint32_t camera_binding_pnt = 0;
       std::vector<Uniform> cam_unis = {
@@ -215,8 +176,8 @@ int main(int argc , char* argv[]) {
       uint32_t light_binding_pnt = 3;
       std::vector<Uniform> light_unis = {
         { "num_lights" , other::ValueType::VEC4 } ,
-        { "direction_lights" , other::ValueType::USER_TYPE , 100 , sizeof(other::DirectionLight) } ,
         { "point_lights" , other::ValueType::USER_TYPE , 100 , sizeof(other::PointLight) } ,
+        { "direction_lights" , other::ValueType::USER_TYPE , 100 , sizeof(other::DirectionLight) } ,
       };
       
       other::Layout default_layout = {
@@ -234,12 +195,6 @@ int main(int argc , char* argv[]) {
       };
       Ref<other::Shader> outline_shader = other::BuildShader(outline_path);
       Ref<other::Shader> geometry_shader = other::BuildShader(default_path);
-      Ref<other::Shader> deferred_shader = other::BuildShader(deferred_shader_path);
-      deferred_shader->Bind();
-      deferred_shader->SetUniform("goe_position" , 0);
-      deferred_shader->SetUniform("goe_normal" , 1);
-      deferred_shader->SetUniform("goe_albedo" , 2);
-      deferred_shader->Unbind();
         
       other::RenderPassSpec normal_pass_spec {
         .name = "Draw Normals" , 
@@ -250,20 +205,23 @@ int main(int argc , char* argv[]) {
         .shader = other::BuildShader(normals_path) ,
       };
       Ref<other::RenderPass> normal_pass = NewRef<other::RenderPass>(normal_pass_spec);
+      normal_pass->SetInput("magnitude" , 0.2f);
+      
+      other::RenderPassSpec pure_geom_pass_spec {
+        .name = "Pure Geometry" , 
+        .tag_col = { 0.f , 0.f , 1.f , 1.f } ,
+        .uniforms = {
+        } ,
+        .shader = other::BuildShader(pure_geometry_path) ,
+      };
+      Ref<other::RenderPass> pure_geom_pass = NewRef<other::RenderPass>(pure_geom_pass_spec);
+
       Ref<other::RenderPass> geom_pass = NewRef<other::GeometryPass>(geometry_unis , geometry_shader);
       Ref<other::RenderPass> outline_pass = NewRef<other::OutlinePass>(outline_unis , outline_shader);
 
       SceneRenderSpec render_spec {
         .camera_uniforms = NewRef<UniformBuffer>("Camera" , cam_unis , camera_binding_pnt) ,
         .light_uniforms = NewRef<UniformBuffer>("Lights" , light_unis , light_binding_pnt , other::SHADER_STORAGE) ,
-        .passes = {
-          {
-            .name = "Albedo" , 
-            .tag_col = { 0.f , 0.f , 0.f , 1.f } ,
-            .uniforms = {} ,
-            .shader = other::BuildShader(pure_geometry_path) ,
-          } ,
-        } ,
         .pipelines = {
           {
             .framebuffer_spec = {
@@ -281,7 +239,7 @@ int main(int argc , char* argv[]) {
           {
             .framebuffer_spec = {
               .depth_func = other::LESS_EQUAL ,
-              .clear_color = { 0.3f , 0.3f , 0.3f , 1.f } ,
+              .clear_color = { 0.1f , 0.1f , 0.1f , 1.f } ,
               .size = other::Renderer::WindowSize() ,
             } ,
             .vertex_layout = default_layout ,
@@ -289,60 +247,35 @@ int main(int argc , char* argv[]) {
             .model_binding_point = model_binding_pnt ,
             .material_uniforms = material_unis ,
             .material_binding_point = material_binding_pnt ,
-            .debug_name = "Outline" ,
-          } ,
-          {
-            .framebuffer_spec = {
-              .depth_func = other::LESS_EQUAL ,
-              .clear_color = { 0.3f , 0.3f , 0.3f , 1.f } ,
-              .size = other::Renderer::WindowSize() ,
-            } ,
-            .vertex_layout = default_layout ,
-            .model_uniforms = model_unis , 
-            .model_binding_point = model_binding_pnt ,
-            .material_uniforms = material_unis ,
-            .material_binding_point = material_binding_pnt ,
-            .debug_name = "Normals" , 
+            .debug_name = "Debug" ,
           } ,
         } , 
-        .ref_passes = {
-          geom_pass , outline_pass , normal_pass ,
+        .passes = {
+          geom_pass , normal_pass , pure_geom_pass ,
         } ,
         .pipeline_to_pass_map = {
           { FNV("Geometry") , { FNV(geom_pass->Name()) } } ,
-          { FNV("Normals")  , { FNV("Albedo")             , FNV(normal_pass->Name())  } } ,
-          { FNV("Outline")  , { FNV(outline_pass->Name()) , FNV("Albedo") } } ,
+          { FNV("Debug") , { FNV(geom_pass->Name()) , FNV(normal_pass->Name()) } } ,
         } ,
       };
       Ref<SceneRenderer> renderer = NewRef<SceneRenderer>(render_spec);
 
-      CHECK();
-
-      OE_INFO("Running");
-
-      other::time::DeltaTime dt;
-      dt.Start();
-
       bool running = true;
+      bool camera_lock = true;
 
-      bool camera_lock = false;
-      other::Mouse::LockCursor();
+      if (camera_lock) {
+        other::Mouse::FreeCursor();
+      } else {
+        other::Mouse::LockCursor();
+      }
         
-      CHECKGL();
-
-      glm::vec3 cube_pos1 = glm::vec3(0.f , 0.f , 0.f);
       other::Material cube_material1 = {
-        .ambient  = { 1.0f , 0.5f , 0.31f , 1.f } ,
-        .diffuse  = { 1.0f , 0.5f , 0.31f , 1.f } ,
-        .specular = { 0.5f , 0.5f , 0.50f , 1.f } ,
+        .color = { 1.0f , 0.5f , 0.31f , 1.f } ,
         .shininess = 32.f ,
       };
       
-      glm::vec3 cube_pos2 = glm::vec3(2.f , 0.f , 0.f);
       other::Material cube_material2 = {
-        .ambient  = { 1.0f , 0.31f , 0.5f , 1.f } ,
-        .diffuse  = { 1.0f , 0.31f , 0.5f , 1.f } ,
-        .specular = { 0.5f , 0.5f , 0.50f , 1.f } ,
+        .color = { 0.1f , 0.5f , 0.31f , 1.f } ,
         .shininess = 32.f ,
       };
       
@@ -360,10 +293,8 @@ int main(int argc , char* argv[]) {
 
       glm::vec3 outline_color{ 1.f , 0.f , 0.f };
 
-      UUID id = FNV(scenepath.string());
       SceneSerializer serializer;
       Ref<other::Scene> scene = nullptr;
-
       {
         auto loaded_scene = serializer.Deserialize(scenepath.string());
         if (loaded_scene.scene == nullptr) {
@@ -374,13 +305,54 @@ int main(int argc , char* argv[]) {
         scene = loaded_scene.scene;
       }
 
+      {
+        auto* cube = scene->GetEntity("cube");
+        auto& cube_mesh = cube->GetComponent<other::StaticMesh>();
+        cube_mesh.material = cube_material1;
+        
+        auto* floor = scene->GetEntity("floor");
+        auto& floor_mesh = floor->GetComponent<other::StaticMesh>();
+        floor_mesh.material = cube_material2;
+
+        auto* sun = scene->GetEntity("sun");
+        auto& sun_l = sun->GetComponent<other::LightSource>();
+        sun_l.direction_light = {
+          .direction = { 0.f , -1.f , 0.f , 1.f } ,
+          .color = { 0.22f , 0.22f , 0.11f , 1.f } ,
+        };
+
+        auto* cam_ent = scene->CreateEntity("camera");
+        auto& camera_comp = cam_ent->AddComponent<other::Camera>();
+        camera_comp.is_primary = true;
+        camera_comp.camera = NewRef<other::PerspectiveCamera>(other::Renderer::GetWindow()->Size());
+        camera_comp.camera->SetPosition({ 0.f , 0.f , 3.f });
+        
+        auto* point_light = scene->GetEntity("plight");
+        // auto& point_light_comp = point_light->GetComponent<other::LightSource>();
+        // point_light_comp.pointlight = {
+        //   .position = { 1.f , 4.f , 1.f , 1.f } ,
+        //   .color = { 1.f , 0.2f , 0.2f , 1.f } ,
+        // };
+      }
+
       other::ScriptEngine::SetSceneContext(scene);
       other::Renderer::SetSceneContext(scene);
 
       scene->Initialize();
       scene->Start();
+      other::DefaultUpdateCamera(camera);
 
+      OE_DEBUG("Lights [{} , {}]" , scene->GetEnvironment()->direction_lights.size() ,
+                                    scene->GetEnvironment()->point_lights.size());
+      
+      OE_INFO("Running");
+
+      bool render_to_window = true;
+
+      other::time::DeltaTime dt;
+      dt.Start();
       while (running) {
+        float delta = dt.Get();
         other::IO::Update();
 
         SDL_Event event;
@@ -404,6 +376,8 @@ int main(int argc , char* argv[]) {
                     other::Mouse::LockCursor();
                   }
                 break;
+                case SDLK_r:
+                break;
                 case SDLK_s: 
                   // if scene started stop scene else start scene
                 break;
@@ -417,50 +391,44 @@ int main(int argc , char* argv[]) {
           ImGui_ImplSDL2_ProcessEvent(&event);
         }
 
-        /// dont want event queue to actually dispatch events, so we just clear the buffer to avoid an
-        ///   overflow of the event queue's buffer
         other::EventQueue::Clear();
 
         if (!camera_lock) {
           other::DefaultUpdateCamera(camera);
         }
         
-        auto environment = scene->GetEnvironment();
-
-        light_model1 = glm::mat4(1.f);
-        light_model1 = glm::translate(light_model1 , glm::vec3(environment->point_lights[0].position));
-        light_model1 = glm::scale(light_model1 , light_scale);
-        
-        light_model2 = glm::mat4(1.f);
-        light_model2 = glm::translate(light_model2 , glm::vec3(environment->point_lights[1].position));
-        light_model2 = glm::scale(light_model2 , light_scale);
-
-        scene->EarlyUpdate(0.16f);
-        scene->Update(0.16f);
-        scene->LateUpdate(0.16f);
+        scene->EarlyUpdate(delta);
+        scene->Update(delta);
+        scene->LateUpdate(delta);
 
         other::Renderer::GetWindow()->Clear();
 
-        renderer->BeginScene(camera , environment);
+        // renderer->SubmitCamera(camera);
         scene->Render(renderer);
         renderer->EndScene();
 
         const auto& frames = renderer->GetRender(); 
-        const auto& vp = frames.at(FNV("Geometry"));
         
-        glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D , vp->texture);
-        deferred_shader->Bind();
-        fb_mesh->Draw(other::TRIANGLES);
+        auto itr = frames.find(FNV("Geometry"));
+        if (itr != frames.end()) {
+          const auto& vp = frames.at(FNV("Geometry"));
+          if (render_to_window) {
+            other::Renderer::DrawFramebufferToWindow(vp);
+          } else {
+          }
+        }
+
 
 #define UI_ENABLED 1
 #if UI_ENABLED
         other::UI::BeginFrame();
         const ImVec2 win_size = { (float)other::Renderer::WindowSize().x , (float)other::Renderer::WindowSize().y };
+
         if (ImGui::Begin("Frames")) {
-          RenderItem(frames.at(FNV("Normals"))->texture , "Normals" , win_size);
-          RenderItem(frames.at(FNV("Outline"))->texture , "Outline" , win_size);
-        } 
+          if (auto frame = frames.find(FNV("Debug")); frame != frames.end()) {
+            RenderItem(frame->second->texture, "Debug", ImVec2(win_size.x, win_size.y));
+          }
+        }
         ImGui::End();
 
         if (ImGui::Begin("Render Settings")) {
@@ -473,10 +441,10 @@ int main(int argc , char* argv[]) {
                                               { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
           ImGui::Separator();
 
-          ImGui::Text("Scene Controls");
+          ImGui::Text("===== Scene Controls =====");
           auto& reg = scene->Registry();
 
-          ImGui::Text("Transforms =====");
+          ImGui::Text(" - Transforms =====");
           reg.view<other::Tag , other::Transform>().each([&](other::Tag& tag , other::Transform& transform) {
             ImGui::PushID((tag.name + "##transform-widget").c_str());
             if (other::ui::widgets::DrawVec3Control(other::fmtstr("{} position", tag.name) , 
@@ -486,7 +454,8 @@ int main(int argc , char* argv[]) {
             ImGui::PopID();
           });
           
-          ImGui::Text("Materials =====");
+          ImGui::Text(" - Materials =====");
+
           reg.view<other::Tag , other::StaticMesh>().each([&](other::Tag& tag , other::StaticMesh& mesh) {
             ImGui::PushID((tag.name + "##static-mesh-widget").c_str());
             RenderMaterial(other::fmtstr("{} material" , tag.name) , mesh.material);
@@ -495,11 +464,27 @@ int main(int argc , char* argv[]) {
           });
           ImGui::Separator();
 
-          ImGui::Text("Light Controls");
-          ImGui::Separator();
-          RenderPointLight("point light 1" , environment->point_lights[0]);
-          RenderPointLight("point light 2" , environment->point_lights[1]);
-          RenderDirectionLight("direction light" , environment->direction_lights[0]);
+          ImGui::Text(" - Light Controls =====");
+          uint32_t i = 0;
+          edited = false;
+          reg.view<other::LightSource , other::Transform>().each([&](other::LightSource& light , other::Transform& transform) {
+            switch (light.type) {
+              case other::POINT_LIGHT_SRC:
+                edited = edited || RenderPointLight(other::fmtstr("point light [{}]" , i++) , light.pointlight);
+              break;
+              case other::DIRECTION_LIGHT_SRC:
+                edited = edited || RenderDirectionLight(other::fmtstr("direction light [{}]" , i++) , light.direction_light);
+              break;
+              default:
+              break;
+            }
+            ++i;
+          });
+
+          if (edited) {
+            scene->RebuildEnvironment();
+          }
+
           ImGui::Separator();
         }
         ImGui::End();
@@ -513,11 +498,10 @@ int main(int argc , char* argv[]) {
       scene->Shutdown();
     }
 
-    ShutdownMock();
-
+    mock_engine.UnloadApp();
     OE_INFO("Succesful exit");
-    
     other::Logger::Shutdown();
+    
     return 0;
   } catch (const other::IniException& e) {
     std::cout << "caught ini error : " << e.what() << "\n";
@@ -527,45 +511,7 @@ int main(int argc , char* argv[]) {
     std::cout << "caught std error : " << e.what() << "\n";
   } catch (...) {
     std::cout << "unknown error" << "\n";
-    return 1;
   }
-}
-
-void CheckGlError(int line) {
-  GLenum err = glGetError();
-  while (err != GL_NO_ERROR) {
-    switch (err) {
-      case GL_INVALID_ENUM: 
-        OE_ERROR("OpenGL Error INVALID_ENUM : {}" , line);
-      break;
-      case GL_INVALID_VALUE:
-        OE_ERROR("OpenGL Error INVALID_VALUE : {}" , line);
-      break;
-      case GL_INVALID_OPERATION:
-        OE_ERROR("OpenGL Error INVALID_OPERATION : {}" , line);
-      break;
-      case GL_STACK_OVERFLOW:
-        OE_ERROR("OpenGL Error STACK_OVERFLOW : {}" , line);
-      break;
-      case GL_STACK_UNDERFLOW:
-        OE_ERROR("OpenGL Error STACK_UNDERFLOW : {}" , line);
-      break;
-      case GL_OUT_OF_MEMORY:
-        OE_ERROR("OpenGL Error OUT_OF_MEMORY : {}" , line);
-      break;
-      case GL_INVALID_FRAMEBUFFER_OPERATION:
-        OE_ERROR("OpenGL Error INVALID_FRAMEBUFFER_OPERATION : {}" , line);
-      break;
-      case GL_CONTEXT_LOST:
-        OE_ERROR("OpenGL Error CONTEXT_LOST : {}" , line);
-      break;
-      case GL_TABLE_TOO_LARGE:
-        OE_ERROR("OpenGL Error TABLE_TOO_LARGE : {}" , line);
-      break;
-      default: break;
-    }
-    err = glGetError();
-  }
-
-}
   
+  return 1;
+} 

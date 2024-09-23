@@ -19,8 +19,8 @@ namespace other {
 
   class EditorLayer : public Layer {
     public:
-      EditorLayer(App* editor)
-          : Layer(editor , "EditorLayer") {} 
+      EditorLayer(App* editor, const ConfigTable& app_config)
+          : Layer(editor , "EditorLayer") , app_config(app_config) {} 
       virtual ~EditorLayer() override {};
 
       virtual void OnAttach() override;
@@ -38,6 +38,7 @@ namespace other {
       virtual void OnScriptReload() override;
 
     private:
+      const ConfigTable& app_config;
       ConfigTable editor_config;
 
       Opt<StateCapture> saved_scene;
@@ -55,14 +56,6 @@ namespace other {
       Ref<SceneRenderer> default_renderer = nullptr;
       Ref<SceneRenderer> scene_renderer = nullptr;
       Ref<Framebuffer> viewport = nullptr;
-      Scope<VertexArray> fb_mesh = nullptr;
-      Ref<Shader> fbshader = nullptr;
-      
-      glm::mat4 model1 = glm::mat4(1.f);
-
-      other::AssetHandle model_handle;
-      Ref<StaticModel> model = nullptr;
-      Ref<ModelSource> model_source = nullptr;
       
       /// TODO: move this somewhere else
       void SaveActiveScene();

@@ -24,7 +24,7 @@ namespace other {
     std::string name;
     Path path;
     ConfigTable scene_table;
-    Ref<Scene> scene;
+    Ref<Scene> scene = nullptr;
   };
 
   class SceneManager {

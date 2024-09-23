@@ -24,7 +24,6 @@ namespace Other {
     private Transform object_transform;
 
     public OtherObject() {
-      object_transform = new Transform(this);
     }
 
     public override OtherBehavior Parent {
@@ -71,7 +70,7 @@ namespace Other {
       set { object_transform = value; }
     }
 
-    public T CreateComponent<T>() where T : Component, new() {
+    public T CreateComponent<T>() where T : Component , new() {
       if (HasComponent<T>()) {
         return GetComponent<T>();
       }
@@ -79,7 +78,8 @@ namespace Other {
       Type comp_type = typeof(T);
       Scene.AddComponent(Id, comp_type);
 
-      T comp = new T { Object = this };
+      T comp = new T();
+      comp.Object = this;
       components.Add(comp_type , comp);
       
       return comp;
@@ -94,13 +94,13 @@ namespace Other {
         return null;
       }
 
-      components.TryGetValue(comp_type , out Component comp);
-
-      if (comp == null) {
-        return CreateComponent<T>();
+      try {
+        components.TryGetValue(comp_type , out Component comp);
+        return comp as T;
+      } catch (Exception e) {
+        Logger.WriteError(e.Message);
+        return null;
       }
-
-      return comp as T;
     }
 
     public void RemoveComponent<T>() where T : Component {

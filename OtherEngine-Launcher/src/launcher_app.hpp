@@ -10,8 +10,8 @@ namespace other {
 
   class LauncherApp : public other::App {
     public:
-      LauncherApp(other::Engine* engine) 
-        : other::App(engine) {}
+      LauncherApp(const CmdLine& cmd_line, const ConfigTable& config) 
+        : other::App(cmd_line, config) {}
       virtual ~LauncherApp() override {}
 
     private:      

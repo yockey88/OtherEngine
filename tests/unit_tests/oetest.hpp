@@ -22,10 +22,10 @@ class OtherTest : public ::testing::Test {
     
     static void TearDownTestSuite() {
       const std::string configpath = "C:/Yock/code/OtherEngine/tests/unit_tests/unittest.other";      
-      other::IniFileParser parser(configpath);
+      IniFileParser parser(configpath);
       try {
         config = parser.Parse();
-      } catch (other::IniException& e) {
+      } catch (IniException& e) {
         FAIL() << "Failed to parse INI file for unit test!\n";
         return;
       }
@@ -33,16 +33,16 @@ class OtherTest : public ::testing::Test {
 
     virtual void SetUp() override {
       /// FIXME: customize config per unit test but somehow not create bajillions of config files
-      other::Logger::Open(config);
-      other::Logger::Instance()->RegisterThread("Main Test Thread");
+      Logger::Open(config);
+      Logger::Instance()->RegisterThread("Main Test Thread");
     }
     
     virtual void TearDown() override {
-      other::Logger::Shutdown();
+      Logger::Shutdown();
     }
 
   protected:
-    static other::ConfigTable config;
+    static ConfigTable config;
 };
 
 } // namespace other

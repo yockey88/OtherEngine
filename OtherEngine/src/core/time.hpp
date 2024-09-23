@@ -10,9 +10,9 @@
 namespace other {
 namespace time {
 
-  typedef std::chrono::steady_clock Clock;
-  typedef std::chrono::duration<float> Duration;
-  typedef std::chrono::time_point<std::chrono::steady_clock> TimePoint;
+  using Clock = std::chrono::steady_clock;
+  using Duration = std::chrono::duration<uint64_t , std::micro>;
+  using TimePoint = std::chrono::time_point<std::chrono::steady_clock>;
 
   class Timer {
     TimePoint start;
@@ -25,8 +25,9 @@ namespace time {
     bool repeat = false;
 
     public:
-      Timer(Duration duration , bool repeat = false) 
-        : duration(duration) , repeat(repeat) {}
+      template <typename T>
+      Timer(T duration , bool repeat = false) 
+        : duration(std::chrono::duration_cast<Duration>(duration)) , repeat(repeat) {}
       ~Timer() {}
 
       void Start();
@@ -36,10 +37,10 @@ namespace time {
       bool Tick();
       void Reset();
 
-      inline bool Running() const { return running; }
-      inline bool Finished() const { return !running; }
-      inline float GetRemainingTime() const { return remaining_time.count(); }
-      inline float GetDuration() const { return duration.count(); }
+      bool Running() const;
+      bool Finished() const;
+      uint64_t GetRemainingTime() const;
+      uint64_t GetDuration() const;
   };
 
   class Stopwatch {
@@ -61,7 +62,7 @@ namespace time {
       void Stop();
       void Reset();
 
-      inline float GetDuration() { return duration.count(); }
+      uint64_t GetDuration();
   };
 
   class DeltaTime {
@@ -72,13 +73,23 @@ namespace time {
       DeltaTime() {}
       ~DeltaTime() {}
 
-      inline void Start() { last_time_point = Clock::now(); }
+      inline void Start() { 
+        last_time_point = Clock::now(); 
+      }
 
       inline float Get() {
         TimePoint current_time_point = Clock::now();
-        duration = current_time_point - last_time_point;
+        duration = std::chrono::duration_cast<Duration>(current_time_point - last_time_point);
         last_time_point = current_time_point;
-        return duration.count();
+        return (float)duration.count() / 1000;
+      }
+
+      template <typename T>
+      inline float GetAs() {
+        TimePoint current_time_point = Clock::now();
+        duration = std::chrono::duration_cast<T>(current_time_point - last_time_point);
+        last_time_point = current_time_point;
+        return (float)duration.count();
       }
   };
 

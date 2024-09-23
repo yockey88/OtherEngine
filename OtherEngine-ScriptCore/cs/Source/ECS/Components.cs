@@ -4,6 +4,8 @@ namespace Other {
 
   public abstract class Component {
 
+    public Component() {
+    }
     public Component(OtherObject obj) {
       this.obj = obj;
     }

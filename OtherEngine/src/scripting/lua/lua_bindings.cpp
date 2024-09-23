@@ -3,13 +3,18 @@
  **/
 #include "scripting/lua/lua_bindings.hpp"
 
-#include <entt/entity/fwd.hpp>
 #include <sol/raii.hpp>
 #include <entt/entt.hpp>
 
+#include "core/logger.hpp"
 #include "input/mouse.hpp"
 #include "input/keyboard.hpp"
+
 #include "scripting/lua/native_functions/lua_native_logging.hpp"
+#include "scripting/lua/lua_math_bindings.hpp"
+#include "scripting/lua/lua_component_bindings.hpp"
+#include "scripting/lua/lua_scene_bindings.hpp"
+#include "scripting/lua/lua_ui_bindings.hpp"
 
 namespace other {
 namespace lua_script_bindings {
@@ -66,6 +71,14 @@ namespace lua_script_bindings {
       "MouseDeltaPos" , []() -> glm::vec2 { return { Mouse::GetDX() , Mouse::GetDY() }; }
     );
   }
+  
+  void BindAll(sol::state& lua_state) {
+    BindGlmTypes(lua_state);
+    BindCoreTypes(lua_state);
+    BindEcsTypes(lua_state);
+    BindScene(lua_state);
+    BindUiTypes(lua_state);
+  }
 
 namespace {
 
@@ -94,32 +107,6 @@ namespace {
 
 } // anonyomous namespace 
       
-  // void LuaScriptBindings::BindEcsTypes(sol::state& lua_state) {
-  //   using namespace entt::literals;
-
-  //   // lua_state.new_usertype<entt::registry>(
-  //   //   "registry" , 
-  //   //   sol::meta_function::construct , sol::factories([]() -> entt::registry { return entt::registry{}; }) ,
-  //   //   "size" , [](const entt::registry& self) -> size_t { return self.storage<entt::entity>()->size(); } ,
-  //   //   "alive" , [](const entt::registry& self) -> bool { return self.storage<entt::entity>()->free_list(); } ,
-  //   //   "valid" , &entt::registry::valid , 
-  //   //   "current" , &entt::registry::current , 
-  //   //   "create" , [](entt::registry& self) -> entt::entity { return self.create(); } ,
-  //   //   "destroy" , [](entt::registry& self , entt::entity handle) { return self.destroy(handle); } // ,
-  //   //   /// TODO: implement entt::meta reflection bindings to complete binding ecs to lua 
-  //   //   // "emplace" , [](entt::registry& self , entt::entity entity , const sol::table& comp , sol::this_state s) -> sol::object {
-  //   //   //   if (!comp.valid()) {
-  //   //   //     return sol::lua_nil_t{};
-  //   //   //   }
-
-  //   //   //   const auto maybe_any = InvokeMetaFunc(GetTypeId(comp) , "emplace"_hs , &self , entity , comp , s);
-  //   //   //   return maybe_any ? 
-  //   //   //     maybe_any.cast<sol::reference>() : 
-  //   //   //     sol::lua_nil_t{};
-  //   //   // }
-  //   // );
-  // }
-
   void BindKeyEnums(sol::state& lua_state) {
     lua_state["Key"] = lua_state.create_table_with(
       "A" , Keyboard::Key::OE_A ,
@@ -222,18 +209,18 @@ namespace {
       // "Application" , Keyboard::Key::OE_APPLICATION  ,
       // "Power" , Keyboard::Key::OE_POWER  ,
       // "KpEquals" , Keyboard::Key::OE_KP_EQUALS ,
-      "F13" , Keyboard::Key::OE_F13 ,
-      "F14" , Keyboard::Key::OE_F14 ,
-      "F15" , Keyboard::Key::OE_F15 ,
-      "F16" , Keyboard::Key::OE_F16 ,
-      "F17" , Keyboard::Key::OE_F17 ,
-      "F18" , Keyboard::Key::OE_F18 ,
-      "F19" , Keyboard::Key::OE_F19 ,
-      "F20" , Keyboard::Key::OE_F20 ,
-      "F21" , Keyboard::Key::OE_F21 ,
-      "F22" , Keyboard::Key::OE_F22 ,
-      "F23" , Keyboard::Key::OE_F23 ,
-      "F24" , Keyboard::Key::OE_F24 ,
+      // "F13" , Keyboard::Key::OE_F13 ,
+      // "F14" , Keyboard::Key::OE_F14 ,
+      // "F15" , Keyboard::Key::OE_F15 ,
+      // "F16" , Keyboard::Key::OE_F16 ,
+      // "F17" , Keyboard::Key::OE_F17 ,
+      // "F18" , Keyboard::Key::OE_F18 ,
+      // "F19" , Keyboard::Key::OE_F19 ,
+      // "F20" , Keyboard::Key::OE_F20 ,
+      // "F21" , Keyboard::Key::OE_F21 ,
+      // "F22" , Keyboard::Key::OE_F22 ,
+      // "F23" , Keyboard::Key::OE_F23 ,
+      // "F24" , Keyboard::Key::OE_F24 ,
     //   "Exec" , Keyboard::Key::OE_EXEC ,
     //   "Help" , Keyboard::Key::OE_HELP ,
     //   "Menu" , Keyboard::Key::OE_MENU ,

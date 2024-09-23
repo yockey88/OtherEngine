@@ -9,17 +9,15 @@
 namespace other {
 
   struct PointLight {
-    glm::vec4 position;
-    glm::vec4 ambient;
-    glm::vec4 diffuse;
-    glm::vec4 specular;
+    glm::vec4 position = { 1.f , 1.f , 1.f , 1.f };
+    glm::vec4 color = { 1.f , 1.f , 1.f , 1.f };
+    float radius = 100.f;
     float constant = 1.f;
     float linear = 0.09f;
     float quadratic = 0.032f;
-    float padding;
   };
 
-  static_assert(sizeof(PointLight) == 5 * 4 * sizeof(float) , "PointLight size invalid for GPU layout!");
+  static_assert(sizeof(PointLight) == 3 * 4 * sizeof(float) , "PointLight size invalid for GPU layout!");
   static_assert(sizeof(PointLight) % 16 == 0 , "PointLight size not a multiple of 16!");
   
 } // namespace other

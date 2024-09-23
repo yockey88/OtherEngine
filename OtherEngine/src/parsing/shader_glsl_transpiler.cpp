@@ -320,9 +320,7 @@ namespace other {
     /// define this in both vertex and fragment 
     if (context == VERTEX_SHADER || context == FRAGMENT_SHADER) {
       stream << "struct Material {\n";
-      stream << "  vec4 ambient;\n";
-      stream << "  vec4 diffuse;\n";
-      stream << "  vec4 specular;\n";
+      stream << "  vec4 color;\n";
       stream << "  float shininess;\n";
       stream << "};\n\n";
     }
@@ -331,9 +329,8 @@ namespace other {
     if (context == FRAGMENT_SHADER) {
       stream << "struct PointLight {\n";
       stream << "  vec4 position;\n";
-      stream << "  vec4 ambient;\n";
-      stream << "  vec4 diffuse;\n";
-      stream << "  vec4 specular;\n";
+      stream << "  vec4 color;\n";
+      stream << "  float radius;\n";
       stream << "  float constant;\n";
       stream << "  float linear;\n";
       stream << "  float quadratic;\n";
@@ -341,9 +338,7 @@ namespace other {
       
       stream << "struct DirectionLight {\n";
       stream << "  vec4 direction;\n";
-      stream << "  vec4 ambient;\n";
-      stream << "  vec4 diffuse;\n";
-      stream << "  vec4 specular;\n";
+      stream << "  vec4 color;\n";
       stream << "};\n\n";
     }
 
@@ -400,8 +395,8 @@ namespace other {
       /// num point lights is num_lights.y
       /// num_lights.z and .w are padding
       stream << "  vec4 num_lights;\n";
-      stream << "  DirectionLight direction_lights[MAX_LIGHTS];\n";
       stream << "  PointLight point_lights[MAX_LIGHTS];\n";
+      stream << "  DirectionLight direction_lights[MAX_LIGHTS];\n";
       stream << "};\n\n";
       stream << "uniform sampler2D goe_position;\n";
       stream << "uniform sampler2D goe_normal;\n";

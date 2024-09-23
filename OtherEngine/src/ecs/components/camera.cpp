@@ -32,7 +32,7 @@ namespace other {
     SerializeValue(stream , "fov" , camera.camera->FOV());
     SerializeValue(stream , "zoom" , camera.camera->Zoom());
     SerializeValue(stream , "constrain-pitch" , camera.camera->ConstrainPitch());
-    SerializeValue(stream , "primary" , camera.camera->IsPrimary());
+    SerializeValue(stream , "is-primary", camera.is_primary);
     stream << "\n";
   }
 
@@ -153,7 +153,7 @@ namespace other {
     }
 
     if (primary_value.has_value()) {
-      camera.camera->SetPrimary(primary_value.value());
+      camera.is_primary = *primary_value;
     }
   }
 
