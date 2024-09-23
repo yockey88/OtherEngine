@@ -15,8 +15,15 @@ configuration.platforms = { "Windows" }
 configuration.groups = {
     ["OtherEngine"] = { "./OtherEngine" } ,
     ["OtherEngine-CsCore"] = { "./OtherEngine-ScriptCore/cs" } ,
+    ["DotOther"] = { "./DotOther" } ,
+
     ["OtherEngine-Tools"] = { "./OtherEngine-Launcher" } ,
-    ["Testing"] = { "./tests" , "./OtherTestEngine" } ,
+
+    ["Testing"] = {
+      "./tests" ,
+      "./OtherTestEngine"
+    } ,
+
     ["Tools"] = { "./tools" } ,
     ["Games"] = { "./yockcraft" } ,
 }
@@ -28,6 +35,10 @@ choc.include_dir = "%{wks.location}/externals/choc"
 local entt = {}
 entt.name = "entt"
 entt.include_dir = "%{wks.location}/externals/entt"
+
+local refl = {}
+refl.name = "refl"
+refl.include_dir = "%{wks.location}/externals/refl-cpp"
 
 local glad = {}
 glad.name = "glad"
@@ -120,8 +131,66 @@ tracy.path = "./externals/tracy"
 tracy.include_dir = "%{wks.location}/externals/tracy/tracy"
 tracy.lib_name = "tracy"
 
+function query_terminal(command)
+  local success, handle = pcall(io.popen, command)
+  if not success then 
+      return ""
+  end
+
+  result = handle:read("*a")
+  handle:close()
+  result = string.gsub(result, "\n$", "") -- remove trailing whitespace
+  return result
+end
+
+function get_python_path()
+  local p = query_terminal('cmd.exe /c python -c "import sys; import os; print(os.path.dirname(sys.executable))"')
+  
+  -- sanitize path before returning it
+  p = string.gsub(p, "\\", "/") -- replace double backslash
+  return p
+end
+
+function get_python_lib()
+  return query_terminal("cmd.exe /c python -c \"import sys; import os; import glob; path = os.path.dirname(sys.executable); libs = glob.glob(path + '/libs/python*'); print(os.path.splitext(os.path.basename(libs[-1]))[0]);\"")
+end
+
+python_path = get_python_path()
+python_include_path = python_path .. "/include"
+python_lib_path = python_path .. "/libs"
+python_lib = get_python_lib()
+if python_path == "" or python_lib == "" then
+  error("Failed to find python path or pybind11 dependency")
+else
+  print("Python Path: " .. python_path)
+  print("Python Include Path: " .. python_include_path)
+  print("Python Lib Path: " .. python_lib_path)
+  print("Python Lib: " .. python_lib)
+end
+
+PythonPaths = {
+  path = python_path,
+  include_path = python_include_path,
+  lib_path = python_lib_path,
+  lib = python_lib
+}
+
+local python = {}
+python.name = "python"
+python.path = PythonPaths.path
+python.include_dir = PythonPaths.include_path
+python.lib_dir = PythonPaths.lib_path
+python.lib_name = PythonPaths.lib
+
+local pybind = {}
+pybind.name = "pybind11"
+pybind.path = "./externals/pybind11"
+pybind.include_dir = "%{wks.location}/externals/pybind11"
+pybind.lib_name = "pybind11"
+
 AddDependency(choc)
 AddDependency(entt)
+AddDependency(refl)
 AddDependency(glad)
 AddDependency(glm)
 AddDependency(gtest)
@@ -136,6 +205,7 @@ AddDependency(sol2)
 AddDependency(box2d)
 AddDependency(stb)
 AddDependency(jolt)
+AddDependency(pybind)
 -- AddDependency(tracy)
 
 CppWorkspace(configuration)

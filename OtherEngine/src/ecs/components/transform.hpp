@@ -39,7 +39,6 @@ namespace other {
 
     void Rotate(float angle , const glm::vec3& axis) {
       glm::quat q = glm::angleAxis(angle , axis);
-
       qrotation = q * qrotation;
       erotation = glm::eulerAngles(qrotation);
     }

@@ -36,7 +36,7 @@ namespace other {
     }
   }
 
-  void EventQueue::Poll(Engine* engine , App* app) {
+  void EventQueue::Poll(App* app) {
     OE_ASSERT(event_buffer != nullptr , "Event buffer not initialized");
 
     SDL_Event event;
@@ -62,7 +62,7 @@ namespace other {
       }
     }
 
-    Dispatch(engine , app);
+    Dispatch(app);
   }
  
   void EventQueue::Clear() {
@@ -83,7 +83,7 @@ namespace other {
     event_buffer = nullptr;
   }
   
-  void EventQueue::Dispatch(Engine* engine , App* app) {
+  void EventQueue::Dispatch(App* app) {
     OE_ASSERT(event_buffer != nullptr , "Event buffer not initialized");
     OE_ASSERT(cursor != nullptr , "Event buffer cursor not initialized");
 
@@ -96,9 +96,7 @@ namespace other {
 
     while (tmp_cursor != cursor) {
       Event* event = reinterpret_cast<Event*>(tmp_cursor);
-
-      /// only reload scripts/rebuild project once per frame at most (ideally significantly less
-      ///     because it take WAAY longer than a frame to change a script and write the changes to file)
+      
       if (event->Type() == EventType::PROJECT_DIR_UPDATE) {
         ProjectDirectoryUpdateEvent* e = Cast<ProjectDirectoryUpdateEvent>(event);
         if (e != nullptr) {
@@ -117,18 +115,11 @@ namespace other {
       if (app != nullptr && !event->handled) {
         app->ProcessEvent(event);
       }
-      
-      /// engine always last to handle events
-      ///   reserved for engine events
-      if (engine != nullptr && !event->handled) {
-        engine->ProcessEvent(event);
-      }
 
       tmp_cursor += event->Size();
     }
 
     /// trigger specific order-dependent events
-
     if (regen_project) {
       for (const auto& t : directory_changes) {
         ProjectDirectoryUpdateEvent e(t);

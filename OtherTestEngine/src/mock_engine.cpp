@@ -55,7 +55,7 @@ namespace other {
     other::Logger::Instance()->RegisterThread("Main Other Engine Test Engine Thread");
     OE_TRACE("Logger initialized for unit test");
 
-    mock_application = NewApp(engine_stub.get());
+    mock_application = NewApp(command_line, config);
     mock_application->Load();
     AppState::Initialize(mock_application.get() , mock_application->layer_stack , 
                          mock_application->scene_manager , mock_application->asset_handler , 
@@ -194,8 +194,8 @@ namespace other {
     other::EventQueue::Clear();
   }
 
-  Scope<App> NewApp(Engine* engine) {
-    return NewScope<MockApp>(engine);
+  Scope<App> NewApp(const CmdLine& cmd_line, const ConfigTable& config) {
+    return NewScope<MockApp>(cmd_line, config);
   }
 
 } // namespace other

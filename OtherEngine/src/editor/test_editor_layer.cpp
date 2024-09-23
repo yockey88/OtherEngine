@@ -86,6 +86,8 @@ namespace other {
     for (const auto& [id , script] : editor_scripts.scripts) {
       script->RenderUI();
     }
+    
+    // panel_manager->RenderUI();
   }
 
   void TEditorLayer::OnEvent(Event* event) {
@@ -97,8 +99,20 @@ namespace other {
     });
     
     handler.Handle<KeyPressed>([this](KeyPressed& key) -> bool {
-      if (Keyboard::LCtrlLayer() && key.Key() == Keyboard::Key::OE_W) {
-        // default_renderer->ToggleWireframe();
+      if (key.Key() == Keyboard::Key::OE_ESCAPE) {
+        // if (playing) {
+        //   AppState::Scenes()->StopScene();
+        //   playing = false;
+        // }
+
+        // Mouse::FreeCursor();
+        // camera_free = false;
+      
+        // return true;
+      } 
+
+      if (Keyboard::LCtrlLayerKey(Keyboard::Key::OE_W)) {
+        scene_renderer->ToggleWireframe();
       }
 
       return false;

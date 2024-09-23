@@ -1,4 +1,5 @@
 using System;
+using System.Dynamic;
 using System.Runtime.InteropServices;
 
 namespace Other {
@@ -32,6 +33,13 @@ namespace Other {
 			y = c.x * s.y * c.z + s.x * c.y * s.z;
 			z = c.x * c.y * s.z - s.x * s.y * c.z;
 			w = c.x * c.y * c.z + s.x * s.y * s.z;
+    }
+
+    public Quaternion(float w , Vec3 v) {
+      this.w = w;
+      x = v.x;
+      y = v.y;
+      z = v.z;
     }
 
     public static Vec3 operator*(Quaternion q1 , Vec3 v) {
@@ -72,22 +80,26 @@ namespace Other {
     }
 
     public Vec3 EulerAngles {
+      get => new Vec3(Pitch, Yaw, Roll);
+    }
+
+    public float Pitch {
       get {
-        float roll = Mathf.Atan2(2.0f * (x * y + w * z), w * w + x * x - y * y - z * z);
         float ny = 2.0f * (y * z + w * x);
         float nx = w * w - x * x - y * y + z * z;
-
-        float pitch = 0.0f;
-
         if (Vec2.EpsilonEquals(new Vec2(nx, ny), Vec2.zero))
-          pitch = 2.0f * Mathf.Atan2(x, w);
+          return 2.0f * Mathf.Atan2(x, w);
         else
-          pitch = Mathf.Atan2(y, x);
-
-        float yaw = Mathf.Asin(Mathf.Clamp(-2.0f * (x * z - w * y), -1.0f, 1.0f));
-
-        return new Vec3(pitch, yaw, roll);
+          return Mathf.Atan2(y, x);
       }
+    }
+
+    public float Yaw {
+      get => Mathf.Asin(Mathf.Clamp(-2.0f * (x * z - w * y), -1.0f, 1.0f));
+    }
+
+    public float Roll {
+      get => Mathf.Atan2(2.0f * (x * y + w * z), w * w + x * x - y * y - z * z);
     }
   }
 

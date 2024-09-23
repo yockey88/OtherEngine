@@ -13,8 +13,8 @@ namespace other {
 
   class Editor : public App {
     public:
-      Editor(Engine* engine) 
-          : App(engine) {}
+      Editor(const CmdLine& cmd_line, const ConfigTable& config) 
+          : App(cmd_line, config) {}
       virtual ~Editor() override {} 
 
     private:

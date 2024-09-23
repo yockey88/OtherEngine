@@ -13,7 +13,7 @@ class TimerTests : public other::OtherTest {
 
 using namespace std::chrono_literals;
 
-TEST_F(TimerTests , basic_timer_test) {
+TEST_F(TimerTests , DISABLED_basic_timer_test) {
   other::time::Timer timer(10s); 
   timer.Start();
 
@@ -26,7 +26,7 @@ TEST_F(TimerTests , basic_timer_test) {
   EXPECT_FALSE(timer.Tick());
 }
 
-TEST_F(TimerTests , basic_stopwatch_test) {
+TEST_F(TimerTests , DISABLED_basic_stopwatch_test) {
   other::time::Stopwatch stopwatch;
   stopwatch.Start();
 

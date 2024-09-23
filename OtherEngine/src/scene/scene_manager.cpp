@@ -7,13 +7,15 @@
 
 #include "core/defines.hpp"
 #include "core/logger.hpp"
+#include "input/mouse.hpp"
 #include "application/app_state.hpp"
 
 #include "ecs/entity.hpp"
 #include "scene/scene_serializer.hpp"
 
-#include "rendering/renderer.hpp"
 #include "scripting/script_engine.hpp"
+#include "rendering/renderer.hpp"
+#include "rendering/camera_base.hpp"
 
 namespace other {
 
@@ -64,6 +66,10 @@ namespace other {
     Renderer::SetSceneContext(active_scene->scene);
 
     active_scene->scene->Initialize();
+    auto primary_cam = active_scene->scene->GetPrimaryCamera();
+    if (primary_cam != nullptr) {
+      DefaultUpdateCamera(primary_cam);
+    }
   }
       
   void SceneManager::StartScene() {
@@ -72,6 +78,9 @@ namespace other {
     } 
 
     active_scene->scene->Start();
+    if (active_scene->scene->GetPrimaryCamera() != nullptr) {
+      Mouse::LockCursor();
+    }
   }
 
   bool SceneManager::IsPlaying() const {
@@ -88,7 +97,9 @@ namespace other {
   void SceneManager::StopScene() {
     if (active_scene == nullptr) {
       return;
-    } 
+    }
+
+    OE_ASSERT(active_scene->scene != nullptr, "Active Scene has null scene reference!");
 
     if (!active_scene->scene->IsRunning()) {
       return;
@@ -252,6 +263,13 @@ namespace other {
     
     if (viewpoint != nullptr) {
       scene_renderer->SubmitCamera(viewpoint);
+    } else {
+      auto primary_cam = active_scene->scene->GetPrimaryCamera();
+      if (primary_cam == nullptr) {
+        OE_WARN("attempting to render scene without camera!");
+        return true;
+      }
+      scene_renderer->SubmitCamera(primary_cam);
     }
 
     active_scene->scene->Render(scene_renderer);

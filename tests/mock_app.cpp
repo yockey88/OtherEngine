@@ -4,11 +4,9 @@
 #include "mock_app.hpp"
 
 namespace other {
-  
-  Scope<App> NewApp(Engine* engine) {
-    return NewScope<TestApp>(engine);
-  }
-
+Scope<App> NewApp(const CmdLine& cmd_line, const ConfigTable& config) {
+  return NewScope<TestApp>(cmd_line , config);
+}
 } // namespace other
 
 void CheckGlError(int line) {

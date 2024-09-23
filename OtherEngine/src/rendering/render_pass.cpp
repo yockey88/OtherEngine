@@ -49,10 +49,14 @@ namespace other {
       return;
     }
     
+    CHECKGL();
+    
     /// reset to sane default for next render pass
     /// depth
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
+    
+    CHECKGL();
 
     /// stencil
     glEnable(GL_STENCIL_TEST);

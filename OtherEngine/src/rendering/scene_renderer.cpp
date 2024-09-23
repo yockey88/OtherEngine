@@ -28,7 +28,7 @@ namespace other {
   }
   
   void SceneRenderer::SubmitCamera(const Ref<CameraBase>& camera) {
-    if (frame_data.viewpoint != nullptr) {
+    if (camera == nullptr || frame_data.viewpoint != nullptr) {
       /// only one viewpoint per frame
       return;
     }

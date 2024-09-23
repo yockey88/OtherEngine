@@ -74,7 +74,6 @@ namespace other {
       void SetZoom(float zoom);
 
       void SetConstrainPitch(bool constrain_pitch);
-      void SetPrimary(bool primary);
 
       const glm::vec3& Position() const;
       const glm::vec3& Direction() const;
@@ -99,7 +98,6 @@ namespace other {
       float Zoom() const;
 
       bool ConstrainPitch() const;
-      bool IsPrimary() const;
 
       void Rotate(const glm::quat& quat)  {}
       void RotateAround(const glm::vec3& v , float degrees) {}
@@ -132,7 +130,6 @@ namespace other {
       float zoom = 45.0f;
 
       bool constrain_pitch = true;
-      bool is_primary = false;
 
       glm::mat4 view = glm::mat4(1.f);
       glm::mat4 projection = glm::mat4(1.f);

@@ -5,8 +5,16 @@ local function ProjectHeader(project_data)
   project (project_data.name)
     kind (project_data.kind)
     language (project_data.language)
+
+    if project_data.architecture ~= nil then
+      architecture (project_data.architecture)
+    end
+    
     if project_data.language == "C#" then
-      dotnetframework "4.7.2"
+      project_data.dotnetframework = project_data.dotnetframework or "4.7.2"
+      project_data.clr = project_data.clr or "Unsafe"
+      dotnetframework (project_data.dotnetframework)
+      clr (project_data.clr)
     end
 
     if project_data.cppdialect ~= nil then
@@ -14,13 +22,11 @@ local function ProjectHeader(project_data)
     else
       cppdialect "C++latest"
     end
-
+    
     if project_data.kind == "StaticLib" then
       staticruntime "On"
-    elseif project_data.kind ~= "SharedLib" and project_data.staticruntime ~= nil then
+    elseif project_data.staticruntime ~= nil then
       staticruntime (project_data.staticruntime)
-    elseif project_data.kind ~= "SharedLib" then
-      staticruntime "On"
     end
 
     if project_data.tdir == nil then
@@ -35,27 +41,65 @@ local function ProjectHeader(project_data)
 
     targetdir (project_data.tdir)
     objdir (project_data.odir)
+
+    if project_data.extension ~= nil then
+      targetextension (project_data.extension)
+    end
 end
 
-local function ProcessModuleConfigurations(project , external)
-  filter "configurations:Debug"
-    defines { "OE_DEBUG_BUILD" }
-    if project.debug_configuration ~= nil then
-      project.debug_configuration()
-    else
-      debugdir "."
-      optimize "Off"
-      symbols "On"
-    end
+local function ProcessWindowsFilters()
+  -- windows requires dlls to be copied to the output directory
+  postbuildcommands {
+    '{COPY} %{wks.location}externals/mono/bin/mono-2.0-sgen.dll "%{cfg.targetdir}"',
+    '{COPY} %{wks.location}externals/mono/bin/MonoPosixHelper.dll "%{cfg.targetdir}"',
+  }
+  filter { "configurations:Release" }
+    postbuildcommands {
+      '{COPY} "%{wks.location}externals/sdl2/lib/Release/SDL2.dll" "%{cfg.targetdir}"',
+    }
+  filter { "configurations:Debug" }
+    postbuildcommands {
+      '{COPY} "%{wks.location}externals/mono/bin/mono-2.0-sgen.pdb" "%{cfg.targetdir}"',
+      '{COPY} "%{wks.location}externals/mono/bin/MonoPosixHelper.pdb" "%{cfg.targetdir}"',
+      '{COPY} "%{wks.location}externals/sdl2/lib/Debug/SDL2d.dll" "%{cfg.targetdir}"',
+    }
+end
 
-  filter "configurations:Release"
-    defines { "OE_RELEASE_BUILD" }
-    if project.release_configuration ~= nil then
-      project.release_configuration()
-    else
-      optimize "On"
-      symbols "Off"
+local function ProcessLinuxFilters()
+end
+
+local function ProcessFilters(project)
+  filter { "system:windows" }
+    ProcessWindowsFilters()
+
+  filter { "system:linux" }
+    ProcessLinuxFilters()
+end
+
+function ProcessModuleComponents(module)
+  if module == nil then
+    return
+  end
+
+  for lib, comp in pairs(module.components) do
+    if string.len(lib) > 0 then 
+      links { lib }
     end
+    if module.language == "C++" and string.len(comp) > 0 then
+      includedirs { comp }
+    end
+  end
+end
+
+function ProcessProjectComponents(project)
+  for lib, comp in pairs(project.components) do
+    if string.len(lib) > 0 then 
+      links { lib }
+    end
+    if project.language == "C++" and string.len(comp) > 0 then
+      includedirs { comp }
+    end
+  end
 end
 
 local function ProcessConfigurations(project , external)
@@ -96,7 +140,8 @@ local function ProcessConfigurations(project , external)
         symbols "On"
         -- conformancemode "On"
       end
-      if not external then
+
+      if not external and project.language == "C++" then
         ProcessDependencies("Debug")
         if project.extra_dependencies ~= nil then
           project.extra_dependencies("Debug")
@@ -113,7 +158,8 @@ local function ProcessConfigurations(project , external)
         symbols "Off"
         -- conformancemode "On"
       end
-      if not external then
+
+      if not external and project.language == "C++" then
         ProcessDependencies("Release")
         if project.extra_dependencies ~= nil then
           project.extra_dependencies("Release")
@@ -136,6 +182,10 @@ local function VerifyProject(project)
 
   if project.files == nil then
     return false, "AddProject: project.files is nil"
+  end
+
+  if project.components == nil then
+    project.components = {}
   end
 
   return true , ""
@@ -170,31 +220,7 @@ function AddExternalProject(project)
     ProcessConfigurations(project , true)
 end
 
-function AddModule(project)
-  local success, message = VerifyProject(project)
-  if not success then
-    print(" -- Error: " .. message)
-    return
-  end
-
-  project.include_dirs = project.include_dirs or function() end
-  project.defines = project.defines or function() end
-
-  print(" -- Adding Module : " .. project.name)
-  ProjectHeader(project)
-    project.files()
-
-    project.defines()
-
-    if project.language == "C++" then
-      project.include_dirs()
-    end
-
-    ProcessModuleComponents(project)
-    ProcessModuleConfigurations(project)
-end
-
-function AddProject(project)
+function _AddProjectOrModule(project , component_func)
   local success, message = VerifyProject(project)
   if not success then
     print(" -- Error: " .. message)
@@ -204,19 +230,35 @@ function AddProject(project)
   project.include_dirs = project.include_dirs or function() end
   project.links = project.links or function() end
   project.defines = project.defines or function() end
-  project.post_build_commands = project.post_build_commands or function() end
 
   print(" -- Adding project : " .. project.name)
   ProjectHeader(project)
     project.files()
     project.include_dirs()
 
-    ProcessProjectComponents(project)
+    component_func(project)
 
     project.links()
     project.defines()
+    
+    if project.post_build_commands ~= nil then
+      project.post_build_commands()
+    elseif (project.language == "C#" and project.needs_dlls) or
+       (project.language == "C++") then
+      ProcessFilters(project)
+    end
 
-    ProcessConfigurations(project)
+    ProcessConfigurations(project , false)
 
-    project.post_build_commands()
+    if project.language == "C#" and project.nuget_packages ~= nil then
+      project.nuget_packages()
+    end
+end
+
+function AddModule(project)
+  _AddProjectOrModule(project , ProcessModuleComponents)
+end
+
+function AddProject(project)
+  _AddProjectOrModule(project , ProcessProjectComponents)
 end

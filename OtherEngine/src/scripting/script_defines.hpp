@@ -18,6 +18,7 @@ namespace other {
   enum LanguageModuleType {
     CS_MODULE = 0 ,
     LUA_MODULE ,
+    PYTHON_MODULE ,
 
     NUM_LANGUAGE_MODULES ,
     INVALID_LANGUAGE_MODULE = NUM_LANGUAGE_MODULES
@@ -26,7 +27,7 @@ namespace other {
   constexpr static size_t kNumModules = NUM_LANGUAGE_MODULES;
   constexpr static std::array<std::string_view , kNumModules> kModuleNames = {
     /// to match the fact config parse use uppercase for case insensitivity
-    "C#" , "LUA" , 
+    "C#" , "LUA" , "PYTHON" , 
   };
 
   using FunctionModuleBuilder = Scope<LanguageModule>(*)();
@@ -43,6 +44,7 @@ namespace other {
   constexpr static std::array<ModuleInfo , kNumModules> kModuleInfo = {
     ModuleInfo(CS_MODULE , kModuleNames[CS_MODULE]) ,
     ModuleInfo(LUA_MODULE , kModuleNames[LUA_MODULE]) ,
+    ModuleInfo(PYTHON_MODULE , kModuleNames[PYTHON_MODULE]) ,
   };
 
 } // namespace other

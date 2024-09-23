@@ -4,6 +4,7 @@
 #ifndef OTHER_ENGINE_TEST_EDITOR_LAYER_HPP
 #define OTHER_ENGINE_TEST_EDITOR_LAYER_HPP
 
+#include "core/config.hpp"
 #include "core/layer.hpp"
 
 #include "ecs/components/script.hpp"
@@ -12,8 +13,8 @@ namespace other {
 
   class TEditorLayer : public Layer {
     public:
-      TEditorLayer(App* editor) 
-          : Layer(editor , "TEditorLayer") {}
+      TEditorLayer(App* editor, const ConfigTable& app_config) 
+          : Layer(editor , "TEditorLayer") , app_config(app_config) {}
       virtual ~TEditorLayer() override {}
 
       virtual void OnAttach() override;
@@ -31,6 +32,9 @@ namespace other {
       virtual void OnScriptReload() override;
 
     private:
+      const ConfigTable& app_config;
+      ConfigTable editor_config;
+
       Ref<CameraBase> editor_camera = nullptr;
       Ref<SceneRenderer> scene_renderer = nullptr;
 

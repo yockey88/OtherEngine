@@ -100,18 +100,26 @@ namespace other {
     model_storage->Clear();
 
     gbuffer.Bind();
+    CHECKGL();
+
     RenderAll();
+    CHECKGL();
+
     gbuffer.Unbind();
+    CHECKGL();
 
     target->BindFrame();
+    CHECKGL();
     for (auto& pass : passes) {
       if (pass == nullptr) {
         continue;
       }
 
       PerformPass(pass);
+      CHECKGL();
     }
     target->UnbindFrame();
+    CHECKGL();
   }
 
   Ref<Framebuffer> Pipeline::GetOutput() {
@@ -133,14 +141,21 @@ namespace other {
   }
       
   void Pipeline::PerformPass(Ref<RenderPass>& pass) {
+    CHECKGL();
+
     pass->Bind();
     pass->SetInput("goe_position" , 0);
     pass->SetInput("goe_normal" , 1);
     pass->SetInput("goe_albedo" , 2);
+    
+    CHECKGL();
 
     RenderAll();
     
+    CHECKGL();
+    
     pass->Unbind();
+    CHECKGL();
   }
   
   void Pipeline::RenderAll() {
@@ -151,13 +166,17 @@ namespace other {
       
   void Pipeline::RenderMeshes(const MeshKey& mesh_key , uint32_t instance_count , const Buffer& model_buffer , const Buffer& material_buffer) {
     model_storage->BindBase();
-    material_storage->BindBase();
-
+    CHECKGL();
     model_storage->LoadFromBuffer(model_buffer);
+    CHECKGL();
+    
+    material_storage->BindBase();
     material_storage->LoadFromBuffer(material_buffer);
+    CHECKGL();
 
     mesh_key.vao->Bind();
     glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES , mesh_key.num_elements , GL_UNSIGNED_INT , (void*)0 , instance_count , 0 , 0);
+    CHECKGL();
   }
 
 } // namespace other

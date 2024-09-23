@@ -35,19 +35,14 @@ namespace {
     try {
       ec = driver.Run();
     } catch (...) {
+      println("Unknown exception caught at top level : MAJOR ERROR");
       ec = ExitCode::FAILURE;
     }
     return ec;
   }
-  
-  int ProcessExitCode(ExitCode code) {
-    if (code == SUCCESS) {
-      return 0;
-    }
 
-    /// TODO: other stuff ??? 
-
-    return 1;
+  OE_API void PrintHello() {
+    println("Hello from OtherEngine!");
   }
 
 namespace {
@@ -82,19 +77,21 @@ namespace {
     }
 
     auto set_cwd = cmd_line.GetArg("--cwd");
-    if (set_cwd.has_value()) {
-      if (set_cwd.value().args.size() != 1) {
-        other::println("Invalid number of arguments for --cwd");
-        return ExitCode::FAILURE;
-      }
-
-      if (!std::filesystem::exists(set_cwd.value().args[0])) {
-        other::println("Invalid path for --cwd");
-        return ExitCode::FAILURE;
-      }
-      std::filesystem::current_path(set_cwd.value().args[0]);
+    if (!set_cwd.has_value()) {
+      return ExitCode::NO_EXIT;
     }
 
+    if (set_cwd->args.size() != 1) {
+      other::println("Invalid number of arguments for --cwd");
+      return ExitCode::FAILURE;
+    }
+
+    if (!std::filesystem::exists(set_cwd->args[0])) {
+      other::println("Invalid path for --cwd");
+      return ExitCode::FAILURE;
+    }
+
+    std::filesystem::current_path(set_cwd->args[0]);
     return ExitCode::NO_EXIT;
   }
 

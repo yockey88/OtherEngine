@@ -13,15 +13,6 @@ namespace Other {
     public static extern string NativeGetName(ulong id);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
-    private static extern void NativeGetScale(ulong id , out Vec3 scale);    
-
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    private static extern void NativeGetPosition(ulong id , out Vec3 position);    
-
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    private static extern void NativeGetRotation(ulong id , out Vec3 rotation);
-
-    [MethodImpl(MethodImplOptions.InternalCall)]
     private static extern ulong NativeGetObjectByName(string name);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
@@ -94,19 +85,6 @@ namespace Other {
     static public string GetName(ulong id) {
       return NativeGetName(id);
     }
-
-    static public void GetPosition(ulong id , out Vec3 position) {
-      NativeGetPosition(id , out position);
-    }
-
-    static public void GetScale(ulong id , out Vec3 scale) {
-      NativeGetScale(id , out scale);
-    }
-
-    static public void GetRotation(ulong id , out Vec3 rotation) {
-      NativeGetRotation(id , out rotation);
-    }
-
     static public OtherObject GetObject(ulong id) {
       if (!HasObject(id)) {
         return null;
@@ -253,19 +231,6 @@ namespace Other {
     /// native setters
 
     [MethodImpl(MethodImplOptions.InternalCall)]
-    private static extern void NativeSetScale(ulong id , ref Vec3 scale);    
-    
-
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    private static extern void NativeSetPosition(ulong id , ref Vec3 position);    
-
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    private static extern void NativeSetRotation(ulong id , ref Vec3 rotation);  
-
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    private static extern void NativeRotateObject(ulong id , float angle , ref Vec3 axis);
-
-    [MethodImpl(MethodImplOptions.InternalCall)]
     private static extern void NativeSetPhysicsBodyType(ulong id , UInt32 type); 
 
     [MethodImpl(MethodImplOptions.InternalCall)]
@@ -308,22 +273,6 @@ namespace Other {
     // private static extern void NativeSetParent(ulong id , ref Vec3 scale);
 
     /// C# setters 
-
-    static public void SetPosition(ulong id , ref Vec3 position) {
-      NativeSetPosition(id , ref position);
-    }
-
-    static public void SetScale(ulong id , ref Vec3 scale) {
-      NativeSetScale(id , ref scale);
-    }
-
-    static public void SetRotation(ulong id , ref Vec3 rotation) {
-      NativeSetRotation(id , ref rotation);
-    }
-
-    static public void RotateObject(ulong id , float angle , ref Vec3 axis) {
-      NativeRotateObject(id , angle , ref axis);
-    }
 
     static public void SetPhysicsBodyType(ulong id , PhysicsBodyType type) {
       NativeSetPhysicsBodyType(id , (UInt32)type);

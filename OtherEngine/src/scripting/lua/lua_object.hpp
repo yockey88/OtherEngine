@@ -4,9 +4,9 @@
 #ifndef LUA_OBJECT_HPP
 #define LUA_OBJECT_HPP
 
-#include "scripting/script_object.hpp"
-
 #include <sol/sol.hpp>
+
+#include "scripting/script_object.hpp"
 
 namespace other {
 

@@ -21,8 +21,8 @@ namespace other {
 
   class MockApp : public other::App {
     public:
-      MockApp(other::Engine* engine) 
-          : other::App(engine) {}
+      MockApp(const CmdLine& cmd_line, const ConfigTable& config) 
+        : other::App(cmd_line, config) {}
       virtual ~MockApp() override {}
   };
 

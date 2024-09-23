@@ -14,6 +14,7 @@ namespace other {
   struct Camera : public Component {
     Ref<CameraBase> camera = nullptr;
     bool pinned_to_entity_position = true;
+    bool is_primary = false;
     
     Camera(const Ref<CameraBase>& camera)
       : Component(kCameraIndex) , camera(camera) {}

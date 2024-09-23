@@ -8,15 +8,13 @@
 
 class TestApp : public other::App {
   public:
-    TestApp(other::Engine* engine) 
-        : other::App(engine) {}
+    TestApp(const other::CmdLine& cmd_line, const other::ConfigTable& config) 
+      : other::App(cmd_line, config) {}
     virtual ~TestApp() override {}
 };
 
 namespace other {
-  
-  Scope<App> NewApp(Engine* engine);
-
+Scope<App> NewApp(const CmdLine& cmd_line, const ConfigTable& config);
 } // namespace other
 
 void CheckGlError(int line);

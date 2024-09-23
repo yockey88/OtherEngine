@@ -136,7 +136,6 @@ namespace other {
   void Scene::Start(EngineMode mode) {
     OE_ASSERT(initialized , "Starting scene without initialization");
 
-    current_mode = mode;
     FixRoots();
 
     registry.view<RigidBody2D , Tag , Transform>().each([this](RigidBody2D& body , const Tag& tag , const Transform& transform) {
@@ -279,8 +278,7 @@ namespace other {
       Stop();
       return;
     }
-     
-    /// because every entity has a transform this is equivalent to view<Camera>
+    
     registry.view<Camera, Transform>().each([](Camera& camera , Transform& transform) {
       if (camera.pinned_to_entity_position) {
         camera.camera->SetPosition(transform.position);
@@ -290,7 +288,7 @@ namespace other {
         camera.camera->CalculateMatrix();
       }
     });
-
+     
     registry.view<Script>().each([&dt](const Script& script) {
       for (auto& [id , s] : script.scripts) {
         s->LateUpdate(dt);
@@ -318,30 +316,31 @@ namespace other {
    **/
       
   Ref<CameraBase> Scene::GetPrimaryCamera() const {
-    Ref<CameraBase> primary_cam = nullptr;
-    registry.view<Camera>().each([&primary_cam](const Camera& camera) {
-      if (camera.camera->IsPrimary()) {
-        primary_cam = camera.camera;
+    UUID handle = 0;
+    registry.view<Camera, Tag>().each([&handle](const Camera& camera, const Tag& tag) {
+      if (handle.Get() != 0) {
+        return;
+      }
+      if (camera.is_primary) {
+        handle = tag.id;
       }
     });
 
-    return primary_cam;
+    if (handle.Get() == 0) {
+      return nullptr;
+    }
+
+    return GetEntity(handle)->GetComponent<Camera>().camera;
   }
       
-  void Scene::Render(Ref<SceneRenderer> renderer) {
+  void Scene::Render(Ref<SceneRenderer>& renderer) {
     renderer->ClearPipelines();
-
-    registry.view<Camera>().each([&](const Camera& camera) {
-      if (camera.camera->IsPrimary()) {
-        renderer->SubmitCamera(camera.camera); 
-      }
-    });
-    
     renderer->SubmitEnvironment(environment);
 
     RenderToPipeline("Geometry" , renderer);
 
-    if (current_mode == EngineMode::DEBUG) {
+    /// TODO: flesh this out
+    if (AppState::mode == EngineMode::DEBUG) {
       RenderToPipeline("Debug" , renderer , true);
     }
   }
@@ -368,7 +367,6 @@ namespace other {
     });
 
     OnStop();
-    current_mode = EngineMode::DEBUG; 
 
     if (scene_object == nullptr) {
       return;
@@ -660,7 +658,7 @@ namespace other {
     });
   }
       
-  void Scene::RenderToPipeline(const std::string_view plname , Ref<SceneRenderer> renderer , bool do_debug) {
+  void Scene::RenderToPipeline(const std::string_view plname , Ref<SceneRenderer>& renderer , bool do_debug) {
     dynamic_mesh_group.each([&renderer , plname](const Mesh& mesh , const Transform& transform) {
       if (!AppState::Assets()->IsValid(mesh.handle)) {
         return;
@@ -679,7 +677,7 @@ namespace other {
       renderer->SubmitStaticModel(plname , model , transform.model_transform , mesh.material);
     });
 
-    if (!do_debug || light_group.empty()) {
+    if (AppState::mode == EngineMode::RUNTIME) {
       return;
     }
 
