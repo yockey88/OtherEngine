@@ -15,12 +15,18 @@ fragment {
 
   out vec4 FragColor;
 
-  uniform sampler2D depth_tex;
-  uniform sampler2D screen_tex;
+  uniform sampler2D oe_screen_tex;
+  uniform float exposure;
 
   void main() {
-    vec3 col = texture(screen_tex , foe_uvs).rgb;
-    FragColor = vec4(col , 1.0);
+    const float gamma = 2.2;
+    vec3 hdr_color = texture(oe_screen_tex , foe_uvs).rgb;
+
+    vec3 result = vec3(1.0) - exp(-1 * hdr_color * exposure);
+    /// why does this look so weird ?? 
+    // vec3 col = pow(result , vec3(1.0 / gamma));
+
+    FragColor = vec4(result , 1.0);
   }
 
 }

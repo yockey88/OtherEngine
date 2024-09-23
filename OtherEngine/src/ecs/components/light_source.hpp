@@ -10,11 +10,12 @@
 
 #include "rendering/direction_light.hpp"
 #include "rendering/point_light.hpp"
+#include "rendering/material.hpp"
 
 namespace other {
 
   enum LightSourceType {
-    DIRECTION_LIGHT_SRC ,
+    DIRECTION_LIGHT_SRC = 0 ,
     POINT_LIGHT_SRC ,
 
     NUM_LIGHT_SRCS , 
@@ -27,6 +28,11 @@ namespace other {
       DirectionLight direction_light;
       PointLight pointlight;
     };
+    
+    Opt<AssetHandle> debug_model = std::nullopt;
+
+    static Material debug_light_mat;
+
     ECS_COMPONENT(LightSource, kLightSourceIndex); 
   };
 

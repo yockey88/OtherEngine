@@ -8,14 +8,13 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "rendering/rendering_defines.hpp"
-#include "rendering/render_pass.hpp"
 #include "rendering/vertex.hpp"
 
 namespace std {
   
   bool less<other::MeshKey>::operator()(const other::MeshKey& lhs , const other::MeshKey& rhs) const {
-    if (lhs.model_handle.Get() != rhs.model_handle.Get()) {
-      return lhs.model_handle.Get() < rhs.model_handle.Get();
+    if (lhs.source_handle.Get() != rhs.source_handle.Get()) {
+      return lhs.source_handle.Get() < rhs.source_handle.Get();
     }
     
     return lhs.selected && !rhs.selected;
@@ -31,20 +30,19 @@ namespace other {
     model_storage = NewRef<UniformBuffer>("ModelData" , spec.model_uniforms , spec.model_binding_point , SHADER_STORAGE);
     material_storage = NewRef<UniformBuffer>("MaterialData" , spec.material_uniforms , spec.material_binding_point , SHADER_STORAGE);
   }
-      
-  void Pipeline::SubmitRenderPass(Ref<RenderPass> pass) {
-    pass->SetInput("goe_position" , 0);
-    pass->SetInput("goe_normal" , 1);
-    pass->SetInput("goe_albedo" , 2);
-    passes.push_back(pass);
+
+  void Pipeline::SubmitRenderPass(const Ref<RenderPass>& render_pass) {
+    passes.push_back(render_pass);
   }
 
   void Pipeline::SubmitModel(Ref<Model> model , const glm::mat4& transform , const Material& material) {
   }
 
   void Pipeline::SubmitStaticModel(Ref<StaticModel> model , const glm::mat4& transform , const Material& material) {
+    Ref<ModelSource> source = model->GetModelSource();
+
     auto itr = std::ranges::find_if(model_submissions , [&](const auto& pair) -> bool {
-      return model->handle == pair.first.model_handle;
+      return source->handle == pair.first.source_handle;
     });
     
 
@@ -60,7 +58,7 @@ namespace other {
       }
 
       MeshKey key = {
-        .model_handle = model->handle ,
+        .source_handle = source->handle ,
         .vao = NewRef<VertexArray>(verts , indices) ,
       };
       key.num_elements = key.vao->NumElements();
@@ -76,34 +74,51 @@ namespace other {
   }
 
   void Pipeline::Render() {
+    /** Passes to implement
+     * ----------------
+     * shadow mapping (expensive) :
+     *  direct light map pass (from viewpoint of primary direct light source)
+     *  spot shadow map pass (from each pointlight ???)
+     *
+     * pre depth pass
+     * hzb compute
+     * pre integration
+     * light culling
+     * skybox pass
+     * GTAO compute
+     * GTAO denoise compute
+     * AO Composite
+     * pre convolution compute
+     * jump flood
+     * ssr compute
+     * ssr composite
+     * edge detection
+     * bloom compute 
+     * composite pass
+     **/
     material_storage->Clear();
     model_storage->Clear();
 
     gbuffer.Bind();
-    RenderMeshes();
+    CHECKGL();
+
+    RenderAll();
+    CHECKGL();
+
     gbuffer.Unbind();
-    
-    for (uint32_t i = 0; i < GBuffer::NUM_TEX_IDXS; ++i) {
-      glActiveTexture(GL_TEXTURE0 + i);
-      glBindTexture(GL_TEXTURE_2D , gbuffer.textures[i]);
-    }
+    CHECKGL();
 
     target->BindFrame();
+    CHECKGL();
+    for (auto& pass : passes) {
+      if (pass == nullptr) {
+        continue;
+      }
 
-    for (auto& p : passes) {
-      PerformPass(p);
+      PerformPass(pass);
+      CHECKGL();
     }
-
     target->UnbindFrame();
-
-    /// lighting pass
-    
-    for (auto& [mk , sl] : model_submissions) {
-      sl.cpu_model_storage.ZeroMem();
-      sl.cpu_material_storage.ZeroMem();
-      sl.instance_count = 0;
-    }
-
     CHECKGL();
   }
 
@@ -114,49 +129,53 @@ namespace other {
   GBuffer& Pipeline::GetGBuffer() {
     return gbuffer;
   }
-      
-  void Pipeline::AddIndices(const Index& idx) {
-    indices.push_back(idx_offset + idx.v1);
-    indices.push_back(idx_offset + idx.v2);
-    indices.push_back(idx_offset + idx.v3); 
-  }
-        
-  void Pipeline::PerformPass(Ref<RenderPass>& pass) {
-    pass->Bind();
-    CHECKGL();
-
-    Buffer pass_models;
-    Buffer pass_materials;
+  
+  void Pipeline::Clear() {
+    /// dont clear the mesh key for a tiny optimization on future submissions
     for (auto& [mk , sl] : model_submissions) {
-      pass_materials = pass->ProcessMaterials(sl.cpu_material_storage);
-      pass_models = pass->ProcessModels(sl.cpu_model_storage);
-      
-      material_storage->BindBase();
-      material_storage->LoadFromBuffer(pass_materials);
-      model_storage->BindBase();
-      model_storage->LoadFromBuffer(pass_models);
-
-      mk.vao->Bind();
-      glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES , mk.num_elements , GL_UNSIGNED_INT , (void*)0 , sl.instance_count , 0 , 0);
+      sl.cpu_model_storage.ZeroMem();
+      sl.cpu_material_storage.ZeroMem();
+      sl.instance_count = 0;
     }
+    model_submissions.clear();
+  }
+      
+  void Pipeline::PerformPass(Ref<RenderPass>& pass) {
     CHECKGL();
 
+    pass->Bind();
+    pass->SetInput("goe_position" , 0);
+    pass->SetInput("goe_normal" , 1);
+    pass->SetInput("goe_albedo" , 2);
+    
+    CHECKGL();
+
+    RenderAll();
+    
+    CHECKGL();
+    
     pass->Unbind();
     CHECKGL();
   }
-      
-  void Pipeline::RenderMeshes() {
-    Buffer pass_models;
-    Buffer pass_materials;
+  
+  void Pipeline::RenderAll() {
     for (auto& [mk , sl] : model_submissions) {
-      material_storage->BindBase();
-      material_storage->LoadFromBuffer(sl.cpu_material_storage);
-      model_storage->BindBase();
-      model_storage->LoadFromBuffer(sl.cpu_model_storage);
-
-      mk.vao->Bind();
-      glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES , mk.num_elements , GL_UNSIGNED_INT , (void*)0 , sl.instance_count , 0 , 0);
+      RenderMeshes(mk , sl.instance_count , sl.cpu_model_storage , sl.cpu_material_storage);
     }
+  }
+      
+  void Pipeline::RenderMeshes(const MeshKey& mesh_key , uint32_t instance_count , const Buffer& model_buffer , const Buffer& material_buffer) {
+    model_storage->BindBase();
+    CHECKGL();
+    model_storage->LoadFromBuffer(model_buffer);
+    CHECKGL();
+    
+    material_storage->BindBase();
+    material_storage->LoadFromBuffer(material_buffer);
+    CHECKGL();
+
+    mesh_key.vao->Bind();
+    glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES , mesh_key.num_elements , GL_UNSIGNED_INT , (void*)0 , instance_count , 0 , 0);
     CHECKGL();
   }
 

@@ -1,45 +1,39 @@
-import os, sys
-import subprocess
+import sys
 
-TOOLS_DIR = "tools"
+from typing import override
 
-def RunCmnd(cmnds):
-    ret = 0
-    cmnds[0] =  "{}/{}/{}.py".format(os.getcwd() , TOOLS_DIR , cmnds[0])
-    if os.path.exists(cmnds[0]):
-        cmnds.insert(0 , "python3")
-        ret = subprocess.call(cmnds)
-    else:
-        print("Invalid Commands [{}]".format(cmnds))
-        ret = -1
+from tools.other.core import utilities
+from tools.other.core.legacy import do_legacy_cmds
+from tools.other.pipeline import env
+from tools.other.pipeline.pipeline import Pipeline
 
-    return ret
+class OtherCliPipeline(Pipeline):
+    @override
+    def run(self):
+      print("> running pipeline")
+      if env.get_settings().fnv:
+        return utilities.fnv(env.get_settings().fnv)
+      if env.get_settings().generate_files:
+        self._process_error(self._gen_files(), " > file generation successful", " !> file generation failed!")
+      if env.get_settings().generate_projects or env.get_settings().generate_files:
+        self._process_error(self._gen_projects(), " > project generation successful", " !> project generation failed!")
+      self._process_error(self._try_build())
+      self._process_error(self._open_editor())
+      self._process_error(self._try_run())
+      return 0
 
-build_cmnds = ["buildsln" , "run"]
+if __name__ == "__main__":
+    # if cli.py is begin called then we use engine configuration
+    env.init("tools/other/other.cfg")
+    verbose: bool = env.is_verbose()
 
-def InBuildCmnds(cmnd):
-    for x in build_cmnds:
-        if x == cmnd:
-            return True
-    return False
+    if env.get_settings().view_platform:
+        utilities.print_platform_string()
 
-argc = len(sys.argv)
-i = 1
-while i < argc:
-    cmnds = [sys.argv[i]]
-
-    while True:
-        if i < argc - 1 and not InBuildCmnds(sys.argv[i + 1]):
-            cmnds.append(sys.argv[i + 1])
-            i = i + 1
-        else :
-            break
-
-    print("\n---------------------------")
-    print("[Executing Command] -> " , cmnds[0])
-    if len(cmnds) > 1:
-        print("\t[Flags] -> {}\n".format(" , ".join(cmnds[1:])))
-    if RunCmnd(cmnds) != 0:
-        break
-    print("\n")
-    i = i + 1
+    if env.is_legacy() and not env.help_was_printed():
+        if verbose:
+            print("> running legacy commands")
+        do_legacy_cmds()
+    elif not env.help_was_printed():
+        pipeline = OtherCliPipeline()
+        pipeline.run()

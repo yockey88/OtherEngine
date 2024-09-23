@@ -2,62 +2,41 @@
 bin/
 bin_obj/
 .cache/
+*.sln
+*.vcxproj*
+*csproj
+*csproj.user
+*.lib
+*.dll
+*.exe
+
+# python bindings
+tools/build
+tools/other.egg-info/
 
 ## Project tools
-tools/runtestbed.py
-tools/runsand.py
-tools/gensln.py
-tools/buildsln.py
+tool_dev/
 
-# Prerequisites
-*.d
+## idk how to stop these folders from being created
+DotOther/Managed/bin
+DotOther/Managed/obj
+DotOther/Tests/Managed/bin
+DotOther/Tests/Managed/obj
+
+## C# stuff
+packages/
+
+# contains local path, no online sharing
+tools/runtestbed.py
 
 # configuration files
 *.config
 *.ini
-*.xml
 *.json
-
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
-
-# Microsoft files
-*.sln
-*.vcxproj
-*.vcxproj.user
-*.vcxproj.filters
-*.csproj
-*.csproj.user
+*.xml
 
 ## Pycache
-tools/__pycache__/
+*__pycache__*
 
 ## Editor directories and files
 .idea/
@@ -67,11 +46,3 @@ tools/__pycache__/
 # other
 *.log
 *.swp
-*.swo
-*.DS_Store
-*.tmp
-*.tmp.*
-*.bak
-*.backup
-*.orig
-*.rej

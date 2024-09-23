@@ -56,9 +56,14 @@ namespace {
     metadata.bin_dir = config.GetVal<std::string>(kProjectSection , kBinDirValue).value_or("bin/Debug/");
     OE_DEBUG("Bin Dir : {}" , metadata.bin_dir);
 
-    auto script_bin = config.GetVal<std::string>(kProjectSection , kScriptBinDirValue).value_or("");
-    if (!script_bin.empty()) {
-      metadata.script_bin_dir = script_bin;
+    auto script_bin = config.GetVal<std::string>(kProjectSection , kScriptBinDirValue);
+    if (script_bin.has_value()) {
+      metadata.script_bin_dir = *script_bin;
+    }
+
+    auto primary_scene = config.GetVal<std::string>(kProjectSection , kPrimarySceneValue);
+    if (primary_scene.has_value()) {
+      metadata.primary_scene = *primary_scene;
     }
 
     auto proj_path = cmdline.GetArg("--project").value_or(Arg{});
@@ -69,9 +74,14 @@ namespace {
 
     auto project_dir = cmdline.GetArg("--cwd").value_or(Arg{});
     if (project_dir.hash != 0 && project_dir.args.size() > 0) {
-      metadata.project_directory = Path(project_dir.args[0]) / metadata.name;
-      OE_DEBUG("Project Directory : {}" , metadata.project_directory);
+      metadata.project_directory = Path(project_dir.args[0]);
+    } else {
+      metadata.project_directory = Filesystem::GetWorkingDirectory();
     }
+    OE_DEBUG("Project Directory : {}" , metadata.project_directory);
+
+    metadata.assets_dir = metadata.project_directory / "assets"; 
+    OE_DEBUG("Assets Directory : {}" , metadata.assets_dir);
 
     auto paths = Filesystem::GetSubPaths(metadata.project_directory);
     for (auto& p : paths) {

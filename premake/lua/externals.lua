@@ -47,32 +47,6 @@ local function AddInclude(table)
   end
 end
 
-function ProcessModuleComponents(module)
-  if module.components == nil then
-    return
-  end
-
-  for lib, comp in pairs(module.components) do
-    links{ lib }
-    if module.lang ~= nil and module.lang == "C++" then
-      externalincludedirs { comp }
-    end
-  end
-end
-
-function ProcessProjectComponents(project)
-  if project.components == nil then
-    return
-  end
-
-  for lib, comp in pairs(project.components) do
-    if string.len(lib) > 0 then 
-      links { lib }
-    end
-    externalincludedirs { comp }
-  end
-end
-
 function ProcessDependency(configuration , lib_data)
   local matches_config = true
 
@@ -110,30 +84,7 @@ function ProcessDependencies(configuration)
   local target = FirstToUpper(os.target())
 
   for key, lib_data in OrderedPairs(External) do
-    local matches_config = true
-
-    if configuration ~= nil and lib_data.configurations ~= nil then
-      if Contains(lib_data.configurations, configuration) then
-        matches_config = true
-      end
-    end
-
-    local is_debug = configuration == "Debug"
-
-    if matches_config then
-      local continue_link = true
-
-      if lib_data[target] ~= nil then
-        continue_link = not LinkDependency(lib_data[target], is_debug, target)
-        AddInclude(lib_data[target])
-      end
-
-      if continue_link then
-        LinkDependency(lib_data, is_debug, target)
-      end
-
-      AddInclude(lib_data)
-    end
+    ProcessDependency(configuration, lib_data)
   end
 end
 

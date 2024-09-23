@@ -8,6 +8,7 @@
 #include "core/config.hpp"
 #include "core/layer.hpp"
 #include "core/layer_stack.hpp"
+#include "parsing/cmd_line_parser.hpp"
 #include "project/project.hpp"
 
 #include "asset/asset_handler.hpp"
@@ -22,7 +23,7 @@ namespace other {
 
   class App { 
     public:
-      App(Engine* engine);
+      App(const CmdLine& cmdline, const ConfigTable& config);
       virtual ~App();
 
       Ref<Project> GetProjectContext();
@@ -47,6 +48,7 @@ namespace other {
       bool RemoveUIWindow(const std::string& name);
       bool RemoveUIWindow(UUID id);
 
+      void LoadSceneByName(const std::string_view name);
       void LoadScene(const Path& path);
       bool HasActiveScene();
       SceneMetadata* ActiveScene();
@@ -76,9 +78,9 @@ namespace other {
       virtual void OnEvent(Event* event) {}
       virtual void EarlyUpdate(float dt) {}
       virtual void Update(float dt) {}
+      virtual void LateUpdate(float dt) {}
       virtual void Render() {}
       virtual void RenderUI() {}
-      virtual void LateUpdate(float dt) {}
 
       virtual void OnDetach() {}
       virtual void OnUnload() {}
@@ -91,8 +93,6 @@ namespace other {
       virtual void OnScriptReload() {}
 
       virtual Ref<AssetHandler> CreateAssetHandler();
-
-      Engine* engine_handle = nullptr;
 
       const CmdLine& cmdline;
       const ConfigTable& config;
@@ -115,9 +115,6 @@ namespace other {
       friend class Engine;
       friend class AppState;
       friend class Editor;
-
-    private:
-      Engine* GetEngine() const { return engine_handle; }
   };
 
 } // namespace other

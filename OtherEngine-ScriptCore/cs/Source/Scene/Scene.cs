@@ -13,15 +13,6 @@ namespace Other {
     public static extern string NativeGetName(ulong id);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
-    private static extern void NativeGetScale(ulong id , out Vec3 scale);    
-
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    private static extern void NativeGetPosition(ulong id , out Vec3 position);    
-
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    private static extern void NativeGetRotation(ulong id , out Vec3 rotation);
-
-    [MethodImpl(MethodImplOptions.InternalCall)]
     private static extern ulong NativeGetObjectByName(string name);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
@@ -72,6 +63,15 @@ namespace Other {
     [MethodImpl(MethodImplOptions.InternalCall)]
     private static extern float NativeGet2DColliderFriction(ulong id);
 
+    // [MethodImpl(MethodImplOptions.InternalCall)]
+    // private static extern void NativeGetMeshHandle(ulong id , out UUID handle);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern UInt64 NativeGetStaticMeshHandle(ulong id);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern void NativeGetStaticMeshMaterial(ulong id , out Material material);
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     private static extern void NativeAddComponent(ulong id , Type type);
 
@@ -85,19 +85,6 @@ namespace Other {
     static public string GetName(ulong id) {
       return NativeGetName(id);
     }
-
-    static public void GetPosition(ulong id , out Vec3 position) {
-      NativeGetPosition(id , out position);
-    }
-
-    static public void GetScale(ulong id , out Vec3 scale) {
-      NativeGetScale(id , out scale);
-    }
-
-    static public void GetRotation(ulong id , out Vec3 rotation) {
-      NativeGetRotation(id , out rotation);
-    }
-
     static public OtherObject GetObject(ulong id) {
       if (!HasObject(id)) {
         return null;
@@ -217,6 +204,18 @@ namespace Other {
       return NativeGet2DColliderFriction(id);
     }
 
+    // static public void GetMeshHandle(ulong id , out UUID handle) {
+    //   NativeGetMeshHandle(id , out handle);
+    // }
+
+    static public UUID GetStaticMeshHandle(ulong id) {
+      return NativeGetStaticMeshHandle(id);
+    }
+
+    static public void GetStaticMeshMaterial(ulong id , out Material material) {
+      NativeGetStaticMeshMaterial(id , out material);
+    }
+
     static public void AddComponent(ulong id , Type type) {
       NativeAddComponent(id , type);
     }
@@ -230,19 +229,6 @@ namespace Other {
     }
 
     /// native setters
-
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    private static extern void NativeSetScale(ulong id , ref Vec3 scale);    
-    
-
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    private static extern void NativeSetPosition(ulong id , ref Vec3 position);    
-
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    private static extern void NativeSetRotation(ulong id , ref Vec3 rotation);  
-
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    private static extern void NativeRotateObject(ulong id , float angle , ref Vec3 axis);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     private static extern void NativeSetPhysicsBodyType(ulong id , UInt32 type); 
@@ -277,26 +263,16 @@ namespace Other {
     [MethodImpl(MethodImplOptions.InternalCall)]
     private static extern void NativeSet2DColliderFriction(ulong id , float friction);
 
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern void NativeSetStaticMeshHandle(ulong id , UInt64 handle);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern void NativeSetStaticMeshMaterial(ulong id , ref Material material);
+
     // [MethodImpl(MethodImplOptions.InternalCall)]
     // private static extern void NativeSetParent(ulong id , ref Vec3 scale);
 
     /// C# setters 
-
-    static public void SetPosition(ulong id , ref Vec3 position) {
-      NativeSetPosition(id , ref position);
-    }
-
-    static public void SetScale(ulong id , ref Vec3 scale) {
-      NativeSetScale(id , ref scale);
-    }
-
-    static public void SetRotation(ulong id , ref Vec3 rotation) {
-      NativeSetRotation(id , ref rotation);
-    }
-
-    static public void RotateObject(ulong id , float angle , ref Vec3 axis) {
-      NativeRotateObject(id , angle , ref axis);
-    }
 
     static public void SetPhysicsBodyType(ulong id , PhysicsBodyType type) {
       NativeSetPhysicsBodyType(id , (UInt32)type);
@@ -340,6 +316,14 @@ namespace Other {
 
     static public void SetFriction(ulong id , float friction) {
       NativeSet2DColliderFriction(id , friction);
+    }
+
+    static public void SetStaticMeshHandle(ulong id , ulong handle) {
+      NativeSetStaticMeshHandle(id , handle);
+    }
+
+    static public void SetStaticMeshMaterial(ulong id , ref Material material) {
+      NativeSetStaticMeshMaterial(id , ref material);
     }
 
     static public void InitializeScene() {

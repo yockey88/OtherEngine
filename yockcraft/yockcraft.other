@@ -1,0 +1,39 @@
+[debug]
+test-editor = false
+
+[project]
+name = "yockcraft"
+author = "Y"
+version = 0.0.1
+description = "description"
+scenes = { 
+  "overworld.yscn" 
+}
+assets = "./assets"
+primary-scene = "overworld"
+bin-dir = "../bin/Debug/"
+script-bin-dir = "YockCraftScripts"
+
+[log]
+console-level = "trace"
+file-level = "trace"
+path = "./logs/yockcraft.log"
+
+[window]
+width = 1200
+height = 800
+title = "YockCraft"
+clear-color = { 0.3 , 0.3 , 0.3 , 1.0 }
+
+[script-engine.C#]
+paths = {
+  "YockCraftScripts.dll"
+}
+
+[editor]
+scripts = {
+  "debug.lua"
+}
+
+[editor.script]
+debug = { "Debug" }

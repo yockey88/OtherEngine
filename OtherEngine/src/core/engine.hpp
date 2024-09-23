@@ -5,46 +5,45 @@
 
 #include "core/defines.hpp"
 #include "parsing/cmd_line_parser.hpp"
-#include "event/event_queue.hpp"
+
 #include "application/app.hpp"
-#include "asset/asset_handler.hpp"
 
 namespace other {
 
+  class Event;
+  
+  /// implemented by client 
+#ifndef OTHERENGINE_DLL
+  extern Scope<App> NewApp(const CmdLine& cmd_line, const ConfigTable& config);
+#endif // !OTHERENGINE_DLL
+
   class Engine {
     public:
-      Opt<ExitCode> exit_code = std::nullopt;
+      Engine();
+      Engine(const CmdLine& cmd_line);
 
-      Engine() = default;
-      Engine(const CmdLine& cmd_line , const ConfigTable& config , const std::string& config_path);
-
-      static Engine Create(const CmdLine& cmd_line , const ConfigTable& config , const std::string& config_path);
-
-      bool ShouldQuit() const { return exit_code.has_value(); } 
-
-      /// this takes ownership of the application pointer
-      void LoadApp(Scope<App>& app);
-      void PushCoreLayer();
-
-      Scope<App>& ActiveApp() { return active_app; }
+      ExitCode Run();
+      
+      void LoadApp();
       void UnloadApp();
 
-      void ProcessEvent(Event* event);
+      void Launch();
+      void Shutdown();
 
-      Logger* GetLog() const { return logger_instance; }
+      void ProcessEvent(Event* event);
 
       CmdLine cmd_line;
       ConfigTable config;
     private:
       std::string config_path;
 
-      Logger* logger_instance = nullptr;
-
-      Ref<Project> project_metadata;
-
-      bool in_editor = false;
       Scope<App> active_app;
-      Scope<AssetHandler> asset_handler;
+
+      Opt<Path> FindConfigFile();
+      ExitCode ProcessExitCode(ExitCode code);
+      ExitCode LoadConfig();
+
+      void ProcessSingleArg(const std::string_view lflag , uint32_t min_args , std::function<bool(Arg&)> processor = nullptr);
   };
 
 } // namespace other

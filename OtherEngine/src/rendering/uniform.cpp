@@ -76,8 +76,11 @@ namespace other {
       
   void UniformBuffer::LoadFromBuffer(const Buffer& buffer) {
     glBindBuffer(type , renderer_id);
+    CHECKGL();
     glBufferSubData(type , 0 , buffer.Size() , buffer.ReadBytes());
+    CHECKGL();
     glBindBuffer(type , 0);
+    CHECKGL();
   }
   
   void UniformBuffer::Unbind() {
@@ -86,8 +89,11 @@ namespace other {
       
   void UniformBuffer::Clear() {
     glBindBuffer(type , renderer_id);
+    CHECKGL();
     glBufferSubData(type , 0 , size , nullptr); 
+    CHECKGL();
     glBindBuffer(type , 0);
+    CHECKGL();
   }
       
   uint32_t UniformBuffer::CalculateOffset(const UniformData& uniform , uint32_t index) {

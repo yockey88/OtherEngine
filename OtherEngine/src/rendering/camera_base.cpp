@@ -39,7 +39,6 @@ namespace other {
     SetZoom(other->zoom);
 
     SetConstrainPitch(other->constrain_pitch);
-    SetPrimary(other->is_primary);
   }
 
   CameraProjectionType CameraBase::GetCameraProjectionType() const {
@@ -65,18 +64,15 @@ namespace other {
     SetPosition(Position());
   }
 
-  const glm::mat4& CameraBase::GetMatrix() {
-    CalculateMatrix();
+  const glm::mat4& CameraBase::GetMatrix() const {
     return mvp;     
   }                
                    
-  const glm::mat4& CameraBase::ViewMatrix() {
-    CalculateMatrix();
+  const glm::mat4& CameraBase::ViewMatrix() const {
     return view;
   }
 
-  const glm::mat4& CameraBase::ProjectionMatrix() {
-    CalculateMatrix();
+  const glm::mat4& CameraBase::ProjectionMatrix() const {
     return projection;
   }
 
@@ -184,10 +180,6 @@ namespace other {
     this->constrain_pitch = constrain_pitch; 
   }
   
-  void CameraBase::SetPrimary(bool primary) { 
-    this->is_primary = primary; 
-  }
-  
   void CameraBase::CalculateView() {
     view = glm::lookAt(position , position + direction , up);
   }
@@ -266,10 +258,6 @@ namespace other {
 
   bool CameraBase::ConstrainPitch() const {
     return constrain_pitch;
-  }
-
-  bool CameraBase::IsPrimary() const {
-    return is_primary;
   }
 
   void DefaultUpdateCamera(Ref<CameraBase>& camera) {

@@ -7,13 +7,15 @@
 #include <string_view>
 
 #include "core/defines.hpp"
-#include "ecs/component.hpp"
 
 namespace other {
 
   /// section keys
   constexpr static std::string_view kProjectSection = "PROJECT";
   constexpr static uint64_t kProjectSectionHash = FNV(kProjectSection);
+  
+  constexpr static std::string_view kDebugSection = "DEBUG";
+  constexpr static uint64_t kDebugSectionHash = FNV(kDebugSection);
 
   constexpr static std::string_view kWindowSection = "WINDOW";
   constexpr static uint64_t kWindowSectionHash = FNV(kWindowSection);
@@ -44,9 +46,6 @@ namespace other {
 
   constexpr static std::string_view kResourcesSection = "RESOURCES";
   constexpr static uint64_t kResourcesSectionHash = FNV(kResourcesSection);
-
-  constexpr static std::string_view kScenesSection = "SCENES";
-  constexpr static uint64_t kScenesSectionHash = FNV(kScenesSection);
   
   constexpr static std::string_view kMetadataSection = "METADATA";
   constexpr static uint64_t kMetadataSectionHash = FNV(kMetadataSection);
@@ -69,9 +68,18 @@ namespace other {
 
   constexpr static std::string_view kDebugValue = "DEBUG";
   constexpr static uint64_t kDebugValueHash = FNV(kDebugValue);
+
+  constexpr static std::string_view kScenesValue = "SCENES";
+  constexpr static uint64_t kScenesValueHash = FNV(kScenesValue);
   
   constexpr static std::string_view kAssetsValue = "ASSETS";
   constexpr static uint64_t kAssetsValueHash = FNV(kAssetsValue);
+
+  constexpr static std::string_view kPrimarySceneValue = "PRIMARY-SCENE";
+  constexpr static uint64_t kPrimarySceneHash = FNV(kPrimarySceneValue);
+  
+  constexpr static std::string_view kNeedPrimarySceneValue = "NEED-PRIMARY-SCENE";
+  constexpr static uint64_t kNeedPrimarySceneHash = FNV(kNeedPrimarySceneValue);
 
   constexpr static std::string_view kHeightValue = "HEIGHT";
   constexpr static uint64_t kHeightValueHash = FNV(kHeightValue);

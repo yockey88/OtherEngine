@@ -58,8 +58,12 @@ namespace other {
 
   bool ProjectPanel::OnGuiRender(bool& is_open) {
     ImGui::SetNextWindowSize(ImVec2(200.f , ImGui::GetContentRegionAvail().y));
-    if (!ImGui::Begin("Project" , &is_open , ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar) || 
-        active_proj == nullptr) {
+    if (!ImGui::Begin("Project" , &is_open , ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar)) {
+      ImGui::End();
+      return false;
+    }
+
+    if (active_proj == nullptr) {
       ImGui::End();
       return false;
     }
@@ -172,10 +176,6 @@ namespace other {
     }
 
     ImGui::End();
-
-    for (auto& [id , window] : ui_windows) {
-      window->Render(); 
-    }
 
     return false;
   }

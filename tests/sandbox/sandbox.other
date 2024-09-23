@@ -4,6 +4,7 @@ bin-dir = "C:/Yock/code/OtherEngine/bin/Debug"
 script-bin-dir = "SandboxScripts"
 author = "Y"
 version = 0.0.1
+need-primary-scene = false
 
 [window]
 width = 800

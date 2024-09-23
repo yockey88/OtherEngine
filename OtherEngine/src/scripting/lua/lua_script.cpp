@@ -10,6 +10,7 @@
 #include <sol/load_result.hpp>
 
 #include "core/filesystem.hpp"
+#include "scripting/lua/lua_component_bindings.hpp"
 #include "scripting/lua/lua_error_handlers.hpp"
 #include "scripting/lua/lua_bindings.hpp"
 #include "scripting/lua/lua_math_bindings.hpp"
@@ -53,8 +54,7 @@ namespace other {
         loaded_tables.push_back(name);
       }
 
-      lua_script_bindings::BindGlmTypes(lua_state);
-      lua_script_bindings::BindCoreTypes(lua_state);
+      lua_script_bindings::BindAll(lua_state);
     } catch (const std::exception& e) {
       OE_ERROR("Failed to load lua script file {}" , path);
       OE_ERROR("  > Error = {}" , e.what());
