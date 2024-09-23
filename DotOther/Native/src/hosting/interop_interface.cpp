@@ -3,6 +3,13 @@
  **/
 #include "hosting/interop_interface.hpp"
 
+#include <refl/refl.hpp>
+
+#include "core/defines.hpp"
+#include "core/utilities.hpp"
+#include "hosting/native_object.hpp"
+#include "reflection/object_proxy.hpp"
+
 namespace dotother {
 namespace interface_bindings {
   
@@ -89,15 +96,41 @@ namespace interface_bindings {
     return *instance;
   }
   
+  using namespace std::string_view_literals;
+  
   void InteropInterface::Unbind() {
     if (instance != nullptr) {
       delete instance;
       instance = nullptr;
     }
+
+    util::print(DO_STR("InteropInterface unbound!"sv));
   }
 
   interface_bindings::FunctionTable& InteropInterface::FunctionTable() {
     return interop;
+  }
+  
+
+  void InteropInterface::RegisterObject(uint64_t handle, NObject* object) {
+    if (auto itr = registered_objects.find(handle); itr != registered_objects.end()) {
+      util::print(DO_STR("Object {:#8x} already registered!"sv), handle);
+      return;
+    }
+
+    util::print(DO_STR("Registering object {:#8x}"sv), handle);
+    registered_objects[handle] = object;
+  }
+
+  void InteropInterface::InvokeNativeFunction(uint64_t obj_handle , const std::string_view method_name) {
+    util::print(DO_STR("Invoking {} on {:#8x}"sv), method_name, obj_handle);
+    if (auto itr = registered_objects.find(obj_handle); itr == registered_objects.end()) {
+      util::print(DO_STR("Object {:#8x} not found!"sv), obj_handle);
+      return;
+    }
+
+    NObject& obj = *registered_objects[obj_handle];
+    obj.proxy->InvokeMethod(method_name);
   }
 
 } // namespace dotother

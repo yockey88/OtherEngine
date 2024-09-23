@@ -14,6 +14,7 @@
 #include "hosting/interop_interface.hpp"
 #include "hosting/method.hpp"
 #include "hosting/native_object.hpp"
+#include "reflection/object_proxy.hpp"
 
 using namespace dotother::literals;
 using namespace std::string_view_literals;
@@ -34,45 +35,71 @@ class HostTests : public DoTest {
         FAIL();
       } ,
       .log_callback = [](const dotother::NString message, dotother::MessageLevel level) {
-        // bool is_verbose = dotother::util::GetUtils().IsVerbose();
-        // if (!is_verbose && level < dotother::MessageLevel::INFO) {
-        //   return;
-        // }
+        bool is_verbose = dotother::util::GetUtils().IsVerbose();
+        if (!is_verbose && level < dotother::MessageLevel::INFO) {
+          return;
+        }
 
         fmt::print("{} [{}]\n"sv, message, level);
-      } ,
+      } ,      
+      .invoke_native_method_hook = [](uint64_t object_handle, const dotother::NString method_name) {
+        std::string mname = method_name;
+        dotother::util::print(DO_STR("Invoking Native Method on object {:#08x}"sv) , object_handle);
+        dotother::util::print(DO_STR(" > Method Name: {}"sv), mname);
+
+        dotother::InteropInterface::Instance().InvokeNativeFunction(object_handle, mname);
+      },
 
       .internal_logging_hook = [](const std::string_view message, dotother::MessageLevel level, bool verbose) {
-        // bool is_verbose = dotother::util::GetUtils().IsVerbose();
-        // if (!is_verbose && level < dotother::MessageLevel::INFO) {
-        //   return;
-        // }
+        bool is_verbose = dotother::util::GetUtils().IsVerbose();
+        if (!is_verbose && level < dotother::MessageLevel::INFO) {
+          return;
+        }
 
         fmt::print("{} [{}]\n"sv, message, level);
       }
     };
 
-    dotother::owner<dotother::Host> host = nullptr;
+    static dotother::owner<dotother::NObject> native_object;
 
-    static dotother::NObject native_object;
+    virtual void SetUp() {
+      host = dotother::Host::Instance(config);
+      ASSERT_NO_THROW(host->LoadHost());
+      ASSERT_NO_THROW(host->CallEntryPoint());
+      
+      native_object = dotother::new_owner<dotother::NObject>(0xdeadbeef);
+      dotother::util::print(DO_STR("Native Object Handle: {:#08x}"sv), native_object->handle);
+    }
+
+    virtual void TearDown() {
+      ASSERT_NO_FATAL_FAILURE(host->UnloadHost());
+
+      dotother::InteropInterface::Unbind();
+      dotother::Host::Destroy();
+    }
 
   public:
-    static dotother::NObject& GetNativeObject() {
-      dotother::util::print(DO_STR("Getting Native Object Handle: {:#08x}"sv), native_object.handle);
-      return native_object;
+    static void* GetNativeObject() {
+      dotother::util::print(DO_STR("Getting Native Object Handle: {:#08x} (address : {:p})"sv), native_object->handle , fmt::ptr(&native_object));
+      return native_object.get();
     }
+
+  protected:
+    dotother::Host* host = nullptr;
 };
 
-dotother::NObject HostTests::native_object = dotother::NObject();
+dotother::owner<dotother::NObject> HostTests::native_object = nullptr;
+
+using namespace std::string_view_literals;
 
 TEST_F(HostTests, load_asm_and_call_functions) {
-  // native_object.handle(0xdeadbeef);
-  // dotother::util::print(DO_STR("Native Object Handle: {:#08x}"sv), native_object.target.handle);
-  native_object.handle = 0xdeadbeef;
-
-  host = dotother::new_owner<dotother::Host>(config);
-  ASSERT_NO_THROW(host->LoadHost());
-  ASSERT_NO_THROW(host->CallEntryPoint());
+  /// set values through proxy
+  native_object->proxy->handle(0xdeadbeef);
+  dotother::util::print(DO_STR("Native Object Handle: {:#08x}"sv), native_object->handle);
+  ASSERT_EQ(native_object->handle , 0xdeadbeef);
+  
+  /// invoke functions by name (so client scripts can call them)
+  native_object->proxy->InvokeMethod("Test");
 
   /// CallEntryPoint throws if interop is not bound before entry point is called, so we can assume it is bound here
   ///     and this must return to true
@@ -104,6 +131,7 @@ TEST_F(HostTests, load_asm_and_call_functions) {
   ASSERT_NO_FATAL_FAILURE(obj.Invoke("Test"));
   ASSERT_NO_FATAL_FAILURE(obj.Invoke("Test", 22));
 
+  dotother::util::print(DO_STR("Invoking Internal Call"sv));
   ASSERT_NO_FATAL_FAILURE(obj.Invoke("TestInternalCall"));
 
   float number = 0.f;
@@ -120,8 +148,6 @@ TEST_F(HostTests, load_asm_and_call_functions) {
   dotother::util::print(DO_STR("Property Value: {}"sv), number);
 
   ASSERT_NO_THROW(host->UnloadAssemblyContext(asm_ctx));
-
-  ASSERT_NO_FATAL_FAILURE(host->UnloadHost());
 }
 
 int main(int argc, char** argv) {

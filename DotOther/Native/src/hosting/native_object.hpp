@@ -4,71 +4,50 @@
 #ifndef DOTOTHER_NATIVE_OBJECT_HPP
 #define DOTOTHER_NATIVE_OBJECT_HPP
 
+#include <cstdint>
+
 #include <refl/refl.hpp>
+
+#include "core/defines.hpp"
+#include "core/utilities.hpp"
+#include "reflection/echo_defines.hpp"
+#include "reflection/reflected_object.hpp"
 
 namespace dotother {
 namespace echo {
 
   template <typename T>
-  struct ObjectProxy : refl::runtime::proxy<ObjectProxy<T>, T> {
-    T target;
-
-    constexpr ObjectProxy(const T& target) 
-      : target(target) {}
-
-    constexpr ObjectProxy(T&& target)
-      : target(std::move(target)) {}
-
-    template <typename... Args>
-    constexpr ObjectProxy(Args&&... args)
-      : target(std::forward<Args>(args)...) {}
-
-    template <typename Member , typename Self , typename... Args>
-    static constexpr decltype(auto) invoke_impl(Self&& self, Args&&... args) {
-      constexpr Member member{};
-      if constexpr (refl::descriptor::is_field(member)) {
-        static_assert(sizeof...(Args) <= 1 , "Invalid number of arguments provided for property!");
-
-        if constexpr (sizeof...(Args) == 1) {
-          static_assert(refl::descriptor::is_writable(member));
-          return member(self.target , std::forward<Args>(args)...);
-        } else {
-          static_assert(refl::descriptor::is_readable(member));
-          return refl::util::make_const(member(self.target()));
-        }
-      } else {
-        return member(self.target , std::forward<Args>(args)...);
-      }
-    }
-  }; 
+  struct ObjectProxy;
 
 } // namespace echo
-// namespace detail {
 
-  class NObject {
-    // ECHO_REFLECT();
+  class NObject : echo::reflectable {
+    ECHO_REFLECT();
     public:
-      NObject() {}
-      ~NObject() {}
+      NObject(uint64_t handle);
+      virtual ~NObject();
 
-      uint64_t handle;
+      uint64_t handle = 0;
+      echo::ObjectProxy<NObject>* proxy = nullptr;
 
-    private:
+      void Test() {
+        util::print(DO_STR("     > Test called from Native Object"));
+      }
   };
 
-// } // namespace detail
-} // namespace dotother
 
-
-// ECHO_TYPE(
-//   type(dotother::detail::NObject) ,
-//   field(handle)
-// );
-
-namespace dotother {
-
-  // using NObject = echo::ObjectProxy<detail::NObject>;
+  static_assert(sizeof(NObject) == 24 , "Invalid size for NObject!");
 
 } // namespace dotother
+
+ECHO_TYPE(
+  type(
+    dotother::NObject ,
+    refl::attr::bases<dotother::echo::reflectable>
+  ) ,
+  field(handle) ,
+  field(proxy) , 
+  func(Test)
+);
 
 #endif // !DOTOTHER_NATIVE_OBJECT_HPP

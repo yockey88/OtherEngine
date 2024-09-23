@@ -5,8 +5,11 @@
 #define DOTOTHER_NATIVE_INTEROP_INTERFACE_HPP
 
 #include <cstdint>
+#include <map>
 
 #include "core/defines.hpp"
+#include "core/hook_definitions.hpp"
+#include "hosting/native_object.hpp"
 #include "hosting/native_string.hpp"
 #include "hosting/garbage_collector.hpp"
 
@@ -178,23 +181,63 @@ namespace interface_bindings {
 
 } // namespace interface_bindings
 
+  struct MethodKey {
+    NString method_name;
+    uint64_t type_id = 0;
+    uint64_t object_handle = 0;
+    
+
+    MethodKey() {}
+    MethodKey(NString method_name, uint64_t type_id, uint64_t object_handle) 
+      : method_name(method_name), type_id(type_id), object_handle(object_handle) {}
+  };
+
+} // namespace dotother
+
+template <>
+struct std::less<dotother::MethodKey> {
+  std::size_t operator()(const dotother::MethodKey& lhs, const dotother::MethodKey& rhs) const {
+    if (lhs.type_id < rhs.type_id) {
+      return true;
+    }
+
+    if (lhs.object_handle < rhs.object_handle) {
+      return true;
+    }
+
+    return (std::string)lhs.method_name < (std::string)rhs.method_name;
+  }
+};
+
+namespace dotother {
+
+  class NObject;
+
   class InteropInterface {
     public:
       static InteropInterface& Instance();
       static void Unbind();
       
       interface_bindings::FunctionTable& FunctionTable();
+
+      void RegisterObject(uint64_t handle, NObject* object);
+
+      void InvokeNativeFunction(uint64_t handle, const std::string_view method_name);
     
     private:
       InteropInterface() = default;
       ~InteropInterface() = default;
-      
+
+      InteropInterface(InteropInterface&&) = delete;
       InteropInterface(const InteropInterface&) = delete;
+      InteropInterface& operator=(InteropInterface&&) = delete;
       InteropInterface& operator=(const InteropInterface&) = delete;
       
       static InteropInterface* instance;
       
       interface_bindings::FunctionTable interop;
+
+      std::map<uint64_t , NObject*> registered_objects;
   };
   
   static inline interface_bindings::FunctionTable& Interop() {

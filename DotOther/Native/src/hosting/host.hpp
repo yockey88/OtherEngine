@@ -21,6 +21,7 @@ namespace dotother {
   struct DotOtherArgs {
     exception_callback_t exception_callback = nullptr;
     log_callback_t log_callback = nullptr;
+    invoke_native_method_hook_t invoke_native_method_hook = nullptr;
   };
 
   using EntryPoint = void(DOTOTHER_CALLTYPE*)(DotOtherArgs args);
@@ -35,18 +36,22 @@ namespace dotother {
 
     MessageLevel log_level = MessageLevel::MESSAGE;
 
+    /// Callbacks for managed code
     exception_callback_t exception_callback = nullptr;
     log_callback_t log_callback = nullptr;
+    invoke_native_method_hook_t invoke_native_method_hook = nullptr;
+
+    /// native host engine configuration
     coreclr_error_callback_t coreclr_error_callback = nullptr;
     internal_logging_hook_t internal_logging_hook = nullptr;
   };
 
   class Host {
     public:
-      Host(const HostConfig& config) 
-          : config(config) {}
-      ~Host() {}
-      
+      static Host* Instance();
+      static Host* Instance(const HostConfig& config);
+      static void Destroy();
+
       bool LoadHost();
       void CallEntryPoint(/* const DotOtherArgs */);
       void UnloadHost();
@@ -57,6 +62,16 @@ namespace dotother {
       interface_bindings::FunctionTable& GetInteropInterface();
 
     private:
+      Host(const HostConfig& config) 
+          : config(config) {}
+      ~Host() {}
+
+      Host(Host&&) = delete;
+      Host(const Host&) = delete;
+      Host& operator=(Host&&) = delete;
+      Host& operator=(const Host&) = delete;
+
+      static Host* instance;
       hostfxr_handle host_fxr = nullptr;
 
       struct HostCalls {
@@ -68,7 +83,7 @@ namespace dotother {
 
       bool is_loaded = false;
 
-      HostConfig config;
+      std::optional<HostConfig> config;
 
       bool LoadClrFunctions();
       bool InitializeHost();
@@ -81,7 +96,11 @@ namespace dotother {
 
       template <typename Fn>
       Fn LoadManagedFunction(const dostring& type_name, const dostring& method_name , const dochar* delegate_type = DOTNET_UNMANAGED_FUNCTION) const {
-        return (Fn)(LoadManagedFunction(config.managed_asm_path, type_name, method_name, delegate_type));
+        if (!config.has_value()) {
+          assert(false && "Host configuration not set!");
+        }
+
+        return (Fn)(LoadManagedFunction(config->managed_asm_path, type_name, method_name, delegate_type));
       }
   };
 

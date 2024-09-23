@@ -1,7 +1,6 @@
 using System;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using DotOther.Managed;
+using DotOther;
+using DotOther.Managed.Interop;
 
 namespace DotOther.Tests {
 
@@ -37,10 +36,9 @@ namespace DotOther.Tests {
           return;
         }
 
-        NObject obj = Marshal.PtrToStructure<NObject>(GetNativeObject());
+        NObject obj = DotOtherMarshal.MarshalPointer<NObject>(GetNativeObject());
         obj.Invoke("Test");
         
-        Console.WriteLine($"NObject Handle: {obj.NHandle:x8}");
       } catch (Exception e) {
         Console.WriteLine($"Exception in TestInternalCall: {e.Message} |\n{e.StackTrace}");
       }

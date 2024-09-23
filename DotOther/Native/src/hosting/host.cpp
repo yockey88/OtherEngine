@@ -3,6 +3,7 @@
   */
 #include "hosting/host.hpp"
 
+#include <cassert>
 #include <cstdint>
 #include <optional>
 #include <ostream>
@@ -50,27 +51,48 @@ namespace dotother {
     return fn;
   }
 
+  Host* Host::instance = nullptr;
+  
+  Host* Host::Instance() {
+    assert(instance != nullptr && "Host instance not set!");
+    return instance;
+  }
+
+  Host* Host::Instance(const HostConfig& config) {
+    if (instance == nullptr) {
+      instance = new Host(config);
+    }
+    return instance;
+  }
+
+  void  Host::Destroy() {
+    delete instance;
+    instance = nullptr;
+  }
+
   bool Host::LoadHost() {
+    assert(config.has_value() && "Host configuration not set!");
+
     if (is_loaded) {
       return true;
     }
 
-    if (!std::filesystem::exists(config.host_config_path)) {
+    if (!std::filesystem::exists(config->host_config_path)) {
       util::print(DO_STR("Host config path does not exist"));
       return false;
     }
 
-    if (!std::filesystem::exists(config.managed_asm_path)) {
+    if (!std::filesystem::exists(config->managed_asm_path)) {
       util::print(DO_STR("Managed assembly path does not exist"));
       return false;
     }
 
-    if (config.log_callback == nullptr) {
+    if (config->log_callback == nullptr) {
       util::print(DO_STR("Logging callback not registered for host"));
       return false;
     }
 
-    if (config.exception_callback == nullptr) {
+    if (config->exception_callback == nullptr) {
       util::print(DO_STR("Excpeption callback not registered for host"));
       return false;
     }
@@ -80,8 +102,8 @@ namespace dotother {
       return false;
     }
 
-    if (config.coreclr_error_callback != nullptr) {
-      coreclr.set_error_writer(config.coreclr_error_callback);
+    if (config->coreclr_error_callback != nullptr) {
+      coreclr.set_error_writer(config->coreclr_error_callback);
     } else {
       coreclr.set_error_writer([](const dochar* message) {
 #ifdef DOTOTHER_WIDE_CHARS
@@ -94,8 +116,8 @@ namespace dotother {
       });
     }
 
-    if (config.internal_logging_hook != nullptr) {
-      util::GetUtils().log_sink = config.internal_logging_hook;
+    if (config->internal_logging_hook != nullptr) {
+      util::GetUtils().log_sink = config->internal_logging_hook;
     } else {
       util::GetUtils().log_sink = [](const std::string_view message, dotother::MessageLevel level, bool verbose) {
         if (!verbose) {
@@ -107,6 +129,10 @@ namespace dotother {
       };
     }
 
+    if (config->invoke_native_method_hook == nullptr) {
+      config->invoke_native_method_hook = [](uint64_t,const NString) {};
+    }
+
     is_loaded = InitializeHost();
     if (!is_loaded) {
       util::print(DO_STR("Failed to initialize host, unloading..."));
@@ -114,14 +140,16 @@ namespace dotother {
       return false;
     }
 
-    util::GetUtils().SetLogLevel(config.log_level);
-
+    util::GetUtils().SetLogLevel(config->log_level);
     util::print(DO_STR("Host loaded successfully"));
+
     is_loaded = true;
     return true;
   }
 
   void Host::CallEntryPoint(/* const DotOtherArgs */) {
+    assert(config.has_value() && "Host configuration not set!");
+
     if (!is_loaded) {
       util::print(DO_STR("Host is not loaded, can not call entry point"));
       throw std::runtime_error("Host is not loaded, can not call entry point");
@@ -135,13 +163,15 @@ namespace dotother {
     LoadManagedFunctions();
 
     DotOtherArgs args = {
-      .exception_callback = config.exception_callback,
-      .log_callback = config.log_callback,
+      .exception_callback = config->exception_callback,
+      .log_callback = config->log_callback,
+      .invoke_native_method_hook = config->invoke_native_method_hook
     };
     host_calls.entry(args);
   }
 
   void Host::UnloadHost() {
+    assert(config.has_value() && "Host configuration not set!");
     if (!is_loaded) {
       return;
     }
@@ -152,13 +182,13 @@ namespace dotother {
     host_fxr = nullptr;
     is_loaded = false;
     
-    config.exception_callback = nullptr;
-    config.log_callback = nullptr;
-    config.host_config_path.clear();
-    config.managed_asm_path.clear();
-    config.dotnet_type.clear();
-    config.entry_point.clear();
-    config.delegate_type = nullptr;
+    config->exception_callback = nullptr;
+    config->log_callback = nullptr;
+    config->host_config_path.clear();
+    config->managed_asm_path.clear();
+    config->dotnet_type.clear();
+    config->entry_point.clear();
+    config->delegate_type = nullptr;
 
     managed_asm.clear();
 
@@ -233,7 +263,7 @@ namespace dotother {
 
   bool Host::InitializeHost() {
     hostfxr_handle host_fxr = nullptr;
-    int32_t rc = coreclr.init_host_config(config.host_config_path.c_str() , nullptr , &host_fxr);
+    int32_t rc = coreclr.init_host_config(config->host_config_path.c_str() , nullptr , &host_fxr);
     if (rc != 0 || host_fxr == nullptr) {
       util::print(DO_STR("Could not initialize host_fxr handle : {:#08x}"), rc);
       coreclr.close_host_fxr(host_fxr);
@@ -255,7 +285,7 @@ namespace dotother {
     util::print(DO_STR("Managed function pointer loaded"));
     
     host_calls.entry = nullptr;
-    host_calls.entry = LoadManagedFunction<EntryPoint>(config.dotnet_type.c_str(), config.entry_point.c_str());
+    host_calls.entry = LoadManagedFunction<EntryPoint>(config->dotnet_type.c_str(), config->entry_point.c_str());
     if (host_calls.entry == nullptr) {
       util::print(DO_STR("Failed to load entry point"));
       return 1;
@@ -360,6 +390,10 @@ namespace dotother {
   }
 
   void* Host::LoadManagedFunction(const std::filesystem::path& asm_path, const dostring& type_name, const dostring& method_name, const dochar* delegate_type) const {
+    if (!config.has_value()) {
+      assert(false && "Host configuration not set!");
+    }
+
     if (!std::filesystem::exists(asm_path)) {
       using namespace std::string_view_literals;
       util::print(DO_STR("Assembly {} does not exist!"sv), asm_path.string());

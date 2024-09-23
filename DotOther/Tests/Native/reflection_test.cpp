@@ -10,10 +10,12 @@
 
 #include <refl/refl.hpp>
 
+#include "reflection/echo.hpp"
 #include "reflection/callable.hpp"
 #include "reflection/echo_defines.hpp"
 #include "reflection/type_database.hpp"
-#include "reflection/echo.hpp"
+#include "reflection/object_proxy.hpp"
+#include "hosting/native_object.hpp"
 
 struct MyStruct : echo::serializable {
   ECHO_REFLECT();
@@ -131,6 +133,15 @@ TEST_F(ReflectionTests , refl_test) {
   dotother::Invoke<Bar>(barthing, 1.f, 2);
 
   EXPECT_EQ(fres, 420.f);
+}
+
+using namespace std::string_view_literals;
+TEST_F(ReflectionTests, proxy_test) {
+  dotother::NObject obj(0xdeadbeef);
+  obj.proxy->handle(0xfeedbeef);
+
+  EXPECT_EQ(obj.handle, 0xfeedbeef)
+    << fmt::format("Expected handle to be {:#08x} but got {:#08x}"sv, 0xfeedbeef, obj.handle);
 }
 
 template <typename T>

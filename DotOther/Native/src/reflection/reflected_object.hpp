@@ -5,6 +5,7 @@
 #define DOTOTHER_REFLECTED_OBJECT_HPP
 
 #include "reflection/type_database.hpp"
+#include "reflection/echo_defines.hpp"
 
 #define ECHO_REFLECT() \
   public: \
@@ -22,8 +23,12 @@ namespace echo {
   };
 
   struct echo_attr {};
-
+ 
 } // namespace echo
 } // namespace dotother
+
+ECHO_TYPE(
+  type(dotother::echo::reflectable , refl::attr::bases<>)
+);
 
 #endif // DOTOTHER_REFLECTED_OBJECT_HPP

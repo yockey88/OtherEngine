@@ -51,17 +51,17 @@ namespace echo {
 
         auto& tmd = type_data.emplace_back(td);
         refl::util::for_each(td.members , [&](auto member) {
+          std::string name = refl::descriptor::get_display_name(member);
+
           if constexpr (refl::descriptor::is_function(member)) {
-            tmd.methods.emplace_back(MethodMetadata{ 
-              .name = member.name ,
-            });
+            auto& minfo = tmd.methods.emplace_back();
+            minfo.name = name;
             return;
           } 
 
           if constexpr (refl::descriptor::is_field(member)) {
-            tmd.fields.emplace_back(FieldMetadata{ 
-              .name = refl::descriptor::get_display_name(member) ,
-            });
+            auto& finfo = tmd.fields.emplace_back();
+            finfo.name = name;
             return;
           }
         });

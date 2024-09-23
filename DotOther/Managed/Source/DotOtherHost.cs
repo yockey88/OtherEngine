@@ -1,4 +1,5 @@
 using System;
+using System.Net;
 using System.Runtime.InteropServices;
 
 using DotOther.Managed.Interop;
@@ -22,6 +23,7 @@ namespace DotOther.Managed {
   struct DotOtherArgs {
     public unsafe delegate*<NString , void> ExceptionCallback;
     public unsafe delegate*<NString , MessageLevel, void> LogCallback;
+    public unsafe delegate*<UInt64, NString, void> NativeMethodInvoker;
   }
 
 
@@ -29,10 +31,13 @@ namespace DotOther.Managed {
     private static unsafe delegate*<NString , void> ExceptionCallback;
     private static unsafe delegate*<NString , MessageLevel, void> LogCallback;
 
+    private static unsafe delegate*<UInt64, NString, void> NativeMethodInvoker;
+
     [UnmanagedCallersOnly]
     private static unsafe void EntryPoint(DotOtherArgs args) {
       ExceptionCallback = args.ExceptionCallback;
       LogCallback = args.LogCallback;
+      NativeMethodInvoker = args.NativeMethodInvoker;
       LogCallback("DotOtherHost: Initialized", MessageLevel.Info);
     }
 
@@ -51,6 +56,18 @@ namespace DotOther.Managed {
 
         NString msg = e.Message;
         ExceptionCallback(msg);
+      }
+    }
+
+    internal static void InvokeNativeMethod(UInt64 handle, string method) {
+      NString method_name = method;
+
+      unsafe {
+        if (NativeMethodInvoker == null) {
+          LogMessage("NativeMethodInvoker is null", MessageLevel.Error);
+          throw new InvalidOperationException("NativeMethodInvoker is null");
+        }
+        NativeMethodInvoker(handle, method_name);
       }
     }
   }
