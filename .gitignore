@@ -17,6 +17,12 @@ tools/other.egg-info/
 ## Project tools
 tool_dev/
 
+## idk how to stop these folders from being created
+DotOther/Managed/bin
+DotOther/Managed/obj
+DotOther/Tests/Managed/bin
+DotOther/Tests/Managed/obj
+
 ## C# stuff
 packages/
 
