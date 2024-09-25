@@ -105,7 +105,7 @@ void UpdateCamera(other::Ref<CameraBase>& camera);
 int main(int argc , char* argv[]) {
   try {
     const other::Path glsandbox_dir = "C:/Yock/code/OtherEngine/tests/gl_sandbox";
-    const other::Path config_path = glsandbox_dir / "sandbox.other";
+    const other::Path config_path = glsandbox_dir / "gl_sandbox.other";
 
     other::CmdLine cmd_line(argc , argv);
     cmd_line.SetFlag("--project" , { config_path.string() });

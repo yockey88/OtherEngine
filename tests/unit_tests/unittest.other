@@ -1,9 +1,25 @@
 [project]
-name = "unittest"
+name = "UnitTest"
+bin-dir = "C:/Yock/code/OtherEngine/bin/Debug"
+script-bin-dir = "SandboxScripts"
 author = "Y"
 version = 0.0.1
+need-primary-scene = false
 
 [window]
-width = 1280
-height = 720
-title = "Other Engine unittest"
+width = 800
+height = 600
+title = "Other Engine Unit Tests"
+
+[renderer]
+cull-face = false
+
+[log]
+console-level = "trace" 
+file-level = "trace"
+path = "logs/unittests.log"
+
+[script-engine.C#]
+modules = { 
+  "SandboxScripts"
+}

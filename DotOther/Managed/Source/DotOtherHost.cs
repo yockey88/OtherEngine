@@ -1,8 +1,5 @@
 using System;
-using System.Net;
 using System.Runtime.InteropServices;
-
-using DotOther.Managed.Interop;
 
 namespace DotOther.Managed {
 
@@ -68,6 +65,27 @@ namespace DotOther.Managed {
           throw new InvalidOperationException("NativeMethodInvoker is null");
         }
         NativeMethodInvoker(handle, method_name);
+      }
+    }
+
+    internal static NObject GetNativeObject(UInt64 handle) {
+      if (handle == 0) {
+        return null;
+      }
+
+      unsafe {
+        if (NativeMethodInvoker == null) {
+          LogMessage("NativeMethodInvoker is null", MessageLevel.Error);
+          throw new InvalidOperationException("NativeMethodInvoker is null");
+        }
+
+        try {
+          NativeMethodInvoker(handle, "GetNativeObject");
+          return new NObject(handle);
+        } catch (Exception e) {
+          HandleException(e);
+          return null;
+        }
       }
     }
   }

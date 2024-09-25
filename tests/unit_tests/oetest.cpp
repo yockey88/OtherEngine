@@ -5,6 +5,7 @@
 
 namespace other {
 
-other::ConfigTable OtherTest::config = {};
+ConfigTable OtherTest::config = {};
+CmdLine OtherTest::cmdline = {};
 
 } // namespace other

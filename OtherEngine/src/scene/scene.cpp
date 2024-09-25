@@ -109,7 +109,7 @@ namespace other {
     FixRoots();
 
     auto cs_module = ScriptEngine::GetModule(CS_MODULE);
-    auto cs_core = cs_module->GetScriptModule("C#-Core");
+    auto cs_core = cs_module->GetScript("C#-Core");
     scene_object = cs_core->GetScript("Scene" , "Other");
     if (scene_object == nullptr) {
       OE_ERROR("Failed to retrieve scene interface from C# script core!");

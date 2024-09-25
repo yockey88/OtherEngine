@@ -9,11 +9,10 @@
 #include <sol/forward.hpp>
 #include <sol/load_result.hpp>
 
+#include "core/ref.hpp"
 #include "core/filesystem.hpp"
-#include "scripting/lua/lua_component_bindings.hpp"
 #include "scripting/lua/lua_error_handlers.hpp"
 #include "scripting/lua/lua_bindings.hpp"
-#include "scripting/lua/lua_math_bindings.hpp"
 
 namespace other {
 
@@ -70,7 +69,7 @@ namespace other {
   void LuaScript::Shutdown() {
     lua_state.collect_garbage();
     for (auto& [id , obj] : loaded_objects) {
-      obj.Shutdown();
+      obj->Shutdown();
     }
     loaded_objects.clear();
 
@@ -81,11 +80,11 @@ namespace other {
     /// no need to build anything here
   }
       
-  bool LuaScript::HasScript(UUID id) {
+  bool LuaScript::HasScript(UUID id) const {
     return false; 
   }
 
-  bool LuaScript::HasScript(const std::string_view name , const std::string_view nspace) {
+  bool LuaScript::HasScript(const std::string_view name , const std::string_view nspace) const {
     if (!valid) {
       return false;
     }
@@ -133,7 +132,7 @@ namespace other {
     
     UUID id = FNV(name);
     if (loaded_objects.find(id) != loaded_objects.end()) {
-      LuaObject* obj = &loaded_objects[id];
+      LuaObject* obj = loaded_objects[id].Raw();
       if (obj != nullptr) {
         return obj;
       }
@@ -141,11 +140,11 @@ namespace other {
 
     OE_INFO("Lua object {} loaded" , name);
   
-    auto& obj = loaded_objects[id] = LuaObject(module_name , name , &lua_state);
-    obj.InitializeScriptMethods();
-    obj.InitializeScriptFields();
+    auto& obj = loaded_objects[id] = NewRef<LuaObject>(module_name , name , &lua_state);
+    obj->InitializeScriptMethods();
+    obj->InitializeScriptFields();
 
-    return &loaded_objects[id];
+    return loaded_objects[id].Raw();
   }
       
   /// TODO: how to get all tables in the script

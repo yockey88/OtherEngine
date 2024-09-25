@@ -6,7 +6,9 @@
 
 #include <string>
 #include <map>
+#include <string_view>
 
+#include "core/config.hpp"
 #include "core/uuid.hpp"
 #include "core/ref.hpp"
 
@@ -16,6 +18,7 @@
 #include "scripting/language_module.hpp"
 #include "scripting/cs/cs_module.hpp"
 #include "scripting/lua/lua_module.hpp"
+#include "scripting/script_module.hpp"
 
 namespace other {
   
@@ -25,7 +28,8 @@ namespace other {
     Ref<LanguageModule> module = nullptr;
   };
 
-  template <typename T> requires lang_module_t<T>
+  template <typename T> 
+    requires lang_module_t<T>
   LanguageModuleType ModuleTypeFromStaticType() {
     if constexpr (std::is_same_v<T , LuaModule>) {
       return LanguageModuleType::LUA_MODULE;
@@ -50,14 +54,14 @@ namespace other {
 
       static Ref<LanguageModule> GetModule(LanguageModuleType type);
       
-      static ScriptModule* GetScriptModule(const std::string_view name);
-      static ScriptModule* GetScriptModule(UUID id);
+      static ScriptModule* GetScript(const std::string_view name);
+      static ScriptModule* GetScript(UUID id);
 
       static ScriptObject* GetScriptObject(UUID id);
       static ScriptObject* GetScriptObject(const std::string_view name);
       static ScriptObject* GetScriptObject(const std::string_view name , const std::string_view nspace , const std::string_view mod_name = "");
       static ScriptObject* GetScriptObject(const std::string_view name , const std::string_view nspace , ScriptModule* module);
-      static const std::map<UUID , ScriptObject*>& ReadLoadedObjects();
+      static const std::map<UUID , Ref<ScriptObject>>& ReadLoadedObjects();
 
       static void SetSceneContext(const Ref<Scene>& scene);
       static Ref<Scene> GetSceneContext();
@@ -65,6 +69,8 @@ namespace other {
       static std::map<UUID , LanguageModuleMetadata>& GetModules();
       static const std::vector<ScriptObjectTag>& GetLoadedObjects();
       static const std::vector<ScriptObjectTag>& GetLoadedEditorObjects();
+
+      static Script LoadScriptsFromTable(const ConfigTable& table);
 
       /// because certain parts of the engine rely on specifically lua or c# scripts they need to be 
       ///   able to interface with those modules directly
@@ -82,13 +88,16 @@ namespace other {
 
       static std::vector<ScriptObjectTag> object_tags;
       static std::map<UUID , LanguageModuleMetadata> language_modules;
-      static std::map<UUID , ScriptModule*> loaded_modules;
-      static std::map<UUID , ScriptObject*> objects;
+      static std::map<UUID , Ref<ScriptModule>> loaded_modules;
+      static std::map<UUID , Ref<ScriptObject>> objects;
 
       static LanguageModuleType StringToModuleType(const std::string_view);
       static LanguageModuleType IdToModuleType(UUID id);
 
       static void LoadModule(LanguageModuleType type);
+
+      static void LoadProjectModule(Ref<LanguageModule>& module , const std::string_view config_tag , const Path& prefix_path = "");
+      static void UnloadProjectModule(Ref<LanguageModule>& module);
   };
 
 } // namespace other

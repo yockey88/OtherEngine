@@ -49,18 +49,12 @@ end
 
 local function ProcessWindowsFilters()
   -- windows requires dlls to be copied to the output directory
-  postbuildcommands {
-    '{COPY} %{wks.location}externals/mono/bin/mono-2.0-sgen.dll "%{cfg.targetdir}"',
-    '{COPY} %{wks.location}externals/mono/bin/MonoPosixHelper.dll "%{cfg.targetdir}"',
-  }
   filter { "configurations:Release" }
     postbuildcommands {
       '{COPY} "%{wks.location}externals/sdl2/lib/Release/SDL2.dll" "%{cfg.targetdir}"',
     }
   filter { "configurations:Debug" }
     postbuildcommands {
-      '{COPY} "%{wks.location}externals/mono/bin/mono-2.0-sgen.pdb" "%{cfg.targetdir}"',
-      '{COPY} "%{wks.location}externals/mono/bin/MonoPosixHelper.pdb" "%{cfg.targetdir}"',
       '{COPY} "%{wks.location}externals/sdl2/lib/Debug/SDL2d.dll" "%{cfg.targetdir}"',
     }
 end

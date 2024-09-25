@@ -358,7 +358,9 @@ int main(int argc , char* argv[]) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
           switch (event.type) {
-            case SDL_QUIT: running = false; break;
+            case SDL_QUIT: 
+              running = false; 
+            break;
             case SDL_WINDOWEVENT:
               switch (event.window.event) {
                 case SDL_WINDOWEVENT_CLOSE: running = false; break; 
@@ -403,7 +405,6 @@ int main(int argc , char* argv[]) {
 
         other::Renderer::GetWindow()->Clear();
 
-        // renderer->SubmitCamera(camera);
         scene->Render(renderer);
         renderer->EndScene();
 
@@ -441,51 +442,51 @@ int main(int argc , char* argv[]) {
                                               { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
           ImGui::Separator();
 
-          ImGui::Text("===== Scene Controls =====");
-          auto& reg = scene->Registry();
+          // ImGui::Text("===== Scene Controls =====");
+          // auto& reg = scene->Registry();
 
-          ImGui::Text(" - Transforms =====");
-          reg.view<other::Tag , other::Transform>().each([&](other::Tag& tag , other::Transform& transform) {
-            ImGui::PushID((tag.name + "##transform-widget").c_str());
-            if (other::ui::widgets::DrawVec3Control(other::fmtstr("{} position", tag.name) , 
-                                                    transform.position , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
-                                                    { -100.f , -100.f , -100.f } , { 100.f , 100.f , 100.f } , 0.5f)) {}
-            ImGui::Separator();
-            ImGui::PopID();
-          });
+          // ImGui::Text(" - Transforms =====");
+          // reg.view<other::Tag , other::Transform>().each([&](other::Tag& tag , other::Transform& transform) {
+          //   ImGui::PushID((tag.name + "##transform-widget").c_str());
+          //   if (other::ui::widgets::DrawVec3Control(other::fmtstr("{} position", tag.name) , 
+          //                                           transform.position , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
+          //                                           { -100.f , -100.f , -100.f } , { 100.f , 100.f , 100.f } , 0.5f)) {}
+          //   ImGui::Separator();
+          //   ImGui::PopID();
+          // });
           
-          ImGui::Text(" - Materials =====");
+          // ImGui::Text(" - Materials =====");
 
-          reg.view<other::Tag , other::StaticMesh>().each([&](other::Tag& tag , other::StaticMesh& mesh) {
-            ImGui::PushID((tag.name + "##static-mesh-widget").c_str());
-            RenderMaterial(other::fmtstr("{} material" , tag.name) , mesh.material);
-            ImGui::Separator();
-            ImGui::PopID();
-          });
-          ImGui::Separator();
+          // reg.view<other::Tag , other::StaticMesh>().each([&](other::Tag& tag , other::StaticMesh& mesh) {
+          //   ImGui::PushID((tag.name + "##static-mesh-widget").c_str());
+          //   RenderMaterial(other::fmtstr("{} material" , tag.name) , mesh.material);
+          //   ImGui::Separator();
+          //   ImGui::PopID();
+          // });
+          // ImGui::Separator();
 
-          ImGui::Text(" - Light Controls =====");
-          uint32_t i = 0;
-          edited = false;
-          reg.view<other::LightSource , other::Transform>().each([&](other::LightSource& light , other::Transform& transform) {
-            switch (light.type) {
-              case other::POINT_LIGHT_SRC:
-                edited = edited || RenderPointLight(other::fmtstr("point light [{}]" , i++) , light.pointlight);
-              break;
-              case other::DIRECTION_LIGHT_SRC:
-                edited = edited || RenderDirectionLight(other::fmtstr("direction light [{}]" , i++) , light.direction_light);
-              break;
-              default:
-              break;
-            }
-            ++i;
-          });
+          // ImGui::Text(" - Light Controls =====");
+          // uint32_t i = 0;
+          // edited = false;
+          // reg.view<other::LightSource , other::Transform>().each([&](other::LightSource& light , other::Transform& transform) {
+          //   switch (light.type) {
+          //     case other::POINT_LIGHT_SRC:
+          //       edited = edited || RenderPointLight(other::fmtstr("point light [{}]" , i++) , light.pointlight);
+          //     break;
+          //     case other::DIRECTION_LIGHT_SRC:
+          //       edited = edited || RenderDirectionLight(other::fmtstr("direction light [{}]" , i++) , light.direction_light);
+          //     break;
+          //     default:
+          //     break;
+          //   }
+          //   ++i;
+          // });
 
-          if (edited) {
-            scene->RebuildEnvironment();
-          }
+          // if (edited) {
+          //   scene->RebuildEnvironment();
+          // }
 
-          ImGui::Separator();
+          // ImGui::Separator();
         }
         ImGui::End();
         other::UI::EndFrame();
@@ -494,8 +495,8 @@ int main(int argc , char* argv[]) {
         other::Renderer::GetWindow()->SwapBuffers();
       }
     
-      scene->Stop();
-      scene->Shutdown();
+      // scene->Stop();
+      // scene->Shutdown();
     }
 
     mock_engine.UnloadApp();

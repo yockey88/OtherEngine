@@ -1,10 +1,7 @@
-using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
-using System.Runtime.Remoting.Activation;
 
 namespace Other {
 
-  [StructLayout(LayoutKind.Sequential)]
   public class Transform : Component {
     public Transform() { }
     public Transform(OtherObject obj) : base(obj) { }

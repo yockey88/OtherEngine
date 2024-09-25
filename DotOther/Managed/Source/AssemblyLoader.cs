@@ -76,6 +76,7 @@ namespace DotOther.Managed {
           }
         }
       } catch (Exception e) {
+        LogMessage($"Failed to resolve assembly {asm_name} | \n\t{e.StackTrace}", MessageLevel.Error);
         HandleException(e);
       }
       return null;
@@ -201,6 +202,7 @@ namespace DotOther.Managed {
         last_load_status = AsmLoadStatus.Success;
         return asm_id;
       } catch (Exception e) {
+        LogMessage($"Failed to load assembly '{file_path}' | \n\t{e.StackTrace}", MessageLevel.Error);
         HandleException(e);
         return -1;
       }

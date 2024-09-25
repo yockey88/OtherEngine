@@ -21,7 +21,7 @@ namespace Other {
     public ulong Id => ObjectID;
     public string Name => Scene.GetName(ObjectID);
 
-    private Transform object_transform;
+    // private Transform object_transform;
 
     public OtherObject() {
     }
@@ -53,7 +53,7 @@ namespace Other {
 
     public override void OnBehaviorLoad() {
       Scene.AddObject(this);
-      object_transform = new Transform(this);
+      // object_transform = new Transform(this);
     }
 
     public override void OnBehaviorUnload() {
@@ -65,10 +65,10 @@ namespace Other {
     }
 
     /// might need to call into the native side to get/set the transform here
-    public Transform Transform {
-      get { return object_transform; }
-      set { object_transform = value; }
-    }
+    // public Transform Transform {
+    //   get { return object_transform; }
+    //   set { object_transform = value; }
+    // }
 
     public T CreateComponent<T>() where T : Component , new() {
       if (HasComponent<T>()) {

@@ -10,6 +10,7 @@
 #include "core/config.hpp"
 #include "core/errors.hpp"
 
+#include "parsing/cmd_line_parser.hpp"
 #include "parsing/ini_parser.hpp"
 
 namespace other {
@@ -26,7 +27,7 @@ class OtherTest : public ::testing::Test {
       try {
         config = parser.Parse();
       } catch (IniException& e) {
-        FAIL() << "Failed to parse INI file for unit test!\n";
+        FAIL() << "Failed to parse INI file for unit test!\n\t" << e.what();
         return;
       }
     }
@@ -43,6 +44,7 @@ class OtherTest : public ::testing::Test {
 
   protected:
     static ConfigTable config;
+    static CmdLine cmdline;
 };
 
 } // namespace other

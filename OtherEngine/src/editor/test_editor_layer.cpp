@@ -126,7 +126,7 @@ namespace other {
   void TEditorLayer::OnScriptReload() {
     editor_scripts.scripts.clear();
     for (const auto& [id , info] : editor_scripts.data) {
-      ScriptModule* mod = ScriptEngine::GetScriptModule(info.module);
+      ScriptModule* mod = ScriptEngine::GetScript(info.module);
       if (mod == nullptr) {
         OE_ERROR("Failed to find editor scripting module {} [{}]" , info.module , FNV(info.module));
         continue;
@@ -159,87 +159,7 @@ namespace other {
 
   void TEditorLayer::LoadScripts() {
     auto proj_context = AppState::ProjectContext();
-
-    Ref<LanguageModule> cs_lang_mod = ScriptEngine::GetModule(LanguageModuleType::CS_MODULE);
-    Ref<LanguageModule> lua_module = ScriptEngine::GetModule(LanguageModuleType::LUA_MODULE);
-
-    if (cs_lang_mod == nullptr) {
-      OE_ERROR("Failed to load editor scripts, C# module is null!");
-      return;
-    }
-
-    if (lua_module == nullptr) {
-      OE_ERROR("Failed to load editor scripts Lua Module is null!");
-      return;
-    }
-
-    auto script_paths = proj_context->config.Get(kEditorSection , kScriptsValue);
-
-    std::string script_key = std::string{ kEditorSection } + "." + std::string{ kScriptValue };
-    auto script_objs = proj_context->config.GetKeys(script_key);
-
-    auto project_path = proj_context->GetMetadata().file_path.parent_path();
-    auto assets_dir = proj_context->GetMetadata().assets_dir;
-
-    OE_DEBUG("Loading Editor Scripts");
-    for (auto& mod : script_paths) {
-      Path module_path = Path{ "editor" } / mod; 
-
-      std::string fname = module_path.stem().string();
-      std::string mname = fname.substr(0 , fname.find_last_of('.'));
-      OE_DEBUG("Loading Editor Script Module : {} ({})" , mname , module_path.string());
-
-      if (module_path.extension() == ".dll") {
-        OE_ASSERT(false , "C# editor scripts not supported yet");
-      } else if (module_path.extension() == ".lua") {
-        lua_module->LoadScriptModule({
-          .name = mname ,
-          .paths = { module_path.string() } ,
-          .type = ScriptModuleType::EDITOR_SCRIPT ,
-        });
-      }
-    }
-
-    for (const auto& obj : script_objs) {
-      auto scripts = proj_context->config.Get(script_key , obj);
-
-      ScriptModule* mod = ScriptEngine::GetScriptModule(obj);
-      if (mod == nullptr) {
-        OE_ERROR("Failed to find editor scripting module {} [{}]" , obj , FNV(obj));
-        continue;
-      }
-
-      for (auto& s : scripts) {
-        OE_DEBUG("Attaching editor script");
-
-        std::string nspace = "";
-        std::string name = s;
-        if (s.find("::") != std::string::npos) {
-          nspace = s.substr(0 , s.find_first_of(":"));
-          OE_DEBUG("Editor script from namespace {}" , nspace);
-
-          name = s.substr(s.find_last_of(":") + 1 , s.length() - nspace.length() - 2);
-          OE_DEBUG(" > with name {}" , name);
-        }
-
-        ScriptObject* inst = mod->GetScript(name , nspace);
-        if (inst == nullptr) {
-          OE_ERROR("Failed to get script {} from script module {}" , s , obj);
-          continue;
-        } else {
-          std::string case_ins_name;
-          std::transform(s.begin() , s.end() , std::back_inserter(case_ins_name) , ::toupper);
-
-          UUID id = FNV(case_ins_name);
-          editor_scripts.data[id] = ScriptObjectData{
-            .module = obj ,
-            .obj_name = s ,
-          };
-          auto& obj = editor_scripts.scripts[id] = inst;
-          obj->Start();
-        }
-      }
-    }
+    editor_scripts = ScriptEngine::LoadScriptsFromTable(proj_context->config);
   }
 
   Ref<SceneRenderer> TEditorLayer::CreateRenderer() {

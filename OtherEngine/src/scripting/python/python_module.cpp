@@ -14,19 +14,19 @@ namespace other {
   
   void PythonModule::Reload() {}
   
-  ScriptModule* PythonModule::GetScriptModule(const std::string& name) {
+  ScriptModule* PythonModule::GetScript(const std::string& name) {
     return nullptr;
   }
   
-  ScriptModule* PythonModule::GetScriptModule(const UUID& id) {
+  ScriptModule* PythonModule::GetScript(const UUID& id) {
     return nullptr;
   }
   
-  ScriptModule* PythonModule::LoadScriptModule(const ScriptModuleInfo& module_info) {
+  ScriptModule* PythonModule::LoadScript(const ScriptMetadata& module_info) {
     return nullptr;
   }
   
-  void PythonModule::UnloadScriptModule(const std::string& name) {}
+  void PythonModule::UnloadScript(const std::string& name) {}
   
   std::string_view PythonModule::GetModuleName() const {
     return "Python"; 

@@ -19,15 +19,19 @@ class RefTests : public other::OtherTest {
 
 TEST_F(RefTests , basic_tests) {
   Ref<TestObj> test_obj = other::NewRef<TestObj>(); 
-  Ref<TestObj> copy = test_obj;
+  {
+    Ref<TestObj> copy = test_obj;
 
-  ASSERT_EQ(test_obj->Count() , 2);
-  ASSERT_EQ(copy->Count() , 2);
-  EXPECT_EQ(test_obj->data , copy->data);
-  
-  Ref<TestObj> copy2 = Ref<TestObj>::Clone(copy);
+    ASSERT_EQ(test_obj->Count() , 2);
+    ASSERT_EQ(copy->Count() , 2);
+    EXPECT_EQ(test_obj->data , copy->data);
+    
+    Ref<TestObj> copy2 = Ref<TestObj>::Clone(copy);
 
-  ASSERT_EQ(copy->Count() , 3);
-  ASSERT_EQ(copy2->Count() , 3);
-  EXPECT_EQ(copy->data , copy2->data);
+    ASSERT_EQ(copy->Count() , 3);
+    ASSERT_EQ(copy2->Count() , 3);
+    EXPECT_EQ(copy->data , copy2->data);
+  }
+
+  ASSERT_EQ(test_obj->Count() , 1);
 }

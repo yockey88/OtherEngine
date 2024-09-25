@@ -6,11 +6,12 @@
 
 #include <string>
 
-#include "scripting/script_module.hpp"
-
 #include <sol/sol.hpp>
 
-#include "lua_object.hpp"
+#include "core/ref.hpp"
+
+#include "scripting/script_module.hpp"
+#include "scripting/lua/lua_object.hpp"
 
 namespace other {
 
@@ -37,8 +38,8 @@ namespace other {
       virtual void Initialize() override;
       virtual void Shutdown() override;
       virtual void Reload() override;
-      virtual bool HasScript(UUID id) override;
-      virtual bool HasScript(const std::string_view name , const std::string_view nspace = "") override;
+      virtual bool HasScript(UUID id) const override;
+      virtual bool HasScript(const std::string_view name , const std::string_view nspace = "") const override;
       virtual ScriptObject* GetScript(const std::string& name , const std::string& nspace = "") override;
       
       virtual std::vector<ScriptObjectTag> GetObjectTags() override;
@@ -47,7 +48,7 @@ namespace other {
       sol::state lua_state;
 
       std::vector<std::string> loaded_tables;
-      std::map<UUID , LuaObject> loaded_objects;
+      std::map<UUID , Ref<LuaObject>> loaded_objects;
 
       std::string path;
   };  

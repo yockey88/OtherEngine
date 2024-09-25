@@ -5,7 +5,6 @@
 #define OTHER_ENGINE_TRANSFORM_HPP
 
 #include <glm/ext/matrix_transform.hpp>
-#include <mono/metadata/appdomain.h>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>

@@ -16,8 +16,7 @@ gravity = { 0 , -9.8 }
 [cube]
 UUID = 12461263173642597452
 components = {
-  static-mesh , 
-  script
+  static-mesh
 }
 
 [cube.transform]
@@ -33,8 +32,8 @@ visible = true
 is-primitive = true
 primitive = 3
 
-[cube.script]
-TestbedScripts = { "Other::TestScript" }
+# [cube.script]
+# TestbedScripts = { "Other::TestScript" }
 
 [sun]
 UUID = 4025795962345870502

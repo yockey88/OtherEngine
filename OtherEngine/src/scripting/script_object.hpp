@@ -8,7 +8,9 @@
 #include <map>
 #include <span>
 
+#include "core/ref_counted.hpp"
 #include "core/value.hpp"
+
 #include "scripting/script_defines.hpp"
 #include "scripting/script_field.hpp"
 
@@ -16,7 +18,7 @@ namespace other {
 
   /// TODO: fix how scripts are loaded so this can be an asset and retrieved
   ///       from the asset manager
-  class ScriptObject /* : public Asset */ {
+  class ScriptObject : public RefCounted /* : public Asset */ {
     public:
       /// OE_ASSET(SCRIPT);
 

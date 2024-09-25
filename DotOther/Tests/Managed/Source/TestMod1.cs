@@ -1,12 +1,11 @@
 using System;
 using DotOther;
+using DotOther.Managed;
 using DotOther.Managed.Interop;
 
 namespace DotOther.Tests {
 
-  public class Mod1 {
-    internal static unsafe delegate*<IntPtr> GetNativeObject;
-
+  public class Mod1 : OtherObject {
     private Int32 my_num;
 
     public Int32 MyNum {
@@ -30,18 +29,13 @@ namespace DotOther.Tests {
     }
 
     public unsafe void TestInternalCall() {
-      try {
-        if (GetNativeObject == null) {
-          Console.WriteLine("GetNativeObject is null");
-          return;
-        }
-
-        NObject obj = DotOtherMarshal.MarshalPointer<NObject>(GetNativeObject());
-        obj.Invoke("Test");
-        
-      } catch (Exception e) {
-        Console.WriteLine($"Exception in TestInternalCall: {e.Message} |\n{e.StackTrace}");
+      NObject obj = Host.GetNativeObject(0);
+      if (obj == null) {
+        Console.WriteLine("Failed to get native object");
+        return;
       }
+      
+      obj.Invoke("Test");
     }
   }
 

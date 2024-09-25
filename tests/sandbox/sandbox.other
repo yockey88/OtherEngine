@@ -19,7 +19,7 @@ console-level = "Debug"
 file-level = "trace"
 path = "./logs/sandbox.log"
 
-[script-engine.C#]
-paths = { 
-  "SandboxScripts.dll" 
-}
+# [script-engine.C#]
+# modules = { 
+#   "SandboxScripts"
+# }

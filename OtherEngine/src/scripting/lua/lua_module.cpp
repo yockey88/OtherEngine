@@ -15,7 +15,7 @@ namespace other {
 
   LuaScript* LuaModule::GetRawScriptHandle(const std::string_view name) {
     UUID id = FNV(name);
-    auto* module = GetScriptModule(id);
+    auto* module = GetScript(id);
     if (module == nullptr) {
       OE_ERROR("Script module {} not found" , name);
     }
@@ -34,7 +34,7 @@ namespace other {
   void LuaModule::Shutdown() {
     for (auto& [id , module] : loaded_modules) {
       module->Shutdown();
-      delete module;
+      module = nullptr;
     }
     loaded_modules.clear();
 
@@ -47,18 +47,18 @@ namespace other {
     Initialize();
 
     for (const auto& [id , data] : loaded_modules_data) {
-      LoadScriptModule(data);
+      LoadScript(data);
     }
 
     load_success = true;
   }
 
-  ScriptModule* LuaModule::GetScriptModule(const std::string& name) {
+  ScriptModule* LuaModule::GetScript(const std::string& name) {
     std::string case_ins_name;
     std::transform(name.begin() , name.end() , std::back_inserter(case_ins_name) , ::toupper);
 
     UUID id = FNV(case_ins_name);
-    auto* module = GetScriptModule(id);
+    auto* module = GetScript(id);
     if (module == nullptr) {
       OE_ERROR("Script module {} not found" , name);
     }
@@ -66,17 +66,17 @@ namespace other {
     return module;
   }
 
-  ScriptModule* LuaModule::GetScriptModule(const UUID& id) {
+  ScriptModule* LuaModule::GetScript(const UUID& id) {
     auto itr = loaded_modules.find(id);
     if (itr != loaded_modules.end()) {
-      return itr->second;
+      return itr->second.Raw();
     }
 
     OE_ERROR("Script module {} not found" , id);
     return nullptr;
   }
 
-  ScriptModule* LuaModule::LoadScriptModule(const ScriptModuleInfo& module_info) {
+  ScriptModule* LuaModule::LoadScript(const ScriptMetadata& module_info) {
     if (module_info.paths.size() < 1) {
       OE_ERROR("Attempting to create lua script from empty module data");
       return nullptr;
@@ -111,10 +111,10 @@ namespace other {
     
     loaded_modules_data[id] = module_info;
 
-    return loaded_modules[id];
+    return loaded_modules[id].Raw();
   }
 
-  void LuaModule::UnloadScriptModule(const std::string& name) {
+  void LuaModule::UnloadScript(const std::string& name) {
     std::string case_insensitive_name;
     std::transform(name.begin() , name.end() , std::back_inserter(case_insensitive_name) , ::toupper);
 
@@ -127,7 +127,7 @@ namespace other {
     }
 
     loaded_modules[id]->Shutdown();
-    delete loaded_modules[id];
+    loaded_modules[id] = nullptr;
     loaded_modules.erase(id);
   }
 

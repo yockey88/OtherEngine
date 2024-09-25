@@ -6,6 +6,7 @@ namespace Other {
 
     public Component() {
     }
+    
     public Component(OtherObject obj) {
       this.obj = obj;
     }
