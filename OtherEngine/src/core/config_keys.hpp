@@ -32,8 +32,8 @@ namespace other {
   constexpr static std::string_view kLogSection = "LOG";
   constexpr static uint64_t kLogSectionHash = FNV(kLogSection);
 
-  constexpr static std::string_view kScriptingSection = "SCRIPT-ENGINE";
-  constexpr static uint64_t kScriptingSectionHash = FNV(kScriptingSection);
+  constexpr static std::string_view kScriptEngineSection = "SCRIPT-ENGINE";
+  constexpr static uint64_t kScriptEngineSectionHash = FNV(kScriptEngineSection);
 
   constexpr static std::string_view kEditorSection = "EDITOR";
   constexpr static uint64_t kEditorSectionHash = FNV(kEditorSection);

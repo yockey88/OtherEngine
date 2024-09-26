@@ -22,9 +22,9 @@ namespace Other {
   public class Tag : Component {
     private ulong id;
 
-    public String Name {
-      get => Scene.GetName(id);
-    }
+    // public String Name {
+    //   get => Scene.GetName(id);
+    // }
 
     public ulong ID {
       get => id;

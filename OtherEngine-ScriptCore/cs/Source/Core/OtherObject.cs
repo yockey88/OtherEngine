@@ -19,7 +19,7 @@ namespace Other {
     private BehaviorFlags flags = new BehaviorFlags(false , false);
 
     public ulong Id => ObjectID;
-    public string Name => Scene.GetName(ObjectID);
+    // public string Name => Scene.GetName(ObjectID);
 
     // private Transform object_transform;
 
@@ -29,7 +29,7 @@ namespace Other {
     public override OtherBehavior Parent {
       get {
         if (parent == null) {
-          parent = Scene.GetParent(ObjectID);
+          // parent = Scene.GetParent(ObjectID);
           flags.parent_loaded = true;
         }
         return parent;
@@ -40,7 +40,7 @@ namespace Other {
     public override List<OtherBehavior> Children {
       get { 
         if ((children == null || children.Count == 0) && !flags.children_loaded) {
-          children = Scene.GetChildren(ObjectID);
+          // children = Scene.GetChildren(ObjectID);
           for (int i = 0; i < children.Count; i++) {
             children[i].Parent = this;
           }
@@ -52,7 +52,7 @@ namespace Other {
     }
 
     public override void OnBehaviorLoad() {
-      Scene.AddObject(this);
+      // Scene.AddObject(this);
       // object_transform = new Transform(this);
     }
 
@@ -76,7 +76,7 @@ namespace Other {
       }
       
       Type comp_type = typeof(T);
-      Scene.AddComponent(Id, comp_type);
+      // Scene.AddComponent(Id, comp_type);
 
       T comp = new T();
       comp.Object = this;
@@ -85,7 +85,7 @@ namespace Other {
       return comp;
     }  
     
-    public bool HasComponent<T>() where T : Component => Scene.HasComponent(Id, typeof(T));
+    public bool HasComponent<T>() where T : Component => false;// Scene.HasComponent(Id, typeof(T));
 
     public T GetComponent<T>() where T : Component , new() {
       Type comp_type = typeof(T);
@@ -98,7 +98,7 @@ namespace Other {
         components.TryGetValue(comp_type , out Component comp);
         return comp as T;
       } catch (Exception e) {
-        Logger.WriteError(e.Message);
+        // Logger.WriteError(e.Message);
         return null;
       }
     }
@@ -109,7 +109,7 @@ namespace Other {
       }
 
       Type comp_type = typeof(T);
-      Scene.RemoveComponent(Id, comp_type);
+      // Scene.RemoveComponent(Id, comp_type);
       components.Remove(comp_type);
       
       return;

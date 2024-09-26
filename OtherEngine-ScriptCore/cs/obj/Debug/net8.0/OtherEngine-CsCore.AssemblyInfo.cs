@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("OtherEngine-CsCore")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+715818498decba7b745dcec32deec7dd04d8ed38")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1db4237c7ed78867b50a4e1fa57e7b1479af59a7")]
 [assembly: System.Reflection.AssemblyProductAttribute("OtherEngine-CsCore")]
 [assembly: System.Reflection.AssemblyTitleAttribute("OtherEngine-CsCore")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

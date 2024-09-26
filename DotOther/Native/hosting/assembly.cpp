@@ -27,16 +27,32 @@ namespace dotother {
     return name;
   }
 
-  Type& Assembly::GetType(const std::string_view name) const {
+  bool Assembly::HasType(const std::string_view name , const std::string_view nspace) const{
+    return GetType(name, nspace).handle != -1;
+  }
+
+  Type& Assembly::GetType(const std::string_view name , const std::string_view nspace) const {
     static Type null_type(-1);
     Type* type = TypeCache::Instance().GetType(name);
     return type != nullptr ? 
       *type : null_type;
   }
+  
+  std::string Assembly::GetAsmQualifiedName(const std::string_view klass, const std::string_view nspace) const {
+    if (nspace.empty()) {
+      return util::format(DO_STR("{}"), name);
+    }
 
-  std::string Assembly::GetAsmQualifiedName(const std::string_view klass, const std::string_view method_name) const {
-    return (std::string {klass} + "+" + 
-            std::string{method_name} + ", " + name);
+    using namespace std::string_view_literals;
+    return util::format(DO_STR("{0}.{1}") , nspace , klass);
+  }
+
+  std::string Assembly::GetAsmQualifiedMethodName(const std::string_view klass, const std::string_view method_name , const std::string_view nspace) const {
+    if (nspace.empty()) {
+      return util::format(DO_STR("{}+{}"), klass, method_name);
+    }
+
+    return util::format(DO_STR("{0}.{1}+{2}"), nspace , klass, method_name);
   }
 
   void Assembly::SetInternalCall(const std::string_view klass, const std::string_view method_name , void* fn) {
@@ -81,22 +97,24 @@ namespace dotother {
     std::filesystem::path p = (std::string)filepath;
     if (!std::filesystem::exists(p)) {
       NString::Free(filepath);
-      util::print(DO_STR("Assembly does not exist: {}"), MessageLevel::ERR , path);
+      util::print(DO_STR("AssemblyContext::LoadAssembly({}) => file does not exist!"), MessageLevel::ERR , path);
       return nullptr;
+    } else {
+      util::print(DO_STR("AssemblyContext::LoadAssembly({}) => file exists"), MessageLevel::DEBUG , path);
     }
-
-    // Host* host = Host::Instance();
 
     size_t idx = assemblies.size();
     auto& assembly = assemblies.emplace_back(new_ref<Assembly>());
     assembly->asm_id = Interop().load_assembly(context_id, filepath);
 
-    util::print(DO_STR("Assembly ID: {}"), MessageLevel::INFO , assembly->asm_id);
+    util::print(DO_STR(" > Assembly ID: {}"), MessageLevel::DEBUG , assembly->asm_id);
     if (assembly->asm_id == -1) {
       NString::Free(filepath);
       assemblies.pop_back();
       util::print(DO_STR("Failed to load assembly file: {}"), MessageLevel::ERR , path);
       return nullptr;
+    } else {
+      util::print(DO_STR("Assembly loaded successfully!"), MessageLevel::INFO);
     }
 
     assembly->load_status = Interop().get_last_load_status();

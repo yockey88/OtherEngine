@@ -108,21 +108,39 @@ namespace other {
   void Scene::Initialize() {
     FixRoots();
 
+    bool cs_mod_found = false;
+
     auto cs_module = ScriptEngine::GetModule(CS_MODULE);
-    auto cs_core = cs_module->GetScript("C#-Core");
-    scene_object = cs_core->GetScript("Scene" , "Other");
-    if (scene_object == nullptr) {
-      OE_ERROR("Failed to retrieve scene interface from C# script core!");
+    if (cs_module == nullptr) {
+      OE_ERROR("Failed to retrieve ScriptEngine for scene initialization");
     } else {
-      scene_object->CallMethod("InitializeScene");
+      cs_mod_found = true;
     }
 
-    OE_DEBUG("Entities in scene [{}]" , entities.size()); 
-    registry.view<Script , Tag>().each([](Script& script , Tag& tag) {
-      for (auto& [id , obj] : script.scripts) {
-        obj->Initialize();
+    ScriptModule* cs_core = nullptr;
+    if (cs_mod_found) {
+      cs_core = cs_module->GetScriptModule("OtherEngine.CsCore");
+      if (cs_core == nullptr) {
+        OE_ERROR("Failed to retrieve C# core script from ScriptEngine");
+        cs_mod_found = false;
       }
-    });
+    }
+
+    if (cs_mod_found) {
+      scene_object = cs_core->GetScript("Scene" , "Other");
+      if (scene_object == nullptr) {
+        OE_ERROR("Failed to retrieve scene interface from C# script core!");
+      } else {
+        scene_object->CallMethod("InitializeScene");
+      }
+
+      OE_DEBUG("Entities in scene [{}]" , entities.size()); 
+      registry.view<Script , Tag>().each([](Script& script , Tag& tag) {
+        for (auto& [id , obj] : script.scripts) {
+          obj->Initialize();
+        }
+      });
+    }
     
     RefreshCameraTransforms();
 

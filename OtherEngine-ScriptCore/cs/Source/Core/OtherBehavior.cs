@@ -38,7 +38,7 @@ namespace Other {
     public UInt64 ObjectID {
       get { return object_id; }
       set { 
-        Logger.WriteDebug($"Setting object ID to {value}");
+        // Logger.WriteDebug($"Setting object ID to {value}");
         object_id = value;
       }
     }

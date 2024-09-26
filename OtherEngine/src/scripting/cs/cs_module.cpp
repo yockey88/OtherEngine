@@ -4,15 +4,18 @@
 #include "scripting/cs/cs_module.hpp"
 
 #include <core/dotother_defines.hpp>
+#include <core/stable_vector.hpp>
 #include <filesystem>
 
 #include <hosting/assembly.hpp>
 #include <hosting/host.hpp>
 
-#include "core/filesystem.hpp"
-#include "core/platform.hpp"
-#include "application/app_state.hpp"
 #include "scripting/cs/cs_script.hpp"
+
+using dotother::ref;
+using dotother::StableVector;
+using dotother::AssemblyContext;
+using dotother::Assembly;
 
 namespace other {
 namespace {
@@ -20,9 +23,7 @@ namespace {
   static dotother::Host* host = nullptr;
 
   struct DotOtherAssemblyContexts {
-    dotother::AssemblyContext core_ctx;
-
-    std::map<int32_t , std::vector<dotother::ref<dotother::Assembly>>> assemblies;
+    std::map<int32_t , AssemblyContext> contexts;
   };
 
   static DotOtherAssemblyContexts assembly_contexts;
@@ -103,6 +104,8 @@ namespace {
       };
 
       host = dotother::Host::Instance(config);
+      OE_ASSERT(host != nullptr , "Failed to create C# host");
+
       if (!host->LoadHost()) {
         OE_ERROR("Failed to load C# host");
         return false;
@@ -113,16 +116,14 @@ namespace {
       /// TODO: should clients be responsible for this????
       host->CallEntryPoint();
 
-      assembly_contexts.core_ctx = host->CreateAsmContext("OtherEngine.CsCore");
-      if (assembly_contexts.core_ctx.context_id == -1) {
-        OE_ERROR("Failed to create C# core assembly context");
-        return false;
-      }
-
-      auto& asms = assembly_contexts.assemblies[assembly_contexts.core_ctx.context_id] = {};
-      asms.push_back(assembly_contexts.core_ctx.LoadAssembly("./bin/Debug/OtherEngine-CsCore/net8.0/OtherEngine-CsCore.dll"));
-
       load_success = true;
+      LoadScriptModule({
+        .name = "OtherEngine.CsCore" ,
+        .paths = {
+          "./bin/Debug/OtherEngine-CsCore/net8.0/OtherEngine-CsCore.dll"
+        } ,
+      });
+
       return true;
     } catch (const std::exception& e) {
       OE_ERROR("Failed to create C# host : {}" , e.what());
@@ -136,6 +137,22 @@ namespace {
       return;
     }
 
+    OE_DEBUG("Shutting down C# module");
+    loaded_modules.clear();
+
+    OE_DEBUG("Unloading loaded C# assemblies");
+    // for (auto& [ctx_id , asms] : assembly_contexts.assemblies) {
+    //   asms.Clear();
+    // }
+
+    for (auto& [id , ctx] : assembly_contexts.contexts) {
+      OE_DEBUG(" > Unloading assembly context {}" , id);
+      // list.Clear();
+      host->UnloadAssemblyContext(ctx);
+    }
+    assembly_contexts.contexts.clear();
+
+    OE_DEBUG("Unloading C# assembly contexts");
     host->UnloadHost();
     host = nullptr;
     dotother::Host::Destroy();
@@ -170,7 +187,7 @@ namespace {
     // }
   }
       
-  ScriptModule* CsModule::GetScript(const std::string& name) {
+  ScriptModule* CsModule::GetScriptModule(const std::string& name) {
     if (!load_success) {
       OE_WARN("Attempting to get script module {} when C# module is not loaded" , name);
       return nullptr;
@@ -182,7 +199,7 @@ namespace {
     auto hash = FNV(case_insensitive_name);
     OE_DEBUG("Looking for script module {} [{}]" , name , hash);
 
-    auto* module = GetScript(hash);
+    auto* module = GetScriptModule(hash);
     if (module == nullptr) {
       OE_ERROR("Script module {} not found" , name);
     }
@@ -190,7 +207,7 @@ namespace {
     return module;
   }
   
-  ScriptModule* CsModule::GetScript(const UUID& id) {
+  ScriptModule* CsModule::GetScriptModule(const UUID& id) {
     if (!load_success) {
       OE_WARN("Attempting to get script module {} when C# module is not loaded" , id);
       return nullptr;
@@ -200,28 +217,54 @@ namespace {
       return loaded_modules[id].Raw();
     }
 
-    // OE_ERROR("Script module w/ ID [{}] not found" , id.Get());
+    OE_ERROR("Script module w/ ID [{}] not found" , id.Get());
     return nullptr;
   }
 
-  ScriptModule* CsModule::LoadScript(const ScriptMetadata& module_info) {    
+  ScriptModule* CsModule::LoadScriptModule(const ScriptMetadata& module_info) { 
+    OE_ASSERT(host != nullptr , "Attempting to load script module when C# module is not loaded");   
+    OE_ASSERT(load_success , "Attempting to load script module when C# module is not loaded");
+
     std::string case_insensitive_name;
     std::transform(module_info.name.begin() , module_info.name.end() , std::back_inserter(case_insensitive_name) , ::toupper);
 
     UUID id = FNV(case_insensitive_name);
-    OE_DEBUG("Loading C# script module {} [{}]" , module_info.name , id);
+    OE_DEBUG(" > CsModule::LoadScriptModule({}) => id = {}" , module_info.name , id);
 
     if (loaded_modules.find(id) != loaded_modules.end()) {
-      OE_WARN("  > Script module {} already loaded" , module_info.name);
+      OE_WARN("Script module {} already loaded" , module_info.name);
       return loaded_modules[id].Raw();
     } 
+
+    if (module_info.paths.size() == 0) {
+      OE_ERROR("Attempting to load a C# script module {} with no paths" , module_info.name);
+      return nullptr;
+    }
+      
+    AssemblyContext ctx = host->CreateAsmContext(module_info.name);
+    if (ctx.context_id == -1) {
+      OE_ERROR("Failed to create C# core assembly context");
+      return nullptr;
+    } else {
+      OE_DEBUG(" > Created C# core assembly context {} [{}]" , module_info.name , ctx.context_id);
+    }
+
+    assembly_contexts.contexts[ctx.context_id] = ctx;
+    OE_DEBUG(" > ctx[{}].LoadAssembly({})" , module_info.name , module_info.paths[0]);
+    ref<Assembly> assembly = ctx.LoadAssembly(module_info.paths[0]);
+
+    if (assembly == nullptr) {
+      OE_ERROR("Failed to load C# assembly {}", module_info.name);
+      return nullptr;
+    } else {
+      OE_DEBUG(" > Loaded C# assembly {}" , module_info.name);
+    }
 
     Path module_path = module_info.paths[0];
     std::string mod_path_str = module_path.filename().string();
     std::string mod_name = mod_path_str.substr(0 , mod_path_str.find_last_of('.'));
-    loaded_modules[id] = NewRef<CsScript>(mod_name);
+    loaded_modules[id] = NewRef<CsScript>(mod_name , assembly);
     loaded_modules[id]->Initialize();
-
     loaded_modules_data[id] = module_info;
 
     return loaded_modules[id].Raw();

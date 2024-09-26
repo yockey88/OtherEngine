@@ -39,19 +39,19 @@ namespace detail {
   std::string CharToWide(const std::string_view str);
   std::string WideToChar(const std::wstring_view str);
 #endif // DOTOTHER_WIDE_CHARS
-
-namespace {
-
+  
   template <typename... Args>
   std::string format(dostring_view fmt , Args&&... args) {
     return fmt::format(fmt::runtime(
 #ifdef DOTOTHER_WIDE_CHARS
-                      WideToChar(fmt))
+                      WideToChar(fmt)
 #else
                         fmt
 #endif // DOTOTHER_WIDE_CHARS
-                        , std::forward<Args>(args)...);
+                      ), std::forward<Args>(args)...);
   }
+
+namespace {
   
   template <typename... Args>
   static void sink_message(MessageLevel level , dostring_view fmt, Args&&... args) {
@@ -74,7 +74,7 @@ namespace {
   }
 
 } // anonymous namespace
-  
+
   template <typename... Args>
   static void print(dostring_view fmt, MessageLevel level, Args&&... args) {
     sink_message(level, fmt, std::forward<Args>(args)...);

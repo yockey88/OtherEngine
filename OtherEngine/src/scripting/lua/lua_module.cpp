@@ -15,7 +15,7 @@ namespace other {
 
   LuaScript* LuaModule::GetRawScriptHandle(const std::string_view name) {
     UUID id = FNV(name);
-    auto* module = GetScript(id);
+    auto* module = GetScriptModule(id);
     if (module == nullptr) {
       OE_ERROR("Script module {} not found" , name);
     }
@@ -47,18 +47,18 @@ namespace other {
     Initialize();
 
     for (const auto& [id , data] : loaded_modules_data) {
-      LoadScript(data);
+      LoadScriptModule(data);
     }
 
     load_success = true;
   }
 
-  ScriptModule* LuaModule::GetScript(const std::string& name) {
+  ScriptModule* LuaModule::GetScriptModule(const std::string& name) {
     std::string case_ins_name;
     std::transform(name.begin() , name.end() , std::back_inserter(case_ins_name) , ::toupper);
 
     UUID id = FNV(case_ins_name);
-    auto* module = GetScript(id);
+    auto* module = GetScriptModule(id);
     if (module == nullptr) {
       OE_ERROR("Script module {} not found" , name);
     }
@@ -66,7 +66,7 @@ namespace other {
     return module;
   }
 
-  ScriptModule* LuaModule::GetScript(const UUID& id) {
+  ScriptModule* LuaModule::GetScriptModule(const UUID& id) {
     auto itr = loaded_modules.find(id);
     if (itr != loaded_modules.end()) {
       return itr->second.Raw();
@@ -76,7 +76,7 @@ namespace other {
     return nullptr;
   }
 
-  ScriptModule* LuaModule::LoadScript(const ScriptMetadata& module_info) {
+  ScriptModule* LuaModule::LoadScriptModule(const ScriptMetadata& module_info) {
     if (module_info.paths.size() < 1) {
       OE_ERROR("Attempting to create lua script from empty module data");
       return nullptr;

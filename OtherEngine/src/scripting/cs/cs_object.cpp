@@ -5,7 +5,15 @@
 
 #include "core/logger.hpp"
 
+using dotother::Type;
+
 namespace other {
+  
+  CsObject::CsObject(Type& type) 
+      : ScriptObject(LanguageModuleType::CS_MODULE , "[Empty Script Object]" , "C#") ,
+        type(type) {
+    hosted_object = type.NewInstance();
+  }
 
   void CsObject::InitializeScriptMethods() {
   }

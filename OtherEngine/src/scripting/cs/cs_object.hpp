@@ -4,15 +4,20 @@
 #ifndef OTHER_ENGINE_CS_OBJECT_HPP
 #define OTHER_ENGINE_CS_OBJECT_HPP
 
+#include "Native/hosting/type.hpp"
+#include "Native/hosting/hosted_object.hpp"
+
 #include "core/UUID.hpp"
 #include "scripting/script_object.hpp"
+
+using dotother::Type;
+using dotother::HostedObject;
 
 namespace other {
 
   class CsObject : public ScriptObject {
     public:
-      CsObject() 
-        : ScriptObject(LanguageModuleType::CS_MODULE , "[Empty Script Object]" , "C#") {}
+      CsObject(Type& type);
       virtual ~CsObject() override {}
 
       virtual void InitializeScriptMethods() override;
@@ -38,6 +43,9 @@ namespace other {
       virtual void RenderUI() override;
 
     private:
+      Type& type;
+      HostedObject hosted_object;
+
       virtual void OnSetEntityId() override;
       virtual Opt<Value> OnCallMethod(const std::string_view name , std::span<Value> value) override;
       virtual Opt<Value> OnCallMethod(const std::string_view name , Parameter* args , uint32_t argc) override;

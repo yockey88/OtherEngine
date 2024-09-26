@@ -97,6 +97,8 @@ namespace dotother {
       return false;
     }
 
+    util::GetUtils().log_level = config->log_level;
+
     is_loaded = LoadClrFunctions();
     if (!is_loaded) {
       return false;
@@ -212,15 +214,16 @@ namespace dotother {
     return ctx;
   }
 
-  void Host::UnloadAssemblyContext(AssemblyContext& InLoadContext) {
+  void Host::UnloadAssemblyContext(AssemblyContext& load_context) {
     if (!Interop().BoundToAsm()) {
       util::print(DO_STR("Interop interface not bound") ,  MessageLevel::CRITICAL);
       throw std::runtime_error("Interop interface not bound");
     }
-
-    Interop().unload_assembly_load_context(InLoadContext.context_id);
-    InLoadContext.context_id = -1;
-    InLoadContext.assemblies.clear();
+    // Interop().collect_garbage(0 , dotother::GCMode::DEFAULT, true, true);
+    // Interop().wait_for_pending_finalizers();
+    Interop().unload_assembly_load_context(load_context.context_id);
+    load_context.context_id = -1;
+    load_context.assemblies.clear();
   }
   
   interface_bindings::FunctionTable& Host::GetInteropInterface() {

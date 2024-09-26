@@ -54,8 +54,8 @@ namespace other {
 
       static Ref<LanguageModule> GetModule(LanguageModuleType type);
       
-      static ScriptModule* GetScript(const std::string_view name);
-      static ScriptModule* GetScript(UUID id);
+      static ScriptModule* GetScriptModule(const std::string_view name);
+      static ScriptModule* GetScriptModule(UUID id);
 
       static ScriptObject* GetScriptObject(UUID id);
       static ScriptObject* GetScriptObject(const std::string_view name);
@@ -70,7 +70,7 @@ namespace other {
       static const std::vector<ScriptObjectTag>& GetLoadedObjects();
       static const std::vector<ScriptObjectTag>& GetLoadedEditorObjects();
 
-      static Script LoadScriptsFromTable(const ConfigTable& table);
+      static Script LoadScriptsFromTable(const ConfigTable& table , const std::string_view section);
 
       /// because certain parts of the engine rely on specifically lua or c# scripts they need to be 
       ///   able to interface with those modules directly
@@ -97,7 +97,7 @@ namespace other {
       static void LoadModule(LanguageModuleType type);
 
       static void LoadProjectModule(Ref<LanguageModule>& module , const std::string_view config_tag , const Path& prefix_path = "");
-      static void UnloadProjectModule(Ref<LanguageModule>& module);
+      static void UnloadProjectModule(Ref<LanguageModule>& module , const std::string_view config_tag);
   };
 
 } // namespace other

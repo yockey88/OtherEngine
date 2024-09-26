@@ -36,15 +36,15 @@ namespace other {
       bool HasScript(const std::string_view name) const;
       bool HasScript(UUID id) const;
       
-      const ScriptMetadata* GetScript(const std::string& name) const;
-      const ScriptMetadata* GetScript(const UUID& id) const;
+      const ScriptMetadata* GetScriptMetadata(const std::string& name) const;
+      const ScriptMetadata* GetScriptMetadata(const UUID& id) const;
 
       virtual bool Initialize() = 0;
       virtual void Shutdown() = 0;
       virtual void Reload() = 0;
-      virtual ScriptModule* GetScript(const std::string& name) = 0;
-      virtual ScriptModule* GetScript(const UUID& id) = 0;
-      virtual ScriptModule* LoadScript(const ScriptMetadata& module_info) = 0;
+      virtual ScriptModule* GetScriptModule(const std::string& name) = 0;
+      virtual ScriptModule* GetScriptModule(const UUID& id) = 0;
+      virtual ScriptModule* LoadScriptModule(const ScriptMetadata& module_info) = 0;
       virtual void UnloadScript(const std::string& name) = 0;
 
       virtual std::string_view GetModuleName() const = 0;

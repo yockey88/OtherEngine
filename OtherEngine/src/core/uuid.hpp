@@ -9,6 +9,8 @@
 
 #include <spdlog/fmt/fmt.h>
 
+#include <reflection/echo_defines.hpp>
+
 #include "core/defines.hpp"
 
 namespace other {
@@ -56,5 +58,10 @@ struct fmt::formatter<other::UUID> : public fmt::formatter<std::string_view> {
     return fmt::formatter<std::string_view>::format(fmt::format(std::string_view{ "[{}:{:#08x}]" } , uuid.Get() , uuid.Get()) , ctx);
   }
 };
+
+ECHO_TYPE(
+  type(other::UUID) ,
+  func(Get , property("uuid"))
+);
 
 #endif // !OTHER_ENGINE_UUID_HPP

@@ -14,6 +14,8 @@
 
 #ifdef _WIN32
   #define DOTOTHER_WINDOWS
+#else 
+  #define DOTOTHER_LINUX
 #endif
 
 #ifdef DOTOTHER_WINDOWS
@@ -30,7 +32,7 @@
   #endif // _WCHAR_T_DEFINED
 #endif
 
-#ifdef DOTOTHER_LINUX || defined(__linux__)
+#ifdef DOTOTHER_LINUX
   #define DOTOTHER_CALLTYPE
   #define DODOTOTHER_STR(s) s
   #define DO_HOSTFXR_NAME "libhostfxr.so"

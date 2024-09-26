@@ -8,6 +8,8 @@
 
 #include <entt/entt.hpp>
 
+#include <reflection/echo_defines.hpp>
+
 #include "core/uuid.hpp"
 #include "core/ref.hpp"
 #include "asset/asset.hpp"
@@ -168,5 +170,10 @@ namespace other {
   };
 
 } // namespace other
+
+ECHO_TYPE(
+  type(other::Scene) ,
+  func(GetEntity)
+);
 
 #endif // !OTHER_ENGINE_SCENE_HPP

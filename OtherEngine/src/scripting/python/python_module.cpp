@@ -14,15 +14,15 @@ namespace other {
   
   void PythonModule::Reload() {}
   
-  ScriptModule* PythonModule::GetScript(const std::string& name) {
+  ScriptModule* PythonModule::GetScriptModule(const std::string& name) {
     return nullptr;
   }
   
-  ScriptModule* PythonModule::GetScript(const UUID& id) {
+  ScriptModule* PythonModule::GetScriptModule(const UUID& id) {
     return nullptr;
   }
   
-  ScriptModule* PythonModule::LoadScript(const ScriptMetadata& module_info) {
+  ScriptModule* PythonModule::LoadScriptModule(const ScriptMetadata& module_info) {
     return nullptr;
   }
   

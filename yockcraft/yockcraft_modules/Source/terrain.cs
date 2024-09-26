@@ -16,7 +16,7 @@ namespace Yockcraft {
 
     public override void OnInitialize() {
       Vec3 scale = new Vec3(1, 1, 1);
-      cube_handle = ModelFactory.CreateBox(ref scale);
+      // cube_handle = ModelFactory.CreateBox(ref scale);
 
       // mesh = CreateComponent<StaticMesh>();
       // mesh.MeshHandle = cube_handle;

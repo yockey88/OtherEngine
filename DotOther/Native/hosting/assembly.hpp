@@ -35,8 +35,12 @@ namespace dotother {
       void SetInternalCall(const std::string_view klass, const std::string_view name , void* fn);
       void UploadInternalCalls();
 
-      Type& GetType(const std::string_view klass) const;
+      bool HasType(const std::string_view name , const std::string_view nspace = "") const;
+      Type& GetType(const std::string_view klass , const std::string_view nspace = "") const;
       // const std::vector<Type*>& GetTypes() const;
+
+      std::string GetAsmQualifiedName(const std::string_view klass, const std::string_view nspace) const;
+      std::string GetAsmQualifiedMethodName(const std::string_view klass, const std::string_view method_name , const std::string_view nspace = "") const;
 
     private:
       int32_t asm_id = -1;
@@ -49,8 +53,6 @@ namespace dotother {
       std::vector<InternalCall> internal_calls = {};
 
       std::vector<Type*> types = {};
-
-      std::string GetAsmQualifiedName(const std::string_view klass, const std::string_view method_name) const;
 
       void AddCall(const std::string& name , void* fn);
 

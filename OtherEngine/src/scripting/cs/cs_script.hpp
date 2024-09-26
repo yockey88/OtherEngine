@@ -4,20 +4,24 @@
 #ifndef OTHER_ENGINE_CS_SCRIPT_HPP
 #define OTHER_ENGINE_CS_SCRIPT_HPP
 
+#include <hosting/type.hpp>
 #include <map>
 
 #include <Native/hosting/assembly.hpp>
 
 #include "core/UUID.hpp"
 #include "scripting/script_module.hpp"
-#include "scripting/cs/cs_object.hpp"
+
+using dotother::ref;
+using dotother::Assembly;
+using dotother::Type;
 
 namespace other {
 
   class CsScript : public ScriptModule {
     public:
-      CsScript(const std::string& module_name)
-        : ScriptModule(LanguageModuleType::CS_MODULE , module_name) {}
+      CsScript(const std::string& module_name , ref<Assembly> assembly)
+        : ScriptModule(LanguageModuleType::CS_MODULE , module_name), assembly(assembly) {}
 
       virtual void Initialize() override;
       virtual void Shutdown() override;
@@ -29,8 +33,9 @@ namespace other {
       virtual std::vector<ScriptObjectTag> GetObjectTags() override;
 
     private:
+      ref<Assembly> assembly = nullptr;
   };
 
 } // namespace other
 
-#endif // !OTHER_ENGINE_MONO_SCRIPT_MODULE_HPP
+#endif // !OTHER_ENGINE_CS_SCRIPT_HPP

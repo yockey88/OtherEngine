@@ -227,6 +227,7 @@ function _AddProjectOrModule(project , component_func)
 
   print(" -- Adding project : " .. project.name)
   ProjectHeader(project)
+    debuggertype "NativeWithManagedCore"
     project.files()
     project.include_dirs()
 

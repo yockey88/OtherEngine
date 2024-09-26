@@ -159,4 +159,22 @@ namespace other {
 
 } // namespace other
 
+ECHO_TYPE(
+  type(other::Entity) ,
+  func(GetUUID) ,
+  func(Name) ,
+  func(HasComponent) ,
+  func(GetComponent) ,
+  func(ReadComponent) ,
+  func(AddComponent) ,
+  func(AddOrReplace) ,
+  func(ReplaceComponent) ,
+  func(RemoveComponent) ,
+  func(UpdateComponent) ,
+  func(GetEntity) ,
+  func(IsNull) ,
+  func(IsValid) ,
+  func(IsOrphan)
+);
+
 #endif // !OTHER_ENGINE_ENTITY_HPP

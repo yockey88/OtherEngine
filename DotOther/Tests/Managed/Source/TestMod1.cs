@@ -6,6 +6,8 @@ using DotOther.Managed.Interop;
 namespace DotOther.Tests {
 
   public class Mod1 : OtherObject {
+    private static unsafe delegate*<NObject> GetNativeObject;
+
     private Int32 my_num;
 
     public Int32 MyNum {
@@ -29,7 +31,7 @@ namespace DotOther.Tests {
     }
 
     public unsafe void TestInternalCall() {
-      NObject obj = Host.GetNativeObject(0);
+      NObject obj = GetNativeObject();
       if (obj == null) {
         Console.WriteLine("Failed to get native object");
         return;

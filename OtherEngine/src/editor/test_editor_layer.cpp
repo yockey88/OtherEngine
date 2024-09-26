@@ -126,7 +126,7 @@ namespace other {
   void TEditorLayer::OnScriptReload() {
     editor_scripts.scripts.clear();
     for (const auto& [id , info] : editor_scripts.data) {
-      ScriptModule* mod = ScriptEngine::GetScript(info.module);
+      ScriptModule* mod = ScriptEngine::GetScriptModule(info.module);
       if (mod == nullptr) {
         OE_ERROR("Failed to find editor scripting module {} [{}]" , info.module , FNV(info.module));
         continue;
@@ -159,7 +159,7 @@ namespace other {
 
   void TEditorLayer::LoadScripts() {
     auto proj_context = AppState::ProjectContext();
-    editor_scripts = ScriptEngine::LoadScriptsFromTable(proj_context->config);
+    editor_scripts = ScriptEngine::LoadScriptsFromTable(proj_context->config , kEditorSection);
   }
 
   Ref<SceneRenderer> TEditorLayer::CreateRenderer() {

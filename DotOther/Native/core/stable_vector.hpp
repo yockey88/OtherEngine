@@ -64,7 +64,7 @@ namespace dotother {
         return page_table[page_idx]->elements[elt_index];
       }
 
-      size_t GetElementCount() const { 
+      size_t Size() const { 
         return elt_count; 
       }
 

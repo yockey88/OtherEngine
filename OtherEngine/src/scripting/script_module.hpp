@@ -9,6 +9,7 @@
 #include <string_view>
 #include <vector>
 
+#include "core/ref.hpp"
 #include "core/ref_counted.hpp"
 
 #include "scripting/script_defines.hpp"
@@ -70,6 +71,8 @@ namespace other {
       bool valid = false;
 
       std::string module_name;
+      
+      std::map<UUID , Ref<ScriptObject>> objects;
   };
   
 } // namespace other

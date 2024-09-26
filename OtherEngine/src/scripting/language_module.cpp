@@ -24,14 +24,14 @@ namespace other {
     }) != loaded_modules.end();
   }
 
-  const ScriptMetadata* LanguageModule::GetScript(const std::string& name) const {
+  const ScriptMetadata* LanguageModule::GetScriptMetadata(const std::string& name) const {
     std::string case_insensitive_name;
     std::transform(name.begin() , name.end() , std::back_inserter(case_insensitive_name) , ::toupper);
     UUID id = FNV(case_insensitive_name);
-    return GetScript(id);
+    return GetScriptMetadata(id);
   }
 
-  const ScriptMetadata* LanguageModule::GetScript(const UUID& id) const {
+  const ScriptMetadata* LanguageModule::GetScriptMetadata(const UUID& id) const {
     auto itr = loaded_modules_data.find(id);
     if (itr != loaded_modules_data.end()) {
       return &loaded_modules_data.at(id);

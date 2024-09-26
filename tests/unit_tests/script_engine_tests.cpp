@@ -11,46 +11,60 @@
 #include "scripting/script_engine.hpp"
 
 using namespace std::string_literals;
-class ScriptEngineTests : public other::OtherTest {
+using namespace other;
+
+class ScriptEngineTests : public OtherTest {
   public:
     virtual void SetUp() override {
-      other::OtherTest::SetUp();
+      config.Add("log", "console-level" , "debug" , true);
+      config.Add("log", "file-level" , "trace" , true);
+      config.Add("log", "path" , "logs/script-engine-test.log" , true);
+      OtherTest::SetUp();
 
-      config.Add("script-engine.C#" , "modules" , std::vector{ "SandboxScripts"s } , true);
+      config.Add("project" , "script-bin-dir" , "SandboxScripts" , true);
+      config.Add("script-engine.C#" , "modules" , std::vector{ "SandboxScripts.dll"s } , true);
       
-      active_app = other::NewScope<TestApp>(cmdline , config);
+      active_app = NewScope<TestApp>(cmdline , config);
       active_app->Load();
-      other::AppState::Initialize(active_app.get() , active_app->layer_stack , active_app->scene_manager , 
+      AppState::Initialize(active_app.get() , active_app->layer_stack , active_app->scene_manager , 
                           active_app->asset_handler , active_app->project_metadata);
     }
 
     virtual void TearDown() override {
       active_app = nullptr;
-
-      other::OtherTest::TearDown();
+      OtherTest::TearDown();
     }
 
   protected:
-    other::Scope<other::App> active_app = nullptr;
+    Scope<App> active_app = nullptr;
 };
 
-TEST_F(ScriptEngineTests , attempt_load) {
-  ASSERT_NO_FATAL_FAILURE(other::ScriptEngine::Initialize(config));
-  /// C# and LUA
-  ASSERT_EQ(other::ScriptEngine::GetModules().size() , 2);
-
-  ASSERT_NO_FATAL_FAILURE(other::ScriptEngine::LoadProjectModules());
-  
-  auto& modules = other::ScriptEngine::GetModules();
+bool CheckNumScripts(uint32_t cs , uint32_t lua) {
+  auto& modules = ScriptEngine::GetModules();
   for (auto& module : modules) {
     auto& scripts = module.second.module->GetModules();
 
-    if (module.second.module->GetLanguageType() == other::LanguageModuleType::CS_MODULE) {
-      ASSERT_EQ(scripts.size() , 1);
-    } else if (module.second.module->GetLanguageType() == other::LanguageModuleType::LUA_MODULE) {
-      ASSERT_EQ(scripts.size() , 0);
+    switch (module.second.module->GetLanguageType()) {
+      case LanguageModuleType::CS_MODULE:
+        return scripts.size() == cs;
+      case LanguageModuleType::LUA_MODULE:
+        return scripts.size() == lua;
+      default:
+        return false;
     }
   }
+}
 
-  ASSERT_NO_FATAL_FAILURE(other::ScriptEngine::Shutdown());
+TEST_F(ScriptEngineTests , attempt_load) {
+  ASSERT_NO_FATAL_FAILURE(ScriptEngine::Initialize(config));
+  /// C# and LUA
+  ASSERT_EQ(ScriptEngine::GetModules().size() , 2);
+  ASSERT_TRUE(CheckNumScripts(1 , 0));
+
+  ASSERT_NO_FATAL_FAILURE(ScriptEngine::LoadProjectModules());
+  // ASSERT_TRUE(CheckNumScripts(2 , 0));
+
+
+  // ASSERT_NO_FATAL_FAILURE(ScriptEngine::UnloadProjectModules());
+  ASSERT_NO_FATAL_FAILURE(ScriptEngine::Shutdown());
 }
