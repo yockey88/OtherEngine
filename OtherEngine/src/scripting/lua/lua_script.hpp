@@ -40,7 +40,7 @@ namespace other {
       virtual void Reload() override;
       virtual bool HasScript(UUID id) const override;
       virtual bool HasScript(const std::string_view name , const std::string_view nspace = "") const override;
-      virtual ScriptObject* GetScript(const std::string& name , const std::string& nspace = "") override;
+      virtual Ref<ScriptObject> GetScriptObject(const std::string& name , const std::string& nspace) override;
       
       virtual std::vector<ScriptObjectTag> GetObjectTags() override;
 
@@ -48,7 +48,7 @@ namespace other {
       sol::state lua_state;
 
       std::vector<std::string> loaded_tables;
-      std::map<UUID , Ref<LuaObject>> loaded_objects;
+      std::map<UUID , Ref<ScriptObjectHandle<LuaObject>>> loaded_objects;
 
       std::string path;
   };  

@@ -72,9 +72,32 @@ namespace dotother {
 
   bool Host::LoadHost() {
     assert(config.has_value() && "Host configuration not set!");
-
     if (is_loaded) {
       return true;
+    }
+
+    /// have to register logging hook so errors can be reported if they occur during load
+    util::GetUtils().SetLogLevel(config->log_level);
+    if (config->internal_logging_hook != nullptr) {
+      util::GetUtils().log_sink = config->internal_logging_hook;
+    } else {
+      util::GetUtils().log_sink = [](const std::string_view message, dotother::MessageLevel level, bool verbose) {
+        //// default to simply writing to stdout when verbose
+        if (!verbose) {
+          return;
+        }
+        fmt::print(" [DotOther] > {} [{}]\n", message, level);
+      };
+    }
+
+    if (config->log_callback == nullptr) {
+      util::print(DO_STR("Logging callback not registered for host") , MessageLevel::CRITICAL);
+      return false;
+    }
+    
+    if (config->exception_callback == nullptr) {
+      util::print(DO_STR("Excpeption callback not registered for host") , MessageLevel::CRITICAL);
+      return false;
     }
 
     if (!std::filesystem::exists(config->host_config_path)) {
@@ -86,18 +109,6 @@ namespace dotother {
       util::print(DO_STR("Managed assembly path does not exist") , MessageLevel::CRITICAL);
       return false;
     }
-
-    if (config->log_callback == nullptr) {
-      util::print(DO_STR("Logging callback not registered for host") , MessageLevel::CRITICAL);
-      return false;
-    }
-
-    if (config->exception_callback == nullptr) {
-      util::print(DO_STR("Excpeption callback not registered for host") , MessageLevel::CRITICAL);
-      return false;
-    }
-
-    util::GetUtils().log_level = config->log_level;
 
     is_loaded = LoadClrFunctions();
     if (!is_loaded) {
@@ -116,18 +127,6 @@ namespace dotother {
 #endif
         util::print(DO_STR("CoreCLR error: {}") , MessageLevel::ERR, result);
       });
-    }
-
-    if (config->internal_logging_hook != nullptr) {
-      util::GetUtils().log_sink = config->internal_logging_hook;
-    } else {
-      util::GetUtils().log_sink = [](const std::string_view message, dotother::MessageLevel level, bool verbose) {
-        //// default to simply writing to stdout when verbose
-        if (!verbose) {
-          return;
-        }
-        fmt::print(" [DotOther] > {} [{}]\n", message, level);
-      };
     }
 
     if (config->invoke_native_method_hook == nullptr) {
@@ -219,8 +218,9 @@ namespace dotother {
       util::print(DO_STR("Interop interface not bound") ,  MessageLevel::CRITICAL);
       throw std::runtime_error("Interop interface not bound");
     }
-    // Interop().collect_garbage(0 , dotother::GCMode::DEFAULT, true, true);
-    // Interop().wait_for_pending_finalizers();
+    Interop().collect_garbage(0 , dotother::GCMode::DEFAULT, true, true);
+    Interop().wait_for_pending_finalizers();
+    
     Interop().unload_assembly_load_context(load_context.context_id);
     load_context.context_id = -1;
     load_context.assemblies.clear();

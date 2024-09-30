@@ -81,7 +81,7 @@ namespace other {
   }
 
   template <typename T>
-  bool DrawFieldValue(ScriptField* field , ScriptObject* script_instance) {
+  bool DrawFieldValue(ScriptField* field , Ref<ScriptObject> script_instance) {
     OE_ASSERT(field != nullptr , "Attempting to draw null script field");
 
     bool result = false;
@@ -103,7 +103,7 @@ namespace other {
   }
 
   template <>
-  bool DrawFieldValue<bool>(ScriptField* field , ScriptObject* script_instance) {
+  bool DrawFieldValue<bool>(ScriptField* field , Ref<ScriptObject> script_instance) {
     bool result = false;
 
     bool v = field->value.Get<bool>();
@@ -120,7 +120,7 @@ namespace other {
   }
 
   template <>
-  bool DrawFieldValue<char>(ScriptField* field , ScriptObject* script_instance) {
+  bool DrawFieldValue<char>(ScriptField* field , Ref<ScriptObject> script_instance) {
     bool result = false;
 
     char v = field->value.Get<char>();
@@ -152,7 +152,7 @@ namespace other {
   }
 
   template <> 
-  bool DrawFieldValue<std::string>(ScriptField* field , ScriptObject* script_instance) {
+  bool DrawFieldValue<std::string>(ScriptField* field , Ref<ScriptObject> script_instance) {
     bool result = false;
 
     std::string v = field->value.Get<std::string>();
@@ -165,7 +165,7 @@ namespace other {
     if (ImGui::InputText(("##script-string-" + field->name).c_str() , buffer.data() , buffer.size())) {
       if (ImGui::IsKeyPressed(ImGuiKey_Enter) && buffer[0] != 0) {
         v = buffer.data();
-        field->value.Set(v);
+        field->value.Set<std::string>(v);
         script_instance->SetField(field->name , field->value);
         result = true;
       }
@@ -177,7 +177,7 @@ namespace other {
   }
 
   template <>
-  bool DrawFieldValue<glm::vec2>(ScriptField* field , ScriptObject* script_instance) {
+  bool DrawFieldValue<glm::vec2>(ScriptField* field , Ref<ScriptObject> script_instance) {
     bool result = false;
 
     bool modified = false;
@@ -209,7 +209,7 @@ namespace other {
   }
   
   template <>
-  bool DrawFieldValue<glm::vec3>(ScriptField* field , ScriptObject* script_instance) {
+  bool DrawFieldValue<glm::vec3>(ScriptField* field , Ref<ScriptObject> script_instance) {
     bool result = false;
 
     bool modified = false;
@@ -241,7 +241,7 @@ namespace other {
   }
   
   template <>
-  bool DrawFieldValue<glm::vec4>(ScriptField* field , ScriptObject* script_instance) {
+  bool DrawFieldValue<glm::vec4>(ScriptField* field , Ref<ScriptObject> script_instance) {
     bool result = false;
 
     bool modified = false;
@@ -272,13 +272,13 @@ namespace other {
     return result;
   }
 
-  bool DrawScriptArray(ScriptField* array , ScriptObject* script_instance) {
+  bool DrawScriptArray(ScriptField* array , Ref<ScriptObject> script_instance) {
     // ImGui::Text("Script array : %s" , array->name.c_str()); 
     
     return false;
   }
 
-  bool DrawScriptField(ScriptField* field , ScriptObject* script_instance) {
+  bool DrawScriptField(ScriptField* field , Ref<ScriptObject> script_instance) {
     bool result = false;
 
     switch (field->value.Type()) {
@@ -330,7 +330,7 @@ namespace other {
     if (ui::PropertyDropdown("Attach Script" , options.data() , options.size() , slctn)) {
     }
 
-    auto contains = [&](const std::pair<UUID , ScriptObject*>& obj_pair) -> bool {
+    auto contains = [&](const std::pair<UUID , Ref<ScriptObject>>& obj_pair) -> bool {
       return obj_pair.first == loaded_script_objs[slctn].object_id;
     };
 
@@ -343,7 +343,7 @@ namespace other {
       Opt<std::string> nspace = loaded_script_objs[slctn].nspace.empty() ?
         Opt<std::string>{ std::nullopt } : Opt<std::string>{ loaded_script_objs[slctn].nspace };
 
-      ScriptObject* inst = nullptr;
+      Ref<ScriptObject> inst = nullptr;
       if (nspace.has_value()) {
         inst = ScriptEngine::GetScriptObject(nspace.value() + "::" + name);
       } else {
@@ -374,11 +374,13 @@ namespace other {
 
     for (auto& [id , s] : script.scripts) {
       ImGui::PushID(id.Get());
+      const std::string name = std::string{ s->Name() };
+      const std::string lang_name = s->LanguageType() == LanguageModuleType::CS_MODULE ? "C#" : "Lua";
 
       bool is_error = s->IsCorrupt();
       if (is_error) {
         ScopedColor red(ImGuiCol_Text , ui::theme::red);
-        ImGui::Text("%s corrupt, recompile or reload" , s->Name().c_str());
+        ImGui::Text("%s corrupt, recompile or reload" , name.c_str());
 
         if (ImGui::Button("Rebuild Scripts")) {
           EventQueue::PushEvent<ScriptReloadEvent>();
@@ -388,8 +390,7 @@ namespace other {
     
       ui::BeginPropertyGrid();
       ui::ShiftCursor(10.f , 9.f);
-      std::string lang_name = s->LanguageType() == LanguageModuleType::CS_MODULE ? "C#" : "Lua";
-      ImGui::Text("%s [ %s ]" , s->Name().c_str() , lang_name.c_str());
+      ImGui::Text("%s [ %s ]" , name.c_str() , lang_name.c_str());
 
       ImGui::NextColumn();
       ui::ShiftCursorY(4.f);
@@ -420,7 +421,7 @@ namespace other {
             if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
               /// open script in text editor
             } else if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-              ImGui::OpenPopup(("##script_popup" + s->Name()).c_str());
+              ImGui::OpenPopup(("##script_popup" + name).c_str());
             }
           }
         }
@@ -428,7 +429,7 @@ namespace other {
 
       ImGui::GetStyle().ButtonTextAlign = og_button_txt_align;
       bool clear = false; 
-      if (ImGui::BeginPopup(("##script_popup" + s->Name()).c_str())) {
+      if (ImGui::BeginPopup(("##script_popup" + name).c_str())) {
         if (clear) {
            
         }
@@ -437,7 +438,7 @@ namespace other {
       }
 
       if (ImGui::Button("Remove Script")) {
-        OE_INFO("Removing script {} [{}]" , s->Name() , id);
+        OE_INFO("Removing script {} [{}]" , name , id);
         scripts_to_remove.push_back(id);
       }
       

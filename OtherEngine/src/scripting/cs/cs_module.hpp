@@ -34,6 +34,8 @@ namespace other {
       constexpr static std::string_view kModuleVersion = "0.0.1";
 
       bool load_success = false;
+
+      UUID IdFromName(const std::string_view name) const;
   };
 
 } // namespace other

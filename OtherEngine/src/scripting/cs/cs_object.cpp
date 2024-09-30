@@ -9,8 +9,8 @@ using dotother::Type;
 
 namespace other {
   
-  CsObject::CsObject(Type& type) 
-      : ScriptObject(LanguageModuleType::CS_MODULE , "[Empty Script Object]" , "C#") ,
+  CsObject::CsObject(ScriptModule* module , Type& type , UUID handle) 
+      : ScriptObjectHandle(LanguageModuleType::CS_MODULE , module , handle , "[Empty Script Object]" , "C#") ,
         type(type) {
     hosted_object = type.NewInstance();
   }
@@ -31,48 +31,40 @@ namespace other {
   void CsObject::SetField(const std::string& name , const Value& value) {
   }
     
-  void CsObject::OnBehaviorLoad() {
-  }
+  // void CsObject::OnBehaviorLoad() {
+  // }
 
-  void CsObject::Initialize() {
-  }
+  // void CsObject::Initialize() {
+  // }
   
-  void CsObject::Shutdown() {
-  }
+  // void CsObject::Shutdown() {
+  // }
   
-  void CsObject::OnBehaviorUnload() {
-  }
+  // void CsObject::OnBehaviorUnload() {
+  // }
 
-  void CsObject::Start() {
-  }
+  // void CsObject::Start() {
+  // }
 
-  void CsObject::Stop() {
-  }
+  // void CsObject::Stop() {
+  // }
   
-  void CsObject::EarlyUpdate(float dt) {
-  }
+  // void CsObject::EarlyUpdate(float dt) {
+  // }
   
-  void CsObject::Update(float dt) {
-  }
+  // void CsObject::Update(float dt) {
+  // }
 
-  void CsObject::LateUpdate(float dt) {
-  }
+  // void CsObject::LateUpdate(float dt) {
+  // }
 
-  void CsObject::Render() {
-  }
+  // void CsObject::Render() {
+  // }
 
-  void CsObject::RenderUI() {
-  }
+  // void CsObject::RenderUI() {
+  // }
 
   void CsObject::OnSetEntityId() {
-  }
-  
-  Opt<Value> CsObject::OnCallMethod(const std::string_view name , std::span<Value> args) {
-    return std::nullopt;
-  }
-  
-  Opt<Value> CsObject::OnCallMethod(const std::string_view name , Parameter* args , uint32_t argc)  {
-    return std::nullopt;
   }
 
 } // namespace other

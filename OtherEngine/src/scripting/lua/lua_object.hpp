@@ -5,18 +5,58 @@
 #define LUA_OBJECT_HPP
 
 #include <sol/sol.hpp>
+#include <string>
 
 #include "scripting/script_object.hpp"
 
 namespace other {
 
-  class LuaObject : public ScriptObject {
+  class LuaObject : public ScriptObjectHandle<LuaObject> {
     public:
-      LuaObject()
-        : ScriptObject(LanguageModuleType::LUA_MODULE , "[ Empty Lua Object ]" , "Lua") {}
-      LuaObject(const std::string& module_name , const std::string& name , sol::state* script_state) 
-        : ScriptObject(LanguageModuleType::LUA_MODULE , module_name , name) , state(script_state) {}
+    
+      LuaObject(ScriptModule* module , UUID handle , const std::string& module_name , const std::string& name , sol::state* script_state , sol::table& object) 
+            : ScriptObjectHandle(LanguageModuleType::LUA_MODULE , module , handle , module_name , name) , 
+              state(script_state) , object(std::move(object)) {}
       virtual ~LuaObject() override {}
+      
+      template <typename R , typename... Args>
+      R CallMethod(const std::string_view name , Args&&... args) {
+        try {
+          sol::optional<sol::function> function = (*state)[name];
+          if (!function.has_value()) {
+            function = object[name];
+
+            if (!function.has_value()) {
+              OE_ERROR("Could not find function {} in Lua script {}" , name , script_name);
+              
+              if constexpr (std::same_as<R , void>) {
+                return;
+              } else {
+                return R{};
+              }
+            }
+          }
+
+            
+          sol::function func = *function;
+          if constexpr (sizeof...(Args) == 0) {
+            if constexpr (std::same_as<R , void>) {
+              func();
+            } else {
+              return func();
+            }
+          } else {
+            if constexpr (std::same_as<R , void>) {
+              func(std::forward<Args>(args)...);
+            } else {
+              return func(std::forward<Args>(args)...);
+            }
+          }
+        } catch (const std::exception& e) {
+          OE_ERROR("Lua error caught calling function {} in script {}" , name , script_name);
+          return R{};
+        }
+      }
 
       virtual void InitializeScriptMethods() override;
       virtual void InitializeScriptFields() override;
@@ -25,66 +65,13 @@ namespace other {
       virtual Opt<Value> GetField(const std::string& name) override;
       virtual void SetField(const std::string& name , const Value& value) override;
 
-      virtual void OnBehaviorLoad() override;
-      virtual void Initialize() override;
-      virtual void Shutdown() override;
-      virtual void OnBehaviorUnload() override;
-
-      virtual void Start() override;
-      virtual void Stop() override;
-
-      virtual void EarlyUpdate(float dt) override;
-      virtual void Update(float dt) override;
-      virtual void LateUpdate(float dt) override;
-
-      virtual void Render() override;
-      virtual void RenderUI() override;
-
-    private:
+    protected:
       sol::state* state = nullptr;
-
       sol::table object;
-
-      sol::function initialize;
-      sol::function shutdown;
-
-      sol::function start;
-      sol::function stop;
-
-      sol::function early_update;
-      sol::function update;
-      sol::function late_update;
-
-      sol::function render;
-      sol::function render_ui;
-    
-      template <typename... Args>
-      Opt<Value> CallLuaMethod(const std::string_view name , Args&&... args) {
-        sol::optional<sol::function> function = (*state)[name];
-        if (!function.has_value()) {
-          function = object[name];
-
-          if (!function.has_value()) {
-            OE_ERROR("Could not find function {} in Lua script {}" , name , script_name);
-            return std::nullopt;
-          }
-        }
-
-        auto unwrap_val = [](const Value& val) -> auto {
-        };
-
-        try {
-          sol::function func = *function;
-          Opt<Value> val = func((unwrap_val(args) , ...)); 
-        } catch (const std::exception& e) {
-          OE_ERROR("Lua error caught calling function {} in script {}" , name , script_name);
-          return std::nullopt;
-        }
-      }
-      
+  
       void OnSetEntityId() override;
-      virtual Opt<Value> OnCallMethod(const std::string_view name , std::span<Value> args) override;
   };
+
 
 } // namespace other
 

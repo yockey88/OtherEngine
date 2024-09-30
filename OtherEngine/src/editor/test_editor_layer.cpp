@@ -32,14 +32,14 @@ namespace other {
     DefaultUpdateCamera(editor_camera);
 
     LoadScripts();
-    for (const auto& [id , script] : editor_scripts.scripts) {
+    for (auto& [id , script] : editor_scripts.scripts) {
       script->Initialize();
       script->Start();
     }
   }
 
   void TEditorLayer::OnDetach() {
-    for (const auto& [id , script] : editor_scripts.scripts) {
+    for (auto& [id , script] : editor_scripts.scripts) {
       script->Stop();
       script->Shutdown();
       script->OnBehaviorUnload();
@@ -50,7 +50,7 @@ namespace other {
   void TEditorLayer::OnEarlyUpdate(float dt) {
     AppState::Scenes()->EarlyUpdateScene(dt);
 
-    for (const auto& [id , script] : editor_scripts.scripts) {
+    for (auto& [id , script] : editor_scripts.scripts) {
       script->EarlyUpdate(dt);
     }
   }
@@ -58,7 +58,7 @@ namespace other {
   void TEditorLayer::OnUpdate(float dt) {
     AppState::Scenes()->UpdateScene(dt);
 
-    for (const auto& [id , script] : editor_scripts.scripts) {
+    for (auto& [id , script] : editor_scripts.scripts) {
       script->Update(dt);
     }
   }
@@ -66,7 +66,7 @@ namespace other {
   void TEditorLayer::OnLateUpdate(float dt) {
     AppState::Scenes()->LateUpdateScene(dt);
 
-    for (const auto& [id , script] : editor_scripts.scripts) {
+    for (auto& [id , script] : editor_scripts.scripts) {
       script->LateUpdate(dt);
     }
   }
@@ -83,7 +83,7 @@ namespace other {
   void TEditorLayer::OnUIRender() {
     AppState::Scenes()->RenderSceneUI();
 
-    for (const auto& [id , script] : editor_scripts.scripts) {
+    for (auto& [id , script] : editor_scripts.scripts) {
       script->RenderUI();
     }
     
@@ -142,18 +142,18 @@ namespace other {
         OE_DEBUG(" > with name {}" , name);
       }
 
-      ScriptObject* inst = mod->GetScript(name , nspace);
-      if (inst == nullptr) {
-        OE_ERROR("Failed to get script {} from script module {}" , name , info.module);
-        continue;
-      } else {
-        std::string case_ins_name;
-        std::transform(name.begin() , name.end() , std::back_inserter(case_ins_name) , ::toupper);
+      // ScriptObject* inst = mod->GetScriptObject(name , nspace);
+      // if (inst == nullptr) {
+      //   OE_ERROR("Failed to get script {} from script module {}" , name , info.module);
+      //   continue;
+      // } else {
+      //   std::string case_ins_name;
+      //   std::transform(name.begin() , name.end() , std::back_inserter(case_ins_name) , ::toupper);
 
-        UUID id = FNV(case_ins_name);
-        auto& obj = editor_scripts.scripts[id] = inst;
-        obj->Start();
-      }
+      //   UUID id = FNV(case_ins_name);
+      //   auto& obj = editor_scripts.scripts[id] = inst;
+      //   obj->Start();
+      // }
     }
   }
 

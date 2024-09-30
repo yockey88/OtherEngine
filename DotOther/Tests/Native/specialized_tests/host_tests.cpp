@@ -129,11 +129,11 @@ TEST_F(HostTests, load_asm_and_call_functions) {
   dotother::HostedObject obj;
   ASSERT_NO_FATAL_FAILURE(obj = type.NewInstance());
 
-  ASSERT_NO_FATAL_FAILURE(obj.Invoke("Test"));
-  ASSERT_NO_FATAL_FAILURE(obj.Invoke("Test", 22));
+  ASSERT_NO_FATAL_FAILURE(obj.Invoke<void>("Test"));
+  ASSERT_NO_FATAL_FAILURE(obj.Invoke<void>("Test", 22));
 
   dotother::util::print(DO_STR("Invoking Internal Call"sv) , MessageLevel::DEBUG);
-  ASSERT_NO_FATAL_FAILURE(obj.Invoke("TestInternalCall"));
+  ASSERT_NO_FATAL_FAILURE(obj.Invoke<void>("TestInternalCall"));
 
   float number = 0.f;
   float expected = 42.f;

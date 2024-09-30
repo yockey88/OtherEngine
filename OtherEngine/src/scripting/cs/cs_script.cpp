@@ -44,22 +44,36 @@ namespace other {
     return assembly->HasType(name , nspace);
   }
   
-  ScriptObject* CsScript::GetScript(const std::string& name , const std::string& nspace) {
+  Ref<ScriptObject> CsScript::GetScriptObject(const std::string& name , const std::string& nspace) {
     if (!valid) {
       return nullptr;
     }
 
+    UUID id = FNV(fmtstr("{}.{}" , nspace , name));
+    if (loaded_objects.find(id) != loaded_objects.end()) {
+      Ref<ScriptObjectHandle<CsObject>> obj = loaded_objects[id];
+      if (obj != nullptr) {
+        return obj.Raw();
+      }
+    }
+
     // retrieve type from assembly
     std::string asm_name = assembly->GetAsmQualifiedName(name , nspace);
-    Type& t = assembly->GetType(asm_name);
-    if (t.handle == -1) {
+    Type& type = assembly->GetType(asm_name);
+    if (type.handle == -1) {
       OE_ERROR("Failed to retrieve type {} [{}]" , asm_name , assembly->Name());
       return nullptr;
     }
 
-    OE_DEBUG("Retrieved type {} [{}]" , t.FullName() , t.handle);
-    UUID id = FNV(fmtstr("{}.{}" , nspace , name));
-    auto& obj = objects[id] = NewRef<CsObject>(t);
+    OE_DEBUG("Retrieved type {} [{}]" , type.FullName() , type.handle);
+
+    Ref<ScriptObjectHandle<CsObject>> obj = NewRef<CsObject>(this , type , id);
+    objects[id] = obj;
+    loaded_objects[id] = obj;
+
+    obj->InitializeScriptFields();
+    obj->InitializeScriptMethods();
+    obj->OnBehaviorLoad();
 
     return obj.Raw();
   }

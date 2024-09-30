@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 
 namespace Other {
 
@@ -24,6 +25,7 @@ namespace Other {
     // private Transform object_transform;
 
     public OtherObject() {
+      Console.WriteLine("OtherObject constructor");
     }
 
     public override OtherBehavior Parent {
@@ -52,11 +54,11 @@ namespace Other {
     }
 
     public override void OnBehaviorLoad() {
-      // Scene.AddObject(this);
-      // object_transform = new Transform(this);
+      Console.WriteLine("OtherObject OnBehaviorLoad");
     }
 
     public override void OnBehaviorUnload() {
+      Console.WriteLine("OtherObject OnBehaviorUnload");
       Parent = null;
       if (Children != null) {
         Children.Clear();
@@ -114,8 +116,6 @@ namespace Other {
       
       return;
     }
-
-    
   }
 
 }

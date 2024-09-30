@@ -7,12 +7,12 @@ local sandbox_scripts = {
 
   files = function()
     files {
-      "./sandbox/**.cs" ,
+      "./Source/**.cs" ,
     }
   end,
 
   components = {
-    ["OtherEngine-CsCore"] = "%{wks.location}/OtherEngine-CsCore/cs"
+    ["OtherEngine-CsCore"] = ""
   }
 }
 

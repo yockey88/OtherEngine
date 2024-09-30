@@ -16,34 +16,31 @@ namespace dotother {
 
   class HostedObject {
     public:
-      template <typename... Args>
-      void Invoke(const std::string_view name, Args&&... params) {
-        constexpr size_t argc = sizeof...(params);
-
-        if constexpr (argc > 0) {
-          const void* parameters[argc] = {0};
-          ManagedType param_types[argc] = {};
-
-          util::AddToArray<Args...>(parameters, param_types, std::forward<Args>(params)..., std::make_index_sequence<argc>{});
-          InvokeMethod(name, parameters, param_types, argc);
-        } else {
-          InvokeMethod(name, nullptr, nullptr, 0);
-        }
-      }
-
       template <typename Ret , typename... Args>
       Ret Invoke(const std::string_view name, Args&&... params) {
         constexpr size_t argc = sizeof...(params);
 
-        Ret res;
-        if constexpr (argc > 0) {
-          const void* parameters[argc] = {0};
-          ManagedType param_types[argc] = {};
+        if constexpr (std::same_as<Ret , void>) {
+          if constexpr (argc > 0) {
+            const void* parameters[argc] = {0};
+            ManagedType param_types[argc] = {};
 
-          util::AddToArray<Args...>(parameters, param_types, std::forward<Args>(params)..., std::make_index_sequence<argc>{});
-          InvokeReturningMethod(name, parameters, param_types, argc, &res);
+            util::AddToArray<Args...>(parameters, param_types, std::forward<Args>(params)..., std::make_index_sequence<argc>{});
+            InvokeMethod(name, parameters, param_types, argc);
+          } else {
+            InvokeMethod(name, nullptr, nullptr, 0);
+          }
         } else {
-          InvokeReturningMethod(name, nullptr, nullptr, 0, &res);
+          Ret res;
+          if constexpr (argc > 0) {
+            const void* parameters[argc] = {0};
+            ManagedType param_types[argc] = {};
+
+            util::AddToArray<Args...>(parameters, param_types, std::forward<Args>(params)..., std::make_index_sequence<argc>{});
+            InvokeReturningMethod(name, parameters, param_types, argc, &res);
+          } else {
+            InvokeReturningMethod(name, nullptr, nullptr, 0, &res);
+          }
         }
       }
 

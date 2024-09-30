@@ -80,7 +80,7 @@ namespace detail {
       	other.IncRef();
       	DecRef();
       
-      	object = other.object;
+      	object = reinterpret_cast<T*>(other.object);
       	return *this;
       }
       
@@ -89,8 +89,9 @@ namespace detail {
         static_assert(std::is_base_of_v<T , T2> , "No viable conversion to construct ref with");
       	DecRef();
       
-      	object = other.object;
+      	object = reinterpret_cast<T*>(other.object);
       	other.object = nullptr;
+
       	return *this;
       }
 
@@ -120,7 +121,7 @@ namespace detail {
       template <typename U>
       static Ref<U> Cast(Ref<T>& old_ref) {
         static_assert(std::is_base_of_v<RefCounted , U> , "Cannot cast a reference to a non-refcounted object");
-        return Ref<U>((U*)old_ref.object);
+        return Ref<U>(reinterpret_cast<U*>(old_ref.object));
       }
 
       template <typename U>

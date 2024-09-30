@@ -18,7 +18,7 @@ namespace other {
 
     SerializeComponentSection(stream , entity , "script");
     for (const auto& [id , s] : script.scripts) {
-      stream << s->ScriptName() << " = { \"";
+      stream << s->ScriptInstanceName() << " = { \"";
       if (s->NameSpace().has_value()) {
         stream << s->NameSpace().value() << "::";
       }

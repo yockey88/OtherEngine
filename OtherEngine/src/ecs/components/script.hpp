@@ -21,7 +21,7 @@ namespace other {
 
   struct Script : Component {
     std::map<UUID , ScriptObjectData> data = {};
-    std::map<UUID , ScriptObject*> scripts = {};
+    std::map<UUID , Ref<ScriptObject>> scripts = {};
 
     ECS_COMPONENT(Script , kScriptIndex);
   };

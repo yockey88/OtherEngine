@@ -25,7 +25,7 @@ namespace other {
       virtual void Reload() override {}
       virtual bool HasScript(UUID id) const override { return false; }
       virtual bool HasScript(const std::string_view name , const std::string_view nspace = "") const override { return false; }
-      virtual ScriptObject* GetScript(const std::string& name , const std::string& nspace = "") override { return nullptr; }
+      virtual Ref<ScriptObject> GetScriptObject(const std::string& name , const std::string& nspace) override { return nullptr; }
 
       virtual std::vector<ScriptObjectTag> GetObjectTags() override { return {}; }
 

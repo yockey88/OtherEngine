@@ -123,6 +123,7 @@ namespace literals {
     FILE_LOAD_FAILED,
     INVALID_FILE_PATH,
     INVALID_ASSEMBLY,
+    CORRUPT_ASSEMBLY,
     UNKNOWN_ERROR,
   };
 
@@ -164,6 +165,16 @@ struct fmt::formatter<dotother::MessageLevel> : public fmt::formatter<std::strin
     template <typename FormatContext>
     auto format(dotother::MessageLevel level, FormatContext& ctx) {
       std::string_view name = magic_enum::enum_name(level);
+      return formatter<std::string_view>::format(name, ctx);
+    }
+};
+
+template <>
+struct fmt::formatter<dotother::AssemblyLoadStatus> : public fmt::formatter<std::string_view> {
+  public:
+    template <typename FormatContext>
+    auto format(dotother::AssemblyLoadStatus status, FormatContext& ctx) {
+      std::string_view name = magic_enum::enum_name(status);
       return formatter<std::string_view>::format(name, ctx);
     }
 };

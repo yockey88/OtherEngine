@@ -93,7 +93,6 @@ namespace other {
       return nullptr;
     }
 
-    
     auto project = AppState::ProjectContext();
     Path real_path = project->GetMetadata().assets_dir / module_info.paths[0];
     if (!Filesystem::PathExists(real_path)) {
@@ -106,7 +105,7 @@ namespace other {
     Path mod_path = module_info.paths[0];
     std::string mod_path_str = mod_path.filename().string();
     std::string mod_name = mod_path_str.substr(0 , mod_path_str.find_last_of('.'));
-    loaded_modules[id] = new LuaScript(real_path.string() , mod_name);
+    loaded_modules[id] = NewRef<LuaScript>(real_path.string() , mod_name);
     loaded_modules[id]->Initialize();
     
     loaded_modules_data[id] = module_info;

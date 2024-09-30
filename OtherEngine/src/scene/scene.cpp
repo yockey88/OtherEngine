@@ -127,19 +127,19 @@ namespace other {
     }
 
     if (cs_mod_found) {
-      scene_object = cs_core->GetScript("Scene" , "Other");
-      if (scene_object == nullptr) {
-        OE_ERROR("Failed to retrieve scene interface from C# script core!");
-      } else {
-        scene_object->CallMethod("InitializeScene");
-      }
+      // scene_object = cs_core->GetScriptObject("Scene" , "Other");
+      // if (scene_object == nullptr) {
+      //   OE_ERROR("Failed to retrieve scene interface from C# script core!");
+      // } else {
+      //   // scene_object->CallMethod("InitializeScene");
+      // }
 
-      OE_DEBUG("Entities in scene [{}]" , entities.size()); 
-      registry.view<Script , Tag>().each([](Script& script , Tag& tag) {
-        for (auto& [id , obj] : script.scripts) {
-          obj->Initialize();
-        }
-      });
+      // OE_DEBUG("Entities in scene [{}]" , entities.size()); 
+      // registry.view<Script , Tag>().each([](Script& script , Tag& tag) {
+      //   for (auto& [id , obj] : script.scripts) {
+      //     obj->Initialize();
+      //   }
+      // });
     }
     
     RefreshCameraTransforms();
@@ -160,7 +160,7 @@ namespace other {
       Initialize2DRigidBody(physics_world_2d , body , tag , transform);
     });
     
-    registry.view<Script>().each([](const Script& script) {
+    registry.view<Script>().each([](Script& script) {
       for (auto& [id , s] : script.scripts) {
         s->Start();
       }
@@ -188,7 +188,7 @@ namespace other {
       return;
     }
 
-    registry.view<Script>().each([&dt](const Script& script) {
+    registry.view<Script>().each([&dt](Script& script) {
       for (auto& [id , s] : script.scripts) {
         s->EarlyUpdate(dt);
       }
@@ -266,7 +266,7 @@ namespace other {
     });
     
     /// scripts updated last to give most accurate view of updated state 
-    registry.view<Script>().each([&dt](const Script& script) {
+    registry.view<Script>().each([&dt](Script& script) {
       for (auto& [id , s] : script.scripts) {
         s->Update(dt);
       }
@@ -307,7 +307,7 @@ namespace other {
       }
     });
      
-    registry.view<Script>().each([&dt](const Script& script) {
+    registry.view<Script>().each([&dt](Script& script) {
       for (auto& [id , s] : script.scripts) {
         s->LateUpdate(dt);
       }
@@ -390,7 +390,7 @@ namespace other {
       return;
     }
 
-    scene_object->CallMethod("ClearObjects");
+    // scene_object->CallMethod("ClearObjects");
   }
 
   void Scene::Shutdown() {

@@ -62,7 +62,7 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
 
     LoadEditorScripts(editor_config);
 
-    for (const auto& [id , script] : editor_scripts.scripts) {
+    for (auto& [id , script] : editor_scripts.scripts) {
       script->Initialize();
       script->Start();
     }
@@ -74,7 +74,7 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
   }
 
   void EditorLayer::OnDetach() {
-    for (const auto& [id , script] : editor_scripts.scripts) {
+    for (auto& [id , script] : editor_scripts.scripts) {
       script->Stop();
       script->Shutdown();
       script->OnBehaviorUnload();
@@ -117,7 +117,7 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
     panel_manager->Update(dt);
 
     /// after all early updates, update client and script
-    for (const auto& [id , script] : editor_scripts.scripts) {
+    for (auto& [id , script] : editor_scripts.scripts) {
       script->Update(dt);
     }
 
@@ -128,7 +128,7 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
     panel_manager->LateUpdate(dt);
 
     /// after all early updates, update client and script
-    for (const auto& [id , script] : editor_scripts.scripts) {
+    for (auto& [id , script] : editor_scripts.scripts) {
       script->LateUpdate(dt);
     }
 
@@ -235,7 +235,7 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
     }
     ImGui::End();
 
-    for (const auto& [id , script] : editor_scripts.scripts) {
+    for (auto& [id , script] : editor_scripts.scripts) {
       script->RenderUI();
     }
 
@@ -323,18 +323,18 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
         OE_DEBUG(" > with name {}" , name);
       }
 
-      ScriptObject* inst = mod->GetScript(name , nspace);
-      if (inst == nullptr) {
-        OE_ERROR("Failed to get script {} from script module {}" , name , info.module);
-        continue;
-      } else {
-        std::string case_ins_name;
-        std::transform(name.begin() , name.end() , std::back_inserter(case_ins_name) , ::toupper);
+      // ScriptObject* inst = mod->GetScriptObject(name , nspace);
+      // if (inst == nullptr) {
+      //   OE_ERROR("Failed to get script {} from script module {}" , name , info.module);
+      //   continue;
+      // } else {
+      //   std::string case_ins_name;
+      //   std::transform(name.begin() , name.end() , std::back_inserter(case_ins_name) , ::toupper);
 
-        UUID id = FNV(case_ins_name);
-        auto& obj = editor_scripts.scripts[id] = inst;
-        obj->Start();
-      }
+      //   UUID id = FNV(case_ins_name);
+      //   auto& obj = editor_scripts.scripts[id] = inst;
+      //   obj->Start();
+      // }
     }
 
     panel_manager->OnScriptReload();

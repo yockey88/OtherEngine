@@ -98,6 +98,11 @@ namespace other {
 
       static void LoadProjectModule(Ref<LanguageModule>& module , const std::string_view config_tag , const Path& prefix_path = "");
       static void UnloadProjectModule(Ref<LanguageModule>& module , const std::string_view config_tag);
+
+      static LanguageModuleType ModuleTypeFromExtension(const std::string_view extension);
+      static void LoadScriptModule(Path& module_path);
+
+      static Script CollectObjects(const ConfigTable& table , const std::vector<std::string>& objects , const std::string_view section);
   };
 
 } // namespace other

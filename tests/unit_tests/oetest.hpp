@@ -6,45 +6,32 @@
 
 #include <gtest/gtest.h>
 
-#include "core/logger.hpp"
 #include "core/config.hpp"
-#include "core/errors.hpp"
 
 #include "parsing/cmd_line_parser.hpp"
-#include "parsing/ini_parser.hpp"
 
 namespace other {
 
 class OtherTest : public ::testing::Test {
   public:
-    static void SetUpTestSuite() {
+    static void SetUpTestSuite(); 
+    static void TearDownTestSuite();
 
-    }
+    virtual void SetUp() override; 
+    virtual void TearDown() override;
     
-    static void TearDownTestSuite() {
-      const std::string configpath = "C:/Yock/code/OtherEngine/tests/unit_tests/unittest.other";      
-      IniFileParser parser(configpath);
-      try {
-        config = parser.Parse();
-      } catch (IniException& e) {
-        FAIL() << "Failed to parse INI file for unit test!\n\t" << e.what();
-        return;
-      }
-    }
-
-    virtual void SetUp() override {
-      /// FIXME: customize config per unit test but somehow not create bajillions of config files
-      Logger::Open(config);
-      Logger::Instance()->RegisterThread("Main Test Thread");
-    }
-    
-    virtual void TearDown() override {
-      Logger::Shutdown();
-    }
+    static void OpenLog(); 
+    static void CloseLog();
 
   protected:
-    static ConfigTable config;
+    static std::optional<ConfigTable> config;
+    static std::optional<ConfigTable> stashed_config;
+
     static CmdLine cmdline;
+
+
+    static void StashConfig();
+    static void ApplyStashedConfig();
 };
 
 } // namespace other

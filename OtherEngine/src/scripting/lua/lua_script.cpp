@@ -125,26 +125,51 @@ namespace other {
     return false;
   }
 
-  ScriptObject* LuaScript::GetScript(const std::string& name , const std::string& nspace) {
+  Ref<ScriptObject> LuaScript::GetScriptObject(const std::string& name , const std::string& nspace) {
     if (!valid) {
       return nullptr;
     }
     
     UUID id = FNV(name);
     if (loaded_objects.find(id) != loaded_objects.end()) {
-      LuaObject* obj = loaded_objects[id].Raw();
+      Ref<ScriptObjectHandle<LuaObject>> obj = loaded_objects[id];
       if (obj != nullptr) {
-        return obj;
+        return obj.Raw();
       }
     }
 
     OE_INFO("Lua object {} loaded" , name);
-  
-    auto& obj = loaded_objects[id] = NewRef<LuaObject>(module_name , name , &lua_state);
+    
+    Ref<ScriptObjectHandle<LuaObject>> obj = nullptr;
+    {
+      sol::table object;
+      if (nspace.empty()) {
+        object = lua_state[name];
+      } else {
+        object = lua_state[nspace][name];
+      }
+
+      std::string real_name = "";
+      if (nspace.empty()) {
+        real_name = name;
+      } else {
+        real_name = fmtstr("{}.{}" , nspace , name);
+      }
+      obj = NewRef<LuaObject>(this , id , module_name , real_name , &lua_state , object);
+    }
+
+    if (obj == nullptr) {
+      OE_ERROR("Failed to create Lua object {}" , name);
+      return nullptr;
+    }
+
+    objects[id]  = obj;
+    loaded_objects[id] = obj;
     obj->InitializeScriptMethods();
     obj->InitializeScriptFields();
+    obj->OnBehaviorLoad();
 
-    return loaded_objects[id].Raw();
+    return obj.Raw();
   }
       
   /// TODO: how to get all tables in the script

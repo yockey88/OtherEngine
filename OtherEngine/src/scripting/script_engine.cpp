@@ -8,6 +8,7 @@
 #include "core/logger.hpp"
 #include "core/config_keys.hpp"
 
+#include "scripting/language_module.hpp"
 #include "scripting/script_defines.hpp"
 
 #include "application/app_state.hpp"
@@ -56,6 +57,8 @@ namespace other {
     if (script_bin.has_value()) {
       cs_prefix /= script_bin.value();
     }
+    //// FIXME: this feels really hacky???
+    cs_prefix /= "net8.0";
 
     Path lua_prefix = project_metadata->GetMetadata().assets_dir / "scripts";
 
@@ -189,7 +192,7 @@ namespace other {
 
       name_space = search_name.substr(0 , colon);
       search_name = search_name.substr(second_colon + 1 , search_name.length() - name_space.length() + 2);
-    } 
+    }
 
     OE_DEBUG("Getting object {}::{}" , name_space , search_name);
 
@@ -212,75 +215,85 @@ namespace other {
       
   ScriptObject* ScriptEngine::GetScriptObject(const std::string_view name , const std::string_view nspace , ScriptModule* module) {
     UUID id = FNV(name);
-    ScriptObject* check_loaded = GetScriptObject(id);
-    if (check_loaded != nullptr) {
-      check_loaded->InitializeScriptFields();
-      check_loaded->InitializeScriptMethods();
-      return check_loaded;
-    }
+    // ScriptObject* check_loaded = GetScriptObject(id);
+    // if (check_loaded != nullptr) {
+    //   check_loaded->InitializeScriptFields();
+    //   check_loaded->InitializeScriptMethods();
+    //   return check_loaded;
+    // }
 
-    /// if given a module, find it in there
-    if (module != nullptr && module->HasScript(name , nspace)) {
-      auto* obj =  module->GetScript(std::string{ name } , std::string{ nspace });
-      if (obj == nullptr) {
-        OE_ERROR("Failed to retrieve script object {}::{} from module {} (module corrupted)" , nspace , name , module->ModuleName());
-        return nullptr;
-      }
+    // bool script_in_mod = module != nullptr;
 
-      UUID id = FNV(name);
-      objects[id] = obj;
-      return obj;
+    // /// if there is a module
+    // if (script_in_mod) {
+    //   /// check if the script is in the module
+    //   script_in_mod = module->HasScript(name , nspace);
+    // }
 
-    /// else search the rest of the modules
-    } else if (module == nullptr) {
-      ScriptObject* obj = nullptr;
+    // /// script_in_mod can only be true here if the module is not null and the script is in the module
+    // if (script_in_mod) {
+    //   auto* obj =  module->GetScriptObject(std::string{ name } , std::string{ nspace });
+    //   if (obj == nullptr) {
+    //     OE_ERROR("Failed to retrieve script object {}::{} from module {} (module corrupted)" , nspace , name , module->ModuleName());
+    //     return nullptr;
+    //   }
 
-      for (auto& [id , mod] : loaded_modules) {
-        if (mod->HasScript(name , nspace)) {
-          obj = mod->GetScript(std::string{ name } , std::string{ nspace });
-          if (obj == nullptr) {
-            OE_ERROR("Failed to retrieve script object {}::{} from module {} (module corrupted)" , nspace , name , module->ModuleName());
-            return nullptr;
-          } else {
-            OE_DEBUG("Retrieved {}::{}" , nspace , name);
-          }
+    //   UUID id = FNV(name);
+    //   objects[id] = obj;
+    //   return obj;
+    // }
+    // /// if module is not null and its not in there bail early
+    // else if (module != nullptr) {
+    //   OE_ERROR("Failed to find script object {}::{} in module {}" , nspace , name , module->ModuleName());
+    //   return nullptr;
+    // }
+    
+    // /// else search the rest of the modules
+    // ScriptObject* obj = nullptr;
 
-          UUID id = FNV(name);
-          objects[id] = obj;
-        }
-      }
+    // /// first check modules already loaded/grabbed by client at some point
+    // for (auto& [id , mod] : loaded_modules) {
+    //   if (mod->HasScript(name , nspace)) {
+    //     obj = mod->GetScriptObject(std::string{ name } , std::string{ nspace });
+    //     if (obj == nullptr) {
+    //       OE_ERROR("Failed to retrieve script object {}::{} from module {} (module corrupted)" , nspace , name , module->ModuleName());
+    //       return nullptr;
+    //     } else {
+    //       OE_DEBUG("Retrieved {}::{}" , nspace , name);
+    //     }
 
-      OE_DEBUG("Checking unloaded modules for {}::{}" , nspace , name);
+    //     UUID id = FNV(name);
+    //     objects[id] = obj;
+    //   }
+    // }
 
-      /// if we havent returned then it might be in an unloaded module
-      for (auto& [lid , lang] : language_modules) {
-        for (auto& [sid , script] : lang.module->GetModules()) {
-          if (script->HasScript(std::string{ name } , std::string{ nspace })) {
-            loaded_modules[sid] = script;
-            obj = script->GetScript(std::string{ name } , std::string{ nspace });
+    // for (auto& [lid , lang] : language_modules) {
+    //   for (auto& [sid , script] : lang.module->GetModules()) {
+    //     if (script->HasScript(std::string{ name } , std::string{ nspace })) {
+    //       loaded_modules[sid] = script;
+    //       obj = script->GetScriptObject(std::string{ name } , std::string{ nspace });
 
-            if (obj == nullptr) {
-              OE_ERROR("Failed to retrieve script object {}::{} from module {} (module corrupted)" , nspace , name , module->ModuleName());
-              return nullptr;
-            } else {
-              OE_DEBUG("Retrieved {}::{}" , nspace , name);
-            }
+    //       if (obj == nullptr) {
+    //         OE_ERROR("Failed to retrieve script object {}::{} from module {} (module corrupted)" , nspace , name , module->ModuleName());
+    //         return nullptr;
+    //       } else {
+    //         OE_DEBUG("Retrieved {}::{}" , nspace , name);
+    //       }
 
-            UUID id = FNV(name);
-            objects[id] = obj;
-          }
-        }
-      }
+    //       UUID id = FNV(name);
+    //       objects[id] = obj;
+    //     }
+    //   }
+    // }
 
-      if (obj != nullptr) {
-        obj->InitializeScriptFields();
-        obj->InitializeScriptMethods();
-        obj->OnBehaviorLoad();
-        return obj;
-      }
-    }
+    // if (obj != nullptr) {
+    //   obj->InitializeScriptFields();
+    //   obj->InitializeScriptMethods();
+    //   obj->OnBehaviorLoad();
+    //   return obj;
+    // }
 
-    OE_ERROR("Failed to find script object {}::{}" , nspace , name);
+    OE_ERROR("ScriptEngine::GetScriptObject({}.{} [{}])" , nspace , name, module->GetLanguage());
     return nullptr;
   }
 
@@ -312,64 +325,11 @@ namespace other {
     OE_DEBUG("Loading Editor Scripts");
     for (auto& mod : script_paths) {
       Path module_path = Path{ mod }; 
-
-      std::string fname = module_path.filename().string();
-      std::string mname = fname.substr(0 , fname.find_last_of('.'));
-      OE_DEBUG("Loading Editor Script Module : {} ({})" , mname , module_path.string());
-
-      if (module_path.extension() == ".dll") {
-        module_path = project_path / "bin" / "Debug" / mod / module_path.filename();
-        language_modules[LanguageModuleType::CS_MODULE].module->LoadScriptModule({
-          .name = mname ,
-          .paths = { module_path.string() } ,
-          .type = ScriptType::EDITOR_SCRIPT ,
-        });
-      } else if (module_path.extension() == ".lua") {
-        module_path = assets_dir / "editor" / module_path.filename();
-        language_modules[LanguageModuleType::LUA_MODULE].module->LoadScriptModule({
-          .name = mname ,
-          .paths = { module_path.string() } ,
-          .type = ScriptType::EDITOR_SCRIPT ,
-        });
-      }
+      LoadScriptModule(module_path);
     }
 
-    Script res {};
-    for (const auto& obj : script_objs) {
-      auto scripts = table.Get(script_key , obj);
+    return CollectObjects(table , script_objs , section);
 
-      ScriptModule* mod = GetScriptModule(obj);
-      OE_ASSERT(mod != nullptr , "Failed to get script module {}" , obj);
-
-      for (auto& s : scripts) {
-        OE_DEBUG("Attaching editor script");
-
-        std::string nspace = "";
-        std::string name = s;
-        if (s.find("::") != std::string::npos) {
-          nspace = s.substr(0 , s.find_first_of(":"));
-          OE_DEBUG("Editor script from namespace {}" , nspace);
-
-          name = s.substr(s.find_last_of(":") + 1 , s.length() - nspace.length() - 2);
-          OE_DEBUG(" > with name {}" , name);
-        }
-
-        ScriptObject* inst = mod->GetScript(name , nspace);
-        OE_ASSERT(inst != nullptr , "Failed to get script {} from script module {}" , s , obj);
-        std::string case_ins_name;
-        std::transform(s.begin() , s.end() , std::back_inserter(case_ins_name) , ::toupper);
-
-        UUID id = FNV(case_ins_name);
-        res.data[id] = ScriptObjectData{
-          .module = obj ,
-          .obj_name = s ,
-        };
-        auto& obj = res.scripts[id] = inst;
-        obj->OnBehaviorLoad();
-      }
-    }
-
-    return res;
   }
       
   LanguageModuleType ScriptEngine::StringToModuleType(const std::string_view name) {
@@ -426,7 +386,7 @@ namespace other {
       std::string name = path.filename().string().substr(ext , length);
       name = name.substr(0 , name.find_last_of('.'));
 
-      OE_DEBUG(" > Loading script module {} [{}]" , name , module->GetLanguageType());
+      OE_DEBUG("Loading script module {} from [{}]" , name , module->GetLanguageType());
       module->LoadScriptModule({
         .name = name ,
         .paths = { path.string() } ,
@@ -449,6 +409,68 @@ namespace other {
     } else {
       OE_ERROR("Failed to unload script module, module was null!");
     }
+  }
+
+  LanguageModuleType ScriptEngine::ModuleTypeFromExtension(const std::string_view ext) {
+    if (ext == ".dll") {
+      return LanguageModuleType::CS_MODULE;
+    } else if (ext == ".lua") {
+      return LanguageModuleType::LUA_MODULE;
+    }
+    return LanguageModuleType::INVALID_LANGUAGE_MODULE;
+  }
+
+  void ScriptEngine::LoadScriptModule(Path& module_path) {
+    const std::string fname = module_path.filename().string();
+    const std::string mname = fname.substr(0 , fname.find_last_of('.'));
+    const std::string ext = module_path.extension().string();
+    
+    OE_DEBUG("Loading Editor Script Module : {} ({})" , mname , module_path.string());
+
+    language_modules[ModuleTypeFromExtension(ext)].module->LoadScriptModule({
+      .name = mname ,
+      .paths = { module_path.string() } ,
+      .type = ScriptType::EDITOR_SCRIPT ,
+    });
+  }
+  
+  Script ScriptEngine::CollectObjects(const ConfigTable& table , const std::vector<std::string>& objects , const std::string_view section) {
+    Script res {};
+    for (const auto& obj : objects) {
+      auto scripts = table.Get(section , obj);
+
+      ScriptModule* mod = GetScriptModule(obj);
+      OE_ASSERT(mod != nullptr , "Failed to get script module {}" , obj);
+
+      for (auto& s : scripts) {
+        OE_DEBUG("Attaching editor script");
+
+        std::string nspace = "";
+        std::string name = s;
+        if (s.find("::") != std::string::npos) {
+          nspace = s.substr(0 , s.find_first_of(":"));
+          OE_DEBUG("Editor script from namespace {}" , nspace);
+
+          name = s.substr(s.find_last_of(":") + 1 , s.length() - nspace.length() - 2);
+          OE_DEBUG(" > with name {}" , name);
+        }
+
+        Ref<ScriptObject> inst = mod->GetScriptObject(name , nspace);
+        OE_ASSERT(inst != nullptr , "Failed to get script {} from script module {}" , s , obj);
+        std::string case_ins_name;
+        std::transform(s.begin() , s.end() , std::back_inserter(case_ins_name) , ::toupper);
+
+        UUID id = FNV(case_ins_name);
+        res.data[id] = ScriptObjectData{
+          .module = obj ,
+          .obj_name = s ,
+        };
+        Ref<ScriptObject>& obj = res.scripts[id] = inst;
+        obj->OnBehaviorLoad();
+      }
+    }
+
+    return res;
   }
 
 } // namespace other

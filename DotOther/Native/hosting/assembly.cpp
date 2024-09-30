@@ -95,12 +95,13 @@ namespace dotother {
   ref<Assembly> AssemblyContext::LoadAssembly(const std::string_view path) {
     NString filepath = NString::New(path);
     std::filesystem::path p = (std::string)filepath;
+
     if (!std::filesystem::exists(p)) {
       NString::Free(filepath);
       util::print(DO_STR("AssemblyContext::LoadAssembly({}) => file does not exist!"), MessageLevel::ERR , path);
       return nullptr;
     } else {
-      util::print(DO_STR("AssemblyContext::LoadAssembly({}) => file exists"), MessageLevel::DEBUG , path);
+      util::print(DO_STR(" > AssemblyContext::LoadAssembly({}) => file exists"), MessageLevel::INFO , path);
     }
 
     size_t idx = assemblies.size();
@@ -114,7 +115,7 @@ namespace dotother {
       util::print(DO_STR("Failed to load assembly file: {}"), MessageLevel::ERR , path);
       return nullptr;
     } else {
-      util::print(DO_STR("Assembly loaded successfully!"), MessageLevel::INFO);
+      util::print(DO_STR(" > Assembly loaded successfully!"), MessageLevel::INFO);
     }
 
     assembly->load_status = Interop().get_last_load_status();
@@ -123,29 +124,33 @@ namespace dotother {
       assemblies.pop_back();
       util::print(DO_STR("Failed to load assembly file: {}"), MessageLevel::ERR, path);
       return nullptr;
+    } else {
+      util::print(DO_STR(" > Assembly file loaded successfully!"), MessageLevel::INFO);
     }
 
     if (assembly->load_status == AssemblyLoadStatus::SUCCESS) {
       auto asm_name = Interop().get_assembly_name(assembly->asm_id);
       assembly->name = asm_name;
       NString::Free(asm_name);
-      util::print(DO_STR("Assembly loaded successfully! {}"), MessageLevel::INFO, assembly->name);
+      util::print(DO_STR(" > Assembly loaded successfully! {}"), MessageLevel::INFO, assembly->name);
 
       int32_t type_counter = 0;
       Interop().get_asm_types(assembly->asm_id, nullptr, &type_counter);
 
-      util::print(DO_STR("Loading [{}] types"), MessageLevel::INFO, type_counter);
+      util::print(DO_STR(" > Loading [{}] types"), MessageLevel::INFO, type_counter);
       
       std::vector<int32_t> type_ids(type_counter);
       Interop().get_asm_types(assembly->asm_id, type_ids.data(), &type_counter);
 
       for (auto id : type_ids) {
-        util::print(DO_STR("Loading type with ID: {}"), MessageLevel::INFO , id);
+        util::print(DO_STR(" > Loading type with ID: {}"), MessageLevel::INFO , id);
 
         Type type(id);
         auto t = assembly->types.emplace_back(TypeCache::Instance().CacheType(std::move(type)));
         util::print(DO_STR("  > Type loaded: {}"), MessageLevel::INFO, t->FullName());
       }
+    } else {
+      util::print(DO_STR("Failed to load assembly file: {} \n\t STATUS : [{}]"), MessageLevel::ERR, path , assembly->load_status);
     }
 
     NString::Free(filepath);
