@@ -4,10 +4,12 @@
 #include "scripting/script_engine.hpp"
 
 #include <spdlog/cfg/helpers.h>
+#include <string_view>
 
 #include "core/logger.hpp"
 #include "core/config_keys.hpp"
 
+#include "script_object.hpp"
 #include "scripting/language_module.hpp"
 #include "scripting/script_defines.hpp"
 
@@ -140,15 +142,15 @@ namespace other {
     return object_tags;
   }
   
-  ScriptModule* ScriptEngine::GetScriptModule(const std::string_view name) {
-    auto* smod = GetScriptModule(FNV(name));
+  Ref<ScriptModule> ScriptEngine::GetScriptModule(const std::string_view name) {
+    Ref<ScriptModule> smod = GetScriptModule(FNV(name));
     if (smod == nullptr) {
       OE_WARN("Failed to retrieve script module {}" , name); 
     }
     return smod;
   }
 
-  ScriptModule* ScriptEngine::GetScriptModule(UUID id) {
+  Ref<ScriptModule> ScriptEngine::GetScriptModule(UUID id) {
     auto itr = std::find_if(loaded_modules.begin() , loaded_modules.end() , [&](const auto& module) -> bool {
       return module.first == id;
     });
@@ -158,7 +160,7 @@ namespace other {
 
     for (auto& [lid , lang] : language_modules) {
       if (lang.module->HasScript(id)) {
-        ScriptModule* mod = lang.module->GetScriptModule(id);
+        Ref<ScriptModule> mod = lang.module->GetScriptModule(id);
         OE_ASSERT(mod != nullptr , "Failed to retrieve script module from language module");
 
         if (!mod->IsValid()) {
@@ -173,8 +175,8 @@ namespace other {
 
     return nullptr;
   }
-      
-  ScriptObject* ScriptEngine::GetScriptObject(UUID id) {
+  
+  Ref<ScriptObject> ScriptEngine::GetScriptObject(UUID id) {
     auto itr = objects.find(id);
     if (itr != objects.end()) {
       return itr->second.Raw();
@@ -183,115 +185,153 @@ namespace other {
     return nullptr;
   }
       
-  ScriptObject* ScriptEngine::GetScriptObject(const std::string_view name) {
-    std::string search_name{ name };
-    std::string name_space = "";
-    if (search_name.find("::") != std::string::npos) {
-      auto colon = search_name.find_first_of(':');
-      auto second_colon = search_name.find_last_of(':');
+  Ref<ScriptObject> ScriptEngine::GetScriptObject(const std::string_view name , const std::string_view nspace) {
+    std::string search_name = std::string{ name };
+    std::string search_nspace = std::string{ nspace };
 
-      name_space = search_name.substr(0 , colon);
-      search_name = search_name.substr(second_colon + 1 , search_name.length() - name_space.length() + 2);
+    if (nspace.empty()) {
+      const auto [sname , nspace] = ParseScriptName(name);
+      search_name = sname;
+      search_nspace = nspace;
     }
 
-    OE_DEBUG("Getting object {}::{}" , name_space , search_name);
-
-    return GetScriptObject(search_name , name_space);
+    OE_DEBUG("Getting object {}::{}" , search_nspace , search_name);
+    return GetScriptObject(search_name , search_nspace , Ref<ScriptModule>{ nullptr });
   }
-      
-  ScriptObject* ScriptEngine::GetScriptObject(const std::string_view name , const std::string_view nspace , const std::string_view mod_name) {
+
+  Ref<ScriptObject> ScriptEngine::GetScriptObject(const std::string_view name , const std::string_view nspace , const std::string_view mod_name) {
     if (mod_name.empty()) {
-      return GetScriptObject(name , nspace , nullptr);
+      return GetScriptObject(name , nspace , Ref<ScriptModule>{ nullptr });
     }
 
-    ScriptModule* mod = GetScriptModule(mod_name);
+    Ref<ScriptModule> mod = GetScriptModule(mod_name);
+    /// if its null we have the equivalent of the above case so we don't need to return cause we might still find the object
     if (mod == nullptr) {
       OE_ERROR("Failed to retrireve script module : {}" , mod_name);
-      return nullptr;
+      OE_WARN("Falling back to loaded modules");
     }
 
     return GetScriptObject(name , nspace , mod);
   }
       
-  ScriptObject* ScriptEngine::GetScriptObject(const std::string_view name , const std::string_view nspace , ScriptModule* module) {
+  Ref<ScriptObject> ScriptEngine::GetScriptObject(const std::string_view name , const std::string_view nspace , Ref<LanguageModule> module) {
+    if (module == nullptr) {
+      OE_ERROR("ScriptEngine::GetScriptObject({}.{} [NULL LANGUAGE MODULE])" , nspace , name);
+      return nullptr;
+    }
+
     UUID id = FNV(name);
-    // ScriptObject* check_loaded = GetScriptObject(id);
-    // if (check_loaded != nullptr) {
-    //   check_loaded->InitializeScriptFields();
-    //   check_loaded->InitializeScriptMethods();
-    //   return check_loaded;
-    // }
+    auto check_loaded = objects.find(id);
+    if (check_loaded != objects.end()) {
+      auto& obj = check_loaded->second;
+      obj->InitializeScriptFields();
+      obj->InitializeScriptMethods();
+      return obj;
+    }
 
-    // bool script_in_mod = module != nullptr;
+    OE_DEBUG("Searching for {}::{} in module {}" , nspace , name , module->GetModuleName());
+    for (auto& [id , mod] : module->GetModules()) {
+      if (mod->HasScript(name , nspace)) {
+        Ref<ScriptObject> obj = mod->GetScriptObject(std::string{ name } , std::string{ nspace });
+        if (obj == nullptr) {
+          OE_ERROR("Failed to retrieve script object {}::{} from module {} (module corrupted)" , nspace , name , module->GetModuleName());
+          return nullptr;
+        }
 
-    // /// if there is a module
-    // if (script_in_mod) {
-    //   /// check if the script is in the module
-    //   script_in_mod = module->HasScript(name , nspace);
-    // }
+        UUID id = FNV(name);
+        objects[id] = obj;
+        obj->InitializeScriptFields();
+        obj->InitializeScriptMethods();
+        obj->OnBehaviorLoad();
+        return obj;
+      }
+    }
 
-    // /// script_in_mod can only be true here if the module is not null and the script is in the module
-    // if (script_in_mod) {
-    //   auto* obj =  module->GetScriptObject(std::string{ name } , std::string{ nspace });
-    //   if (obj == nullptr) {
-    //     OE_ERROR("Failed to retrieve script object {}::{} from module {} (module corrupted)" , nspace , name , module->ModuleName());
-    //     return nullptr;
-    //   }
+    OE_ERROR("ScriptEngine::GetScriptObject({}.{} [{} : {}])" , nspace , name, module->GetLanguageType() , module->GetModuleName());
+    return nullptr;
+  }
 
-    //   UUID id = FNV(name);
-    //   objects[id] = obj;
-    //   return obj;
-    // }
-    // /// if module is not null and its not in there bail early
-    // else if (module != nullptr) {
-    //   OE_ERROR("Failed to find script object {}::{} in module {}" , nspace , name , module->ModuleName());
-    //   return nullptr;
-    // }
+  Ref<ScriptObject> ScriptEngine::GetScriptObject(const std::string_view name , const std::string_view nspace , Ref<ScriptModule> module) {
+    UUID id = FNV(name);
+    auto check_loaded = objects.find(id);
+    if (check_loaded != objects.end()) {
+      auto& obj = check_loaded->second;
+      obj->InitializeScriptFields();
+      obj->InitializeScriptMethods();
+      return obj;
+    }
+
+    /// if there is a module check if the script is in the module
+    bool script_in_mod = module != nullptr;
+    if (script_in_mod) {
+      script_in_mod = module->HasScript(name , nspace);
+    }
+
+    /// if the script is in the module grab it
+    if (script_in_mod) {
+      Ref<ScriptObject> obj =  module->GetScriptObject(std::string{ name } , std::string{ nspace });
+      if (obj == nullptr) {
+        OE_ERROR("Failed to retrieve script object {}::{} from module {} (module corrupted)" , nspace , name , module->ModuleName());
+        return nullptr;
+      }
+
+      UUID id = FNV(name);
+      objects[id] = obj;
+      return obj;
+    }
+
+    /// not possible, hard assert if here 
+    else if (module != nullptr) {
+      OE_ASSERT(false, "Failed to find script object {}::{} in module {}" , nspace , name , module->ModuleName());
+      return nullptr;
+    }
     
-    // /// else search the rest of the modules
-    // ScriptObject* obj = nullptr;
+    /// else search the rest of the modules
+    ///  - first check modules that have been accessed before since they are more likely to be used
+    ///  - then check the rest of the modules, caching the one the one accessed
+    // Ref<ScriptObject> obj = nullptr;
+    for (auto& [id , mod] : loaded_modules) {
+      if (mod->HasScript(name , nspace)) {
+        Ref<ScriptObject> obj = mod->GetScriptObject(std::string{ name } , std::string{ nspace });
+        if (obj == nullptr) {
+          OE_ERROR("Failed to retrieve script object {}::{} from module {} (module corrupted)" , nspace , name , module->ModuleName());
+          return nullptr;
+        } else {
+          OE_DEBUG("Retrieved {}::{}" , nspace , name);
+        }
 
-    // /// first check modules already loaded/grabbed by client at some point
-    // for (auto& [id , mod] : loaded_modules) {
-    //   if (mod->HasScript(name , nspace)) {
-    //     obj = mod->GetScriptObject(std::string{ name } , std::string{ nspace });
-    //     if (obj == nullptr) {
-    //       OE_ERROR("Failed to retrieve script object {}::{} from module {} (module corrupted)" , nspace , name , module->ModuleName());
-    //       return nullptr;
-    //     } else {
-    //       OE_DEBUG("Retrieved {}::{}" , nspace , name);
-    //     }
+        UUID id = FNV(name);
+        objects[id] = obj;
+        /// bail early if we find the object
+        obj->InitializeScriptFields();
+        obj->InitializeScriptMethods();
+        obj->OnBehaviorLoad();
+        return obj;
+      }
+    }
 
-    //     UUID id = FNV(name);
-    //     objects[id] = obj;
-    //   }
-    // }
+    for (auto& [lid , lang] : language_modules) {
+      for (auto& [sid , script] : lang.module->GetModules()) {
+        if (script->HasScript(std::string{ name } , std::string{ nspace })) {
+          loaded_modules[sid] = script;
 
-    // for (auto& [lid , lang] : language_modules) {
-    //   for (auto& [sid , script] : lang.module->GetModules()) {
-    //     if (script->HasScript(std::string{ name } , std::string{ nspace })) {
-    //       loaded_modules[sid] = script;
-    //       obj = script->GetScriptObject(std::string{ name } , std::string{ nspace });
+          Ref<ScriptObject> obj = script->GetScriptObject(std::string{ name } , std::string{ nspace });
+          if (obj == nullptr) {
+            OE_ERROR("Failed to retrieve script object {}::{} from module {} (module corrupted)" , nspace , name , module->ModuleName());
+            return nullptr;
+          } else {
+            OE_DEBUG("Retrieved {}::{}" , nspace , name);
+          }
 
-    //       if (obj == nullptr) {
-    //         OE_ERROR("Failed to retrieve script object {}::{} from module {} (module corrupted)" , nspace , name , module->ModuleName());
-    //         return nullptr;
-    //       } else {
-    //         OE_DEBUG("Retrieved {}::{}" , nspace , name);
-    //       }
-
-    //       UUID id = FNV(name);
-    //       objects[id] = obj;
-    //     }
-    //   }
-    // }
-
-    // if (obj != nullptr) {
-    //   obj->InitializeScriptFields();
-    //   obj->InitializeScriptMethods();
-    //   obj->OnBehaviorLoad();
-    //   return obj;
-    // }
+          UUID id = FNV(name);
+          objects[id] = obj;
+          obj->InitializeScriptFields();
+          obj->InitializeScriptMethods();
+          obj->OnBehaviorLoad();
+          return obj;
+        }
+      }
+    }
 
     OE_ERROR("ScriptEngine::GetScriptObject({}.{} [{}])" , nspace , name, module->GetLanguage());
     return nullptr;
@@ -439,7 +479,7 @@ namespace other {
     for (const auto& obj : objects) {
       auto scripts = table.Get(section , obj);
 
-      ScriptModule* mod = GetScriptModule(obj);
+      Ref<ScriptModule> mod = GetScriptModule(obj);
       OE_ASSERT(mod != nullptr , "Failed to get script module {}" , obj);
 
       for (auto& s : scripts) {
@@ -471,6 +511,25 @@ namespace other {
     }
 
     return res;
+  }
+
+  std::pair<std::string , std::string> ScriptEngine::ParseScriptName(const std::string_view full_name) {
+    std::string name = std::string{ full_name };
+    std::optional<std::string> name_space = std::nullopt;
+
+    if (full_name.find("::") != std::string::npos) {
+      auto colon = full_name.find_first_of(':');
+      auto second_colon = full_name.find_last_of(':');
+
+      name_space = full_name.substr(0 , colon);
+      name = full_name.substr(second_colon + 1 , full_name.length() - name_space->length() + 2);
+    } else if (full_name.find(".") != std::string::npos) {
+      auto dot = full_name.find_first_of('.');
+      name_space = full_name.substr(0 , dot);
+      name = full_name.substr(dot + 1 , full_name.length() - name_space->length() + 2);
+    }
+
+    return { name , name_space.value_or("") };
   }
 
 } // namespace other

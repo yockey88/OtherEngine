@@ -307,7 +307,7 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
   void EditorLayer::OnScriptReload() {
     editor_scripts.scripts.clear();
     for (const auto& [id , info] : editor_scripts.data) {
-      ScriptModule* mod = ScriptEngine::GetScriptModule(info.module);
+      Ref<ScriptModule> mod = ScriptEngine::GetScriptModule(info.module);
       if (mod == nullptr) {
         OE_ERROR("Failed to find editor scripting module {} [{}]" , info.module , FNV(info.module));
         continue;

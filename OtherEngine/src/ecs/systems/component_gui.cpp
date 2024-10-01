@@ -345,9 +345,9 @@ namespace other {
 
       Ref<ScriptObject> inst = nullptr;
       if (nspace.has_value()) {
-        inst = ScriptEngine::GetScriptObject(nspace.value() + "::" + name);
+        inst = ScriptEngine::GetScriptObject(nspace.value() + "::" + name , "");
       } else {
-        inst = ScriptEngine::GetScriptObject(name);
+        inst = ScriptEngine::GetScriptObject(name , "");
       }
 
       if (inst == nullptr) {

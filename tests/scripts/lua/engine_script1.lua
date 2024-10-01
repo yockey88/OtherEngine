@@ -11,3 +11,10 @@ Other = {
   } ,
 
 }
+
+TestScript2 = {
+  test = function()
+    io.write("TestScript2.test()\n")
+    return "TestScript2.test()"
+  end
+}

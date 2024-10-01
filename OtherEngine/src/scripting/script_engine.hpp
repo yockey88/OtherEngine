@@ -17,8 +17,10 @@
 #include "scripting/script_defines.hpp"
 #include "scripting/language_module.hpp"
 #include "scripting/cs/cs_module.hpp"
+#include "scripting/cs/cs_object.hpp"
 #include "scripting/lua/lua_module.hpp"
 #include "scripting/script_module.hpp"
+#include "scripting/script_object.hpp"
 
 namespace other {
   
@@ -30,10 +32,22 @@ namespace other {
 
   template <typename T> 
     requires lang_module_t<T>
-  LanguageModuleType ModuleTypeFromStaticType() {
+  LanguageModuleType ModuleTypeFromModStaticType() {
     if constexpr (std::is_same_v<T , LuaModule>) {
       return LanguageModuleType::LUA_MODULE;
     } else if constexpr (std::is_same_v<T , CsModule>) {
+      return LanguageModuleType::CS_MODULE;
+    } else {
+      return LanguageModuleType::INVALID_LANGUAGE_MODULE;
+    }
+  }
+
+  template <typename T> 
+    requires lang_module_t<T>
+  LanguageModuleType ModuleTypeFromObjStaticType() {
+    if constexpr (std::is_same_v<T , LuaObject>) {
+      return LanguageModuleType::LUA_MODULE;
+    } else if constexpr (std::is_same_v<T , CsObject>) {
       return LanguageModuleType::CS_MODULE;
     } else {
       return LanguageModuleType::INVALID_LANGUAGE_MODULE;
@@ -54,13 +68,36 @@ namespace other {
 
       static Ref<LanguageModule> GetModule(LanguageModuleType type);
       
-      static ScriptModule* GetScriptModule(const std::string_view name);
-      static ScriptModule* GetScriptModule(UUID id);
+      static Ref<ScriptModule> GetScriptModule(const std::string_view name);
+      static Ref<ScriptModule> GetScriptModule(UUID id);
 
-      static ScriptObject* GetScriptObject(UUID id);
-      static ScriptObject* GetScriptObject(const std::string_view name);
-      static ScriptObject* GetScriptObject(const std::string_view name , const std::string_view nspace , const std::string_view mod_name = "");
-      static ScriptObject* GetScriptObject(const std::string_view name , const std::string_view nspace , ScriptModule* module);
+      static Ref<ScriptObject> GetScriptObject(UUID id);
+      static Ref<ScriptObject> GetScriptObject(const std::string_view name , const std::string_view nspace);
+      static Ref<ScriptObject> GetScriptObject(const std::string_view name , const std::string_view nspace , const std::string_view mod_name);
+
+      template <script_object_t SO>
+      static ScriptRef<SO> GetScriptObject(const std::string_view name) {
+        const auto [search_name , name_space] = ParseScriptName(name);
+        LanguageModuleType type = ModuleTypeFromObjStaticType<SO>();
+
+        OE_DEBUG("Getting object {}::{} [{}]" , name_space , search_name , type);
+        if (type == LanguageModuleType::INVALID_LANGUAGE_MODULE) {
+          OE_ASSERT(false , "Failed to get module type for script object {}::{}" , name_space , name);
+          return nullptr;
+        }
+        
+        Ref<ScriptObject> obj = GetScriptObject(search_name , name_space , language_modules[type].module);
+        if (obj == nullptr) {
+          OE_ERROR("Failed to get script object {}::{} [{}]" , name_space , search_name , type);
+          return nullptr;
+        }
+
+        return Ref<ScriptObject>::Cast<SO>(obj);
+      }
+
+      static Ref<ScriptObject> GetScriptObject(const std::string_view name , const std::string_view nspace , Ref<LanguageModule> module);
+      static Ref<ScriptObject> GetScriptObject(const std::string_view name , const std::string_view nspace , Ref<ScriptModule> module);
+      
       static const std::map<UUID , Ref<ScriptObject>>& ReadLoadedObjects();
 
       static void SetSceneContext(const Ref<Scene>& scene);
@@ -103,6 +140,8 @@ namespace other {
       static void LoadScriptModule(Path& module_path);
 
       static Script CollectObjects(const ConfigTable& table , const std::vector<std::string>& objects , const std::string_view section);
+
+      static std::pair<std::string , std::string> ParseScriptName(const std::string_view name);
   };
 
 } // namespace other

@@ -219,7 +219,7 @@ namespace other {
           std::string script_name{ static_cast<const char*>(payload->Data) };
 
 
-          ScriptObject* script = ScriptEngine::GetScriptObject(script_name);
+          Ref<ScriptObject> script = ScriptEngine::GetScriptObject(script_name , "");
           if (selection->HasComponent<Script>()) {
             auto& scripts = selection->GetComponent<Script>();
 

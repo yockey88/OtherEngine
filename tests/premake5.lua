@@ -1,4 +1,5 @@
 include "./sandbox_scripts/premake5.lua"
+include "./scripts/premake5.lua"
 
 local sandbox = {
   name = "sandbox",

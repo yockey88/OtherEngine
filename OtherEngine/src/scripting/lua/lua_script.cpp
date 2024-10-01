@@ -30,27 +30,12 @@ namespace other {
 
     try {
       lua_state.set_exception_handler(LuaExceptionHandler);
+      lua_state.open_libraries(sol::lib::base , sol::lib::io);
+
       sol::function_result res = lua_state.safe_script_file(path);
       if (!res.valid()) {
         OE_ERROR("Failed to load lua script file {}" , path);
         return;
-      }
-
-      std::vector<std::string> names;
-      const auto& globals = lua_state.globals();
-      for (auto& [id , g] : globals) {
-        std::string name = id.as<std::string>();
-
-        if (name.find("sol.") != std::string::npos) {
-          continue; 
-        }
-
-        if (g.get_type() != sol::type::table) {
-          continue;
-        }
-
-        OE_DEBUG("Lua Object : {}" , name);
-        loaded_tables.push_back(name);
       }
 
       lua_script_bindings::BindAll(lua_state);

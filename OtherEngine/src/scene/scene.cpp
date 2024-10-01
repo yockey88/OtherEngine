@@ -30,6 +30,7 @@
 #include "rendering/model.hpp"
 #include "rendering/model_factory.hpp"
 #include "scripting/script_engine.hpp"
+#include "scripting/cs/cs_object.hpp"
 
 namespace other {
 
@@ -108,25 +109,27 @@ namespace other {
   void Scene::Initialize() {
     FixRoots();
 
-    bool cs_mod_found = false;
+    // Ref<ScriptObjectHandle<CsObject>> scene_object = ScriptEngine::GetScriptObject<CsObject>("Other::Scene");
 
-    auto cs_module = ScriptEngine::GetModule(CS_MODULE);
-    if (cs_module == nullptr) {
-      OE_ERROR("Failed to retrieve ScriptEngine for scene initialization");
-    } else {
-      cs_mod_found = true;
-    }
+    // bool cs_mod_found = false;
 
-    ScriptModule* cs_core = nullptr;
-    if (cs_mod_found) {
-      cs_core = cs_module->GetScriptModule("OtherEngine.CsCore");
-      if (cs_core == nullptr) {
-        OE_ERROR("Failed to retrieve C# core script from ScriptEngine");
-        cs_mod_found = false;
-      }
-    }
+    // auto cs_module = ScriptEngine::GetModule(CS_MODULE);
+    // if (cs_module == nullptr) {
+    //   OE_ERROR("Failed to retrieve ScriptEngine for scene initialization");
+    // } else {
+    //   cs_mod_found = true;
+    // }
 
-    if (cs_mod_found) {
+    // ScriptModule* cs_core = nullptr;
+    // if (cs_mod_found) {
+    //   cs_core = cs_module->GetScriptModule("OtherEngine.CsCore");
+    //   if (cs_core == nullptr) {
+    //     OE_ERROR("Failed to retrieve C# core script from ScriptEngine");
+    //     cs_mod_found = false;
+    //   }
+    // }
+
+    // if (cs_mod_found) {
       // scene_object = cs_core->GetScriptObject("Scene" , "Other");
       // if (scene_object == nullptr) {
       //   OE_ERROR("Failed to retrieve scene interface from C# script core!");
@@ -140,7 +143,7 @@ namespace other {
       //     obj->Initialize();
       //   }
       // });
-    }
+    // }
     
     RefreshCameraTransforms();
 

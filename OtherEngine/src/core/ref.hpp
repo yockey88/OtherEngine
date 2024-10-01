@@ -5,6 +5,7 @@
 #define OTHER_ENGINE_REF_HPP
 
 #include <concepts>
+#include <type_traits>
 
 #include "core/errors.hpp"
 #include "core/ref_counted.hpp"
@@ -17,6 +18,9 @@ namespace detail {
   bool IsValidRef(void* instance);
 
 } // namespace detail
+
+  template <typename T , typename U>
+  concept RefCastable = std::is_convertible_v<T, U> || std::is_base_of_v<T, U>;
 
   template <typename T>
   class Ref {
@@ -114,29 +118,36 @@ namespace detail {
       }
 
       template <typename U>
+        requires RefCastable<T , U>
       Ref<U> As() const {
         return Ref<U>(*this);
       }
 
       template <typename U>
+        requires RefCastable<T , U>
       static Ref<U> Cast(Ref<T>& old_ref) {
-        static_assert(std::is_base_of_v<RefCounted , U> , "Cannot cast a reference to a non-refcounted object");
         return Ref<U>(reinterpret_cast<U*>(old_ref.object));
       }
 
       template <typename U>
+        requires RefCastable<T , U>
       static Ref<T> Clone(const Ref<U>& old_ref) {
         if constexpr (std::same_as<T , U>) {
           return Ref<T>(old_ref);
         } else {
-          throw InvalidRefCast(typeid(T) , typeid(U));
+          return Ref<T>(reinterpret_cast<T*>(old_ref.object));
         }
+
+        /// Unreachable
+        throw InvalidRefCast(typeid(T) , typeid(U));
       }
 
       template <typename... Args>
+        requires requires (Args&&... args) {
+          requires std::is_base_of_v<RefCounted , T>;
+          requires std::is_constructible_v<T , Args...>;
+        }
       static Ref<T> Create(Args&&... args) {
-        static_assert(std::is_constructible_v<T , Args...> , "Cannot construct a reference from given arguments");
-        static_assert(std::is_base_of_v<RefCounted , T> , "Cannot create a reference to a non-refcounted object");
         return Ref<T>(new T(std::forward<Args>(args)...));
       }
 
@@ -179,9 +190,11 @@ namespace detail {
   };
 
   template <typename T , typename... Args>
+    requires requires (Args&&... args) {
+      requires std::is_base_of_v<RefCounted , T>;
+      requires std::is_constructible_v<T , Args...>;
+    }
   Ref<T> NewRef(Args&&... args) {
-    static_assert(std::is_constructible_v<T , Args...> , "Cannot construct a reference from given arguments");
-    static_assert(std::is_base_of_v<RefCounted , T> , "Cannot create a reference to a non-refcounted object");
     return Ref<T>::Create(std::forward<Args>(args)...);
   }
 

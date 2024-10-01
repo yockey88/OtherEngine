@@ -41,7 +41,7 @@ namespace other {
         for (auto& s : scripts) {
           OE_DEBUG("Attaching {} to {}" , s , entity->Name());
 
-          ScriptObject* inst = ScriptEngine::GetScriptObject(s);
+          Ref<ScriptObject> inst = ScriptEngine::GetScriptObject(s , "");
           if (inst == nullptr) {
             OE_ERROR("Failed to get script {} from script module {}" , s , m);
             continue;

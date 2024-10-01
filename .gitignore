@@ -24,6 +24,7 @@ DotOther/Tests/Managed/bin
 DotOther/Tests/Managed/obj
 OtherEngine-ScriptCore/cs/obj
 tests/sandbox_scripts/obj
+tests/scripts/obj
 yockcraft/yockcraft_modules/obj
 
 ## C# stuff

@@ -176,6 +176,9 @@ namespace other {
     return Ref<ScriptObjectHandle<T>>(static_cast<ScriptObjectHandle<T>*>(this));
   }
 
+  template <typename T>
+  using ScriptRef = Ref<ScriptObjectHandle<T>>;
+
 } // namespace other
 
 #endif // !OTHER_ENGINE_SCRIPT_OBJECT_HPP
