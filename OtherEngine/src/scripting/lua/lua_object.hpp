@@ -14,8 +14,8 @@ namespace other {
   class LuaObject : public ScriptObjectHandle<LuaObject> {
     public:
     
-      LuaObject(ScriptModule* module , UUID handle , const std::string& module_name , const std::string& name , sol::state* script_state , sol::table& object) 
-            : ScriptObjectHandle(LanguageModuleType::LUA_MODULE , module , handle , module_name , name) , 
+      LuaObject(ScriptModule* module , UUID handle , const std::string& name , sol::state* script_state , sol::table& object) 
+            : ScriptObjectHandle(LanguageModuleType::LUA_MODULE , module , handle , name) , 
               state(script_state) , object(std::move(object)) {}
       virtual ~LuaObject() override {}
       

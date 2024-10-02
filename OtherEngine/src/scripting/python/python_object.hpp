@@ -12,8 +12,8 @@ namespace other {
 
   class PythonObject : public ScriptObject {
     public:
-      PythonObject(ScriptModule* module , UUID handle , const std::string& instance_name, const std::string& name)
-        : ScriptObject(LanguageModuleType::PYTHON_MODULE , module , handle , instance_name , name) {}
+      PythonObject(ScriptModule* module , UUID handle , const std::string& instance_name)
+        : ScriptObject(LanguageModuleType::PYTHON_MODULE , module , handle , instance_name) {}
       virtual ~PythonObject() override {}
 
       template <typename R , typename... Args>

@@ -140,7 +140,7 @@ namespace other {
       } else {
         real_name = fmtstr("{}.{}" , nspace , name);
       }
-      obj = NewRef<LuaObject>(this , id , module_name , real_name , &lua_state , object);
+      obj = NewRef<LuaObject>(this , id , real_name , &lua_state , object);
     }
 
     if (obj == nullptr) {

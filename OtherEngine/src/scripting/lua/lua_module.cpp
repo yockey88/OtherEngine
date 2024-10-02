@@ -13,14 +13,15 @@
 
 namespace other {
 
-  LuaScript* LuaModule::GetRawScriptHandle(const std::string_view name) {
+  Ref<LuaScript> LuaModule::GetRawScriptHandle(const std::string_view name) {
     UUID id = FNV(name);
-    auto* module = GetScriptModule(id);
+    Ref<ScriptModule> module = GetScriptModule(id);
     if (module == nullptr) {
       OE_ERROR("Script module {} not found" , name);
+      return nullptr;
     }
 
-    return static_cast<LuaScript*>(module);
+    return Ref<ScriptModule>::Cast<LuaScript>(module);
   }
 
   bool LuaModule::Initialize() {
@@ -53,12 +54,12 @@ namespace other {
     load_success = true;
   }
 
-  ScriptModule* LuaModule::GetScriptModule(const std::string& name) {
+  Ref<ScriptModule> LuaModule::GetScriptModule(const std::string& name) {
     std::string case_ins_name;
     std::transform(name.begin() , name.end() , std::back_inserter(case_ins_name) , ::toupper);
 
     UUID id = FNV(case_ins_name);
-    auto* module = GetScriptModule(id);
+    Ref<ScriptModule> module = GetScriptModule(id);
     if (module == nullptr) {
       OE_ERROR("Script module {} not found" , name);
     }
@@ -66,17 +67,17 @@ namespace other {
     return module;
   }
 
-  ScriptModule* LuaModule::GetScriptModule(const UUID& id) {
+  Ref<ScriptModule> LuaModule::GetScriptModule(const UUID& id) {
     auto itr = loaded_modules.find(id);
     if (itr != loaded_modules.end()) {
-      return itr->second.Raw();
+      return itr->second;
     }
 
     OE_ERROR("Script module {} not found" , id);
     return nullptr;
   }
 
-  ScriptModule* LuaModule::LoadScriptModule(const ScriptMetadata& module_info) {
+  Ref<ScriptModule> LuaModule::LoadScriptModule(const ScriptMetadata& module_info) {
     if (module_info.paths.size() < 1) {
       OE_ERROR("Attempting to create lua script from empty module data");
       return nullptr;
@@ -110,7 +111,7 @@ namespace other {
     
     loaded_modules_data[id] = module_info;
 
-    return loaded_modules[id].Raw();
+    return loaded_modules[id];
   }
 
   void LuaModule::UnloadScript(const std::string& name) {

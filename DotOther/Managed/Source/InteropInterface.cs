@@ -195,6 +195,7 @@ namespace DotOther.Managed {
 
 				return type.FullName;
 			} catch (Exception ex) {
+				LogMessage($"Failed to get full type name for type {type_id} : StackTrace: {ex.StackTrace}\n", MessageLevel.Error);
 				HandleException(ex);
 				return NString.Null();
 			}

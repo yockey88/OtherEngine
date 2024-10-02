@@ -8,6 +8,7 @@
 
 #include "mock_app.hpp"
 
+#include "core/defines.hpp"
 #include "application/app_state.hpp"
 #include "scripting/cs/cs_object.hpp"
 #include "scripting/script_defines.hpp"
@@ -38,34 +39,63 @@ bool CheckNumScripts(uint32_t cs , uint32_t lua , uint32_t python);
 TEST_F(ScriptEngineTests , load_project_modules) {
   /// no python module 
   ASSERT_EQ(ScriptEngine::GetModules().size() , 2);
-  ASSERT_TRUE(CheckNumScripts(1 , 0 , 0));
+  ASSERT_TRUE(CheckNumScripts(0 , 0 , 0));
 
   ASSERT_NO_FATAL_FAILURE(ScriptEngine::LoadProjectModules());
   ASSERT_TRUE(CheckNumScripts(2 , 0 , 0));
+  
+  for (auto& [id , module] : ScriptEngine::GetModules()) {
+    println(" > {}"sv , module.module->GetModuleName());
+    for (auto& [id , script] : module.module->GetModules()) {
+      println("   - {}"sv , script->ModuleName());
+    }
+  }
 
   ASSERT_NO_FATAL_FAILURE(ScriptEngine::UnloadProjectModules());
+  ASSERT_TRUE(CheckNumScripts(0 , 0 , 0));
 }
 
 TEST_F(ScriptEngineTests , dynamic_add_project_modules) {
   /// CsCore and no lua scripts
+  ASSERT_TRUE(CheckNumScripts(0 , 0 , 0));
+
+  ScriptEngine::GetModule(CS_MODULE)->LoadScriptModule({
+    .name = "OtherEngine.CsCore" ,
+    .paths = { "./bin/Debug/OtherEngine-CsCore/net8.0/OtherEngine-CsCore.dll" } ,
+  });
   ASSERT_TRUE(CheckNumScripts(1 , 0 , 0));
 
   ScriptEngine::GetModule(CS_MODULE)->LoadScriptModule({
     .name = "SandboxScripts" ,
     .paths = { "./bin/Debug/SandboxScripts/net8.0/SandboxScripts.dll" } ,
   });
-
   ASSERT_TRUE(CheckNumScripts(2 , 0 , 0));
 
   ScriptEngine::GetModule(CS_MODULE)->UnloadScript("SandboxScripts");
   ASSERT_TRUE(CheckNumScripts(1 , 0 , 0));
+
+  ScriptEngine::GetModule(LUA_MODULE)->LoadScriptModule({
+    .name = "SandboxLua" ,
+    .paths = { "lua/engine_script1.lua" } ,
+  });
+  ASSERT_TRUE(CheckNumScripts(1 , 1 , 0));
+
+  ScriptEngine::GetModule(CS_MODULE)->UnloadScript("OtherEngine.CsCore");
+  ScriptEngine::GetModule(LUA_MODULE)->UnloadScript("SandboxLua");
+  ASSERT_TRUE(CheckNumScripts(0 , 0 , 0));
+
+  // ASSERT_NO_FATAL_FAILURE(ScriptEngine::LoadProjectModules());
+  // ASSERT_TRUE(CheckNumScripts(2 , 1 , 0));
+
+  // ASSERT_NO_FATAL_FAILURE(ScriptEngine::UnloadProjectModules());
+  // ASSERT_TRUE(CheckNumScripts(0 , 0 , 0));
 }
 
 TEST_F(ScriptEngineTests , script_object) {
   ASSERT_NO_FATAL_FAILURE(ScriptEngine::LoadProjectModules());
   ASSERT_TRUE(CheckNumScripts(2 , 0 , 0));
 
-  ScriptModule* sandbox = ScriptEngine::GetModule(CS_MODULE)->GetScriptModule("SandboxScripts");
+  Ref<ScriptModule> sandbox = ScriptEngine::GetModule(CS_MODULE)->GetScriptModule("SandboxScripts");
   ASSERT_NE(sandbox , nullptr);
 
   Ref<other::CsObject> obj = sandbox->GetScriptObject<other::CsObject>("TestScript" , "Other");
@@ -79,7 +109,7 @@ TEST_F(ScriptEngineTests , script_object) {
   });
   ASSERT_TRUE(CheckNumScripts(2 , 1 , 0));
 
-  ScriptModule* lua_sandbox = ScriptEngine::GetModule(LUA_MODULE)->GetScriptModule("SandboxLua");
+  Ref<ScriptModule> lua_sandbox = ScriptEngine::GetModule(LUA_MODULE)->GetScriptModule("SandboxLua");
   ASSERT_NE(lua_sandbox , nullptr);
 
   Ref<other::LuaObject> lua_obj = lua_sandbox->GetScriptObject<other::LuaObject>("TestScript" , "Other");
@@ -96,16 +126,36 @@ TEST_F(ScriptEngineTests , script_object) {
   ASSERT_EQ(res2 , "TestScript2.test()");
 
   ASSERT_NO_FATAL_FAILURE(ScriptEngine::UnloadProjectModules());
+  ASSERT_TRUE(CheckNumScripts(0 , 0 , 0));
+}
+
+TEST_F(ScriptEngineTests , retrieve_core_objects) {
+  ASSERT_NO_FATAL_FAILURE(ScriptEngine::LoadProjectModules());
+  ASSERT_TRUE(CheckNumScripts(2 , 0 , 0));
+
+  // Ref<ScriptModule> cs_core = ScriptEngine::GetScriptModule("OtherEngine.CsCore");
+  // ASSERT_NE(cs_core , nullptr);
+
+  Ref<ScriptObject> scene_obj = nullptr;
+  ASSERT_NO_FATAL_FAILURE(scene_obj = ScriptEngine::GetScriptObject("Scene" , "Other" , "OtherEngine.CsCore"));
+  ASSERT_NE(scene_obj , nullptr);
+
+  scene_obj->OnBehaviorUnload();
+  scene_obj = nullptr;
+
+  ASSERT_NO_FATAL_FAILURE(ScriptEngine::UnloadProjectModules());
+  ASSERT_TRUE(CheckNumScripts(0 , 0 , 0));
 }
 
 TEST_F(ScriptEngineTests , get_object_method) {
   ASSERT_NO_FATAL_FAILURE(ScriptEngine::LoadProjectModules());
   ASSERT_TRUE(CheckNumScripts(2 , 0 , 0));
 
-  ScriptRef<CsObject> cs_obj = nullptr; /// ??? why no worky ScriptEngine::GetScriptObject<CsObject>("Other::Scene");
+  ScriptRef<CsObject> cs_obj = ScriptEngine::GetScriptObject<CsObject>("Other::Scene");
   ASSERT_NE(cs_obj , nullptr);
 
   ASSERT_NO_FATAL_FAILURE(ScriptEngine::UnloadProjectModules());
+  ASSERT_TRUE(CheckNumScripts(0 , 0 , 0));
 }
 
 bool CheckNumScripts(uint32_t cs , uint32_t lua , uint32_t python) {

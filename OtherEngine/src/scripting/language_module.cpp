@@ -2,6 +2,7 @@
  * \file scripting/language_module.cpp
  **/
 #include "scripting/language_module.hpp"
+#include "scripting/script_module.hpp"
 
 #include <iterator>
 
@@ -11,11 +12,16 @@ namespace other {
     return lang_type;
   }
 
-  bool LanguageModule::HasScript(const std::string_view name) const {
+  bool LanguageModule::HasScript(const std::string_view name) {
     std::string case_insensitive_name;
     std::transform(name.begin() , name.end() , std::back_inserter(case_insensitive_name) , ::toupper);
     UUID id = FNV(case_insensitive_name);
-    return HasScript(id);
+    bool has = HasScript(id);
+    if (has) {
+      return true;
+    }
+
+    return GetScriptModule(std::string{ name }) != nullptr;
   }
 
   bool LanguageModule::HasScript(UUID id) const {

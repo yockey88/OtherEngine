@@ -33,7 +33,7 @@ namespace other {
 
       LanguageModuleType GetLanguageType() const;
 
-      bool HasScript(const std::string_view name) const;
+      bool HasScript(const std::string_view name);
       bool HasScript(UUID id) const;
       
       const ScriptMetadata* GetScriptMetadata(const std::string& name) const;
@@ -42,9 +42,9 @@ namespace other {
       virtual bool Initialize() = 0;
       virtual void Shutdown() = 0;
       virtual void Reload() = 0;
-      virtual ScriptModule* GetScriptModule(const std::string& name) = 0;
-      virtual ScriptModule* GetScriptModule(const UUID& id) = 0;
-      virtual ScriptModule* LoadScriptModule(const ScriptMetadata& module_info) = 0;
+      virtual Ref<ScriptModule> GetScriptModule(const std::string& name) = 0;
+      virtual Ref<ScriptModule> GetScriptModule(const UUID& id) = 0;
+      virtual Ref<ScriptModule> LoadScriptModule(const ScriptMetadata& module_info) = 0;
       virtual void UnloadScript(const std::string& name) = 0;
 
       virtual std::string_view GetModuleName() const = 0;

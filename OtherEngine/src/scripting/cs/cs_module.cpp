@@ -157,13 +157,6 @@ namespace {
       host->CallEntryPoint();
 
       load_success = true;
-      LoadScriptModule({
-        .name = "OtherEngine.CsCore" ,
-        .paths = {
-          "./bin/Debug/OtherEngine-CsCore/net8.0/OtherEngine-CsCore.dll"
-        } ,
-      });
-
       return true;
     } catch (const std::exception& e) {
       OE_ERROR("Failed to create C# host : {}" , e.what());
@@ -222,7 +215,7 @@ namespace {
     // }
   }
       
-  ScriptModule* CsModule::GetScriptModule(const std::string& name) {
+  Ref<ScriptModule> CsModule::GetScriptModule(const std::string& name) {
     if (!load_success) {
       OE_WARN("Attempting to get script module {} when C# module is not loaded" , name);
       return nullptr;
@@ -231,7 +224,7 @@ namespace {
     auto hash = IdFromName(name);
     OE_DEBUG("Looking for script module {} [{}]" , name , hash);
 
-    auto* module = GetScriptModule(hash);
+    Ref<ScriptModule> module = GetScriptModule(hash);
     if (module == nullptr) {
       OE_ERROR("Script module {} not found" , name);
     }
@@ -239,21 +232,21 @@ namespace {
     return module;
   }
   
-  ScriptModule* CsModule::GetScriptModule(const UUID& id) {
+  Ref<ScriptModule> CsModule::GetScriptModule(const UUID& id) {
     if (!load_success) {
       OE_WARN("Attempting to get script module {} when C# module is not loaded" , id);
       return nullptr;
     }
 
     if (loaded_modules.find(id) != loaded_modules.end()) {
-      return loaded_modules[id].Raw();
+      return loaded_modules[id];
     }
 
     OE_ERROR("Script module w/ ID [{}] not found" , id.Get());
     return nullptr;
   }
 
-  ScriptModule* CsModule::LoadScriptModule(const ScriptMetadata& module_info) { 
+  Ref<ScriptModule> CsModule::LoadScriptModule(const ScriptMetadata& module_info) { 
     OE_ASSERT(host != nullptr , "Attempting to load script module when C# module is not loaded");   
     OE_ASSERT(load_success , "Attempting to load script module when C# module is not loaded");
 
@@ -262,7 +255,7 @@ namespace {
 
     if (loaded_modules.find(id) != loaded_modules.end()) {
       OE_WARN("Script module {} already loaded" , module_info.name);
-      return loaded_modules[id].Raw();
+      return loaded_modules[id];
     }
 
     if (module_info.paths.size() == 0) {
@@ -290,16 +283,12 @@ namespace {
     } else {
       OE_DEBUG(" > Loaded C# assembly {} [{}]" , module_info.name , id);
     }
-
-    Path module_path = module_info.paths[0];
-    std::string mod_path_str = module_path.filename().string();
-    std::string mod_name = mod_path_str.substr(0 , mod_path_str.find_last_of('.'));
     
-    loaded_modules[id] = NewRef<CsScript>(mod_name , assembly);
+    loaded_modules[id] = NewRef<CsScript>(module_info.name , assembly);
     loaded_modules[id]->Initialize();
     loaded_modules_data[id] = module_info;
 
-    return loaded_modules[id].Raw();
+    return loaded_modules[id];
   }
       
   void CsModule::UnloadScript(const std::string& name) {
@@ -342,9 +331,9 @@ namespace {
   }
 
   UUID CsModule::IdFromName(const std::string_view name) const {
-    std::string case_insensitive_name;
-    std::transform(name.begin() , name.end() , std::back_inserter(case_insensitive_name) , ::toupper);
-    return FNV(case_insensitive_name);
+    // std::string case_insensitive_name;
+    // std::transform(name.begin() , name.end() , std::back_inserter(case_insensitive_name) , ::toupper);
+    return FNV(name);
   }
       
 } // namespace other

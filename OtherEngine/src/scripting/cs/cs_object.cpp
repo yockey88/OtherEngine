@@ -10,7 +10,7 @@ using dotother::Type;
 namespace other {
   
   CsObject::CsObject(ScriptModule* module , Type& type , UUID handle) 
-      : ScriptObjectHandle(LanguageModuleType::CS_MODULE , module , handle , "[Empty Script Object]" , "C#") ,
+      : ScriptObjectHandle(LanguageModuleType::CS_MODULE , module , handle , "[Empty Script Object]") ,
         type(type) {
     hosted_object = type.NewInstance();
   }

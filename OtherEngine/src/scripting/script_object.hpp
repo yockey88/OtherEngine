@@ -29,10 +29,8 @@ namespace other {
     public:
       /// OE_ASSET(SCRIPT);
 
-      ScriptObject(LanguageModuleType lang_type , ScriptModule* module , UUID script_handle , const std::string& instance_name , 
-                   Opt<std::string> name_space = std::nullopt) 
-        : lang_type(lang_type) , module(module) , script_handle(script_handle) , script_instance_name(instance_name) , 
-          name_space(name_space) {}
+      ScriptObject(LanguageModuleType lang_type , ScriptModule* module , UUID script_handle , const std::string& instance_name) 
+        : lang_type(lang_type) , module(module) , script_handle(script_handle) , script_instance_name(instance_name) {}
       virtual ~ScriptObject() {}
 
       template <typename SO , typename R , typename... Args>
@@ -104,8 +102,8 @@ namespace other {
   template <typename T>
   class ScriptObjectHandle : public ScriptObject {
     public:
-      ScriptObjectHandle(LanguageModuleType lang_type , ScriptModule* module , UUID script_handle , const std::string& instance_name , Opt<std::string> name_space = std::nullopt)
-        : ScriptObject(lang_type , module, script_handle , instance_name , name_space) {}
+      ScriptObjectHandle(LanguageModuleType lang_type , ScriptModule* module , UUID script_handle , const std::string& instance_name)
+        : ScriptObject(lang_type , module, script_handle , instance_name) {}
       virtual ~ScriptObjectHandle() {}
 
       template <typename R , typename... Args>

@@ -85,18 +85,22 @@ namespace other {
           OE_ASSERT(false , "Failed to get module type for script object {}::{}" , name_space , name);
           return nullptr;
         }
-        
-        Ref<ScriptObject> obj = GetScriptObject(search_name , name_space , language_modules[type].module);
-        if (obj == nullptr) {
-          OE_ERROR("Failed to get script object {}::{} [{}]" , name_space , search_name , type);
-          return nullptr;
+
+        for (auto& [id , mod] : language_modules[type].module->GetModules()) {
+          if (!mod->HasScript(search_name , name_space)) {
+            continue;
+          }
+
+          loaded_modules[FNV(mod->ModuleName())] = mod;
+          Ref<ScriptObject> obj = mod->GetScriptObject(search_name , name_space);
+          if (obj != nullptr) {
+            return Ref<ScriptObject>::Cast<SO>(obj);
+          }
         }
-
-        return Ref<ScriptObject>::Cast<SO>(obj);
+        
+        OE_ERROR("ScriptEngine::GetScriptObject({}.{}) -> failed to find script" , name_space , search_name);
+        return nullptr;
       }
-
-      static Ref<ScriptObject> GetScriptObject(const std::string_view name , const std::string_view nspace , Ref<LanguageModule> module);
-      static Ref<ScriptObject> GetScriptObject(const std::string_view name , const std::string_view nspace , Ref<ScriptModule> module);
       
       static const std::map<UUID , Ref<ScriptObject>>& ReadLoadedObjects();
 
