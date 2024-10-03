@@ -8,6 +8,7 @@
 
 #include <sol/forward.hpp>
 #include <sol/load_result.hpp>
+#include <sol/types.hpp>
 
 #include "core/ref.hpp"
 #include "core/filesystem.hpp"
@@ -74,40 +75,16 @@ namespace other {
       return false;
     }
 
-    UUID id = FNV(name);
-    if (loaded_objects.find(id) != loaded_objects.end()) {
-      return true;
-    }
-
-    try {
-      if (nspace.empty()) {
-        auto obj = lua_state[name];
-        if (obj.valid()) {
-          return true;
-        }
-      } else {
-        auto table = lua_state[nspace];
-        if (!table.valid()) {
-          return false;
-        }
-
-        auto obj = table[name];
-        if (obj.valid()) {
-          return true;
-        }
+    if (!nspace.empty()) {
+      sol::table table = lua_state.get_or(nspace , sol::nil);
+      if (table == sol::nil) {
+        return false;
       }
 
-      return false;
-    } catch (std::exception& e) {
-      OE_ERROR("Error searching for Lua Script {}::{} : {}" , nspace , name , e.what());
-      return false;
-    } catch (...) {
-      OE_ERROR("Unkown Error searching for Lua Script {}::{}" , nspace , name);
-      return false;
+      return table.get_or(name , sol::nil) != sol::nil;
+    } else {
+      return lua_state.get_or(name , sol::nil) != sol::nil;
     }
-
-    OE_ASSERT(false , "UNREACHABLE CODE");
-    return false;
   }
 
   Ref<ScriptObject> LuaScript::GetScriptObject(const std::string& name , const std::string& nspace) {

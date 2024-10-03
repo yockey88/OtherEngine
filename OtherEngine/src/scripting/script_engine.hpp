@@ -75,31 +75,23 @@ namespace other {
       static Ref<ScriptObject> GetScriptObject(const std::string_view name , const std::string_view nspace);
       static Ref<ScriptObject> GetScriptObject(const std::string_view name , const std::string_view nspace , const std::string_view mod_name);
 
-      template <script_object_t SO>
-      static ScriptRef<SO> GetScriptObject(const std::string_view name) {
-        const auto [search_name , name_space] = ParseScriptName(name);
+      template <typename SO>
+        requires script_object_t<SO>
+      static ScriptRef<SO> GetObject(const std::string_view name , const std::string_view nspace , const std::string_view mod_name) {
         LanguageModuleType type = ModuleTypeFromObjStaticType<SO>();
 
-        OE_DEBUG("Getting object {}::{} [{}]" , name_space , search_name , type);
-        if (type == LanguageModuleType::INVALID_LANGUAGE_MODULE) {
-          OE_ASSERT(false , "Failed to get module type for script object {}::{}" , name_space , name);
+        Ref<ScriptObject> obj = GetScriptObject(name , nspace , mod_name);
+        if (obj == nullptr) {
+          OE_ERROR("Could not find script object {}::{} in module {}" , nspace , name , mod_name);
           return nullptr;
         }
 
-        for (auto& [id , mod] : language_modules[type].module->GetModules()) {
-          if (!mod->HasScript(search_name , name_space)) {
-            continue;
-          }
-
-          loaded_modules[FNV(mod->ModuleName())] = mod;
-          Ref<ScriptObject> obj = mod->GetScriptObject(search_name , name_space);
-          if (obj != nullptr) {
-            return Ref<ScriptObject>::Cast<SO>(obj);
-          }
+        if (type != obj->LanguageType()) {
+          OE_ERROR("Script object {}::{} in module {} is not of type {} (it is of type [{}])" , nspace , name , mod_name , type , obj->LanguageType());
+          return nullptr;
         }
-        
-        OE_ERROR("ScriptEngine::GetScriptObject({}.{}) -> failed to find script" , name_space , search_name);
-        return nullptr;
+
+        return Ref<ScriptObject>::Cast<SO>(obj);
       }
       
       static const std::map<UUID , Ref<ScriptObject>>& ReadLoadedObjects();
@@ -115,9 +107,9 @@ namespace other {
 
       /// because certain parts of the engine rely on specifically lua or c# scripts they need to be 
       ///   able to interface with those modules directly
-      /// this is an unfortunate result of the fact that i am too lazy to write my own lua engine 
-      ///   and so am using sol
-      template <typename T> requires lang_module_t<T>
+      /// this is an unfortunate result of the fact that i am lazy
+      template <typename T> 
+        requires lang_module_t<T>
       static Ref<T> GetModuleAs(LanguageModuleType type) {
         return Ref<T>(language_modules[type].module);
       }

@@ -4,7 +4,7 @@
 #include "scripting/script_object.hpp"
 
 namespace  other {
-      
+
   void ScriptObject::SetEntityId(UUID id) {
     entity_id = id;
     OnSetEntityId();

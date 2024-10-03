@@ -36,9 +36,6 @@ namespace other {
       template <typename SO , typename R , typename... Args>
       constexpr auto CallMethod(const std::string& method , Args&&... args) -> R;
 
-      template <typename T>
-      Ref<ScriptObjectHandle<T>> GetObjectHandle();
-
       void SetEntityId(UUID id);
       UUID GetEntityId() const;
 
@@ -167,11 +164,6 @@ namespace other {
       }
     }
     return obj->template CallMethod<R , Args...>(method , std::forward<Args>(args)...);
-  }
-
-  template <typename T>
-  Ref<ScriptObjectHandle<T>> ScriptObject::GetObjectHandle() {
-    return Ref<ScriptObjectHandle<T>>(static_cast<ScriptObjectHandle<T>*>(this));
   }
 
   template <typename T>

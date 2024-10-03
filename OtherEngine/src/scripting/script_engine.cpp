@@ -237,7 +237,7 @@ namespace other {
       }
     }
 
-    OE_ERROR("ScriptEngine::GetScriptObject({}.{}) -> dailed to find script" , search_nspace , search_name);
+    OE_ERROR("ScriptEngine::GetScriptObject({}.{}) -> failed to find script" , search_nspace , search_name);
     return nullptr;
   }
 
@@ -247,6 +247,15 @@ namespace other {
       return nullptr;
     }
 
+    std::string search_name = std::string{ name };
+    std::string search_nspace = std::string{ nspace };
+
+    if (nspace.empty()) {
+      const auto [sname , nspace] = ParseScriptName(name);
+      search_name = sname;
+      search_nspace = nspace;
+    }
+
     Ref<ScriptModule> mod = GetScriptModule(mod_name);
     /// if its null we have the equivalent of the above case so we don't need to return cause we might still find the object
     if (mod == nullptr) {
@@ -254,7 +263,7 @@ namespace other {
       OE_WARN("Falling back to loaded modules");
     }
 
-    return mod->GetScriptObject(std::string{ name } , std::string{ nspace });
+    return mod->GetScriptObject(search_name , search_nspace);
   }
 
   const std::map<UUID , Ref<ScriptObject>>& ScriptEngine::ReadLoadedObjects() {

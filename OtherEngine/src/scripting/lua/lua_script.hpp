@@ -21,18 +21,47 @@ namespace other {
         : ScriptModule(LanguageModuleType::LUA_MODULE , module_name) , path(path) {}
       virtual ~LuaScript() override {}
       
-      template <typename Ret , typename... Args>
-      Opt<Ret> CallLuaMethod(const std::string_view name , Args&&... args) {
-        sol::optional<sol::function> func = lua_state[name];
-        if (!func.has_value()) {
-          return std::nullopt;
-        }
+      template <typename R , typename... Args>
+      R CallMethod(const std::string_view name , Args&&... args) {
+        // try {
+        //   sol::optional<sol::function> function = (*state)[name];
+        //   if (!function.has_value()) {
+        //     function = object[name];
 
-        if (!(*func).valid()) {
-          return std::nullopt;
-        }
+        //     if (!function.has_value()) {
+        //       OE_ERROR("Could not find function {} in Lua script {}" , name , script_name);
+              
+        //       if constexpr (std::same_as<R , void>) {
+        //         return;
+        //       } else {
+        //         return R{};
+        //       }
+        //     }
+        //   }
 
-        return (*func)(std::forward<Args>(args)...);
+            
+        //   sol::function func = *function;
+        //   if constexpr (sizeof...(Args) == 0) {
+        //     if constexpr (std::same_as<R , void>) {
+        //       func();
+        //     } else {
+        //       return func();
+        //     }
+        //   } else {
+        //     if constexpr (std::same_as<R , void>) {
+        //       func(std::forward<Args>(args)...);
+        //     } else {
+        //       return func(std::forward<Args>(args)...);
+        //     }
+        //   }
+        // } catch (const std::exception& e) {
+          // OE_ERROR("Lua error caught calling function {} in script {} : [{}]" , name , script_name , e.what());
+          if constexpr (std::same_as<R , void>) {
+            return;
+          } else {
+            return R{};
+          }
+        // }
       }
 
       virtual void Initialize() override;

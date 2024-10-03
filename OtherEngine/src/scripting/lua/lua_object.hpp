@@ -53,8 +53,12 @@ namespace other {
             }
           }
         } catch (const std::exception& e) {
-          OE_ERROR("Lua error caught calling function {} in script {}" , name , script_name);
-          return R{};
+          OE_ERROR("Lua error caught calling function {} in script {} : [{}]" , name , script_name , e.what());
+          if constexpr (std::same_as<R , void>) {
+            return;
+          } else {
+            return R{};
+          }
         }
       }
 

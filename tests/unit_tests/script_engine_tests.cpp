@@ -133,9 +133,6 @@ TEST_F(ScriptEngineTests , retrieve_core_objects) {
   ASSERT_NO_FATAL_FAILURE(ScriptEngine::LoadProjectModules());
   ASSERT_TRUE(CheckNumScripts(2 , 0 , 0));
 
-  // Ref<ScriptModule> cs_core = ScriptEngine::GetScriptModule("OtherEngine.CsCore");
-  // ASSERT_NE(cs_core , nullptr);
-
   Ref<ScriptObject> scene_obj = nullptr;
   ASSERT_NO_FATAL_FAILURE(scene_obj = ScriptEngine::GetScriptObject("Scene" , "Other" , "OtherEngine.CsCore"));
   ASSERT_NE(scene_obj , nullptr);
@@ -151,8 +148,11 @@ TEST_F(ScriptEngineTests , get_object_method) {
   ASSERT_NO_FATAL_FAILURE(ScriptEngine::LoadProjectModules());
   ASSERT_TRUE(CheckNumScripts(2 , 0 , 0));
 
-  ScriptRef<CsObject> cs_obj = ScriptEngine::GetScriptObject<CsObject>("Other::Scene");
+  ScriptRef<CsObject> cs_obj = ScriptEngine::GetObject<CsObject>("Scene" , "Other", "OtherEngine.CsCore");
   ASSERT_NE(cs_obj , nullptr);
+
+  cs_obj->OnBehaviorUnload();
+  cs_obj = nullptr;
 
   ASSERT_NO_FATAL_FAILURE(ScriptEngine::UnloadProjectModules());
   ASSERT_TRUE(CheckNumScripts(0 , 0 , 0));
