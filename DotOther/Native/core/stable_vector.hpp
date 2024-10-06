@@ -148,7 +148,7 @@ namespace dotother {
             uint64_t old_pages = page_count;
             page_count = (std::max)(uint64_t(16), page_count * 2);
 
-            owner<Page*> new_page_table = new_owner<Page*[]>(page_count);
+            owner<Page*[]> new_page_table = new_owner<Page*[]>(page_count);
             std::memcpy(new_page_table.get(), page_table.load(), old_pages * sizeof(void*));
             
             page_table.exchange(new_page_table.get());
@@ -177,14 +177,15 @@ namespace dotother {
           if (page_idx >= page_count) {
             auto old_pages = page_count;
             page_count = (std::max)(uint64_t(16), page_count * 2);
-            auto new_page_table = std::make_unique<Page*[]>(page_count);
+
+            owner<Page*[]> new_page_table = new_owner<Page*[]>(page_count);
             std::memcpy(new_page_table.get(), page_table.load(), old_pages * sizeof(void*));
+
             page_table.exchange(new_page_table.get());
             page_tables.push_back(std::move(new_page_table));
           }
 
           page_table[page_idx] = new_page;
-
           capacity += N;
         }
 

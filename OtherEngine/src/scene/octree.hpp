@@ -5,6 +5,7 @@
 #define OTHER_ENGINE_OCTREE_HPP
 
 #include <array>
+#include <core/stable_vector.hpp>
 #include <ostream>
 #include <vector>
 #include <map>
@@ -107,20 +108,16 @@ namespace other {
     glm::vec3 origin{ 0.f };
 
     std::vector<Entity*> entities{};
-    std::array<Scope<Octant>, kNumChildren> children{};
+    std::array<Octant*, kNumChildren> children{};
 
-    Octant()
-      : parent(nullptr) {}
-    Octant(Scope<Octant>& parent)
-      : parent(parent.get()) {}
-
-    ~Octant() {
-      for (auto& c : children) {
-        c = nullptr;
-      }
-    }
+    constexpr Octant()
+      : tree_index(-1)  , parent(nullptr) {}
+    Octant(Octant& parent)
+      : parent(&parent) {}
+    ~Octant();
   };
   
+  using dotother::StableVector;
 
   class Octree : public RefCounted {
     public:
@@ -131,33 +128,35 @@ namespace other {
       inline const size_t Depth() const;
       inline const size_t NumOctants() const;
 
-      Scope<Octant>& GetSpace();
+      const Octant& GetSpace() const;
       const glm::vec3& Dimensions() const;
 
-      const Scope<Octant>& GetOctant(const glm::vec3& point) const;
+      Octant& GetOctant(const glm::vec3& point);
 
       void PrintOctants(std::ostream& os) const;
-      void PrintOctant(std::ostream& os , const Scope<Octant>& octant) const;
+      void PrintOctant(std::ostream& os , const Octant& octant) const;
       
       void AddEntity(Entity* entity);
 
     private:
-      /// root
-      Scope<Octant> space = nullptr;
+      /// space == root, it is a single octant that represents the entire space
+      size_t space_index = 0;
+      StableVector<Octant> octants;
+
 
       size_t depth = 0;
       const size_t num_octants = 0;
       glm::vec3 dimensions;
 
-      uint32_t idx_generator = 0;
+      Octant& GetSpace();
 
       void Initialize(const glm::vec3& dim);
 
-      bool OctantContainsPoint(const Scope<Octant>& octant , const glm::vec3& point) const;
-      const Scope<Octant>& FindOctant(const Scope<Octant>& octant , const glm::vec3& point) const;
+      bool OctantContainsPoint(const Octant& octant , const glm::vec3& point) const;
+      Octant& FindOctant(Octant& octant , const glm::vec3& point);
 
-      void Subdivide(Scope<Octant>& octant, size_t depth);
-      void Subdivide(Scope<Octant>& octant);
+      void Subdivide(Octant& octant, size_t depth);
+      void Subdivide(Octant& octant);
 
       glm::vec3 CalculateOctantOrigin(const glm::vec3& parent_dimensions , const glm::vec3& parent_origin , uint8_t location);
       glm::vec3 CalculateOctantDimensions(const glm::vec3& parent_dimensions);

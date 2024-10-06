@@ -290,14 +290,12 @@ int main(int argc , char* argv[]) {
 
       auto& cube_mesh = cube->GetComponent<StaticMesh>();
       cube_mesh.material = cube_material1;
-      // cube_mesh.handle = ModelFactory::CreateBox();
 
       auto& cube_script = cube->AddComponent<Script>();
       cube_script.AddScript("TestScript2" , "Other" , "SandboxScripts");
       
       auto& floor_mesh = floor->GetComponent<StaticMesh>();
       floor_mesh.material = cube_material2;
-      // floor_mesh.handle = ModelFactory::CreateBox({ 10.f , 0.1f , 10.f });
 
       auto& sun_l = sun->GetComponent<LightSource>();
       sun_l.direction_light = {

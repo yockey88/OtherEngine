@@ -43,13 +43,19 @@ namespace {
     }
     return location;
   }
+    
+  static Octant null_octant;
 
 } // namespace <anonymous>
 
-  /// TODO: replace println with log
+  Octant::~Octant() {
+    for (auto& c : children) {
+      c = nullptr;
+    }
+  }
   
   Octree::Octree()
-      : depth(1) , num_octants(NumOctantsAtDepth(1)) {
+      : depth(1), num_octants(NumOctantsAtDepth(1)) {
     Initialize({ 1.f , 1.f , 1.f });
   }
 
@@ -59,7 +65,7 @@ namespace {
   }
 
   Octree::~Octree() {
-    space = nullptr;
+    octants.Clear();
   }
       
   const size_t Octree::Depth() const { 
@@ -70,61 +76,89 @@ namespace {
     return num_octants; 
   }
       
-  Scope<Octant>& Octree::GetSpace() { 
-    return space; 
+  const Octant& Octree::GetSpace() const { 
+    return octants[space_index]; 
   }
   
   const glm::vec3& Octree::Dimensions() const { 
-    return space->dimensions; 
+    return GetSpace().dimensions; 
   }
 
-  static Scope<Octant> null_oct = NewScope<Octant>();
-  const Scope<Octant>& Octree::GetOctant(const glm::vec3& point) const {
-    OE_ASSERT(space != nullptr , "Cant retrieve octant from null space!");
-    return FindOctant(space , point);
+  Octant& Octree::GetOctant(const glm::vec3& point) {
+    return FindOctant(GetSpace() , point);
   }
 
   void Octree::PrintOctants(std::ostream& os) const {
-    PrintOctant(os , space);
+    PrintOctant(os , GetSpace());
   }
   
-  void Octree::PrintOctant(std::ostream& os , const Scope<Octant>& octant) const {
-    OE_ASSERT(octant != nullptr , "Cant print null octant!");
-
-    os << fmtstr("Octant [{}] = {:p}\n" , octant->tree_index , static_cast<const void*>(octant.get()));
+  void Octree::PrintOctant(std::ostream& os , const Octant& octant) const {
+    os << fmtstr("Octant [{}] = {:p}\n" , octant.tree_index , static_cast<const void*>(&octant));
     os << fmtstr("(@Depth = {} , @Partition = {} , @Location = {:>03b} , @Dimensions = ({}) , @Center = ({}))\n", 
-                  octant->depth , octant->partition_index , octant->partition_location , octant->dimensions, octant->origin);
+                  octant.depth , octant.partition_index , octant.partition_location , octant.dimensions, octant.origin);
     
     std::stringstream ss;
-    if (octant->entities.size() > 0) {
+    if (octant.entities.size() > 0) {
       ss << "\n";
     }
-    for (const auto& e : octant->entities) {
+    for (const auto& e : octant.entities) {
       ss << fmtstr(" - {}\n" , e->Name()); 
     }
 
-    os << fmtstr("(@Entities = {}{})\n" , octant->entities.size() , ss.str());
-    os << fmtstr(" - Parent = {}\n", static_cast<void*>(octant->parent));
+    os << fmtstr("(@Entities = {}{})\n" , octant.entities.size() , ss.str());
+    os << fmtstr(" - Parent = {}\n", static_cast<void*>(octant.parent));
     for (size_t i = 0; i < kNumChildren; ++i) {
-      os << fmtstr(" -- [{}] = {} [{}]\n", i , octant->tree_index , static_cast<void*>(octant->children[i].get()));
+      os << fmtstr(" -- [{}] = {} [{}]\n", i , octant.tree_index , static_cast<void*>(octant.children[i]));
     }
 
     os << "---|";
-    for (const auto& c : octant->children) {
-      PrintOctant(os , c);
+    for (const auto& c : octant.children) {
+      PrintOctant(os , *c);
     }
     os << "---|";
   }
+  
+  void Octree::AddEntity(Entity* entity) {
+    OE_ASSERT(entity != nullptr , "Attempting to add null entity to octree");
 
-  bool Octree::OctantContainsPoint(const Scope<Octant>& octant , const glm::vec3& point) const {
-    OE_ASSERT(octant != nullptr , "Attempting to check null octant for point!");
+    // const Transform transform = entity->GetComponent<Transform>();
+    // const glm::vec3 position = transform.position;
 
-    if (octant->origin == point) {
+    // Octant& octant = FindOctant(octants[0] , position);
+    // if (octant.tree_index > 0) {
+    //   octant.entities.push_back(entity);
+    //   return;
+    // } 
+
+    // OE_ERROR("Failed to add {} to octree at <{},{},{}>" , entity->Name() , 
+    //           position.x , position.y , position.z);
+  }
+
+  Octant& Octree::GetSpace() {
+    return octants[space_index];
+  }
+  
+  void Octree::Initialize(const glm::vec3& dim) {
+    dimensions = dim;
+    
+    {
+      auto [idx , space] = octants.EmplaceBackNoLock();
+      // o.tree_index = idx;
+      // space_index = idx;
+    }
+    // space_index = idx;
+    // space.tree_index = idx;
+    // auto [idx , space] = octants.EmplaceBackNoLock();
+    // Subdivide(space , depth);
+  } 
+
+  bool Octree::OctantContainsPoint(const Octant& octant , const glm::vec3& point) const {
+    if (octant.origin == point) {
       return true;
     }
 
-    glm::vec3 min = octant->origin - (octant->dimensions / 2.f);
-    glm::vec3 max = octant->origin + (octant->dimensions / 2.f);
+    glm::vec3 min = octant.origin - (octant.dimensions / 2.f);
+    glm::vec3 max = octant.origin + (octant.dimensions / 2.f);
 
     bool greater_than_min = point.x > min.x && point.y > min.y && point.z > min.z;
     bool less_than_max = point.x < max.x && point.y < max.y && point.z < max.z;
@@ -132,53 +166,49 @@ namespace {
     return greater_than_min && less_than_max;
   }
 
-  const Scope<Octant>& Octree::FindOctant(const Scope<Octant>& octant , const glm::vec3& point) const {
-    /// should be impossible, we should always find the point before recursing to leaf node's null 'children'
-    OE_ASSERT(octant != nullptr , "Can not search for point will null root octant");
-    
+  Octant& Octree::FindOctant(Octant& octant , const glm::vec3& point) {
     /// origin is not contained in any children so this will be the smallest octant that contains the point
-    if (point == octant->origin) {
+    if (point == octant.origin) {
       return octant;
     }
 
-    for (const auto& o : octant->children) {
-      const Scope<Octant>& oct = FindOctant(o , point);
-      if (oct->tree_index != -1) {
+    for (const auto& o : octant.children) {
+      Octant& oct = FindOctant(*o , point);
+      if (oct.tree_index != -1) {
         return oct;
       }
     }
 
-    OE_ERROR("Point is outside of space!");
-    static Scope<Octant> null_octant = NewScope<Octant>();
-    null_octant->tree_index = -1;
     return null_octant;
   }
 
-  void Octree::Subdivide(Scope<Octant>& octant, size_t depth) {
-    octant->depth = depth;
+  void Octree::Subdivide(Octant& octant, size_t depth) {
+    octant.depth = depth;
     if (depth == 0) {
       return;
     }
 
     Subdivide(octant);
-    for (auto& child : octant->children) {
-      Subdivide(child, depth - 1);
+    for (auto& child : octant.children) {
+      Subdivide(*child, depth - 1);
     }
   }
 
-  void Octree::Subdivide(Scope<Octant>& octant) {
-    OE_ASSERT(octant != nullptr , "Cant subdivide null octant!");
+  void Octree::Subdivide(Octant& octant) {
     for (size_t i = 0; i < kNumChildren; ++i) {
-      octant->children[i] = NewScope<Octant>(octant); 
-      octant->children[i]->tree_index = idx_generator++;
+      auto [idx , child] = octants.EmplaceBackNoLock();
 
-      octant->children[i]->partition_index = i;
-      octant->children[i]->partition_location = kOctantLocations[i];
+      child.parent = &octant;
+      child.tree_index = idx;
 
-      octant->children[i]->dimensions = CalculateOctantDimensions(octant->dimensions);
-      octant->children[i]->origin = CalculateOctantOrigin(octant->dimensions , octant->origin , kOctantLocations[i]);
+      child.partition_index = i;
+      child.partition_location = kOctantLocations[i];
 
-      octant->children[i]->depth = octant->depth + 1;
+      child.dimensions = CalculateOctantDimensions(octant.dimensions);
+      child.origin = CalculateOctantOrigin(octant.dimensions , octant.origin , kOctantLocations[i]);
+      child.depth = octant.depth + 1;
+      
+      octant.children[i] = &child;
     }
   }
 
@@ -202,30 +232,5 @@ namespace {
       parent_dimensions.z / 2.f
     };
   }
-  
-  void Octree::AddEntity(Entity* entity) {
-    OE_ASSERT(entity != nullptr , "Attempting to add null entity to octree");
-    OE_ASSERT(space != nullptr , "Space is null!");
-
-    const Transform transform = entity->GetComponent<Transform>();
-    const glm::vec3 position = transform.position;
-
-    const Scope<Octant>& octant = FindOctant(space , position);
-    if (octant->tree_index > 0) {
-      octant->entities.push_back(entity);
-      return;
-    } 
-
-    OE_ERROR("Failed to add {} to octree at <{},{},{}>" , entity->Name() , 
-              position.x , position.y , position.z);
-  }
-  
-  void Octree::Initialize(const glm::vec3& dim) {
-    dimensions = dim;
-
-    space = NewScope<Octant>(); 
-    space->dimensions = dim;
-    Subdivide(space , depth);
-  } 
 
 } // namespace other
