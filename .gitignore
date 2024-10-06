@@ -41,6 +41,7 @@ tools/runtestbed.py
 
 ## Pycache
 *__pycache__*
+**/__pycache__/**
 
 ## Editor directories and files
 .idea/
