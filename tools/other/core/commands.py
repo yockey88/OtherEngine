@@ -102,6 +102,13 @@ engine_cmds: list[Command] = [
         action=BuildAction(), nargs='*', metavar="project"
     ),
 
+    Command(
+        "-t", "--test",
+        """runs the tests for the test specified by 'test' if it exists,
+           otherwise runs the entire test suite if no arguments are passed""",
+        action=TestAction(), nargs='*', metavar="test"
+    ) ,
+
     # run project
     Command(
         "-r", "--run",
@@ -114,12 +121,6 @@ engine_cmds: list[Command] = [
         "runs the dotnet project specified by 'project' if it exists",
         action=RunDotnetAction(), nargs='*', metavar="project"
     ),
-
-    Command(
-        "-t", "--test",
-        "runs the tests for the project specified by 'project' if it exists, otherwise runs the entire test suite",
-        action=TestAction(), nargs='*', metavar="project"
-    ) ,
 
     # configuration
     Command(
