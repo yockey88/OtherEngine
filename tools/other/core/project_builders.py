@@ -100,9 +100,6 @@ def filter_candidates(candidates):
 
 
 def build_project(config, verbose, filename):
-    config = "Debug"  # oe_env.project_configuration()
-    verbose: bool = True  # oe_env.is_verbose()
-
     stdout = subprocess.DEVNULL if verbose is False else None
     stderr = subprocess.DEVNULL if verbose is False else None
 
