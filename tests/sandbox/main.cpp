@@ -19,7 +19,6 @@
 #include "core/engine.hpp"
 #include "core/filesystem.hpp"
 #include "core/time.hpp"
-#include "core/uuid.hpp"
 #include "input/io.hpp"
 #include "parsing/cmd_line_parser.hpp"
 
@@ -47,6 +46,7 @@
 #include "rendering/framebuffer.hpp"
 #include "rendering/uniform.hpp"
 #include "rendering/model.hpp"
+#include "rendering/model_factory.hpp"
 #include "rendering/material.hpp"
 #include "rendering/point_light.hpp"
 #include "rendering/direction_light.hpp"
@@ -62,28 +62,7 @@
 #include "mock_app.hpp"
 #include "sandbox_ui.hpp"
 
-using other::FNV;
-
-using other::Ref;
-using other::NewRef;
-
-using other::Scope;
-using other::NewScope;
-
-using other::UUID;
-
-using other::Shader;
-using other::Texture2D;
-using other::VertexArray;
-using other::CameraBase;
-using other::PerspectiveCamera;
-using other::Uniform;
-using other::UniformBuffer;
-using other::StaticModel;
-using other::SceneRenderSpec;
-using other::SceneRenderer;
-
-using other::SceneSerializer;
+using namespace other;
 
 std::vector<float> fb_verts = {
    1.f ,  1.f , 1.f , 1.f ,
@@ -102,132 +81,133 @@ std::vector<uint32_t> fb_layout = {
 
 int main(int argc , char* argv[]) {
   try {
-    const other::Path sandbox_dir = "C:/Yock/code/OtherEngine/tests/sandbox";
-    const other::Path config_path = sandbox_dir / "sandbox.other"; 
+    const Path sandbox_dir = "C:/Yock/code/OtherEngine/tests/sandbox";
+    const Path config_path = sandbox_dir / "sandbox.other"; 
 
-    other::CmdLine cmd_line(argc , argv);
+    CmdLine cmd_line(argc , argv);
     cmd_line.SetFlag("--project" , { config_path.string() });
 
     /// for test reasons
-    other::Engine mock_engine(cmd_line); 
-    other::Logger::Open(mock_engine.config);
-    other::Logger::Instance()->RegisterThread("Sandbox Thread");
+    Engine mock_engine(cmd_line); 
+    Logger::Open(mock_engine.config);
+    Logger::Instance()->RegisterThread("Sandbox Thread");
 
     mock_engine.LoadApp();
     OE_DEBUG("Sandbox Launched");
 
-    other::ScriptEngine::LoadProjectModules();
+    ScriptEngine::LoadProjectModules();
 
-    const other::Path engine_core_dir = other::Filesystem::GetEngineCoreDir();
-    const other::Path assets_dir = engine_core_dir / "OtherEngine" / "assets";
+    const Path engine_core_dir = Filesystem::GetEngineCoreDir();
+    const Path assets_dir = engine_core_dir / "OtherEngine" / "assets";
 
-    const other::Path shader_dir = assets_dir / "shaders";
-      const other::Path default_path = shader_dir / "default.oshader";
-      const other::Path normals_path = shader_dir / "normals.oshader";
-      const other::Path fbshader_path = shader_dir / "fbshader.oshader";
-      const other::Path deferred_shader_path = shader_dir / "deferred_shading.oshader";
-      const other::Path add_fog_shader_path = shader_dir / "fog.oshader";
-      const other::Path red_path = shader_dir / "red.oshader";
-      const other::Path outline_path = shader_dir / "outline.oshader";
-      const other::Path pure_geometry_path = shader_dir / "pure_geometry.oshader";
+    const Path shader_dir = assets_dir / "shaders";
+      const Path default_path = shader_dir / "default.oshader";
+      const Path normals_path = shader_dir / "normals.oshader";
+      const Path fbshader_path = shader_dir / "fbshader.oshader";
+      const Path deferred_shader_path = shader_dir / "deferred_shading.oshader";
+      const Path add_fog_shader_path = shader_dir / "fog.oshader";
+      const Path red_path = shader_dir / "red.oshader";
+      const Path outline_path = shader_dir / "outline.oshader";
+      const Path pure_geometry_path = shader_dir / "pure_geometry.oshader";
       
-    const other::Path texture_dir = assets_dir / "textures";
-      const other::Path editor_texture_dir = texture_dir / "editor";
-        const other::Path editor_folder_path = editor_texture_dir / "folder.png";
+    const Path texture_dir = assets_dir / "textures";
+      const Path editor_texture_dir = texture_dir / "editor";
+        const Path editor_folder_path = editor_texture_dir / "folder.png";
     
-    const other::Path scene_dir = assets_dir / "scenes";
+    const Path scene_dir = assets_dir / "scenes";
       
-    const other::Path scenepath = sandbox_dir / "test_scene.yscn";
+    const Path scenepath = sandbox_dir / "test_scene.yscn";
+    OE_ASSERT(Filesystem::PathExists(scenepath) , "Scene file does not exist : {}" , scenepath.string());
     
-    const other::Path bin_dir = engine_core_dir / "bin";
-    const other::Path debug_bin_dir = bin_dir / "Debug";
+    const Path bin_dir = engine_core_dir / "bin";
+    const Path debug_bin_dir = bin_dir / "Debug";
     
     SDL_SetRelativeMouseMode(SDL_TRUE);
 
     {
-      auto win_size = other::Renderer::WindowSize();
+      auto win_size = Renderer::WindowSize();
       Ref<CameraBase> camera = NewRef<PerspectiveCamera>(glm::ivec2{ win_size.x , win_size.y });
       camera->SetPosition({ 0.f , 0.f , 3.f });
 
-      Ref<Shader> fbshader = other::BuildShader(fbshader_path);
+      Ref<Shader> fbshader = BuildShader(fbshader_path);
 
       Ref<VertexArray> fb_mesh = NewRef<VertexArray>(fb_verts , fb_indices , fb_layout);
-      Ref<other::Framebuffer> framebuffer = NewRef<other::Framebuffer>(other::FramebufferSpec{
+      Ref<Framebuffer> framebuffer = NewRef<Framebuffer>(FramebufferSpec{
         .size = win_size ,
       });
     
       uint32_t camera_binding_pnt = 0;
       std::vector<Uniform> cam_unis = {
-        { "projection" , other::ValueType::MAT4 } ,
-        { "view"       , other::ValueType::MAT4 } ,
-        { "viewpoint"  , other::ValueType::VEC4 } ,
+        { "projection" , ValueType::MAT4 } ,
+        { "view"       , ValueType::MAT4 } ,
+        { "viewpoint"  , ValueType::VEC4 } ,
       };
 
       uint32_t model_binding_pnt = 1;
       std::vector<Uniform> model_unis = {
-        { "models" , other::ValueType::MAT4 , 100 } ,
+        { "models" , ValueType::MAT4 , 100 } ,
       };
       
       uint32_t material_binding_pnt = 2;
       std::vector<Uniform> material_unis = {
-        { "materials" , other::ValueType::USER_TYPE , 100 , sizeof(other::Material) } ,
+        { "materials" , ValueType::USER_TYPE , 100 , sizeof(Material) } ,
       };
       
       uint32_t light_binding_pnt = 3;
       std::vector<Uniform> light_unis = {
-        { "num_lights" , other::ValueType::VEC4 } ,
-        { "point_lights" , other::ValueType::USER_TYPE , 100 , sizeof(other::PointLight) } ,
-        { "direction_lights" , other::ValueType::USER_TYPE , 100 , sizeof(other::DirectionLight) } ,
+        { "num_lights" , ValueType::VEC4 } ,
+        { "point_lights" , ValueType::USER_TYPE , 100 , sizeof(PointLight) } ,
+        { "direction_lights" , ValueType::USER_TYPE , 100 , sizeof(DirectionLight) } ,
       };
       
-      other::Layout default_layout = {
-        { other::ValueType::VEC3 , "position" } ,
-        { other::ValueType::VEC3 , "normal"   } ,
-        { other::ValueType::VEC3 , "tangent"  } ,
-        { other::ValueType::VEC3 , "binormal" } ,
-        { other::ValueType::VEC2 , "uvs"      }
+      Layout default_layout = {
+        { ValueType::VEC3 , "position" } ,
+        { ValueType::VEC3 , "normal"   } ,
+        { ValueType::VEC3 , "tangent"  } ,
+        { ValueType::VEC3 , "binormal" } ,
+        { ValueType::VEC2 , "uvs"      }
       };
 
       std::vector<Uniform> outline_unis = {
-        { "outline_color" , other::VEC3 } ,
+        { "outline_color" , VEC3 } ,
       };
       std::vector<Uniform> geometry_unis = {
       };
-      Ref<other::Shader> outline_shader = other::BuildShader(outline_path);
-      Ref<other::Shader> geometry_shader = other::BuildShader(default_path);
+      Ref<Shader> outline_shader = BuildShader(outline_path);
+      Ref<Shader> geometry_shader = BuildShader(default_path);
         
-      other::RenderPassSpec normal_pass_spec {
+      RenderPassSpec normal_pass_spec {
         .name = "Draw Normals" , 
         .tag_col = { 0.f , 1.f , 0.f , 1.f } ,
         .uniforms = {
-          { "magnitude" , other::FLOAT } ,
+          { "magnitude" , ValueType::FLOAT } ,
         } ,
-        .shader = other::BuildShader(normals_path) ,
+        .shader = BuildShader(normals_path) ,
       };
-      Ref<other::RenderPass> normal_pass = NewRef<other::RenderPass>(normal_pass_spec);
+      Ref<RenderPass> normal_pass = NewRef<RenderPass>(normal_pass_spec);
       normal_pass->SetInput("magnitude" , 0.2f);
       
-      other::RenderPassSpec pure_geom_pass_spec {
+      RenderPassSpec pure_geom_pass_spec {
         .name = "Pure Geometry" , 
         .tag_col = { 0.f , 0.f , 1.f , 1.f } ,
         .uniforms = {
         } ,
-        .shader = other::BuildShader(pure_geometry_path) ,
+        .shader = BuildShader(pure_geometry_path) ,
       };
-      Ref<other::RenderPass> pure_geom_pass = NewRef<other::RenderPass>(pure_geom_pass_spec);
+      Ref<RenderPass> pure_geom_pass = NewRef<RenderPass>(pure_geom_pass_spec);
 
-      Ref<other::RenderPass> geom_pass = NewRef<other::GeometryPass>(geometry_unis , geometry_shader);
-      Ref<other::RenderPass> outline_pass = NewRef<other::OutlinePass>(outline_unis , outline_shader);
+      Ref<RenderPass> geom_pass = NewRef<GeometryPass>(geometry_unis , geometry_shader);
+      Ref<RenderPass> outline_pass = NewRef<OutlinePass>(outline_unis , outline_shader);
 
       SceneRenderSpec render_spec {
         .camera_uniforms = NewRef<UniformBuffer>("Camera" , cam_unis , camera_binding_pnt) ,
-        .light_uniforms = NewRef<UniformBuffer>("Lights" , light_unis , light_binding_pnt , other::SHADER_STORAGE) ,
+        .light_uniforms = NewRef<UniformBuffer>("Lights" , light_unis , light_binding_pnt , SHADER_STORAGE) ,
         .pipelines = {
           {
             .framebuffer_spec = {
-              .depth_func = other::LESS_EQUAL ,
+              .depth_func = LESS_EQUAL ,
               .clear_color = { 0.1f , 0.1f , 0.1f , 1.f } ,
-              .size = other::Renderer::WindowSize() ,
+              .size = Renderer::WindowSize() ,
             } ,
             .vertex_layout = default_layout ,
             .model_uniforms = model_unis , 
@@ -238,9 +218,9 @@ int main(int argc , char* argv[]) {
           } ,
           {
             .framebuffer_spec = {
-              .depth_func = other::LESS_EQUAL ,
+              .depth_func = LESS_EQUAL ,
               .clear_color = { 0.1f , 0.1f , 0.1f , 1.f } ,
-              .size = other::Renderer::WindowSize() ,
+              .size = Renderer::WindowSize() ,
             } ,
             .vertex_layout = default_layout ,
             .model_uniforms = model_unis , 
@@ -264,17 +244,17 @@ int main(int argc , char* argv[]) {
       bool camera_lock = true;
 
       if (camera_lock) {
-        other::Mouse::FreeCursor();
+        Mouse::FreeCursor();
       } else {
-        other::Mouse::LockCursor();
+        Mouse::LockCursor();
       }
         
-      other::Material cube_material1 = {
+      Material cube_material1 = {
         .color = { 1.0f , 0.5f , 0.31f , 1.f } ,
         .shininess = 32.f ,
       };
       
-      other::Material cube_material2 = {
+      Material cube_material2 = {
         .color = { 0.1f , 0.5f , 0.31f , 1.f } ,
         .shininess = 32.f ,
       };
@@ -294,71 +274,77 @@ int main(int argc , char* argv[]) {
       glm::vec3 outline_color{ 1.f , 0.f , 0.f };
 
       SceneSerializer serializer;
-      Ref<other::Scene> scene = nullptr;
+      Ref<Scene> scene = nullptr;
       {
         auto loaded_scene = serializer.Deserialize(scenepath.string());
         if (loaded_scene.scene == nullptr) {
           OE_ERROR("Failed to deserialize scene : {}" , scenepath.string());
           throw std::runtime_error("Failed to deserialize scene!");
         }
-
         scene = loaded_scene.scene;
       }
 
-      {
-        auto* cube = scene->GetEntity("cube");
-        auto& cube_mesh = cube->GetComponent<other::StaticMesh>();
-        cube_mesh.material = cube_material1;
-        
-        auto* floor = scene->GetEntity("floor");
-        auto& floor_mesh = floor->GetComponent<other::StaticMesh>();
-        floor_mesh.material = cube_material2;
+      auto* cube = scene->GetEntity("cube");
+      auto* floor = scene->GetEntity("floor");
+      auto* sun = scene->GetEntity("sun");
 
-        auto* sun = scene->GetEntity("sun");
-        auto& sun_l = sun->GetComponent<other::LightSource>();
-        sun_l.direction_light = {
-          .direction = { 0.f , -1.f , 0.f , 1.f } ,
-          .color = { 0.22f , 0.22f , 0.11f , 1.f } ,
-        };
+      auto& cube_mesh = cube->GetComponent<StaticMesh>();
+      cube_mesh.material = cube_material1;
 
+      auto& cube_script = cube->AddComponent<Script>();
+      cube_script.AddScript("TestScript2" , "Other" , "SandboxScripts");
+      
+      auto& floor_mesh = floor->GetComponent<StaticMesh>();
+      floor_mesh.material = cube_material2;
+
+      auto& sun_l = sun->GetComponent<LightSource>();
+      sun_l.direction_light = {
+        .direction = { 0.f , -1.f , 0.f , 1.f } ,
+        .color = { 0.22f , 0.22f , 0.11f , 1.f } ,
+      };
+
+#if 0
         auto* cam_ent = scene->CreateEntity("camera");
-        auto& camera_comp = cam_ent->AddComponent<other::Camera>();
+        auto& camera_comp = cam_ent->AddComponent<Camera>();
         camera_comp.is_primary = true;
-        camera_comp.camera = NewRef<other::PerspectiveCamera>(other::Renderer::GetWindow()->Size());
+        camera_comp.camera = NewRef<PerspectiveCamera>(Renderer::GetWindow()->Size());
         camera_comp.camera->SetPosition({ 0.f , 0.f , 3.f });
         
         auto* point_light = scene->GetEntity("plight");
-        // auto& point_light_comp = point_light->GetComponent<other::LightSource>();
-        // point_light_comp.pointlight = {
-        //   .position = { 1.f , 4.f , 1.f , 1.f } ,
-        //   .color = { 1.f , 0.2f , 0.2f , 1.f } ,
-        // };
-      }
+        auto& point_light_comp = point_light->GetComponent<LightSource>();
+        point_light_comp.type = POINT_LIGHT_SRC;
+        point_light_comp.pointlight = {
+          .position = { 1.f , 4.f , 1.f , 1.f } ,
+          .color = { 1.f , 0.2f , 0.2f , 1.f } ,
+        };
+#endif 
 
-      other::ScriptEngine::SetSceneContext(scene);
-      other::Renderer::SetSceneContext(scene);
+      ScriptEngine::SetSceneContext(scene);
+      Renderer::SetSceneContext(scene);
 
       scene->Initialize();
       scene->Start();
-      other::DefaultUpdateCamera(camera);
+      DefaultUpdateCamera(camera);
 
       OE_DEBUG("Lights [{} , {}]" , scene->GetEnvironment()->direction_lights.size() ,
-                                    scene->GetEnvironment()->point_lights.size());
+                                            scene->GetEnvironment()->point_lights.size());
       
       OE_INFO("Running");
 
       bool render_to_window = true;
 
-      other::time::DeltaTime dt;
+      time::DeltaTime dt;
       dt.Start();
       while (running) {
         float delta = dt.Get();
-        other::IO::Update();
+        IO::Update();
 
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
           switch (event.type) {
-            case SDL_QUIT: running = false; break;
+            case SDL_QUIT: 
+              running = false; 
+            break;
             case SDL_WINDOWEVENT:
               switch (event.window.event) {
                 case SDL_WINDOWEVENT_CLOSE: running = false; break; 
@@ -371,9 +357,9 @@ int main(int argc , char* argv[]) {
                 case SDLK_c: 
                   camera_lock = !camera_lock;
                   if (camera_lock) {
-                    other::Mouse::FreeCursor();
+                    Mouse::FreeCursor();
                   } else {
-                    other::Mouse::LockCursor();
+                    Mouse::LockCursor();
                   }
                 break;
                 case SDLK_r:
@@ -391,21 +377,24 @@ int main(int argc , char* argv[]) {
           ImGui_ImplSDL2_ProcessEvent(&event);
         }
 
-        other::EventQueue::Clear();
+        EventQueue::Clear();
 
         if (!camera_lock) {
-          other::DefaultUpdateCamera(camera);
+          DefaultUpdateCamera(camera);
         }
         
         scene->EarlyUpdate(delta);
         scene->Update(delta);
         scene->LateUpdate(delta);
 
-        other::Renderer::GetWindow()->Clear();
+        Renderer::GetWindow()->Clear();
 
-        // renderer->SubmitCamera(camera);
+        auto cam = scene->GetPrimaryCamera();
+        if (cam == nullptr) {
+          renderer->SubmitCamera(camera);
+        }
         scene->Render(renderer);
-        renderer->EndScene();
+        bool success = renderer->EndScene();
 
         const auto& frames = renderer->GetRender(); 
         
@@ -413,7 +402,7 @@ int main(int argc , char* argv[]) {
         if (itr != frames.end()) {
           const auto& vp = frames.at(FNV("Geometry"));
           if (render_to_window) {
-            other::Renderer::DrawFramebufferToWindow(vp);
+            Renderer::DrawFramebufferToWindow(vp);
           } else {
           }
         }
@@ -421,23 +410,29 @@ int main(int argc , char* argv[]) {
 
 #define UI_ENABLED 1
 #if UI_ENABLED
-        other::UI::BeginFrame();
-        const ImVec2 win_size = { (float)other::Renderer::WindowSize().x , (float)other::Renderer::WindowSize().y };
+        UI::BeginFrame();
+        const ImVec2 win_size = { (float)Renderer::WindowSize().x , (float)Renderer::WindowSize().y };
 
         if (ImGui::Begin("Frames")) {
-          if (auto frame = frames.find(FNV("Debug")); frame != frames.end()) {
-            RenderItem(frame->second->texture, "Debug", ImVec2(win_size.x, win_size.y));
+          if (!success) {
+            ScopedColor red(ImGuiCol_Text , ImVec4(1.f , 0.f , 0.f , 1.f));
+            ImGui::Text("Failed to render frame");
+          } else {
+            ImGui::Text("Frames %llu" , frames.size());
+            if (auto frame = frames.find(FNV("Debug")); frame != frames.end()) {
+              RenderItem(frame->second->texture, "Debug", ImVec2(win_size.x, win_size.y));
+            }
           }
         }
         ImGui::End();
 
         if (ImGui::Begin("Render Settings")) {
           bool edited = false;
-          other::ui::Underline();
+          ui::Underline();
 
           ImGui::Text("Debug Controls");
           ImGui::Separator();
-          other::ui::widgets::DrawVec3Control("outline color" , outline_color , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
+          ui::widgets::DrawVec3Control("outline color" , outline_color , edited , 0.f , 100.f , ui::VectorAxis::ZERO ,
                                               { 0.f , 0.f , 0.f } , { 1.f , 1.f , 1.f } , 0.1f);
           ImGui::Separator();
 
@@ -445,10 +440,10 @@ int main(int argc , char* argv[]) {
           auto& reg = scene->Registry();
 
           ImGui::Text(" - Transforms =====");
-          reg.view<other::Tag , other::Transform>().each([&](other::Tag& tag , other::Transform& transform) {
+          reg.view<Tag , Transform>().each([&](Tag& tag , Transform& transform) {
             ImGui::PushID((tag.name + "##transform-widget").c_str());
-            if (other::ui::widgets::DrawVec3Control(other::fmtstr("{} position", tag.name) , 
-                                                    transform.position , edited , 0.f , 100.f , other::ui::VectorAxis::ZERO ,
+            if (ui::widgets::DrawVec3Control(fmtstr("{} position", tag.name) , 
+                                                    transform.position , edited , 0.f , 100.f , ui::VectorAxis::ZERO ,
                                                     { -100.f , -100.f , -100.f } , { 100.f , 100.f , 100.f } , 0.5f)) {}
             ImGui::Separator();
             ImGui::PopID();
@@ -456,9 +451,9 @@ int main(int argc , char* argv[]) {
           
           ImGui::Text(" - Materials =====");
 
-          reg.view<other::Tag , other::StaticMesh>().each([&](other::Tag& tag , other::StaticMesh& mesh) {
+          reg.view<Tag , StaticMesh>().each([&](Tag& tag , StaticMesh& mesh) {
             ImGui::PushID((tag.name + "##static-mesh-widget").c_str());
-            RenderMaterial(other::fmtstr("{} material" , tag.name) , mesh.material);
+            RenderMaterial(fmtstr("{} material" , tag.name) , mesh.material);
             ImGui::Separator();
             ImGui::PopID();
           });
@@ -467,13 +462,13 @@ int main(int argc , char* argv[]) {
           ImGui::Text(" - Light Controls =====");
           uint32_t i = 0;
           edited = false;
-          reg.view<other::LightSource , other::Transform>().each([&](other::LightSource& light , other::Transform& transform) {
+          reg.view<LightSource , Transform>().each([&](LightSource& light , Transform& transform) {
             switch (light.type) {
-              case other::POINT_LIGHT_SRC:
-                edited = edited || RenderPointLight(other::fmtstr("point light [{}]" , i++) , light.pointlight);
+              case POINT_LIGHT_SRC:
+                edited = edited || RenderPointLight(fmtstr("point light [{}]" , i++) , light.pointlight);
               break;
-              case other::DIRECTION_LIGHT_SRC:
-                edited = edited || RenderDirectionLight(other::fmtstr("direction light [{}]" , i++) , light.direction_light);
+              case DIRECTION_LIGHT_SRC:
+                edited = edited || RenderDirectionLight(fmtstr("direction light [{}]" , i++) , light.direction_light);
               break;
               default:
               break;
@@ -488,10 +483,10 @@ int main(int argc , char* argv[]) {
           ImGui::Separator();
         }
         ImGui::End();
-        other::UI::EndFrame();
+        UI::EndFrame();
 #endif // !UI_ENABLED
 
-        other::Renderer::GetWindow()->SwapBuffers();
+        Renderer::GetWindow()->SwapBuffers();
       }
     
       scene->Stop();
@@ -500,12 +495,12 @@ int main(int argc , char* argv[]) {
 
     mock_engine.UnloadApp();
     OE_INFO("Succesful exit");
-    other::Logger::Shutdown();
+    Logger::Shutdown();
     
     return 0;
-  } catch (const other::IniException& e) {
+  } catch (const IniException& e) {
     std::cout << "caught ini error : " << e.what() << "\n";
-  } catch (const other::ShaderException& e) {
+  } catch (const ShaderException& e) {
     std::cout << "caught shader error : " << e.what() << "\n";
   } catch(const std::exception& e) {
     std::cout << "caught std error : " << e.what() << "\n";

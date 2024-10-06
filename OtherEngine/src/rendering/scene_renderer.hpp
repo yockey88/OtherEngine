@@ -65,7 +65,7 @@ namespace other {
       void SubmitModel(const std::string_view pl_name , Ref<Model> model , const glm::mat4& transform , const Material& material);
       void SubmitStaticModel(const std::string_view pl_name , Ref<StaticModel> model , const glm::mat4& transform , const Material& material);
       
-      void EndScene();
+      bool EndScene();
 
       void ClearPipelines();
 

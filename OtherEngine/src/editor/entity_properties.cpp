@@ -219,33 +219,33 @@ namespace other {
           std::string script_name{ static_cast<const char*>(payload->Data) };
 
 
-          ScriptObject* script = ScriptEngine::GetScriptObject(script_name);
-          if (selection->HasComponent<Script>()) {
-            auto& scripts = selection->GetComponent<Script>();
+          // ScriptRef<CsScript> script = ScriptEngine::GetObjectRef<CsObject>(script_name , "");
+          // if (selection->HasComponent<Script>()) {
+          //   auto& scripts = selection->GetComponent<Script>();
 
-            bool exists = false;
-            for (auto& [id , s] : scripts.scripts) {
-              if (script == s) {
-                exists = true; 
-              } 
-            }
+          //   bool exists = false;
+          //   for (auto& [id , s] : scripts.scripts) {
+          //     if (script == s) {
+          //       exists = true; 
+          //     } 
+          //   }
 
-            if (!exists) {
-              std::string case_ins_name;
-              std::transform(script_name.begin() , script_name.end() , std::back_inserter(case_ins_name) , ::toupper);
+          //   if (!exists) {
+          //     std::string case_ins_name;
+          //     std::transform(script_name.begin() , script_name.end() , std::back_inserter(case_ins_name) , ::toupper);
 
-              UUID id = FNV(case_ins_name);
-              scripts.data[id] = ScriptObjectData{
-                .module = "" , 
-                .obj_name = script_name ,
-              };
-              scripts.scripts[id] = script;
+          //     UUID id = FNV(case_ins_name);
+          //     scripts.data[id] = ScriptObjectData{
+          //       .module = "" , 
+          //       .obj_name = script_name ,
+          //     };
+          //     scripts.scripts[id] = script;
 
-              edited = true;
-            } else {
-              OE_WARN("Script {} already attached to object" , script_name);
-            }
-          }
+          //     edited = true;
+          //   } else {
+          //     OE_WARN("Script {} already attached to object" , script_name);
+          //   }
+          // }
         }
 
         ImGui::EndDragDropTarget();

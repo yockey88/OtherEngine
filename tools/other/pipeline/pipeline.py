@@ -207,6 +207,18 @@ class Pipeline(Singleton):
     else:
       return self._run_dotnet_project()
 
+  @classmethod
+  def _try_test(self):
+    if oe_env.get_settings().test is None:
+      return 0
+    
+    config = oe_env.project_configuration()
+    verbose: bool = oe_env.is_verbose()
+
+    project = oe_env.get_settings().test[0]
+    path_dir = Path(".")
+    candidates: list[Path] = []
+
   @abstractmethod
   def run(self):
     pass

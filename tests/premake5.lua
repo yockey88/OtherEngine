@@ -1,99 +1,115 @@
-local sandbox = {}
+include "./sandbox_scripts/premake5.lua"
+include "./scripts/premake5.lua"
 
-sandbox.name = "sandbox"
-sandbox.path = "./sandbox"
-sandbox.kind = "ConsoleApp"
-sandbox.language = "C++"
-sandbox.cppdialect = "C++latest"
+local sandbox = {
+  name = "sandbox",
+  path = "./sandbox",
+  kind = "ConsoleApp",
+  language = "C++",
+  cppdialect = "C++latest",
 
-sandbox.files = function()
-  files {
-    "./sandbox/**.cpp",
-    "./sandbox/**.hpp",
-    "./sandbox_ui.cpp" ,
-    "./sandbox_ui.hpp" ,
-    "./mock_app.cpp"
+  files = function()
+    files {
+      "./sandbox/**.cpp",
+      "./sandbox/**.hpp",
+      "./sandbox_ui.cpp" ,
+      "./sandbox_ui.hpp" ,
+      "./mock_app.cpp"
+    }
+  end,
+
+  include_dirs = function()
+    includedirs {
+      "./sandbox",
+      "." ,
+    }
+    externalincludedirs {
+      "%{wks.location}/DotOther/NetCore",
+      "%{wks.location}/externals/gtest/googlemock/include"
+    }
+  end,
+
+  defines = function()
+    defines {
+      "OE_MODULE" ,
+    }
+  end,
+
+  components = {
+    ["OtherEngine"] = "%{wks.location}/OtherEngine/src"
   }
-end
-
-sandbox.include_dirs = function()
-  includedirs {
-    "./sandbox",
-    "." ,
-  }
-end
-
-sandbox.defines = function()
-  defines {
-    "OE_MODULE" ,
-  }
-end
-
-sandbox.components = {}
-sandbox.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
-sandbox.components[""] = "%{wks.location}/externals/gtest/googlemock/include"
+}
 
 AddProject(sandbox)
 
-local gl_sandbox = {}
-
-gl_sandbox.name = "gl_sandbox"
-gl_sandbox.path = "./gl_sandbox"
-gl_sandbox.kind = "ConsoleApp"
-gl_sandbox.language = "C++"
-gl_sandbox.cppdialect = "C++latest"
-
-gl_sandbox.files = function()
-  files {
-    "./gl_sandbox/**.cpp",
-    "./gl_sandbox/**.hpp",
-    "./sandbox_ui.cpp" ,
-    "./sandbox_ui.hpp" ,
-    "./mock_app.cpp"
+local gl_sandbox = {
+  name = "gl_sandbox",
+  path = "./gl_sandbox",
+  kind = "ConsoleApp",
+  language = "C++",
+  cppdialect = "C++latest",
+  
+  files = function()
+    files {
+      "./gl_sandbox/**.cpp",
+      "./gl_sandbox/**.hpp",
+      "./sandbox_ui.cpp" ,
+      "./sandbox_ui.hpp" ,
+      "./mock_app.cpp"
+    }
+  end,
+  
+  include_dirs = function()
+    includedirs {
+      "./gl_sandbox",
+      "." ,
+    }
+    externalincludedirs {
+      "%{wks.location}/DotOther/NetCore", 
+      "%{wks.location}/externals/gtest/googlemock/include"
+    }
+  end,
+  
+  defines = function()
+    defines {
+      "OE_MODULE" ,
+    }
+  end,
+  
+  components = {
+    ["OtherEngine"] = "%{wks.location}/OtherEngine/src"
   }
-end
-
-gl_sandbox.include_dirs = function()
-  includedirs {
-    "./gl_sandbox",
-    "." ,
-  }
-end
-
-gl_sandbox.defines = function()
-  defines {
-    "OE_MODULE" ,
-  }
-end
-
-gl_sandbox.components = {}
-gl_sandbox.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
-gl_sandbox.components[""] = "%{wks.location}/externals/gtest/googlemock/include"
+}
 
 AddProject(gl_sandbox)
 
-local unit_tests = {}
-unit_tests.name = "unit_tests"
-unit_tests.path = "./unit_tests"
-unit_tests.kind = "ConsoleApp"
-unit_tests.language = "C++"
-unit_tests.cppdialect = "C++latest"
-
-unit_tests.files = function()
-  files {
-    "./unit_tests/**.cpp" ,
+local unit_tests = {
+  name = "unit_tests",
+  path = "./unit_tests",
+  kind = "ConsoleApp",
+  language = "C++",
+  cppdialect = "C++latest",
+  
+  files = function()
+    files {
+      "./unit_tests/**.cpp" ,
+    }
+  end,
+  
+  include_dirs = function()
+    includedirs {
+      "." ,
+    }
+    externalincludedirs {
+      "%{wks.location}/DotOther/NetCore", 
+      "%{wks.location}/externals/gtest/googlemock/include"
+    }
+  end,
+  
+  components = {
+    ["OtherEngine"] = "%{wks.location}/OtherEngine/src",
+    ["gtest"] = "%{wks.location}/externals/gtest/googletest/include",
   }
-end
-
-unit_tests.include_dirs = function()
-  includedirs {
-    "." ,
-  }
-end
-
-unit_tests.components = {}
-unit_tests.components["OtherEngine"] = "%{wks.location}/OtherEngine/src"
-unit_tests.components["gtest"] = "%{wks.location}/externals/gtest/googletest/include"
-unit_tests.components[""] = "%{wks.location}/externals/gtest/googlemock/include"
+}
 
 AddProject(unit_tests)

@@ -5,10 +5,14 @@
 #define OTHER_ENGINE_VECMATH_HPP
 
 #include <string_view>
+#include <sstream>
 
 #include <glm/glm.hpp>
+#include <glm/detail/qualifier.hpp>
 
 #include <spdlog/fmt/fmt.h>
+
+#include "core/defines.hpp"
 
 template <typename T>
 concept glm_t = std::is_same_v<glm::mat4 , T> || 
@@ -22,6 +26,28 @@ namespace other {
   using Point = glm::vec3;
 
 } // namespace other
+  
+template <glm::length_t N , typename T, glm::qualifier Q>
+struct fmt::formatter<glm::vec<N , T , Q>> : public fmt::formatter<std::string_view> {
+  auto format(const glm::vec<N , T , Q>& vec , fmt::format_context& ctx) {
+    std::stringstream ss;
+    ss << "<";
+    ss << vec.x;
+    if constexpr (N >= 2) {
+      ss << "," << vec.y;
+    }
+
+    if constexpr (N >= 3) {
+      ss << "," << vec.z;
+    }
+
+    if constexpr (N >= 4) {
+      ss << "," << vec.w;
+    }
+    ss << ">";
+    return fmt::formatter<std::string_view>::format(other::fmtstr("{}" , ss.str()) , ctx);
+  }
+};
   
 template <>
 struct fmt::formatter<glm::mat4> : public fmt::formatter<std::string_view> {

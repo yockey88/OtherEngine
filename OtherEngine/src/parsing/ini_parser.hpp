@@ -13,6 +13,7 @@
 
 namespace other {
 
+/// FIXME: why did I make this???? better way?
 #define READ_INI_INTO(name , table , path) \
     try { \
       Path p = Filesystem::FindCoreFile(Path(path)); \

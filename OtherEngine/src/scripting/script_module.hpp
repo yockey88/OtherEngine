@@ -9,12 +9,15 @@
 #include <string_view>
 #include <vector>
 
+#include "core/ref.hpp"
+#include "core/ref_counted.hpp"
+
 #include "scripting/script_defines.hpp"
 #include "scripting/script_object.hpp"
 
 namespace other {
 
-  enum class ScriptModuleType {
+  enum class ScriptType {
     SCENE_SCRIPT , 
     EDITOR_SCRIPT ,
 
@@ -29,35 +32,42 @@ namespace other {
     std::string nspace;
     std::string path;
     LanguageModuleType lang_type;
-    ScriptModuleType type = ScriptModuleType::SCENE_SCRIPT;
+    ScriptType type = ScriptType::SCENE_SCRIPT;
   };
 
-  struct ScriptModuleInfo {
+  struct ScriptMetadata {
     std::string name;
-    std::vector<std::string> paths;
-    ScriptModuleType type = ScriptModuleType::SCENE_SCRIPT;
+    std::string path;
+    ScriptType type = ScriptType::SCENE_SCRIPT;
   };
   
-  class ScriptModule {
+  class ScriptModule : public RefCounted {
     public:
       ScriptModule(LanguageModuleType language , const std::string& module_name) 
           : language(language) , module_name(module_name) {}
       virtual ~ScriptModule() {}
 
-      LanguageModuleType GetLanguage() const {
-        return language;
-      }
-      
-      const std::string& ModuleName() const {
-        return module_name;
-      }
+      LanguageModuleType GetLanguage() const;
+      const std::string& ModuleName() const;
     
       virtual void Initialize(/* bool editor_script = false */) = 0;
       virtual void Shutdown() = 0;
       virtual void Reload() = 0;
-      virtual bool HasScript(UUID id) = 0;
-      virtual bool HasScript(const std::string_view name , const std::string_view nspace = "") = 0;
-      virtual ScriptObject* GetScript(const std::string& name , const std::string& nspace = "") = 0;
+      virtual bool HasScript(UUID id) const = 0;
+      virtual bool HasScript(const std::string_view name , const std::string_view nspace) const = 0;
+
+      virtual Ref<ScriptObject> GetScriptObject(const std::string& name , const std::string& nspace = "") = 0;
+
+      template <typename T>
+        requires script_object_t<T>
+      Ref<T> GetScriptObject(const std::string& name , const std::string& nspace = "") {
+        Ref<ScriptObject> obj = GetScriptObject(name , nspace);
+        if (obj == nullptr) {
+          return nullptr;
+        }
+
+        return Ref<ScriptObject>::Cast<T>(obj);
+      }
 
       virtual std::vector<ScriptObjectTag> GetObjectTags() = 0;
 
@@ -68,6 +78,8 @@ namespace other {
       bool valid = false;
 
       std::string module_name;
+      
+      std::map<UUID , Ref<ScriptObject>> objects;
   };
   
 } // namespace other

@@ -6,62 +6,49 @@
 
 #include <string>
 #include <map>
-#include <span>
+#include <type_traits>
 
-#include "core/value.hpp"
+#include <entt/entity/fwd.hpp>
+#include <hosting/native_string.hpp>
+
+#include "core/ref_counted.hpp"
+#include "core/ref.hpp"
+
 #include "scripting/script_defines.hpp"
 #include "scripting/script_field.hpp"
 
 namespace other {
 
+  class ScriptModule;
+
   /// TODO: fix how scripts are loaded so this can be an asset and retrieved
   ///       from the asset manager
-  class ScriptObject /* : public Asset */ {
+  class ScriptObject : public RefCounted /* : public Asset */ {
     public:
       /// OE_ASSET(SCRIPT);
 
-      ScriptObject(LanguageModuleType lang_type , const std::string& module_name , 
-          const std::string& name , Opt<std::string> name_space = std::nullopt) 
-        : lang_type(lang_type) , script_module_name(module_name) , name_space(name_space) , script_name(name) {}
+      ScriptObject(LanguageModuleType lang_type , ScriptModule* module , UUID script_handle , const std::string& instance_name) 
+        : lang_type(lang_type) , module(module) , script_handle(script_handle) , script_instance_name(instance_name) {}
       virtual ~ScriptObject() {}
 
-      template <typename... Args>
-      Opt<Value> CallMethod(const std::string_view method , Args&&... args) {
-        std::array<Value , sizeof...(Args)> arr = {
-          Value{ std::forward<Args>(args) } ...
-        };
-
-        return OnCallMethod(method , arr);
-      }
-      
-      template <>
-      Opt<Value> CallMethod(const std::string_view method) {
-        std::span<Value> empty{};
-        return OnCallMethod(method , empty);
-      }
-
-      void SetEntityId(UUID id);
       UUID GetEntityId() const;
-      
-      const std::string& ScriptName() const;
+
+      const std::string_view ScriptInstanceName() const;
       const Opt<std::string> NameSpace() const;
-      const std::string& Name() const;
-
+      const std::string_view Name() const;
+          
       LanguageModuleType LanguageType() const;
-
+          
       void MarkCorrupt();
       bool IsCorrupt() const;
       bool IsInitialized() const;
-
+      
       std::map<UUID , ScriptField>& GetFields();
       const std::map<UUID , ScriptField>& GetFields() const;
 
       virtual void InitializeScriptMethods() = 0;
       virtual void InitializeScriptFields() = 0;
       virtual void UpdateNativeFields() = 0;
-
-      virtual Opt<Value> GetField(const std::string& name) = 0;
-      virtual void SetField(const std::string& name , const Value& value) = 0;
 
       virtual void OnBehaviorLoad() = 0;
       virtual void Initialize() = 0;
@@ -80,22 +67,122 @@ namespace other {
     
     protected:
       LanguageModuleType lang_type;
+      ScriptModule* module = nullptr;
 
-      UUID entity_id;
+      UUID script_handle;
+      
+      struct Handles {
+        UUID entity_id;
+        entt::entity entity_handle;
+        void* native_object_handle;
+      } handles;
 
       bool is_initialized = false;
       bool is_corrupt = false;
 
-      std::string script_module_name;
+      std::string script_instance_name;
       Opt<std::string> name_space;
       std::string script_name;
 
       std::map<UUID , ScriptField> fields;
-      
-      virtual void OnSetEntityId() = 0;
-      virtual Opt<Value> OnCallMethod(const std::string_view name , std::span<Value> args) = 0;
-      virtual Opt<Value> OnCallMethod(const std::string_view name , Parameter* args , uint32_t argc);
   };
+
+  template <typename SO>
+  concept script_object_t = std::is_base_of_v<ScriptObject, SO>;
+
+  class Entity;
+
+  template <typename SO>
+  class ScriptObjectHandle : public ScriptObject {
+    public:
+      ScriptObjectHandle(LanguageModuleType lang_type , ScriptModule* module , UUID script_handle , const std::string& instance_name)
+        : ScriptObject(lang_type , module, script_handle , instance_name) {}
+      virtual ~ScriptObjectHandle() {}
+
+      template <typename R , typename... Args>
+      constexpr auto CallMethod(const std::string& method , Args&&... args) -> R {
+        return static_cast<SO*>(this)->template CallMethod<R , Args...>(method , std::forward<Args>(args)...);
+      }
+
+      template <typename T>
+      constexpr auto SetField(const std::string& name , T&& arg) -> void {
+        static_cast<SO*>(this)->SetField(name , std::forward<T>(arg));
+      }
+
+      template <typename R>
+      constexpr auto GetField(const std::string& name) -> R {
+        return static_cast<SO*>(this)->template GetField<R>(name);
+      }
+
+      template <typename T>
+      constexpr auto SetProperty(const std::string_view name , T&& arg) -> void {
+        static_cast<SO*>(this)->template SetProperty<T>(name , std::forward<T>(arg));
+      }
+
+      template <typename R>
+      constexpr auto GetProperty(const std::string_view name) -> R {
+        return static_cast<SO*>(this)->template GetProperty<R>(name);
+      }
+
+      void SetHandles(UUID id , entt::entity handle , void* native_handle) {
+        handles = {
+          .entity_id = id ,
+          .entity_handle = handle ,
+          .native_object_handle = native_handle ,
+        };
+
+        SetProperty("NativeHandle" , native_handle);
+        SetProperty("ObjectID" , id.Get());
+        SetProperty("EntityID" , (uint32_t)handle);
+      }
+
+      void OnBehaviorLoad() override {
+        CallMethod<void>("OnBehaviorLoad");
+      }
+      
+      void OnBehaviorUnload() override {
+        CallMethod<void>("OnBehaviorUnload");
+      }
+      
+      void Initialize() override {
+        CallMethod<void>("OnInitialize");
+      }
+      
+      void Shutdown() override {
+        CallMethod<void>("OnShutdown");
+      } 
+
+      void Start() override {
+        CallMethod<void>("OnStart");
+      }
+      
+      void Stop() override {
+        CallMethod<void>("OnStop");
+      }
+
+      void EarlyUpdate(float dt) override {
+        CallMethod<void, float>("EarlyUpdate" , std::forward<float>(dt));
+      }
+      
+      void Update(float dt) override {
+        CallMethod<void, float>("Update" , std::forward<float>(dt));
+      }
+
+      void LateUpdate(float dt) override {
+        CallMethod<void, float>("LateUpdate" , std::forward<float>(dt));
+      }
+
+      void Render() override {
+        CallMethod<void>("Render");
+      }
+      
+      void RenderUI() override {
+        CallMethod<void>("RenderUI");
+      }
+  };
+      
+  template <typename SO>
+  using ScriptRef = Ref<ScriptObjectHandle<SO>>;
 
 } // namespace other
 

@@ -80,7 +80,12 @@ namespace {
     }
     OE_DEBUG("Project Directory : {}" , metadata.project_directory);
 
-    metadata.assets_dir = metadata.project_directory / "assets"; 
+    auto assets_dir = config.GetVal<std::string>(kProjectSection , kAssetsDirValue);
+    if (assets_dir.has_value()) {
+      metadata.assets_dir = metadata.project_directory / *assets_dir;
+    } else {
+      metadata.assets_dir = metadata.project_directory / "assets";
+    }
     OE_DEBUG("Assets Directory : {}" , metadata.assets_dir);
 
     auto paths = Filesystem::GetSubPaths(metadata.project_directory);

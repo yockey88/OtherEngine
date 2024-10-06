@@ -35,6 +35,8 @@ namespace other {
   CORE_SYSTEM(OnDestroyEntity);
   CORE_SYSTEM(OnCameraAddition);
 
+  CORE_SYSTEM(OnAddScript);
+
   CORE_SYSTEM(OnAddModel);
   CORE_SYSTEM(OnAddStaticModel);
   

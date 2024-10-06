@@ -5,6 +5,7 @@ from .actions import EditAction
 from .actions import BuildAction
 from .actions import RunAction
 from .actions import RunDotnetAction
+from .actions import TestAction
 from .actions import GenFileAction
 
 
@@ -113,6 +114,12 @@ engine_cmds: list[Command] = [
         "runs the dotnet project specified by 'project' if it exists",
         action=RunDotnetAction(), nargs='*', metavar="project"
     ),
+
+    Command(
+        "-t", "--test",
+        "runs the tests for the project specified by 'project' if it exists, otherwise runs the entire test suite",
+        action=TestAction(), nargs='*', metavar="project"
+    ) ,
 
     # configuration
     Command(

@@ -9,6 +9,8 @@
 #include "core/defines.hpp"
 #include "core/uuid.hpp"
 
+#include "ecs/entity.hpp"
+
 namespace other {
 
   std::string ComponentDataBase::GetComponentTagUc(size_t idx) {

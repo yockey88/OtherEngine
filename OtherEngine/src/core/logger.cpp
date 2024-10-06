@@ -13,6 +13,8 @@
 #include "core/config_keys.hpp"
 
 namespace other {
+
+  bool Logger::open = false;
   
   constexpr static uint64_t kConsoleLevelKey = FNV("CONSOLE-LEVEL");
   constexpr static uint64_t kFileLevelKey = FNV("FILE-LEVEL");
@@ -43,13 +45,17 @@ namespace other {
   Logger* Logger::instance = nullptr;
 
   Logger* Logger::Open(const ConfigTable& config) {
+    OE_ASSERT(!open , "Attempting to reopen logger");
+
     if (instance == nullptr) {
       instance = new Logger(config);
-    } else {
-      instance->logger->log(spdlog::level::warn , "Reinitializing logger with new configuration");
-      Shutdown();
-      instance = new Logger(config);
     }
+    /// TODO: create Reopen function to reset all log settings
+    // else {
+    //   instance->logger->log(spdlog::level::warn , "Reinitializing logger with new configuration");
+    //   Shutdown();
+    //   instance = new Logger(config);
+    // }
     return instance;
   }
   
@@ -67,6 +73,10 @@ namespace other {
     }
 
     instance = inst;
+  }
+
+  bool Logger::IsOpen() {
+    return open;
   }
 
   void Logger::Configure(const ConfigTable& config_table) {
@@ -176,6 +186,10 @@ namespace other {
     sink_levels[target] = spd_level;
     sinks[target]->set_level(spd_level);
   }
+  
+  Logger::Level Logger::GetLevel(CoreTarget target) {
+    return kCoreTargetLevels[target];
+  }
 
   bool Logger::ChangeFiles(const std::string& path) {
     sinks[FILE] = NewStdRef<spdlog::sinks::basic_file_sink_mt>(path , true);
@@ -190,6 +204,7 @@ namespace other {
     spdlog::drop_all();
     delete instance;
     instance = nullptr;
+    open = false;
   }
 
   spdlog::level::level_enum Logger::LevelFromString(const std::string& l) {

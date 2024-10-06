@@ -13,19 +13,19 @@ configuration.build_configurations = { "Debug", "Release" }
 configuration.platforms = { "Windows" }
 
 configuration.groups = {
-    ["OtherEngine"] = { "./OtherEngine" } ,
-    ["OtherEngine-CsCore"] = { "./OtherEngine-ScriptCore/cs" } ,
-    ["DotOther"] = { "./DotOther" } ,
+  ["OtherEngine"] = { "./OtherEngine" } ,
+  ["OtherEngine-CsCore"] = { "./OtherEngine-ScriptCore/cs" } ,
+  ["DotOther"] = { "./DotOther" } ,
 
-    ["OtherEngine-Tools"] = { "./OtherEngine-Launcher" } ,
+  ["OtherEngine-Tools"] = { "./OtherEngine-Launcher" } ,
 
-    ["Testing"] = {
-      "./tests" ,
-      "./OtherTestEngine"
-    } ,
+  ["Testing"] = {
+    "./tests" ,
+    "./OtherTestEngine"
+  } ,
 
-    ["Tools"] = { "./tools" } ,
-    ["Games"] = { "./yockcraft" } ,
+  -- ["Tools"] = { "./tools" } ,
+  ["Games"] = { "./yockcraft" } ,
 }
 
 local choc = {}
@@ -67,7 +67,7 @@ imgui.lib_dir = "%{wks.location}/bin/Debug/imgui"
 
 local magic_enum = {}
 magic_enum.name = "magic_enum"
-magic_enum.include_dir = "%{wks.location}/externals/magic_enum/magic_enum"
+magic_enum.include_dir = "%{wks.location}/externals/magic_enum"
 
 local nativefiledialog = {}
 nativefiledialog.name = "nativefiledialog"
@@ -96,12 +96,6 @@ zep.name = "zep"
 zep.path = "./externals/zep"
 zep.include_dir = "%{wks.location}/externals/zep/include"
 zep.lib_name = "zep"
-
-local mono = {}
-mono.name = "mono"
-mono.include_dir = "%{wks.location}/externals/mono/include"
-mono.lib_dir = "%{wks.location}/externals/mono/lib"
-mono.lib_name = "mono-2.0-sgen"
 
 local sol2 = {}
 sol2.name = "sol2"
@@ -188,6 +182,12 @@ pybind.path = "./externals/pybind11"
 pybind.include_dir = "%{wks.location}/externals/pybind11"
 pybind.lib_name = "pybind11"
 
+local dotother = {}
+dotother.name = "DotOther"
+dotother.path = "./DotOther"
+dotother.include_dir = "%{wks.location}/DotOther/Native"
+dotother.lib_name = "DotOther.Native"
+
 AddDependency(choc)
 AddDependency(entt)
 AddDependency(refl)
@@ -200,12 +200,13 @@ AddDependency(nativefiledialog)
 AddDependency(sdl2)
 AddDependency(spdlog)
 AddDependency(zep)
-AddDependency(mono)
 AddDependency(sol2)
 AddDependency(box2d)
 AddDependency(stb)
 AddDependency(jolt)
 AddDependency(pybind)
 -- AddDependency(tracy)
+
+AddDependency(dotother)
 
 CppWorkspace(configuration)

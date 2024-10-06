@@ -43,180 +43,172 @@ namespace {
     }
     return location;
   }
+    
+  static Octant null_octant;
 
 } // namespace <anonymous>
 
-  /// TODO: replace println with log
+  Octant::~Octant() {
+    for (auto& c : children) {
+      c = nullptr;
+    }
+  }
+  
+  Octree::Octree()
+      : depth(1), num_octants(NumOctantsAtDepth(1)) {
+    Initialize({ 1.f , 1.f , 1.f });
+  }
 
   Octree::Octree(const glm::vec3& space_dimensions , size_t depth) 
       : depth(depth) , num_octants(NumOctantsAtDepth(depth)) {
-    octants = std::vector<Octant>(num_octants);
-    space = CurrentOctant();
-    space->dimensions = space_dimensions;
-    Subdivide(space , depth);
+    Initialize(space_dimensions);
   }
 
   Octree::~Octree() {
-    // reset the space
-    octants = {};
-    space = nullptr;
+    octants.Clear();
   }
-
-  Octant* Octree::GetOctant(size_t index) {
-    if (index >= octants.size()) {
-      println("Index out of bounds");
-      return nullptr;
-    }
-
-    return &octants[index];
-  }
-
-  Octant* Octree::GetOctant(const glm::vec3& point) const {
-    if (point.x < (-1 * space->dimensions.x / 2.f) || point.x > space->dimensions.x / 2.f ||
-        point.y < (-1 * space->dimensions.x / 2.f) || point.y > space->dimensions.y / 2.f ||
-        point.z < (-1 * space->dimensions.x / 2.f) || point.z > space->dimensions.z / 2.f) {
-      println("Point out of bounds");
-      return nullptr;
-    }
-
-    return FindOctant(space , point);
+      
+  const size_t Octree::Depth() const { 
+    return kDepth; 
   }
   
-  Octant* Octree::GetOctant(size_t d, size_t index) {
-    if (d == 0) {
-      if (index != 0) {
-        println("0-Depth layer of tree has only one octant, the space itself");
-      }
-
-      return space;
-    } else if (d > depth) {
-      println("Depth out of bounds");
-      return nullptr;
-    }
-
-    if (index >= kNumChildren) {
-      println("Index out of bounds");
-      return nullptr;
-    }
-
-    /// If depth is 0 then there is only one octant, the root or the space
-    if (d == 1) {
-      return space->children[index];
-    }
-
-    size_t idx = (NumOctantsAtDepth(d - 1) + index) - 1;
-    if (idx >= octants.size()) {
-      println("Index out of bounds");
-      return nullptr;
-    }
-
-    println("Returning octant at index = {}" , idx);
-
-    return &octants[idx];
+  const size_t Octree::NumOctants() const { 
+    return num_octants; 
   }
-
-  void Octree::PrintOctants() const {
-    for (size_t i = 0; i < cursor; ++i) {
-      PrintOctant(&octants[i]);
-    }
+      
+  const Octant& Octree::GetSpace() const { 
+    return octants[space_index]; 
   }
   
-  void Octree::PrintOctant(const Octant* octant) const {
-    println("Octant [{}] = {:p}" , octant->tree_index , static_cast<const void*>(octant));
-    println("(@Depth = {} , @Partition = {} , @Location = {:>03b} , @Dimensions = ({},{},{}) , @Center = ({} , {} , {}))", 
-        octant->depth , octant->partition_index , octant->location , 
-        octant->dimensions.x , octant->dimensions.y , octant->dimensions.z ,
-        octant->origin.x , octant->origin.y , octant->origin.z);
-    println(" - Parent = {}", static_cast<void*>(octant->parent));
+  const glm::vec3& Octree::Dimensions() const { 
+    return GetSpace().dimensions; 
+  }
+
+  Octant& Octree::GetOctant(const glm::vec3& point) {
+    return FindOctant(GetSpace() , point);
+  }
+
+  void Octree::PrintOctants(std::ostream& os) const {
+    PrintOctant(os , GetSpace());
+  }
+  
+  void Octree::PrintOctant(std::ostream& os , const Octant& octant) const {
+    os << fmtstr("Octant [{}] = {:p}\n" , octant.tree_index , static_cast<const void*>(&octant));
+    os << fmtstr("(@Depth = {} , @Partition = {} , @Location = {:>03b} , @Dimensions = ({}) , @Center = ({}))\n", 
+                  octant.depth , octant.partition_index , octant.partition_location , octant.dimensions, octant.origin);
+    
+    std::stringstream ss;
+    if (octant.entities.size() > 0) {
+      ss << "\n";
+    }
+    for (const auto& e : octant.entities) {
+      ss << fmtstr(" - {}\n" , e->Name()); 
+    }
+
+    os << fmtstr("(@Entities = {}{})\n" , octant.entities.size() , ss.str());
+    os << fmtstr(" - Parent = {}\n", static_cast<void*>(octant.parent));
     for (size_t i = 0; i < kNumChildren; ++i) {
-      println(" -- [{}] = {}", i , static_cast<void*>(octant->children[i]));
+      os << fmtstr(" -- [{}] = {} [{}]\n", i , octant.tree_index , static_cast<void*>(octant.children[i]));
     }
+
+    os << "---|";
+    for (const auto& c : octant.children) {
+      PrintOctant(os , *c);
+    }
+    os << "---|";
+  }
+  
+  void Octree::AddEntity(Entity* entity) {
+    OE_ASSERT(entity != nullptr , "Attempting to add null entity to octree");
+
+    // const Transform transform = entity->GetComponent<Transform>();
+    // const glm::vec3 position = transform.position;
+
+    // Octant& octant = FindOctant(octants[0] , position);
+    // if (octant.tree_index > 0) {
+    //   octant.entities.push_back(entity);
+    //   return;
+    // } 
+
+    // OE_ERROR("Failed to add {} to octree at <{},{},{}>" , entity->Name() , 
+    //           position.x , position.y , position.z);
   }
 
-  bool Octree::OctantContainsPoint(const Octant* octant , const glm::vec3& point) {
-    return point.x > octant->origin.x - (octant->dimensions.x / 2.f) && point.x < octant->origin.x + (octant->dimensions.x / 2.f) &&
-           point.y > octant->origin.y - (octant->dimensions.y / 2.f) && point.y < octant->origin.y + (octant->dimensions.y / 2.f) &&
-           point.z > octant->origin.z - (octant->dimensions.z / 2.f) && point.z < octant->origin.z + (octant->dimensions.z / 2.f);
+  Octant& Octree::GetSpace() {
+    return octants[space_index];
+  }
+  
+  void Octree::Initialize(const glm::vec3& dim) {
+    dimensions = dim;
+    
+    {
+      auto [idx , space] = octants.EmplaceBackNoLock();
+      // o.tree_index = idx;
+      // space_index = idx;
+    }
+    // space_index = idx;
+    // space.tree_index = idx;
+    // auto [idx , space] = octants.EmplaceBackNoLock();
+    // Subdivide(space , depth);
+  } 
+
+  bool Octree::OctantContainsPoint(const Octant& octant , const glm::vec3& point) const {
+    if (octant.origin == point) {
+      return true;
+    }
+
+    glm::vec3 min = octant.origin - (octant.dimensions / 2.f);
+    glm::vec3 max = octant.origin + (octant.dimensions / 2.f);
+
+    bool greater_than_min = point.x > min.x && point.y > min.y && point.z > min.z;
+    bool less_than_max = point.x < max.x && point.y < max.y && point.z < max.z;
+
+    return greater_than_min && less_than_max;
   }
 
-  Octant* Octree::FindOctant(Octant* octant , const glm::vec3& point) const {
-    /// should be impossible, we should always find the point before recursing to leaf node's null 'children'
-    if (octant == nullptr) {
-      println("UNREACHABLE | DEV ERROR: Octant is null");
-      return nullptr;
-    }
-
-    /// this should also be impossible because we should only ever pass octants that contain the point into this function
-    if ((point.x < octant->origin.x - (octant->dimensions.x / 2.f) || point.x > octant->origin.x + (octant->dimensions.x / 2.f)) ||
-        (point.y < octant->origin.y - (octant->dimensions.y / 2.f) || point.y > octant->origin.y + (octant->dimensions.y / 2.f)) ||
-        (point.z < octant->origin.z - (octant->dimensions.y / 2.f) || point.z > octant->origin.z + (octant->dimensions.z / 2.f))) {
-      println("UNREACHABLE | DEV ERROR: Point is not contained in octant");
-      return nullptr;
-    }
-
+  Octant& Octree::FindOctant(Octant& octant , const glm::vec3& point) {
     /// origin is not contained in any children so this will be the smallest octant that contains the point
-    if (point == octant->origin) {
+    if (point == octant.origin) {
       return octant;
     }
 
-    /// octants are open (do not include their boundaries) so we need to check if the point is on the boundary
-    /// the only exception is the space itself which is closed (includes its boundaries)
-    if ((point.x == octant->origin.x - (octant->dimensions.x / 2.f) || point.x == octant->origin.x + (octant->dimensions.x / 2.f)) &&
-        (point.y == octant->origin.y - (octant->dimensions.y / 2.f) || point.y == octant->origin.y + (octant->dimensions.y / 2.f)) &&
-        (point.z == octant->origin.z - (octant->dimensions.z / 2.f) || point.z == octant->origin.z + (octant->dimensions.z / 2.f))) {
-      return octant;
+    for (const auto& o : octant.children) {
+      Octant& oct = FindOctant(*o , point);
+      if (oct.tree_index != -1) {
+        return oct;
+      }
     }
 
-    /// point is in bounds, is not on the boundary, and is not the origin so we need to recurse
-    const size_t idx = kLocationIndex.at(LocationFromPoint(point , octant->origin , octant->dimensions));
-
-    if (octant->children[idx] == nullptr) {
-      /// this is the smallest octant that contains the point
-      return octant;
-    }
-
-    return FindOctant(octant->children[idx] , point);
+    return null_octant;
   }
 
-  void Octree::Subdivide(Octant* octant, size_t depth) {
+  void Octree::Subdivide(Octant& octant, size_t depth) {
+    octant.depth = depth;
     if (depth == 0) {
       return;
     }
 
     Subdivide(octant);
-    for (auto& child : octant->children) {
-      Subdivide(child, depth - 1);
+    for (auto& child : octant.children) {
+      Subdivide(*child, depth - 1);
     }
   }
 
-  void Octree::Subdivide(Octant* octant) {
-    if (octant == nullptr) {
-      return;
-    }
-
-    if (cursor >= octants.size()) {
-      println("Cursor out of bounds");
-      return;
-    }
-
-    if (cursor + kNumChildren > octants.size()) {
-      println("Cursor + kNumChildren out of bounds , cursor = {}" , cursor);
-      return;
-    }
-
+  void Octree::Subdivide(Octant& octant) {
     for (size_t i = 0; i < kNumChildren; ++i) {
-      octant->children[i] = CurrentOctant();
-      /// cursor - 1 because we just incremented it in CurrentOctant
-      octant->children[i]->tree_index = cursor - 1;
-      octant->children[i]->partition_index = i;
-      octant->children[i]->location = kOctantLocations[i];
+      auto [idx , child] = octants.EmplaceBackNoLock();
 
-      octant->children[i]->parent = octant;
+      child.parent = &octant;
+      child.tree_index = idx;
 
-      octant->children[i]->dimensions = CalculateOctantDimensions(octant->dimensions);
-      octant->children[i]->origin = CalculateOctantOrigin(octant->dimensions , octant->origin , kOctantLocations[i]);
+      child.partition_index = i;
+      child.partition_location = kOctantLocations[i];
 
-      octant->children[i]->depth = octant->depth + 1;
+      child.dimensions = CalculateOctantDimensions(octant.dimensions);
+      child.origin = CalculateOctantOrigin(octant.dimensions , octant.origin , kOctantLocations[i]);
+      child.depth = octant.depth + 1;
+      
+      octant.children[i] = &child;
     }
   }
 
@@ -239,12 +231,6 @@ namespace {
       parent_dimensions.y / 2.f,
       parent_dimensions.z / 2.f
     };
-  }
-  
-  void Octree::AddEntity(Entity* entity) {
-    OE_ASSERT(entity != nullptr , "Attempting to add null entity to octree");
-
-    throw std::runtime_error("ADD ENTITY UNIMPLEMENTED");
   }
 
 } // namespace other

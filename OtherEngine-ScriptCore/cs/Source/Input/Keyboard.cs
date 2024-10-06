@@ -5,23 +5,23 @@ namespace Other {
   public static class Keyboard {
     private const int NumKeys = 287;
     
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern int FramesHeld(KeyCode key);
+    // [MethodImpl(MethodImplOptions.InternalCall)]
+    // public static extern int FramesHeld(KeyCode key);
     
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern bool Pressed(KeyCode key);
+    // [MethodImpl(MethodImplOptions.InternalCall)]
+    // public static extern bool Pressed(KeyCode key);
     
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern bool Blocked(KeyCode key);
+    // [MethodImpl(MethodImplOptions.InternalCall)]
+    // public static extern bool Blocked(KeyCode key);
     
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern bool Held(KeyCode key);
+    // [MethodImpl(MethodImplOptions.InternalCall)]
+    // public static extern bool Held(KeyCode key);
     
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern bool Down(KeyCode key);
+    // [MethodImpl(MethodImplOptions.InternalCall)]
+    // public static extern bool Down(KeyCode key);
     
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern bool Released(KeyCode key);
+    // [MethodImpl(MethodImplOptions.InternalCall)]
+    // public static extern bool Released(KeyCode key);
 
     public static int KeyCount {
       get => NumKeys;

@@ -1,30 +1,64 @@
 using System.Runtime.CompilerServices;
 
+using DotOther.Managed;
+
 namespace Other {
+
+  internal enum LogLevel {
+    Trace = 0 ,
+    Debug,
+    Info,
+    Warning,
+    Error,
+    Fatal
+  }
 
   public static class Logger {
 #region LoggingUtilities
 
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern void WriteLine(string line);
+    internal static unsafe delegate*<NString , LogLevel , void> Write;
 
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern void WriteTrace(string line);
+    public static void WriteTrace(string line) {
+      unsafe {
+        NString msg = line;
+        Write(msg, LogLevel.Trace);
+      }
+    }
 
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern void WriteDebug(string line);
+    public static void WriteDebug(string line) {
+      unsafe {
+        NString msg = line;
+        Write(msg, LogLevel.Debug);
+      }
+    }
 
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern void WriteInfo(string line);
+    public static void WriteInfo(string line) {
+      unsafe {
+        NString msg = line;
+        Write(msg, LogLevel.Info);
+      }
+    }
 
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern void WriteWarning(string line);
+    public static void WriteWarning(string line) {
+      unsafe {
+        NString msg = line;
+        Write(msg, LogLevel.Warning);
+      }
+    }
 
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern void WriteError(string line);
+    public static void WriteError(string line) {
+      unsafe {
+        NString msg = line;
+        Write(msg, LogLevel.Error);
+      }
+    }
 
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern void WriteFatal(string line);
+    public static void WriteFatal(string line) {
+      unsafe {
+        NString msg = line;
+        Write(msg, LogLevel.Fatal);
+      }
+    }
 
 #endregion /// LoggingUtilities
   }

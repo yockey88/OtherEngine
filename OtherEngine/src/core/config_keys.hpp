@@ -32,8 +32,8 @@ namespace other {
   constexpr static std::string_view kLogSection = "LOG";
   constexpr static uint64_t kLogSectionHash = FNV(kLogSection);
 
-  constexpr static std::string_view kScriptingSection = "SCRIPT-ENGINE";
-  constexpr static uint64_t kScriptingSectionHash = FNV(kScriptingSection);
+  constexpr static std::string_view kScriptEngineSection = "SCRIPT-ENGINE";
+  constexpr static uint64_t kScriptEngineSectionHash = FNV(kScriptEngineSection);
 
   constexpr static std::string_view kEditorSection = "EDITOR";
   constexpr static uint64_t kEditorSectionHash = FNV(kEditorSection);
@@ -74,6 +74,9 @@ namespace other {
   
   constexpr static std::string_view kAssetsValue = "ASSETS";
   constexpr static uint64_t kAssetsValueHash = FNV(kAssetsValue);
+  
+  constexpr static std::string_view kAssetsDirValue = "ASSETS-DIR";
+  constexpr static uint64_t kAssetsDirValueHash = FNV(kAssetsDirValue);
 
   constexpr static std::string_view kPrimarySceneValue = "PRIMARY-SCENE";
   constexpr static uint64_t kPrimarySceneHash = FNV(kPrimarySceneValue);

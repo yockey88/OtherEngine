@@ -26,6 +26,7 @@ namespace other {
     std::function<spdlog::sink_ptr()> sink_factory = nullptr;
   };
 
+  /// TODO: This needs a look at soon I think
   class Logger {
     public:
       enum CoreTarget : uint64_t {
@@ -51,6 +52,8 @@ namespace other {
 
       /// called by plugin loaders to set the global logging state on the other side of the DLL boundary
       static void SetLoggerInstance(Logger* instance);
+
+      static bool IsOpen();
 
       StdRef<spdlog::logger> GetLogger() { return logger; }
 
@@ -102,6 +105,8 @@ namespace other {
       void SetCoreLevel(CoreTarget target , const std::string& l);
       void SetCoreLevel(CoreTarget target , Level l);
 
+      Level GetLevel(CoreTarget target);
+
       bool ChangeFiles(const std::string& path);
       
       static spdlog::level::level_enum LevelFromString(const std::string& l);
@@ -118,6 +123,8 @@ namespace other {
       Logger(Logger&&) = delete;
       Logger& operator=(Logger&&) = delete;
       Logger& operator=(const Logger&) = delete;
+
+      static bool open;
 
       static Logger* instance;
       

@@ -8,8 +8,8 @@ local host_tests = {
 
   files = function()
     files {
-      "host_tests.cpp" ,
-      "dotest.cpp" ,
+      "specialized_tests/host_tests.cpp" ,
+      "core/*.cpp" ,
     }
   end,
 
@@ -31,8 +31,8 @@ local do_unit_tests = {
 
   files = function()
     files {
-      "reflection_test.cpp" ,
-      "dotest.cpp" ,
+      "unit_tests/*.cpp" ,
+      "core/*.cpp" ,
     }
   end,
 }
@@ -43,6 +43,7 @@ local function add_dotother_comps(project, addnethost)
   project.include_dirs = function()
     includedirs {
       "." ,
+      "%{wks.location}/DotOther/Native" ,
     }
   end
 
