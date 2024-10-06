@@ -3,19 +3,37 @@
  **/
 #include "scripting/cs/cs_script.hpp"
 
-#include "scripting/cs/cs_object.hpp"
+#include <hosting/garbage_collector.hpp>
+
 #include "scripting/script_module.hpp"
+#include "scripting/cs/cs_object.hpp"
+#include "scripting/cs/cs_bindings.hpp"
 
 namespace other {
 
   void CsScript::Initialize() {
     valid = assembly != nullptr;
+
+    /// FIXME: this feels super hacky
+    if (valid && module_name == "OtherEngine.CsCore") {
+      cs_script_bindings::RegisterInternalCalls(assembly);
+      assembly->UploadInternalCalls();
+    }
   }
 
   void CsScript::Shutdown() {
     if (!valid) {
       return;
     }
+
+    dotother::GarbageCollector::Collect(assembly->GetId() , dotother::GCMode::DEFAULT , true , true);
+    dotother::GarbageCollector::WaitForPendingFinalizers(assembly->GetId());
+
+    for (auto& [id , obj] : loaded_objects) {
+      obj->OnBehaviorUnload();
+      obj = nullptr;
+    }
+    loaded_objects.clear();
 
     valid = false;
   }
@@ -28,7 +46,7 @@ namespace other {
       return false;
     }
 
-    return false;
+    return loaded_objects.find(id) != loaded_objects.end();
   }
       
   bool CsScript::HasScript(const std::string_view name , const std::string_view nspace) const {
@@ -63,7 +81,6 @@ namespace other {
     // retrieve type from assembly
     std::string asm_name = assembly->GetAsmQualifiedName(name , nspace);
     OE_DEBUG(" > Looking for type {}::{} [{}]" , nspace , name , asm_name);
-    
     
     Type& type = assembly->GetType(asm_name);
     if (type.handle == -1) {

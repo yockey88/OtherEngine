@@ -22,6 +22,7 @@ namespace dotother {
     exception_callback_t exception_callback = nullptr;
     log_callback_t log_callback = nullptr;
     invoke_native_method_hook_t invoke_native_method_hook = nullptr;
+    retrieve_native_object_hook_t retrieve_native_object_hook = nullptr;
   };
 
   using EntryPoint = void(DOTOTHER_CALLTYPE*)(DotOtherArgs args);
@@ -34,7 +35,7 @@ namespace dotother {
     dostring entry_point;
     const dochar* delegate_type = DOTOTHER_UNMANAGED_FUNCTION;
 
-    MessageLevel log_level = MessageLevel::MESSAGE;
+    bool is_verbose = false;
 
     /// Callbacks for managed code
     exception_callback_t exception_callback = nullptr;
@@ -43,7 +44,7 @@ namespace dotother {
 
     /// native host engine configuration
     coreclr_error_callback_t coreclr_error_callback = nullptr;
-    internal_logging_hook_t internal_logging_hook = nullptr;
+    native_log_callback_t internal_logging_hook = nullptr;
   };
 
   class Host {

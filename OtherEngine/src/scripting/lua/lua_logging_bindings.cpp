@@ -1,7 +1,7 @@
 /**
- * \file scripting/lua/native_functions/lua_native_logging.cpp
+ * \file scripting/lua/lua_logging_bindings.cpp
  **/
-#include "scripting/lua/native_functions/lua_native_logging.hpp"
+#include "scripting/lua/lua_logging_bindings.hpp"
 
 #include "core/defines.hpp"
 

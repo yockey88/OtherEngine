@@ -4,14 +4,15 @@
 #ifndef OTHER_ENGINE_SCRIPT_OBJECT_HPP
 #define OTHER_ENGINE_SCRIPT_OBJECT_HPP
 
-#include <concepts>
 #include <string>
 #include <map>
 #include <type_traits>
 
+#include <entt/entity/fwd.hpp>
+#include <hosting/native_string.hpp>
+
 #include "core/ref_counted.hpp"
 #include "core/ref.hpp"
-#include "core/value.hpp"
 
 #include "scripting/script_defines.hpp"
 #include "scripting/script_field.hpp"
@@ -19,9 +20,6 @@
 namespace other {
 
   class ScriptModule;
-
-  template <typename T>
-  class ScriptObjectHandle;
 
   /// TODO: fix how scripts are loaded so this can be an asset and retrieved
   ///       from the asset manager
@@ -33,10 +31,6 @@ namespace other {
         : lang_type(lang_type) , module(module) , script_handle(script_handle) , script_instance_name(instance_name) {}
       virtual ~ScriptObject() {}
 
-      template <typename SO , typename R , typename... Args>
-      constexpr auto CallMethod(const std::string& method , Args&&... args) -> R;
-
-      void SetEntityId(UUID id);
       UUID GetEntityId() const;
 
       const std::string_view ScriptInstanceName() const;
@@ -55,9 +49,6 @@ namespace other {
       virtual void InitializeScriptMethods() = 0;
       virtual void InitializeScriptFields() = 0;
       virtual void UpdateNativeFields() = 0;
-
-      virtual Opt<Value> GetField(const std::string& name) = 0;
-      virtual void SetField(const std::string& name , const Value& value) = 0;
 
       virtual void OnBehaviorLoad() = 0;
       virtual void Initialize() = 0;
@@ -79,7 +70,12 @@ namespace other {
       ScriptModule* module = nullptr;
 
       UUID script_handle;
-      UUID entity_id;
+      
+      struct Handles {
+        UUID entity_id;
+        entt::entity entity_handle;
+        void* native_object_handle;
+      } handles;
 
       bool is_initialized = false;
       bool is_corrupt = false;
@@ -89,14 +85,14 @@ namespace other {
       std::string script_name;
 
       std::map<UUID , ScriptField> fields;
-      
-      virtual void OnSetEntityId() = 0;
   };
 
   template <typename SO>
-  concept script_object_t = std::is_base_of_v<ScriptObject,SO>;
+  concept script_object_t = std::is_base_of_v<ScriptObject, SO>;
 
-  template <typename T>
+  class Entity;
+
+  template <typename SO>
   class ScriptObjectHandle : public ScriptObject {
     public:
       ScriptObjectHandle(LanguageModuleType lang_type , ScriptModule* module , UUID script_handle , const std::string& instance_name)
@@ -105,43 +101,75 @@ namespace other {
 
       template <typename R , typename... Args>
       constexpr auto CallMethod(const std::string& method , Args&&... args) -> R {
-        return static_cast<T*>(this)->template CallMethod<R , Args...>(method , std::forward<Args>(args)...);
+        return static_cast<SO*>(this)->template CallMethod<R , Args...>(method , std::forward<Args>(args)...);
+      }
+
+      template <typename T>
+      constexpr auto SetField(const std::string& name , T&& arg) -> void {
+        static_cast<SO*>(this)->SetField(name , std::forward<T>(arg));
+      }
+
+      template <typename R>
+      constexpr auto GetField(const std::string& name) -> R {
+        return static_cast<SO*>(this)->template GetField<R>(name);
+      }
+
+      template <typename T>
+      constexpr auto SetProperty(const std::string_view name , T&& arg) -> void {
+        static_cast<SO*>(this)->template SetProperty<T>(name , std::forward<T>(arg));
+      }
+
+      template <typename R>
+      constexpr auto GetProperty(const std::string_view name) -> R {
+        return static_cast<SO*>(this)->template GetProperty<R>(name);
+      }
+
+      void SetHandles(UUID id , entt::entity handle , void* native_handle) {
+        handles = {
+          .entity_id = id ,
+          .entity_handle = handle ,
+          .native_object_handle = native_handle ,
+        };
+
+        SetProperty("NativeHandle" , native_handle);
+        SetProperty("ObjectID" , id.Get());
+        SetProperty("EntityID" , (uint32_t)handle);
       }
 
       void OnBehaviorLoad() override {
         CallMethod<void>("OnBehaviorLoad");
       }
       
-      void Initialize() override {
-        CallMethod<void>("Initialize");
-      }
-      
-      void Shutdown() override {
-        CallMethod<void>("Shutdown");
-      } 
-      
       void OnBehaviorUnload() override {
         CallMethod<void>("OnBehaviorUnload");
       }
+      
+      void Initialize() override {
+        CallMethod<void>("OnInitialize");
+      }
+      
+      void Shutdown() override {
+        CallMethod<void>("OnShutdown");
+      } 
 
       void Start() override {
-        CallMethod<void>("Start");
+        CallMethod<void>("OnStart");
       }
       
       void Stop() override {
-        CallMethod<void>("Stop");
+        CallMethod<void>("OnStop");
       }
 
       void EarlyUpdate(float dt) override {
-        CallMethod<void>("EarlyUpdate" , dt);
+        CallMethod<void, float>("EarlyUpdate" , std::forward<float>(dt));
       }
       
       void Update(float dt) override {
-        CallMethod<void>("Update" , dt);
+        CallMethod<void, float>("Update" , std::forward<float>(dt));
       }
 
       void LateUpdate(float dt) override {
-        CallMethod<void>("LateUpdate" , dt);
+        CallMethod<void, float>("LateUpdate" , std::forward<float>(dt));
       }
 
       void Render() override {
@@ -153,21 +181,8 @@ namespace other {
       }
   };
       
-  template <typename SO , typename R , typename... Args>
-  constexpr auto ScriptObject::CallMethod(const std::string& method , Args&&... args) -> R {
-    Ref<ScriptObjectHandle<SO>> obj = GetObjectHandle<SO>();  
-    if (obj == nullptr) {
-      if constexpr (std::same_as<R , void>) {
-        return;
-      } else {
-        return R{};
-      }
-    }
-    return obj->template CallMethod<R , Args...>(method , std::forward<Args>(args)...);
-  }
-
-  template <typename T>
-  using ScriptRef = Ref<ScriptObjectHandle<T>>;
+  template <typename SO>
+  using ScriptRef = Ref<ScriptObjectHandle<SO>>;
 
 } // namespace other
 

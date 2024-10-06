@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace DotOther.Managed {
 
@@ -21,6 +22,7 @@ namespace DotOther.Managed {
     public unsafe delegate*<NString , void> ExceptionCallback;
     public unsafe delegate*<NString , MessageLevel, void> LogCallback;
     public unsafe delegate*<UInt64, NString, void> NativeMethodInvoker;
+    public unsafe delegate*<NObject,UInt64> RetrieveNativeObject;
   }
 
 
@@ -29,12 +31,14 @@ namespace DotOther.Managed {
     private static unsafe delegate*<NString , MessageLevel, void> LogCallback;
 
     private static unsafe delegate*<UInt64, NString, void> NativeMethodInvoker;
+    private static unsafe delegate*<NObject,UInt64> RetrieveNativeObject;
 
     [UnmanagedCallersOnly]
     private static unsafe void EntryPoint(DotOtherArgs args) {
       ExceptionCallback = args.ExceptionCallback;
       LogCallback = args.LogCallback;
       NativeMethodInvoker = args.NativeMethodInvoker;
+      RetrieveNativeObject = args.RetrieveNativeObject;
       LogCallback("DotOtherHost: Initialized", MessageLevel.Info);
     }
 
@@ -51,7 +55,10 @@ namespace DotOther.Managed {
           return;
         }
 
-        NString msg = e.Message;
+        StringBuilder sb = new();
+        sb.Append($"{e.Message} =>\n{e.StackTrace}");
+
+        NString msg = sb.ToString();
         ExceptionCallback(msg);
       }
     }
@@ -74,14 +81,13 @@ namespace DotOther.Managed {
       }
 
       unsafe {
-        if (NativeMethodInvoker == null) {
-          LogMessage("NativeMethodInvoker is null", MessageLevel.Error);
-          throw new InvalidOperationException("NativeMethodInvoker is null");
+        if (GetNativeObject == null) {
+          LogMessage("GetNativeObject is null", MessageLevel.Error);
+          throw new InvalidOperationException("GetNativeObject is null");
         }
 
         try {
-          NativeMethodInvoker(handle, "GetNativeObject");
-          return new NObject(handle);
+          return GetNativeObject(handle);
         } catch (Exception e) {
           HandleException(e);
           return null;

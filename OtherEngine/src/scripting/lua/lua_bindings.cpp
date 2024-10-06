@@ -6,11 +6,10 @@
 #include <sol/raii.hpp>
 #include <entt/entt.hpp>
 
-#include "core/logger.hpp"
 #include "input/mouse.hpp"
 #include "input/keyboard.hpp"
 
-#include "scripting/lua/native_functions/lua_native_logging.hpp"
+#include "scripting/lua/lua_logging_bindings.hpp"
 #include "scripting/lua/lua_math_bindings.hpp"
 #include "scripting/lua/lua_component_bindings.hpp"
 #include "scripting/lua/lua_scene_bindings.hpp"
@@ -22,13 +21,14 @@ namespace lua_script_bindings {
   void BindKeyEnums(sol::state& lua_state);
 
   void BindCoreTypes(sol::state& lua_state) {
-    lua_state["Logger"] = lua_state.create_table();
-    lua_state["Logger"]["WriteTrace"] = lua_script_bindings::WriteTrace;
-    lua_state["Logger"]["WriteDebug"] = lua_script_bindings::WriteDebug;
-    lua_state["Logger"]["WriteInfo"] = lua_script_bindings::WriteInfo;
-    lua_state["Logger"]["WriteWarning"] = lua_script_bindings::WriteWarning;
-    lua_state["Logger"]["WriteError"] = lua_script_bindings::WriteError;
-    lua_state["Logger"]["WriteCritical"] = lua_script_bindings::WriteCritical;
+    lua_state["Logger"] = lua_state.create_table_with(
+      "WriteTrace" , &lua_script_bindings::WriteTrace ,
+      "WriteDebug" , &lua_script_bindings::WriteDebug ,
+      "WriteInfo" , &lua_script_bindings::WriteInfo ,
+      "WriteWarning" , &lua_script_bindings::WriteWarning ,
+      "WriteError" , &lua_script_bindings::WriteError ,
+      "WriteCritical" , &lua_script_bindings::WriteCritical
+    );
 
     lua_state["Button"] = lua_state.create_table_with(
       "Left" , Mouse::Button::LEFT , 
@@ -40,32 +40,30 @@ namespace lua_script_bindings {
 
     lua_state.new_usertype<Keyboard>(
       "Keyboard" , 
-      "FramesHeld" , Keyboard::FramesHeld ,
-      "Pressed" , Keyboard::Pressed , 
-      "Blocked" , Keyboard::Blocked , 
-      "Held" , Keyboard::Held , 
-      "Down" , Keyboard::Down ,
-      "Released" , Keyboard::Released
+      "FramesHeld" , &Keyboard::FramesHeld ,
+      "Pressed" , &Keyboard::Pressed , 
+      "Blocked" , &Keyboard::Blocked , 
+      "Held" , &Keyboard::Held , 
+      "Down" , &Keyboard::Down ,
+      "Released" , &Keyboard::Released
     );
-
-    BindKeyEnums(lua_state);
 
     lua_state.new_usertype<Mouse>(
       "Mouse" ,
-      "SnapToCenter" , Mouse::SnapToCenter ,
-      "FreeCursor" , Mouse::FreeCursor , 
-      "LockCursor" , Mouse::LockCursor ,
-      "GetX" , Mouse::GetX ,
-      "GetY" , Mouse::GetY ,
-      "PreviousX" , Mouse::PreviousX ,
-      "PreviousY" , Mouse::PreviousY , 
-      "GetDX" , Mouse::GetDX , 
-      "GetDY" , Mouse::GetDY ,
-      "InWindow" , Mouse::InWindow ,
-      "FramesHeld" , Mouse::FramesHeld ,
-      "Pressed" , Mouse::Blocked ,
-      "Held" , Mouse::Held ,
-      "Released" , Mouse::Released ,
+      "SnapToCenter" , &Mouse::SnapToCenter ,
+      "FreeCursor" , &Mouse::FreeCursor , 
+      "LockCursor" , &Mouse::LockCursor ,
+      "GetX" , &Mouse::GetX ,
+      "GetY" , &Mouse::GetY ,
+      "PreviousX" , &Mouse::PreviousX ,
+      "PreviousY" , &Mouse::PreviousY , 
+      "GetDX" , &Mouse::GetDX , 
+      "GetDY" , &Mouse::GetDY ,
+      "InWindow" , &Mouse::InWindow ,
+      "FramesHeld" , &Mouse::FramesHeld ,
+      "Pressed" , &Mouse::Blocked ,
+      "Held" , &Mouse::Held ,
+      "Released" , &Mouse::Released ,
       "MousePos" , []() -> glm::vec2 { return { Mouse::GetX() , Mouse::GetY() }; } , 
       "MousePreviousPos" , []() -> glm::vec2 { return { Mouse::PreviousX() , Mouse::PreviousY() }; } , 
       "MouseDeltaPos" , []() -> glm::vec2 { return { Mouse::GetDX() , Mouse::GetDY() }; }
@@ -73,10 +71,13 @@ namespace lua_script_bindings {
   }
   
   void BindAll(sol::state& lua_state) {
-    BindGlmTypes(lua_state);
     BindCoreTypes(lua_state);
+    BindKeyEnums(lua_state);
+    BindGlmTypes(lua_state);
+
     BindEcsTypes(lua_state);
     BindScene(lua_state);
+
     BindUiTypes(lua_state);
   }
 

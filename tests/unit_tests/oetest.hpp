@@ -4,10 +4,11 @@
 #ifndef OETEST_HPP
 #define OETEST_HPP
 
+#include <cstdint>
+
 #include <gtest/gtest.h>
 
 #include "core/config.hpp"
-
 #include "parsing/cmd_line_parser.hpp"
 
 namespace other {
@@ -24,15 +25,13 @@ class OtherTest : public ::testing::Test {
     static void CloseLog();
 
   protected:
-    static std::optional<ConfigTable> config;
-    static std::optional<ConfigTable> stashed_config;
+    static ConfigTable config;
+    static ConfigTable stashed_config;
 
     static CmdLine cmdline;
-
-
-    static void StashConfig();
-    static void ApplyStashedConfig();
 };
+
+bool CheckNumScripts(uint32_t cs , uint32_t lua , uint32_t python);
 
 } // namespace other
 

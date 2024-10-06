@@ -20,6 +20,10 @@ namespace other {
     state = NewScope<Data>(app_handle , layers , scenes , assets , context); 
   }
 
+  void AppState::Shutdown() {
+    state = nullptr;
+  }
+
   Ref<Project> AppState::ProjectContext() {
     OE_ASSERT(state != nullptr , "Can not access app state until app is loaded");
     return Ref<Project>::Clone(state->project);

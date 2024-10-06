@@ -7,6 +7,7 @@
 
 #include <map>
 #include <type_traits>
+#include <vector>
 
 #include <core/stable_vector.hpp>
 
@@ -42,7 +43,7 @@ namespace other {
       virtual bool Initialize() = 0;
       virtual void Shutdown() = 0;
       virtual void Reload() = 0;
-      virtual Ref<ScriptModule> GetScriptModule(const std::string& name) = 0;
+      virtual Ref<ScriptModule> GetScriptModule(const std::string_view name) = 0;
       virtual Ref<ScriptModule> GetScriptModule(const UUID& id) = 0;
       virtual Ref<ScriptModule> LoadScriptModule(const ScriptMetadata& module_info) = 0;
       virtual void UnloadScript(const std::string& name) = 0;

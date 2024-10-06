@@ -3,15 +3,12 @@
  **/
 #include "scripting/script_object.hpp"
 
+#include "ecs/entity.hpp"
+
 namespace  other {
 
-  void ScriptObject::SetEntityId(UUID id) {
-    entity_id = id;
-    OnSetEntityId();
-  }
-
   UUID ScriptObject::GetEntityId() const {
-    return entity_id;
+    return handles.entity_id;
   }
 
   const std::string_view ScriptObject::ScriptInstanceName() const {

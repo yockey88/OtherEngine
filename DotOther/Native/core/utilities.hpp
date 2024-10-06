@@ -13,22 +13,27 @@
 namespace dotother {
 namespace util { 
 namespace detail {
+
+  using namespace std::string_view_literals;
+
+  /// clang does not like this function for some reason
+  static void default_log_sink(const std::string_view message, MessageLevel level) {
+    std::cout << fmt::format("[DotOther] > {} [{}]"sv , message , level) << std::endl;
+  };
 	
   struct UtilityObjects {
-    MessageLevel log_level = MessageLevel::MESSAGE;
+    native_log_callback_t log_sink = &default_log_sink;
 
-    internal_logging_hook_t log_sink = nullptr;
+    bool is_verbose = false;
 
-    void SetLogLevel(MessageLevel level);
-    void OverRideLogSink(internal_logging_hook_t sink);
+    void OverRideLogSink(native_log_callback_t sink);
     void ResetLogSink();
-    bool IsVerbose() const;
   };
 
 } // namespace detail
 
   static inline detail::UtilityObjects& GetUtils() {
-    static detail::UtilityObjects utils;
+    extern detail::UtilityObjects utils;
     return utils;
   };
 
@@ -52,25 +57,12 @@ namespace detail {
   }
 
 namespace {
+
+  using namespace std::string_view_literals;
   
   template <typename... Args>
   static void sink_message(MessageLevel level , dostring_view fmt, Args&&... args) {
-    auto& utils = GetUtils();
-    if (!utils.IsVerbose() && level < utils.log_level) {
-      return;
-    }
-
-    if (utils.log_sink == nullptr) {
-      std::cout << fmt::format(fmt::runtime(
-#ifdef DOTOTHER_WIDE_CHARS
-                      WideToChar(fmt))
-#else
-                        fmt
-#endif
-                        , std::forward<Args>(args)...) << "\n";
-      return;
-    }
-    utils.log_sink(format(fmt, std::forward<Args>(args)...), MessageLevel::TRACE, utils.IsVerbose());
+    GetUtils().log_sink(format(fmt, std::forward<Args>(args)...), level);
   }
 
 } // anonymous namespace
@@ -78,11 +70,6 @@ namespace {
   template <typename... Args>
   static void print(dostring_view fmt, MessageLevel level, Args&&... args) {
     sink_message(level, fmt, std::forward<Args>(args)...);
-  }
-  
-  template <>
-  void print(dostring_view fmt, MessageLevel level) {
-    sink_message(level , fmt);
   }
   
   template<typename TArg>

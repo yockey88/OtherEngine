@@ -58,8 +58,7 @@ namespace dotother {
   void Assembly::SetInternalCall(const std::string_view klass, const std::string_view method_name , void* fn) {
     using namespace std::string_view_literals;
     if (fn == nullptr) {
-      util::GetUtils().log_sink(fmt::format("Attempting to register an internall call ({}.{}) using a null pointer!"sv, klass, method_name),
-                                MessageLevel::ERR, true);
+      util::print(DO_STR("Attempting to register an internall call ({}.{}) using a null pointer!"sv), MessageLevel::ERR , klass , method_name);
       return;
     }
 
@@ -74,6 +73,8 @@ namespace dotother {
       .name = internal_name.c_str() ,
       .native_function = fn
     });
+
+    util::print(DO_STR("Internal Call Registered in {} : {} [{:p}]") , MessageLevel::DEBUG , asm_name , method_name , fn);
   }
 
   void Assembly::UploadInternalCalls() {
@@ -132,22 +133,23 @@ namespace dotother {
       auto asm_name = Interop().get_assembly_name(assembly->asm_id);
       assembly->name = asm_name;
       NString::Free(asm_name);
-      util::print(DO_STR(" > Assembly loaded successfully! {}"), MessageLevel::INFO, assembly->name);
+
+      util::print(DO_STR(" > Assembly loaded successfully! \t [{}]"), MessageLevel::INFO, assembly->name);
 
       int32_t type_counter = 0;
       Interop().get_asm_types(assembly->asm_id, nullptr, &type_counter);
 
-      util::print(DO_STR(" > Loading [{}] types"), MessageLevel::INFO, type_counter);
+      util::print(DO_STR(" > Loading [{}] types"), MessageLevel::DEBUG, type_counter);
       
       std::vector<int32_t> type_ids(type_counter);
       Interop().get_asm_types(assembly->asm_id, type_ids.data(), &type_counter);
 
       for (auto id : type_ids) {
-        util::print(DO_STR(" > Loading type with ID: {}"), MessageLevel::INFO , id);
+        util::print(DO_STR(" > Loading type with ID: {}"), MessageLevel::TRACE , id);
 
         Type type(id);
         auto t = assembly->types.emplace_back(TypeCache::Instance().CacheType(std::move(type)));
-        util::print(DO_STR("  > Type loaded: {}"), MessageLevel::INFO, t->FullName());
+        util::print(DO_STR("  > Type loaded: {}"), MessageLevel::TRACE, t->FullName());
       }
     } else {
       util::print(DO_STR("Failed to load assembly file: {} \n\t STATUS : [{}]"), MessageLevel::ERR, path , assembly->load_status);

@@ -24,28 +24,28 @@ namespace other {
         
         return R{};
       }
-      
+
+      template <typename T>
+      void SetField(const std::string_view name , T&& value) {
+      }
+
+      template <typename R>
+      R GetField(const std::string_view name) {
+        return R{};
+      }
+
+      template <typename T>
+      void SetProperty(const std::string_view name , T&& value) {
+      }
+
+      template <typename R>
+      R GetProperty(const std::string_view name) {
+        return R{};
+      }
+
       virtual void InitializeScriptMethods() override {}
       virtual void InitializeScriptFields() override {}
       virtual void UpdateNativeFields() override {}
-      
-      virtual Opt<Value> GetField(const std::string& name) override { return std::nullopt; }
-      virtual void SetField(const std::string& name , const Value& value) override {}
-
-      // virtual void OnBehaviorLoad() override {}
-      // virtual void Initialize() override {}
-      // virtual void Shutdown() override {}
-      // virtual void OnBehaviorUnload() override {}
-
-      // virtual void Start() override {}
-      // virtual void Stop() override {}
-
-      // virtual void EarlyUpdate(float dt) override {}
-      // virtual void Update(float dt) override {}
-      // virtual void LateUpdate(float dt) override {}
-
-      // virtual void Render() override {}
-      // virtual void RenderUI() override {}
   };
 
 } // namespace other

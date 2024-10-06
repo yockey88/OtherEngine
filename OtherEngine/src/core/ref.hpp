@@ -28,9 +28,6 @@ namespace detail {
       Ref()
           : object(nullptr) {}
 
-      Ref(std::nullptr_t)
-          : object(nullptr) {}
-
       Ref(T* p) {
         object = p;
         IncRef();
@@ -97,6 +94,12 @@ namespace detail {
       	other.object = nullptr;
 
       	return *this;
+      }
+
+      Ref& operator=(std::nullptr_t) {
+        DecRef();
+        object = nullptr;
+        return *this;
       }
 
       operator bool() { return object != nullptr; }

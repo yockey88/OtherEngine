@@ -19,7 +19,7 @@ namespace other {
       virtual bool Initialize() override;
       virtual void Shutdown() override;
       virtual void Reload() override;
-      virtual Ref<ScriptModule> GetScriptModule(const std::string& name) override;
+      virtual Ref<ScriptModule> GetScriptModule(const std::string_view name) override;
       virtual Ref<ScriptModule> GetScriptModule(const UUID& id) override;
       virtual Ref<ScriptModule> LoadScriptModule(const ScriptMetadata& module_info) override;
 

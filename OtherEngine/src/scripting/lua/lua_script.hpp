@@ -17,8 +17,8 @@ namespace other {
 
   class LuaScript : public ScriptModule {
     public:
-      LuaScript(const std::string& path , const std::string& module_name) 
-        : ScriptModule(LanguageModuleType::LUA_MODULE , module_name) , path(path) {}
+      LuaScript(sol::state& context , const std::string& path , const std::string& module_name) 
+        : ScriptModule(LanguageModuleType::LUA_MODULE , module_name) , lua_state(context) , path(path) {}
       virtual ~LuaScript() override {}
       
       template <typename R , typename... Args>
@@ -74,7 +74,7 @@ namespace other {
       virtual std::vector<ScriptObjectTag> GetObjectTags() override;
 
     private:
-      sol::state lua_state;
+      sol::state& lua_state;
 
       std::vector<std::string> loaded_tables;
       std::map<UUID , Ref<ScriptObjectHandle<LuaObject>>> loaded_objects;

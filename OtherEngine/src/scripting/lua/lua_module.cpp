@@ -6,6 +6,7 @@
 #include "core/filesystem.hpp"
 #include "application/app_state.hpp"
 
+#include "scripting/lua/lua_error_handlers.hpp"
 #include "scripting/lua/lua_bindings.hpp"
 #include "scripting/lua/lua_script.hpp"
 #include <cctype>
@@ -28,7 +29,24 @@ namespace other {
     OE_DEBUG("Initializing Lua Module");
     OE_DEBUG("Lua Module Initialized");
 
-    load_success = true;
+    load_success = false;
+    try {
+      context.set_exception_handler(LuaExceptionHandler);
+      lua_script_bindings::BindAll(context);
+
+      context.open_libraries(sol::lib::base , sol::lib::package);
+      context.require_file("other", "./OtherEngine-ScriptCore/lua/core/other.lua");
+      context.require_file("other.behavior", "./OtherEngine-ScriptCore/lua/core/other_behavior.lua");
+      context.require_file("other.object", "./OtherEngine-ScriptCore/lua/core/other_object.lua");
+      context.require_file("other.scene", "./OtherEngine-ScriptCore/lua/scene/scene.lua");
+
+      load_success = true;
+    } catch (const std::exception& e) {
+      OE_ERROR("Failed to initialize Lua module : {}" , e.what());
+    } catch (...) {
+      OE_ERROR("Failed to initialize Lua module : unknown error");
+    }
+
     return load_success;
   }
 
@@ -39,6 +57,9 @@ namespace other {
     }
     loaded_modules.clear();
 
+    context.collect_garbage();
+    context.stack_clear();
+    context.clear_package_loaders();
 
     OE_DEBUG("Lua Module Shutdown");
   }
@@ -54,7 +75,7 @@ namespace other {
     load_success = true;
   }
 
-  Ref<ScriptModule> LuaModule::GetScriptModule(const std::string& name) {
+  Ref<ScriptModule> LuaModule::GetScriptModule(const std::string_view name) {
     std::string case_ins_name;
     std::transform(name.begin() , name.end() , std::back_inserter(case_ins_name) , ::toupper);
 
@@ -78,14 +99,13 @@ namespace other {
   }
 
   Ref<ScriptModule> LuaModule::LoadScriptModule(const ScriptMetadata& module_info) {
-    if (module_info.paths.size() < 1) {
-      OE_ERROR("Attempting to create lua script from empty module data");
+    if (!Filesystem::PathExists(module_info.path)) {
+      OE_ERROR("Script module {} ({}) does not exist" , module_info.name , module_info.path);
       return nullptr;
     }
 
     std::string case_insensitive_name;
     std::transform(module_info.name.begin() , module_info.name.end() , std::back_inserter(case_insensitive_name) , ::toupper);
-
     UUID id = FNV(case_insensitive_name);
     OE_DEBUG("Loading Lua script module {} [{}]" , module_info.name , id);
 
@@ -94,24 +114,12 @@ namespace other {
       return nullptr;
     }
 
-    auto project = AppState::ProjectContext();
-    Path real_path = project->GetMetadata().assets_dir / module_info.paths[0];
-    if (!Filesystem::PathExists(real_path)) {
-      OE_ERROR("Script module {} ({}) does not exist" , module_info.name , real_path.string());
-      return nullptr;
-    }
-
-    OE_DEBUG("Script module {} ({}) loaded" , module_info.name , real_path.string());
-
-    Path mod_path = module_info.paths[0];
-    std::string mod_path_str = mod_path.filename().string();
-    std::string mod_name = mod_path_str.substr(0 , mod_path_str.find_last_of('.'));
-    loaded_modules[id] = NewRef<LuaScript>(real_path.string() , mod_name);
-    loaded_modules[id]->Initialize();
-    
+    auto& m = loaded_modules[id] = NewRef<LuaScript>(context , module_info.path , module_info.name);
+    m->Initialize();
     loaded_modules_data[id] = module_info;
+    OE_DEBUG("Script module {} ({}) loaded" , module_info.name , module_info.path);
 
-    return loaded_modules[id];
+    return m;
   }
 
   void LuaModule::UnloadScript(const std::string& name) {

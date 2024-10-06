@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Other {
 
@@ -10,11 +12,8 @@ namespace Other {
     ///  ID of the engine object using this behavior
     /// </summary>
     private UUID object_id = 0;
-
-    /// <summary>
-    /// ID of the behavior for the scripting engine
-    /// </summary>
-    private UInt64 behavior_id = 0;
+    private UInt32 entity_id = 0;
+    private IntPtr native_handle;
 
     protected OtherBehavior parent;
 
@@ -37,19 +36,22 @@ namespace Other {
 
     public UInt64 ObjectID {
       get { return object_id; }
-      set { 
-        // Logger.WriteDebug($"Setting object ID to {value}");
-        object_id = value;
-      }
+      internal set { object_id = value; }
     }
 
-    public UInt64 BehaviorID {
-      get { return behavior_id; }
-      set { behavior_id = value; }
+    public UInt32 EntityID {
+      get { return entity_id; }
+      internal set { entity_id = value; }
+    }
+
+    public IntPtr NativeHandle {
+      get { return native_handle; }
+      internal set  { unsafe { native_handle = value; } }
     }
     
     public OtherBehavior() {
       object_id = 0;
+      native_handle = IntPtr.Zero;
     }
 
     public void Enable() {
@@ -64,21 +66,27 @@ namespace Other {
       return enabled;
     }
 
-    public abstract void OnBehaviorLoad();
-    public abstract void OnBehaviorUnload();
+    public virtual void OnBehaviorLoad() {}
+    public virtual void OnBehaviorUnload() {}
 
+    public virtual void NativeInitialize() {}
     public virtual void OnInitialize() {}
+
+    public virtual void OnShutdown() {}
+    public virtual void NativeShutdown() {}
+
+    public virtual void NativeStart() {}
     public virtual void OnStart() {}
+
+    public virtual void OnStop() {}
+    public virtual void NativeStop() {}
 
     public virtual void EarlyUpdate(float dt) {}
     public virtual void Update(float dt) {}
     public virtual void LateUpdate(float dt) {}
 
-    public virtual void RenderObject() {}
+    public virtual void Render() {}
     public virtual void RenderUI() {}
-
-    public virtual void OnStop() {}
-    public virtual void OnShutdown() {}
 
     public override bool Equals(object obj) => obj is OtherBehavior other && Equals(other);
 

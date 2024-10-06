@@ -33,9 +33,6 @@ local OtherEngine = {
       "/Zc:__cplusplus" ,
       "/Zm10",
     }
-    defines {
-      "DOTOTHER_WINDOWS" ,
-    }
   end,
 
   components = {

@@ -1,8 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
 
-using DotOther.Managed.Interop;
-
 namespace DotOther.Managed {
 
   internal static class GarbageCollector {

@@ -39,21 +39,21 @@ namespace other {
     ui_windows[FNV("Script Editor")] = Ref<ScriptEditor>::Create(); 
     selection = NewRef<Directory>(active_proj->GetMetadata().project_directory); 
     
-    selection_item = NewRef<CBDirectory>(selection.value());
-    selection_item.value()->Select();
+    // selection_item = NewRef<CBDirectory>(selection.value());
+    // selection_item.value()->Select();
 
-    project_folders.root = selection_item.value();
-    project_folders.assets = NewRef<CBDirectory>(NewRef<Directory>(selection.value()->path / "assets"));
-    project_folders.source = NewRef<CBDirectory>(NewRef<Directory>(selection.value()->path / "src"));
+    // project_folders.root = selection_item.value();
+    // project_folders.assets = NewRef<CBDirectory>(NewRef<Directory>(selection.value()->path / "assets"));
+    // project_folders.source = NewRef<CBDirectory>(NewRef<Directory>(selection.value()->path / "src"));
 
-    for (auto& entry : std::filesystem::directory_iterator(project_folders.assets->directory->path)) {
-      if (!entry.is_directory()) {
-        return;
-      }
+    // for (auto& entry : std::filesystem::directory_iterator(project_folders.assets->directory->path)) {
+    //   if (!entry.is_directory()) {
+    //     return;
+    //   }
 
-      Ref<Directory> child_dir = NewRef<Directory>(entry.path()); 
-      project_folders.asset_folders[child_dir->handle] = NewRef<CBDirectory>(child_dir);
-    }
+    //   Ref<Directory> child_dir = NewRef<Directory>(entry.path()); 
+    //   project_folders.asset_folders[child_dir->handle] = NewRef<CBDirectory>(child_dir);
+    // }
   }
 
   bool ProjectPanel::OnGuiRender(bool& is_open) {
@@ -85,8 +85,8 @@ namespace other {
         ScopedColorStack item_bg(ImGuiCol_Header , IM_COL32_DISABLE , 
                                  ImGuiCol_HeaderActive , IM_COL32_DISABLE);
 
-        RenderDirectoryTree(project_folders.assets);
-        RenderDirectoryTree(project_folders.source);
+        // RenderDirectoryTree(project_folders.assets);
+        // RenderDirectoryTree(project_folders.source);
       }
       ImGui::EndChild();
 
@@ -161,7 +161,7 @@ namespace other {
 
             ScopedStyle border(ImGuiStyleVar_FrameBorderSize, 0.0f);
             ScopedStyle padding(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
-            RenderItems();
+            // RenderItems();
           }
           
           ImGui::PopStyleColor(2);
@@ -210,23 +210,23 @@ namespace other {
 
   void ProjectPanel::OnScriptReload() {
     /// reset assets dir
-    project_folders.assets = nullptr;
-    project_folders.assets = NewRef<CBDirectory>(NewRef<Directory>(project_folders.root->directory->path / "assets"));
+    // project_folders.assets = nullptr;
+    // project_folders.assets = NewRef<CBDirectory>(NewRef<Directory>(project_folders.root->directory->path / "assets"));
 
-    project_folders.asset_folders.clear();
+    // project_folders.asset_folders.clear();
 
-    for (auto& entry : std::filesystem::directory_iterator(project_folders.assets->directory->path)) {
-      if (!entry.is_directory()) {
-        return;
-      }
+    // for (auto& entry : std::filesystem::directory_iterator(project_folders.assets->directory->path)) {
+    //   if (!entry.is_directory()) {
+    //     return;
+    //   }
 
-      Ref<Directory> child_dir = NewRef<Directory>(entry.path()); 
-      project_folders.asset_folders[child_dir->handle] = NewRef<CBDirectory>(child_dir);
-    }
+    //   Ref<Directory> child_dir = NewRef<Directory>(entry.path()); 
+    //   project_folders.asset_folders[child_dir->handle] = NewRef<CBDirectory>(child_dir);
+    // }
 
-    if (selection_item.has_value()) {
-      current_items = LoadItems(selection_item.value());
-    }
+    // if (selection_item.has_value()) {
+    //   current_items = LoadItems(selection_item.value());
+    // }
   }
       
   void ProjectPanel::RenderTopBar(float height) const {
@@ -267,114 +267,114 @@ namespace other {
     return ui::TreeNodeWithIcon(icon , window->GetID(id.c_str()) , flags , label.c_str() , nullptr);
   }
       
-  void ProjectPanel::RenderDirectoryTree(const Ref<CBDirectory>& dir) {
-    ImGui::PushID(dir->directory->path.string().c_str());
-    auto non_absolute = dir->directory->path.stem();
-    auto files = Filesystem::GetSubDirs(dir->directory->path);
+  // void ProjectPanel::RenderDirectoryTree(const Ref<CBDirectory>& dir) {
+  //   ImGui::PushID(dir->directory->path.string().c_str());
+  //   auto non_absolute = dir->directory->path.stem();
+  //   auto files = Filesystem::GetSubDirs(dir->directory->path);
 
-    std::string id_str = non_absolute.string();
-    ImGuiID node_id = ImGui::GetID(id_str.c_str());
-    bool prev_state = ImGui::TreeNodeBehaviorIsOpen(node_id);
+  //   std::string id_str = non_absolute.string();
+  //   ImGuiID node_id = ImGui::GetID(id_str.c_str());
+  //   bool prev_state = ImGui::TreeNodeBehaviorIsOpen(node_id);
 
-    auto* window = ImGui::GetCurrentWindow();
-    window->DC.CurrLineSize.y = 20.f;
-    window->DC.CurrLineTextBaseOffset = 3.0f;
+  //   auto* window = ImGui::GetCurrentWindow();
+  //   window->DC.CurrLineSize.y = 20.f;
+  //   window->DC.CurrLineTextBaseOffset = 3.0f;
 
-    const ImRect item_rect = {
-      window->WorkRect.Min.x , 
-      window->DC.CursorPos.y , 
-      window->WorkRect.Min.y , 
-      window->DC.CursorPos.y + window->DC.CurrLineSize.y
-    };
+  //   const ImRect item_rect = {
+  //     window->WorkRect.Min.x , 
+  //     window->DC.CursorPos.y , 
+  //     window->WorkRect.Min.y , 
+  //     window->DC.CursorPos.y + window->DC.CurrLineSize.y
+  //   };
 
-    const bool item_clicked = [&item_rect , &node_id]() -> bool {
-      if (ImGui::ItemHoverable(item_rect , node_id , 0)) {
-        return ImGui::IsMouseDown(ImGuiMouseButton_Left) || 
-               ImGui::IsMouseReleased(ImGuiMouseButton_Left);
-      }
-      return false;
-    } ();
+  //   const bool item_clicked = [&item_rect , &node_id]() -> bool {
+  //     if (ImGui::ItemHoverable(item_rect , node_id , 0)) {
+  //       return ImGui::IsMouseDown(ImGuiMouseButton_Left) || 
+  //              ImGui::IsMouseReleased(ImGuiMouseButton_Left);
+  //     }
+  //     return false;
+  //   } ();
 
-    const bool window_focused = ImGui::IsWindowFocused();
+  //   const bool window_focused = ImGui::IsWindowFocused();
 
-    auto fill_w_color = [&](const ImColor& color) {
-      const ImU32 bg_color = ImGui::ColorConvertFloat4ToU32(color);
-      ImGui::GetWindowDrawList()->AddRectFilled(item_rect.Min , item_rect.Max , bg_color);
-    };
+  //   auto fill_w_color = [&](const ImColor& color) {
+  //     const ImU32 bg_color = ImGui::ColorConvertFloat4ToU32(color);
+  //     ImGui::GetWindowDrawList()->AddRectFilled(item_rect.Min , item_rect.Max , bg_color);
+  //   };
 
-    auto check_if_descendant_selected = [&](const Path& dir , auto is_any_descendant_selected) -> bool {
-      if (!selection.has_value()) {
-        return false;
-      }
+  //   auto check_if_descendant_selected = [&](const Path& dir , auto is_any_descendant_selected) -> bool {
+  //     if (!selection.has_value()) {
+  //       return false;
+  //     }
 
-      if (dir == selection.value()->path) {
-        return true;
-      }
+  //     if (dir == selection.value()->path) {
+  //       return true;
+  //     }
       
-      auto items = Filesystem::GetSubPaths(dir);
-      if (!items.empty()) {
-        for (const auto& d : items) {
-          if (!Filesystem::IsDirectory(d)) {
-            continue;
-          }
+  //     auto items = Filesystem::GetSubPaths(dir);
+  //     if (!items.empty()) {
+  //       for (const auto& d : items) {
+  //         if (!Filesystem::IsDirectory(d)) {
+  //           continue;
+  //         }
 
-          if (is_any_descendant_selected(d , is_any_descendant_selected)) {
-            return true;
-          }
-        }
-      }
+  //         if (is_any_descendant_selected(d , is_any_descendant_selected)) {
+  //           return true;
+  //         }
+  //       }
+  //     }
 
-      return false;
-    };
+  //     return false;
+  //   };
 
-    const bool any_descendant_selected = check_if_descendant_selected(dir->directory->path , check_if_descendant_selected);
-    const bool is_active_dir = IsDirSelected(dir->directory);
+  //   const bool any_descendant_selected = check_if_descendant_selected(dir->directory->path , check_if_descendant_selected);
+  //   const bool is_active_dir = IsDirSelected(dir->directory);
 
-    ImGuiTreeNodeFlags flags = (is_active_dir ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_SpanFullWidth;
-    if (dir->directory->children.size() == 0) {
-      flags |= ImGuiTreeNodeFlags_Leaf;
-    }
+  //   ImGuiTreeNodeFlags flags = (is_active_dir ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_SpanFullWidth;
+  //   if (dir->directory->children.size() == 0) {
+  //     flags |= ImGuiTreeNodeFlags_Leaf;
+  //   }
     
-    if (item_clicked) {
-      SetSelectionContext(dir);
-    }
+  //   if (item_clicked) {
+  //     SetSelectionContext(dir);
+  //   }
 
-    if (is_active_dir || item_clicked) {
-      if (window_focused) {
-        fill_w_color(ui::theme::selection);
-      } else {
-        const ImColor col = ui::theme::ColorWithMultiplier(ui::theme::selection , 0.8f);
-        fill_w_color(ui::theme::ColorWithMultipliedSaturation(col , 0.7f));
-      }
+  //   if (is_active_dir || item_clicked) {
+  //     if (window_focused) {
+  //       fill_w_color(ui::theme::selection);
+  //     } else {
+  //       const ImColor col = ui::theme::ColorWithMultiplier(ui::theme::selection , 0.8f);
+  //       fill_w_color(ui::theme::ColorWithMultipliedSaturation(col , 0.7f));
+  //     }
 
-      ImGui::PushStyleColor(ImGuiCol_Text , ui::theme::background_dark);
-    } else if (any_descendant_selected) {
-      fill_w_color(ui::theme::selection_muted);
-    }
+  //     ImGui::PushStyleColor(ImGuiCol_Text , ui::theme::background_dark);
+  //   } else if (any_descendant_selected) {
+  //     fill_w_color(ui::theme::selection_muted);
+  //   }
 
-    bool open = ImGui::TreeNodeEx(non_absolute.string().c_str() , flags);
-    // bool open = TreeNode(id_str , non_absolute.string() , flags , EditorImages::folder_icon);
+  //   bool open = ImGui::TreeNodeEx(non_absolute.string().c_str() , flags);
+  //   // bool open = TreeNode(id_str , non_absolute.string() , flags , EditorImages::folder_icon);
 
-    if (is_active_dir || item_clicked) {
-      ImGui::PopStyleColor();
-    }
+  //   if (is_active_dir || item_clicked) {
+  //     ImGui::PopStyleColor();
+  //   }
 
-    ui::ShiftCursorY(3.0f);
+  //   ui::ShiftCursorY(3.0f);
 
-    // create context menu
+  //   // create context menu
 
-    if (open) {
-      for (auto& [hash , child] : dir->directory->children) {
-        RenderDirectoryTree(project_folders.asset_folders[hash]);
-      }
+  //   if (open) {
+  //     for (auto& [hash , child] : dir->directory->children) {
+  //       RenderDirectoryTree(project_folders.asset_folders[hash]);
+  //     }
 
-      ImGui::TreePop();
-    } else if (prev_state) {
-      /// not open on this frame but was open last frame 
-    }
+  //     ImGui::TreePop();
+  //   } else if (prev_state) {
+  //     /// not open on this frame but was open last frame 
+  //   }
 
-    ImGui::PopID();
-  }
+  //   ImGui::PopID();
+  // }
 
   template <typename T>
   concept id_t = requires (T t) {
@@ -500,107 +500,107 @@ namespace other {
     return false;
   }
 
-  void ProjectPanel::SetSelectionContext(const Ref<CBDirectory>& dir) {
-    if (dir->IsSelected()) {
-      return;
-    }
+  // void ProjectPanel::SetSelectionContext(const Ref<CBDirectory>& dir) {
+  //   if (dir->IsSelected()) {
+  //     return;
+  //   }
 
-    if (selection_item.has_value()) {
-      selection_item.value()->Deselect();
-    }
+  //   if (selection_item.has_value()) {
+  //     selection_item.value()->Deselect();
+  //   }
 
-    selection_item = dir;
-    selection = dir->directory;
-    current_items = LoadItems(selection_item.value());
+  //   selection_item = dir;
+  //   selection = dir->directory;
+  //   current_items = LoadItems(selection_item.value());
 
-    selection_item.value()->Select();
-  }
+  //   selection_item.value()->Select();
+  // }
       
-  void ProjectPanel::ActivateAsset(const Ref<CBItem>& asset) {
-    const AssetMetadata& asset_md = AppState::Assets().As<EditorAssetHandler>()->GetMetadata(asset->GetHandle());
-    switch (asset_md.type) {
-      case SCENE: {
-        GetEditor().LoadScene(asset_md.path);
-      } break;
-      case SCRIPTFILE: {
-        auto script_editor_itr = ui_windows.find(FNV("Script Editor")); 
-        if (script_editor_itr != ui_windows.end()) {
-          Ref<ScriptEditor> editor = Ref<UIWindow>::Cast<ScriptEditor>(script_editor_itr->second);
-          editor->AddEditor(asset_md.handle , asset_md.path);
-        } else {
-          OE_ERROR("Failed to create script editor for {}" , asset_md.path);
-        }
+  // void ProjectPanel::ActivateAsset(const Ref<CBItem>& asset) {
+  //   const AssetMetadata& asset_md = AppState::Assets().As<EditorAssetHandler>()->GetMetadata(asset->GetHandle());
+  //   switch (asset_md.type) {
+  //     case SCENE: {
+  //       GetEditor().LoadScene(asset_md.path);
+  //     } break;
+  //     case SCRIPTFILE: {
+  //       auto script_editor_itr = ui_windows.find(FNV("Script Editor")); 
+  //       if (script_editor_itr != ui_windows.end()) {
+  //         Ref<ScriptEditor> editor = Ref<UIWindow>::Cast<ScriptEditor>(script_editor_itr->second);
+  //         editor->AddEditor(asset_md.handle , asset_md.path);
+  //       } else {
+  //         OE_ERROR("Failed to create script editor for {}" , asset_md.path);
+  //       }
 
-        ImGui::CloseCurrentPopup();
-      } break;
-      default:
-        OE_DEBUG("Implement asset activation {}" , asset_md.type);
-      break;
-    }
-  }
+  //       ImGui::CloseCurrentPopup();
+  //     } break;
+  //     default:
+  //       OE_DEBUG("Implement asset activation {}" , asset_md.type);
+  //     break;
+  //   }
+  // }
       
-  void ProjectPanel::RenderItems() {
-    for (auto& itm : current_items) {
-      bool set_selection_ctx = false;
-      bool asset_activated = false;
+  // void ProjectPanel::RenderItems() {
+  //   for (auto& itm : current_items) {
+  //     bool set_selection_ctx = false;
+  //     bool asset_activated = false;
 
-      itm->OnRenderBegin();
+  //     itm->OnRenderBegin();
 
-      CBActionResult result = itm->Render();
+  //     CBActionResult result = itm->Render();
 
-      if (result.Has(CBAction::ACTIVATED)) {
-        asset_activated = true; 
-      }
+  //     if (result.Has(CBAction::ACTIVATED)) {
+  //       asset_activated = true; 
+  //     }
 
-      if (result.Has(CBAction::SELECTED)) {
-        set_selection_ctx = true;
-      }
+  //     if (result.Has(CBAction::SELECTED)) {
+  //       set_selection_ctx = true;
+  //     }
       
-      if (result.Has(CBAction::DESELECTED)) {
-      }
+  //     if (result.Has(CBAction::DESELECTED)) {
+  //     }
 
-      if (result.Has(CBAction::START_RENAMING)) {}
+  //     if (result.Has(CBAction::START_RENAMING)) {}
 
-      if (result.Has(CBAction::RELOAD)) {}
+  //     if (result.Has(CBAction::RELOAD)) {}
 
-      if (result.Has(CBAction::OPEN_NATIVE)) {}
+  //     if (result.Has(CBAction::OPEN_NATIVE)) {}
 
-      if (result.Has(CBAction::OPEN_EXTERNAL)) {}
+  //     if (result.Has(CBAction::OPEN_EXTERNAL)) {}
 
-      if (result.Has(CBAction::HOVERED)) {}
+  //     if (result.Has(CBAction::HOVERED)) {}
 
-      if (result.Has(CBAction::RENAMED)) {}
+  //     if (result.Has(CBAction::RENAMED)) {}
 
-      itm->OnRenderEnd();
+  //     itm->OnRenderEnd();
 
-      if (set_selection_ctx && itm->GetType() == ContentBrowserItem::Type::DIRECTORY) {
-        SetSelectionContext(itm.As<CBDirectory>());
-        return;
-      } else if (asset_activated) {
-        ActivateAsset(itm.As<CBItem>());
-      }
-    }
-  }
+  //     if (set_selection_ctx && itm->GetType() == ContentBrowserItem::Type::DIRECTORY) {
+  //       SetSelectionContext(itm.As<CBDirectory>());
+  //       return;
+  //     } else if (asset_activated) {
+  //       ActivateAsset(itm.As<CBItem>());
+  //     }
+  //   }
+  // }
       
-  CBItemList ProjectPanel::LoadItems(const Ref<CBDirectory>& dir) {
-    CBItemList items;
+  // CBItemList ProjectPanel::LoadItems(const Ref<CBDirectory>& dir) {
+  //   CBItemList items;
     
-    for (auto& [id , child] : dir->directory->children) {
-      items.push_back(NewRef<CBDirectory>(child)); 
-    }
+  //   for (auto& [id , child] : dir->directory->children) {
+  //     items.push_back(NewRef<CBDirectory>(child)); 
+  //   }
 
-    for (auto& handle : dir->directory->assets) {
-      const AssetMetadata& asset_md = AppState::Assets().As<EditorAssetHandler>()->GetMetadata(handle);
-      if (asset_md.path.empty()) {
-        items.push_back(NewRef<CBItem>(asset_md , EditorImages::default_file_icon));
-        continue;
-      }
+  //   for (auto& handle : dir->directory->assets) {
+  //     const AssetMetadata& asset_md = AppState::Assets().As<EditorAssetHandler>()->GetMetadata(handle);
+  //     if (asset_md.path.empty()) {
+  //       items.push_back(NewRef<CBItem>(asset_md , EditorImages::default_file_icon));
+  //       continue;
+  //     }
 
-      Ref<Texture2D> icon = EditorImages::GetIconFromExtension(asset_md.path.extension().string());
-      items.push_back(NewRef<CBItem>(asset_md , icon));
-    }
+  //     Ref<Texture2D> icon = EditorImages::GetIconFromExtension(asset_md.path.extension().string());
+  //     items.push_back(NewRef<CBItem>(asset_md , icon));
+  //   }
 
-    return items; 
-  }
+  //   return items; 
+  // }
 
 } // namespace other 

@@ -1,40 +1,75 @@
+using System;
 using System.Runtime.CompilerServices;
 
-namespace Other {
+using DotOther.Managed.Interop;
 
+namespace Other {
+  
   public class Transform : Component {
-    public Transform() { }
+    public Transform() : base(null) { }
     public Transform(OtherObject obj) : base(obj) { }
 
-    // public Vec3 Scale {
-    //   get {
-    //     NativeGetScale(Object.ObjectID , out Vec3 scale);
-    //     return scale;
-    //   }
-    //   set => NativeSetScale(Object.ObjectID , ref value);
-    // }
+    internal static unsafe delegate*<IntPtr , Vec3* , void> GetPosition;
+    internal static unsafe delegate*<IntPtr , Vec3* , void> SetPosition;
 
-    // public Vec3 HalfExtents {
-    //   get {
-    //     return new Vec3(0.5f) * Scale;
-    //   }
-    // }
+    internal static unsafe delegate*<IntPtr , Vec3*, void> GetRotation;
+    internal static unsafe delegate*<IntPtr , Vec3*, void> SetRotation;
+    
+    internal static unsafe delegate*<IntPtr , Vec3* , void> GetScale;
+    internal static unsafe delegate*<IntPtr , Vec3* , void> SetScale;
 
-    // public Vec3 Position {
-    //   get {
-    //     NativeGetPosition(Object.ObjectID , out Vec3 position);
-    //     return position;
-    //   }
-    //   set => NativeSetPosition(Object.ObjectID , ref value);
-    // }
+    internal static unsafe delegate*<IntPtr , float , Vec3* , void> NativeRotate;
 
-    // public Vec3 Rotation {
-    //   get {
-    //     NativeGetRotation(Object.ObjectID , out Vec3 rotation);
-    //     return rotation;
-    //   }
-    //   set => NativeSetRotation(Object.ObjectID , ref value);
-    // }
+    public Vec3 Position {
+      get {
+        unsafe {
+          Vec3 position = Vec3.zero;
+          GetPosition(Object.NativeHandle , &position);
+          return position;
+        }
+      }
+      set {
+        unsafe { 
+          SetPosition(Object.NativeHandle , &value); 
+        } 
+      }
+    }
+
+    public Vec3 Rotation {
+      get {
+        unsafe {
+          Vec3 rotation = Vec3.zero;
+          GetRotation(Object.NativeHandle , &rotation);
+          return rotation;
+        }
+      }
+      set {
+        unsafe { 
+          SetRotation(Object.NativeHandle , &value); 
+        } 
+      }
+    }
+
+    public Vec3 Scale {
+      get {
+        unsafe {
+          Vec3 scale = Vec3.zero;
+          GetScale(Object.NativeHandle , &scale);
+          return scale;
+        }
+      }
+      set {
+        unsafe { 
+          SetScale(Object.NativeHandle , &value); 
+        } 
+      }
+    }
+
+    public void Rotate(float radians , Vec3 axis) {
+      unsafe {
+        NativeRotate(Object.NativeHandle , radians , &axis);
+      }
+    }
 
     // public Quaternion Quat {
     //   get {
@@ -43,33 +78,6 @@ namespace Other {
     //   }
     //   set => NativeSetQuaternion(Object.ObjectID , ref value);
     // }
-
-    // public void Rotate(float angle , Vec3 axis) {
-    //   NativeRotateObject(Object.ObjectID , angle , ref axis);
-    // }
-
-    // [MethodImpl(MethodImplOptions.InternalCall)]
-    // private static extern void NativeGetScale(ulong id , out Vec3 scale);    
-    // [MethodImpl(MethodImplOptions.InternalCall)]
-    // private static extern void NativeGetPosition(ulong id , out Vec3 position);    
-
-    // [MethodImpl(MethodImplOptions.InternalCall)]
-    // private static extern void NativeGetRotation(ulong id , out Vec3 rotation);
-    // [MethodImpl(MethodImplOptions.InternalCall)]
-    // private static extern void NativeSetScale(ulong id , ref Vec3 scale);    
-    
-
-    // [MethodImpl(MethodImplOptions.InternalCall)]
-    // private static extern void NativeSetPosition(ulong id , ref Vec3 position);    
-    // [MethodImpl(MethodImplOptions.InternalCall)]
-    // private static extern void NativeSetRotation(ulong id , ref Vec3 rotation);  
-    // [MethodImpl(MethodImplOptions.InternalCall)]
-    // private static extern void NativeRotateObject(ulong id , float angle , ref Vec3 axis);
-
-    // [MethodImpl(MethodImplOptions.InternalCall)]
-    // private static extern void NativeGetQuaternion(ulong id , out Quaternion quaternion);
-    // [MethodImpl(MethodImplOptions.InternalCall)]
-    // private static extern void NativeSetQuaternion(ulong id , ref Quaternion quaternion);
   }
     
 }

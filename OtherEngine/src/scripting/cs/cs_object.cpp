@@ -23,48 +23,5 @@ namespace other {
 
   void CsObject::UpdateNativeFields() {
   }
-      
-  Opt<Value> CsObject::GetField(const std::string& name) {
-    return std::nullopt;
-  }
-
-  void CsObject::SetField(const std::string& name , const Value& value) {
-  }
-    
-  // void CsObject::OnBehaviorLoad() {
-  // }
-
-  // void CsObject::Initialize() {
-  // }
-  
-  // void CsObject::Shutdown() {
-  // }
-  
-  // void CsObject::OnBehaviorUnload() {
-  // }
-
-  // void CsObject::Start() {
-  // }
-
-  // void CsObject::Stop() {
-  // }
-  
-  // void CsObject::EarlyUpdate(float dt) {
-  // }
-  
-  // void CsObject::Update(float dt) {
-  // }
-
-  // void CsObject::LateUpdate(float dt) {
-  // }
-
-  // void CsObject::Render() {
-  // }
-
-  // void CsObject::RenderUI() {
-  // }
-
-  void CsObject::OnSetEntityId() {
-  }
 
 } // namespace other

@@ -1,9 +1,6 @@
 namespace Other {
 
   public class StaticMesh : Component {
-    public StaticMesh() {
-    }
-
     public StaticMesh(OtherObject obj) : base(obj) {
     }
 

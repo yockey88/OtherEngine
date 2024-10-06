@@ -79,23 +79,25 @@ namespace DotOther.Managed {
 			}
 
 			var mkey = new MethodKey(type.FullName!, name!, param_types, count);
-
 			if (!methods.TryGetValue(mkey, out minfo)) {
-				List<MethodInfo> methods = new(type.GetMethods(flags));
+				List<MethodInfo> ms = new(type.GetMethods(flags));
 
 				Type? baseType = type.BaseType;
 				while (baseType != null) {
-					methods.AddRange(baseType.GetMethods(flags));
+					ms.AddRange(baseType.GetMethods(flags));
 					baseType = baseType.BaseType;
 				}
 
-				minfo = InteropInterface.FindSuitableMethod<MethodInfo>(name, types, count, CollectionsMarshal.AsSpan(methods));
-
+				minfo = InteropInterface.FindSuitableMethod<MethodInfo>(name, types, count, CollectionsMarshal.AsSpan(ms));
 				if (minfo == null) {
-					LogMessage($"Failed to find method '{name}' for type {type.FullName} with {count} parameters.", MessageLevel.Error);
 					return null;
 				}
 
+				/// <fixme> 
+				/// 	for some reason caching this method like this causes C# exception: 'Object does not match target type.'
+				/// 		on future calls. For some reason this causes methods to get 'locked onto' the first instance of that type to call it.
+				/// 	not really sure why this happens... super slow to not cache methods 
+				/// </fixme>
 				// methods.Add(mkey, minfo);
 			}
 
@@ -152,7 +154,7 @@ namespace DotOther.Managed {
 				AssemblyLoader.RegisterHandle(type.Assembly, handle);
 				return GCHandle.ToIntPtr(handle);
 			} catch (Exception e) {
-				DotOtherHost.HandleException(e);
+				HandleException(e);
 				return IntPtr.Zero;
 			}
 		}
@@ -162,12 +164,13 @@ namespace DotOther.Managed {
 			try {
 				GCHandle.FromIntPtr(handle).Free();
 			} catch (Exception e) {
-				DotOtherHost.HandleException(e);
+				HandleException(e);
 			}
 		}
 
 		[UnmanagedCallersOnly]
 		private static unsafe void InvokeMethod(IntPtr handle, NString method_name, IntPtr parameters, ManagedType* param_types, int count) {
+			LogMessage($"InvokeMethod: {handle}", MessageLevel.Trace);
 			try {
 				var target = GCHandle.FromIntPtr(handle).Target;
 
@@ -188,11 +191,13 @@ namespace DotOther.Managed {
 					LogMessage($"Method  ['{target_type.Name}.{method_name}'] was not found", MessageLevel.Error);
 					return;
 				}
-
+					
+				LogMessage($" > InvokeMethod({target_type.Name}.{method_name}): {minfo}", MessageLevel.Trace);
 				var marshalled_parameters = Interop.DotOtherMarshal.MarshalParameterArray(parameters, count, minfo);
 
 				minfo.Invoke(target, marshalled_parameters);
 			} catch (Exception ex) {
+				LogMessage($"InvokeMethod({method_name}[{count}]) failed", MessageLevel.Error);
 				HandleException(ex);
 			}
 		}

@@ -14,27 +14,32 @@ namespace other {
   class LuaObject : public ScriptObjectHandle<LuaObject> {
     public:
     
-      LuaObject(ScriptModule* module , UUID handle , const std::string& name , sol::state* script_state , sol::table& object) 
+      LuaObject(ScriptModule* module , UUID handle , const std::string& name , sol::state& script_state , sol::table&& object) 
             : ScriptObjectHandle(LanguageModuleType::LUA_MODULE , module , handle , name) , 
               state(script_state) , object(std::move(object)) {}
       virtual ~LuaObject() override {}
+
+      template <typename R>
+      R DefaultReturn() {
+        if constexpr (std::same_as<R , void>) {
+          return;
+        } else {
+          return R{};
+        }
+      }
       
       template <typename R , typename... Args>
-      R CallMethod(const std::string_view name , Args&&... args) {
+      constexpr auto CallMethod(const std::string_view name , Args&&... args) -> R {
         try {
-          sol::optional<sol::function> function = (*state)[name];
-          if (!function.has_value()) {
-            function = object[name];
+          if (!object.valid()) {
+            OE_ERROR("Lua state or object is invalid");
+            return DefaultReturn<R>();
+          }
 
-            if (!function.has_value()) {
-              OE_ERROR("Could not find function {} in Lua script {}" , name , script_name);
-              
-              if constexpr (std::same_as<R , void>) {
-                return;
-              } else {
-                return R{};
-              }
-            }
+          sol::optional<sol::function> function = object[name];
+          if (!function.has_value()) {
+            OE_ERROR("Could not find function {} in Lua script {}" , name , script_name);
+          return DefaultReturn<R>();
           }
 
             
@@ -53,27 +58,55 @@ namespace other {
             }
           }
         } catch (const std::exception& e) {
-          OE_ERROR("Lua error caught calling function {} in script {} : [{}]" , name , script_name , e.what());
-          if constexpr (std::same_as<R , void>) {
-            return;
-          } else {
-            return R{};
-          }
+          return DefaultReturn<R>();
+        }
+      }
+      
+      template <typename T>
+      void SetField(const std::string& name , T&& arg) {
+        try {
+          object[name] = arg;
+        } catch (const std::exception& e) {
+          OE_ERROR("Failed to set field {} in Lua script {}" , name , script_name);
+        }
+      }
+
+      template <typename R>
+      R GetField(const std::string& name) const {
+        try {
+          return object[name];
+        } catch (const std::exception& e) {
+          OE_ERROR("Failed to get field {} in Lua script {}" , name , script_name);
+          return DefaultReturn<R>();
+        }
+      }
+
+      template <typename T>
+      void SetProperty(const std::string_view name , T&& arg) {
+        try {
+          object[name] = arg;
+        } catch (const std::exception& e) {
+          OE_ERROR("Failed to set property {} in Lua script {}" , name , script_name);
+        }
+      }
+
+      template <typename R>
+      R GetProperty(const std::string_view name) const {
+        try {
+          return object[name];
+        } catch (const std::exception& e) {
+          OE_ERROR("Failed to get property {} in Lua script {}" , name , script_name);
+          return DefaultReturn<R>();
         }
       }
 
       virtual void InitializeScriptMethods() override;
       virtual void InitializeScriptFields() override;
       virtual void UpdateNativeFields() override {}
-      
-      virtual Opt<Value> GetField(const std::string& name) override;
-      virtual void SetField(const std::string& name , const Value& value) override;
 
     protected:
-      sol::state* state = nullptr;
+      sol::state& state;
       sol::table object;
-  
-      void OnSetEntityId() override;
   };
 
 

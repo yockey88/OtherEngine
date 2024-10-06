@@ -3,11 +3,8 @@
 */
 #include "scripting/cs/cs_module.hpp"
 
-#include <core/dotother_defines.hpp>
 #include <core/stable_vector.hpp>
-#include <filesystem>
-
-#include <hosting/assembly.hpp>
+#include <hosting/garbage_collector.hpp>
 #include <hosting/host.hpp>
 
 #include "scripting/cs/cs_script.hpp"
@@ -18,9 +15,10 @@ using dotother::AssemblyContext;
 using dotother::Assembly;
 
 namespace other {
-namespace {
-
+  
   static dotother::Host* host = nullptr;
+
+namespace {
 
   struct DotOtherAssemblyContexts {
     std::map<UUID , int32_t> assembly_ids;
@@ -29,41 +27,54 @@ namespace {
 
   static DotOtherAssemblyContexts assembly_contexts;
 
-  Logger::Level LogLevelFromDotOtherMsgLevel(dotother::MessageLevel level) {
+  static void ManagedLoggingCallback(const dotother::NString message, dotother::MessageLevel level) {
     switch (level) {
       case dotother::MessageLevel::TRACE:
-        return Logger::Level::TRACE;
+        OE_TRACE(" [DotOther.Managed] : {}" , message);
+      break;
       case dotother::MessageLevel::DEBUG:
-        return Logger::Level::DEBUG;
+        OE_DEBUG(" [DotOther.Managed] : {}" , message);
+      break;
       case dotother::MessageLevel::MESSAGE:
       case dotother::MessageLevel::INFO:
-        return Logger::Level::INFO;
+        OE_INFO(" [DotOther.Managed] : {}" , message);
+      break;
       case dotother::MessageLevel::WARNING:
-        return Logger::Level::WARN;
+        OE_WARN(" [DotOther.Managed] : {}" , message);
+      break;
       case dotother::MessageLevel::ERR:
-        return Logger::Level::ERR;
+        OE_ERROR(" [DotOther.Managed] : {}" , message);
+      break;
       case dotother::MessageLevel::CRITICAL:
-        return Logger::Level::CRITICAL;
+        OE_CRITICAL(" [DotOther.Managed] : {}" , message);
+      break;
+
     }
-    assert(false && "Invalid DotOther Message Level | UNREACHABLE");
   }
 
-  dotother::MessageLevel MsgLevelFromOtherEngineLevel(Logger::Level level) {
+  static void NativeLoggingCallback(const std::string_view message, dotother::MessageLevel level) {
     switch (level) {
-      case Logger::Level::TRACE:
-        return dotother::MessageLevel::TRACE;
-      case Logger::Level::DEBUG:
-        return dotother::MessageLevel::DEBUG;
-      case Logger::Level::INFO:
-        return dotother::MessageLevel::INFO;
-      case Logger::Level::WARN:
-        return dotother::MessageLevel::WARNING;
-      case Logger::Level::ERR:
-        return dotother::MessageLevel::ERR;
-      case Logger::Level::CRITICAL:
-        return dotother::MessageLevel::CRITICAL;
+      case dotother::MessageLevel::MESSAGE:
+      case dotother::MessageLevel::TRACE:
+        OE_TRACE(" [DotOther.Native] : {}" , message);
+      break;
+      case dotother::MessageLevel::DEBUG:
+        OE_DEBUG(" [DotOther.Native] : {}" , message);
+      break;
+      case dotother::MessageLevel::INFO:
+        OE_INFO(" [DotOther.Native] : {}" , message);
+      break;
+      case dotother::MessageLevel::WARNING:
+        OE_WARN(" [DotOther.Native] : {}" , message);
+      break;
+      case dotother::MessageLevel::ERR:
+        OE_ERROR(" [DotOther.Native] : {}" , message);
+      break;
+      case dotother::MessageLevel::CRITICAL:
+        OE_CRITICAL(" [DotOther.Native] : {}" , message);
+      break;
+
     }
-    assert(false && "Invalid Logger Level | UNREACHABLE");
   }
 
 } // anonymous namespace
@@ -78,36 +89,12 @@ namespace {
         .managed_asm_path = DO_STR("./bin/Debug/DotOther.Managed/net8.0/DotOther.Managed.dll") ,
         .dotnet_type = DO_STR("DotOther.Managed.DotOtherHost, DotOther.Managed") ,
         .entry_point = DO_STR("EntryPoint") ,
-        .log_level = MsgLevelFromOtherEngineLevel(Logger::Instance()->GetLevel(Logger::CONSOLE)),
 
         .exception_callback = [](const dotother::NString message) {
           std::string  msg = message;
           OE_ERROR("C# Exception Caught : \n\t{}" , msg);
         } ,
-        .log_callback = [](const dotother::NString message, dotother::MessageLevel level) {
-          switch (level) {
-            case dotother::MessageLevel::TRACE:
-              OE_TRACE(" [DotOther] : {}" , message);
-            break;
-            case dotother::MessageLevel::DEBUG:
-              OE_DEBUG(" [DotOther] : {}" , message);
-            break;
-            case dotother::MessageLevel::MESSAGE:
-            case dotother::MessageLevel::INFO:
-              OE_INFO(" [DotOther] : {}" , message);
-            break;
-            case dotother::MessageLevel::WARNING:
-              OE_WARN(" [DotOther] : {}" , message);
-            break;
-            case dotother::MessageLevel::ERR:
-              OE_ERROR(" [DotOther] : {}" , message);
-            break;
-            case dotother::MessageLevel::CRITICAL:
-              OE_CRITICAL(" [DotOther] : {}" , message);
-            break;
-
-          }
-        } ,
+        .log_callback = &ManagedLoggingCallback ,
 
         /// TODO: decide if DotOther should be responsible for invoking native methods or if it should be the responsibility of the user,
         ///         not really sure how to handle it in a generic way if it is handled by DotOther, but it would be nice to not have the user implement it
@@ -117,30 +104,7 @@ namespace {
           OE_DEBUG(" > Method Name: {}" , mname);
           dotother::InteropInterface::Instance().InvokeNativeFunction(object_handle, mname);
         },
-        .internal_logging_hook = [](const std::string_view message, dotother::MessageLevel level, bool verbose) {
-          switch (level) {
-            case dotother::MessageLevel::MESSAGE:
-            case dotother::MessageLevel::TRACE:
-              OE_TRACE(" [DotOther] : {}" , message);
-            break;
-            case dotother::MessageLevel::DEBUG:
-              OE_DEBUG(" [DotOther] : {}" , message);
-            break;
-            case dotother::MessageLevel::INFO:
-              OE_INFO(" [DotOther] : {}" , message);
-            break;
-            case dotother::MessageLevel::WARNING:
-              OE_WARN(" [DotOther] : {}" , message);
-            break;
-            case dotother::MessageLevel::ERR:
-              OE_ERROR(" [DotOther] : {}" , message);
-            break;
-            case dotother::MessageLevel::CRITICAL:
-              OE_CRITICAL(" [DotOther] : {}" , message);
-            break;
-
-          }
-        }
+        .internal_logging_hook = &NativeLoggingCallback,
       };
 
       host = dotother::Host::Instance(config);
@@ -178,6 +142,9 @@ namespace {
       OE_DEBUG(" > Unloading assembly context {}" , id);
       host->UnloadAssemblyContext(ctx);
     }
+
+    dotother::GarbageCollector::Collect(-1 , dotother::GCMode::DEFAULT , true , true);
+    dotother::GarbageCollector::WaitForPendingFinalizers(-1);
     assembly_contexts.contexts.clear();
 
     OE_DEBUG("Unloading C# assembly contexts");
@@ -215,21 +182,14 @@ namespace {
     // }
   }
       
-  Ref<ScriptModule> CsModule::GetScriptModule(const std::string& name) {
+  Ref<ScriptModule> CsModule::GetScriptModule(const std::string_view name) {
     if (!load_success) {
       OE_WARN("Attempting to get script module {} when C# module is not loaded" , name);
       return nullptr;
     }
 
     auto hash = IdFromName(name);
-    OE_DEBUG("Looking for script module {} [{}]" , name , hash);
-
-    Ref<ScriptModule> module = GetScriptModule(hash);
-    if (module == nullptr) {
-      OE_ERROR("Script module {} not found" , name);
-    }
-
-    return module;
+    return GetScriptModule(hash);
   }
   
   Ref<ScriptModule> CsModule::GetScriptModule(const UUID& id) {
@@ -242,7 +202,6 @@ namespace {
       return loaded_modules[id];
     }
 
-    OE_ERROR("Script module w/ ID [{}] not found" , id.Get());
     return nullptr;
   }
 
@@ -257,11 +216,6 @@ namespace {
       OE_WARN("Script module {} already loaded" , module_info.name);
       return loaded_modules[id];
     }
-
-    if (module_info.paths.size() == 0) {
-      OE_ERROR("Attempting to load a C# script module {} with no paths" , module_info.name);
-      return nullptr;
-    }
       
     AssemblyContext ctx = host->CreateAsmContext(module_info.name);
     if (ctx.context_id == -1) {
@@ -273,10 +227,10 @@ namespace {
 
     assembly_contexts.assembly_ids[id] = ctx.context_id;
     assembly_contexts.contexts[ctx.context_id] = ctx;
-    OE_DEBUG(" > ctx[{}].LoadAssembly({}) [{}]" , module_info.name , module_info.paths[0] , id);
+    OE_DEBUG(" > ctx[{}].LoadAssembly({}) [{}]" , module_info.name , module_info.path , id);
 
     ref<Assembly> assembly = nullptr;
-    assembly = ctx.LoadAssembly(module_info.paths[0]);
+    assembly = ctx.LoadAssembly(module_info.path);
     if (assembly == nullptr) {
       OE_ERROR("Failed to load C# assembly {} [{}]", module_info.name , id);
       return nullptr;
@@ -284,16 +238,25 @@ namespace {
       OE_DEBUG(" > Loaded C# assembly {} [{}]" , module_info.name , id);
     }
     
-    loaded_modules[id] = NewRef<CsScript>(module_info.name , assembly);
-    loaded_modules[id]->Initialize();
+    auto& m = loaded_modules[id] = NewRef<CsScript>(module_info.name , assembly);
+    m->Initialize();
     loaded_modules_data[id] = module_info;
 
-    return loaded_modules[id];
+    return m;
   }
       
   void CsModule::UnloadScript(const std::string& name) {
     UUID id = IdFromName(name);
     OE_DEBUG("Unloading C# script module {} [{}]" , name , id);
+
+    /// remove engine data 
+    auto itr = loaded_modules.find(id);
+    if (itr != loaded_modules.end()) {
+      itr->second->Shutdown(); /// this one will garbage collect and compact
+      loaded_modules.erase(itr);
+    }
+
+    dotother::GarbageCollector::Collect(-1 , dotother::GCMode::DEFAULT , true , false); /// dont compact
 
     /* DotOther Code */ {
       /// find the DotOther ID
@@ -315,18 +278,13 @@ namespace {
       /* Unregistering from DotOther */ {
         /// unload this context
         auto& [__ , ctx] = *itr2;
-        host->UnloadAssemblyContext(ctx);
+        host->UnloadAssemblyContext(ctx);        
+        dotother::GarbageCollector::Collect(ctx_id , dotother::GCMode::DEFAULT , true , false); /// dont compact
 
         /// erase all DotOther data
         assembly_contexts.contexts.erase(itr2);
         assembly_contexts.assembly_ids.erase(itr);
       }
-    }
-
-    /// remove engine data 
-    auto itr = loaded_modules.find(id);
-    if (itr != loaded_modules.end()) {
-      loaded_modules.erase(itr);
     }
   }
 

@@ -5,28 +5,14 @@
 
 #include "core/logger.hpp"
 #include "parsing/ini_parser.hpp"
+#include "scripting/script_engine.hpp"
 
 namespace other {
 
-std::optional<ConfigTable> OtherTest::config = {};
-std::optional<ConfigTable> OtherTest::stashed_config = {};
+ConfigTable OtherTest::config = {};
+ConfigTable OtherTest::stashed_config = {};
 
 CmdLine OtherTest::cmdline = {};
-    
-void OtherTest::StashConfig() {
-  if (!config.has_value()) {
-    return;
-  }
-  stashed_config = *config;
-}
-    
-void OtherTest::ApplyStashedConfig() {
-  if (!stashed_config.has_value()) {
-    return;
-  }
-
-  config = *stashed_config;
-}
     
 void OtherTest::SetUpTestSuite() {  
   const std::string configpath = "C:/Yock/code/OtherEngine/tests/unit_tests/unittest.other";      
@@ -55,15 +41,32 @@ void OtherTest::OpenLog() {
     return;
   }
 
-  ASSERT_TRUE(config.has_value());
-
   /// FIXME: customize config per unit test but somehow not create bajillions of config files
-  Logger::Open(*config);
+  Logger::Open(config);
   Logger::Instance()->RegisterThread("Main Test Thread");
 }
 
 void OtherTest::CloseLog() {
   Logger::Shutdown();
+}
+
+bool CheckNumScripts(uint32_t cs , uint32_t lua , uint32_t python) {
+  auto& modules = ScriptEngine::GetModules();
+  for (auto& module : modules) {
+    auto& scripts = module.second.module->GetModules();
+
+    switch (module.second.module->GetLanguageType()) {
+      case LanguageModuleType::CS_MODULE:
+        return scripts.size() == cs;
+      case LanguageModuleType::LUA_MODULE:
+        return scripts.size() == lua;
+      case LanguageModuleType::PYTHON_MODULE:
+        return scripts.size() == python;
+      default:
+        return false;
+    }
+  }
+  return false;
 }
 
 } // namespace other

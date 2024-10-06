@@ -1,8 +1,8 @@
 /**
- * \file scripting/lua/native_functions/lua_native_logging.hpp
+ * \file scripting/lua/lua_logging_bindings.hpp
  **/
-#ifndef OTHER_ENGINE_LUA_NATIVE_LOGGING_HPP
-#define OTHER_ENGINE_LUA_NATIVE_LOGGING_HPP
+#ifndef OTHER_ENGINE_LUA_LOGGING_BINDINGS_HPP
+#define OTHER_ENGINE_LUA_LOGGING_BINDINGS_HPP
 
 #include <string_view>
 
@@ -24,4 +24,4 @@ namespace lua_script_bindings {
 } // namespace lua_script_bindings
 } // namespace other
 
-#endif // !OTHER_ENGINE_LUA_NATIVE_LOGGING_HPP
+#endif // !OTHER_ENGINE_LUA_LOGGING_BINDINGS_HPP

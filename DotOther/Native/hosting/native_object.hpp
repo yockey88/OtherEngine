@@ -29,10 +29,6 @@ namespace echo {
 
       uint64_t handle = 0;
       echo::ObjectProxy<NObject>* proxy = nullptr;
-
-      void Test() {
-        util::print(DO_STR("     > Test called from Native Object") , MessageLevel::MESSAGE);
-      }
   };
 
 
@@ -46,8 +42,7 @@ ECHO_TYPE(
     refl::attr::bases<dotother::echo::reflectable>
   ) ,
   field(handle) ,
-  field(proxy) , 
-  func(Test)
+  field(proxy)
 );
 
 #endif // !DOTOTHER_NATIVE_OBJECT_HPP

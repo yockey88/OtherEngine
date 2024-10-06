@@ -6,60 +6,49 @@
 #include <algorithm>
 #include <iterator>
 
+#include <sol/error.hpp>
 #include <sol/forward.hpp>
 #include <sol/load_result.hpp>
 #include <sol/types.hpp>
 
 #include "core/ref.hpp"
 #include "core/filesystem.hpp"
-#include "scripting/lua/lua_error_handlers.hpp"
-#include "scripting/lua/lua_bindings.hpp"
 
 namespace other {
 
   void LuaScript::Initialize() {
     bool corrupt = false;
-    if (Path{ path }.extension() != ".lua" || !Filesystem::FileExists(path)) {
-      OE_ERROR("Failed to load lua script {}" , path);
-      corrupt = true;
-      return;
-    }
-
-    if (corrupt) {
-      return;
-    }
 
     try {
-      lua_state.set_exception_handler(LuaExceptionHandler);
-      lua_state.open_libraries(sol::lib::base , sol::lib::io);
-
       sol::function_result res = lua_state.safe_script_file(path);
       if (!res.valid()) {
         OE_ERROR("Failed to load lua script file {}" , path);
         return;
       }
-
-      lua_script_bindings::BindAll(lua_state);
     } catch (const std::exception& e) {
       OE_ERROR("Failed to load lua script file {}" , path);
       OE_ERROR("  > Error = {}" , e.what());
-      return;
+      corrupt = true;
     } catch (...) {
-      OE_ERROR("Unknown error creating lua state for script {}" , path);
+      OE_ERROR("Unknown error creating lua script {}" , path);
+      corrupt = true;
+    }
+
+    if (corrupt) {
+      OE_ERROR("Failed to load lua script module {}" , module_name);
       return;
     }
 
-    valid = true;
+    valid = !corrupt;
   }
 
   void LuaScript::Shutdown() {
     lua_state.collect_garbage();
     for (auto& [id , obj] : loaded_objects) {
-      obj->Shutdown();
+      obj->OnBehaviorUnload();
+      obj = nullptr;
     }
     loaded_objects.clear();
-
-    lua_state = sol::state();
   }
 
   void LuaScript::Reload() {
@@ -94,30 +83,38 @@ namespace other {
     
     UUID id = FNV(name);
     if (loaded_objects.find(id) != loaded_objects.end()) {
-      Ref<ScriptObjectHandle<LuaObject>> obj = loaded_objects[id];
+      ScriptRef<LuaObject> obj = loaded_objects[id];
       if (obj != nullptr) {
-        return obj.Raw();
+        return obj;
       }
     }
-
-    OE_INFO("Lua object {} loaded" , name);
     
-    Ref<ScriptObjectHandle<LuaObject>> obj = nullptr;
+    ScriptRef<LuaObject> obj = nullptr;
     {
-      sol::table object;
-      if (nspace.empty()) {
-        object = lua_state[name];
-      } else {
-        object = lua_state[nspace][name];
-      }
+      try {
+        sol::table object;
+        if (nspace.empty()) {
+          object = lua_state[name];
+        } else {
+          object = lua_state[nspace][name];
+        }
 
-      std::string real_name = "";
-      if (nspace.empty()) {
-        real_name = name;
-      } else {
-        real_name = fmtstr("{}.{}" , nspace , name);
+        std::string real_name = "";
+        if (nspace.empty()) {
+          real_name = name;
+        } else {
+          real_name = fmtstr("{}.{}" , nspace , name);
+        }
+
+        obj = NewRef<LuaObject>(this , id , real_name , lua_state , std::forward<sol::table>(object));
+      } catch (const std::exception& e) {
+        OE_ERROR("Failed to create Lua object {}" , name);
+        OE_ERROR("  > Error = {}" , e.what());
+        obj = nullptr;
+      } catch (...) {
+        OE_ERROR("Unknown error creating Lua object {}" , name);
+        obj = nullptr;
       }
-      obj = NewRef<LuaObject>(this , id , real_name , &lua_state , object);
     }
 
     if (obj == nullptr) {
@@ -131,7 +128,8 @@ namespace other {
     obj->InitializeScriptFields();
     obj->OnBehaviorLoad();
 
-    return obj.Raw();
+    OE_INFO("Lua object {} loaded" , name);
+    return obj;
   }
       
   /// TODO: how to get all tables in the script
@@ -146,7 +144,6 @@ namespace other {
         .name = table ,
         .mod_name = module_name ,
         .nspace = "" ,
-        .path = path ,
         .lang_type = language ,
       });
     }

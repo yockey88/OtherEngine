@@ -7,6 +7,7 @@
 
 #include "core/defines.hpp"
 
+#include "core/logger.hpp"
 #include "rendering/uniform.hpp"
 
 namespace other {
@@ -89,15 +90,16 @@ namespace other {
     itr->second->SubmitStaticModel(model , transform , material);
   }
   
-  void SceneRenderer::EndScene() {
+  bool SceneRenderer::EndScene() {
     if (!FrameComplete()) {
-      ResetFrame(); 
-      return;
+      ResetFrame();
+      return false;
     }
 
     PreRenderSettings();
     FlushDrawList();
     ResetFrame(); 
+    return true;
   }
       
   void SceneRenderer::ClearPipelines() {

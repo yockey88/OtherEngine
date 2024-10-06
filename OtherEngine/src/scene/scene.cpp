@@ -5,6 +5,9 @@
 
 #include <ranges>
 
+#include <entt/entity/entity.hpp>
+#include <hosting/native_string.hpp>
+
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -35,7 +38,8 @@
 namespace other {
 
   /// TODO: get rid of this in some nice ctor/dtor wrapper
-  Scene::Scene() {
+  Scene::Scene() 
+      : Asset() , dotother::NObject(Random::Generate()) {
     registry.on_construct<entt::entity>().connect<&OnConstructEntity>();
     registry.on_destroy<entt::entity>().connect<&OnDestroyEntity>();
 
@@ -106,44 +110,25 @@ namespace other {
     }
   }
 
+  UUID Scene::SceneHandle() const {
+    return scene_handle;
+  }
+
   void Scene::Initialize() {
     FixRoots();
 
-    // Ref<ScriptObjectHandle<CsObject>> scene_object = ScriptEngine::GetScriptObject<CsObject>("Other::Scene");
+    scene_object = ScriptEngine::GetObjectRef<CsObject>("Scene" , "Other" , "OtherEngine.CsCore");
+    OE_ASSERT(scene_object != nullptr , "Failed to retrieve scene object from script engine");
+    scene_object->Initialize();
 
-    // bool cs_mod_found = false;
+    OE_DEBUG("Setting Scene.NativeHandle([{:p}])" , fmt::ptr(this));
+    scene_object->SetHandles(scene_handle , entt::null , this);
 
-    // auto cs_module = ScriptEngine::GetModule(CS_MODULE);
-    // if (cs_module == nullptr) {
-    //   OE_ERROR("Failed to retrieve ScriptEngine for scene initialization");
-    // } else {
-    //   cs_mod_found = true;
-    // }
-
-    // ScriptModule* cs_core = nullptr;
-    // if (cs_mod_found) {
-    //   cs_core = cs_module->GetScriptModule("OtherEngine.CsCore");
-    //   if (cs_core == nullptr) {
-    //     OE_ERROR("Failed to retrieve C# core script from ScriptEngine");
-    //     cs_mod_found = false;
-    //   }
-    // }
-
-    // if (cs_mod_found) {
-      // scene_object = cs_core->GetScriptObject("Scene" , "Other");
-      // if (scene_object == nullptr) {
-      //   OE_ERROR("Failed to retrieve scene interface from C# script core!");
-      // } else {
-      //   // scene_object->CallMethod("InitializeScene");
-      // }
-
-      // OE_DEBUG("Entities in scene [{}]" , entities.size()); 
-      // registry.view<Script , Tag>().each([](Script& script , Tag& tag) {
-      //   for (auto& [id , obj] : script.scripts) {
-      //     obj->Initialize();
-      //   }
-      // });
-    // }
+    OE_DEBUG("Entities in scene [{}]" , entities.size());
+    registry.view<Script , Tag>().each([this](Script& script , Tag& tag) {
+      script.ApiCall("NativeInitialize");
+      script.ApiCall("OnInitialize");
+    });
     
     RefreshCameraTransforms();
 
@@ -152,6 +137,35 @@ namespace other {
     
     BuildGroups();
     RebuildEnvironment();
+  }
+  
+  bool Scene::IsHandleValid(Entity* ent) const {
+    if (ent == nullptr) {
+      return false;
+    }
+
+    UUID id = ent->GetUUID();
+    auto itr = entities.find(id);
+    return itr != entities.end();
+  }
+
+  void Scene::Shutdown() {
+    OE_ASSERT(initialized , "Shutting down scene before initialization");
+    initialized = false;
+
+    if (running) {
+      Stop();
+    }
+
+    OnShutdown();
+
+    registry.view<Script>().each([](Script& script) {
+      script.ApiCall("OnShutdown");
+      script.ApiCall("NativeShutdown");
+    });
+
+    scene_object->Shutdown();
+    scene_object = nullptr;
   }
 
   void Scene::Start(EngineMode mode) {
@@ -163,11 +177,12 @@ namespace other {
       Initialize2DRigidBody(physics_world_2d , body , tag , transform);
     });
     
-    registry.view<Script>().each([](Script& script) {
-      for (auto& [id , s] : script.scripts) {
-        s->Start();
-      }
+    registry.view<Script>().each([&](Script& script) {
+      script.ApiCall("NativeStart");
+      script.ApiCall("OnStart");
     });
+
+    scene_object->Start();
 
     RefreshCameraTransforms();
 
@@ -177,6 +192,33 @@ namespace other {
     RebuildEnvironment();
 
     running = true;
+  }
+  
+  void Scene::Stop() {
+    OE_ASSERT(initialized , "Updating scene without initialization");
+    if (!running) {
+      return;
+    }
+    running = false;
+    
+    registry.view<Script>().each([](Script& script) {
+      script.ApiCall("OnStop");
+      script.ApiCall("NativeStop");
+    });
+
+    registry.view<RigidBody2D>().each([&](RigidBody2D& body) {
+      physics_world_2d->DestroyBody(body.physics_body);
+    });
+
+    scene_object->Stop();
+
+    OnStop();
+
+    if (scene_object == nullptr) {
+      return;
+    }
+
+    // scene_object->CallMethod("ClearObjects");
   }
 
   void Scene::EarlyUpdate(float dt) {
@@ -192,10 +234,10 @@ namespace other {
     }
 
     registry.view<Script>().each([&dt](Script& script) {
-      for (auto& [id , s] : script.scripts) {
-        s->EarlyUpdate(dt);
-      }
+      script.ApiCall("EarlyUpdate" , dt);
     });
+
+    scene_object->EarlyUpdate(dt);
     
     OnEarlyUpdate(dt);
     
@@ -270,10 +312,10 @@ namespace other {
     
     /// scripts updated last to give most accurate view of updated state 
     registry.view<Script>().each([&dt](Script& script) {
-      for (auto& [id , s] : script.scripts) {
-        s->Update(dt);
-      }
+      script.ApiCall("Update" , dt);
     });
+
+    scene_object->Update(dt);
     
     /// update client app if they have custom logic ,
     ///   do this last to give client accurate state view
@@ -311,10 +353,10 @@ namespace other {
     });
      
     registry.view<Script>().each([&dt](Script& script) {
-      for (auto& [id , s] : script.scripts) {
-        s->LateUpdate(dt);
-      }
+      script.ApiCall("LateUpdate" , dt);
     });
+
+    scene_object->LateUpdate(dt);
     
     OnLateUpdate(dt);
     
@@ -326,16 +368,6 @@ namespace other {
     }
   }
 
-  /**
-   * first we'll have to set up the pipeline data for the scene
-   *    void Scene:PreRender() {
-   *      if (pipeline specs changed) {
-   *        /// build pipeline specs
-   *      }
-   *    }
-   *
-   **/
-      
   Ref<CameraBase> Scene::GetPrimaryCamera() const {
     UUID handle = 0;
     registry.view<Camera, Tag>().each([&handle](const Camera& camera, const Tag& tag) {
@@ -356,70 +388,38 @@ namespace other {
       
   void Scene::Render(Ref<SceneRenderer>& renderer) {
     renderer->ClearPipelines();
+    if (auto primary_cam = GetPrimaryCamera(); primary_cam != nullptr) {
+      renderer->SubmitCamera(primary_cam);
+    }
     renderer->SubmitEnvironment(environment);
 
+    // if (scene_geometry_changed) {
+    //   RebuildEnvironment();
+    //   scene_geometry_changed = false;
+    //   renderer->SubmitEnvironment(environment);
+    // }
     RenderToPipeline("Geometry" , renderer);
 
     /// TODO: flesh this out
     if (AppState::mode == EngineMode::DEBUG) {
       RenderToPipeline("Debug" , renderer , true);
     }
+
+    scene_object->Render();
+
+    OnRender();
   }
       
   void Scene::RenderUI() {
     // registry.view<UI>().each([](const UI& ui) {}); 
-  }
-      
-  void Scene::Stop() {
-    OE_ASSERT(initialized , "Updating scene without initialization");
-    if (!running) {
-      return;
-    }
-    running = false;
-    
-    registry.view<Script>().each([](Script& script) {
-      for (auto& [id , s] : script.scripts) {
-        s->Stop();
-      }
-    });
-
-    registry.view<RigidBody2D>().each([&](RigidBody2D& body) {
-      physics_world_2d->DestroyBody(body.physics_body);
-    });
-
-    OnStop();
-
-    if (scene_object == nullptr) {
-      return;
-    }
-
-    // scene_object->CallMethod("ClearObjects");
-  }
-
-  void Scene::Shutdown() {
-    OE_ASSERT(initialized , "Shutting down scene before initialization");
-    initialized = false;
-
-    if (running) {
-      Stop();
-    }
-
-    OnShutdown();
-
-    registry.view<Script>().each([](Script& script) {
-      for (auto& [id , obj] : script.scripts) {
-        obj->Shutdown();
-      }
-    });
-
-    scene_object = nullptr;
+    scene_object->RenderUI();
   }
       
   entt::registry& Scene::Registry() {
     return registry;
   }
 
-  ScriptObject* Scene::SceneScriptObject() {
+  ScriptRef<CsObject> Scene::SceneScriptObject() {
     return scene_object;
   }
       
@@ -591,10 +591,10 @@ namespace other {
     }
 
     if (entity->HasComponent<Script>()) {
-      auto& scripts = entity->GetComponent<Script>();
-      for (auto& [id , script] : scripts.scripts) {
-        script->SetEntityId(new_id);
-      } 
+      // auto& scripts = entity->GetComponent<Script>();
+      // for (auto& [id , script] : scripts.scripts) {
+      //   script->SetEntityId(new_id);
+      // } 
     }
   }
       

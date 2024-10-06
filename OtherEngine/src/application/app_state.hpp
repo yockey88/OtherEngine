@@ -18,6 +18,7 @@ namespace other {
     public:
       static void Initialize(App* app_handle , Scope<LayerStack>& layers , Scope<SceneManager>& scenes , 
                              Ref<AssetHandler>& assets , Ref<Project>& project_contex);
+      static void Shutdown();
 
       static Ref<Project> ProjectContext();
       static Ref<AssetHandler> Assets();
@@ -41,6 +42,12 @@ namespace other {
 
         Data(App* app_handle , Scope<LayerStack>& layers , Scope<SceneManager>& scenes , Ref<AssetHandler>& assets , Ref<Project>& context)
             : app_handle(app_handle) , layers(layers) , scenes(scenes) , assets(assets) , project(context) {}
+
+        ~Data() {
+          app_handle = nullptr;
+          assets = nullptr;
+          project = nullptr;
+        }
       };
 
       static Scope<Data> state;

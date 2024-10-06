@@ -40,7 +40,8 @@ namespace DotOther.Managed {
       load_errors.Add(typeof(FileNotFoundException), AsmLoadStatus.NotFound);
       load_errors.Add(typeof(FileLoadException), AsmLoadStatus.Failed);
       load_errors.Add(typeof(ArgumentNullException), AsmLoadStatus.InvalidPath);
-      load_errors.Add(typeof(ArgumentException), AsmLoadStatus.InvalidPath);
+      load_errors.Add(typeof(ArgumentException), AsmLoadStatus.InvalidAssembly);
+      load_errors.Add(typeof(NullReferenceException), AsmLoadStatus.CorruptContext);
 
       dotother_asm_context = AssemblyLoadContext.GetLoadContext(typeof(AssemblyLoader).Assembly);
       dotother_asm_context!.Resolving += ResolveAssembly;

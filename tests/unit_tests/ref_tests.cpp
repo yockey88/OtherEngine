@@ -11,6 +11,14 @@ using other::RefCounted;
 class TestObj : public RefCounted {
   public:
     std::string data = "Test String";
+
+    TestObj() {
+      std::cout << "TestObj::TestObj()" << std::endl;
+    }
+
+    ~TestObj() {
+      std::cout << "TestObj::~TestObj()" << std::endl;
+    }
 };
 
 class RefTests : public other::OtherTest {
@@ -34,4 +42,7 @@ TEST_F(RefTests , basic_tests) {
   }
 
   ASSERT_EQ(test_obj->Count() , 1);
+  test_obj = nullptr;
+
+  ASSERT_EQ(test_obj , nullptr);
 }

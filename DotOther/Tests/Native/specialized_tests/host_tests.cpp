@@ -6,6 +6,8 @@
 #include <filesystem>
 #include <print>
 
+#include <glm/glm.hpp>
+
 #include "core/dotest.hpp"
 
 #include "core/dotother_defines.hpp"
@@ -30,40 +32,28 @@ class HostTests : public DoTest {
       .managed_asm_path = DO_STR("./bin/Debug/DotOther.Managed/net8.0/DotOther.Managed.dll") ,
       .dotnet_type = DO_STR("DotOther.Managed.DotOtherHost, DotOther.Managed") ,
       .entry_point = DO_STR("EntryPoint") ,
-      
-      .log_level = MessageLevel::INFO,
 
       .exception_callback = [](const NString message) {
         util::print(DO_STR("C# Exception Caught : \n\t{}"sv), MessageLevel::DEBUG, message);
         FAIL();
       } ,
       .log_callback = [](const NString message, MessageLevel level) {
-        bool is_verbose = util::GetUtils().IsVerbose();
-        if (!is_verbose && level < MessageLevel::INFO) {
-          return;
-        }
-
-        fmt::print("{} [{}]\n"sv, message, level);
+        fmt::print("[MANAGED LOG HOOK] > {} [{}]\n"sv, message, level);
       } ,      
       .invoke_native_method_hook = [](uint64_t object_handle, const NString method_name) {
         std::string mname = method_name;
         util::print(DO_STR("Invoking Native Method on object {:#08x}"sv) , MessageLevel::DEBUG , object_handle);
         util::print(DO_STR(" > Method Name: {}"sv) , MessageLevel::DEBUG, mname);
-
         InteropInterface::Instance().InvokeNativeFunction(object_handle, mname);
       },
 
-      .internal_logging_hook = [](const std::string_view message, MessageLevel level, bool verbose) {
-        bool is_verbose = util::GetUtils().IsVerbose();
-        if (!is_verbose && level < MessageLevel::INFO) {
-          return;
-        }
-
-        fmt::print("{} [{}]\n"sv, message, level);
+      .internal_logging_hook = [](const std::string_view message, MessageLevel level) {
+        fmt::print("[INTERNAL LOGGING HOOK] > {} [{}]\n"sv, message, level);
       }
     };
 
     static owner<NObject> native_object;
+    static inline glm::vec3 vec = glm::vec3(1.f, 2.f, 3.f); // , 4.f);
 
     virtual void SetUp() {
       host = Host::Instance(config);
@@ -82,9 +72,9 @@ class HostTests : public DoTest {
     }
 
   public:
-    static void* GetNativeObject() {
+    static void* GetVec3() {
       util::print(DO_STR("Getting Native Object Handle: {:#08x} (address : {:p})"sv), MessageLevel::DEBUG, native_object->handle , fmt::ptr(&native_object));
-      return native_object.get();
+      return &vec;
     }
 
   protected:
@@ -98,9 +88,6 @@ TEST_F(HostTests, load_asm_and_call_functions) {
   native_object->proxy->handle(0xdeadbeef);
   util::print(DO_STR("Native Object Handle: {:#08x}"sv), MessageLevel::DEBUG, native_object->handle);
   ASSERT_EQ(native_object->handle , 0xdeadbeef);
-  
-  /// invoke functions by name (so client scripts can call them)
-  native_object->proxy->InvokeMethod("Test");
 
   /// CallEntryPoint throws if interop is not bound before entry point is called, so we can assume it is bound here
   ///     and this must return to true
@@ -118,9 +105,9 @@ TEST_F(HostTests, load_asm_and_call_functions) {
   ASSERT_NO_THROW(assembly = asm_ctx.LoadAssembly(mod1_path.string()));
   ASSERT_NE(assembly , nullptr);
   ASSERT_NE(assembly->GetId(), -1);
-  
-  assembly->SetInternalCall("DotOther.Tests.Mod1", "GetNativeObject", (void*)&HostTests::GetNativeObject);
-  ASSERT_NO_THROW(assembly->UploadInternalCalls());
+
+  assembly->SetInternalCall("DotOther.Tests.Mod1" , "GetVec3" , (void*)&HostTests::GetVec3);
+  ASSERT_NO_FATAL_FAILURE(assembly->UploadInternalCalls());
   
   Type& type = assembly->GetType("DotOther.Tests.Mod1");
   ASSERT_NE(type.handle, -1);
@@ -131,6 +118,7 @@ TEST_F(HostTests, load_asm_and_call_functions) {
 
   ASSERT_NO_FATAL_FAILURE(obj.Invoke<void>("Test"));
   ASSERT_NO_FATAL_FAILURE(obj.Invoke<void>("Test", 22));
+  ASSERT_NO_FATAL_FAILURE(obj.SetProperty("MyInt", 22));
 
   util::print(DO_STR("Invoking Internal Call"sv) , MessageLevel::DEBUG);
   ASSERT_NO_FATAL_FAILURE(obj.Invoke<void>("TestInternalCall"));

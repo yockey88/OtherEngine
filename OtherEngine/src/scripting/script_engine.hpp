@@ -10,6 +10,7 @@
 
 #include "core/config.hpp"
 #include "core/uuid.hpp"
+#include "core/rand.hpp"
 #include "core/ref.hpp"
 
 #include "scene/scene.hpp"
@@ -54,6 +55,16 @@ namespace other {
     }
   }
 
+  // struct NativeObjectProxyRegistry {
+  //   template <typename T>
+  //   using ProxyMap = std::map<UUID , T>;
+
+  //   template <typename T>
+  //   static ProxyMap<T> proxy_map;
+  // };
+  
+  // extern NativeObjectProxyRegistry native_object_registry;
+
   class ScriptEngine {
     public:
       static void Initialize(const ConfigTable& config);
@@ -74,24 +85,56 @@ namespace other {
       static Ref<ScriptObject> GetScriptObject(UUID id);
       static Ref<ScriptObject> GetScriptObject(const std::string_view name , const std::string_view nspace);
       static Ref<ScriptObject> GetScriptObject(const std::string_view name , const std::string_view nspace , const std::string_view mod_name);
+      
+      // template <typename T>
+      // static UUID RegisterNativeObject(T& obj) {
+      //   UUID id = Random::GenerateUUID();
+      //   native_object_registry.proxy_map<T>[id] = obj;
+      // }
 
       template <typename SO>
         requires script_object_t<SO>
-      static ScriptRef<SO> GetObject(const std::string_view name , const std::string_view nspace , const std::string_view mod_name) {
-        LanguageModuleType type = ModuleTypeFromObjStaticType<SO>();
+      static ScriptRef<SO> GetObjectRef(const std::string_view name , const std::string_view nspace) {
+        // LanguageModuleType type = ModuleTypeFromObjStaticType<SO>();
+        // auto& mod = language_modules[type];
+        // if (mod.module == nullptr) {
+        //   OE_ERROR("Failed to get module for object {}::{}" , nspace , name);
+        //   return nullptr;
+        // }
 
+        // Ref<ScriptObject> obj = nullptr;
+        // for (auto& [id , script_mod] : mod.module->GetModules()) {
+        //   if (script_mod->HasScript(name , nspace)) {
+        //     obj = script_mod->GetScriptObject(name , nspace);
+        //     if (obj == nullptr) {
+        //       // OE_ERROR("Failed to get script object {}::{} from module {}" , nspace , name , script_mod->ModuleName());
+        //       return nullptr;
+        //     }
+
+        //     return Ref<ScriptObject>::Cast<ScriptObjectHandle<SO>>(obj);
+        //   }
+        // }
+
+        // OE_ERROR("Failed to find script object {}::{} in module {}" , nspace , name , mod.module->ModuleName());
+        return nullptr;
+      }
+
+      template <typename SO>
+        requires script_object_t<SO>
+      static ScriptRef<SO> GetObjectRef(const std::string_view name , const std::string_view nspace , const std::string_view mod_name) {
         Ref<ScriptObject> obj = GetScriptObject(name , nspace , mod_name);
         if (obj == nullptr) {
           OE_ERROR("Could not find script object {}::{} in module {}" , nspace , name , mod_name);
           return nullptr;
         }
 
+        LanguageModuleType type = ModuleTypeFromObjStaticType<SO>();
         if (type != obj->LanguageType()) {
           OE_ERROR("Script object {}::{} in module {} is not of type {} (it is of type [{}])" , nspace , name , mod_name , type , obj->LanguageType());
           return nullptr;
         }
 
-        return Ref<ScriptObject>::Cast<SO>(obj);
+        return Ref<ScriptObject>::Cast<ScriptObjectHandle<SO>>(obj);
       }
       
       static const std::map<UUID , Ref<ScriptObject>>& ReadLoadedObjects();
@@ -111,7 +154,7 @@ namespace other {
       template <typename T> 
         requires lang_module_t<T>
       static Ref<T> GetModuleAs(LanguageModuleType type) {
-        return Ref<T>(language_modules[type].module);
+        return Ref<LanguageModule>::Cast<T>(language_modules[type].module);
       }
 
     private:

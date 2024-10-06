@@ -80,405 +80,405 @@ namespace other {
     return modified;
   }
 
-  template <typename T>
-  bool DrawFieldValue(ScriptField* field , Ref<ScriptObject> script_instance) {
-    OE_ASSERT(field != nullptr , "Attempting to draw null script field");
+  // template <typename T>
+  // bool DrawFieldValue(ScriptField* field , Ref<ScriptObject> script_instance) {
+  //   OE_ASSERT(field != nullptr , "Attempting to draw null script field");
 
-    bool result = false;
+  //   bool result = false;
 
-    T v = field->value.Read<T>();
-    T min = 0 , max = 0;
-    if (field->bounds.has_value()) {
-      min = field->bounds->x;
-      max = field->bounds->y;
-    }
+  //   T v = field->value.Read<T>();
+  //   T min = 0 , max = 0;
+  //   if (field->bounds.has_value()) {
+  //     min = field->bounds->x;
+  //     max = field->bounds->y;
+  //   }
 
-    if (ui::Property(field->name.c_str() , &v , min , max)) {
-      field->value.Set(v); 
-      script_instance->SetField(field->name , field->value);
-      result = true;
-    }
+  //   if (ui::Property(field->name.c_str() , &v , min , max)) {
+  //     field->value.Set(v); 
+  //     script_instance->SetField(field->name , field->value);
+  //     result = true;
+  //   }
 
-    return result;
-  }
+  //   return result;
+  // }
 
-  template <>
-  bool DrawFieldValue<bool>(ScriptField* field , Ref<ScriptObject> script_instance) {
-    bool result = false;
+  // template <>
+  // bool DrawFieldValue<bool>(ScriptField* field , Ref<ScriptObject> script_instance) {
+  //   bool result = false;
 
-    bool v = field->value.Get<bool>();
+  //   bool v = field->value.Get<bool>();
     
-    ui::BeginProperty(field->name.c_str());
-    if (ImGui::Checkbox("" , &v)) {
-      field->value.Set(v);
-      script_instance->SetField(field->name, field->value);
-      result = true;
-    }
-    ui::EndProperty();
+  //   ui::BeginProperty(field->name.c_str());
+  //   if (ImGui::Checkbox("" , &v)) {
+  //     field->value.Set(v);
+  //     script_instance->SetField(field->name, field->value);
+  //     result = true;
+  //   }
+  //   ui::EndProperty();
 
-    return result;
-  }
+  //   return result;
+  // }
 
-  template <>
-  bool DrawFieldValue<char>(ScriptField* field , Ref<ScriptObject> script_instance) {
-    bool result = false;
+  // template <>
+  // bool DrawFieldValue<char>(ScriptField* field , Ref<ScriptObject> script_instance) {
+  //   bool result = false;
 
-    char v = field->value.Get<char>();
-    static std::array<char , 52> chars = {
-      'a' , 'b' , 'c' , 'd' , 'e' , 'f' , 'g' , 'h' , 'i' , 'j' , 'k' , 'l' , 'm' , 'n' , 
-            'o' , 'p' , 'q' , 'r' , 's' , 't' , 'u' , 'v' , 'w' , 'x' , 'y' , 'z' ,
-      'A' , 'B' , 'C' , 'D' , 'E' , 'F' , 'G' , 'H' , 'I' , 'J' , 'K' , 'L' , 'M' , 'N' ,
-            'O' , 'P' , 'Q' , 'R' , 'S' , 'T' , 'U' , 'V' , 'W' , 'X' , 'Y' , 'Z'
-    };
+  //   char v = field->value.Get<char>();
+  //   static std::array<char , 52> chars = {
+  //     'a' , 'b' , 'c' , 'd' , 'e' , 'f' , 'g' , 'h' , 'i' , 'j' , 'k' , 'l' , 'm' , 'n' , 
+  //           'o' , 'p' , 'q' , 'r' , 's' , 't' , 'u' , 'v' , 'w' , 'x' , 'y' , 'z' ,
+  //     'A' , 'B' , 'C' , 'D' , 'E' , 'F' , 'G' , 'H' , 'I' , 'J' , 'K' , 'L' , 'M' , 'N' ,
+  //           'O' , 'P' , 'Q' , 'R' , 'S' , 'T' , 'U' , 'V' , 'W' , 'X' , 'Y' , 'Z'
+  //   };
     
-    ui::BeginProperty(field->name.c_str());
+  //   ui::BeginProperty(field->name.c_str());
     
-    if (ImGui::BeginCombo(("##char-dropdown" + field->name).c_str() , &v)) {
-      for (auto& c : chars) {
-        bool is_selected = v == c;
-        std::string char_str{ c };
-        if (ImGui::Selectable(char_str.c_str() , is_selected)) {
-          field->value.Set<char>(c);
-          script_instance->SetField(field->name , field->value);
-          result = true;
-        }
-      }
-      ImGui::EndCombo();
-    }
+  //   if (ImGui::BeginCombo(("##char-dropdown" + field->name).c_str() , &v)) {
+  //     for (auto& c : chars) {
+  //       bool is_selected = v == c;
+  //       std::string char_str{ c };
+  //       if (ImGui::Selectable(char_str.c_str() , is_selected)) {
+  //         field->value.Set<char>(c);
+  //         script_instance->SetField(field->name , field->value);
+  //         result = true;
+  //       }
+  //     }
+  //     ImGui::EndCombo();
+  //   }
 
-    ui::EndProperty();
+  //   ui::EndProperty();
 
-    return result;
-  }
+  //   return result;
+  // }
 
-  template <> 
-  bool DrawFieldValue<std::string>(ScriptField* field , Ref<ScriptObject> script_instance) {
-    bool result = false;
+  // template <> 
+  // bool DrawFieldValue<std::string>(ScriptField* field , Ref<ScriptObject> script_instance) {
+  //   bool result = false;
 
-    std::string v = field->value.Get<std::string>();
-    std::array<char , 256> buffer{};
-    memset(buffer.data() , 0 , 256);
-    memcpy(buffer.data() , v.c_str() , v.length());
+  //   std::string v = field->value.Get<std::string>();
+  //   std::array<char , 256> buffer{};
+  //   memset(buffer.data() , 0 , 256);
+  //   memcpy(buffer.data() , v.c_str() , v.length());
 
-    ui::BeginProperty(field->name.c_str());
+  //   ui::BeginProperty(field->name.c_str());
 
-    if (ImGui::InputText(("##script-string-" + field->name).c_str() , buffer.data() , buffer.size())) {
-      if (ImGui::IsKeyPressed(ImGuiKey_Enter) && buffer[0] != 0) {
-        v = buffer.data();
-        field->value.Set<std::string>(v);
-        script_instance->SetField(field->name , field->value);
-        result = true;
-      }
-    }
+  //   if (ImGui::InputText(("##script-string-" + field->name).c_str() , buffer.data() , buffer.size())) {
+  //     if (ImGui::IsKeyPressed(ImGuiKey_Enter) && buffer[0] != 0) {
+  //       v = buffer.data();
+  //       field->value.Set<std::string>(v);
+  //       script_instance->SetField(field->name , field->value);
+  //       result = true;
+  //     }
+  //   }
 
-    ui::EndProperty();
+  //   ui::EndProperty();
 
-    return result;
-  }
+  //   return result;
+  // }
 
-  template <>
-  bool DrawFieldValue<glm::vec2>(ScriptField* field , Ref<ScriptObject> script_instance) {
-    bool result = false;
+  // template <>
+  // bool DrawFieldValue<glm::vec2>(ScriptField* field , Ref<ScriptObject> script_instance) {
+  //   bool result = false;
 
-    bool modified = false;
+  //   bool modified = false;
     
-    float min = 0 , max = 0 , speed = 1.f;
-    if (field->bounds.has_value()) {
-      min = field->bounds->x;
-      max = field->bounds->y;
+  //   float min = 0 , max = 0 , speed = 1.f;
+  //   if (field->bounds.has_value()) {
+  //     min = field->bounds->x;
+  //     max = field->bounds->y;
 
-      min = glm::min(min , max);
-      max = glm::max(min , max);
+  //     min = glm::min(min , max);
+  //     max = glm::max(min , max);
 
-      speed = (max - min) / 20.f;
-    }
+  //     speed = (max - min) / 20.f;
+  //   }
     
-    ui::BeginProperty(field->name.c_str());
+  //   ui::BeginProperty(field->name.c_str());
 
-    glm::vec2 v = field->value.Get<glm::vec2>();
-    if (ui::widgets::DrawVec2Control(field->name , v , modified , 0.f , 100.f , ui::VectorAxis::ZERO ,
-                                      glm::vec2(min) , glm::vec2(max) , speed)) {
-      field->value.Set(v);
-      script_instance->SetField(field->name , field->value);
-      result = true;
-    }
+  //   glm::vec2 v = field->value.Get<glm::vec2>();
+  //   if (ui::widgets::DrawVec2Control(field->name , v , modified , 0.f , 100.f , ui::VectorAxis::ZERO ,
+  //                                     glm::vec2(min) , glm::vec2(max) , speed)) {
+  //     field->value.Set(v);
+  //     script_instance->SetField(field->name , field->value);
+  //     result = true;
+  //   }
     
-    ui::EndProperty();
+  //   ui::EndProperty();
 
-    return result;
-  }
+  //   return result;
+  // }
   
-  template <>
-  bool DrawFieldValue<glm::vec3>(ScriptField* field , Ref<ScriptObject> script_instance) {
-    bool result = false;
+  // template <>
+  // bool DrawFieldValue<glm::vec3>(ScriptField* field , Ref<ScriptObject> script_instance) {
+  //   bool result = false;
 
-    bool modified = false;
+  //   bool modified = false;
 
-    float min = 0 , max = 0 , speed = 1.f;
-    if (field->bounds.has_value()) {
-      min = field->bounds->x;
-      max = field->bounds->y;
+  //   float min = 0 , max = 0 , speed = 1.f;
+  //   if (field->bounds.has_value()) {
+  //     min = field->bounds->x;
+  //     max = field->bounds->y;
 
-      min = glm::min(min , max);
-      max = glm::max(min , max);
+  //     min = glm::min(min , max);
+  //     max = glm::max(min , max);
 
-      speed = (max - min) / 20.f;
-    }
+  //     speed = (max - min) / 20.f;
+  //   }
 
-    ui::BeginProperty(field->name.c_str());
+  //   ui::BeginProperty(field->name.c_str());
 
-    glm::vec3 v = field->value.Get<glm::vec3>();
-    if (ui::widgets::DrawVec3Control("" , v , modified , 0.f , 100.f , ui::VectorAxis::ZERO ,
-                                      glm::vec3(min) , glm::vec3(max) , speed)) {
-      field->value.Set(v);
-      script_instance->SetField(field->name , field->value);
-      result = true;
-    }
+  //   glm::vec3 v = field->value.Get<glm::vec3>();
+  //   if (ui::widgets::DrawVec3Control("" , v , modified , 0.f , 100.f , ui::VectorAxis::ZERO ,
+  //                                     glm::vec3(min) , glm::vec3(max) , speed)) {
+  //     field->value.Set(v);
+  //     script_instance->SetField(field->name , field->value);
+  //     result = true;
+  //   }
 
-    ui::EndProperty();
+  //   ui::EndProperty();
 
-    return result;
-  }
+  //   return result;
+  // }
   
-  template <>
-  bool DrawFieldValue<glm::vec4>(ScriptField* field , Ref<ScriptObject> script_instance) {
-    bool result = false;
+  // template <>
+  // bool DrawFieldValue<glm::vec4>(ScriptField* field , Ref<ScriptObject> script_instance) {
+  //   bool result = false;
 
-    bool modified = false;
+  //   bool modified = false;
     
-    float min = 0 , max = 0 , speed = 1.f;
-    if (field->bounds.has_value()) {
-      min = field->bounds->x;
-      max = field->bounds->y;
+  //   float min = 0 , max = 0 , speed = 1.f;
+  //   if (field->bounds.has_value()) {
+  //     min = field->bounds->x;
+  //     max = field->bounds->y;
 
-      min = glm::min(min , max);
-      max = glm::max(min , max);
+  //     min = glm::min(min , max);
+  //     max = glm::max(min , max);
 
-      speed = (max - min) / 20.f;
-    }
+  //     speed = (max - min) / 20.f;
+  //   }
     
-    ui::BeginProperty(field->name.c_str());
+  //   ui::BeginProperty(field->name.c_str());
 
-    glm::vec4 v = field->value.Get<glm::vec4>();
-    if (ui::widgets::DrawVec4Control(field->name , v , modified , 0.f , 100.f , ui::VectorAxis::ZERO ,
-                                      glm::vec4(min) , glm::vec4(max) , speed)) {
-      field->value.Set(v);
-      script_instance->SetField(field->name , field->value);
-      result = true;
-    }
+  //   glm::vec4 v = field->value.Get<glm::vec4>();
+  //   if (ui::widgets::DrawVec4Control(field->name , v , modified , 0.f , 100.f , ui::VectorAxis::ZERO ,
+  //                                     glm::vec4(min) , glm::vec4(max) , speed)) {
+  //     field->value.Set(v);
+  //     script_instance->SetField(field->name , field->value);
+  //     result = true;
+  //   }
     
-    ui::EndProperty();
+  //   ui::EndProperty();
 
-    return result;
-  }
+  //   return result;
+  // }
 
-  bool DrawScriptArray(ScriptField* array , Ref<ScriptObject> script_instance) {
-    // ImGui::Text("Script array : %s" , array->name.c_str()); 
+  // bool DrawScriptArray(ScriptField* array , Ref<ScriptObject> script_instance) {
+  //   // ImGui::Text("Script array : %s" , array->name.c_str()); 
     
-    return false;
-  }
+  //   return false;
+  // }
 
-  bool DrawScriptField(ScriptField* field , Ref<ScriptObject> script_instance) {
-    bool result = false;
+  // bool DrawScriptField(ScriptField* field , Ref<ScriptObject> script_instance) {
+  //   bool result = false;
 
-    switch (field->value.Type()) {
-      case ValueType::BOOL: result   = result &= DrawFieldValue<bool>(field , script_instance); break;
-      case ValueType::CHAR: result   = result &= DrawFieldValue<char>(field , script_instance); break;
-      case ValueType::INT8: result   = result &= DrawFieldValue<int8_t>(field , script_instance); break;
-      case ValueType::UINT8: result  = result &= DrawFieldValue<uint8_t>(field , script_instance); break;
-      case ValueType::INT16: result  = result &= DrawFieldValue<int16_t>(field , script_instance); break;
-      case ValueType::UINT16: result = result &= DrawFieldValue<uint16_t>(field , script_instance); break;
-      case ValueType::INT32: result  = result &= DrawFieldValue<int32_t>(field , script_instance); break;
-      case ValueType::UINT32: result = result &= DrawFieldValue<uint32_t>(field , script_instance); break;
-      case ValueType::INT64: result  = result &= DrawFieldValue<int64_t>(field , script_instance); break;
-      case ValueType::UINT64: result = result &= DrawFieldValue<uint32_t>(field , script_instance); break;
-      case ValueType::FLOAT: result  = result &= DrawFieldValue<float>(field , script_instance); break;
-      case ValueType::DOUBLE: result = result &= DrawFieldValue<double>(field , script_instance); break;
-      case ValueType::VEC2: result   = result &= DrawFieldValue<glm::vec2>(field , script_instance); break;
-      case ValueType::VEC3: result   = result &= DrawFieldValue<glm::vec3>(field , script_instance); break;
-      case ValueType::VEC4: result   = result &= DrawFieldValue<glm::vec4>(field , script_instance); break;
-      case ValueType::STRING: result = result &= DrawFieldValue<std::string>(field , script_instance); break;
-      case ValueType::ASSET: 
-        ImGui::Text("Asset values unimplemented!");
-      break;
-      case ValueType::ENTITY: 
-        ImGui::Text("Entity values unimplemented!");
-      break;
-      case ValueType::USER_TYPE:
-        ImGui::Text("User Types unimplemented");
-      break;
-      default:
-        ImGui::Text("Field value %s has corrupted type" , field->name.c_str());
-    }
+  //   switch (field->value.Type()) {
+  //     case ValueType::BOOL: result   = result &= DrawFieldValue<bool>(field , script_instance); break;
+  //     case ValueType::CHAR: result   = result &= DrawFieldValue<char>(field , script_instance); break;
+  //     case ValueType::INT8: result   = result &= DrawFieldValue<int8_t>(field , script_instance); break;
+  //     case ValueType::UINT8: result  = result &= DrawFieldValue<uint8_t>(field , script_instance); break;
+  //     case ValueType::INT16: result  = result &= DrawFieldValue<int16_t>(field , script_instance); break;
+  //     case ValueType::UINT16: result = result &= DrawFieldValue<uint16_t>(field , script_instance); break;
+  //     case ValueType::INT32: result  = result &= DrawFieldValue<int32_t>(field , script_instance); break;
+  //     case ValueType::UINT32: result = result &= DrawFieldValue<uint32_t>(field , script_instance); break;
+  //     case ValueType::INT64: result  = result &= DrawFieldValue<int64_t>(field , script_instance); break;
+  //     case ValueType::UINT64: result = result &= DrawFieldValue<uint32_t>(field , script_instance); break;
+  //     case ValueType::FLOAT: result  = result &= DrawFieldValue<float>(field , script_instance); break;
+  //     case ValueType::DOUBLE: result = result &= DrawFieldValue<double>(field , script_instance); break;
+  //     case ValueType::VEC2: result   = result &= DrawFieldValue<glm::vec2>(field , script_instance); break;
+  //     case ValueType::VEC3: result   = result &= DrawFieldValue<glm::vec3>(field , script_instance); break;
+  //     case ValueType::VEC4: result   = result &= DrawFieldValue<glm::vec4>(field , script_instance); break;
+  //     case ValueType::STRING: result = result &= DrawFieldValue<std::string>(field , script_instance); break;
+  //     case ValueType::ASSET: 
+  //       ImGui::Text("Asset values unimplemented!");
+  //     break;
+  //     case ValueType::ENTITY: 
+  //       ImGui::Text("Entity values unimplemented!");
+  //     break;
+  //     case ValueType::USER_TYPE:
+  //       ImGui::Text("User Types unimplemented");
+  //     break;
+  //     default:
+  //       ImGui::Text("Field value %s has corrupted type" , field->name.c_str());
+  //   }
 
-    return result;
-  }
+  //   return result;
+  // }
 
-  static Opt<Value> test_value;
+  // static Opt<Value> test_value;
 
   bool DrawScript(Entity* ent) {
-    auto& script = ent->GetComponent<Script>();
+    // auto& script = ent->GetComponent<Script>();
 
-    auto& loaded_script_objs = ScriptEngine::GetLoadedObjects();
-    std::vector<const char*> options = {};
+    // auto& loaded_script_objs = ScriptEngine::GetLoadedObjects();
+    // std::vector<const char*> options = {};
 
-    for (auto& tag : loaded_script_objs) {
-      options.push_back(tag.name.c_str());
-    }
+    // for (auto& tag : loaded_script_objs) {
+    //   options.push_back(tag.name.c_str());
+    // }
 
-    static uint32_t slctn = 0;
-    if (ui::PropertyDropdown("Attach Script" , options.data() , options.size() , slctn)) {
-    }
+    // static uint32_t slctn = 0;
+    // if (ui::PropertyDropdown("Attach Script" , options.data() , options.size() , slctn)) {
+    // }
 
-    auto contains = [&](const std::pair<UUID , Ref<ScriptObject>>& obj_pair) -> bool {
-      return obj_pair.first == loaded_script_objs[slctn].object_id;
-    };
+    // auto contains = [&](const std::pair<UUID , Ref<ScriptObject>>& obj_pair) -> bool {
+    //   return obj_pair.first == loaded_script_objs[slctn].object_id;
+    // };
 
-    bool has_script_attached = std::ranges::find_if(script.scripts , contains) != script.scripts.end();
-    if (!has_script_attached && ImGui::Button("Confirm")) {
-      auto id = loaded_script_objs[slctn].object_id;
-      auto name = loaded_script_objs[slctn].name;
-      auto mod_name = loaded_script_objs[slctn].mod_name;
+    // bool has_script_attached = std::ranges::find_if(script.scripts , contains) != script.scripts.end();
+    // if (!has_script_attached && ImGui::Button("Confirm")) {
+      // auto id = loaded_script_objs[slctn].object_id;
+      // auto name = loaded_script_objs[slctn].name;
+      // auto mod_name = loaded_script_objs[slctn].mod_name;
 
-      Opt<std::string> nspace = loaded_script_objs[slctn].nspace.empty() ?
-        Opt<std::string>{ std::nullopt } : Opt<std::string>{ loaded_script_objs[slctn].nspace };
+      // Opt<std::string> nspace = loaded_script_objs[slctn].nspace.empty() ?
+      // Opt<std::string>{ std::nullopt } : Opt<std::string>{ loaded_script_objs[slctn].nspace };
 
-      Ref<ScriptObject> inst = nullptr;
-      if (nspace.has_value()) {
-        inst = ScriptEngine::GetScriptObject(nspace.value() + "::" + name , "");
-      } else {
-        inst = ScriptEngine::GetScriptObject(name , "");
-      }
+      // Ref<ScriptObject> inst = nullptr;
+      // if (nspace.has_value()) {
+      //   inst = ScriptEngine::GetScriptObject(nspace.value() + "::" + name , "");
+      // } else {
+      //   inst = ScriptEngine::GetScriptObject(name , "");
+      // }
 
-      if (inst == nullptr) {
-        OE_ERROR("Failed to retrieve selection script object {} [{}]" , name , id);
-      } else {
-        script.data[id] = {
-          .module = mod_name ,
-          .obj_name = name ,
-        };
+      // if (inst == nullptr) {
+      //   OE_ERROR("Failed to retrieve selection script object {} [{}]" , name , id);
+      // } else {
+      //   script.data[id] = {
+      //     .module = mod_name ,
+      //     .obj_name = name ,
+      //   };
 
-        auto& tag = ent->GetComponent<Tag>();
+      //   auto& tag = ent->GetComponent<Tag>();
 
-        script.scripts[id] = inst;
-        inst->SetEntityId(tag.id);
-        inst->Initialize();
-      }
-    }
+      //   script.scripts[id] = inst;
+      //   inst->SetEntityId(tag.id);
+      //   inst->Initialize();
+      // }
+    // }
 
-    if (script.scripts.size() == 0) {
-      return false;
-    }
+    // if (script.scripts.size() == 0) {
+    //   return false;
+    // }
 
-    std::vector<UUID> scripts_to_remove;
+    // std::vector<UUID> scripts_to_remove;
 
-    for (auto& [id , s] : script.scripts) {
-      ImGui::PushID(id.Get());
-      const std::string name = std::string{ s->Name() };
-      const std::string lang_name = s->LanguageType() == LanguageModuleType::CS_MODULE ? "C#" : "Lua";
+    // for (auto& [id , s] : script.scripts) {
+    //   ImGui::PushID(id.Get());
+    //   const std::string name = std::string{ s->Name() };
+    //   const std::string lang_name = s->LanguageType() == LanguageModuleType::CS_MODULE ? "C#" : "Lua";
 
-      bool is_error = s->IsCorrupt();
-      if (is_error) {
-        ScopedColor red(ImGuiCol_Text , ui::theme::red);
-        ImGui::Text("%s corrupt, recompile or reload" , name.c_str());
+    //   bool is_error = s->IsCorrupt();
+    //   if (is_error) {
+    //     ScopedColor red(ImGuiCol_Text , ui::theme::red);
+    //     ImGui::Text("%s corrupt, recompile or reload" , name.c_str());
 
-        if (ImGui::Button("Rebuild Scripts")) {
-          EventQueue::PushEvent<ScriptReloadEvent>();
-        }
-        return false;
-      }
+    //     if (ImGui::Button("Rebuild Scripts")) {
+    //       EventQueue::PushEvent<ScriptReloadEvent>();
+    //     }
+    //     return false;
+    //   }
     
-      ui::BeginPropertyGrid();
-      ui::ShiftCursor(10.f , 9.f);
-      ImGui::Text("%s [ %s ]" , name.c_str() , lang_name.c_str());
+    //   ui::BeginPropertyGrid();
+    //   ui::ShiftCursor(10.f , 9.f);
+    //   ImGui::Text("%s [ %s ]" , name.c_str() , lang_name.c_str());
 
-      ImGui::NextColumn();
-      ui::ShiftCursorY(4.f);
-      ImGui::PushItemWidth(-1);
+    //   ImGui::NextColumn();
+    //   ui::ShiftCursorY(4.f);
+    //   ImGui::PushItemWidth(-1);
 
-      ImVec2 og_button_txt_align = ImGui::GetStyle().ButtonTextAlign;
-      {
-        ImGui::GetStyle().ButtonTextAlign = { 0.f , 0.5f };
-        float width = ImGui::GetContentRegionAvail().x;
-        float item_height = 28.f;
+    //   ImVec2 og_button_txt_align = ImGui::GetStyle().ButtonTextAlign;
+    //   {
+    //     ImGui::GetStyle().ButtonTextAlign = { 0.f , 0.5f };
+    //     float width = ImGui::GetContentRegionAvail().x;
+    //     float item_height = 28.f;
 
-        std::string button_txt = "None";
-        /// get full name
-        /// button_txt = full_name
+    //     std::string button_txt = "None";
+    //     /// get full name
+    //     /// button_txt = full_name
 
-        if ((GImGui->CurrentItemFlags & ImGuiItemFlags_MixedValue) != 0) {
-          button_txt = "---";
-        }
+    //     if ((GImGui->CurrentItemFlags & ImGuiItemFlags_MixedValue) != 0) {
+    //       button_txt = "---";
+    //     }
 
-        {
-          ScopedColor bg_col(ImGuiCol_WindowBg , ui::theme::property_field);
-          ScopedColor button_label_col(ImGuiCol_Text , ui::theme::text);
-          ImGui::Button(button_txt.c_str() , { width , item_height });
+    //     {
+    //       ScopedColor bg_col(ImGuiCol_WindowBg , ui::theme::property_field);
+    //       ScopedColor button_label_col(ImGuiCol_Text , ui::theme::text);
+    //       ImGui::Button(button_txt.c_str() , { width , item_height });
 
-          const bool hovered = ImGui::IsItemHovered();
+    //       const bool hovered = ImGui::IsItemHovered();
 
-          if (hovered) {
-            if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-              /// open script in text editor
-            } else if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-              ImGui::OpenPopup(("##script_popup" + name).c_str());
-            }
-          }
-        }
-      }
+    //       if (hovered) {
+    //         if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+    //           /// open script in text editor
+    //         } else if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+    //           ImGui::OpenPopup(("##script_popup" + name).c_str());
+    //         }
+    //       }
+    //     }
+    //   }
 
-      ImGui::GetStyle().ButtonTextAlign = og_button_txt_align;
-      bool clear = false; 
-      if (ImGui::BeginPopup(("##script_popup" + name).c_str())) {
-        if (clear) {
+    //   ImGui::GetStyle().ButtonTextAlign = og_button_txt_align;
+    //   bool clear = false; 
+    //   if (ImGui::BeginPopup(("##script_popup" + name).c_str())) {
+    //     if (clear) {
            
-        }
+    //     }
 
-        ImGui::EndPopup();
-      }
+    //     ImGui::EndPopup();
+    //   }
 
-      if (ImGui::Button("Remove Script")) {
-        OE_INFO("Removing script {} [{}]" , name , id);
-        scripts_to_remove.push_back(id);
-      }
+    //   if (ImGui::Button("Remove Script")) {
+    //     OE_INFO("Removing script {} [{}]" , name , id);
+    //     scripts_to_remove.push_back(id);
+    //   }
       
-      ImGui::PopItemWidth();
+    //   ImGui::PopItemWidth();
 
-      ui::EndPropertyGrid();
-      ui::Underline();
-      ui::BeginPropertyGrid();
+    //   ui::EndPropertyGrid();
+    //   ui::Underline();
+    //   ui::BeginPropertyGrid();
       
-      /// display exported properties
-      for (auto& [field_id , val] : s->GetFields()) {
-        ImGui::PushID(("##script-field" + val.name).c_str());
-        ImGui::SetCursorPosX(50.f);
+    //   /// display exported properties
+    //   for (auto& [field_id , val] : s->GetFields()) {
+    //     ImGui::PushID(("##script-field" + val.name).c_str());
+    //     ImGui::SetCursorPosX(50.f);
 
-        if (val.value.IsArray()) {
-          DrawScriptArray(&val , s);
-        } else {
-          DrawScriptField(&val , s);
-        } 
+    //     // if (val.value.IsArray()) {
+    //     //   DrawScriptArray(&val , s);
+    //     // } else {
+    //     //   DrawScriptField(&val , s);
+    //     // } 
 
-        ImGui::PopID();
-      }
+    //     ImGui::PopID();
+    //   }
 
-      ui::EndPropertyGrid();
+    //   ui::EndPropertyGrid();
 
-      ImGui::PopID();
-    }
+    //   ImGui::PopID();
+    // }
     
-    auto& scenes = AppState::Scenes();
+    // auto& scenes = AppState::Scenes();
 
-    for (const auto& id : scripts_to_remove) {
-      OE_DEBUG("Removing object from scene [{}]" , id);
-      {
-        auto& object = script.scripts[id];
-        object->Shutdown();
-      }
+    // for (const auto& id : scripts_to_remove) {
+    //   OE_DEBUG("Removing object from scene [{}]" , id);
+    //   {
+    //     auto& object = script.scripts[id];
+    //     object->Shutdown();
+    //   }
 
-      script.scripts.erase(script.scripts.find(id));
-      script.data.erase(script.data.find(id));
-    }
+    //   script.scripts.erase(script.scripts.find(id));
+    //   script.data.erase(script.data.find(id));
+    // }
 
     return false;
   }

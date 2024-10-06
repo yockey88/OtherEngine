@@ -37,7 +37,7 @@ namespace other {
 
   struct ScriptMetadata {
     std::string name;
-    std::vector<std::string> paths;
+    std::string path;
     ScriptType type = ScriptType::SCENE_SCRIPT;
   };
   

@@ -220,8 +220,11 @@ namespace dotother {
       interface_bindings::FunctionTable& FunctionTable();
 
       void RegisterObject(uint64_t handle, NObject* object);
+      void UnregisterObject(uint64_t handle);
 
       void InvokeNativeFunction(uint64_t handle, const std::string_view method_name);
+
+      NObject* GetRegisteredObject(uint64_t handle);
     
     private:
       InteropInterface() = default;

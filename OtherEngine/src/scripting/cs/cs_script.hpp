@@ -34,7 +34,7 @@ namespace other {
 
     private:
       ref<Assembly> assembly = nullptr;
-      std::map<UUID , Ref<ScriptObjectHandle<CsObject>>> loaded_objects;
+      std::map<UUID , ScriptRef<CsObject>> loaded_objects;
   };
 
 } // namespace other

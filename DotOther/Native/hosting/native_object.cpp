@@ -15,6 +15,8 @@ namespace dotother {
   }
 
   NObject::~NObject() {
+    InteropInterface::Instance().UnregisterObject(handle);
+
     delete proxy;
     proxy = nullptr;
     handle = 0;

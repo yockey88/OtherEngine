@@ -14,7 +14,7 @@ namespace other {
   
   void PythonModule::Reload() {}
   
-  Ref<ScriptModule> PythonModule::GetScriptModule(const std::string& name) {
+  Ref<ScriptModule> PythonModule::GetScriptModule(const std::string_view name) {
     return nullptr;
   }
   

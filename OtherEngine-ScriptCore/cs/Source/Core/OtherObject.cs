@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using DotOther.Managed;
+using DotOther.Managed.Interop;
 
 namespace Other {
 
@@ -16,22 +18,66 @@ namespace Other {
 
   public class OtherObject : OtherBehavior {
     private Dictionary<Type , Component> components = new Dictionary<Type , Component>();
-
     private BehaviorFlags flags = new BehaviorFlags(false , false);
-
     public ulong Id => ObjectID;
-    // public string Name => Scene.GetName(ObjectID);
 
-    // private Transform object_transform;
+    internal static unsafe delegate*<IntPtr , NString> GetName;
+    internal static unsafe delegate*<IntPtr , NString , void> SetName;
+
+    internal static unsafe delegate*<IntPtr , UInt64> GetInternalID;
+
+    internal static unsafe delegate*<IntPtr , UInt32> GetEntityID;
+
+    internal static unsafe delegate*<IntPtr , ReflectionType , bool> NativeHasComponent;
+    internal static unsafe delegate*<IntPtr , ReflectionType , void> NativeCreateComponent;
+    internal static unsafe delegate*<IntPtr , ReflectionType , void> NativeRemoveComponent;
+
+    public string Name {
+      get  {
+        unsafe {
+          NString native_name = GetName(NativeHandle);
+          return native_name.ToString();
+        }
+      }
+      set {
+        unsafe {
+          SetName(NativeHandle , value);
+        }
+      }
+    }
+
+    public UUID InternalId {
+      get {
+        unsafe {
+          return OtherObject.GetInternalID(NativeHandle);
+        }
+      }
+    }
+
+    public UInt32 EntityId {
+      get {
+        unsafe {
+          return OtherObject.GetEntityID(NativeHandle);
+        }
+      }
+    }
 
     public OtherObject() {
-      Console.WriteLine("OtherObject constructor");
+      ObjectID = 0;
+      NativeHandle = IntPtr.Zero;
+    }
+    public OtherObject(IntPtr native_handle) {
+      NativeHandle = native_handle;
+      ObjectRegistry.Register(this);
+    }
+
+    ~OtherObject() {
+      ObjectRegistry.Unregister(this);
     }
 
     public override OtherBehavior Parent {
       get {
         if (parent == null) {
-          // parent = Scene.GetParent(ObjectID);
           flags.parent_loaded = true;
         }
         return parent;
@@ -42,7 +88,6 @@ namespace Other {
     public override List<OtherBehavior> Children {
       get { 
         if ((children == null || children.Count == 0) && !flags.children_loaded) {
-          // children = Scene.GetChildren(ObjectID);
           for (int i = 0; i < children.Count; i++) {
             children[i].Parent = this;
           }
@@ -52,25 +97,14 @@ namespace Other {
       }
       set { children = value; }
     }
-
-    public override void OnBehaviorLoad() {
-      Console.WriteLine("OtherObject OnBehaviorLoad");
+    
+    public override void NativeInitialize() {
+      Scene.AddObject(Id , this);
     }
 
-    public override void OnBehaviorUnload() {
-      Console.WriteLine("OtherObject OnBehaviorUnload");
-      Parent = null;
-      if (Children != null) {
-        Children.Clear();
-        Children = null;
-      }
+    public override void NativeStart() {
+      Scene.AddObject(Id , this);
     }
-
-    /// might need to call into the native side to get/set the transform here
-    // public Transform Transform {
-    //   get { return object_transform; }
-    //   set { object_transform = value; }
-    // }
 
     public T CreateComponent<T>() where T : Component , new() {
       if (HasComponent<T>()) {
@@ -78,7 +112,9 @@ namespace Other {
       }
       
       Type comp_type = typeof(T);
-      // Scene.AddComponent(Id, comp_type);
+      unsafe {
+        NativeCreateComponent(NativeHandle , comp_type);
+      }
 
       T comp = new T();
       comp.Object = this;
@@ -87,7 +123,11 @@ namespace Other {
       return comp;
     }  
     
-    public bool HasComponent<T>() where T : Component => false;// Scene.HasComponent(Id, typeof(T));
+    public bool HasComponent<T>() where T : Component {
+      unsafe {
+        return NativeHasComponent(NativeHandle, typeof(T));
+      }
+    }
 
     public T GetComponent<T>() where T : Component , new() {
       Type comp_type = typeof(T);
@@ -96,13 +136,14 @@ namespace Other {
         return null;
       }
 
-      try {
-        components.TryGetValue(comp_type , out Component comp);
-        return comp as T;
-      } catch (Exception e) {
-        // Logger.WriteError(e.Message);
-        return null;
+      if (components.TryGetValue(comp_type , out Component comp)) {
+        return (T)comp;
       }
+
+      comp = new T();
+      comp.Object = this;
+      components.Add(comp_type , comp);
+      return (T)comp;
     }
 
     public void RemoveComponent<T>() where T : Component {
@@ -111,9 +152,11 @@ namespace Other {
       }
 
       Type comp_type = typeof(T);
-      // Scene.RemoveComponent(Id, comp_type);
       components.Remove(comp_type);
-      
+
+      unsafe {
+        NativeRemoveComponent(NativeHandle , comp_type);
+      }
       return;
     }
   }

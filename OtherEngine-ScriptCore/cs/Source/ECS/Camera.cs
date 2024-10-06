@@ -6,7 +6,7 @@ using System.Security.Policy;
 namespace Other {
 
   public class Camera : Component {
-    public Camera() {}
+    public Camera() : base(null) {}
 
     public Camera(OtherObject obj) : base(obj) {
     }

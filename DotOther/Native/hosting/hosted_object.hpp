@@ -14,6 +14,12 @@ namespace dotother {
   class Assembly;
   class Type;
 
+  template <typename T>
+  concept PtrType = std::is_pointer_v<T>;
+
+  template <typename T>
+  concept NotPtrType = !PtrType<T>;
+
   class HostedObject {
     public:
       template <typename Ret , typename... Args>
@@ -44,8 +50,11 @@ namespace dotother {
         }
       }
 
-      template <typename T>
-      void SetField(const std::string_view name, T value) {
+      void SetField(const std::string_view name, PtrType auto value) {
+        WriteToField(name, value);
+      }
+
+      void SetField(const std::string_view name, NotPtrType auto value) {
         WriteToField(name, &value);
       }
 
@@ -56,8 +65,11 @@ namespace dotother {
         return res;
       }
 
-      template <typename T>
-      void SetProperty(const std::string_view name, T value) {
+      void SetProperty(const std::string_view name, PtrType auto value) {
+        WriteToProperty(name, value);
+      }
+
+      void SetProperty(const std::string_view name, NotPtrType auto value) {
         WriteToProperty(name, &value);
       }
 

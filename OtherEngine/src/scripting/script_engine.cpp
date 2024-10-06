@@ -33,6 +33,8 @@ namespace other {
     // []() -> Ref<LanguageModule> { return Ref<PythonModule>::Create(); } ,
   };
 
+  // NativeObjectProxyRegistry native_object_registry = {};
+
   void ScriptEngine::Initialize(const ConfigTable& cfg) {
     OE_DEBUG("ScriptEngine::Initialize: Initializing ScriptEngine");
 
@@ -72,13 +74,16 @@ namespace other {
     constexpr std::string_view core_cs_name = "OtherEngine.CsCore";
     loaded_modules[FNV(core_cs_name)] = cs_language_module->LoadScriptModule({
       .name = std::string{ core_cs_name } ,
-      .paths = {
-        "./bin/Debug/OtherEngine-CsCore/net8.0/OtherEngine-CsCore.dll"
-      } ,
+      .path = "./bin/Debug/OtherEngine-CsCore/net8.0/OtherEngine-CsCore.dll" ,
     });
     LoadProjectModule(cs_language_module , kCsModuleSection , cs_prefix);
 
     OE_DEBUG("Loading Lua script modules");
+    constexpr std::string_view core_lua_name = "OtherEngine.LuaCore";
+    // loaded_modules[FNV(core_lua_name)] = lua_language_module->LoadScriptModule({
+    //   .name = std::string{ core_lua_name } ,
+    //   .path = "./OtherEngine-ScriptCore/lua/core/other.lua"  ,
+    // });
     LoadProjectModule(lua_language_module , kLuaModuleSection , lua_prefix);
   }
 
@@ -95,6 +100,7 @@ namespace other {
 
     OE_DEBUG("Unloading Lua script modules");
     UnloadProjectModule(lua_language_module , kLuaModuleSection);
+    // lua_language_module->UnloadScript("OtherEngine.LuaCore");
     
     OE_DEBUG("Unloading C# script modules");
     UnloadProjectModule(cs_language_module , kCsModuleSection);
@@ -161,14 +167,15 @@ namespace other {
 
     OE_DEBUG("Searching for script module {}" , name);
     for (auto& [lid , lang] : language_modules) {
-      OE_DEBUG("Searching in loaded language module {}" , lang.module->GetModuleName());
-
-      if (lang.module->HasScript(name)) {
-        mod = lang.module->GetScriptModule(std::string{ name });
-        loaded_modules[FNV(mod->ModuleName())] = mod;
-        OE_DEBUG("Found script module {} in language module {}" , mod->ModuleName() , lang.module->GetModuleName());
-        return mod;
+      OE_DEBUG(" > Searching in loaded language module {}" , lang.module->GetModuleName());
+      if (!lang.module->HasScript(name)) {
+        continue;
       }
+
+      mod = lang.module->GetScriptModule(std::string{ name });
+      loaded_modules[FNV(mod->ModuleName())] = mod;
+      OE_DEBUG("  > Found script module {} in language module {}" , mod->ModuleName() , lang.module->GetModuleName());
+      return mod;
     }
 
     OE_ERROR("Failed to retrieve script module {}" , name);
@@ -321,6 +328,7 @@ namespace other {
   void ScriptEngine::LoadModule(LanguageModuleType type) {
     language_modules[type].id = kModuleInfo[type].hash;
     language_modules[type].name = kModuleInfo[type].name;
+
     language_modules[type].module = kModuleGetters[type]();
     language_modules[type].module->Initialize();
   }
@@ -358,7 +366,7 @@ namespace other {
       OE_DEBUG("Loading script module {} from [{}]" , name , module->GetLanguageType());
       Ref<ScriptModule> script = module->LoadScriptModule({
         .name = name ,
-        .paths = { path.string() } ,
+        .path = path.string() ,
       });
       loaded_modules[FNV(name)] = script;
     }
@@ -399,46 +407,46 @@ namespace other {
 
     language_modules[ModuleTypeFromExtension(ext)].module->LoadScriptModule({
       .name = mname ,
-      .paths = { module_path.string() } ,
+      .path = module_path.string() ,
       .type = ScriptType::EDITOR_SCRIPT ,
     });
   }
   
   Script ScriptEngine::CollectObjects(const ConfigTable& table , const std::vector<std::string>& objects , const std::string_view section) {
     Script res {};
-    for (const auto& obj : objects) {
-      auto scripts = table.Get(section , obj);
+    // for (const auto& obj : objects) {
+    //   auto scripts = table.Get(section , obj);
 
-      Ref<ScriptModule> mod = GetScriptModule(obj);
-      OE_ASSERT(mod != nullptr , "Failed to get script module {}" , obj);
+    //   Ref<ScriptModule> mod = GetScriptModule(obj);
+    //   OE_ASSERT(mod != nullptr , "Failed to get script module {}" , obj);
 
-      for (auto& s : scripts) {
-        OE_DEBUG("Attaching editor script");
+    //   for (auto& s : scripts) {
+    //     OE_DEBUG("Attaching editor script");
 
-        std::string nspace = "";
-        std::string name = s;
-        if (s.find("::") != std::string::npos) {
-          nspace = s.substr(0 , s.find_first_of(":"));
-          OE_DEBUG("Editor script from namespace {}" , nspace);
+    //     std::string nspace = "";
+    //     std::string name = s;
+    //     if (s.find("::") != std::string::npos) {
+    //       nspace = s.substr(0 , s.find_first_of(":"));
+    //       OE_DEBUG("Editor script from namespace {}" , nspace);
 
-          name = s.substr(s.find_last_of(":") + 1 , s.length() - nspace.length() - 2);
-          OE_DEBUG(" > with name {}" , name);
-        }
+    //       name = s.substr(s.find_last_of(":") + 1 , s.length() - nspace.length() - 2);
+    //       OE_DEBUG(" > with name {}" , name);
+    //     }
 
-        Ref<ScriptObject> inst = mod->GetScriptObject(name , nspace);
-        OE_ASSERT(inst != nullptr , "Failed to get script {} from script module {}" , s , obj);
-        std::string case_ins_name;
-        std::transform(s.begin() , s.end() , std::back_inserter(case_ins_name) , ::toupper);
+    //     Ref<ScriptObject> inst = mod->GetScriptObject(name , nspace);
+    //     OE_ASSERT(inst != nullptr , "Failed to get script {} from script module {}" , s , obj);
+    //     std::string case_ins_name;
+    //     std::transform(s.begin() , s.end() , std::back_inserter(case_ins_name) , ::toupper);
 
-        UUID id = FNV(case_ins_name);
-        res.data[id] = ScriptObjectData{
-          .module = obj ,
-          .obj_name = s ,
-        };
-        Ref<ScriptObject>& obj = res.scripts[id] = inst;
-        obj->OnBehaviorLoad();
-      }
-    }
+    //     UUID id = FNV(case_ins_name);
+    //     res.data[id] = ScriptObjectData{
+    //       .module = obj ,
+    //       .obj_name = s ,
+    //     };
+    //     Ref<ScriptObject>& obj = res.scripts[id] = inst;
+    //     obj->OnBehaviorLoad();
+    //   }
+    // }
 
     return res;
   }

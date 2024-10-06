@@ -15,6 +15,7 @@
 #include <array>
 
 #include <spdlog/fmt/fmt.h>
+#include <string_view>
 
 #include "core/dotother_defines.hpp"
 
@@ -73,21 +74,14 @@ namespace dotother {
   bool Host::LoadHost() {
     assert(config.has_value() && "Host configuration not set!");
     if (is_loaded) {
+      util::print(DO_STR("Host is already loaded") , MessageLevel::WARNING);
       return true;
     }
 
     /// have to register logging hook so errors can be reported if they occur during load
-    util::GetUtils().SetLogLevel(config->log_level);
     if (config->internal_logging_hook != nullptr) {
-      util::GetUtils().log_sink = config->internal_logging_hook;
-    } else {
-      util::GetUtils().log_sink = [](const std::string_view message, dotother::MessageLevel level, bool verbose) {
-        //// default to simply writing to stdout when verbose
-        if (!verbose) {
-          return;
-        }
-        fmt::print(" [DotOther] > {} [{}]\n", message, level);
-      };
+      util::GetUtils().OverRideLogSink(config->internal_logging_hook);
+      util::print(DO_STR("Internal logging hook registered") , MessageLevel::DEBUG);
     }
 
     if (config->log_callback == nullptr) {
@@ -140,7 +134,6 @@ namespace dotother {
       return false;
     }
 
-    util::GetUtils().SetLogLevel(config->log_level);
     util::print(DO_STR("Host loaded successfully") , MessageLevel::INFO);
 
     is_loaded = true;
@@ -165,7 +158,10 @@ namespace dotother {
     DotOtherArgs args = {
       .exception_callback = config->exception_callback,
       .log_callback = config->log_callback,
-      .invoke_native_method_hook = config->invoke_native_method_hook
+      .invoke_native_method_hook = config->invoke_native_method_hook ,
+      .retrieve_native_object_hook = [](uint64_t handle) -> void*  { 
+        return InteropInterface::Instance().GetRegisteredObject(handle);
+      } ,
     };
     host_calls.entry(args);
   }
@@ -447,7 +443,7 @@ namespace {
       );
       return nullptr;
     } else {
-      util::print(DO_STR("Managed function {} ({}) loaded successfully"), MessageLevel::INFO ,
+      util::print(DO_STR("Managed function {} ({}) loaded successfully"), MessageLevel::TRACE ,
 #ifdef DOTOTHER_WIDE_CHARS
         util::WideToChar(method_name), util::WideToChar(type_name)
 #else

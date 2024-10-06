@@ -104,7 +104,7 @@ namespace interface_bindings {
       instance = nullptr;
     }
 
-    util::print(DO_STR("InteropInterface unbound!"sv) , MessageLevel::DEBUG);
+    util::print(DO_STR("InteropInterface successfully unbound"sv) , MessageLevel::TRACE);
   }
 
   interface_bindings::FunctionTable& InteropInterface::FunctionTable() {
@@ -114,12 +114,22 @@ namespace interface_bindings {
 
   void InteropInterface::RegisterObject(uint64_t handle, NObject* object) {
     if (auto itr = registered_objects.find(handle); itr != registered_objects.end()) {
-      util::print(DO_STR("Object {:#8x} already registered!"sv) , MessageLevel::DEBUG, handle);
+      util::print(DO_STR("Object {:#8x} already registered!"sv) , MessageLevel::ERR, handle);
       return;
     }
 
     util::print(DO_STR("Registering object {:#8x}"sv) , MessageLevel::INFO, handle);
     registered_objects[handle] = object;
+  }
+
+  void InteropInterface::UnregisterObject(uint64_t handle) {
+    if (auto itr = registered_objects.find(handle); itr != registered_objects.end()) {
+      util::print(DO_STR("Unregistering object {:#8x}"sv) , MessageLevel::INFO, handle);
+      registered_objects.erase(itr);
+      return;
+    }
+
+    util::print(DO_STR("Object {:#8x} not found!"sv) , MessageLevel::ERR, handle);
   }
 
   void InteropInterface::InvokeNativeFunction(uint64_t obj_handle , const std::string_view method_name) {
@@ -131,6 +141,13 @@ namespace interface_bindings {
 
     NObject& obj = *registered_objects[obj_handle];
     obj.proxy->InvokeMethod(method_name);
+  }
+  
+  NObject* InteropInterface::GetRegisteredObject(uint64_t handle) {
+    if (auto itr = registered_objects.find(handle); itr != registered_objects.end()) {
+      return itr->second;
+    }
+    return nullptr;
   }
 
 } // namespace dotother

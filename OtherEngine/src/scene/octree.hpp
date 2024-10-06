@@ -5,10 +5,16 @@
 #define OTHER_ENGINE_OCTREE_HPP
 
 #include <array>
+#include <ostream>
 #include <vector>
 #include <map>
 
 #include <glm/glm.hpp>
+
+#include "core/defines.hpp"
+#include "core/ref_counted.hpp"
+
+#include "scene/bounding_box.hpp"
 
 namespace other {
 
@@ -82,67 +88,79 @@ namespace other {
     { kPxPyNzLoc , 7 }
   };
 
+  struct Octant;
+
   struct Octant {
+    BoundingBox bbox;
+
     size_t depth = 0;
     size_t tree_index = 0;
+    
     size_t partition_index = 0;
+    uint8_t partition_location = 0;
+
     /// relative to parent octant 
-    uint8_t location = 0;
-    Octant* parent = nullptr;
+    ///  i.e. -> this.global_location = parent->location + this.location
+    Octant* parent;
+
     glm::vec3 dimensions{ 0.f };
     glm::vec3 origin{ 0.f };
-    std::vector<Entity*> entities{};
-    std::array<Octant*, kNumChildren> children{};
-  };
 
-  class Octree {
+    std::vector<Entity*> entities{};
+    std::array<Scope<Octant>, kNumChildren> children{};
+
+    Octant()
+      : parent(nullptr) {}
+    Octant(Scope<Octant>& parent)
+      : parent(parent.get()) {}
+
+    ~Octant() {
+      for (auto& c : children) {
+        c = nullptr;
+      }
+    }
+  };
+  
+
+  class Octree : public RefCounted {
     public:
+      Octree();
       Octree(const glm::vec3& space_dimensions , size_t depth = kDepth);
       ~Octree();
 
-      inline const size_t Size() const { return octants.size(); }
-      inline const size_t Depth() const { return kDepth; }
-      inline const size_t NumOctants() const { return num_octants; }
+      inline const size_t Depth() const;
+      inline const size_t NumOctants() const;
 
-      Octant* GetSpace() { return space; }
+      Scope<Octant>& GetSpace();
+      const glm::vec3& Dimensions() const;
 
-      const glm::vec3& Dimensions() const { return space->dimensions; }
+      const Scope<Octant>& GetOctant(const glm::vec3& point) const;
 
-      const float SpaceWidth() const { return space->dimensions.x; }
-      const float SpaceHeight() const { return space->dimensions.y; }
-      const float SpaceDepth() const { return space->dimensions.z; }
-
-      Octant* GetOctant(size_t index);
-      Octant* GetOctant(const glm::vec3& point) const;
-      Octant* GetOctant(size_t depth, size_t index = 0);
-
-      void PrintOctants() const;
-      void PrintOctant(const Octant* octant) const;
+      void PrintOctants(std::ostream& os) const;
+      void PrintOctant(std::ostream& os , const Scope<Octant>& octant) const;
       
       void AddEntity(Entity* entity);
 
     private:
       /// root
-      Octant* space = nullptr;
+      Scope<Octant> space = nullptr;
 
       size_t depth = 0;
       const size_t num_octants = 0;
+      glm::vec3 dimensions;
 
+      uint32_t idx_generator = 0;
 
-      size_t cursor = 0;
-      /// we have to be very careful with this because a resize will screw us
-      std::vector<Octant> octants{};
+      void Initialize(const glm::vec3& dim);
 
-      bool OctantContainsPoint(const Octant* octant , const glm::vec3& point);
-      Octant* FindOctant(Octant* octant , const glm::vec3& point) const;
+      bool OctantContainsPoint(const Scope<Octant>& octant , const glm::vec3& point) const;
+      const Scope<Octant>& FindOctant(const Scope<Octant>& octant , const glm::vec3& point) const;
 
-      void Subdivide(Octant* octant, size_t depth);
-      void Subdivide(Octant* octant);
+      void Subdivide(Scope<Octant>& octant, size_t depth);
+      void Subdivide(Scope<Octant>& octant);
 
       glm::vec3 CalculateOctantOrigin(const glm::vec3& parent_dimensions , const glm::vec3& parent_origin , uint8_t location);
       glm::vec3 CalculateOctantDimensions(const glm::vec3& parent_dimensions);
-
-      Octant* CurrentOctant() { return &octants[cursor++]; }
   };
 
 } // namespace other

@@ -29,33 +29,33 @@ namespace other {
         return hosted_object.Invoke<R>(name , std::forward<Args>(args)...);
       }
 
+      template <typename T>
+      void SetField(const std::string_view name , T&& value) {
+        hosted_object.SetField(name , std::forward<T>(value));
+      }
+
+      template <typename R>
+      R GetField(const std::string_view name) {
+        return hosted_object.GetField<R>(name);
+      }
+      
+      template <typename T>
+      void SetProperty(const std::string_view name , T&& value) {
+        hosted_object.SetProperty(name , std::forward<T>(value));
+      }
+
+      template <typename R>
+      R GetProperty(const std::string_view name) {
+        return hosted_object.GetProperty<R>(name);
+      }
+
       virtual void InitializeScriptMethods() override;
       virtual void InitializeScriptFields() override;
       virtual void UpdateNativeFields() override;
-       
-      virtual Opt<Value> GetField(const std::string& name) override;
-      virtual void SetField(const std::string& name , const Value& value) override;
-
-      // virtual void OnBehaviorLoad() override;
-      // virtual void Initialize() override;
-      // virtual void Shutdown() override;
-      // virtual void OnBehaviorUnload() override;
-
-      // virtual void Start() override;
-      // virtual void Stop() override; 
-
-      // virtual void EarlyUpdate(float dt) override;
-      // virtual void Update(float dt) override;
-      // virtual void LateUpdate(float dt) override;
-
-      // virtual void Render() override;
-      // virtual void RenderUI() override;
 
     private:
       Type& type;
       HostedObject hosted_object;
-
-      virtual void OnSetEntityId() override;
   };
 
 } // namespace other

@@ -28,6 +28,7 @@ namespace other {
     auto& tag = e.AddComponent<Tag>();
     tag.id = 0;
     tag.name = "[ Blank Entity ]";
+    tag.handle = entt;
     
     auto& transform = e.AddComponent<Transform>();
     transform.position = { 0.f , 0.f , 0.f };
@@ -44,14 +45,11 @@ namespace other {
 
     if (e.HasComponent<Script>()) {
       auto& script = e.GetComponent<Script>();
-      for (auto& [id , script] : script.scripts) {
-        if (script->IsInitialized()) {
-          script->Shutdown();
-        }
-          
-        script->OnBehaviorUnload();
-      }
-      script.scripts.clear();
+      script.ApiCall("OnStop");
+      script.ApiCall("NativeStop");
+      script.ApiCall("OnShutdown");
+      script.ApiCall("NativeShutdown");
+      script.Clear();
     }
   }
 

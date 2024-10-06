@@ -14,7 +14,13 @@ local ScriptCore = {
     defines {
       "OE_MODULE" ,
     }
-  end
+  end,
+
+  links = function()
+    links {
+      "DotOther.Managed"
+    }
+  end,
 }
 
 
