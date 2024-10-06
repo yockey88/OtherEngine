@@ -29,8 +29,12 @@ def run_test(include_filter  = [], exclude_filter = [], other_args = []):
   fstr += ":" if include_str is not None and exclude_str is not None else ""
   fstr += exclude_str if exclude_str is not None else ""
   
-  args = [fstr] if fstr is not None else []
-  args.extend(other_args)
+  proc_args = ["./bin/Debug/unit_tests/unit_tests.exe"]
+  proc_args.extend([fstr] if filter_exists else [])
+
+  if len(other_args) > 0:
+    proc_args.extend(other_args)
+
   print ("> running unit tests")
-  print(" > filters : {}".format(args))
-  utilities.run_project("Debug" , "unit_tests" , args);
+  print("   > {}".format(proc_args))
+  return subprocess.call(proc_args, cwd=os.getcwd())

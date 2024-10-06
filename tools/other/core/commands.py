@@ -102,12 +102,21 @@ engine_cmds: list[Command] = [
         action=BuildAction(), nargs='*', metavar="project"
     ),
 
+    # testing
     Command(
         "-t", "--test",
         """runs the tests for the test specified by 'test' if it exists,
            otherwise runs the entire test suite if no arguments are passed""",
         action=TestAction(), nargs='*', metavar="test"
     ) ,
+    
+    ### TODO:
+    #       - this command should be loaded from DotOther's pipeline config
+    # Command(
+    #     "-dot", "--dotother-test",
+    #     """...""",
+    #     action=DotOtherTestAction(), nargs='*', metavar="dotother-test"
+    # ) ,
 
     # run project
     Command(
