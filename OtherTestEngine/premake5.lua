@@ -25,6 +25,13 @@ local OtherTestEngine = {
     }
   end,
   
+  defines = function()
+    defines {
+      "OE_MODULE" ,
+      "OE_TESTING_ENVIRONMENT"
+    }
+  end,
+  
   windows_configuration = function()
     files {
       "./platform/windows/**.hpp",

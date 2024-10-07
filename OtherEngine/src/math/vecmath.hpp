@@ -4,6 +4,7 @@
 #ifndef OTHER_ENGINE_VECMATH_HPP
 #define OTHER_ENGINE_VECMATH_HPP
 
+#include <glm/geometric.hpp>
 #include <string_view>
 #include <sstream>
 
@@ -48,6 +49,100 @@ struct fmt::formatter<glm::vec<N , T , Q>> : public fmt::formatter<std::string_v
     return fmt::formatter<std::string_view>::format(other::fmtstr("{}" , ss.str()) , ctx);
   }
 };
+
+template <typename T>
+  requires requires(T t) {
+    T{0};
+    std::numeric_limits<T>::epsilon();
+  }
+T EpsilonClamp(T val) {
+  if (val < std::numeric_limits<T>::epsilon()) {
+    return T{0};
+  }
+  return val;
+}
+
+template <glm::length_t N , typename T = float , glm::qualifier Q = glm::defaultp>
+struct checked_difference {
+  auto operator()(const glm::vec<N , T , Q>& lhs , const glm::vec<N , T , Q>& rhs) const {
+    glm::vec<N , T , Q> diff = lhs - rhs;
+    for (size_t i = 0; i < N; ++i) {
+      diff[i] = EpsilonClamp(diff[i]);
+    }
+    return diff;
+  }
+};
+
+template <glm::length_t N>
+struct checked_difference<N , float , glm::defaultp> {
+  auto operator()(const glm::vec<N , float , glm::defaultp>& lhs , const glm::vec<N , float , glm::defaultp>& rhs) const {
+    glm::vec<N , float , glm::defaultp> diff = lhs - rhs;
+    for (size_t i = 0; i < N; ++i) {
+      diff[i] = EpsilonClamp<float>(diff[i]);
+    }
+    return diff;
+  }
+};
+
+template <glm::length_t N , typename T , glm::qualifier Q>
+struct checked_sum {
+  auto operator()(const glm::vec<N , T , Q>& lhs , const glm::vec<N , T , Q>& rhs) const {
+    glm::vec<N , T , Q> sum = lhs + rhs;
+    for (size_t i = 0; i < N; ++i) {
+      sum[i] = EpsilonClamp(sum[i]);
+    }
+    return sum;
+  }
+};
+
+template <glm::length_t N>
+struct checked_sum<N , float , glm::defaultp> {
+  auto operator()(const glm::vec<N , float , glm::defaultp>& lhs , const glm::vec<N , float , glm::defaultp>& rhs) const {
+    glm::vec<N , float , glm::defaultp> sum = lhs + rhs;
+    for (size_t i = 0; i < N; ++i) {
+      sum[i] = EpsilonClamp<float>(sum[i]);
+    }
+    return sum;
+  }
+};
+
+template <glm::length_t N , typename T = float , glm::qualifier Q = glm::defaultp>
+struct checked_normalize {
+  auto operator()(const glm::vec<N , T , Q>& vec) const {
+    for (size_t i = 0; i < N; ++i) {
+      vec[i] = EpsilonClamp<T>(glm::normalize(vec[i]));
+    }
+    return vec;
+  }
+};
+
+
+template <glm::length_t N>
+struct checked_normalize<N , float , glm::defaultp> {
+  auto operator()(const glm::vec<N , float , glm::defaultp>& vec) const {
+    glm::vec<N , float , glm::defaultp> v = glm::normalize(vec);
+    for (size_t i = 0; i < N; ++i) {
+      v[i] = EpsilonClamp<float>(v[i]);
+    }
+    return v;
+  }
+};
+
+template <glm::length_t N , typename T , glm::qualifier Q>
+constexpr inline checked_difference<N , T  , Q> tvec_diff;
+template <glm::length_t N>
+constexpr inline checked_difference<N , float , glm::defaultp> nvec_diff;
+
+template <glm::length_t N , typename T , glm::qualifier Q>
+constexpr inline checked_sum<N , T , Q> tvec_sum;
+template <glm::length_t N>
+constexpr inline checked_sum<N , float , glm::defaultp> nvec_sum;
+
+template <glm::length_t N , typename T , glm::qualifier Q>
+constexpr inline checked_normalize<N , T , Q> tvec_norm;
+template <glm::length_t N>
+constexpr inline checked_normalize<N , float , glm::defaultp> nvec_norm;
+
   
 template <>
 struct fmt::formatter<glm::mat4> : public fmt::formatter<std::string_view> {

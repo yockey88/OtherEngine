@@ -3,8 +3,15 @@
  **/
 #include "scene/octree.hpp"
 
+#include <algorithm>
+#include <ranges>
+
 #include "core/logger.hpp"
+
 #include "ecs/entity.hpp"
+#include "ecs/components/transform.hpp"
+
+#include "scene/scene.hpp"
 
 namespace other {
 namespace {
@@ -22,6 +29,14 @@ namespace {
   }
 
   /// num octants at depth n = 1 + 8 + 64 + ... = 8^0 + 8^1 + 8^2 + ... + 8^n
+  /** Octant Num Table:
+   *  0 -> 1 = 8^0
+   *  1 -> 9 = 8^0 + 8^1
+   *  2 -> 73 = 8^0 + 8^1 + 8^2
+   *  3 -> 585 = 8^0 + 8^1 + 8^2 + 8^3
+   *  4 -> 4681 = 8^0 + 8^1 + 8^2 + 8^3 + 8^4
+   *  ....
+   **/
   constexpr static size_t NumOctantsAtDepth(size_t depth) {
     size_t sum = 0;
     for (size_t i = 0; i <= depth; ++i) {
@@ -29,38 +44,302 @@ namespace {
     }
     return sum;
   }
-
-  constexpr static uint8_t LocationFromPoint(const glm::vec3& point , const glm::vec3& center , const glm::vec3& dimensions) {
+  
+  /// treat point wrt to global coordinates
+  constexpr static uint8_t LocationFromPoint(const glm::vec3& point) {
     uint8_t location = 0;
-    if (point.x < center.x - dimensions.x / 2.f) {
+    if (point.x < 0.f) {
       location |= kNegativeXBit;
     }
-    if (point.y < center.y - dimensions.y / 2.f) {
+    if (point.y < 0.f) {
       location |= kNegativeYBit;
     }
-    if (point.z < center.z - dimensions.z / 2.f) {
+    if (point.z < 0.f) {
       location |= kNegativeZBit;
     }
     return location;
   }
-    
+  
+  constexpr static uint8_t LocationFromPoint(const glm::vec3& point , const glm::vec3& center , const glm::vec3& dimensions) {
+    /// translate to global origin
+    glm::vec3 translated = point - (center - dimensions / 2.f);
+    return LocationFromPoint(translated);
+  }
+
+} // anonymous namespace
+
+  bool Octant::IsLeaf() const {
+    return depth == 0;
+  }
+
+  const std::array<Octant* , kNumChildren>& Octant::Children() const { 
+    return children; 
+  }
+
+  bool Octant::Contains(const glm::vec3& point) const { 
+    return bbox.Contains(point); 
+  }
+   
+  const glm::vec3& Octant::Min() const { 
+    return bbox.min; 
+  }
+
+  const glm::vec3& Octant::Max() const { 
+    return bbox.max; 
+  }
+
   static Octant null_octant;
+  Octant& Octant::FindOctant(const glm::vec3& point) {
+    if (!Contains(point)) {
+      return null_octant;
+    }
 
-} // namespace <anonymous>
+    OE_TRACE(" > Searching for point {} in octant {}" , point , tree_index);
+    if (IsLeaf()) {
+      OE_TRACE(" > Found point {} in leaf octant {}" , point , tree_index);
+      return *this;
+    }
 
-  Octant::~Octant() {
-    for (auto& c : children) {
-      c = nullptr;
+    for (const auto& octant : children) {
+      if (octant->Contains(point)) {
+        return *(octant->GetChild(point));
+      }
+    }
+
+    OE_ASSERT(false , "Point not found in any child octant!");
+  }
+  
+  Octant& Octant::FindOctant(uint8_t location , size_t at_depth) {
+    return *GetOctant(location , at_depth);
+  }
+
+  Octant& Octant::FindFurthestOctant(uint8_t location) {
+    return *GetFurthestOctant(location);
+  }
+
+  void Octant::ExpandToInclude(const glm::vec3& point) {
+    OE_TRACE(" > Attempting to expand octant {} to include point {}" , tree_index , point);
+    if (!IsLeaf()) {
+      uint8_t loc = LocationFromPoint(point);
+      auto* child = children[kLocationIndex.at(loc)];
+      child->ExpandToInclude(point);
+    } else {
+      ExpandAround(point);
+    }
+  }
+
+  void Octant::Subdivide(StableVector<Octant>& octants , size_t d) {
+    depth = d;
+    if (d == 0) {
+      std::ranges::fill(children , nullptr);
+      return;
+    }
+
+    Subdivide(octants);
+    for (auto& child : children) {
+      child->Subdivide(octants , depth - 1);
     }
   }
   
-  Octree::Octree()
-      : depth(1), num_octants(NumOctantsAtDepth(1)) {
-    Initialize({ 1.f , 1.f , 1.f });
+  Octant* Octant::GetChild(const glm::vec3& point) {
+    if (IsLeaf() && bbox.Contains(point)) {
+      return this;
+    } else if (IsLeaf()) {
+      return nullptr;
+    }
+    
+    for (const auto& c : children) {
+      if (c->bbox.Contains(point)) {
+        OE_TRACE(" > Checking child {} for {}" , c->tree_index , point);
+        return c->GetChild(point);
+      }
+    }
+
+    OE_TRACE(" > Point {} not found in any child of octant {}" , point , tree_index);
+    return nullptr;
+  }
+  
+  Octant* Octant::GetOctant(uint8_t location , size_t at_depth) {
+    if (depth == 0 || IsLeaf() || at_depth == 0) {
+      return this;
+    }
+
+    auto idx = kLocationIndex.at(location);
+    if (at_depth == 1) {
+      return children[idx];
+    }
+
+    return children[idx]->GetOctant(location , at_depth - 1);
   }
 
-  Octree::Octree(const glm::vec3& space_dimensions , size_t depth) 
-      : depth(depth) , num_octants(NumOctantsAtDepth(depth)) {
+  Octant* Octant::GetFurthestOctant(uint8_t location) {
+    if (depth == 0 || IsLeaf()) {
+      return this;
+    }
+
+    auto idx = kLocationIndex.at(location);
+    return children[idx]->GetFurthestOctant(location);
+  }
+  
+  glm::vec3 Octant::GetMinForSubQuadrant(uint8_t location) {
+    switch (location) {
+      case 0b000: return bbox.Center();
+      case 0b111: return bbox.min;
+
+      case 0b001:
+        return glm::vec3(bbox.Center().x, bbox.Center().y, bbox.min.z);
+      case 0b010:
+        return glm::vec3(bbox.Center().x, bbox.min.y , bbox.Center().z);
+      case 0b100:
+        return glm::vec3(bbox.min.x , bbox.Center().y, bbox.Center().z);
+
+      case 0b011:
+        return glm::vec3(bbox.Center().x, bbox.min.y , bbox.min.z);
+      case 0b101:
+        return glm::vec3(bbox.min.x , bbox.Center().y, bbox.min.z);
+      case 0b110:
+        return glm::vec3(bbox.min.x , bbox.min.y , bbox.Center().z);
+
+    
+      default:
+        OE_ASSERT(false , "Invalid location : {:>03b}" , location);
+    }
+  }
+
+  glm::vec3 Octant::GetMaxForSubQuadrant(uint8_t location) {
+    switch (location) {
+      case 0b000: return bbox.max;
+      case 0b111: return bbox.Center();
+
+      case 0b001:
+        return glm::vec3(bbox.max.x , bbox.max.y , bbox.Center().z);
+      case 0b010:
+        return glm::vec3(bbox.max.x , bbox.Center().y , bbox.max.z);
+      case 0b100:
+        return glm::vec3(bbox.Center().x , bbox.max.y , bbox.max.z);
+
+      case 0b011:
+        return glm::vec3(bbox.max.x , bbox.Center().y , bbox.Center().z);
+      case 0b101:
+        return glm::vec3(bbox.Center().x , bbox.max.y , bbox.Center().z);
+      case 0b110:
+        return glm::vec3(bbox.Center().x , bbox.Center().y , bbox.max.z);
+
+      default:
+        OE_ASSERT(false , "Invalid location : {:>03b}" , location);
+    }
+  }
+  
+  void Octant::ExpandAround(const glm::vec3& point) {
+    if (bbox.Contains(point)) {
+      OE_TRACE(" > Point {} already contained in octant {}" , point , tree_index);
+      return;
+    }
+
+    OE_TRACE(" > Expanding octant {} to include point {}" , tree_index , point);
+    bbox.ExpandToInclude(point);
+
+    glm::vec3 min = bbox.min;
+    glm::vec3 max = bbox.max;
+    for (size_t i = 0; i < kNumChildren; ++i) {
+      auto& c = children[i];
+      min = glm::min(min , c->bbox.min);
+      max = glm::max(max , c->bbox.max);
+    }
+    bbox = BoundingBox(min , max);
+  }
+
+  Octant::writer& Octant::writer::operator<<(const std::string& msg) {
+    std::ranges::for_each(std::views::iota(0u , indent_stack) , [this](uint32_t) { os << "  "; });
+    os << msg;
+    return *this;
+  }
+  
+  void Octant::writer::increment() { 
+    indent_stack++;
+  }
+  
+  void Octant::writer::decrement() { 
+    indent_stack--;
+  }
+
+  void Octant::Serialize(std::ostream& os , bool print_children) const {
+    writer w(os , 0);
+    Serialize(w , print_children);
+  }
+
+  using namespace std::string_literals;
+  void Octant::Serialize(writer& w , bool print_children) const {
+    w <<  fmtstr("[Octant [{}] = {:p}\n" , tree_index , static_cast<const void*>(this));
+    w.increment();
+
+    w << fmtstr("(@{})\n" , bbox);
+
+    auto origin = bbox.Center();
+    w << fmtstr("(@Depth = {} , @Partition = {} , @Location = {:>03b} , @Dimensions = ({}) , @Center = ({}))\n", 
+                depth , partition_index , partition_location , bbox.extent - origin , origin);
+    std::stringstream ss;
+    if (entities.empty()) {
+      w << "(@Entities = 0)\n"s;
+    } else {
+      w << fmtstr("(@Entities = {}\n" , entities.size());
+      for (const auto& e : entities) {
+        w << fmtstr(" - {}\n" , e->Name()); 
+      }
+      w << ")\n"s;
+    }
+    
+    if (IsLeaf()) {
+      w << "(@Children = 0)\n"s;
+    } else {
+      w << fmtstr("(@Children = {}\n" , kNumChildren);
+    }
+    
+    if (print_children && !IsLeaf()) {
+      for (size_t i = 0; i < kNumChildren; ++i) {
+        w << fmtstr(" - [{}] = {} [{}]\n", i , children[i]->tree_index , static_cast<void*>(children[i]));
+      }
+      w << ")\n"s;
+
+      for (const auto& c : children) {
+        if (c != nullptr) {
+          c->Serialize(w , true);
+        }
+      }
+    }
+    
+    w.decrement();
+    w << "]\n"s;
+  }  
+  
+  void Octant::Subdivide(StableVector<Octant>& octants) {
+    for (size_t i = 0; i < kNumChildren; ++i) {
+      auto [idx , child] = octants.EmplaceBackNoLock();
+      child.depth = depth - 1;
+      child.tree_index = idx;
+      child.partition_index = i;
+      child.partition_location = kOctantLocations[i];
+      child.parent = this;
+
+      glm::vec3 bbox_min = GetMinForSubQuadrant(child.partition_location);
+      glm::vec3 bbox_max = GetMaxForSubQuadrant(child.partition_location);
+      child.bbox = BoundingBox(bbox_min , bbox_max);
+      children[i] = &octants[idx];
+    } 
+  }
+
+  Octree::Octree()
+      : depth(0), num_octants(NumOctantsAtDepth(0)) {
+    Initialize(glm::vec3{ 0.f });
+  }
+
+  Octree::Octree(const glm::vec3& space_dimensions) 
+      : depth(0) , num_octants(NumOctantsAtDepth(0)) {
+    Initialize(space_dimensions);
+  }
+  
+  Octree::Octree(const glm::vec3& space_dimensions , size_t resolution) 
+      : depth(resolution) , num_octants(NumOctantsAtDepth(resolution)) {
     Initialize(space_dimensions);
   }
 
@@ -69,23 +348,51 @@ namespace {
   }
       
   const size_t Octree::Depth() const { 
-    return kDepth; 
+    return depth;
   }
   
   const size_t Octree::NumOctants() const { 
-    return num_octants; 
-  }
-      
-  const Octant& Octree::GetSpace() const { 
-    return octants[space_index]; 
+    return octants.Size();
   }
   
-  const glm::vec3& Octree::Dimensions() const { 
-    return GetSpace().dimensions; 
+  Octant& Octree::GetSpace() {
+    OE_ASSERT(space != nullptr , "Space is null!");
+    return *space;
   }
 
-  Octant& Octree::GetOctant(const glm::vec3& point) {
-    return FindOctant(GetSpace() , point);
+  const Octant& Octree::GetSpace() const {
+    OE_ASSERT(space != nullptr , "Space is null!");
+    return *space;
+  }
+  
+  glm::vec3 Octree::Dimensions() const { 
+    OE_ASSERT(space != nullptr , "Space is null!");
+    return space->bbox.extent - space->bbox.Center(); 
+  }
+  
+  void Octree::Subdivide(size_t depth) {
+    OE_ASSERT(space != nullptr , "Space is null!");
+    space->Subdivide(octants , depth);
+  }
+
+  bool Octree::Contains(const glm::vec3& point) const {
+    OE_ASSERT(space != nullptr , "Space is null!");
+    return space->Contains(point);
+  }
+
+  Octant& Octree::FindOctant(const glm::vec3& point) {
+    OE_ASSERT(space != nullptr , "Space is null!");
+    return space->FindOctant(point);
+  }
+  
+  Octant& Octree::FindOctant(uint8_t location , size_t at_depth) {
+    OE_ASSERT(space != nullptr , "Space is null!");
+    return space->FindOctant(location , at_depth);
+  }
+
+  Octant& Octree::FindFurthestOctant(uint8_t location) {
+    OE_ASSERT(space != nullptr , "Space is null!");
+    return space->FindFurthestOctant(location);
   }
 
   void Octree::PrintOctants(std::ostream& os) const {
@@ -93,144 +400,76 @@ namespace {
   }
   
   void Octree::PrintOctant(std::ostream& os , const Octant& octant) const {
-    os << fmtstr("Octant [{}] = {:p}\n" , octant.tree_index , static_cast<const void*>(&octant));
-    os << fmtstr("(@Depth = {} , @Partition = {} , @Location = {:>03b} , @Dimensions = ({}) , @Center = ({}))\n", 
-                  octant.depth , octant.partition_index , octant.partition_location , octant.dimensions, octant.origin);
-    
-    std::stringstream ss;
-    if (octant.entities.size() > 0) {
-      ss << "\n";
-    }
-    for (const auto& e : octant.entities) {
-      ss << fmtstr(" - {}\n" , e->Name()); 
-    }
-
-    os << fmtstr("(@Entities = {}{})\n" , octant.entities.size() , ss.str());
-    os << fmtstr(" - Parent = {}\n", static_cast<void*>(octant.parent));
-    for (size_t i = 0; i < kNumChildren; ++i) {
-      os << fmtstr(" -- [{}] = {} [{}]\n", i , octant.tree_index , static_cast<void*>(octant.children[i]));
-    }
-
-    os << "---|";
-    for (const auto& c : octant.children) {
-      PrintOctant(os , *c);
-    }
-    os << "---|";
-  }
-  
-  void Octree::AddEntity(Entity* entity) {
-    OE_ASSERT(entity != nullptr , "Attempting to add null entity to octree");
-
-    // const Transform transform = entity->GetComponent<Transform>();
-    // const glm::vec3 position = transform.position;
-
-    // Octant& octant = FindOctant(octants[0] , position);
-    // if (octant.tree_index > 0) {
-    //   octant.entities.push_back(entity);
-    //   return;
-    // } 
-
-    // OE_ERROR("Failed to add {} to octree at <{},{},{}>" , entity->Name() , 
-    //           position.x , position.y , position.z);
+    octant.Serialize(os);
   }
 
-  Octant& Octree::GetSpace() {
-    return octants[space_index];
-  }
-  
-  void Octree::Initialize(const glm::vec3& dim) {
-    dimensions = dim;
-    
-    {
-      auto [idx , space] = octants.EmplaceBackNoLock();
-      // o.tree_index = idx;
-      // space_index = idx;
-    }
-    // space_index = idx;
-    // space.tree_index = idx;
-    // auto [idx , space] = octants.EmplaceBackNoLock();
-    // Subdivide(space , depth);
-  } 
-
-  bool Octree::OctantContainsPoint(const Octant& octant , const glm::vec3& point) const {
-    if (octant.origin == point) {
-      return true;
-    }
-
-    glm::vec3 min = octant.origin - (octant.dimensions / 2.f);
-    glm::vec3 max = octant.origin + (octant.dimensions / 2.f);
-
-    bool greater_than_min = point.x > min.x && point.y > min.y && point.z > min.z;
-    bool less_than_max = point.x < max.x && point.y < max.y && point.z < max.z;
-
-    return greater_than_min && less_than_max;
-  }
-
-  Octant& Octree::FindOctant(Octant& octant , const glm::vec3& point) {
-    /// origin is not contained in any children so this will be the smallest octant that contains the point
-    if (point == octant.origin) {
-      return octant;
-    }
-
-    for (const auto& o : octant.children) {
-      Octant& oct = FindOctant(*o , point);
-      if (oct.tree_index != -1) {
-        return oct;
-      }
-    }
-
-    return null_octant;
-  }
-
-  void Octree::Subdivide(Octant& octant, size_t depth) {
-    octant.depth = depth;
-    if (depth == 0) {
+  void Octree::ExpandToInclude(const glm::vec3& point) {
+    OE_ASSERT(space != nullptr , "Space is null!");
+    if (Contains(point)) {
       return;
     }
 
-    Subdivide(octant);
-    for (auto& child : octant.children) {
-      Subdivide(*child, depth - 1);
+    if (space->IsLeaf()) {
+      OE_ASSERT(octants.Size() == 1 , "Invalid number of octants in octree : {}" , octants.Size());
+      space->ExpandToInclude(point);
+      space->Subdivide(octants , 1);
     }
+    space->ExpandToInclude(point);
+  }
+  
+  void Octree::AddScene(Ref<Scene> scene , const glm::vec3& position) {
+    OE_ASSERT(scene != nullptr , "Scene is null!");
+    ExpandToInclude(position);
+
+    OE_DEBUG("Adding scene to octree at <{}>" , position);
+    scene->ForEachEntity([&](Entity* entity) {
+      const auto& transform = entity->ReadComponent<Transform>(); 
+      AddEntity(entity , position + transform.position);
+    });
   }
 
-  void Octree::Subdivide(Octant& octant) {
-    for (size_t i = 0; i < kNumChildren; ++i) {
-      auto [idx , child] = octants.EmplaceBackNoLock();
-
-      child.parent = &octant;
-      child.tree_index = idx;
-
-      child.partition_index = i;
-      child.partition_location = kOctantLocations[i];
-
-      child.dimensions = CalculateOctantDimensions(octant.dimensions);
-      child.origin = CalculateOctantOrigin(octant.dimensions , octant.origin , kOctantLocations[i]);
-      child.depth = octant.depth + 1;
-      
-      octant.children[i] = &child;
+  void Octree::AddEntity(Entity* entity , const glm::vec3& global_pos) {
+    OE_ASSERT(entity != nullptr , "Attempting to add null entity to octree");
+    OE_DEBUG("Adding entity : {} to octree at <{}>" , entity->Name() , global_pos);
+    
+    if (!Contains(global_pos)) {
+      ExpandToInclude(global_pos);
     }
+
+    uint8_t location = LocationFromPoint(global_pos);
+    OE_TRACE(" > Entity {}@{} is contained in octree space [{:>03b}]" , entity->Name() , global_pos , location);
+    {
+      Octant& octant = GetSpace().FindFurthestOctant(location);
+      if (octant.tree_index > 0) {
+        OE_DEBUG(" > Adding : {}@{} C [{}]" , entity->Name() , global_pos , octant);
+        octant.entities.push_back(entity);
+        return;
+      } 
+    }
+
+    OE_ASSERT(false , "Failed to add entity to octree!");
   }
+  
+  void Octree::Initialize(const glm::vec3& dim) {
+    octants.Clear();
+    dimensions = dim;
 
-  glm::vec3 Octree::CalculateOctantOrigin(const glm::vec3& parent_dimensions , const glm::vec3& parent_origin , uint8_t location) {
-    /// divide by 4 because origin is at (0,0,0) so we need shift in the direction half of half of the parent dimensions
-    float x_shift = (parent_dimensions.x / 4.f) * (location & kNegativeXBit ? -1 : 1); 
-    float y_shift = (parent_dimensions.y / 4.f) * (location & kNegativeYBit ? -1 : 1);
-    float z_shift = (parent_dimensions.z / 4.f) * (location & kNegativeZBit ? -1 : 1);
+    {
+      auto [tidx , s] = octants.EmplaceBackNoLock(); 
+      s.depth = depth;
+      s.tree_index = tidx;
+      s.partition_index = 0;
+      s.partition_location = 0b000;
+      s.parent = nullptr;
+      s.bbox = BoundingBox(-dim / 2.f , dim / 2.f);
 
-    return {
-      parent_origin.x + x_shift,
-      parent_origin.y + y_shift,
-      parent_origin.z + z_shift
-    };
+      OE_TRACE("OTREE(@{})" , s.bbox);
+      s.Subdivide(octants , depth);
+    }
+    
+    OE_ASSERT(num_octants == NumOctantsAtDepth(depth) , "Invalid number of octants : {} != {}" , num_octants , NumOctantsAtDepth(depth));
+    OE_ASSERT(octants.Size() == num_octants , "Invalid number of octants created : {} != {}" , octants.Size() , num_octants);
+    space = &octants[0];
   } 
-
-  glm::vec3 Octree::CalculateOctantDimensions(const glm::vec3& parent_dimensions) {
-    return {
-      parent_dimensions.x / 2.f,
-      parent_dimensions.y / 2.f,
-      parent_dimensions.z / 2.f
-    };
-  }
 
 } // namespace other
