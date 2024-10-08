@@ -29,6 +29,7 @@ namespace other {
     constexpr BoundingBox(const glm::vec3& point) : BoundingBox(point , point) {}
 
     bool Contains(const glm::vec3& point) const;
+    bool OnBoundary(const glm::vec3& point) const;
 
     void ExpandToInclude(const glm::vec3& point);
     void ExpandToFill(const BoundingBox& other);

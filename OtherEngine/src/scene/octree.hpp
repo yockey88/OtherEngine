@@ -8,6 +8,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <glm/fwd.hpp>
 #include <ostream>
 #include <string_view>
 #include <vector>
@@ -131,36 +132,37 @@ namespace other {
     // 1 = <-,+,+>
     // 2 = <-,-,+>
     // 3 = <+,-,+>
-    { kPxPyPzLoc , 0 },
-    { kNxPyPzLoc , 1 },
-    { kNxNyPzLoc , 2 },
-    { kPxNyPzLoc , 3 },
+    { /* 0b000 */ kPxPyPzLoc , 0 },
+    { /* 0b100 */ kNxPyPzLoc , 1 },
+    { /* 0b110 */ kNxNyPzLoc , 2 },
+    { /* 0b010 */ kPxNyPzLoc , 3 },
 
     /// -z group of 4 ccw
     // 4 = <+,+,->
     // 5 = <-,+,->
     // 6 = <-,-,->
     // 7 = <+,-,-> 
-    { kPxPyNzLoc , 4 },
-    { kNxPyNzLoc , 5 },
-    { kNxNyNzLoc , 6 },
-    { kPxNyNzLoc , 7 },
+    { /* 0b001 */ kPxPyNzLoc , 4 },
+    { /* 0b101 */ kNxPyNzLoc , 5 },
+    { /* 0b111 */ kNxNyNzLoc , 6 },
+    { /* 0b011 */ kPxNyNzLoc , 7 },
   };
 
   using dotother::StableVector;
 
+  class Octree;
+
   class Octant {
     public:
-      size_t depth = 0;
-      int64_t tree_index = 0;
+      int64_t tree_index = -1;
       
-      size_t partition_index = 0;
-      uint8_t partition_location = 0;
+      int64_t partition_index = -1;
+      uint8_t partition_location = 0b000;
 
       BoundingBox bbox = BoundingBox();
 
+      Octree* embedding_space = nullptr;
       Octant* parent = nullptr;
-      std::vector<Entity*> entities = {};
       
       Octant()
          : tree_index(-1)  , parent(nullptr) {
@@ -176,13 +178,23 @@ namespace other {
       const glm::vec3& Min() const;
       const glm::vec3& Max() const;
 
+      int64_t GetMinDepth() const;
+      int64_t GetMaxDepth() const;
+
+      glm::vec3 GlobalPosition() const;
+
+      const std::vector<Entity*>& Entities() const;
+
+      void AddEntity(Entity* entity , const glm::vec3& position);
+
       Octant& FindOctant(const glm::vec3& point);
       Octant& FindOctant(uint8_t location , size_t at_depth);
       Octant& FindFurthestOctant(uint8_t location);
 
       void ExpandToInclude(const glm::vec3& point);
 
-      void Subdivide(StableVector<Octant>& octants, size_t depth);
+      void Subdivide(size_t depth);
+      void SubdivideInDirection(uint8_t direction , size_t depth = 1);
 
       void Serialize(std::ostream& os, bool print_children = true) const;
       struct writer : public std::ostream {
@@ -206,11 +218,13 @@ namespace other {
       glm::vec3 GetMinForSubQuadrant(uint8_t location);
       glm::vec3 GetMaxForSubQuadrant(uint8_t location);
 
-      void ExpandAround(const glm::vec3& point);
+      void Subdivide();
 
       void Serialize(writer& w , bool children) const;
 
-      void Subdivide(StableVector<Octant>& octants);
+      Octant* CreateChild(int64_t index);
+
+      std::vector<Entity*> entities = {};
 
 #ifdef OE_TESTING_ENVIRONMENT
       friend class OtherTest;
@@ -234,21 +248,20 @@ namespace other {
 
   class Octree : public RefCounted {
     public:
-      Octree();
-      Octree(const glm::vec3& space_dimensions);
-      Octree(const glm::vec3& space_dimensions , size_t resolution);
-      ~Octree();
+      Octree(const glm::vec3& origin = glm::vec3{0.f});
+      ~Octree(); 
 
       const size_t Depth() const;
       const size_t NumOctants() const;
-
       Octant& GetSpace();
       const Octant& GetSpace() const;
       glm::vec3 Dimensions() const;
-
       void Subdivide(size_t depth);
-
       bool Contains(const glm::vec3& point) const;
+
+      void MoveOriginTo(const glm::vec3& origin);
+
+      Octant& GetContainingOctant(const glm::vec3& point);
 
       Octant& FindOctant(const glm::vec3& point);
       Octant& FindOctant(uint8_t location , size_t at_depth);
@@ -274,13 +287,15 @@ namespace other {
       size_t space_index = 0;
       Octant* space = nullptr;
       StableVector<Octant> octants;
+      glm::vec3 global_position{ 0.f };
 
       size_t depth = 0;
       const size_t num_octants = 0;
       glm::vec3 dimensions = glm::vec3(0.f);
 
-
       void Initialize(const glm::vec3& dim);
+
+      friend class Octant;
 
 #ifdef OE_TESTING_ENVIRONMENT
       friend class OtherTest;
