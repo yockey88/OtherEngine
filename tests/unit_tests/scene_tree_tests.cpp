@@ -42,7 +42,6 @@ class SceneTree : public RefCounted {
     void AddScene(Ref<Scene> scene , const glm::vec3& position) {
       OE_ASSERT(scene != nullptr , "Scene is null!");
       OE_DEBUG("Adding scene to octree at <{}>" , position);
-
       octree->AddScene(scene , position);
     }
       
@@ -96,54 +95,85 @@ TEST_F(SceneTreeTests , add_scene) {
   }
 
   tree->AddScene(scene , glm::zero<glm::vec3>());
-  ASSERT_EQ(tree->octree->NumOctants() , 1 + 8);
-  ASSERT_EQ(tree->octree->Depth() , 1);
-  ASSERT_FALSE(tree->octree->GetSpace().IsLeaf());
   tree->octree->PrintOctants(std::cout);
+  ASSERT_EQ(tree->octree->NumOctants() , 1);
+  ASSERT_EQ(tree->octree->Depth() , 0);
+  ASSERT_TRUE(tree->octree->GetSpace().IsLeaf());
+  ASSERT_EQ(tree->octree->GetSpace().Entities().size() , 4u);
+}
 
-  glm::vec3 id{ 1.f };
-  Octant& space = tree->octree->GetSpace();
-  ASSERT_EQ(space.tree_index , 0);
-  ASSERT_EQ(space.depth , 1);
+TEST_F(SceneTreeTests , add_scene_high_res) {
+  Ref<SceneTree> tree = NewRef<SceneTree>();
+  ASSERT_NE(tree , nullptr);
+  ASSERT_NE(tree->octree , nullptr);
   
+  tree->octree->Subdivide(3);          // 8^0 + 8^1 + 8^2 + 8^3
+  ASSERT_EQ(tree->octree->NumOctants() , 1 + 8 + 64 + 512);
+  ASSERT_EQ(tree->octree->Depth() , 3);
+  ASSERT_FALSE(tree->octree->GetSpace().IsLeaf());
+  
+  glm::vec3 max = { 0.5f , 0.5f , 0.5f };
+
+  Ref<Scene> scene = NewRef<Scene>();
+  ASSERT_NE(scene , nullptr);
+
+  Entity* ent1 = scene->CreateEntity("Test1");
+  ASSERT_NE(ent1 , nullptr);
   {
-    Octant& space = tree->octree->FindOctant(0b111 , 0);  
-    ASSERT_EQ(space.IsLeaf() , false);
-    ASSERT_EQ(space.tree_index , 0);
-    ASSERT_EQ(space.depth , 1);
+    auto& transform = ent1->GetComponent<Transform>();
+    transform.position = max;
   }
 
+  Entity* ent2 = scene->CreateEntity("Test2");
+  ASSERT_NE(ent2 , nullptr);
   {
-    Octant& space = tree->octree->FindOctant(0b000 , 0);  
-    ASSERT_EQ(space.IsLeaf() , false);
-    ASSERT_EQ(space.tree_index , 0);
-    ASSERT_EQ(space.depth , 1);
+    auto& t = ent2->GetComponent<Transform>();
+    t.position = { -1 * max.x , -1 * max.y , -1 * max.z };
   }
 
+  Entity* ent3 = scene->CreateEntity("Test3");
+  ASSERT_NE(ent3 , nullptr);
   {
-    Octant& posxyz = tree->octree->FindOctant(0b000 , 1);
-    ASSERT_TRUE(posxyz.IsLeaf());
-    ASSERT_EQ(posxyz.tree_index , 1 + kLocationIndex.at(0b000));
-    ASSERT_EQ(posxyz.entities.size() , 1u);
+    auto& t = ent3->GetComponent<Transform>();
+    t.position = { -1 * max.x , max.y , -1 * max.z };
   }
 
+  Entity* ent4 = scene->CreateEntity("Test4"); 
+  ASSERT_NE(ent4 , nullptr);
   {
-    Octant& negxyz = tree->octree->FindOctant(0b111 , 1);
-    ASSERT_EQ(negxyz.tree_index , 1 + kLocationIndex.at(0b111));
-    ASSERT_EQ(negxyz.entities.size() , 1u);
+    auto& t = ent4->GetComponent<Transform>();
+    t.position = { max.x , -1 * max.y , max.z };
   }
 
-  {
-    Octant& negxposy = tree->octree->FindOctant(0b101 , 1);
-    ASSERT_EQ(negxposy.tree_index , 1 + kLocationIndex.at(0b101));
-    ASSERT_EQ(negxposy.entities.size() , 1u);
-  }
+  tree->AddScene(scene , glm::zero<glm::vec3>());
+  ASSERT_EQ(tree->octree->NumOctants() , 1 + 8 + 64 + 512);
+  ASSERT_EQ(tree->octree->Depth() , 3);
+  ASSERT_FALSE(tree->octree->GetSpace().IsLeaf());
+  ASSERT_EQ(tree->octree->GetSpace().Entities().size() , 0);
 
-  {
-    Octant& posxnegy = tree->octree->FindOctant(0b010 , 1);
-    ASSERT_EQ(posxnegy.tree_index , 1 + kLocationIndex.at(0b010));
-    ASSERT_EQ(posxnegy.entities.size() , 1u);
-  }
+  Octant& posxyz = tree->octree->FindOctant(0b000 , 3);
+  ASSERT_EQ(posxyz.GetMaxDepth() , 0);
+  ASSERT_TRUE(posxyz.IsLeaf());
+  ASSERT_EQ(posxyz.partition_location , 0b000);
+  ASSERT_EQ(posxyz.Entities().size() , 1);
+
+  Octant& negxyz = tree->octree->FindOctant(0b111 , 3);
+  ASSERT_EQ(negxyz.GetMaxDepth() , 0);
+  ASSERT_TRUE(negxyz.IsLeaf());
+  ASSERT_EQ(negxyz.partition_location , 0b111);
+  ASSERT_EQ(negxyz.Entities().size() , 1);
+
+  Octant& posxznegy = tree->octree->FindOctant(0b101 , 3);
+  ASSERT_EQ(posxznegy.GetMaxDepth() , 0);
+  ASSERT_TRUE(posxznegy.IsLeaf());
+  ASSERT_EQ(posxznegy.partition_location , 0b101);
+  ASSERT_EQ(posxznegy.Entities().size() , 1);
+
+  Octant& negyposxz = tree->octree->FindOctant(0b010 , 3);
+  ASSERT_EQ(negyposxz.GetMaxDepth() , 0);
+  ASSERT_TRUE(negyposxz.IsLeaf());
+  ASSERT_EQ(negyposxz.partition_location , 0b010);
+  ASSERT_EQ(negyposxz.Entities().size() , 1);
 }
 
 void SceneTreeTests::SetUpTestSuite() {
@@ -151,9 +181,6 @@ void SceneTreeTests::SetUpTestSuite() {
   test_config.Add("log", "console-level" , "trace" , true);
   test_config.Add("log", "file-level" , "trace" , true);
   test_config.Add("log", "path" , "logs/scene-tree-test.log" , true);
-  // test_config.Add("project" , "script-bin-dir" , "SandboxScripts" , true);
-  // test_config.Add("project" , "assets-dir" , "./tests/scripts" , true);
-  // test_config.Add("script-engine.C#" , "modules" , std::vector{ "SandboxScripts.dll"s } , true);
   
   Logger::Open(test_config);
   Logger::Instance()->RegisterThread("Script Scene Integration Test Main Thread");

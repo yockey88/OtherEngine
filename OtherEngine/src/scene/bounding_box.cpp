@@ -4,37 +4,45 @@
 #include "scene/bounding_box.hpp"
 
 #include "core/logger.hpp"
+#include "math/vecmath.hpp"
 
 namespace other {
   
   bool BoundingBox::Contains(const glm::vec3& point) const {
-    return point.x >= min.x && point.x <= max.x &&
-           point.y >= min.y && point.y <= max.y &&
-           point.z >= min.z && point.z <= max.z;
+    return vec3_gte(point , min) && vec3_lte(point , max);
   }
 
   void BoundingBox::ExpandToInclude(const glm::vec3& point) {
     if (Contains(point)) {
+      OE_TRACE("Point {} is already contained in bounding box" , point);
       return;
     }
     
-    min = glm::min(min , point);
-    max = glm::max(max , point);
-    extent = max - min;
+    min = vec3_min(min , point);
+    max = vec3_max(max , point);
+    extent = vec3_diff(max , min);
   }
 
   void BoundingBox::ExpandToFill(const BoundingBox& other) {
-    min = glm::min(min , other.min);
-    max = glm::max(max , other.max);
-    extent = max - min;
+    min = vec3_min(min , other.min);
+    max = vec3_max(max , other.max);
+    extent = vec3_diff(max , min);
   }
 
   glm::vec3 BoundingBox::Center() const {
+    if (vec3_eq(min , max)) {
+      return min;
+    }
+
+    /// take the unit vector pointing from min to max and scale it by half the length of the extent
+    //   to get the center of the bounding box
     float extent_length = glm::length(extent);
-    glm::vec3 min_to_max = nvec_norm<3>(extent);
-    
-    auto offset = (extent_length / 2.f) * min_to_max;
-    auto center = nvec_sum<3>(min , offset);
+    glm::vec3 min_to_max = glm::normalize(extent);
+
+    /// find vector pointing from min to center then add it to min
+    glm::vec3 offset = vec3_product((extent_length / 2.f) , min_to_max);
+    glm::vec3 center = vec3_sum(min , offset);
+
     return center;
   }
 
