@@ -541,7 +541,7 @@ namespace other {
           [[ fallthrough ]];
         case kCubeIdx: {
           auto& scale = ent->ReadComponent<Transform>().scale;
-          mesh.handle = ModelFactory::CreateBox(scale);
+          mesh.handle = ModelFactory::CreateBox();
           if (!AppState::Assets()->IsValid(mesh.handle)) {
             OE_ERROR("Failed to Create Cube Static Mesh");
           } else {

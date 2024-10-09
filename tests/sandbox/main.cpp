@@ -8,6 +8,7 @@
 #include <SDL_mouse.h>
 #include <glad/glad.h>
 #include <glm/ext/matrix_transform.hpp>
+#include <glm/fwd.hpp>
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <imgui/backends/imgui_impl_sdl2.h>
@@ -24,29 +25,28 @@
 
 #include "application/app.hpp"
 
+#include "asset/asset_manager.hpp"
+
 #include "event/event_queue.hpp"
 
 #include "ecs/entity.hpp"
 #include "ecs/components/mesh.hpp"
 #include "ecs/components/light_source.hpp"
-#include "ecs/components/camera.hpp"
 
 #include "scene/scene_serializer.hpp"
 #include "scene/environment.hpp"
 #include "scene/scene.hpp"
+#include "scene/octree.hpp"
 
 #include "scripting/script_engine.hpp"
 #include "rendering/rendering_defines.hpp"
 #include "rendering/window.hpp"
 #include "rendering/renderer.hpp"
 #include "rendering/shader.hpp"
-#include "rendering/texture.hpp"
 #include "rendering/camera_base.hpp"
 #include "rendering/perspective_camera.hpp"
 #include "rendering/framebuffer.hpp"
 #include "rendering/uniform.hpp"
-#include "rendering/model.hpp"
-#include "rendering/model_factory.hpp"
 #include "rendering/material.hpp"
 #include "rendering/point_light.hpp"
 #include "rendering/direction_light.hpp"
@@ -59,7 +59,6 @@
 #include "rendering/ui/ui_helpers.hpp"
 #include "rendering/ui/ui_widgets.hpp"
 
-#include "mock_app.hpp"
 #include "sandbox_ui.hpp"
 
 using namespace other;
@@ -203,7 +202,8 @@ int main(int argc , char* argv[]) {
         .camera_uniforms = NewRef<UniformBuffer>("Camera" , cam_unis , camera_binding_pnt) ,
         .light_uniforms = NewRef<UniformBuffer>("Lights" , light_unis , light_binding_pnt , SHADER_STORAGE) ,
         .pipelines = {
-          {
+      {
+            .topology = DrawMode::TRIANGLES ,
             .framebuffer_spec = {
               .depth_func = LESS_EQUAL ,
               .clear_color = { 0.1f , 0.1f , 0.1f , 1.f } ,
@@ -216,7 +216,8 @@ int main(int argc , char* argv[]) {
             .material_binding_point = material_binding_pnt ,
             .debug_name = "Geometry" , 
           } ,
-          {
+      {
+            .topology = DrawMode::TRIANGLES ,
             .framebuffer_spec = {
               .depth_func = LESS_EQUAL ,
               .clear_color = { 0.1f , 0.1f , 0.1f , 1.f } ,
@@ -235,7 +236,7 @@ int main(int argc , char* argv[]) {
         } ,
         .pipeline_to_pass_map = {
           { FNV("Geometry") , { FNV(geom_pass->Name()) } } ,
-          { FNV("Debug") , { FNV(geom_pass->Name()) , FNV(normal_pass->Name()) } } ,
+          { FNV("Debug") , { FNV(geom_pass->Name())  } } , // , FNV(normal_pass->Name())
         } ,
       };
       Ref<SceneRenderer> renderer = NewRef<SceneRenderer>(render_spec);
@@ -283,6 +284,14 @@ int main(int argc , char* argv[]) {
         }
         scene = loaded_scene.scene;
       }
+      Ref<Octree> octree = NewRef<Octree>();
+      octree->Subdivide({ 10.f , 10.f , 10.f } , 3);
+      octree->AddScene(scene , glm::zero<glm::vec3>()); 
+
+      std::array<glm::vec3 , kNumCubeCorners> corners = octree->Corners();
+      glm::vec3 scene_dim = octree->Dimensions();
+
+      AssetHandle cube_model = ModelFactory::CreateBoxWireframe();
 
       auto* cube = scene->GetEntity("cube");
       auto* floor = scene->GetEntity("floor");
@@ -332,6 +341,7 @@ int main(int argc , char* argv[]) {
       OE_INFO("Running");
 
       bool render_to_window = true;
+      // renderer->ToggleWireframe();
 
       time::DeltaTime dt;
       dt.Start();
@@ -388,12 +398,63 @@ int main(int argc , char* argv[]) {
         scene->LateUpdate(delta);
 
         Renderer::GetWindow()->Clear();
+        // renderer->SetRenderMode(Render)
 
         auto cam = scene->GetPrimaryCamera();
         if (cam == nullptr) {
           renderer->SubmitCamera(camera);
         }
         scene->Render(renderer);
+
+        /// Debug rendering
+        std::vector<RenderSubmission> debug_submissions;
+        Octant& space = octree->GetSpace();
+        const glm::mat4 id = glm::mat4(1.f);
+        glm::mat4 octree_model = glm::scale(id , space.bbox.extent);
+
+        Material mat = {
+          .color = { 1.f , 0.f , 0.f , 1.f } ,
+          .shininess = 1.f ,
+        };
+
+        Ref<StaticModel> octree_mesh = AssetManager::GetAsset<StaticModel>(cube_model);
+        debug_submissions.push_back({
+          .model = octree_mesh ,
+          .transform = octree_model ,
+          .material = mat ,
+          .render_state = RenderState::FILL ,
+          .draw_mode = DrawMode::LINES ,
+        });
+
+        for (const auto& child : space.Children()) {
+          glm::mat4 child_model = glm::translate(id , child->bbox.Center());
+          child_model = glm::scale(child_model , child->bbox.extent);
+          debug_submissions.push_back({
+            .model = octree_mesh ,
+            .transform = child_model ,
+            .material = mat ,
+            .render_state = RenderState::FILL ,
+            .draw_mode = DrawMode::LINES ,
+          });
+
+          for (const auto& gchild : child->Children()) {
+            glm::mat4 gchild_model = glm::translate(id , gchild->bbox.Center());
+            gchild_model = glm::scale(gchild_model , gchild->bbox.extent);
+            debug_submissions.push_back({
+              .model = octree_mesh ,
+              .transform = gchild_model ,
+              .material = mat ,
+              .render_state = RenderState::FILL ,
+              .draw_mode = DrawMode::LINES ,
+            });
+          }
+        }
+
+        for (const auto& sub : debug_submissions) {
+          renderer->SubmitStaticModel("Debug" , sub);
+        }
+        ///
+
         bool success = renderer->EndScene();
 
         const auto& frames = renderer->GetRender(); 

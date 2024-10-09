@@ -21,7 +21,7 @@
 
 namespace other {
 
-  struct Octant;
+  class Octant;
   class Scene;
 
   class Entity {

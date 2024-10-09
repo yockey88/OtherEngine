@@ -52,6 +52,13 @@ namespace other {
 
       UUID SceneHandle() const;
 
+      template <typename Fn>
+      void ForEachEntity(Fn&& fn) {
+        for (auto& [id , ent] : entities) {
+          fn(ent);
+        }
+      }
+
       void Initialize();
       void Start(EngineMode mode = EngineMode::DEBUG); 
 
