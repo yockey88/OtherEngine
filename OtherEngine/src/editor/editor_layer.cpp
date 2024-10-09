@@ -269,10 +269,6 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
         camera_free = false;
       
         return true;
-      } 
-
-      if (Keyboard::LCtrlLayer() && key.Key() == Keyboard::Key::OE_W) {
-        default_renderer->ToggleWireframe();
       }
 
       return false;

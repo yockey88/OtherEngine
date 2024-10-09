@@ -163,7 +163,7 @@ TEST_F(StressTest , lots_o_cubes) {
 
 void StressTest::SetUp() {
   scene = NewRef<Scene>();
-  cube_handle = ModelFactory::CreateBox({ 1.f , 1.f , 1.f });
+  cube_handle = ModelFactory::CreateBox();
 
   {
     auto* pl = scene->CreateEntity("point-light");

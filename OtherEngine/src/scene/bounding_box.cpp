@@ -77,20 +77,22 @@ namespace other {
     return result;
   }
   
-  const std::array<glm::vec3 , 8>& BoundingBox::Corners() {
-    if (!corners.has_value()) {
-      corners = std::array<glm::vec3 , 8>{
-        min,
-        { min.x , max.y , min.z },
-        { max.x , max.y , min.z },
-        { max.x , min.y , min.z },
-        { min.x , min.y , max.z },
-        { min.x , max.y , max.z },
-        max,
-        { max.x , min.y , max.z }
-      };
-    }
-    return corners.value();
+  const std::array<glm::vec3 , 8>& BoundingBox::Corners() const {
+    return corners;
+  }
+  
+  void BoundingBox::CalculateCorners() {
+    corners = {
+      max , 
+      { min.x , max.y , max.z } ,
+      { min.x , min.y , max.z } , 
+      { max.x , min.y , max.z } ,
+      
+      { max.x , max.y , min.z} ,
+      { min.x , max.y , min.z} ,
+      min ,
+      { max.x , min.y , min.z } ,
+    };
   }
 
 } // namespace other

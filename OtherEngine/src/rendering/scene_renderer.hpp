@@ -10,6 +10,7 @@
 
 #include "scene/environment.hpp"
 
+#include "rendering/rendering_defines.hpp"
 #include "rendering/camera_base.hpp"
 #include "rendering/model.hpp"
 #include "rendering/render_pass.hpp"
@@ -52,8 +53,6 @@ namespace other {
         spec.light_uniforms->SetUniform(name , val , index);
       }
 
-      void ToggleWireframe();
-
       void SetViewportSize(const glm::ivec2& size);
       
       void SubmitCamera(const Ref<CameraBase>& camera);
@@ -64,6 +63,7 @@ namespace other {
 
       void SubmitModel(const std::string_view pl_name , Ref<Model> model , const glm::mat4& transform , const Material& material);
       void SubmitStaticModel(const std::string_view pl_name , Ref<StaticModel> model , const glm::mat4& transform , const Material& material);
+      void SubmitStaticModel(const std::string_view pl_name , const RenderSubmission& submission);
       
       bool EndScene();
 
@@ -119,12 +119,6 @@ namespace other {
       ///  - grid
       ///  - collider
       ///  - skybox
-
-      enum RenderStateType {
-        FILL      = GL_FILL ,
-        WIREFRAME = GL_LINE ,
-        POINT     = GL_POINT ,
-      } render_state;
 
       std::map<UUID , Ref<RenderPass>> passes;
       std::map<UUID , Ref<Pipeline>> pipelines;

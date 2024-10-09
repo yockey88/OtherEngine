@@ -436,8 +436,16 @@ namespace {
     return GetSpace().bbox.extent;
   }
   
-  void Octree::Subdivide(size_t depth) {
-    Initialize(Dimensions());
+  std::array<glm::vec3 , kNumCubeCorners> Octree::Corners() const {
+    return GetSpace().bbox.Corners();
+  }
+  
+  void Octree::Subdivide(const glm::vec3& dim , size_t depth) {
+    if (dim == glm::zero<glm::vec3>()) {
+      return;
+    }
+
+    Initialize(dim);
     GetSpace().Subdivide(depth);
   }
 
@@ -500,7 +508,6 @@ namespace {
   
   void Octree::Initialize(const glm::vec3& dim) {
     octants.Clear();
-    dimensions = dim;
 
     {
       auto [tidx , s] = octants.EmplaceBackNoLock(); 

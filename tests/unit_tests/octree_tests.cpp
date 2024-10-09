@@ -63,7 +63,8 @@ TEST_F(OctreeTests , depth_0) {
 
   Ref<Octree> tree = NewRef<Octree>();
   ASSERT_NE(tree , nullptr);
-  tree->Subdivide(kDepth);
+
+  tree->Subdivide({ 1.f , 1.f , 1.f } , kDepth);
   ASSERT_EQ(tree->NumOctants() , 1);
   ASSERT_EQ(tree->Depth() , kDepth);
 
@@ -84,7 +85,7 @@ TEST_F(OctreeTests , depth_1) {
 
   Ref<Octree> tree = NewRef<Octree>();
   ASSERT_NE(tree , nullptr);
-  tree->Subdivide(kDepth);
+  tree->Subdivide({ 1.f , 1.f , 1.f } , kDepth);
 
   ASSERT_EQ(tree->NumOctants() , 1 + 8);
   ASSERT_EQ(tree->Depth() , kDepth);
@@ -124,7 +125,7 @@ TEST_F(OctreeTests , higher_res_2) {
 
   Ref<Octree> tree = NewRef<Octree>();
   ASSERT_NE(tree , nullptr);
-  tree->Subdivide(kDepth);
+  tree->Subdivide({ 1.f , 1.f , 1.f } , kDepth);
 
   {
     Octant& space = tree->GetSpace();
@@ -231,7 +232,7 @@ TEST_F(OctreeTests , higher_res_3) {
 
   Ref<Octree> tree = NewRef<Octree>();
   ASSERT_NE(tree , nullptr);
-  tree->Subdivide(kDepth);
+  tree->Subdivide({ 1.f , 1.f , 1.f } , kDepth);
   {
     Octant& space = tree->GetSpace();
     ASSERT_EQ(space.GetMaxDepth() , 3);
@@ -317,6 +318,8 @@ TEST_F(OctreeTests , search_for_point) {
     Ref<Octree> tree = NewRef<Octree>();
     ASSERT_NE(tree , nullptr);
 
+    tree->Subdivide({ 100.f , 100.f , 100.f }, 4);
+
     /// the only space containing the origin is the root
     Octant& octant = tree->GetContainingOctant(glm::vec3{ 0.f , 0.f , 0.f });
     ASSERT_EQ(octant.GetMaxDepth() , 4);
@@ -332,6 +335,8 @@ TEST_F(OctreeTests , search_for_point) {
   { /// does not contain boundaries
     Ref<Octree> tree = NewRef<Octree>();
     ASSERT_NE(tree , nullptr);
+    
+    tree->Subdivide({ 100.f , 100.f , 100.f }, 0);
 
     Octant& octant = tree->GetContainingOctant(glm::vec3{ 50.f , 50.f , 50.f });
     ASSERT_EQ(octant.GetMaxDepth() , 0);
@@ -348,8 +353,9 @@ TEST_F(OctreeTests , search_for_point) {
     Ref<Octree> tree = NewRef<Octree>();
     ASSERT_NE(tree , nullptr);
 
+    tree->Subdivide({ 100.f , 100.f , 100.f }, 1);
+
     Octant& octant = tree->GetContainingOctant(glm::vec3{ 25.f , 25.f , 25.f });
-    ASSERT_EQ(octant.tree_index , 1);
     ASSERT_EQ(octant.GetMaxDepth() , 0);
     ASSERT_EQ(octant.partition_index , 0);
     ASSERT_EQ(octant.partition_location , 0b000);

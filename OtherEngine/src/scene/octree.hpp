@@ -256,7 +256,10 @@ namespace other {
       Octant& GetSpace();
       const Octant& GetSpace() const;
       glm::vec3 Dimensions() const;
-      void Subdivide(size_t depth);
+
+      std::array<glm::vec3 , kNumCubeCorners> Corners() const;
+
+      void Subdivide(const glm::vec3& dimensions , size_t depth);
       bool Contains(const glm::vec3& point) const;
 
       void MoveOriginTo(const glm::vec3& origin);
@@ -284,14 +287,14 @@ namespace other {
 
     private:
       /// space == root, it is a single octant that represents the entire space
-      size_t space_index = 0;
+      constexpr inline static size_t space_index = 0;
+
       Octant* space = nullptr;
       StableVector<Octant> octants;
-      glm::vec3 global_position{ 0.f };
 
       size_t depth = 0;
       const size_t num_octants = 0;
-      glm::vec3 dimensions = glm::vec3(0.f);
+      glm::vec3 global_position{ 0.f };
 
       void Initialize(const glm::vec3& dim);
 

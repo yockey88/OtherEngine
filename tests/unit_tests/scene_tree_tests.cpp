@@ -107,8 +107,8 @@ TEST_F(SceneTreeTests , add_scene_high_res) {
   ASSERT_NE(tree , nullptr);
   ASSERT_NE(tree->octree , nullptr);
   
-  tree->octree->Subdivide(3);          // 8^0 + 8^1 + 8^2 + 8^3
-  ASSERT_EQ(tree->octree->NumOctants() , 1 + 8 + 64 + 512);
+  tree->octree->Subdivide({ 1.f , 1.f , 1.f } , 3);
+  ASSERT_EQ(tree->octree->NumOctants() , 1 + 8 + 64 + 512); // 8^0 + 8^1 + 8^2 + 8^3
   ASSERT_EQ(tree->octree->Depth() , 3);
   ASSERT_FALSE(tree->octree->GetSpace().IsLeaf());
   
@@ -174,8 +174,6 @@ TEST_F(SceneTreeTests , add_scene_high_res) {
   ASSERT_TRUE(negyposxz.IsLeaf());
   ASSERT_EQ(negyposxz.partition_location , 0b010);
   ASSERT_EQ(negyposxz.Entities().size() , 1);
-
-  tree->octree->PrintOctants(std::cout);
 }
 
 void SceneTreeTests::SetUpTestSuite() {
