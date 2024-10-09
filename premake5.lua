@@ -13,9 +13,11 @@ configuration.build_configurations = { "Debug", "Release" }
 configuration.platforms = { "Windows" }
 
 configuration.groups = {
+  ["OtherMath"] = { "./OtherMath" } ,
+  ["OtherRenderer"] = { "./OtherRenderer" } ,
+  ["DotOther"] = { "./DotOther" } ,
   ["OtherEngine"] = { "./OtherEngine" } ,
   ["OtherEngine-CsCore"] = { "./OtherEngine-ScriptCore/cs" } ,
-  ["DotOther"] = { "./DotOther" } ,
 
   ["OtherEngine-Tools"] = { "./OtherEngine-Launcher" } ,
 
