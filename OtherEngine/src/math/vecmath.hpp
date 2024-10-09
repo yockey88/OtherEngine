@@ -375,7 +375,7 @@ namespace other {
   constexpr inline checked_product<4 , float , glm::defaultp> vec4_product;
   
 } // namespace other
-
+  
 template <glm::length_t N , typename T, glm::qualifier Q>
 struct fmt::formatter<glm::vec<N , T , Q>> : public fmt::formatter<std::string_view> {
   auto format(const glm::vec<N , T , Q>& vec , fmt::format_context& ctx) {
@@ -397,7 +397,7 @@ struct fmt::formatter<glm::vec<N , T , Q>> : public fmt::formatter<std::string_v
     return fmt::formatter<std::string_view>::format(other::fmtstr("{}" , ss.str()) , ctx);
   }
 };
-
+  
 template <>
 struct fmt::formatter<glm::mat4> : public fmt::formatter<std::string_view> {
   auto format(const glm::mat4& mat , fmt::format_context& ctx) {

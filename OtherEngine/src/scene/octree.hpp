@@ -8,7 +8,6 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <glm/fwd.hpp>
 #include <ostream>
 #include <string_view>
 #include <vector>
@@ -19,6 +18,7 @@
 #endif
 
 #include <glm/glm.hpp>
+#include <glm/fwd.hpp>
 #include <spdlog/fmt/fmt.h>
 
 #include <core/stable_vector.hpp>

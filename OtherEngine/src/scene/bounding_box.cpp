@@ -22,6 +22,7 @@ namespace other {
 
   void BoundingBox::ExpandToInclude(const glm::vec3& point) {
     if (Contains(point)) {
+      OE_TRACE("Point {} is already contained in bounding box" , point);
       return;
     }
 

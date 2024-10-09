@@ -130,6 +130,7 @@ TEST_F(OctreeTests , higher_res_2) {
     Octant& space = tree->GetSpace();
     ASSERT_FALSE(space.IsLeaf());
     ASSERT_EQ(space.GetMaxDepth() , 2);
+    ASSERT_EQ(space.GetMaxDepth() , 2);
     ASSERT_EQ(space.tree_index , 0);
     ASSERT_EQ(space.partition_index , 0);
     ASSERT_EQ(space.partition_location , 0b000);
@@ -137,6 +138,9 @@ TEST_F(OctreeTests , higher_res_2) {
     for (auto& c : space.Children()) {
       ASSERT_NE(c , nullptr);
       ASSERT_FALSE(c->IsLeaf());
+      ASSERT_EQ(c->GetMaxDepth() , 1);
+      ASSERT_EQ(c->partition_index , kLocationIndex.at(c->partition_location));
+      ASSERT_EQ(c->partition_location , other::kOctantLocations[c->partition_index]);
       ASSERT_EQ(c->GetMaxDepth() , 1);
       ASSERT_EQ(c->partition_index , kLocationIndex.at(c->partition_location));
       ASSERT_EQ(c->partition_location , other::kOctantLocations[c->partition_index]);

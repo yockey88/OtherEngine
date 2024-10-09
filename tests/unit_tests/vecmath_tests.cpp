@@ -15,19 +15,19 @@ class VecmathTests : public other::OtherTest {
 };
 
 TEST_F(VecmathTests, epsilon_clamp) {
-  ASSERT_EQ(EpsilonClamp(0.0f), 0.0f);
-  ASSERT_EQ(EpsilonClamp(0.1f), 0.1f);
-  ASSERT_EQ(EpsilonClamp(-0.1f), -0.1f);
-  ASSERT_EQ(EpsilonClamp(0.0001f), 0.0001f);
-  ASSERT_EQ(EpsilonClamp(-0.0001f), -0.0001f);
-  ASSERT_EQ(EpsilonClamp(0.00001f), 0.00001f);
-  ASSERT_EQ(EpsilonClamp(-0.00001f), -0.00001f);
-  ASSERT_EQ(EpsilonClamp(0.000001f), 0.000001f);
-  ASSERT_EQ(EpsilonClamp(-0.000001f), -0.000001f);
-  ASSERT_EQ(EpsilonClamp(0.0000001f), 0);
-  ASSERT_EQ(EpsilonClamp(-0.0000001f), 0);
-  ASSERT_EQ(EpsilonClamp(std::numeric_limits<float>::epsilon()), 0);
-  ASSERT_EQ(EpsilonClamp(-std::numeric_limits<float>::epsilon()), 0);
+  ASSERT_EQ(EpsilonClamp<float>(0.0f), 0.0f);
+  ASSERT_EQ(EpsilonClamp<float>(0.1f), 0.1f);
+  ASSERT_EQ(EpsilonClamp<float>(-0.1f), -0.1f);
+  ASSERT_EQ(EpsilonClamp<float>(0.0001f), 0.0001f);
+  ASSERT_EQ(EpsilonClamp<float>(-0.0001f), -0.0001f);
+  ASSERT_EQ(EpsilonClamp<float>(0.00001f), 0.00001f);
+  ASSERT_EQ(EpsilonClamp<float>(-0.00001f), -0.00001f);
+  ASSERT_EQ(EpsilonClamp<float>(0.000001f), 0.000001f);
+  ASSERT_EQ(EpsilonClamp<float>(-0.000001f), -0.000001f);
+  ASSERT_EQ(EpsilonClamp<float>(0.0000001f), 0);
+  ASSERT_EQ(EpsilonClamp<float>(-0.0000001f), 0);
+  ASSERT_EQ(EpsilonClamp<float>(std::numeric_limits<float>::epsilon()), 0);
+  ASSERT_EQ(EpsilonClamp<float>(-std::numeric_limits<float>::epsilon()), 0);
 }
 
 TEST_F(VecmathTests, epsilon_zero) {
