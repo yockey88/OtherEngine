@@ -13,9 +13,7 @@ namespace other {
   }
 
   bool LanguageModule::HasScript(const std::string_view name) {
-    std::string case_insensitive_name;
-    std::transform(name.begin() , name.end() , std::back_inserter(case_insensitive_name) , ::toupper);
-    UUID id = FNV(case_insensitive_name);
+    UUID id = FNV(name);
     bool has = HasScript(id);
     if (has) {
       return true;

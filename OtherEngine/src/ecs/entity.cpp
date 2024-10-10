@@ -4,7 +4,6 @@
 #include "ecs/entity.hpp"
 
 #include "scene/scene.hpp"
-#include "scene/octree.hpp"
 
 #include "ecs/components/tag.hpp"
 

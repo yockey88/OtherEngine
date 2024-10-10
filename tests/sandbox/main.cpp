@@ -12,7 +12,6 @@
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <imgui/backends/imgui_impl_sdl2.h>
-#include <rendering/model_factory.hpp>
 
 #include "core/defines.hpp"
 #include "core/logger.hpp"
@@ -25,8 +24,6 @@
 
 #include "application/app.hpp"
 
-#include "asset/asset_manager.hpp"
-
 #include "event/event_queue.hpp"
 
 #include "ecs/entity.hpp"
@@ -36,11 +33,11 @@
 #include "scene/scene_serializer.hpp"
 #include "scene/environment.hpp"
 #include "scene/scene.hpp"
-#include "scene/octree.hpp"
+#include "scene/bvh.hpp"
+
 
 #include "scripting/script_engine.hpp"
 #include "rendering/rendering_defines.hpp"
-#include "rendering/window.hpp"
 #include "rendering/renderer.hpp"
 #include "rendering/shader.hpp"
 #include "rendering/camera_base.hpp"
@@ -236,7 +233,7 @@ int main(int argc , char* argv[]) {
         } ,
         .pipeline_to_pass_map = {
           { FNV("Geometry") , { FNV(geom_pass->Name()) } } ,
-          { FNV("Debug") , { FNV(geom_pass->Name())  } } , // , FNV(normal_pass->Name())
+          { FNV("Debug") , { FNV(pure_geom_pass->Name())  } } , // , FNV(normal_pass->Name())
         } ,
       };
       Ref<SceneRenderer> renderer = NewRef<SceneRenderer>(render_spec);
@@ -284,14 +281,11 @@ int main(int argc , char* argv[]) {
         }
         scene = loaded_scene.scene;
       }
-      Ref<Octree> octree = NewRef<Octree>();
-      octree->Subdivide({ 10.f , 10.f , 10.f } , 3);
-      octree->AddScene(scene , glm::zero<glm::vec3>()); 
 
-      std::array<glm::vec3 , kNumCubeCorners> corners = octree->Corners();
-      glm::vec3 scene_dim = octree->Dimensions();
-
-      AssetHandle cube_model = ModelFactory::CreateBoxWireframe();
+      Ref<BvhTree> bvh = NewRef<BvhTree>(glm::vec3{ 0.f , 0.f , 0.f });
+      
+      bvh->Subdivide({ 10.f , 10.f , 10.f } , 3);
+      bvh->AddScene(scene , glm::zero<glm::vec3>()); 
 
       auto* cube = scene->GetEntity("cube");
       auto* floor = scene->GetEntity("floor");
@@ -299,9 +293,6 @@ int main(int argc , char* argv[]) {
 
       auto& cube_mesh = cube->GetComponent<StaticMesh>();
       cube_mesh.material = cube_material1;
-
-      auto& cube_script = cube->AddComponent<Script>();
-      cube_script.AddScript("TestScript2" , "Other" , "SandboxScripts");
       
       auto& floor_mesh = floor->GetComponent<StaticMesh>();
       floor_mesh.material = cube_material2;
@@ -397,61 +388,23 @@ int main(int argc , char* argv[]) {
         scene->Update(delta);
         scene->LateUpdate(delta);
 
+        // bvh->Rebuild();
+
         Renderer::GetWindow()->Clear();
         // renderer->SetRenderMode(Render)
 
         auto cam = scene->GetPrimaryCamera();
         if (cam == nullptr) {
-          renderer->SubmitCamera(camera);
+          renderer->SubmitCamera(/* editor camera */ camera);
         }
         scene->Render(renderer);
 
-        /// Debug rendering
-        std::vector<RenderSubmission> debug_submissions;
-        Octant& space = octree->GetSpace();
-        const glm::mat4 id = glm::mat4(1.f);
-        glm::mat4 octree_model = glm::scale(id , space.bbox.extent);
-
-        Material mat = {
-          .color = { 1.f , 0.f , 0.f , 1.f } ,
-          .shininess = 1.f ,
-        };
-
-        Ref<StaticModel> octree_mesh = AssetManager::GetAsset<StaticModel>(cube_model);
-        debug_submissions.push_back({
-          .model = octree_mesh ,
-          .transform = octree_model ,
-          .material = mat ,
-          .render_state = RenderState::FILL ,
-          .draw_mode = DrawMode::LINES ,
-        });
-
-        for (const auto& child : space.Children()) {
-          glm::mat4 child_model = glm::translate(id , child->bbox.Center());
-          child_model = glm::scale(child_model , child->bbox.extent);
-          debug_submissions.push_back({
-            .model = octree_mesh ,
-            .transform = child_model ,
-            .material = mat ,
-            .render_state = RenderState::FILL ,
-            .draw_mode = DrawMode::LINES ,
-          });
-
-          for (const auto& gchild : child->Children()) {
-            glm::mat4 gchild_model = glm::translate(id , gchild->bbox.Center());
-            gchild_model = glm::scale(gchild_model , gchild->bbox.extent);
-            debug_submissions.push_back({
-              .model = octree_mesh ,
-              .transform = gchild_model ,
-              .material = mat ,
-              .render_state = RenderState::FILL ,
-              .draw_mode = DrawMode::LINES ,
-            });
-          }
-        }
-
-        for (const auto& sub : debug_submissions) {
-          renderer->SubmitStaticModel("Debug" , sub);
+        /// debug rendering
+        bvh->RenderBounds("Debug" , renderer);
+        bvh->RenderEntityBounds("Debug", renderer);
+        for (auto& [id , e] : scene->SceneEntities()) {
+          OE_ASSERT(e != nullptr , "Entity is null");
+          e->visited = false;
         }
         ///
 
@@ -461,7 +414,7 @@ int main(int argc , char* argv[]) {
         
         auto itr = frames.find(FNV("Geometry"));
         if (itr != frames.end()) {
-          const auto& vp = frames.at(FNV("Geometry"));
+          const auto& vp = itr->second;
           if (render_to_window) {
             Renderer::DrawFramebufferToWindow(vp);
           } else {
@@ -471,8 +424,17 @@ int main(int argc , char* argv[]) {
 
 #define UI_ENABLED 1
 #if UI_ENABLED
+        /// lambda to get fps from delta
+        auto fps = [](float dt) -> float {
+          return (1.f / dt) * 1000.f;
+        };
+
         UI::BeginFrame();
         const ImVec2 win_size = { (float)Renderer::WindowSize().x , (float)Renderer::WindowSize().y };
+        if (ImGui::Begin("Stats")) {
+          ImGui::Text("FPS : %.2f" , fps(delta));
+        }
+        ImGui::End();
 
         if (ImGui::Begin("Frames")) {
           if (!success) {

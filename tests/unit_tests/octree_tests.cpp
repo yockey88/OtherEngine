@@ -8,6 +8,7 @@
 
 #include "core/logger.hpp"
 #include "scene/octree.hpp"
+#include "scene/bvh_node.hpp"
 
 class OctreeTests : public other::OtherTest {
   public:
@@ -28,7 +29,6 @@ using other::NewRef;
 
 using other::ConfigTable;
 using other::Logger;
-
 
 using other::Octree;
 using other::Octant;
@@ -61,11 +61,11 @@ TEST_F(OctreeTests , validate_arrays) {
 TEST_F(OctreeTests , depth_0) {
   constexpr static uint32_t kDepth = 0;
 
-  Ref<Octree> tree = NewRef<Octree>();
+  Ref<Octree> tree = NewRef<Octree>(glm::vec3{ 0.f , 0.f , 0.f });
   ASSERT_NE(tree , nullptr);
 
   tree->Subdivide({ 1.f , 1.f , 1.f } , kDepth);
-  ASSERT_EQ(tree->NumOctants() , 1);
+  ASSERT_EQ(tree->NumNodes() , 1);
   ASSERT_EQ(tree->Depth() , kDepth);
 
   Octant& space = tree->GetSpace();
@@ -83,11 +83,11 @@ TEST_F(OctreeTests , depth_0) {
 TEST_F(OctreeTests , depth_1) {
   constexpr static uint32_t kDepth = 1;
 
-  Ref<Octree> tree = NewRef<Octree>();
+  Ref<Octree> tree = NewRef<Octree>(glm::vec3{ 0.f , 0.f , 0.f });
   ASSERT_NE(tree , nullptr);
   tree->Subdivide({ 1.f , 1.f , 1.f } , kDepth);
 
-  ASSERT_EQ(tree->NumOctants() , 1 + 8);
+  ASSERT_EQ(tree->NumNodes() , 1 + 8);
   ASSERT_EQ(tree->Depth() , kDepth);
 
   Octant& space = tree->GetSpace();
@@ -123,14 +123,13 @@ TEST_F(OctreeTests , depth_1) {
 TEST_F(OctreeTests , higher_res_2) {
   constexpr static uint32_t kDepth = 2;
 
-  Ref<Octree> tree = NewRef<Octree>();
+  Ref<Octree> tree = NewRef<Octree>(glm::vec3{ 0.f , 0.f , 0.f });
   ASSERT_NE(tree , nullptr);
   tree->Subdivide({ 1.f , 1.f , 1.f } , kDepth);
 
   {
     Octant& space = tree->GetSpace();
     ASSERT_FALSE(space.IsLeaf());
-    ASSERT_EQ(space.GetMaxDepth() , 2);
     ASSERT_EQ(space.GetMaxDepth() , 2);
     ASSERT_EQ(space.tree_index , 0);
     ASSERT_EQ(space.partition_index , 0);
@@ -166,7 +165,8 @@ TEST_F(OctreeTests , higher_res_2) {
   }
 
   {
-    Octant& posxyz = tree->FindOctant(0b000 , 1);
+    Octant& posxyz = tree->FindNode(0b000 , 1);
+    ASSERT_FALSE(posxyz.IsLeaf());
     ASSERT_EQ(posxyz.GetMaxDepth() , 1);
     ASSERT_EQ(posxyz.partition_location , 0b000)
       << fmtstr("Expected : {:>03b} , Actual : {:>03b}" , 0b111 , posxyz.partition_location);
@@ -180,7 +180,7 @@ TEST_F(OctreeTests , higher_res_2) {
   }
 
   {
-    Octant& negxyz = tree->FindOctant(0b111 , 1);
+    Octant& negxyz = tree->FindNode(0b111 , 1);
     OE_DEBUG(" > Found octant {}" , negxyz);
     ASSERT_EQ(negxyz.GetMaxDepth() , 1);
     ASSERT_EQ(negxyz.partition_location , 0b111)
@@ -195,7 +195,8 @@ TEST_F(OctreeTests , higher_res_2) {
   }
 
   {
-    Octant& negxposy = tree->FindOctant(0b001 , 1);
+    Octant& negxposy = tree->FindNode(0b001 , 1);
+    ASSERT_EQ(negxposy.Children().size() , 8);
     ASSERT_EQ(negxposy.GetMaxDepth() , 1);
     ASSERT_EQ(negxposy.partition_location , 0b001)
       << fmtstr("Expected : {:>03b} , Actual : {:>03b}" , 0b001 , negxposy.partition_location);
@@ -209,7 +210,7 @@ TEST_F(OctreeTests , higher_res_2) {
   }
 
   {
-    Octant& posxnegy = tree->FindOctant(0b110 , 1);
+    Octant& posxnegy = tree->FindNode(0b110 , 1);
     ASSERT_EQ(posxnegy.GetMaxDepth() , 1);
     ASSERT_EQ(posxnegy.partition_location , 0b110)
       << fmtstr("Expected : {:>03b} , Actual : {:>03b}" , 0b110 , posxnegy.partition_location);
@@ -223,14 +224,14 @@ TEST_F(OctreeTests , higher_res_2) {
   }
 
   auto& space = tree->GetSpace();
-  ASSERT_EQ(space.Min() , space.FindFurthestOctant(0b111).Min());
-  ASSERT_EQ(space.Max() , space.FindFurthestOctant(0b000).Max());
+  ASSERT_EQ(space.Min() , space.FindFurthestNode(0b111).Min());
+  ASSERT_EQ(space.Max() , space.FindFurthestNode(0b000).Max());
 }
 
 TEST_F(OctreeTests , higher_res_3) {
   constexpr static uint32_t kDepth = 3;
 
-  Ref<Octree> tree = NewRef<Octree>();
+  Ref<Octree> tree = NewRef<Octree>(glm::vec3{ 0.f , 0.f , 0.f });
   ASSERT_NE(tree , nullptr);
   tree->Subdivide({ 1.f , 1.f , 1.f } , kDepth);
   {
@@ -260,7 +261,7 @@ TEST_F(OctreeTests , higher_res_3) {
   }
 
   {
-    Octant& posxyz = tree->FindOctant(0b000 , 1);
+    Octant& posxyz = tree->FindNode(0b000 , 1);
     ASSERT_EQ(posxyz.GetMaxDepth() , 2);
     ASSERT_EQ(posxyz.partition_location , 0b000);
 
@@ -273,7 +274,7 @@ TEST_F(OctreeTests , higher_res_3) {
   }
 
   {
-    Octant& negxyz = tree->FindOctant(0b111 , 1);
+    Octant& negxyz = tree->FindNode(0b111 , 1);
     ASSERT_EQ(negxyz.GetMaxDepth() , 2);
     ASSERT_EQ(negxyz.partition_location , 0b111);
 
@@ -287,7 +288,7 @@ TEST_F(OctreeTests , higher_res_3) {
   }
 
   {
-    Octant& negxposy = tree->FindOctant(0b001 , 1);
+    Octant& negxposy = tree->FindNode(0b001 , 1);
     ASSERT_EQ(negxposy.GetMaxDepth() , 2);
     ASSERT_EQ(negxposy.partition_location , 0b001);
 
@@ -300,7 +301,7 @@ TEST_F(OctreeTests , higher_res_3) {
   }
 
   {
-    Octant& posxnegy = tree->FindOctant(0b110 , 1);
+    Octant& posxnegy = tree->FindNode(0b110 , 1);
     ASSERT_EQ(posxnegy.GetMaxDepth() , 2);
     ASSERT_EQ(posxnegy.partition_location , 0b110);
 
@@ -315,13 +316,13 @@ TEST_F(OctreeTests , higher_res_3) {
 
 TEST_F(OctreeTests , search_for_point) {
   {
-    Ref<Octree> tree = NewRef<Octree>();
+    Ref<Octree> tree = NewRef<Octree>(glm::vec3{ 0.f , 0.f , 0.f });
     ASSERT_NE(tree , nullptr);
 
     tree->Subdivide({ 100.f , 100.f , 100.f }, 4);
 
     /// the only space containing the origin is the root
-    Octant& octant = tree->GetContainingOctant(glm::vec3{ 0.f , 0.f , 0.f });
+    Octant& octant = tree->GetContainingNode(glm::vec3{ 0.f , 0.f , 0.f });
     ASSERT_EQ(octant.GetMaxDepth() , 4);
     ASSERT_EQ(octant.tree_index , 0);
     ASSERT_EQ(octant.partition_index , 0);
@@ -333,12 +334,12 @@ TEST_F(OctreeTests , search_for_point) {
   }
 
   { /// does not contain boundaries
-    Ref<Octree> tree = NewRef<Octree>();
+    Ref<Octree> tree = NewRef<Octree>(glm::vec3{ 0.f , 0.f , 0.f });
     ASSERT_NE(tree , nullptr);
     
     tree->Subdivide({ 100.f , 100.f , 100.f }, 0);
 
-    Octant& octant = tree->GetContainingOctant(glm::vec3{ 50.f , 50.f , 50.f });
+    Octant& octant = tree->GetContainingNode(glm::vec3{ 50.f , 50.f , 50.f });
     ASSERT_EQ(octant.GetMaxDepth() , 0);
     ASSERT_EQ(octant.tree_index , 0);
     ASSERT_EQ(octant.partition_index , 0);
@@ -350,12 +351,12 @@ TEST_F(OctreeTests , search_for_point) {
   }
 
   {
-    Ref<Octree> tree = NewRef<Octree>();
+    Ref<Octree> tree = NewRef<Octree>(glm::vec3{ 0.f , 0.f , 0.f });
     ASSERT_NE(tree , nullptr);
 
     tree->Subdivide({ 100.f , 100.f , 100.f }, 1);
 
-    Octant& octant = tree->GetContainingOctant(glm::vec3{ 25.f , 25.f , 25.f });
+    Octant& octant = tree->GetContainingNode(glm::vec3{ 25.f , 25.f , 25.f });
     ASSERT_EQ(octant.GetMaxDepth() , 0);
     ASSERT_EQ(octant.partition_index , 0);
     ASSERT_EQ(octant.partition_location , 0b000);
@@ -369,7 +370,7 @@ TEST_F(OctreeTests , search_for_point) {
 TEST_F(OctreeTests , non_0_origin) {
   constexpr static uint32_t kDepth = 2;
 
-  Ref<Octree> tree = NewRef<Octree>();
+  Ref<Octree> tree = NewRef<Octree>(glm::vec3{ 0.f , 0.f , 0.f });
   ASSERT_NE(tree , nullptr);
 }
 

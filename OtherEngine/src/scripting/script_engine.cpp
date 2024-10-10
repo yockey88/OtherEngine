@@ -362,10 +362,14 @@ namespace other {
       size_t length = path.string().length() - ext;
       std::string name = path.filename().string().substr(ext , length);
       name = name.substr(0 , name.find_last_of('.'));
+      
+      std::string case_ins_name = "";
+      std::transform(name.begin() , name.end() , std::back_inserter(case_ins_name) , ::toupper);
 
       OE_DEBUG("Loading script module {} from [{}]" , name , module->GetLanguageType());
       Ref<ScriptModule> script = module->LoadScriptModule({
         .name = name ,
+        .case_ins_name = case_ins_name ,
         .path = path.string() ,
       });
       loaded_modules[FNV(name)] = script;
