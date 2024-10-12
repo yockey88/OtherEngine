@@ -8,6 +8,12 @@
 
 #include <entt/entt.hpp>
 
+#include <core/dotother_defines.hpp>
+#include <hosting/native_object.hpp>
+#include <reflection/echo_defines.hpp>
+#include <reflection/object_proxy.hpp>
+#include <reflection/reflected_object.hpp>
+
 #include "core/uuid.hpp"
 #include "core/ref.hpp"
 #include "asset/asset.hpp"
@@ -19,26 +25,38 @@
 #include "ecs/components/light_source.hpp"
 #include "ecs/components/script.hpp"
 
-#include "scene/octree.hpp"
 #include "scene/environment.hpp"
 
 #include "scripting/script_object.hpp"
+#include "scripting/cs/cs_object.hpp"
 
 #include "physics/2D/physics_world_2d.hpp"
 #include "physics/3D/physics_world.hpp"
 
 #include "rendering/scene_renderer.hpp"
 
+namespace echo = dotother::echo;
+
 namespace other {
 
   class Entity;
 
-  class Scene : public Asset {
+  class Scene : public Asset , dotother::NObject {
+    ECHO_REFLECT();
     public:
       OE_ASSET(SCENE);
 
       Scene();
-      ~Scene();
+      virtual ~Scene() override;
+
+      UUID SceneHandle() const;
+
+      template <typename Fn>
+      void ForEachEntity(Fn&& fn) {
+        for (auto& [id , ent] : entities) {
+          fn(ent);
+        }
+      }
 
       void Initialize();
       void Start(EngineMode mode = EngineMode::DEBUG); 
@@ -56,9 +74,11 @@ namespace other {
       void Stop(); 
       void Shutdown();
 
+      bool IsHandleValid(Entity* ent) const;
+
       entt::registry& Registry();
 
-      ScriptObject* SceneScriptObject();
+      ScriptRef<CsObject> SceneScriptObject();
 
       Ref<PhysicsWorld2D> Get2DPhysicsWorld() const;
       Ref<PhysicsWorld> GetPhysicsWorld() const;
@@ -129,7 +149,6 @@ namespace other {
     private:
       friend class Entity;
       friend class SceneSerializer;
-      // Octree space_partition;
 
       bool initialized = false;
       bool running = false;
@@ -139,8 +158,8 @@ namespace other {
       bool scene_geometry_changed = true;
 
       entt::registry registry;
-
-      ScriptObject* scene_object = nullptr;
+      UUID scene_handle;
+      ScriptRef<CsObject> scene_object = nullptr;
 
       SystemGroup<Relationship> connection_group;
       SystemGroup<LightSource , Transform> light_group;
@@ -168,5 +187,13 @@ namespace other {
   };
 
 } // namespace other
+
+ECHO_TYPE(
+  type(
+    other::Scene ,
+    refl::attr::bases<dotother::NObject>
+  ) ,
+  func(GetEntity)
+);
 
 #endif // !OTHER_ENGINE_SCENE_HPP

@@ -10,6 +10,7 @@ from ..core import utilities
 from ..core.utilities import Singleton
 from ..core.project_builders import gen_projects, full_build, build_project
 from ..core.file_generators import generate_engine_files
+from ..core.run_tests import run_test
 from ..pipeline.pipeline_env import oe_env
 from ..pipeline.pipeline_env import PipelineConfig
 
@@ -120,7 +121,7 @@ class Pipeline(Singleton):
     else:
       res = 0
       for proj in build_list:
-        res = build_project(proj)
+        res = build_project("Debug" , verbose , proj)
         if res != 0:
           break
       return res
@@ -207,6 +208,16 @@ class Pipeline(Singleton):
     else:
       return self._run_dotnet_project()
 
+  @classmethod
+  def _try_test(self):
+    if oe_env.get_settings().test is None:
+      return 0
+    
+    test_list = oe_env.test_list()
+    ignore_list = oe_env.test_ignore_list()
+    print("> running tests w/ filters : tests = {} , ignore = {}".format("all" if len(test_list) == 0 else test_list, ignore_list))
+    return run_test(test_list , ignore_list if len(test_list) == 0 else [] , [])
+    
   @abstractmethod
   def run(self):
     pass

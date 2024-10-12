@@ -23,9 +23,9 @@ namespace other {
       virtual void Initialize(/* bool editor_script = false */) override {}
       virtual void Shutdown() override {}
       virtual void Reload() override {}
-      virtual bool HasScript(UUID id) override { return false; }
-      virtual bool HasScript(const std::string_view name , const std::string_view nspace = "") override { return false; }
-      virtual ScriptObject* GetScript(const std::string& name , const std::string& nspace = "") override { return nullptr; }
+      virtual bool HasScript(UUID id) const override { return false; }
+      virtual bool HasScript(const std::string_view name , const std::string_view nspace = "") const override { return false; }
+      virtual Ref<ScriptObject> GetScriptObject(const std::string& name , const std::string& nspace) override { return nullptr; }
 
       virtual std::vector<ScriptObjectTag> GetObjectTags() override { return {}; }
 

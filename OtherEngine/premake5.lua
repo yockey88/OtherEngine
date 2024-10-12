@@ -34,16 +34,11 @@ local OtherEngine = {
       "/Zm10",
     }
   end,
-  
-  windows_debug_configuration = function()
-    links {
-      "DbgHelp",
-    }
-    defines {
-      "TRACY_ENABLE" ,
-      "TRACY_ON_DEMAND" ,
-    }
-  end,
+
+  components = {
+    ["DotOther.Native"] = "%{wks.location}/DotOther",
+    [""] = "%{wks.location}/DotOther/NetCore",
+  }
 }
 
 AddProject(OtherEngine)

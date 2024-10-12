@@ -14,7 +14,7 @@ local test_module1 = {
 
   links = function()
     links {
-      "DotOther.Managed",
+      "DotOther.Managed"
     }
   end,
 

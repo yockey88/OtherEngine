@@ -7,9 +7,14 @@
 
 #include <map>
 #include <type_traits>
+#include <vector>
+
+#include <core/stable_vector.hpp>
 
 #include "core/uuid.hpp"
 #include "core/ref_counted.hpp"
+#include "core/ref.hpp"
+
 #include "scripting/script_module.hpp"
 
 namespace other {
@@ -29,30 +34,30 @@ namespace other {
 
       LanguageModuleType GetLanguageType() const;
 
-      bool HasScriptModule(const std::string_view name) const;
-      bool HasScriptModule(UUID id) const;
+      bool HasScript(const std::string_view name);
+      bool HasScript(UUID id) const;
       
-      const ScriptModuleInfo* GetScriptModule(const std::string& name) const;
-      const ScriptModuleInfo* GetScriptModule(const UUID& id) const;
+      const ScriptMetadata* GetScriptMetadata(const std::string& name) const;
+      const ScriptMetadata* GetScriptMetadata(const UUID& id) const;
 
       virtual bool Initialize() = 0;
       virtual void Shutdown() = 0;
       virtual void Reload() = 0;
-      virtual ScriptModule* GetScriptModule(const std::string& name) = 0;
-      virtual ScriptModule* GetScriptModule(const UUID& id) = 0;
-      virtual ScriptModule* LoadScriptModule(const ScriptModuleInfo& module_info) = 0;
-      virtual void UnloadScriptModule(const std::string& name) = 0;
+      virtual Ref<ScriptModule> GetScriptModule(const std::string_view name) = 0;
+      virtual Ref<ScriptModule> GetScriptModule(const UUID& id) = 0;
+      virtual Ref<ScriptModule> LoadScriptModule(const ScriptMetadata& module_info) = 0;
+      virtual void UnloadScript(const std::string& name) = 0;
 
       virtual std::string_view GetModuleName() const = 0;
       virtual std::string_view GetModuleVersion() const = 0;
 
-      const std::map<UUID , ScriptModule*>& GetModules() const;
+      std::map<UUID , Ref<ScriptModule>>& GetModules();
 
     protected:
       LanguageModuleType lang_type;
 
-      std::map<UUID , ScriptModule*> loaded_modules;
-      std::map<UUID , ScriptModuleInfo> loaded_modules_data;
+      std::map<UUID , Ref<ScriptModule>> loaded_modules;
+      std::map<UUID , ScriptMetadata> loaded_modules_data;
 
       bool load_success = false;
   };

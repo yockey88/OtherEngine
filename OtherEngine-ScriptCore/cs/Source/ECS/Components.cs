@@ -3,16 +3,25 @@
 namespace Other {
 
   public abstract class Component {
-
-    public Component() {
-    }
     public Component(OtherObject obj) {
       this.obj = obj;
     }
 
     private OtherObject obj;
 
-    public OtherObject Object { 
+    public UUID ObjectID {
+      get => obj.ObjectID;
+    }
+
+    public UInt32 EntityID {
+      get => obj.EntityID;
+    }
+
+    public IntPtr NativeHandle {
+      get => obj.NativeHandle;
+    }
+
+    public OtherObject Object {
       get => obj;
       set => obj = value;
     }
@@ -21,9 +30,9 @@ namespace Other {
   public class Tag : Component {
     private ulong id;
 
-    public String Name {
-      get => Scene.GetName(id);
-    }
+    // public String Name {
+    //   get => Scene.GetName(id);
+    // }
 
     public ulong ID {
       get => id;

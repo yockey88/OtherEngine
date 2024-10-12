@@ -5,20 +5,27 @@ local native = {
   language = "C++",
   cppdialect = "C++latest",
   staticruntime = "Off",
-  architecture = "x86_64",
   
   files = function()
     files {
-      "./src/**.cpp",
-      "./src/**.hpp",
+      "./**.cpp",
+      "./**.hpp",
       "../NetCore/*.h",
     }
   end,
 
   include_dirs = function()
     includedirs {
-      "./src" ,
+      "." ,
       "../NetCore" ,
+    }
+    links {
+      "spdlog"
+    }
+    externalincludedirs {
+      "%{wks.location}/externals/refl-cpp",
+      "%{wks.location}/externals/spdlog/include",
+      "%{wks.location}/externals/magic_enum",
     }
   end,
 
@@ -31,13 +38,21 @@ local native = {
   windows_configuration = function()
     defines {
       "OE_MODULE" ,
-      "DOTOTHER_WINDOWS" ,
     }
   end,
 
-  components = {
-    ["gtest"] = "%{wks.location}/externals/gtest/googletest/include"
-  } ,
+  windows_debug_configuration = function()
+    defines {
+      "DOTOTHER_WINDOWS_DEBUG"
+    }
+
+    links {
+      "gtest"
+    }
+    externalincludedirs {
+      "%{wks.location}/externals/gtest/googletest/include"
+    }
+  end,
 }
 
-AddProject(native)
+AddExternalProject(native)

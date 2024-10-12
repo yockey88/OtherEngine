@@ -16,6 +16,7 @@ class BufferTests : public other::OtherTest {
 
     void SetUp() override {
       other::OtherTest::SetUp();
+
       ASSERT_EQ(buffer.Size() , 0u) <<
         "Buffer size is not initially zero!";
       ASSERT_EQ(buffer.Capacity() , 0u) <<
@@ -27,6 +28,7 @@ class BufferTests : public other::OtherTest {
     void TearDown() override {
       ASSERT_NO_FATAL_FAILURE(std::cout << "END OF TEST DUMP :\n" << buffer.DumpBuffer() << "\n");
       ASSERT_NO_FATAL_FAILURE(buffer.Release());
+      
       other::OtherTest::TearDown();
     }
 

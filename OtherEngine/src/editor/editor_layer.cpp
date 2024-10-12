@@ -62,10 +62,11 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
 
     LoadEditorScripts(editor_config);
 
-    for (const auto& [id , script] : editor_scripts.scripts) {
-      script->Initialize();
-      script->Start();
-    }
+    editor_scripts.ApiCall("NativeInitialize");
+    editor_scripts.ApiCall("OnInitialize");
+
+    editor_scripts.ApiCall("NativeStart");
+    editor_scripts.ApiCall("OnStart");
 
     panel_manager = NewScope<PanelManager>();
     panel_manager->Attach((Editor*)ParentApp() , AppState::ProjectContext() , editor_config);
@@ -74,12 +75,11 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
   }
 
   void EditorLayer::OnDetach() {
-    for (const auto& [id , script] : editor_scripts.scripts) {
-      script->Stop();
-      script->Shutdown();
-      script->OnBehaviorUnload();
-    }
-    editor_scripts.scripts.clear();
+    editor_scripts.ApiCall("OnStop");
+    editor_scripts.ApiCall("NativeStop");
+    editor_scripts.ApiCall("OnShutdown");
+    editor_scripts.ApiCall("NativeShutdown");
+    editor_scripts.ApiCall("OnBehaviorUnload");
     panel_manager->Detach();
 
     EditorImages::Shutdown();
@@ -110,6 +110,8 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
 
     panel_manager->EarlyUpdate(dt);
 
+    editor_scripts.ApiCall("EarlyUpdate" , dt);
+
     AppState::Scenes()->EarlyUpdateScene(dt);
   }
 
@@ -117,9 +119,7 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
     panel_manager->Update(dt);
 
     /// after all early updates, update client and script
-    for (const auto& [id , script] : editor_scripts.scripts) {
-      script->Update(dt);
-    }
+    editor_scripts.ApiCall("Update" , dt);
 
     AppState::Scenes()->UpdateScene(dt);
   }
@@ -128,9 +128,7 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
     panel_manager->LateUpdate(dt);
 
     /// after all early updates, update client and script
-    for (const auto& [id , script] : editor_scripts.scripts) {
-      script->LateUpdate(dt);
-    }
+    editor_scripts.ApiCall("LateUpdate" , dt);
 
     AppState::Scenes()->LateUpdateScene(dt);
     if (camera_free && !playing) {
@@ -235,9 +233,7 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
     }
     ImGui::End();
 
-    for (const auto& [id , script] : editor_scripts.scripts) {
-      script->RenderUI();
-    }
+    editor_scripts.ApiCall("RenderUI");
 
     panel_manager->RenderUI();
 #endif
@@ -273,10 +269,6 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
         camera_free = false;
       
         return true;
-      } 
-
-      if (Keyboard::LCtrlLayer() && key.Key() == Keyboard::Key::OE_W) {
-        default_renderer->ToggleWireframe();
       }
 
       return false;
@@ -305,37 +297,37 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
   }
 
   void EditorLayer::OnScriptReload() {
-    editor_scripts.scripts.clear();
-    for (const auto& [id , info] : editor_scripts.data) {
-      ScriptModule* mod = ScriptEngine::GetScriptModule(info.module);
-      if (mod == nullptr) {
-        OE_ERROR("Failed to find editor scripting module {} [{}]" , info.module , FNV(info.module));
-        continue;
-      }
+    // editor_scripts.Clear();
+    // for (const auto& [id , info] : editor_scripts.data) {
+    //   Ref<ScriptModule> mod = ScriptEngine::GetScriptModule(info.module);
+    //   if (mod == nullptr) {
+    //     OE_ERROR("Failed to find editor scripting module {} [{}]" , info.module , FNV(info.module));
+    //     continue;
+    //   }
 
-      std::string nspace = "";
-      std::string name = info.obj_name;
-      if (name.find("::") != std::string::npos) {
-        nspace = name.substr(0 , name.find_first_of(":"));
-        OE_DEBUG("Editor script from namespace {}" , nspace);
+    //   std::string nspace = "";
+    //   std::string name = info.obj_name;
+    //   if (name.find("::") != std::string::npos) {
+    //     nspace = name.substr(0 , name.find_first_of(":"));
+    //     OE_DEBUG("Editor script from namespace {}" , nspace);
 
-        name = name.substr(name.find_last_of(":") + 1 , name.length() - nspace.length() - 2);
-        OE_DEBUG(" > with name {}" , name);
-      }
+    //     name = name.substr(name.find_last_of(":") + 1 , name.length() - nspace.length() - 2);
+    //     OE_DEBUG(" > with name {}" , name);
+    //   }
 
-      ScriptObject* inst = mod->GetScript(name , nspace);
-      if (inst == nullptr) {
-        OE_ERROR("Failed to get script {} from script module {}" , name , info.module);
-        continue;
-      } else {
-        std::string case_ins_name;
-        std::transform(name.begin() , name.end() , std::back_inserter(case_ins_name) , ::toupper);
+    //   // ScriptObject* inst = mod->GetScriptObject(name , nspace);
+    //   // if (inst == nullptr) {
+    //   //   OE_ERROR("Failed to get script {} from script module {}" , name , info.module);
+    //   //   continue;
+    //   // } else {
+    //   //   std::string case_ins_name;
+    //   //   std::transform(name.begin() , name.end() , std::back_inserter(case_ins_name) , ::toupper);
 
-        UUID id = FNV(case_ins_name);
-        auto& obj = editor_scripts.scripts[id] = inst;
-        obj->Start();
-      }
-    }
+    //   //   UUID id = FNV(case_ins_name);
+    //   //   auto& obj = editor_scripts.scripts[id] = inst;
+    //   //   obj->Start();
+    //   // }
+    // }
 
     panel_manager->OnScriptReload();
   }
@@ -363,93 +355,8 @@ std::vector<uint32_t> fb_layout{ 2 , 2 };
   }
   
   void EditorLayer::LoadEditorScripts(const ConfigTable& editor_config) {
-    OE_DEBUG("Retrieving scripting modules");
-
-    Ref<LanguageModule> cs_lang_mod = ScriptEngine::GetModule(LanguageModuleType::CS_MODULE);
-    if (cs_lang_mod == nullptr) {
-      OE_ERROR("Failed to load editor scripts, C# module is null!");
-      return;
-    }
-
-    Ref<LanguageModule> lua_module = ScriptEngine::GetModule(LanguageModuleType::LUA_MODULE);
-    if (lua_module == nullptr) {
-      OE_ERROR("Failed to load editor scripts Lua Module is null!");
-      return;
-    }
-
-    auto script_paths = editor_config.Get(kEditorSection , kScriptsValue);
-
-    std::string script_key = std::string{ kEditorSection } + "." + std::string{ kScriptValue };
-    auto script_objs = editor_config.GetKeys(script_key);
-
-    auto project_path = AppState::ProjectContext()->GetMetadata().file_path.parent_path();
-    auto assets_dir = AppState::ProjectContext()->GetMetadata().assets_dir;
-
-    OE_DEBUG("Loading Editor Scripts");
-    for (auto& mod : script_paths) {
-      Path module_path = Path{ mod }; 
-
-      std::string fname = module_path.filename().string();
-      std::string mname = fname.substr(0 , fname.find_last_of('.'));
-      OE_DEBUG("Loading Editor Script Module : {} ({})" , mname , module_path.string());
-
-      if (module_path.extension() == ".dll") {
-        module_path = project_path / "bin" / "Debug" / mod;
-        cs_lang_mod->LoadScriptModule({
-          .name = mname ,
-          .paths = { module_path.string() } ,
-          .type = ScriptModuleType::EDITOR_SCRIPT ,
-        });
-      } else if (module_path.extension() == ".lua") {
-        module_path = assets_dir / "editor" / mod;
-        lua_module->LoadScriptModule({
-          .name = mname ,
-          .paths = { module_path.string() } ,
-          .type = ScriptModuleType::EDITOR_SCRIPT ,
-        });
-      }
-    }
-
-    for (const auto& obj : script_objs) {
-      auto scripts = editor_config.Get(script_key , obj);
-
-      ScriptModule* mod = ScriptEngine::GetScriptModule(obj);
-      if (mod == nullptr) {
-        OE_ERROR("Failed to find editor scripting module {} [{}]" , obj , FNV(obj));
-        continue;
-      }
-
-      for (auto& s : scripts) {
-        OE_DEBUG("Attaching editor script");
-
-        std::string nspace = "";
-        std::string name = s;
-        if (s.find("::") != std::string::npos) {
-          nspace = s.substr(0 , s.find_first_of(":"));
-          OE_DEBUG("Editor script from namespace {}" , nspace);
-
-          name = s.substr(s.find_last_of(":") + 1 , s.length() - nspace.length() - 2);
-          OE_DEBUG(" > with name {}" , name);
-        }
-
-        ScriptObject* inst = mod->GetScript(name , nspace);
-        if (inst == nullptr) {
-          OE_ERROR("Failed to get script {} from script module {}" , s , obj);
-          continue;
-        } else {
-          std::string case_ins_name;
-          std::transform(s.begin() , s.end() , std::back_inserter(case_ins_name) , ::toupper);
-
-          UUID id = FNV(case_ins_name);
-          editor_scripts.data[id] = ScriptObjectData{
-            .module = obj ,
-            .obj_name = s ,
-          };
-          auto& obj = editor_scripts.scripts[id] = inst;
-          obj->Start();
-        }
-      }
-    }
+    OE_DEBUG("Retrieving editor scripts");
+    editor_scripts = ScriptEngine::LoadScriptsFromTable(editor_config , kEditorSection);
   }
       
   Ref<SceneRenderer> EditorLayer::GetDefaultRenderer() {

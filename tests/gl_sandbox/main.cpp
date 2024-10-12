@@ -24,9 +24,12 @@
 #include "core/ref.hpp"
 #include "core/filesystem.hpp"
 #include "core/engine.hpp"
-
-#include "event/event_queue.hpp"
 #include "input/io.hpp"
+
+#include "asset/asset_manager.hpp"
+#include "event/event_queue.hpp"
+
+#include "ecs/components/mesh.hpp"
 
 #include "rendering/rendering_defines.hpp"
 #include "rendering/renderer.hpp"
@@ -40,12 +43,13 @@
 #include "rendering/material.hpp"
 #include "rendering/point_light.hpp"
 #include "rendering/direction_light.hpp"
+#include "rendering/model.hpp"
+#include "rendering/model_factory.hpp"
 #include "rendering/ui/ui.hpp"
 
 #include "sandbox_ui.hpp"
 #include "gl_helpers.hpp"
 #include "shader_embed.hpp"
-#include "mock_app.hpp"
 
 struct Quad {
   uint32_t vao = 0 , vbo = 0 , ebo = 0;
@@ -87,24 +91,15 @@ struct Cube {
 constexpr static uint32_t win_w = 800;
 constexpr static uint32_t win_h = 600;
 
-using other::Ref;
-using other::NewRef;
-
-using other::Scope;
-using other::NewScope;
-
-using other::VertexArray;
-using other::Shader;
-using other::CameraBase;
-using other::PerspectiveCamera;
-using other::Framebuffer;
+using namespace other;
 
 void UpdateCamera(other::Ref<CameraBase>& camera);
 
 int main(int argc , char* argv[]) {
+  int exit = 0;
   try {
     const other::Path glsandbox_dir = "C:/Yock/code/OtherEngine/tests/gl_sandbox";
-    const other::Path config_path = glsandbox_dir / "sandbox.other";
+    const other::Path config_path = glsandbox_dir / "gl_sandbox.other";
 
     other::CmdLine cmd_line(argc , argv);
     cmd_line.SetFlag("--project" , { config_path.string() });
@@ -122,9 +117,9 @@ int main(int argc , char* argv[]) {
     OE_INFO("Shaders Compiled");
 
     Quad quad;
-    CHECK();
+    CHECKGL();
     Cube cube;
-    CHECK();
+    CHECKGL();
 
     OE_INFO("VAOs created");
 
@@ -189,7 +184,7 @@ int main(int argc , char* argv[]) {
       .color = { 1.0f , 1.0f , 1.0f , 1.f } ,
     };
 
-    CHECK();
+    CHECKGL();
 
     uint32_t camera_binding_pnt = 0;
     std::vector<other::Uniform> camera_unis = {
@@ -264,7 +259,10 @@ int main(int argc , char* argv[]) {
           break;
           case SDL_KEYDOWN:
             switch (event.key.keysym.sym) {
-              case SDLK_ESCAPE: running = false; break;
+              case SDLK_ESCAPE: 
+                running = false; 
+                break;
+              break;
               case SDLK_c: 
                 camera_lock = !camera_lock; 
                 if (camera_lock) {
@@ -282,6 +280,9 @@ int main(int argc , char* argv[]) {
         }
 
         ImGui_ImplSDL2_ProcessEvent(&event);
+      }
+      if (!running) {
+        break;
       }
 
       other::EventQueue::Clear();
@@ -309,6 +310,7 @@ int main(int argc , char* argv[]) {
       model1 = glm::rotate(model1 , m1_rotation , { 1.f , 1.f , 1.f });
       m1_rotation += 0.1f;
 
+        glPolygonMode(GL_FRONT_AND_BACK , GL_LINE);
 ///> GBUFFER RENDER
       gbuffer.Bind();
 
@@ -326,7 +328,7 @@ int main(int argc , char* argv[]) {
       material_uniforms->BindBase();
       material_uniforms->LoadFromBuffer(material_buffer);
 
-      cube.Draw(other::TRIANGLES , 2);
+      cube.Draw(other::LINES , 2);
       
       gbuffer.Unbind();
 /// > GBUFFER RENDER
@@ -363,25 +365,20 @@ int main(int argc , char* argv[]) {
 
     glDeleteProgram(shader1);
     glDeleteProgram(shader2);
-
-    other::Renderer::Shutdown();
-    other::EventQueue::Shutdown();
-    other::IO::Shutdown();
-
-    return 0;
+    mock_engine.UnloadApp();
+    other::Logger::Shutdown();
   } catch (const other::IniException& e) {
     std::cout << "caught ini error : " << e.what() << "\n";
+    exit = 1;
   } catch(const std::exception& e) {
     std::cout << "caught std error : " << e.what() << "\n";
+    exit = 1;
   } catch (...) {
     std::cout << "unknown error" << "\n";
+    exit = 1;
   }
-
-  other::Renderer::Shutdown();
-  other::EventQueue::Shutdown();
-  other::IO::Shutdown();
-
-  return 1;
+  std::cout << "Exiting\n";
+  return exit;
 }
   
 Quad::Quad() {

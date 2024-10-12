@@ -6,9 +6,13 @@
 
 #include <string_view>
 
-#include <mono/metadata/appdomain.h>
+#include <core/dotother_defines.hpp>
+#include <hosting/assembly.hpp>
 
 #include "scripting/language_module.hpp"
+
+using dotother::ref;
+using dotother::Assembly;
 
 namespace other {
 
@@ -20,16 +24,13 @@ namespace other {
         : LanguageModule(LanguageModuleType::CS_MODULE) {}
       virtual ~CsModule() override {}
 
-      MonoDomain* RootDomain() const;
-      MonoDomain* AppDomain() const;
-
       virtual bool Initialize() override;
       virtual void Shutdown() override;
       virtual void Reload() override;
-      virtual ScriptModule* GetScriptModule(const std::string& name) override;
-      virtual ScriptModule* GetScriptModule(const UUID& id) override;
-      virtual ScriptModule* LoadScriptModule(const ScriptModuleInfo& module_info) override;
-      virtual void UnloadScriptModule(const std::string& name) override; 
+      virtual Ref<ScriptModule> GetScriptModule(const std::string_view name) override;
+      virtual Ref<ScriptModule> GetScriptModule(const UUID& id) override;
+      virtual Ref<ScriptModule> LoadScriptModule(const ScriptMetadata& module_info) override;
+      virtual void UnloadScript(const std::string& name) override; 
 
       virtual std::string_view GetModuleName() const override { return kModuleName; }
       virtual std::string_view GetModuleVersion() const override { return kModuleVersion; }
@@ -37,18 +38,10 @@ namespace other {
     private:
       constexpr static std::string_view kModuleName = "C#";
       constexpr static std::string_view kModuleVersion = "0.0.1";
-      constexpr static std::string_view kMonoPath = "externals";
-      constexpr static std::string_view kMonoConfigPath = "externals/mono/etc/mono/config";
-      constexpr static std::string_view kRootDomainName = "OTHER-ROOT-DOMAIN";
-      constexpr static std::string_view kAppDomainName = "OTHER-APP-DOMAIN";
-
-      std::filesystem::path mono_path;
-      std::filesystem::path mono_config_path;
-
-      MonoDomain* root_domain = nullptr;
-      MonoDomain* app_domain = nullptr; 
 
       bool load_success = false;
+
+      UUID IdFromName(const std::string_view name) const;
   };
 
 } // namespace other

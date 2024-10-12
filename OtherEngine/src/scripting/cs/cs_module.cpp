@@ -3,171 +3,196 @@
 */
 #include "scripting/cs/cs_module.hpp"
 
-#include <filesystem>
-#include <mono/jit/jit.h>
-#include <mono/metadata/assembly.h>
-#include <mono/metadata/threads.h>
+#include <core/stable_vector.hpp>
+#include <hosting/garbage_collector.hpp>
+#include <hosting/host.hpp>
 
-#include "core/filesystem.hpp"
-#include "core/platform.hpp"
-#include "application/app_state.hpp"
 #include "scripting/cs/cs_script.hpp"
-#include "scripting/cs/cs_script_bindings.hpp"
-#include "scripting/cs/cs_garbage_collector.hpp"
+
+using dotother::ref;
+using dotother::StableVector;
+using dotother::AssemblyContext;
+using dotother::Assembly;
 
 namespace other {
+  
+  static dotother::Host* host = nullptr;
 
-  MonoDomain* CsModule::RootDomain() const {
-    return root_domain;
+namespace {
+
+  struct DotOtherAssemblyContexts {
+    std::map<UUID , int32_t> assembly_ids;
+    std::map<int32_t , AssemblyContext> contexts;
+  };
+
+  static DotOtherAssemblyContexts assembly_contexts;
+
+  static void ManagedLoggingCallback(const dotother::NString message, dotother::MessageLevel level) {
+    switch (level) {
+      case dotother::MessageLevel::TRACE:
+        OE_TRACE(" [DotOther.Managed] : {}" , message);
+      break;
+      case dotother::MessageLevel::DEBUG:
+        OE_DEBUG(" [DotOther.Managed] : {}" , message);
+      break;
+      case dotother::MessageLevel::MESSAGE:
+      case dotother::MessageLevel::INFO:
+        OE_INFO(" [DotOther.Managed] : {}" , message);
+      break;
+      case dotother::MessageLevel::WARNING:
+        OE_WARN(" [DotOther.Managed] : {}" , message);
+      break;
+      case dotother::MessageLevel::ERR:
+        OE_ERROR(" [DotOther.Managed] : {}" , message);
+      break;
+      case dotother::MessageLevel::CRITICAL:
+        OE_CRITICAL(" [DotOther.Managed] : {}" , message);
+      break;
+
+    }
   }
 
-  MonoDomain* CsModule::AppDomain() const {
-    return app_domain;
+  static void NativeLoggingCallback(const std::string_view message, dotother::MessageLevel level) {
+    switch (level) {
+      case dotother::MessageLevel::MESSAGE:
+      case dotother::MessageLevel::TRACE:
+        OE_TRACE(" [DotOther.Native] : {}" , message);
+      break;
+      case dotother::MessageLevel::DEBUG:
+        OE_DEBUG(" [DotOther.Native] : {}" , message);
+      break;
+      case dotother::MessageLevel::INFO:
+        OE_INFO(" [DotOther.Native] : {}" , message);
+      break;
+      case dotother::MessageLevel::WARNING:
+        OE_WARN(" [DotOther.Native] : {}" , message);
+      break;
+      case dotother::MessageLevel::ERR:
+        OE_ERROR(" [DotOther.Native] : {}" , message);
+      break;
+      case dotother::MessageLevel::CRITICAL:
+        OE_CRITICAL(" [DotOther.Native] : {}" , message);
+      break;
+
+    }
   }
+
+} // anonymous namespace
+
+  using namespace std::string_view_literals;
 
   bool CsModule::Initialize() {
-    OE_DEBUG("Initializing Mono Runtime");
+    try {
+      const dotother::HostConfig config = {
+        /// TODO: create dotother config folder to store paths and type/entry point info
+        .host_config_path = DO_STR("./DotOther/Managed/DotOther.Managed.runtimeconfig.json") ,
+        .managed_asm_path = DO_STR("./bin/Debug/DotOther.Managed/net8.0/DotOther.Managed.dll") ,
+        .dotnet_type = DO_STR("DotOther.Managed.DotOtherHost, DotOther.Managed") ,
+        .entry_point = DO_STR("EntryPoint") ,
 
-    mono_path = Filesystem::FindEngineCoreDir(kMonoPath);
-    if (mono_path.empty()) {
-      OE_ERROR("Mono .NET runtime assemblies not found");
-      return load_success;
-    }
+        .exception_callback = [](const dotother::NString message) {
+          std::string  msg = message;
+          OE_ERROR("C# Exception Caught : \n\t{}" , msg);
+        } ,
+        .log_callback = &ManagedLoggingCallback ,
 
-    mono_config_path = Filesystem::FindEngineCoreDir(kMonoConfigPath);
-    if (mono_config_path.empty()) {
-      OE_ERROR("Mono .NET config file not found");
-      return load_success;
-    }
+        /// TODO: decide if DotOther should be responsible for invoking native methods or if it should be the responsibility of the user,
+        ///         not really sure how to handle it in a generic way if it is handled by DotOther, but it would be nice to not have the user implement it
+        .invoke_native_method_hook = [](uint64_t object_handle, const dotother::NString method_name) {
+          std::string mname = method_name;
+          OE_DEBUG("Invoking Native Method on object {:#08x}" , object_handle);
+          OE_DEBUG(" > Method Name: {}" , mname);
+          dotother::InteropInterface::Instance().InvokeNativeFunction(object_handle, mname);
+        },
+        .internal_logging_hook = &NativeLoggingCallback,
+      };
 
-    OE_DEBUG("Mono Path: {}" , mono_path.string());
-    mono_set_dirs(mono_path.string().data() , mono_config_path.string().data());
-    root_domain = mono_jit_init(kRootDomainName.data());
+      host = dotother::Host::Instance(config);
+      OE_ASSERT(host != nullptr , "Failed to create C# host");
 
-    char* app_domain_name = const_cast<char*>(kAppDomainName.data());
-    app_domain = mono_domain_create_appdomain(app_domain_name , nullptr);
-
-    mono_domain_set(app_domain , 0);
-
-    OE_DEBUG("Mono Runtime initialized");
-
-    std::filesystem::path mono_core = std::filesystem::absolute(kEngineCoreDir) / "bin" / "Debug" / "OtherEngine-CsCore" / "OtherEngine-CsCore.dll";
-    if (!Filesystem::FileExists(mono_core.string())) {
-      OE_ERROR("Mono core assembly {} not found, unloading C# module" , mono_core.string());
-
-      mono_domain_set(root_domain , 0);
-      mono_domain_unload(app_domain);
-      mono_jit_cleanup(root_domain);
-      return load_success;
-    }
-
-    LoadScriptModule(ScriptModuleInfo {
-      .name = "C#-Core" ,
-      .paths = { 
-        mono_core.string()
+      if (!host->LoadHost()) {
+        OE_ERROR("Failed to load C# host");
+        return false;
+      } else {
+        OE_DEBUG("Loaded C# Host");
       }
-    });
 
-    load_success = true;
-    return load_success;
+      /// TODO: should clients be responsible for this????
+      host->CallEntryPoint();
+
+      load_success = true;
+      return true;
+    } catch (const std::exception& e) {
+      OE_ERROR("Failed to create C# host : {}" , e.what());
+      return false;
+    }
   }
 
   void CsModule::Shutdown() {
-    if (!load_success) {
+    if (host == nullptr) {
+      OE_WARN("Attempting to shutdown C# module when it is not loaded");
       return;
     }
-    
-    bool blocking = true;
-    CsGarbageCollector::Collect(blocking);
-    
-    for (auto& [id , module] : loaded_modules) {
-      module->Shutdown();
-      delete module;
-    }
+
+    OE_DEBUG("Shutting down C# module");
     loaded_modules.clear();
-    
-    CsScriptBindings::ShutdownBindings();
-    CsGarbageCollector::Shutdown();
 
-    mono_domain_set(root_domain , 0);
-    mono_domain_unload(app_domain);
-    mono_jit_cleanup(root_domain);
+    OE_DEBUG("Unloading loaded C# assemblies");
+    for (auto& [id , ctx] : assembly_contexts.contexts) {
+      OE_DEBUG(" > Unloading assembly context {}" , id);
+      host->UnloadAssemblyContext(ctx);
+    }
 
-    app_domain = nullptr;
-    root_domain = nullptr;
+    dotother::GarbageCollector::Collect(-1 , dotother::GCMode::DEFAULT , true , true);
+    dotother::GarbageCollector::WaitForPendingFinalizers(-1);
+    assembly_contexts.contexts.clear();
 
-    OE_DEBUG("Mono Runtime shutdown");
+    OE_DEBUG("Unloading C# assembly contexts");
+    host->UnloadHost();
+    host = nullptr;
+    dotother::Host::Destroy();
   }
 
   void CsModule::Reload() {
-    bool blocking = true;
-    CsGarbageCollector::Collect(blocking);
+    // auto proj = AppState::ProjectContext();
+    // auto script_file = proj->GetMetadata().cs_project_file;
 
-    CsScriptBindings::ShutdownBindings();
-    CsGarbageCollector::Shutdown();
-
-    mono_domain_set(root_domain, 0);
-    mono_domain_unload(app_domain);
-
-    OE_DEBUG("Reloading Mono Runtime");
+    // for (auto& [id, module] : loaded_modules) {
+    //   module->Shutdown(); 
+    //   delete module;
+    // }
+    // loaded_modules.clear();
     
+    // OE_DEBUG("Kicking off build for scripts {}" , script_file);
 
-    auto proj = AppState::ProjectContext();
-    auto script_file = proj->GetMetadata().cs_project_file;
-
-    for (auto& [id, module] : loaded_modules) {
-      module->Shutdown(); 
-      delete module;
-    }
-    loaded_modules.clear();
+    // if (!PlatformLayer::BuildProject(script_file)) {
+    //   OE_ERROR("Failed to rebuild project scripts");
+    // }
     
-    OE_DEBUG("Kicking off build for scripts {}" , script_file);
+    // auto editor_file = proj->GetMetadata().cs_editor_project_file;
 
-    if (!PlatformLayer::BuildProject(script_file)) {
-      OE_ERROR("Failed to rebuild project scripts");
-    }
+    // OE_DEBUG("Kicking off build for scripts {}" , editor_file);
+
+    // if (!PlatformLayer::BuildProject(editor_file)) {
+    //   OE_ERROR("Failed to rebuild editor scripts");
+    // }
     
-    auto editor_file = proj->GetMetadata().cs_editor_project_file;
-
-    OE_DEBUG("Kicking off build for scripts {}" , editor_file);
-
-    if (!PlatformLayer::BuildProject(editor_file)) {
-      OE_ERROR("Failed to rebuild editor scripts");
-    }
-
-    char* app_domain_name = const_cast<char*>(kAppDomainName.data());
-    app_domain = mono_domain_create_appdomain(app_domain_name , nullptr);
-
-    mono_domain_set(app_domain , true);
-
-    OE_DEBUG("Mono Runtime initialized");
-    
-    for (const auto& [id , module_info] : loaded_modules_data) {
-      LoadScriptModule(module_info);
-    }
+    // for (const auto& [id , module_info] : loaded_modules_data) {
+    //   LoadScript(module_info);
+    // }
   }
       
-  ScriptModule* CsModule::GetScriptModule(const std::string& name) {
+  Ref<ScriptModule> CsModule::GetScriptModule(const std::string_view name) {
     if (!load_success) {
       OE_WARN("Attempting to get script module {} when C# module is not loaded" , name);
       return nullptr;
     }
 
-    std::string case_insensitive_name;
-    std::transform(name.begin() , name.end() , std::back_inserter(case_insensitive_name) , ::toupper);
-
-    auto hash = FNV(case_insensitive_name);
-    OE_DEBUG("Looking for script module {} [{}]" , name , hash);
-
-    auto* module = GetScriptModule(hash);
-    if (module == nullptr) {
-      OE_ERROR("Script module {} not found" , name);
-    }
-
-    return module;
+    auto hash = IdFromName(name);
+    return GetScriptModule(hash);
   }
   
-  ScriptModule* CsModule::GetScriptModule(const UUID& id) {
+  Ref<ScriptModule> CsModule::GetScriptModule(const UUID& id) {
     if (!load_success) {
       OE_WARN("Attempting to get script module {} when C# module is not loaded" , id);
       return nullptr;
@@ -177,53 +202,96 @@ namespace other {
       return loaded_modules[id];
     }
 
-    OE_ERROR("Script module w/ ID [{}] not found" , id.Get());
     return nullptr;
   }
 
-  ScriptModule* CsModule::LoadScriptModule(const ScriptModuleInfo& module_info) {    
-    std::string case_insensitive_name;
-    std::transform(module_info.name.begin() , module_info.name.end() , std::back_inserter(case_insensitive_name) , ::toupper);
+  Ref<ScriptModule> CsModule::LoadScriptModule(const ScriptMetadata& module_info) { 
+    OE_ASSERT(host != nullptr , "Attempting to load script module when C# module is not loaded");   
+    OE_ASSERT(load_success , "Attempting to load script module when C# module is not loaded");
 
-    UUID id = FNV(case_insensitive_name);
-    OE_DEBUG("Loading C# script module {} [{}]" , module_info.name , id);
+    UUID id = IdFromName(module_info.case_ins_name);
+    OE_DEBUG(" > CsModule::LoadScriptModule({}) => id = {}" , module_info.case_ins_name , id);
 
     if (loaded_modules.find(id) != loaded_modules.end()) {
-      OE_ERROR("  > Script module {} already loaded" , module_info.name);
+      OE_WARN("Script module {} already loaded" , module_info.name);
       return loaded_modules[id];
-    } 
+    }
+      
+    AssemblyContext ctx = host->CreateAsmContext(module_info.name);
+    if (ctx.context_id == -1) {
+      OE_ERROR("Failed to create C# core assembly context");
+      return nullptr;
+    } else {
+      OE_DEBUG(" > Created C# assembly context {} [{}]" , module_info.name , ctx.context_id);
+    }
 
-    Path module_path = module_info.paths[0];
-    std::string mod_path_str = module_path.filename().string();
-    std::string mod_name = mod_path_str.substr(0 , mod_path_str.find_last_of('.'));
-    CsScript* script = new CsScript(root_domain , app_domain , module_info.paths[0] , mod_name);
-    loaded_modules[id] = script;
-    loaded_modules[id]->Initialize();
+    assembly_contexts.assembly_ids[id] = ctx.context_id;
+    assembly_contexts.contexts[ctx.context_id] = ctx;
+    OE_DEBUG(" > ctx[{}].LoadAssembly({}) [{}]" , module_info.name , module_info.path , id);
 
+    ref<Assembly> assembly = nullptr;
+    assembly = ctx.LoadAssembly(module_info.path);
+    if (assembly == nullptr) {
+      OE_ERROR("Failed to load C# assembly {} [{}]", module_info.name , id);
+      return nullptr;
+    } else {
+      OE_DEBUG(" > Loaded C# assembly {} [{}]" , module_info.name , id);
+    }
+    
+    auto& m = loaded_modules[id] = NewRef<CsScript>(module_info.name , assembly);
+    m->Initialize();
     loaded_modules_data[id] = module_info;
 
-    if (id.Get() == FNV("C#-CORE")) {
-      CsScriptBindings::InitializeBindings(script->GetImage());
-    }
-
-    return loaded_modules[id];
+    return m;
   }
       
-  void CsModule::UnloadScriptModule(const std::string& name) {
-    std::string case_insensitive_name;
-    std::transform(name.begin() , name.end() , std::back_inserter(case_insensitive_name) , ::toupper);
-
-    UUID id = FNV(case_insensitive_name);
+  void CsModule::UnloadScript(const std::string& name) {
+    UUID id = IdFromName(name);
     OE_DEBUG("Unloading C# script module {} [{}]" , name , id);
 
-    if (loaded_modules.find(id) == loaded_modules.end()) {
-      OE_ERROR("Attempting to unload script module {} that is not loaded" , name);
-      return;
+    /// remove engine data 
+    auto itr = loaded_modules.find(id);
+    if (itr != loaded_modules.end()) {
+      itr->second->Shutdown(); /// this one will garbage collect and compact
+      loaded_modules.erase(itr);
     }
 
-    loaded_modules[id]->Shutdown();
-    delete loaded_modules[id];
-    loaded_modules.erase(id);
+    dotother::GarbageCollector::Collect(-1 , dotother::GCMode::DEFAULT , true , false); /// dont compact
+
+    /* DotOther Code */ {
+      /// find the DotOther ID
+      auto itr = assembly_contexts.assembly_ids.find(id);
+      if (itr == assembly_contexts.assembly_ids.end()) {
+        OE_ERROR("Attempting to unload script module {} that is not loaded" , name);
+        return;
+      }
+
+      auto& [_ , ctx_id] = *itr;
+
+      /// find the DotOther context
+      auto itr2 = assembly_contexts.contexts.find(ctx_id);
+      if (itr2 == assembly_contexts.contexts.end()) {
+        OE_ERROR("assembly ID [{}] is corrupt" , name);
+        return;
+      }
+
+      /* Unregistering from DotOther */ {
+        /// unload this context
+        auto& [__ , ctx] = *itr2;
+        host->UnloadAssemblyContext(ctx);        
+        dotother::GarbageCollector::Collect(ctx_id , dotother::GCMode::DEFAULT , true , false); /// dont compact
+
+        /// erase all DotOther data
+        assembly_contexts.contexts.erase(itr2);
+        assembly_contexts.assembly_ids.erase(itr);
+      }
+    }
+  }
+
+  UUID CsModule::IdFromName(const std::string_view name) const {
+    // std::string case_insensitive_name;
+    // std::transform(name.begin() , name.end() , std::back_inserter(case_insensitive_name) , ::toupper);
+    return FNV(name);
   }
       
 } // namespace other

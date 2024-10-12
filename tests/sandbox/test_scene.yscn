@@ -1,7 +1,7 @@
 [metadata]
 name = "Test Scene"
 entities = {
-  "cube" , 
+  "cube" ,
   "sun" ,
   "floor"
 }
@@ -34,7 +34,7 @@ is-primitive = true
 primitive = 3
 
 [cube.script]
-TestbedScripts = { "Other::TestScript" }
+SandboxScripts = { "Other::TestScript2" }
 
 [sun]
 UUID = 4025795962345870502
@@ -42,9 +42,13 @@ components = {
   light-source
 }
 
+[sun.transform]
+position = { -1.0 , 1.0 , -1.0 } 
+rotation = { 0 , 0 , 0 , 0 }
+scale = { 0.2 , 0.2 , 0.2 }
+
 [sun.light-source]
 type = 0
-
 
 [floor]
 UUID = 14382231788964811176
