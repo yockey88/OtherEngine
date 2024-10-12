@@ -5,6 +5,7 @@
 #define OTHER_ENGINE_COMPONENT_HPP
 
 #include <cstdint>
+#include <entt/entity/fwd.hpp>
 #include <string>
 #include <type_traits>
 #include <array>
@@ -13,6 +14,8 @@
 #include <entt/entt.hpp>
 #include <entt/entity/group.hpp>
 #include <entt/meta/meta.hpp>
+
+#include "core/uuid.hpp"
 
 namespace other {
 
@@ -76,10 +79,16 @@ namespace other {
       static int32_t GetComponentIdxFromTag(const std::string_view tag);
   };
 
+  class Entity;
+
   struct Component {
     // Component() {}
     Component(int32_t idx) : component_idx(idx) {}
     virtual ~Component() = default;
+
+    UUID parent_uuid = 0;
+    entt::entity parent_id = entt::null;
+    Entity* parent_handle = nullptr;
 
     int32_t component_idx = -1;
     virtual std::string GetComponentName() const = 0;

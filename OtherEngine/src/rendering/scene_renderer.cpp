@@ -7,6 +7,7 @@
 
 #include "core/defines.hpp"
 
+#include "core/logger.hpp"
 #include "rendering/uniform.hpp"
 
 namespace other {
@@ -17,11 +18,6 @@ namespace other {
   }
 
   SceneRenderer::~SceneRenderer() {
-  }
-      
-  void SceneRenderer::ToggleWireframe() {
-    render_state = (render_state == WIREFRAME) ?
-      FILL : WIREFRAME;
   }
 
   void SceneRenderer::SetViewportSize(const glm::ivec2& size) {
@@ -89,15 +85,30 @@ namespace other {
     itr->second->SubmitStaticModel(model , transform , material);
   }
   
-  void SceneRenderer::EndScene() {
-    if (!FrameComplete()) {
-      ResetFrame(); 
+  void SceneRenderer::SubmitStaticModel(const std::string_view pl_name , const RenderSubmission& submission) {
+    if (submission.model == nullptr) {
       return;
+    }
+
+    auto itr = pipelines.find(FNV(pl_name)); 
+    if (itr == pipelines.end()) {
+      OE_ERROR("Submitting model to unknown pipeline {}!" , pl_name);
+      return;
+    }
+
+    itr->second->SubmitStaticModel(submission);
+  }
+  
+  bool SceneRenderer::EndScene() {
+    if (!FrameComplete()) {
+      ResetFrame();
+      return false;
     }
 
     PreRenderSettings();
     FlushDrawList();
     ResetFrame(); 
+    return true;
   }
       
   void SceneRenderer::ClearPipelines() {
@@ -151,21 +162,6 @@ namespace other {
   void SceneRenderer::PreRenderSettings() {
     /// TODO: figure out why glPolygonMode causes INVALID ENUM ?? here 
     ///       but not below
-    // glPolygonMode(GL_FRONT_AND_BACK , render_state);
-    switch (render_state) {
-      case POINT:
-        glPolygonMode(GL_FRONT_AND_BACK , POINT);
-        break;
-
-      case WIREFRAME:
-        glPolygonMode(GL_FRONT_AND_BACK , WIREFRAME);
-        break;
-
-      case FILL:
-      default:
-        glPolygonMode(GL_FRONT_AND_BACK , FILL);
-        break;
-    }
   }
       
   void SceneRenderer::FlushDrawList() {

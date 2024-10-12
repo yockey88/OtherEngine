@@ -20,6 +20,7 @@ namespace DotOther.Managed {
     Failed ,
     InvalidPath ,
     InvalidAssembly ,
+    CorruptContext,
     UnknownError
   }
 
@@ -39,7 +40,8 @@ namespace DotOther.Managed {
       load_errors.Add(typeof(FileNotFoundException), AsmLoadStatus.NotFound);
       load_errors.Add(typeof(FileLoadException), AsmLoadStatus.Failed);
       load_errors.Add(typeof(ArgumentNullException), AsmLoadStatus.InvalidPath);
-      load_errors.Add(typeof(ArgumentException), AsmLoadStatus.InvalidPath);
+      load_errors.Add(typeof(ArgumentException), AsmLoadStatus.InvalidAssembly);
+      load_errors.Add(typeof(NullReferenceException), AsmLoadStatus.CorruptContext);
 
       dotother_asm_context = AssemblyLoadContext.GetLoadContext(typeof(AssemblyLoader).Assembly);
       dotother_asm_context!.Resolving += ResolveAssembly;
@@ -76,6 +78,7 @@ namespace DotOther.Managed {
           }
         }
       } catch (Exception e) {
+        LogMessage($"Failed to resolve assembly {asm_name} | \n\t{e.StackTrace}", MessageLevel.Error);
         HandleException(e);
       }
       return null;
@@ -131,13 +134,9 @@ namespace DotOther.Managed {
           if (!h.IsAllocated || h.Target == null) {
             continue;
           }
-
-          LogMessage($"Found unfreed object '{h.Target}' from assembly '{asm_name}'. Deallocating.", MessageLevel.Warning);
           h.Free();
         }
       }
-
-      // ManagedObject.s_CachedMethods.Clear();
 
       InteropInterface.cached_types.Clear();
       InteropInterface.cached_methods.Clear();
@@ -156,28 +155,32 @@ namespace DotOther.Managed {
 
         if (string.IsNullOrEmpty(file_path)) {
           last_load_status = AsmLoadStatus.InvalidPath;
+          LogMessage($"Failed to load assembly : '{file_path}', path is invalid", MessageLevel.Error);
           return -1;
         }
 
         if (!File.Exists(file_path)) {
+          last_load_status = AsmLoadStatus.NotFound;
           LogMessage($"Failed to load assembly : '{file_path}', file not found", MessageLevel.Error);
           return -1;
         } else {
-          LogMessage($"Found assembly file '{file_path}'", MessageLevel.Trace);
+          LogMessage($" > Found assembly file '{file_path}'", MessageLevel.Trace);
         }
 
         if (!contexts.TryGetValue(context_id, out var alc)) {
+          last_load_status = AsmLoadStatus.InvalidAssembly;
           LogMessage($"Failed to load assembly '{file_path}', couldn't find Load Context with id '{context_id}'", MessageLevel.Error);
           return -1;
         } else {
-          LogMessage($"Found Load Context with id '{context_id}'", MessageLevel.Trace);
+          LogMessage($" > Found Load Context with id '{context_id}'", MessageLevel.Trace);
         }
 
         if (alc == null) {
+          last_load_status = AsmLoadStatus.CorruptContext;
           LogMessage($"Failed to load assembly '{file_path}', Load Context with id '{context_id}' is null", MessageLevel.Error);
           return -1;
         } else {
-          LogMessage($"Load Context with id '{context_id}' is not null", MessageLevel.Trace);
+          LogMessage($" > Load Context with id '{context_id}' is not null", MessageLevel.Trace);
         }
 
         Assembly? asm = null;
@@ -188,12 +191,13 @@ namespace DotOther.Managed {
         }
 
         var name = asm.GetName();
-        LogMessage($"Loading assembly : '{name}' [{context_id}]", MessageLevel.Info);
+        LogMessage($"Successfully loaded assembly : '{name}' [{context_id}]", MessageLevel.Info);
         
         Int32 asm_id = name.Name!.GetHashCode();
         try {
           assemblies.Add(asm_id, asm);
         } catch (Exception e) {
+          last_load_status = AsmLoadStatus.Failed;
           HandleException(e);
           return -1;
         }
@@ -201,6 +205,7 @@ namespace DotOther.Managed {
         last_load_status = AsmLoadStatus.Success;
         return asm_id;
       } catch (Exception e) {
+        LogMessage($"Failed to load assembly '{file_path}' | \n\t{e.StackTrace}", MessageLevel.Error);
         HandleException(e);
         return -1;
       }

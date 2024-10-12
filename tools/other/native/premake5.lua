@@ -18,6 +18,10 @@ local oe_native = {
       "./src",
       "%{wks.location}/OtherEngine/src"
     }
+    externalincludedirs {
+      "%{wks.location}/DotOther/NetCore",
+      "%{wks.location}/externals/gtest/googlemock/include"
+    }
   end,
 
   links = function()
@@ -36,6 +40,11 @@ local oe_native = {
       "OE_MODULE",
     }
   end,
+
+  components = {
+    ["OtherEngine"] = "%{wks.location}/OtherEngine/src",
+    ["OtherEngine.Native"] = "%{wks.location}/OtherEngine/src",
+  }
 }
 
 AddModule(oe_native)

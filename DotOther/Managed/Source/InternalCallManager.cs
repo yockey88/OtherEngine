@@ -26,14 +26,14 @@ namespace DotOther.Managed.Interop {
           LogMessage($"Cannot register internal call with null name!", MessageLevel.Error);
           return;
         } else {
-          LogMessage($"  > Registering internal call '{name}'...", MessageLevel.Info);
+          LogMessage($"Registering internal call '{name}'...", MessageLevel.Info);
         }
 
         var name_start = name.IndexOf('+');
         var name_end = name.IndexOf(",", name_start, StringComparison.CurrentCulture);
         var field_name = name.Substring(name_start + 1, name_end - name_start - 1);
         var containing_type_name = name.Remove(name_start, name_end - name_start);
-        LogMessage($"  > Internal Call : Field Name = {field_name}, Type Name = {containing_type_name}", MessageLevel.Info);
+        LogMessage($"  > Internal Call : Field Name = {field_name}, Type Name = {containing_type_name}", MessageLevel.Trace);
 
         var type = InteropInterface.FindType(containing_type_name);
 
@@ -41,7 +41,7 @@ namespace DotOther.Managed.Interop {
           LogMessage($"Cannot register internal call '{name}', failed to find type '{containing_type_name}'.", MessageLevel.Error);
           return;
         } else {
-          LogMessage($"  > Found Type : {type}", MessageLevel.Info);
+          LogMessage($"  > Found Type : {type}", MessageLevel.Trace);
         }
 
         var binding_flags = BindingFlags.Static | BindingFlags.NonPublic;
@@ -50,7 +50,7 @@ namespace DotOther.Managed.Interop {
           LogMessage($"Cannot register internal '{name}', failed to find corresponding delegate in type '{containing_type_name}'", MessageLevel.Error);
           return;
         } else {
-          LogMessage($"  > Found Field : {field.Name}", MessageLevel.Info);
+          LogMessage($"  > Found Field : {field.Name}", MessageLevel.Trace);
         }
 
         var field_type = field.FieldType;
@@ -58,10 +58,11 @@ namespace DotOther.Managed.Interop {
           LogMessage($"Field '{name}' is not a valid delegate for function!", MessageLevel.Error);
           return;
         } else {
-          LogMessage($"  > Field '{name}' is a valid delegate", MessageLevel.Info);
+          LogMessage($"  > Field '{name}' is a valid delegate", MessageLevel.Trace);
         }
 
         LogMessage($"Internal call '{name}' registered in type '{containing_type_name}'!", MessageLevel.Info);
+        LogMessage($"  > [{call.Name} | 0x{call.Target.ToInt64():x}] registered", MessageLevel.Debug);
         field.SetValue(null, call.Target);
       } catch (Exception ex) {
         Console.WriteLine($"Exception: {ex} in {ex.StackTrace}");

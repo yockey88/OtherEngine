@@ -15,11 +15,11 @@ title = "Other Engine Sandbox"
 cull-face = false
 
 [log]
-console-level = "Debug" 
+console-level = "debug" 
 file-level = "trace"
 path = "./logs/sandbox.log"
 
 [script-engine.C#]
-paths = { 
-  "SandboxScripts.dll" 
+modules = { 
+  "SandboxScripts.dll"
 }

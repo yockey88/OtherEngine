@@ -79,7 +79,7 @@ namespace other {
       } break;
 
       case kCubeIdx: {
-        mesh.handle = ModelFactory::CreateBox(scale);
+        mesh.handle = ModelFactory::CreateBox();
       } break;
 
       case kSphereIdx:

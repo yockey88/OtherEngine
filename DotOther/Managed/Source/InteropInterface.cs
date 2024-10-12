@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace DotOther.Managed {
 
@@ -87,7 +88,31 @@ namespace DotOther.Managed {
 																					null, args!, null, null);
 		}
 
-		internal static unsafe T? FindSuitableMethod<T>(string? method_name, ManagedType* param_type, Int32 argc, ReadOnlySpan<T> methods) where T : MethodBase {
+		private static string GetNoMethodFoundErrorMsg<T>(string method_name , Int32 argc , ReadOnlySpan<T> methods) where T : MethodBase {
+			StringBuilder sb = new();
+			sb.Append($"Couldn't find suitable method '{method_name}' with {argc} arguments\n");
+			if (argc > 0) {
+				/// <fixme> why doesn't this work to get GetName??? <fixme>
+				// sb.Append("	Parameter types:\n");
+
+				// for (Int32 i = 0; i < argc; i++) {
+				// 	ManagedType mtype = param_types[i];
+				// 	sb.Append($"		> {mtype.GetName}\n");
+				// }
+			}
+			sb.Append("	Available methods:\n");
+			foreach (var minfo in methods) {
+				if (minfo.Name != method_name) {
+					continue;
+				}
+
+				sb.Append($"		> {minfo}\n");
+			}
+
+			return sb.ToString();
+		}
+
+		internal static unsafe T? FindSuitableMethod<T>(string? method_name, ManagedType* param_types, Int32 argc, ReadOnlySpan<T> methods) where T : MethodBase {
 			if (method_name == null) {
 				return null;
 			}
@@ -115,15 +140,39 @@ namespace DotOther.Managed {
 						ptype = ManagedType.Unknown;
 					}
 
-					if (ptype == param_type[i]) {
+					if (ptype == param_types[i]) {
 						type_match++;
 					}
 				}
 
 				if (type_match == argc) {
 					return minfo;
+				} else {
+					LogMessage($"Method '{minfo}' doesn't match the required types", MessageLevel.Trace);
 				}
 			}
+
+			StringBuilder sb = new();
+			sb.Append($"Couldn't find suitable method '{method_name}' with {argc} arguments\n");
+			if (argc > 0) {
+				/// <fixme> why doesn't this work to get GetName??? <fixme>
+				// sb.Append("	Parameter types:\n");
+
+				// for (Int32 i = 0; i < argc; i++) {
+				// 	ManagedType mtype = param_types[i];
+				// 	sb.Append($"		> {mtype.GetName}\n");
+				// }
+			}
+			sb.Append("	Available methods:\n");
+			foreach (var minfo in methods) {
+				if (minfo.Name != method_name) {
+					continue;
+				}
+
+				sb.Append($"		> {minfo}\n");
+			}
+
+			LogMessage($"{GetNoMethodFoundErrorMsg(method_name , argc , methods)}", MessageLevel.Error);
 
 			return null;
 		}
@@ -145,6 +194,8 @@ namespace DotOther.Managed {
 				ReadOnlySpan<Type> asm_types = asm.GetTypes();
 				if (out_type_count != null) {
 					*out_type_count = asm_types.Length;
+				} else {
+					LogMessage($"Found {asm_types.Length} types in assembly {asm.FullName}", MessageLevel.Trace);
 				}
 
 				if (out_types != null) {
@@ -195,6 +246,7 @@ namespace DotOther.Managed {
 
 				return type.FullName;
 			} catch (Exception ex) {
+				LogMessage($"Failed to get full type name for type {type_id} : StackTrace: {ex.StackTrace}\n", MessageLevel.Error);
 				HandleException(ex);
 				return NString.Null();
 			}

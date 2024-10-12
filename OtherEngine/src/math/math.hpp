@@ -21,6 +21,18 @@ namespace other {
     }
   }
 
+  constexpr static inline size_t FastPow(size_t base , size_t exp) {
+    size_t result = 1;
+    while (exp > 0) {
+      if (exp & 1) {
+        result *= base;
+      }
+      base *= base;
+      exp >>= 1;
+    }
+    return result;
+  }
+
 } // namespace other
 
 #endif // !OTHER_ENGINE_MATH_HPP

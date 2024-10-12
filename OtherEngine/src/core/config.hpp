@@ -18,6 +18,7 @@ namespace other {
       ~ConfigTable() = default;
 
       void Add(const std::string_view section, const std::string_view key = "", const std::string_view value = "" , bool is_string = false);
+      void Add(const std::string_view section, const std::string_view key , const std::vector<std::string>& list , bool is_string = false);
 
       const std::map<uint64_t , std::vector<std::string>> Get(const std::string_view section) const;
       const std::vector<std::string> Get(const std::string_view section, const std::string_view key) const;

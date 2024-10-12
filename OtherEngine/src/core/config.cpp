@@ -69,6 +69,12 @@ namespace other {
 
     table[sec_hash][key_hash].push_back(val);
   }
+  
+  void ConfigTable::Add(const std::string_view section, const std::string_view key , const std::vector<std::string>& list , bool is_string) {
+    for (const auto& val : list) {
+      Add(section , key , val , is_string);
+    }
+  }
 
   const std::map<uint64_t , std::vector<std::string>> ConfigTable::Get(const std::string_view section) const {
     std::string sec = section.data();

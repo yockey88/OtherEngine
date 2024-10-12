@@ -119,10 +119,10 @@ namespace other {
     OE_DEBUG("Unloading application");
 
     OnUnload();
-    
-    scene_manager = nullptr;
-    asset_handler = nullptr;
+
     layer_stack = nullptr;
+    asset_handler = nullptr;
+    scene_manager = nullptr;
 
     OE_DEBUG(" > Application unloaded");
   }

@@ -3,26 +3,23 @@
  **/
 #include "scripting/script_object.hpp"
 
+#include "ecs/entity.hpp"
+
 namespace  other {
-      
-  void ScriptObject::SetEntityId(UUID id) {
-    entity_id = id;
-    OnSetEntityId();
-  }
 
   UUID ScriptObject::GetEntityId() const {
-    return entity_id;
+    return handles.entity_id;
   }
 
-  const std::string& ScriptObject::ScriptName() const {
-    return script_module_name;
+  const std::string_view ScriptObject::ScriptInstanceName() const {
+    return script_instance_name;
   }
 
   const Opt<std::string> ScriptObject::NameSpace() const {
     return name_space; 
   }
 
-  const std::string& ScriptObject::Name() const {
+  const std::string_view ScriptObject::Name() const {
     return script_name;
   }
       
@@ -48,10 +45,6 @@ namespace  other {
 
   const std::map<UUID , ScriptField>& ScriptObject::GetFields() const {
     return fields; 
-  }
-      
-  Opt<Value> ScriptObject::OnCallMethod(const std::string_view name , Parameter* args , uint32_t argc) {
-    return std::nullopt; 
   }
 
 } // namespace other

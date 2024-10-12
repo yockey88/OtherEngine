@@ -5,8 +5,8 @@
 #define OTHER_ENGINE_BUFFER_HPP
 
 #include <cstdint>
-#include <array>
 #include <numeric>
+#include <reflection/echo_defines.hpp>
 #include <span>
 
 #include <glm/gtc/type_ptr.hpp>
@@ -15,10 +15,6 @@
 #include "math/vecmath.hpp"
 
 namespace other {
-
-  template <typename T , typename U , size_t N>
-    concept ContainerType = std::same_as<T , std::span<U , N>> || std::same_as<T , std::array<U , N>> ||
-                            std::same_as<T , std::vector<U>>;
 
   class Buffer {
     public:
@@ -54,6 +50,7 @@ namespace other {
       void Write(const void* data , uint64_t size , uint64_t offset = 0);
 
       template <typename T>
+        requires std::is_trivially_copyable_v<T>
       void Write(const T& value) {
         if constexpr (std::same_as<T , std::string> || std::same_as<T , std::string_view>) {
           Allocate(value.length() + 1);
@@ -112,6 +109,7 @@ namespace other {
       }
 
       template <typename U>
+        requires std::is_trivially_copyable_v<U>
       void WriteArr(const std::span<U>& container , size_t start_index = 0 , size_t num_elts = 0) {
         if (num_elts == 0) {
           num_elts = container.size();
@@ -142,12 +140,14 @@ namespace other {
       uint8_t operator[](uint64_t offset) const;
 
       template <typename T>
+        requires std::is_trivially_copyable_v<T>
       const T* As() const {
         OE_ASSERT(sizeof(T) <= capacity , "Attempting to retrieve data is incorrectly sized type");
         return reinterpret_cast<T*>(&data[0]);
       }
 
       template <typename T>
+        requires std::is_trivially_copyable_v<T>
       T& At(size_t index) {
         OE_ASSERT(sizeof(T) <= capacity , "Attempting to retrieve data with incorrectly sized type! sizeof({}) == {} > {}" , 
                   typeid(T).name() , sizeof(T) , capacity);
@@ -163,6 +163,7 @@ namespace other {
       };
       
       template <typename T>
+        requires std::is_trivially_copyable_v<T>
       const T& At(size_t index) const {
         return At<T>(index);
       };
@@ -187,5 +188,14 @@ namespace other {
   };
 
 } // namespace other
+
+ECHO_TYPE(
+  type(other::Buffer) ,
+  func(Size , property("size")) ,
+  func(Capacity , property("capacity")) ,
+  func(NumElements , property("num_elements")) ,
+  func(Read) ,
+  func(Write)
+)
 
 #endif // !OTHER_ENGINE_BUFFER_HPP

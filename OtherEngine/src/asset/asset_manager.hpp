@@ -6,6 +6,8 @@
 
 #include "application/app_state.hpp"
 
+#include "asset/asset.hpp"
+
 namespace other {
 
   class AssetManager {

@@ -19,6 +19,7 @@ from dataclasses import dataclass
 class PipelineConfig:
   engine_path: str
   project_list = []
+  table: dict[str, any] = None
 
   def __init__(self, engine_path: str = ".", project_list = []):
     self.engine_path = engine_path
@@ -34,7 +35,7 @@ class OtherEnginePipelineEnvironment(Singleton):
   settings: Namespace
   project_config: str
 
-  pipeline_config = None
+  pipeline_config: PipelineConfig = None
 
   help_printed: bool = False
 
@@ -124,6 +125,9 @@ class OtherEnginePipelineEnvironment(Singleton):
     
   def help_was_printed(self):
     return self.help_printed
+  
+  def get_config_section(self, section):
+    return self.pipeline_config.table[section] if section in self.pipeline_config.table else None
 
   def project_configuration(self):
     return self.project_config
@@ -133,6 +137,25 @@ class OtherEnginePipelineEnvironment(Singleton):
 
   def is_legacy(self):
     return self.settings.legacy_cmd
+  
+  def should_test(self):
+    return self.settings.test is not None
+
+  def test_list(self):
+    return self.settings.test if self.settings.test is not None else []
+  
+  def test_ignore_list(self):
+    if self.pipeline_config.table["testing"] is None:
+      return []
+    
+    testing = self.pipeline_config.table["testing"]
+    if len(testing) == 0:
+      return []
+    
+    for test in testing:
+      if test["ignore"] is not None:
+        return test["ignore"]
+    
 
   def build_list(self):
     return self.settings.build if self.settings.build is not None else []
@@ -152,14 +175,15 @@ class OtherEnginePipelineEnvironment(Singleton):
 
     try:
       projects = table["project"]
-
       projs = []
       for proj in projects:
         projs.append((proj["name"], proj["path"]))
     except KeyError or TypeError:
       projs = []
 
-    return PipelineConfig(engine_path, projs)
+    pc = PipelineConfig(engine_path, projs)
+    pc.table = table
+    return pc
 
 
 oe_env = OtherEnginePipelineEnvironment()

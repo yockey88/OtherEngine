@@ -7,7 +7,7 @@
 #include <glm/glm.hpp>
 
 #include "core/uuid.hpp"
-#include "math/aabb.hpp"
+#include "math/bounding_box.hpp"
 #include "asset/asset.hpp"
 
 #include "rendering/rendering_defines.hpp"
@@ -49,7 +49,7 @@ namespace other {
 
       glm::mat4 transform{ 0.f };
       glm::mat4 local_transform{ 0.f };
-      AABB bounds{};
+      BBox bounds{};
 
       UUID sub_mesh_id;
       std::string model_name;
@@ -119,7 +119,7 @@ namespace other {
       // std::vector<Ref<Material>> materials;
       // std::map<uint32_t , std::vector<Triangle>> triangles;
       
-      AABB bounding_box;
+      BBox bounding_box;
       std::string file_path;
 
       std::vector<MeshNode> nodes;

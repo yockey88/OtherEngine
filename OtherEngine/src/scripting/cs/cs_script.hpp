@@ -4,67 +4,39 @@
 #ifndef OTHER_ENGINE_CS_SCRIPT_HPP
 #define OTHER_ENGINE_CS_SCRIPT_HPP
 
-#include <map>
-
-#include <mono/metadata/appdomain.h>
+#include <Native/hosting/type.hpp>
+#include <Native/hosting/assembly.hpp>
 
 #include "core/UUID.hpp"
 #include "scripting/script_module.hpp"
+#include "scripting/script_object.hpp"
 #include "scripting/cs/cs_object.hpp"
-#include "scripting/cs/cs_script_cache.hpp"
-#include "scripting/cs/cs_garbage_collector.hpp"
+
+using dotother::ref;
+using dotother::Assembly;
+using dotother::Type;
 
 namespace other {
 
   class CsScript : public ScriptModule {
     public:
-      CsScript(MonoDomain* root_domain , MonoDomain* app_domain , const std::string& assembly_path , const std::string& module_name)
-        : ScriptModule(LanguageModuleType::CS_MODULE , module_name) , root_domain(root_domain) , 
-          app_domain(app_domain) , assembly_path(assembly_path) {}
-
-      MonoImage* GetImage() const;
-      MonoAssembly* GetAsm() const;
+      CsScript(const std::string& module_name , ref<Assembly> assembly)
+        : ScriptModule(LanguageModuleType::CS_MODULE , module_name), assembly(assembly) {}
 
       virtual void Initialize() override;
       virtual void Shutdown() override;
       virtual void Reload() override;
-      virtual bool HasScript(UUID id) override;
-      virtual bool HasScript(const std::string_view name , const std::string_view nspace = "") override;
-      virtual ScriptObject* GetScript(const std::string& name , const std::string& nspace = "") override;
+      virtual bool HasScript(UUID id) const override;
+      virtual bool HasScript(const std::string_view name , const std::string_view nspace = "") const override;
+      virtual Ref<ScriptObject> GetScriptObject(const std::string& name , const std::string& nspace) override;
       
       virtual std::vector<ScriptObjectTag> GetObjectTags() override;
 
     private:
-      MonoDomain* root_domain = nullptr;
-      MonoDomain* app_domain = nullptr;
-
-      MonoImage* assembly_image = nullptr;
-      MonoAssembly* assembly = nullptr;
-
-      UUID script_id;
-      
-      struct ScriptSymbol {
-        std::string name_space;
-        std::string name;
-      };
-      
-      std::vector<Path> cs_files;
-      std::vector<Path> editor_files;
-
-      std::map<UUID , ScriptSymbol> loaded_symbols;
-      std::map<UUID , MonoClass*> classes;
-      std::map<UUID , CsObject> loaded_objects;
-      std::map<UUID , GcHandle> gc_handles;
-
-      CsCache cached_symbols;
-
-      std::string assembly_path;
-      
-      void LoadCsFiles();
-
-      MonoClass* GetClass(const std::string& name , const std::string& nspace);
+      ref<Assembly> assembly = nullptr;
+      std::map<UUID , ScriptRef<CsObject>> loaded_objects;
   };
 
 } // namespace other
 
-#endif // !OTHER_ENGINE_MONO_SCRIPT_MODULE_HPP
+#endif // !OTHER_ENGINE_CS_SCRIPT_HPP

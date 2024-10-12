@@ -33,7 +33,7 @@ namespace other {
   template<typename T , bool NS = false>
   class TypeData : public TypeDataBase<T , NS> {
     public:
-      TypeData()
+      constexpr TypeData()
         : name(TypeDataBase<T , NS>::DemangleName(typeid(T).name())) {}
 
       std::string_view Name() { return name; }

@@ -49,4 +49,12 @@ namespace other {
 
 } // namespace other
 
+template <>
+struct fmt::formatter<other::LanguageModuleType> : fmt::formatter<std::string_view> {
+  template <typename FormatContext>
+  auto format(other::LanguageModuleType t , FormatContext& ctx) {
+    return fmt::formatter<std::string_view>::format(other::kModuleNames[t] , ctx);
+  }
+};
+
 #endif // !OTHER_ENGINE_SCRIPT_DEFINES_HPP

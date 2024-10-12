@@ -24,14 +24,14 @@ namespace other {
       return id.Get();
     }
 
-    AssetHandle()
+    constexpr AssetHandle()
       : id(0) {}
 
-    AssetHandle(uint64_t uid) {
+    constexpr AssetHandle(uint64_t uid) {
       id = uid;
     }
 
-    AssetHandle(UUID id) 
+    constexpr AssetHandle(UUID id) 
       : id(id) {}
   };
 

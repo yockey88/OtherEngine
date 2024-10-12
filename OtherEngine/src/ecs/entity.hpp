@@ -20,8 +20,7 @@
 #include "ecs/components/serialization_data.hpp"
 
 namespace other {
-
-  struct Octant;
+  
   class Scene;
 
   class Entity {
@@ -67,6 +66,12 @@ namespace other {
         return registry.get<T>(handle);
       }
 
+      void RegisterComponent(Component& c) {
+        c.parent_handle = this;
+        c.parent_uuid = uuid;
+        c.parent_id = handle;
+      }
+
       template <ComponentType T , typename... Args>
       inline T& AddComponent(Args&&... args) {
         if (HasComponent<T>()) {
@@ -77,14 +82,25 @@ namespace other {
         /// default components, no need to add these to serialization data
         if constexpr (std::is_same_v<T , Tag> || std::is_same_v<T , Transform> || 
                       std::is_same_v<T , Relationship> || std::is_same_v<T , SerializationData>) {
-          return registry.emplace<T>(handle , std::forward<Args>(args)...);
+          auto& c = registry.emplace<T>(handle , std::forward<Args>(args)...);
+          RegisterComponent(c);
+          return c;
         }
         
         auto comp_idx = T().component_idx;
         auto& sdata = GetComponent<SerializationData>();
         sdata.entity_components.insert(comp_idx);
 
-        return registry.emplace<T>(handle , std::forward<Args>(args)...);
+        if constexpr (std::same_as<T , Script>) {
+          auto& script = registry.emplace<T>(handle , std::forward<Args>(args)...);
+          OE_DEBUG("Setting NativeHandle to {:p} | EntityHandle to {}:{}" , fmt::ptr(this) , GetUUID() , (uint32_t)handle);
+          RegisterComponent(script);
+          return script;
+        }
+
+        auto& c = registry.emplace<T>(handle , std::forward<Args>(args)...);
+        RegisterComponent(c);
+        return c;
       }
 
       template<ComponentType T , typename... Args>
@@ -141,9 +157,13 @@ namespace other {
 
       inline bool operator==(const Entity& other) const { return handle == other.handle; }
       inline bool operator!=(const Entity& other) const { return handle != other.handle; }
+      
+      /// for marking as visited during tree traversals
+      bool visited = false;
 
     private:
       friend class Scene;
+
 
       Ref<Scene> context;
 
@@ -158,5 +178,23 @@ namespace other {
   };
 
 } // namespace other
+
+ECHO_TYPE(
+  type(other::Entity) ,
+  func(GetUUID) ,
+  func(Name) ,
+  func(HasComponent) ,
+  func(GetComponent) ,
+  func(ReadComponent) ,
+  func(AddComponent) ,
+  func(AddOrReplace) ,
+  func(ReplaceComponent) ,
+  func(RemoveComponent) ,
+  func(UpdateComponent) ,
+  func(GetEntity) ,
+  func(IsNull) ,
+  func(IsValid) ,
+  func(IsOrphan)
+);
 
 #endif // !OTHER_ENGINE_ENTITY_HPP

@@ -27,6 +27,12 @@ namespace other {
     SHADER_STORAGE = GL_SHADER_STORAGE_BUFFER ,
   };
 
+  enum RenderState {
+    FILL = GL_FILL ,
+    WIREFRAME = GL_LINE ,
+    POINT = GL_POINT ,
+  };
+
   enum DrawMode {
     POINTS = GL_POINTS ,
     LINES = GL_LINES ,
