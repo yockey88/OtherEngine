@@ -27,9 +27,7 @@ namespace dotother {
       }
 
       ~StableVector() {
-        for (size_t i = 0; i < page_count; i++) {
-          delete[] page_table[i];
-        }
+        Clear();
       }
 
       StableVector& operator=(const StableVector& other) {
@@ -44,7 +42,7 @@ namespace dotother {
 
       void Clear() {
         for (size_t i = 0; i < page_count; i++) {
-          delete[] page_table[i];
+          delete page_table[i];
         }
 
         elt_count = 0;

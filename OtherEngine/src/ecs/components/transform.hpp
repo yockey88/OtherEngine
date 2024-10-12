@@ -31,8 +31,8 @@ namespace other {
     [[ maybe_unused ]] const glm::mat4& CalcMatrix() {
       qrotation = glm::quat(erotation);
       model_transform = glm::translate(glm::mat4(1.f) , position) *
-                        glm::toMat4(qrotation) *
-                        glm::scale(glm::mat4(1.f) , scale);
+                        glm::scale(glm::mat4(1.f) , scale) *
+                        glm::toMat4(qrotation);
       return model_transform;
     }
 

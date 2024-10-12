@@ -99,10 +99,6 @@ namespace other {
         // camera_free = false;
       
         // return true;
-      } 
-
-      if (Keyboard::LCtrlLayerKey(Keyboard::Key::OE_W)) {
-        scene_renderer->ToggleWireframe();
       }
 
       return false;

@@ -25,7 +25,6 @@
 #include "ecs/components/light_source.hpp"
 #include "ecs/components/script.hpp"
 
-#include "scene/octree.hpp"
 #include "scene/environment.hpp"
 
 #include "scripting/script_object.hpp"
@@ -51,6 +50,13 @@ namespace other {
       virtual ~Scene() override;
 
       UUID SceneHandle() const;
+
+      template <typename Fn>
+      void ForEachEntity(Fn&& fn) {
+        for (auto& [id , ent] : entities) {
+          fn(ent);
+        }
+      }
 
       void Initialize();
       void Start(EngineMode mode = EngineMode::DEBUG); 
@@ -143,7 +149,6 @@ namespace other {
     private:
       friend class Entity;
       friend class SceneSerializer;
-      // Octree space_partition;
 
       bool initialized = false;
       bool running = false;

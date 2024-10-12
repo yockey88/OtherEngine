@@ -26,23 +26,14 @@ namespace other {
   struct MeshKey {
     AssetHandle source_handle;
     Ref<VertexArray> vao = nullptr;
+    RenderState render_state = RenderState::FILL;
+    DrawMode draw_mode = DrawMode::TRIANGLES;
 
     size_t num_elements = 0;
     bool selected;
+
+    auto operator<=>(const MeshKey& other) const;
   };
-
-} // namespace other
-
-namespace std {
-
-  template <>
-  struct less<other::MeshKey> {
-    bool operator()(const other::MeshKey& lhs , const other::MeshKey& rhs) const;
-  };
-
-} // namespace std
-
-namespace other {
 
   struct PipelineSpec {
     DrawMode topology = DrawMode::TRIANGLES;
@@ -60,6 +51,16 @@ namespace other {
     uint32_t material_binding_point = 0;
 
     std::string debug_name;
+  };
+
+  struct RenderSubmission {
+    Ref<Model> model = nullptr;
+    glm::mat4 transform = glm::mat4(1.f);
+    Material material{};
+    RenderState render_state = RenderState::FILL;
+    DrawMode draw_mode = DrawMode::TRIANGLES;
+
+    operator MeshKey() const;
   };
       
   struct MeshSubmissionList {
@@ -79,6 +80,7 @@ namespace other {
       /// FIXME: material system needs overhaul
       void SubmitModel(Ref<Model> model , const glm::mat4& transform , const Material& color);
       void SubmitStaticModel(Ref<StaticModel> model , const glm::mat4& transform , const Material& color);
+      void SubmitStaticModel(const RenderSubmission& submission);
 
       void Render();
       Ref<Framebuffer> GetOutput();
@@ -99,6 +101,8 @@ namespace other {
       std::vector<Ref<RenderPass>> passes{};
 
       void PerformPass(Ref<RenderPass>& pass);
+
+      FrameMeshes::iterator InsertMeshKey(MeshKey& key , const std::vector<float>& vertices , const std::vector<Index>& indices);
 
       void RenderAll();
       void RenderMeshes(const MeshKey& mesh_key , uint32_t instance_count , const Buffer& model_buffer , const Buffer& material_buffer);

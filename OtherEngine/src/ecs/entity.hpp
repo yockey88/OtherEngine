@@ -20,8 +20,7 @@
 #include "ecs/components/serialization_data.hpp"
 
 namespace other {
-
-  struct Octant;
+  
   class Scene;
 
   class Entity {
@@ -158,9 +157,13 @@ namespace other {
 
       inline bool operator==(const Entity& other) const { return handle == other.handle; }
       inline bool operator!=(const Entity& other) const { return handle != other.handle; }
+      
+      /// for marking as visited during tree traversals
+      bool visited = false;
 
     private:
       friend class Scene;
+
 
       Ref<Scene> context;
 

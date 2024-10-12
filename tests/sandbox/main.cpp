@@ -8,10 +8,10 @@
 #include <SDL_mouse.h>
 #include <glad/glad.h>
 #include <glm/ext/matrix_transform.hpp>
+#include <glm/fwd.hpp>
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <imgui/backends/imgui_impl_sdl2.h>
-#include <rendering/model_factory.hpp>
 
 #include "core/defines.hpp"
 #include "core/logger.hpp"
@@ -29,24 +29,21 @@
 #include "ecs/entity.hpp"
 #include "ecs/components/mesh.hpp"
 #include "ecs/components/light_source.hpp"
-#include "ecs/components/camera.hpp"
 
 #include "scene/scene_serializer.hpp"
 #include "scene/environment.hpp"
 #include "scene/scene.hpp"
+#include "scene/bvh.hpp"
+
 
 #include "scripting/script_engine.hpp"
 #include "rendering/rendering_defines.hpp"
-#include "rendering/window.hpp"
 #include "rendering/renderer.hpp"
 #include "rendering/shader.hpp"
-#include "rendering/texture.hpp"
 #include "rendering/camera_base.hpp"
 #include "rendering/perspective_camera.hpp"
 #include "rendering/framebuffer.hpp"
 #include "rendering/uniform.hpp"
-#include "rendering/model.hpp"
-#include "rendering/model_factory.hpp"
 #include "rendering/material.hpp"
 #include "rendering/point_light.hpp"
 #include "rendering/direction_light.hpp"
@@ -59,7 +56,6 @@
 #include "rendering/ui/ui_helpers.hpp"
 #include "rendering/ui/ui_widgets.hpp"
 
-#include "mock_app.hpp"
 #include "sandbox_ui.hpp"
 
 using namespace other;
@@ -203,7 +199,8 @@ int main(int argc , char* argv[]) {
         .camera_uniforms = NewRef<UniformBuffer>("Camera" , cam_unis , camera_binding_pnt) ,
         .light_uniforms = NewRef<UniformBuffer>("Lights" , light_unis , light_binding_pnt , SHADER_STORAGE) ,
         .pipelines = {
-          {
+      {
+            .topology = DrawMode::TRIANGLES ,
             .framebuffer_spec = {
               .depth_func = LESS_EQUAL ,
               .clear_color = { 0.1f , 0.1f , 0.1f , 1.f } ,
@@ -216,7 +213,8 @@ int main(int argc , char* argv[]) {
             .material_binding_point = material_binding_pnt ,
             .debug_name = "Geometry" , 
           } ,
-          {
+      {
+            .topology = DrawMode::TRIANGLES ,
             .framebuffer_spec = {
               .depth_func = LESS_EQUAL ,
               .clear_color = { 0.1f , 0.1f , 0.1f , 1.f } ,
@@ -235,7 +233,7 @@ int main(int argc , char* argv[]) {
         } ,
         .pipeline_to_pass_map = {
           { FNV("Geometry") , { FNV(geom_pass->Name()) } } ,
-          { FNV("Debug") , { FNV(geom_pass->Name()) , FNV(normal_pass->Name()) } } ,
+          { FNV("Debug") , { FNV(pure_geom_pass->Name())  } } , // , FNV(normal_pass->Name())
         } ,
       };
       Ref<SceneRenderer> renderer = NewRef<SceneRenderer>(render_spec);
@@ -284,15 +282,17 @@ int main(int argc , char* argv[]) {
         scene = loaded_scene.scene;
       }
 
+      Ref<BvhTree> bvh = NewRef<BvhTree>(glm::vec3{ 0.f , 0.f , 0.f });
+      
+      bvh->Subdivide({ 10.f , 10.f , 10.f } , 3);
+      bvh->AddScene(scene , glm::zero<glm::vec3>()); 
+
       auto* cube = scene->GetEntity("cube");
       auto* floor = scene->GetEntity("floor");
       auto* sun = scene->GetEntity("sun");
 
       auto& cube_mesh = cube->GetComponent<StaticMesh>();
       cube_mesh.material = cube_material1;
-
-      auto& cube_script = cube->AddComponent<Script>();
-      cube_script.AddScript("TestScript2" , "Other" , "SandboxScripts");
       
       auto& floor_mesh = floor->GetComponent<StaticMesh>();
       floor_mesh.material = cube_material2;
@@ -332,6 +332,7 @@ int main(int argc , char* argv[]) {
       OE_INFO("Running");
 
       bool render_to_window = true;
+      // renderer->ToggleWireframe();
 
       time::DeltaTime dt;
       dt.Start();
@@ -387,20 +388,33 @@ int main(int argc , char* argv[]) {
         scene->Update(delta);
         scene->LateUpdate(delta);
 
+        bvh->Rebuild();
+
         Renderer::GetWindow()->Clear();
+        // renderer->SetRenderMode(Render)
 
         auto cam = scene->GetPrimaryCamera();
         if (cam == nullptr) {
-          renderer->SubmitCamera(camera);
+          renderer->SubmitCamera(/* editor camera */ camera);
         }
         scene->Render(renderer);
+
+        /// debug rendering
+        bvh->RenderBounds("Debug" , renderer);
+        bvh->RenderEntityBounds("Debug", renderer);
+        for (auto& [id , e] : scene->SceneEntities()) {
+          OE_ASSERT(e != nullptr , "Entity is null");
+          e->visited = false;
+        }
+        ///
+
         bool success = renderer->EndScene();
 
         const auto& frames = renderer->GetRender(); 
         
         auto itr = frames.find(FNV("Geometry"));
         if (itr != frames.end()) {
-          const auto& vp = frames.at(FNV("Geometry"));
+          const auto& vp = itr->second;
           if (render_to_window) {
             Renderer::DrawFramebufferToWindow(vp);
           } else {
@@ -410,8 +424,17 @@ int main(int argc , char* argv[]) {
 
 #define UI_ENABLED 1
 #if UI_ENABLED
+        /// lambda to get fps from delta
+        auto fps = [](float dt) -> float {
+          return (1.f / dt) * 1000.f;
+        };
+
         UI::BeginFrame();
         const ImVec2 win_size = { (float)Renderer::WindowSize().x , (float)Renderer::WindowSize().y };
+        if (ImGui::Begin("Stats")) {
+          ImGui::Text("FPS : %.2f" , fps(delta));
+        }
+        ImGui::End();
 
         if (ImGui::Begin("Frames")) {
           if (!success) {

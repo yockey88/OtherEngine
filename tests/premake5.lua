@@ -105,6 +105,13 @@ local unit_tests = {
       "%{wks.location}/externals/gtest/googlemock/include"
     }
   end,
+
+  defines = function()
+    defines {
+      "OE_MODULE" ,
+      "OE_TESTING_ENVIRONMENT"
+    }
+  end,
   
   components = {
     ["OtherEngine"] = "%{wks.location}/OtherEngine/src",

@@ -22,6 +22,7 @@ namespace detail {
   template <typename T , typename U>
   concept RefCastable = std::is_convertible_v<T, U> || std::is_base_of_v<T, U>;
 
+    // requires std::is_base_of_v<RefCounted , T>
   template <typename T>
   class Ref {
     public:

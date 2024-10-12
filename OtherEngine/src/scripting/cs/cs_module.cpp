@@ -209,8 +209,8 @@ namespace {
     OE_ASSERT(host != nullptr , "Attempting to load script module when C# module is not loaded");   
     OE_ASSERT(load_success , "Attempting to load script module when C# module is not loaded");
 
-    UUID id = IdFromName(module_info.name);
-    OE_DEBUG(" > CsModule::LoadScriptModule({}) => id = {}" , module_info.name , id);
+    UUID id = IdFromName(module_info.case_ins_name);
+    OE_DEBUG(" > CsModule::LoadScriptModule({}) => id = {}" , module_info.case_ins_name , id);
 
     if (loaded_modules.find(id) != loaded_modules.end()) {
       OE_WARN("Script module {} already loaded" , module_info.name);
