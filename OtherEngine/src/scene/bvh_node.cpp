@@ -43,18 +43,7 @@ namespace other {
 
   template <> 
   void BvhNode<2 , HLBVH>::ExpandToInclude(const glm::vec3& point) {
-    if (Contains(point)) {
-      return;
-    }
-    bbox.ExpandToInclude(point);
-  }
-
-  template <>
-  void BvhNode<2 , SAH>::ExpandToInclude(const glm::vec3& point) {
-    if (Contains(point)) {
-      return;
-    }
-    bbox.ExpandToInclude(point);
+    OE_ASSERT(false , "ExpandToInclude not implemented for BvhNode<2 , HLBVH>!");
   }
 
   template <>
@@ -71,7 +60,27 @@ namespace other {
       return;
     }
 
-    child->InsertEntity(entity , position);
+    child->InsertEntity(entity , position , location);
+  }
+  
+  template <>
+  bool BvhNode<2 , HLBVH>::NeedsRebuild(BvhNode<2 , HLBVH>* space , const std::vector<Entity*>& entities) {
+    return false;
+    
+    // if (space->IsLeaf()) { 
+    //   return false;
+    // }
+
+    // for (const auto& e : entities) {
+    //   if (!space->Contains(e->ReadComponent<Transform>().position)) {
+    //     return true;
+    //   }
+    // }
+
+    // bool left_rebuild = NeedsRebuild(space->children[LEFT] , entities);
+    // bool right_rebuild = NeedsRebuild(space->children[RIGHT] , entities);
+
+    // return left_rebuild || right_rebuild;
   }
 
   template <>
@@ -206,101 +215,77 @@ namespace other {
   template <>
   BvhNode<2 , HLBVH>* BvhNode<2 , HLBVH>::RebuildTree(BvhNode<2 , HLBVH>* space , std::vector<Entity*>& entities) {
     OE_ASSERT(space != nullptr , "Space is null!");
-
-    OE_TRACE("Tree entities to bound : {}", entities.size());
-    if (entities.empty() || entities.size() == 1) {
-      if (entities.size() == 1) {
-        std::ranges::copy(entities , std::back_inserter(space->entities));
-      }
+    bool needs_rebuild = NeedsRebuild(space , entities);
+    if (space->built) {
       return space;
-    } else {
-      /// global min max
-      glm::vec3 min {
-        std::numeric_limits<float>::max() ,
-      };
-      glm::vec3 max {
-        std::numeric_limits<float>::min() ,
-      };
-
-      BBox space_box;
-
-      std::ranges::sort(entities , [](const Entity* e1 , const Entity* e2) -> bool {
-        auto& t1 = e1->ReadComponent<Transform>();
-        auto& t2 = e2->ReadComponent<Transform>();
-        return vec3_lt(t1.position , t2.position);
-      });
-
-      std::stack<BvhNode<2 , HLBVH>*> pear_stack{};
-      std::vector<BvhNode<2 , HLBVH>*> nodes = entities |
-        /// get the entity bounding boxes and their min max values
-        std::views::transform([&](Entity* entity) -> BvhNode<2 , HLBVH>* {
-          auto& t = entity->ReadComponent<Transform>();
-
-          glm::vec3 half_scale = vec3_div(t.scale , 2.f);
-          glm::vec3 e_min = vec3_sub(t.position, half_scale);
-          glm::vec3 e_max = vec3_sum(t.position, half_scale);
-
-          if (vec3_lt(e_min , min)) {
-            min = t.position;
-            space_box = BBox(min , max);
-          } else if (vec3_gt(e_max , max)) {
-            max = t.position;
-            space_box = BBox(min , max);
-          }
-
-          auto [tidx , node] = space->nodes->EmplaceBackNoLock();
-          node.tree = space->tree;
-          node.nodes = space->nodes;
-          node.bbox = BBox(e_min , e_max);
-          node.global_position = node.bbox.Center();
-          node.tree_index = tidx;
-          node.partition_index = 0;
-          node.partition_location = 0b000;
-          node.parent = nullptr;
-          node.entities.push_back(entity);
-          std::ranges::fill(node.children , nullptr);
-
-          return &(*space->nodes)[tidx];
-        }) |
-        std::ranges::to<std::vector<BvhNode<2 , HLBVH>*>>();
-
-      OE_ASSERT(nodes.size() >= 2 && nodes.size() == entities.size() , "Invalid number of nodes : {} != {}" , nodes.size() , entities.size());
-      if (nodes.size() == 2) {
-        auto* lchild = nodes[0];
-        auto* rchild = nodes[1];
-        OE_ASSERT(lchild != nullptr , "Left child is null!");
-        OE_ASSERT(rchild != nullptr , "Right child is null!");
-
-        space->bbox = BBox::Union(lchild->bbox , rchild->bbox);
-        space->children[LEFT] = lchild;
-        space->children[RIGHT] = rchild;
-
-        for (const auto& e : lchild->entities) {
-          space->entities.push_back(e);
-        }
-
-        for (const auto& e : rchild->entities) {
-          space->entities.push_back(e);
-        }
-
-        return space;
-      } 
-      /// > 2
-      else {
-        return TreeFromSortedList(space , nodes);
-      }
     }
-    OE_ASSERT(false , "UNREACHABLE CODE");
+
+    if (entities.empty()) {
+      return space;
+    } else if (entities.size() == 1) {
+      std::ranges::copy(entities , std::back_inserter(space->entities));
+      return space;
+    }
+
+    std::ranges::sort(entities , [](const Entity* e1 , const Entity* e2) -> bool {
+      auto& t1 = e1->ReadComponent<Transform>();
+      auto& t2 = e2->ReadComponent<Transform>();
+      return vec3_lt(t1.position , t2.position);
+    });
+
+    std::stack<BvhNode<2 , HLBVH>*> pear_stack{};
+    std::vector<BvhNode<2 , HLBVH>*> nodes = entities |
+      /// get the entity bounding boxes and their min max values
+      std::views::transform([&](Entity* entity) -> BvhNode<2 , HLBVH>* {
+        auto& t = entity->ReadComponent<Transform>();
+
+        glm::vec3 half_scale = vec3_div(t.scale , 2.f);
+        glm::vec3 e_min = vec3_sub(t.position, half_scale);
+        glm::vec3 e_max = vec3_sum(t.position, half_scale);
+
+        auto [tidx , node] = space->nodes->EmplaceBackNoLock();
+        node.tree = space->tree;
+        node.nodes = space->nodes;
+        node.bbox = BBox(e_min , e_max);
+        node.global_position = node.bbox.Center();
+        node.tree_index = tidx;
+        node.partition_index = 0;
+        node.partition_location = 0b000;
+        node.parent = nullptr;
+        node.entities.push_back(entity);
+        std::ranges::fill(node.children , nullptr);
+
+        return &(*space->nodes)[tidx];
+      }) |
+      std::ranges::to<std::vector<BvhNode<2 , HLBVH>*>>();
+
+    OE_ASSERT(nodes.size() >= 2 && nodes.size() == entities.size() , "Invalid number of nodes : {} != {}" , nodes.size() , entities.size());
+    if (nodes.size() == 2) {
+      auto* lchild = nodes[0];
+      auto* rchild = nodes[1];
+      OE_ASSERT(lchild != nullptr , "Left child is null!");
+      OE_ASSERT(rchild != nullptr , "Right child is null!");
+
+      space->bbox = BBox::Union(lchild->bbox , rchild->bbox);
+      space->children[LEFT] = lchild;
+      space->children[RIGHT] = rchild;
+
+      for (const auto& [le , re] : std::views::zip(lchild->entities , rchild->entities)) {
+        space->entities.push_back(le);
+        space->entities.push_back(re);
+      }
+    } 
+    /// > 2
+    else {
+      space = TreeFromSortedList(space , nodes);
+    }
+
+    space->built = true;
+    return space;
   }
 
   template <> 
   void BvhNode<2 , HLBVH>::InsertEntity(Entity* entity , const glm::vec3& position , uint8_t location) {
-    OE_ASSERT(entity != nullptr , "Entity is null!");
-    entities.push_back(entity);
-  }
-
-  template <> 
-  void BvhNode<2 , SAH>::InsertEntity(Entity* entity , const glm::vec3& position , uint8_t location) {
     OE_ASSERT(entity != nullptr , "Entity is null!");
     entities.push_back(entity);
   }

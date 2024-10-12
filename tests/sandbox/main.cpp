@@ -388,7 +388,7 @@ int main(int argc , char* argv[]) {
         scene->Update(delta);
         scene->LateUpdate(delta);
 
-        // bvh->Rebuild();
+        bvh->Rebuild();
 
         Renderer::GetWindow()->Clear();
         // renderer->SetRenderMode(Render)

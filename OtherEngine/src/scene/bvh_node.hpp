@@ -177,7 +177,6 @@ namespace other {
 
   enum BvhPartitionAlgorithm {
     OCTREE = 0 ,
-    SAH ,
     HLBVH ,
   };
 
@@ -348,7 +347,18 @@ namespace other {
           RebuildTree(*tree);
         }
       }
-      void AddEntity(Entity* entity , const glm::vec3& position);
+      
+      void AddEntity(Entity* entity , const glm::vec3& position) {
+        if constexpr (N == 8) {
+          ExpandToInclude(position);
+          OE_ASSERT(Contains(position) , "Octant {} does not contain point {}" , *this , position);
+        }
+
+        /// Call specialized tree insertion function with necessary data 
+        ///     loc goes unused for 2 child nodes
+        uint8_t loc = LocationFromPoint(position);
+        InsertEntity(entity , position , loc);
+      }
 
       void Rebuild() {
         if constexpr (N == 2) {
@@ -376,10 +386,11 @@ namespace other {
       StableVector<BvhNode<N , A>>* nodes = nullptr;
       glm::vec3 global_position{ 0.f };
 
+      bool built = false;
+
     private:
       std::array<BvhNode<N , A>*, N> children;
 
-      void InsertEntity(Entity* entity , const glm::vec3& position);
       void InsertEntity(Entity* entity , const glm::vec3& position , uint8_t location);
 
       BvhNode<N , A>* GetNode(const glm::vec3& point);
@@ -414,6 +425,7 @@ namespace other {
         OE_DEBUG("Rebuilt tree {} , {}" , max , min);
       }
 
+      static bool NeedsRebuild(BvhNode<N , A>* space , const std::vector<Entity*>& entities);
       static BvhNode<N , A>* TreeFromSortedList(BvhNode<2 , HLBVH>* space , const std::vector<BvhNode<N , A>*>& nodes);
       static BvhNode<N , A>* RebuildTree(BvhNode<N , A>* space , std::vector<Entity*>& entities);
 
@@ -426,14 +438,6 @@ namespace other {
       FRIEND_TEST(OctreeTests , higher_res_3);
 #endif
   };
-  
-  template <size_t N , BvhPartitionAlgorithm A>
-  void BvhNode<N , A>::AddEntity(Entity* entity , const glm::vec3& position) {
-    ExpandToInclude(position);
-    OE_ASSERT(Contains(position) , "Octant {} does not contain point {}" , *this , position);
-
-    InsertEntity(entity , position);
-  }
 
   template <size_t N , BvhPartitionAlgorithm A>
   void BvhNode<N , A>::Subdivide(size_t d) {
@@ -450,12 +454,6 @@ namespace other {
 
       child->Subdivide(d - 1);
     }
-  }
-  
-  template <size_t N , BvhPartitionAlgorithm A>
-  void BvhNode<N , A>::InsertEntity(Entity* entity , const glm::vec3& position) {
-    uint8_t loc = LocationFromPoint(position);
-    InsertEntity(entity , position , loc);
   }
 
   template <size_t N , BvhPartitionAlgorithm A>
@@ -728,10 +726,8 @@ namespace other {
       for (size_t i = 0; i < N; ++i) {
         SubdivideInDirection(i );
       } 
-    } else if constexpr (A == HLBVH || A == SAH) {
-      /// do nothing for now
-    } else {
-      OE_ASSERT(false , "UNKNOWN partitioning algorithm : {}" , A);
+    } else if constexpr (N == 2) {
+      OE_ASSERT(false , "Cannot force subdivide BVH<2>!");
     }
   }
 

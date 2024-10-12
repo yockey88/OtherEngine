@@ -407,15 +407,6 @@ namespace other {
       }
       return quotient;
     }
-
-    constexpr auto operator()(float lhs , const glm::vec<N , T , Q>& rhs) const {
-      glm::vec<N , T , Q> quotient;
-      for (size_t i = 0; i < N; ++i) {
-        /// dividing by zero is infinity and is checked in EpsilonQuotient
-        quotient[i] = EpsilonQuotient(lhs , rhs[i]);
-      }
-      return quotient;
-    }
   };
   constexpr inline checked_divided<2 , float , glm::defaultp> vec2_div;
   constexpr inline checked_divided<3 , float , glm::defaultp> vec3_div;
