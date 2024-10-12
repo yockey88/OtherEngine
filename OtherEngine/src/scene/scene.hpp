@@ -25,7 +25,6 @@
 #include "ecs/components/light_source.hpp"
 #include "ecs/components/script.hpp"
 
-#include "scene/octree.hpp"
 #include "scene/environment.hpp"
 
 #include "scripting/script_object.hpp"
@@ -150,7 +149,6 @@ namespace other {
     private:
       friend class Entity;
       friend class SceneSerializer;
-      // Octree space_partition;
 
       bool initialized = false;
       bool running = false;

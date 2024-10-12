@@ -1,7 +1,7 @@
 /**
- * \file scene/bounding_box.cpp
+ * \file math/bounding_box.cpp
  **/
-#include "scene/bounding_box.hpp"
+#include "math/bounding_box.hpp"
 
 #include "glm/gtc/epsilon.hpp"
 
@@ -10,19 +10,24 @@
 
 namespace other {
   
-  bool BoundingBox::Contains(const glm::vec3& point) const {
+  bool BBox::Contains(const glm::vec3& point) const {
     return vec3_gte(point , min) && vec3_lte(point , max);
   }
 
-  bool BoundingBox::OnBoundary(const glm::vec3& point) const {
+  bool BBox::OnBoundary(const glm::vec3& point) const {
     return EpsilonEqual(point.x , min.x) || EpsilonEqual(point.x , max.x) ||
            EpsilonEqual(point.y , min.y) || EpsilonEqual(point.y , max.y) ||
            EpsilonEqual(point.z , min.z) || EpsilonEqual(point.z , max.z);
   }
 
-  void BoundingBox::ExpandToInclude(const glm::vec3& point) {
+  Intersection BBox::Intersect(const Ray& ray) const {
+    Intersection intersection;
+    
+    return intersection;
+  }
+
+  void BBox::ExpandToInclude(const glm::vec3& point) {
     if (Contains(point)) {
-      OE_TRACE("Point {} is already contained in bounding box" , point);
       return;
     }
 
@@ -40,13 +45,13 @@ namespace other {
     }
   }
 
-  void BoundingBox::ExpandToFill(const BoundingBox& other) {
+  void BBox::ExpandToFill(const BBox& other) {
     min = vec3_min(min , other.min);
     max = vec3_max(max , other.max);
     extent = vec3_diff(max , min);
   }
 
-  glm::vec3 BoundingBox::Center() const {
+  glm::vec3 BBox::Center() const {
     if (vec3_eq(min , max)) {
       return min;
     }
@@ -63,25 +68,29 @@ namespace other {
     return center;
   }
 
-  uint32_t BoundingBox::MaxDimension() const {
+  float BBox::MaxDimension() const {
     uint32_t result = 0;
     if (extent.y > extent.x) {
       result = 1;
     }
 
-    float dim = result == 0 ? extent.x : extent.y;
-    if (extent.z > dim) {
+    if (extent.z > result == 0 ? extent.x : extent.y) {
       result = 2;
     }
 
-    return result;
+    return extent[result];
+  }
+
+  float BBox::SurfaceArea() const {
+    /// SA = 2(wl + hl + hw)
+    return 2 * (extent.x * extent.y + extent.x * extent.z + extent.y * extent.z);
   }
   
-  const std::array<glm::vec3 , 8>& BoundingBox::Corners() const {
+  const std::array<glm::vec3 , 8>& BBox::Corners() const {
     return corners;
   }
   
-  void BoundingBox::CalculateCorners() {
+  void BBox::CalculateCorners() {
     corners = {
       max , 
       { min.x , max.y , max.z } ,

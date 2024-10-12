@@ -35,7 +35,7 @@ class SceneTreeTests : public OtherTest {
 class SceneTree : public RefCounted {
   public:
     SceneTree() {
-      octree = NewRef<Octree>();
+      octree = NewRef<Octree>(glm::vec3{ 0.f });
     }
     ~SceneTree() {}
 
@@ -56,10 +56,10 @@ TEST_F(SceneTreeTests , add_scene) {
   Ref<SceneTree> tree = NewRef<SceneTree>();
   ASSERT_NE(tree , nullptr);
   ASSERT_NE(tree->octree , nullptr);
-  ASSERT_EQ(tree->octree->NumOctants() , 1);
+  ASSERT_EQ(tree->octree->NumNodes() , 1);
   ASSERT_EQ(tree->octree->Depth() , 0);
   ASSERT_TRUE(tree->octree->GetSpace().IsLeaf());
-  tree->octree->PrintOctants(std::cout);
+  tree->octree->PrintNodes(std::cout);
   
   glm::vec3 max = { 0.5f , 0.5f , 0.5f };
 
@@ -95,8 +95,8 @@ TEST_F(SceneTreeTests , add_scene) {
   }
 
   tree->AddScene(scene , glm::zero<glm::vec3>());
-  tree->octree->PrintOctants(std::cout);
-  ASSERT_EQ(tree->octree->NumOctants() , 1);
+  tree->octree->PrintNodes(std::cout);
+  ASSERT_EQ(tree->octree->NumNodes() , 1);
   ASSERT_EQ(tree->octree->Depth() , 0);
   ASSERT_TRUE(tree->octree->GetSpace().IsLeaf());
   ASSERT_EQ(tree->octree->GetSpace().Entities().size() , 4u);
@@ -108,7 +108,7 @@ TEST_F(SceneTreeTests , add_scene_high_res) {
   ASSERT_NE(tree->octree , nullptr);
   
   tree->octree->Subdivide({ 1.f , 1.f , 1.f } , 3);
-  ASSERT_EQ(tree->octree->NumOctants() , 1 + 8 + 64 + 512); // 8^0 + 8^1 + 8^2 + 8^3
+  ASSERT_EQ(tree->octree->NumNodes() , 1 + 8 + 64 + 512); // 8^0 + 8^1 + 8^2 + 8^3
   ASSERT_EQ(tree->octree->Depth() , 3);
   ASSERT_FALSE(tree->octree->GetSpace().IsLeaf());
   
@@ -146,30 +146,30 @@ TEST_F(SceneTreeTests , add_scene_high_res) {
   }
 
   tree->AddScene(scene , glm::zero<glm::vec3>());
-  ASSERT_EQ(tree->octree->NumOctants() , 1 + 8 + 64 + 512);
+  ASSERT_EQ(tree->octree->NumNodes() , 1 + 8 + 64 + 512);
   ASSERT_EQ(tree->octree->Depth() , 3);
   ASSERT_FALSE(tree->octree->GetSpace().IsLeaf());
-  ASSERT_EQ(tree->octree->GetSpace().Entities().size() , 0);
+  ASSERT_EQ(tree->octree->GetSpace().Entities().size() , 4);
 
-  Octant& posxyz = tree->octree->FindOctant(0b000 , 3);
+  Octant& posxyz = tree->octree->FindNode(0b000 , 3);
   ASSERT_EQ(posxyz.GetMaxDepth() , 0);
   ASSERT_TRUE(posxyz.IsLeaf());
   ASSERT_EQ(posxyz.partition_location , 0b000);
   ASSERT_EQ(posxyz.Entities().size() , 1);
 
-  Octant& negxyz = tree->octree->FindOctant(0b111 , 3);
+  Octant& negxyz = tree->octree->FindNode(0b111 , 3);
   ASSERT_EQ(negxyz.GetMaxDepth() , 0);
   ASSERT_TRUE(negxyz.IsLeaf());
   ASSERT_EQ(negxyz.partition_location , 0b111);
   ASSERT_EQ(negxyz.Entities().size() , 1);
 
-  Octant& posxznegy = tree->octree->FindOctant(0b101 , 3);
+  Octant& posxznegy = tree->octree->FindNode(0b101 , 3);
   ASSERT_EQ(posxznegy.GetMaxDepth() , 0);
   ASSERT_TRUE(posxznegy.IsLeaf());
   ASSERT_EQ(posxznegy.partition_location , 0b101);
   ASSERT_EQ(posxznegy.Entities().size() , 1);
 
-  Octant& negyposxz = tree->octree->FindOctant(0b010 , 3);
+  Octant& negyposxz = tree->octree->FindNode(0b010 , 3);
   ASSERT_EQ(negyposxz.GetMaxDepth() , 0);
   ASSERT_TRUE(negyposxz.IsLeaf());
   ASSERT_EQ(negyposxz.partition_location , 0b010);
@@ -194,7 +194,7 @@ void SceneTreeTests::SetUpTestSuite() {
 }
 
 void SceneTreeTests::TearDownTestSuite() {
-  ASSERT_NO_FATAL_FAILURE(ScriptEngine::Shutdown()); 
+  ASSERT_NO_FATAL_FAILURE(ScriptEngine::Shutdown());
   ASSERT_NO_FATAL_FAILURE(AppState::Shutdown());
   active_app = nullptr;
   CloseLog();

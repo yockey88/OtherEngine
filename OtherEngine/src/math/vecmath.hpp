@@ -98,9 +98,20 @@ namespace other {
   concept epsilon_comparable_with = comparable<T , U> && multi_epsilon_comparable<T , U>;
 
   template <typename T>
+  concept defined_infinity = requires(T t) {
+    std::numeric_limits<T>::infinity();
+  };
+
+  template <typename T>
     requires epsilon_defined<T>
   constexpr T eps() {
     return std::numeric_limits<T>::epsilon();
+  }
+
+  template <typename T>
+    requires defined_infinity<T>
+  constexpr T infinity() {
+    return std::numeric_limits<T>::infinity();
   }
 
   template <typename T>
@@ -150,6 +161,18 @@ namespace other {
   constexpr T EpsilonProduct(T lhs , U rhs) {
     using result_t = std::common_type_t<T , U>;
     return EpsilonClamp<result_t>(lhs * rhs);
+  }
+
+  template <typename T , typename U>
+    requires product_defined<T , U> && epsilon_comparable_with<T , U> && 
+             defined_infinity<U>
+  constexpr T EpsilonQuotient(T lhs , U rhs) {
+    if (EpsilonZero(rhs)) {
+      return std::numeric_limits<T>::infinity();
+    }
+
+    using result_t = std::common_type_t<T , U>;
+    return EpsilonClamp<result_t>(lhs / rhs);
   }
 
   template <typename T , typename U>
@@ -373,6 +396,30 @@ namespace other {
   constexpr inline checked_product<2 , float , glm::defaultp> vec2_product;
   constexpr inline checked_product<3 , float , glm::defaultp> vec3_product;
   constexpr inline checked_product<4 , float , glm::defaultp> vec4_product;
+
+  template <glm::length_t N , typename T , glm::qualifier Q>
+  struct checked_divided {
+    constexpr auto operator()(const glm::vec<N , T , Q>& lhs , float rhs) const {
+      glm::vec<N , T , Q> quotient;
+      for (size_t i = 0; i < N; ++i) {
+        /// dividing by zero is infinity and is checked in EpsilonQuotient
+        quotient[i] = EpsilonQuotient(lhs[i] , rhs);
+      }
+      return quotient;
+    }
+
+    constexpr auto operator()(float lhs , const glm::vec<N , T , Q>& rhs) const {
+      glm::vec<N , T , Q> quotient;
+      for (size_t i = 0; i < N; ++i) {
+        /// dividing by zero is infinity and is checked in EpsilonQuotient
+        quotient[i] = EpsilonQuotient(lhs , rhs[i]);
+      }
+      return quotient;
+    }
+  };
+  constexpr inline checked_divided<2 , float , glm::defaultp> vec2_div;
+  constexpr inline checked_divided<3 , float , glm::defaultp> vec3_div;
+  constexpr inline checked_divided<4 , float , glm::defaultp> vec4_div;
   
 } // namespace other
   
