@@ -129,20 +129,20 @@ namespace other {
     // <-,+,+>     <+,-,->
     // <-,-,+>     <+,+,->
     // <+,-,+>     <-,+,->
-    {kPxPyPzLoc, kNxNyNzLoc},
-    {kNxPyPzLoc, kPxNyNzLoc},
-    {kNxNyPzLoc, kPxPyNzLoc},
-    {kPxNyPzLoc, kNxPyNzLoc},
+    { kPxPyPzLoc, kNxNyNzLoc },
+    { kNxPyPzLoc, kPxNyNzLoc },
+    { kNxNyPzLoc, kPxPyNzLoc },
+    { kPxNyPzLoc, kNxPyNzLoc },
 
     /// -z group of 4 ccw
     // <+,+,->     <-,-,+>
     // <-,+,->     <+,-,+>
     // <-,-,->     <+,+,+>
     // <+,-,->     <-,+,+>
-    {kPxPyNzLoc, kNxNyPzLoc},
-    {kNxPyNzLoc, kPxNyPzLoc},
-    {kNxNyNzLoc, kPxPyPzLoc},
-    {kPxNyNzLoc, kNxPyPzLoc},
+    { kPxPyNzLoc, kNxNyPzLoc },
+    { kNxPyNzLoc, kPxNyPzLoc },
+    { kNxNyNzLoc, kPxPyPzLoc },
+    { kPxNyNzLoc, kNxPyPzLoc },
   };
 
   const static std::map<uint8_t, size_t> kLocationIndex = {
@@ -151,20 +151,20 @@ namespace other {
     // 1 = <-,+,+>
     // 2 = <-,-,+>
     // 3 = <+,-,+>
-    {/* 0b000 */ kPxPyPzLoc, 0},
-    {/* 0b100 */ kNxPyPzLoc, 1},
-    {/* 0b110 */ kNxNyPzLoc, 2},
-    {/* 0b010 */ kPxNyPzLoc, 3},
+    { /* 0b000 */ kPxPyPzLoc, 0 },
+    { /* 0b100 */ kNxPyPzLoc, 1 },
+    { /* 0b110 */ kNxNyPzLoc, 2 },
+    { /* 0b010 */ kPxNyPzLoc, 3 },
 
     /// -z group of 4 ccw
     // 4 = <+,+,->
     // 5 = <-,+,->
     // 6 = <-,-,->
     // 7 = <+,-,->
-    {/* 0b001 */ kPxPyNzLoc, 4},
-    {/* 0b101 */ kNxPyNzLoc, 5},
-    {/* 0b111 */ kNxNyNzLoc, 6},
-    {/* 0b011 */ kPxNyNzLoc, 7},
+    { /* 0b001 */ kPxPyNzLoc, 4 },
+    { /* 0b101 */ kNxPyNzLoc, 5 },
+    { /* 0b111 */ kNxNyNzLoc, 6 },
+    { /* 0b011 */ kPxNyNzLoc, 7 },
   };
 
   class Entity;
@@ -353,7 +353,7 @@ namespace other {
     BvhNode<N>* parent = nullptr;
 
     StableVector<BvhNode<N>>* nodes = nullptr;
-    glm::vec3 global_position{0.f};
+    glm::vec3 global_position{ 0.f };
 
     bool built = false;
 
@@ -633,11 +633,8 @@ namespace other {
 
     if (IsLeaf()) {
       w << "(@Children = 0)\n"s;
-    } else {
+    } else if (print_children) {
       w << fmtstr("(@Children = {}\n", N);
-    }
-
-    if (print_children && !IsLeaf()) {
       for (size_t i = 0; i < N; ++i) {
         auto* c = children[i];
         if (c == nullptr) {

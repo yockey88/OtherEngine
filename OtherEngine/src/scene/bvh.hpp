@@ -165,7 +165,7 @@ namespace other {
 
       if constexpr (N == 2) {
         /// TODO: calculate dimension from scene bounds
-        Initialize(glm::vec3{1.f});
+        Initialize(glm::vec3{ 1.f });
       }
       glm::vec3 local_pos = global_pos - global_position;
       GetSpace().AddEntity(entity, local_pos);
@@ -207,7 +207,7 @@ namespace other {
 
     size_t depth = 0;
     size_t num_nodes = 0;
-    glm::vec3 global_position{0.f};
+    glm::vec3 global_position{ 0.f };
 
     void Initialize(const glm::vec3& dim);
 
