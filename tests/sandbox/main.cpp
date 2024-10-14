@@ -278,8 +278,6 @@ int main(int argc, char* argv[]) {
       }
 
       Ref<BvhTree> bvh = NewRef<BvhTree>(glm::vec3{0.f, 0.f, 0.f});
-
-      bvh->Subdivide({10.f, 10.f, 10.f}, 3);
       bvh->AddScene(scene, glm::zero<glm::vec3>());
 
       auto* cube = scene->GetEntity("cube");

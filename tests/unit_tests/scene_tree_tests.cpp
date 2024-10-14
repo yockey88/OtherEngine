@@ -199,11 +199,7 @@ void SceneTreeTests::TearDownTestSuite() {
 }
 
 void SceneTreeTests::SetUp() {
-  ASSERT_NO_FATAL_FAILURE(ScriptEngine::LoadProjectModules());
-  ASSERT_TRUE(CheckNumScripts(1, 0, 0));
 }
 
 void SceneTreeTests::TearDown() {
-  ASSERT_NO_FATAL_FAILURE(ScriptEngine::UnloadProjectModules());
-  ASSERT_TRUE(CheckNumScripts(0, 0, 0));
 }

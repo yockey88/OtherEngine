@@ -35,6 +35,15 @@ local OtherEngine = {
     }
   end,
 
+  debug_configuration = function()
+    externalincludedirs{
+      "%{wks.location}/externals/gtest/googletest/include",
+    }
+    defines {
+      "OE_TESTING_ENVIRONMENT",
+    }
+  end ,
+
   components = {
     ["DotOther.Native"] = "%{wks.location}/DotOther",
     [""] = "%{wks.location}/DotOther/NetCore",
