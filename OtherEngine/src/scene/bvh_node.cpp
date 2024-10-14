@@ -16,10 +16,10 @@
 namespace other {
 
   template <>
-  void BvhNode<8, OCTREE>::Update() {}
+  void BvhNode<8>::Update() {}
 
   template <>
-  void BvhNode<2, HLBVH>::Update() {
+  void BvhNode<2>::Update() {
     if (IsLeaf()) {
       OE_ASSERT(entities.size() == 1, "Leaf node has invalid number of entites! {} [{} , {}]", entities.size(), tree_index, bbox);
       auto* entity = entities[0];
@@ -39,7 +39,7 @@ namespace other {
         BBox parent_bbox = parent->bbox;
 
         BvhChildIdx cousin = parent->partition_index == LEFT ? RIGHT : LEFT;
-        BvhNode<2, HLBVH>* cousin_node = nullptr;
+        BvhNode<2>* cousin_node = nullptr;
 
         if (parent->parent != nullptr && parent->parent->children[cousin] != nullptr) {
           cousin_node = parent->parent->children[cousin];
@@ -75,7 +75,7 @@ namespace other {
   }
 
   template <>
-  void BvhNode<8, OCTREE>::ExpandToInclude(const glm::vec3& point) {
+  void BvhNode<8>::ExpandToInclude(const glm::vec3& point) {
     bbox.ExpandToInclude(point);
     if (IsLeaf() || !Contains(point)) {
       return;
@@ -102,12 +102,12 @@ namespace other {
   }
 
   template <>
-  void BvhNode<2, HLBVH>::ExpandToInclude(const glm::vec3& point) {
+  void BvhNode<2>::ExpandToInclude(const glm::vec3& point) {
     OE_ASSERT(false, "ExpandToInclude not implemented for BvhNode<2 , HLBVH>!");
   }
 
   template <>
-  void BvhNode<8, OCTREE>::InsertEntity(Entity* entity, const glm::vec3& position, uint8_t location) {
+  void BvhNode<8>::InsertEntity(Entity* entity, const glm::vec3& position, uint8_t location) {
     entities.push_back(entity);
 
     if (IsLeaf()) {
@@ -124,12 +124,12 @@ namespace other {
   }
 
   template <>
-  bool BvhNode<8, OCTREE>::NeedsRebuild(BvhNode<8, OCTREE>* space, const std::vector<Entity*>& entities) {
+  bool BvhNode<8>::NeedsRebuild(BvhNode<8>* space, const std::vector<Entity*>& entities) {
     OE_ASSERT(false, "NeedsRebuild not implemented for BvhNode<8 , OCTREE>!");
   }
 
   template <>
-  bool BvhNode<2, HLBVH>::NeedsRebuild(BvhNode<2, HLBVH>* space, const std::vector<Entity*>& entities) {
+  bool BvhNode<2>::NeedsRebuild(BvhNode<2>* space, const std::vector<Entity*>& entities) {
     if (space->IsLeaf()) {
       return false;
     }
@@ -139,7 +139,7 @@ namespace other {
 
   namespace {
 
-    int64_t GetCenterIdx(const std::vector<BvhNode<2, HLBVH>*>& nodes, const glm::vec3& global_position) {
+    int64_t GetCenterIdx(const std::vector<BvhNode<2>*>& nodes, const glm::vec3& global_position) {
       int64_t idx = -1;
       if (nodes.size() % 2 == 1) {
         idx = nodes.size() / 2;
@@ -159,13 +159,13 @@ namespace other {
       return idx;
     }
 
-    std::pair<std::vector<BvhNode<2, HLBVH>*>, std::vector<BvhNode<2, HLBVH>*>> SplitOnIndex(int64_t idx, const std::vector<BvhNode<2, HLBVH>*>& nodes) {
+    std::pair<std::vector<BvhNode<2>*>, std::vector<BvhNode<2>*>> SplitOnIndex(int64_t idx, const std::vector<BvhNode<2>*>& nodes) {
       OE_ASSERT(idx >= 0, "Invalid index : {}", idx);
 
       size_t left_end = idx;
       size_t right_begin = idx + 1;
-      auto left_group = nodes | std::views::take(left_end) | std::ranges::to<std::vector<BvhNode<2, HLBVH>*>>();
-      auto right_group = nodes | std::views::drop(right_begin) | std::ranges::to<std::vector<BvhNode<2, HLBVH>*>>();
+      auto left_group = nodes | std::views::take(left_end) | std::ranges::to<std::vector<BvhNode<2>*>>();
+      auto right_group = nodes | std::views::drop(right_begin) | std::ranges::to<std::vector<BvhNode<2>*>>();
 
       return {
         left_group,
@@ -190,14 +190,14 @@ namespace other {
   }  // namespace
 
   template <>
-  BvhNode<2, HLBVH>* BvhNode<2, HLBVH>::TreeFromSortedList(BvhNode<2, HLBVH>* space, const std::vector<BvhNode<2, HLBVH>*>& nodes) {
+  BvhNode<2>* BvhNode<2>::TreeFromSortedList(BvhNode<2>* space, const std::vector<BvhNode<2>*>& nodes) {
     OE_ASSERT(space != nullptr, "Space is null!");
     if (nodes.empty()) {
       return nullptr;
     }
 
     int64_t idx = GetCenterIdx(nodes, space->global_position);
-    BvhNode<2, HLBVH>* center_node = nodes[idx];
+    BvhNode<2>* center_node = nodes[idx];
     OE_ASSERT(center_node != nullptr, "Invalid center node!");
 
     auto [left_group, right_group] = SplitOnIndex(idx, nodes);
@@ -216,7 +216,7 @@ namespace other {
     /// if both children are not null then we group them into a node with a bounding box
     ///   that is the union of the children bounding boxes
     else if (lchild != nullptr && rchild != nullptr) {
-      BvhNode<2, HLBVH>* parent = nullptr;
+      BvhNode<2>* parent = nullptr;
       {
         auto [tidx, new_node] = space->nodes->EmplaceBackNoLock();
         new_node.tree = space->tree;
@@ -245,8 +245,8 @@ namespace other {
       parent->bbox = smaller;
       parent->global_position = smaller.Center();
 
-      BvhNode<2, HLBVH>* space_lchild = nullptr;
-      BvhNode<2, HLBVH>* space_rchild = nullptr;
+      BvhNode<2>* space_lchild = nullptr;
+      BvhNode<2>* space_rchild = nullptr;
       if (lchild_surface_area < rchild_surface_area) {
         lchild->parent = parent;
         center_node->parent = parent;
@@ -314,7 +314,12 @@ namespace other {
   }
 
   template <>
-  BvhNode<2, HLBVH>* BvhNode<2, HLBVH>::RebuildTree(BvhNode<2, HLBVH>* space, std::vector<Entity*>& entities) {
+  BvhNode<8>* BvhNode<8>::RebuildTree(BvhNode<8>* space, std::vector<Entity*>& entities) {
+    OE_ASSERT(false, "RebuildTree not implemented for BvhNode<8>!");
+  }
+
+  template <>
+  BvhNode<2>* BvhNode<2>::RebuildTree(BvhNode<2>* space, std::vector<Entity*>& entities) {
     OE_ASSERT(space != nullptr, "Space is null!");
 
     /// if entities is empty space is a leaf node with no size, if it is one then it is a leaf node with the bounding box of the entity
@@ -334,7 +339,7 @@ namespace other {
       return vec3_lt(t1.position, t2.position);
     });
 
-    auto create_node = [&](Entity* ent) -> BvhNode<2, HLBVH>* {
+    auto create_node = [&](Entity* ent) -> BvhNode<2>* {
       OE_ASSERT(ent != nullptr, "Entity is null!");
       auto [tidx, node] = space->nodes->EmplaceBackNoLock();
       node.tree = space->tree;
@@ -354,11 +359,11 @@ namespace other {
       return &(*space->nodes)[tidx];
     };
 
-    std::stack<BvhNode<2, HLBVH>*> pear_stack{};
-    std::vector<BvhNode<2, HLBVH>*> nodes =
+    std::stack<BvhNode<2>*> pear_stack{};
+    std::vector<BvhNode<2>*> nodes =
       entities |
       std::views::transform(create_node) |
-      std::ranges::to<std::vector<BvhNode<2, HLBVH>*>>();
+      std::ranges::to<std::vector<BvhNode<2>*>>();
 
     OE_ASSERT(nodes.size() >= 2 && nodes.size() == entities.size(), "Invalid number of nodes : {} != {}", nodes.size(), entities.size());
     if (nodes.size() == 2) {
@@ -387,7 +392,7 @@ namespace other {
   }
 
   template <>
-  void BvhNode<2, HLBVH>::InsertEntity(Entity* entity, const glm::vec3& position, uint8_t location) {
+  void BvhNode<2>::InsertEntity(Entity* entity, const glm::vec3& position, uint8_t location) {
     OE_ASSERT(entity != nullptr, "Entity is null!");
     OE_ASSERT(tree != nullptr, "Tree is null!");
     entities.push_back(entity);

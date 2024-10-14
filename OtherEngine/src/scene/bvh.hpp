@@ -52,14 +52,21 @@ namespace other {
     return sum;
   }
 
-  template <size_t N, BvhPartitionAlgorithm A>
+  template <size_t N>
   class BvhNode;
 
-  template <size_t N, BvhPartitionAlgorithm A>
+  template <size_t N>
   class Bvh : public RefCounted {
    public:
-    Bvh(const glm::vec3& origin)
-        : depth(0), num_nodes(NumNodesAtDepth<N>(0)), global_position(origin) {
+    Bvh(const glm::vec3& origin, size_t d = 0)
+        : global_position(origin) {
+      if constexpr (N == 8) {
+        depth = d;
+        num_nodes = NumNodesAtDepth<N>(depth);
+      } else {
+        depth = 0;
+        num_nodes = 1;
+      }
       Initialize(glm::zero<glm::vec3>());
     }
 
@@ -69,12 +76,12 @@ namespace other {
 
     const size_t NumNodes() const { return nodes.Size(); }
 
-    BvhNode<N, A>& GetSpace() {
+    BvhNode<N>& GetSpace() {
       OE_ASSERT(space != nullptr, "Space is null!");
       return *space;
     }
 
-    const BvhNode<N, A>& GetSpace() const {
+    const BvhNode<N>& GetSpace() const {
       OE_ASSERT(space != nullptr, "Space is null!");
       return *space;
     }
@@ -84,9 +91,7 @@ namespace other {
     std::array<glm::vec3, N> Corners() const { return GetSpace().bbox.Corners(); }
 
     void Subdivide(const glm::vec3& dim, size_t depth) {
-      if constexpr (N != 8) {
-        return;
-      }
+      OE_ASSERT(N != 2, "Subdivide not implemented for BVH<2>!");
 
       if (dim == glm::zero<glm::vec3>()) {
         return;
@@ -98,7 +103,7 @@ namespace other {
 
     void MoveOriginTo(const glm::vec3& origin) { global_position = origin; }
 
-    BvhNode<N, A>& GetContainingNode(const glm::vec3& point) {
+    BvhNode<N>& GetContainingNode(const glm::vec3& point) {
       if (vec3_eq(point, global_position)) {
         return *space;
       } else {
@@ -106,21 +111,21 @@ namespace other {
       }
     }
 
-    BvhNode<N, A>& FindNode(const glm::vec3& point) {
+    BvhNode<N>& FindNode(const glm::vec3& point) {
       return GetSpace().FindNode(point);
     }
 
-    BvhNode<N, A>& FindNode(uint8_t location, size_t at_depth) {
+    BvhNode<N>& FindNode(uint8_t location, size_t at_depth) {
       return GetSpace().FindNode(location, at_depth);
     }
 
-    BvhNode<N, A>& FindFurthestNode(uint8_t location) {
+    BvhNode<N>& FindFurthestNode(uint8_t location) {
       return GetSpace().FindFurthestNode(location);
     }
 
     void PrintNodes(std::ostream& os) const { PrintNode(os, GetSpace()); }
 
-    void PrintNode(std::ostream& os, const BvhNode<N, A>& node) const {
+    void PrintNode(std::ostream& os, const BvhNode<N>& node) const {
       node.Serialize(os);
     }
 
@@ -137,6 +142,7 @@ namespace other {
      **/
     void AddScene(Ref<Scene>& scene, const glm::vec3& position) {
       OE_ASSERT(scene != nullptr, "Scene is null!");
+
       glm::vec3 local_pos = position - global_position;
       GetSpace().AddScene(scene, local_pos);
 
@@ -159,7 +165,7 @@ namespace other {
 
       if constexpr (N == 2) {
         /// TODO: calculate dimension from scene bounds
-        Initialize(glm::vec3{1.f});
+        Initialize(glm::vec3{ 1.f });
       }
       glm::vec3 local_pos = global_pos - global_position;
       GetSpace().AddEntity(entity, local_pos);
@@ -196,16 +202,16 @@ namespace other {
     /// space == root, it is a single node that represents the entire space
     constexpr inline static size_t space_index = 0;
 
-    BvhNode<N, A>* space = nullptr;
-    StableVector<BvhNode<N, A>> nodes;
+    BvhNode<N>* space = nullptr;
+    StableVector<BvhNode<N>> nodes;
 
     size_t depth = 0;
-    const size_t num_nodes = 0;
-    glm::vec3 global_position{0.f};
+    size_t num_nodes = 0;
+    glm::vec3 global_position{ 0.f };
 
     void Initialize(const glm::vec3& dim);
 
-    friend class BvhNode<N, A>;
+    friend class BvhNode<N>;
 
 #ifdef OE_TESTING_ENVIRONMENT
     friend class OtherTest;
@@ -215,8 +221,8 @@ namespace other {
 #endif
   };
 
-  template <size_t N, BvhPartitionAlgorithm A>
-  void Bvh<N, A>::Initialize(const glm::vec3& dim) {
+  template <size_t N>
+  void Bvh<N>::Initialize(const glm::vec3& dim) {
     nodes.Clear();
 
     {
@@ -236,21 +242,18 @@ namespace other {
         s.bbox =
           BBox(global_position - (dim / 2.f), global_position + (dim / 2.f));
       }
-      OE_DEBUG("BVH(@{} @total-depth({}) @dimension{})", s.bbox, s.bbox.Center(),
-               dim);
+      OE_DEBUG("BVH(@{} @total-depth({}) @dimension{})", s.bbox, s.bbox.Center(), dim);
     }
 
-    OE_ASSERT(num_nodes == NumNodesAtDepth<N>(depth),
-              "Invalid number of nodes : {} != {}", num_nodes,
-              NumNodesAtDepth<N>(depth));
-    OE_ASSERT(nodes.Size() == num_nodes,
-              "Invalid number of nodes created : {} != {}", nodes.Size(),
-              num_nodes);
+    if constexpr (N == 8) {
+      OE_ASSERT(num_nodes == NumNodesAtDepth<N>(depth), "Invalid number of nodes : {} != {}", num_nodes, NumNodesAtDepth<N>(depth));
+      OE_ASSERT(nodes.Size() == num_nodes, "Invalid number of nodes created : {} != {}", nodes.Size(), num_nodes);
+    }
     space = &nodes[0];
   }
 
-  using SceneBranch = Bvh<2, HLBVH>;
-  using BvhTree = Bvh<2, HLBVH>;
+  using SceneBranch = Bvh<2>;
+  using BvhTree = Bvh<2>;
 
 }  // namespace other
 

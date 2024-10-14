@@ -1,27 +1,38 @@
 ---
 Language: Cpp
 BasedOnStyle: Google
+Cpp11BracedListStyle: false
+
 IndentWidth: 2
+IndentRequires: true
 ContinuationIndentWidth: 2
 ColumnLimit: 0
+
 DerivePointerAlignment: false
 PointerAlignment: Left
+
 NamespaceIndentation: All
+CompactNamespaces: false
+FixNamespaceComments: true
+
 AlignConsecutiveBitFields: true
 BitFieldColonSpacing: Both
+
 AlignTrailingComments: true
+
 AllowShortBlocksOnASingleLine: Empty
 AllowShortCaseLabelsOnASingleLine: true
 AllowShortLambdasOnASingleLine: Inline
+
 AlwaysBreakTemplateDeclarations: Yes
 BreakBeforeConceptDeclarations: true
 BreakBeforeTernaryOperators: false
-CompactNamespaces: false
+
 SpaceBeforeInheritanceColon: true
 SpaceBeforeParens: ControlStatements
-IndentRequires: true
 AlignOperands: DontAlign
-FixNamespaceComments: true
+
+ConstructorInitializerAllOnOneLineOrOnePerLine: false
 
 BreakBeforeBraces: Custom
 BraceWrapping:
@@ -53,10 +64,10 @@ IncludeCategories:
     Priority:        3
 
   # core headers
-  - Regex:           '"((core|application|math|thread)\/)'
+  - Regex:           '"((core|math|thread)\/)'
     Priority:        4
   # application/asset/semi-core system headers
-  - Regex:           '"((input|event|asset|parsing|project|plugin|layers)\/)'
+  - Regex:           '"((application|input|event|asset|parsing|project|plugin|layers)\/)'
     Priority:        5
   # scene/ecs headers
   - Regex:           '"((scene|ecs)\/)'

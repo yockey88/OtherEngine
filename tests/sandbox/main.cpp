@@ -228,7 +228,18 @@ int main(int argc, char* argv[]) {
           pure_geom_pass,
         },
         .pipeline_to_pass_map = {
-          {FNV("Geometry"), {FNV(geom_pass->Name())}}, {FNV("Debug"), {FNV(pure_geom_pass->Name())}},  // , FNV(normal_pass->Name())
+          {
+            FNV("Geometry"),
+            {
+              FNV(geom_pass->Name()),
+            },
+          },
+          {
+            FNV("Debug"),
+            {
+              FNV(pure_geom_pass->Name()),
+            },
+          },
         },
       };
       Ref<SceneRenderer> renderer = NewRef<SceneRenderer>(render_spec);
@@ -278,8 +289,6 @@ int main(int argc, char* argv[]) {
       }
 
       Ref<BvhTree> bvh = NewRef<BvhTree>(glm::vec3{0.f, 0.f, 0.f});
-
-      bvh->Subdivide({10.f, 10.f, 10.f}, 3);
       bvh->AddScene(scene, glm::zero<glm::vec3>());
 
       auto* cube = scene->GetEntity("cube");
@@ -305,8 +314,7 @@ int main(int argc, char* argv[]) {
       scene->Start();
       DefaultUpdateCamera(camera);
 
-      OE_DEBUG("Lights [{} , {}]", scene->GetEnvironment()->direction_lights.size(),
-               scene->GetEnvironment()->point_lights.size());
+      OE_DEBUG("Lights [{} , {}]", scene->GetEnvironment()->direction_lights.size(), scene->GetEnvironment()->point_lights.size());
 
       OE_INFO("Running");
 
@@ -469,10 +477,10 @@ int main(int argc, char* argv[]) {
           reg.view<LightSource, Transform>().each([&](LightSource& light, Transform& transform) {
             switch (light.type) {
               case POINT_LIGHT_SRC:
-                edited = edited || RenderPointLight(fmtstr("point light [{}]", i++), light.pointlight);
+                edited = RenderPointLight(fmtstr("point light [{}]", i++), light.pointlight) && edited;
                 break;
               case DIRECTION_LIGHT_SRC:
-                edited = edited || RenderDirectionLight(fmtstr("direction light [{}]", i++), light.direction_light);
+                edited = RenderDirectionLight(fmtstr("direction light [{}]", i++), light.direction_light) && edited;
                 break;
               default:
                 break;

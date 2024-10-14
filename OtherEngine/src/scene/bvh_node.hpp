@@ -129,20 +129,20 @@ namespace other {
     // <-,+,+>     <+,-,->
     // <-,-,+>     <+,+,->
     // <+,-,+>     <-,+,->
-    {kPxPyPzLoc, kNxNyNzLoc},
-    {kNxPyPzLoc, kPxNyNzLoc},
-    {kNxNyPzLoc, kPxPyNzLoc},
-    {kPxNyPzLoc, kNxPyNzLoc},
+    { kPxPyPzLoc, kNxNyNzLoc },
+    { kNxPyPzLoc, kPxNyNzLoc },
+    { kNxNyPzLoc, kPxPyNzLoc },
+    { kPxNyPzLoc, kNxPyNzLoc },
 
     /// -z group of 4 ccw
     // <+,+,->     <-,-,+>
     // <-,+,->     <+,-,+>
     // <-,-,->     <+,+,+>
     // <+,-,->     <-,+,+>
-    {kPxPyNzLoc, kNxNyPzLoc},
-    {kNxPyNzLoc, kPxNyPzLoc},
-    {kNxNyNzLoc, kPxPyPzLoc},
-    {kPxNyNzLoc, kNxPyPzLoc},
+    { kPxPyNzLoc, kNxNyPzLoc },
+    { kNxPyNzLoc, kPxNyPzLoc },
+    { kNxNyNzLoc, kPxPyPzLoc },
+    { kPxNyNzLoc, kNxPyPzLoc },
   };
 
   const static std::map<uint8_t, size_t> kLocationIndex = {
@@ -151,20 +151,20 @@ namespace other {
     // 1 = <-,+,+>
     // 2 = <-,-,+>
     // 3 = <+,-,+>
-    {/* 0b000 */ kPxPyPzLoc, 0},
-    {/* 0b100 */ kNxPyPzLoc, 1},
-    {/* 0b110 */ kNxNyPzLoc, 2},
-    {/* 0b010 */ kPxNyPzLoc, 3},
+    { /* 0b000 */ kPxPyPzLoc, 0 },
+    { /* 0b100 */ kNxPyPzLoc, 1 },
+    { /* 0b110 */ kNxNyPzLoc, 2 },
+    { /* 0b010 */ kPxNyPzLoc, 3 },
 
     /// -z group of 4 ccw
     // 4 = <+,+,->
     // 5 = <-,+,->
     // 6 = <-,-,->
     // 7 = <+,-,->
-    {/* 0b001 */ kPxPyNzLoc, 4},
-    {/* 0b101 */ kNxPyNzLoc, 5},
-    {/* 0b111 */ kNxNyNzLoc, 6},
-    {/* 0b011 */ kPxNyNzLoc, 7},
+    { /* 0b001 */ kPxPyNzLoc, 4 },
+    { /* 0b101 */ kNxPyNzLoc, 5 },
+    { /* 0b111 */ kNxNyNzLoc, 6 },
+    { /* 0b011 */ kPxNyNzLoc, 7 },
   };
 
   class Entity;
@@ -198,10 +198,10 @@ struct fmt::formatter<other::BvhPartitionAlgorithm> : public fmt::formatter<std:
 
 namespace other {
 
-  template <size_t N, BvhPartitionAlgorithm A>
+  template <size_t N>
   class Bvh;
 
-  template <size_t N, BvhPartitionAlgorithm A>
+  template <size_t N>
   class BvhNode {
    public:
     constexpr static uint8_t LocationFromPoint(const glm::vec3& point) {
@@ -240,7 +240,7 @@ namespace other {
 
     /// TODO: FIGURE OUT HOW TO USE RANGE ADAPTORS
     // struct DepthCounter : std::ranges::range_adaptor_closure<DepthCounter> {
-    //   constexpr uint64_t operator()(const std::array<BvhNode<N , A>*>& children) const {
+    //   constexpr uint64_t operator()(const std::array<BvhNode<N>*>& children) const {
     //     return 0;
     //   }
     // };
@@ -251,8 +251,8 @@ namespace other {
       }
 
       auto depths = children |
-        std::views::filter([](BvhNode<N, A>* child) { return child != nullptr; }) |
-        std::views::transform([](BvhNode<N, A>* child) -> int64_t { return child->GetMinDepth() + 1; });
+        std::views::filter([](BvhNode<N>* child) { return child != nullptr; }) |
+        std::views::transform([](BvhNode<N>* child) -> int64_t { return child->GetMinDepth() + 1; });
       return std::ranges::min(depths);
     }
 
@@ -262,8 +262,8 @@ namespace other {
       }
 
       auto depths = children |
-        std::views::filter([](BvhNode<N, A>* child) { return child != nullptr; }) |
-        std::views::transform([](BvhNode<N, A>* child) -> int64_t { return child->GetMaxDepth() + 1; });
+        std::views::filter([](BvhNode<N>* child) { return child != nullptr; }) |
+        std::views::transform([](BvhNode<N>* child) -> int64_t { return child->GetMaxDepth() + 1; });
       return std::ranges::max(depths);
     }
 
@@ -271,15 +271,15 @@ namespace other {
       return global_position + bbox.Center();
     }
 
-    BvhNode<N, A>& FindNode(const glm::vec3& point) {
+    BvhNode<N>& FindNode(const glm::vec3& point) {
       return *GetNode(point);
     }
 
-    BvhNode<N, A>& FindNode(uint8_t location, size_t at_depth) {
+    BvhNode<N>& FindNode(uint8_t location, size_t at_depth) {
       return *GetNode(location, at_depth);
     }
 
-    BvhNode<N, A>& FindFurthestNode(uint8_t location) {
+    BvhNode<N>& FindFurthestNode(uint8_t location) {
       return *GetFurthestNode(location);
     }
 
@@ -349,24 +349,24 @@ namespace other {
 
     BBox bbox = BBox();
 
-    Bvh<N, A>* tree = nullptr;
-    BvhNode<N, A>* parent = nullptr;
+    Bvh<N>* tree = nullptr;
+    BvhNode<N>* parent = nullptr;
 
-    StableVector<BvhNode<N, A>>* nodes = nullptr;
-    glm::vec3 global_position{0.f};
+    StableVector<BvhNode<N>>* nodes = nullptr;
+    glm::vec3 global_position{ 0.f };
 
     bool built = false;
 
     std::vector<Entity*> entities = {};
 
    private:
-    std::array<BvhNode<N, A>*, N> children;
+    std::array<BvhNode<N>*, N> children;
 
     void InsertEntity(Entity* entity, const glm::vec3& position, uint8_t location);
 
-    BvhNode<N, A>* GetNode(const glm::vec3& point);
-    BvhNode<N, A>* GetNode(uint8_t location, size_t at_depth);
-    BvhNode<N, A>* GetFurthestNode(uint8_t location);
+    BvhNode<N>* GetNode(const glm::vec3& point);
+    BvhNode<N>* GetNode(uint8_t location, size_t at_depth);
+    BvhNode<N>* GetFurthestNode(uint8_t location);
 
     glm::vec3 GetMinForSubQuadrant(uint8_t location);
     glm::vec3 GetMaxForSubQuadrant(uint8_t location);
@@ -375,9 +375,9 @@ namespace other {
     void SubdivideChild(BvhChildIdx location, const glm::vec3& scale, const glm::vec3& center);
     void Subdivide();
     void Serialize(writer& w, bool children) const;
-    BvhNode<N, A>* CreateChild(int64_t index);
+    BvhNode<N>* CreateChild(int64_t index);
 
-    static BvhNode<N, A>& RebuildTree(Bvh<N, A>& tree) {
+    static BvhNode<N>& RebuildTree(Bvh<N>& tree) {
       OE_ASSERT(N == 2, "RebuildTree only works with 2D trees!");
       OE_ASSERT(tree.space != nullptr, "Root is not a leaf node!");
 
@@ -394,22 +394,23 @@ namespace other {
       OE_DEBUG("Rebuilt tree {} , {}", max, min);
     }
 
-    static bool NeedsRebuild(BvhNode<N, A>* space, const std::vector<Entity*>& entities);
-    static BvhNode<N, A>* TreeFromSortedList(BvhNode<2, HLBVH>* space, const std::vector<BvhNode<N, A>*>& nodes);
-    static BvhNode<N, A>* RebuildTree(BvhNode<N, A>* space, std::vector<Entity*>& entities);
+    static bool NeedsRebuild(BvhNode<N>* space, const std::vector<Entity*>& entities);
+    static BvhNode<N>* TreeFromSortedList(BvhNode<N>* space, const std::vector<BvhNode<N>*>& nodes);
+    static BvhNode<N>* RebuildTree(BvhNode<N>* space, std::vector<Entity*>& entities);
 
-    friend class Bvh<N, A>;
+    friend class Bvh<N>;
 
 #ifdef OE_TESTING_ENVIRONMENT
     friend class OtherTest;
     FRIEND_TEST(OctreeTests, depth_0);
     FRIEND_TEST(OctreeTests, higher_res_2);
     FRIEND_TEST(OctreeTests, higher_res_3);
+    FRIEND_TEST(OctreeTests, death_tests);
 #endif
   };
 
-  template <size_t N, BvhPartitionAlgorithm A>
-  void BvhNode<N, A>::Subdivide(size_t d) {
+  template <size_t N>
+  void BvhNode<N>::Subdivide(size_t d) {
     if (d == 0) {
       std::ranges::fill(children, nullptr);
       return;
@@ -425,8 +426,8 @@ namespace other {
     }
   }
 
-  template <size_t N, BvhPartitionAlgorithm A>
-  BvhNode<N, A>* BvhNode<N, A>::GetNode(const glm::vec3& point) {
+  template <size_t N>
+  BvhNode<N>* BvhNode<N>::GetNode(const glm::vec3& point) {
     if (!Contains(point)) {
       return nullptr;
     }
@@ -444,8 +445,8 @@ namespace other {
     return child->GetNode(point);
   }
 
-  template <size_t N, BvhPartitionAlgorithm A>
-  BvhNode<N, A>* BvhNode<N, A>::GetNode(uint8_t location, size_t at_depth) {
+  template <size_t N>
+  BvhNode<N>* BvhNode<N>::GetNode(uint8_t location, size_t at_depth) {
     if (IsLeaf() || at_depth == 0) {
       return this;
     }
@@ -459,8 +460,8 @@ namespace other {
     return child->GetNode(location, at_depth - 1);
   }
 
-  template <size_t N, BvhPartitionAlgorithm A>
-  BvhNode<N, A>* BvhNode<N, A>::GetFurthestNode(uint8_t location) {
+  template <size_t N>
+  BvhNode<N>* BvhNode<N>::GetFurthestNode(uint8_t location) {
     if (IsLeaf()) {
       return this;
     }
@@ -474,8 +475,8 @@ namespace other {
     return child->GetFurthestNode(location);
   }
 
-  template <size_t N, BvhPartitionAlgorithm A>
-  glm::vec3 BvhNode<N, A>::GetMinForSubQuadrant(uint8_t location) {
+  template <size_t N>
+  glm::vec3 BvhNode<N>::GetMinForSubQuadrant(uint8_t location) {
     switch (location) {
       case 0b000:
         return bbox.Center();
@@ -501,8 +502,8 @@ namespace other {
     }
   }
 
-  template <size_t N, BvhPartitionAlgorithm A>
-  glm::vec3 BvhNode<N, A>::GetMaxForSubQuadrant(uint8_t location) {
+  template <size_t N>
+  glm::vec3 BvhNode<N>::GetMaxForSubQuadrant(uint8_t location) {
     switch (location) {
       case 0b000:
         return bbox.max;
@@ -528,8 +529,8 @@ namespace other {
     }
   }
 
-  template <size_t N, BvhPartitionAlgorithm A>
-  void BvhNode<N, A>::RenderEntityBounds(const std::string_view pl_name, Ref<SceneRenderer>& renderer, bool outline) {
+  template <size_t N>
+  void BvhNode<N>::RenderEntityBounds(const std::string_view pl_name, Ref<SceneRenderer>& renderer, bool outline) {
     const static AssetHandle wireframe = ModelFactory::CreateBoxWireframe();
     Ref<StaticModel> model = AssetManager::GetAsset<StaticModel>(wireframe);
     Material mat = {
@@ -565,8 +566,8 @@ namespace other {
     }
   }
 
-  template <size_t N, BvhPartitionAlgorithm A>
-  void BvhNode<N, A>::RenderNodeBounds(const std::string_view pl_name, Ref<SceneRenderer>& renderer, size_t depth) {
+  template <size_t N>
+  void BvhNode<N>::RenderNodeBounds(const std::string_view pl_name, Ref<SceneRenderer>& renderer, size_t depth) {
     constexpr glm::mat4 identity = glm::identity<glm::mat4>();
     const static AssetHandle wireframe = ModelFactory::CreateBoxWireframe();
 
@@ -610,8 +611,8 @@ namespace other {
     }
   }
 
-  template <size_t N, BvhPartitionAlgorithm A>
-  void BvhNode<N, A>::Serialize(writer& w, bool print_children) const {
+  template <size_t N>
+  void BvhNode<N>::Serialize(writer& w, bool print_children) const {
     using namespace std::string_literals;
     w << fmtstr("[BvhNode [{}] = {:p}\n", tree_index, static_cast<const void*>(this));
     w.increment();
@@ -632,11 +633,8 @@ namespace other {
 
     if (IsLeaf()) {
       w << "(@Children = 0)\n"s;
-    } else {
+    } else if (print_children) {
       w << fmtstr("(@Children = {}\n", N);
-    }
-
-    if (print_children && !IsLeaf()) {
       for (size_t i = 0; i < N; ++i) {
         auto* c = children[i];
         if (c == nullptr) {
@@ -658,14 +656,14 @@ namespace other {
     w << "]\n"s;
   }
 
-  template <size_t N, BvhPartitionAlgorithm A>
-  void BvhNode<N, A>::SubdivideInDirection(uint8_t direction, size_t depth) {
+  template <size_t N>
+  void BvhNode<N>::SubdivideInDirection(uint8_t direction, size_t depth) {
     if (depth == 0) {
       return;
     }
 
     int64_t loc_idx = kLocationIndex.at(direction);
-    BvhNode<N, A>* child = children[loc_idx];
+    BvhNode<N>* child = children[loc_idx];
     if (child == nullptr) {
       child = children[loc_idx] = CreateChild(loc_idx);
     }
@@ -677,9 +675,9 @@ namespace other {
     child->SubdivideInDirection(direction, depth - 1);
   }
 
-  template <size_t N, BvhPartitionAlgorithm A>
-  void BvhNode<N, A>::SubdivideChild(BvhChildIdx location, const glm::vec3& scale, const glm::vec3& center) {
-    BvhNode<N, A>* child = children[location];
+  template <size_t N>
+  void BvhNode<N>::SubdivideChild(BvhChildIdx location, const glm::vec3& scale, const glm::vec3& center) {
+    BvhNode<N>* child = children[location];
     OE_ASSERT(child == nullptr, "Child already exists at location {}", location);
 
     child = children[location] = CreateChild(location);
@@ -687,10 +685,9 @@ namespace other {
     child->global_position = global_position + child->bbox.Center();
   }
 
-  template <size_t N, BvhPartitionAlgorithm A>
-  void BvhNode<N, A>::Subdivide() {
+  template <size_t N>
+  void BvhNode<N>::Subdivide() {
     if constexpr (N == 8) {
-      OE_ASSERT(A == OCTREE, "Octree partitioning only works with 8 children");
       for (size_t i = 0; i < N; ++i) {
         SubdivideInDirection(i);
       }
@@ -699,8 +696,8 @@ namespace other {
     }
   }
 
-  template <size_t N, BvhPartitionAlgorithm A>
-  BvhNode<N, A>* BvhNode<N, A>::CreateChild(int64_t index) {
+  template <size_t N>
+  BvhNode<N>* BvhNode<N>::CreateChild(int64_t index) {
     OE_ASSERT(nodes != nullptr, "Nodes is null!");
 
     auto [idx, child] = nodes->EmplaceBackNoLock();
@@ -731,15 +728,16 @@ namespace other {
 
 }  // namespace other
 
-template <size_t N, other::BvhPartitionAlgorithm A>
-struct fmt::formatter<other::BvhNode<N, A>> : fmt::formatter<std::string_view> {
-  auto format(const other::BvhNode<N, A>& octant, fmt::format_context& ctx) {
+template <size_t N>
+struct fmt::formatter<other::BvhNode<N>> : fmt::formatter<std::string_view> {
+  auto format(const other::BvhNode<N>& octant, fmt::format_context& ctx) {
     std::stringstream ss;
     octant.Serialize(ss, false);
     return fmt::formatter<std::string_view>::format(ss.str(), ctx);
   }
 };
 
-constexpr inline fmt::formatter<other::BvhNode<8, other::OCTREE>> oct_fmttr;
+constexpr inline fmt::formatter<other::BvhNode<8>> oct_fmttr;
+constexpr inline fmt::formatter<other::BvhNode<2>> bvh_fmttr;
 
 #endif  // !OTHER_ENGINE_BVH_NODE_HPP

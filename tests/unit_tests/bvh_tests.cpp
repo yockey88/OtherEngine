@@ -26,8 +26,8 @@ class BvhTests : public other::OtherTest {
 };
 
 TEST_F(BvhTests, normal_bvh_basic) {
-  using BVH = Bvh<2, HLBVH>;
-  using Node = BvhNode<2, HLBVH>;
+  using BVH = Bvh<2>;
+  using Node = BvhNode<2>;
 
   Ref<BVH> bvh = NewRef<BVH>(glm::vec3{0.f});
   ASSERT_NE(bvh, nullptr);
@@ -43,9 +43,17 @@ TEST_F(BvhTests, normal_bvh_basic) {
     ASSERT_EQ(n.Min(), glm::vec3(-0.f));
     ASSERT_EQ(n.Max(), glm::vec3(0.f));
   }
+}
 
-  bvh->Subdivide({1.f, 1.f, 1.f}, 1);
-  ASSERT_EQ(bvh->NumNodes(), 1 + 2);
+TEST_F(BvhTests, death_tests) {
+  using BVH = Bvh<2>;
+
+  Ref<BVH> bvh = NewRef<BVH>(glm::vec3{0.f});
+  ASSERT_NE(bvh, nullptr);
+
+  /// check these functions cause assertions cause they are undefined for BVH<2 , HLBVH>
+  ASSERT_DEATH(bvh->Subdivide({1.f, 1.f, 1.f}, 1), "");
+  ASSERT_DEATH(bvh->ExpandToInclude(glm::vec3{0.f}), "");
 }
 
 void BvhTests::SetUpTestSuite() {

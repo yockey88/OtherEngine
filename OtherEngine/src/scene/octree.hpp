@@ -13,8 +13,8 @@
 
 namespace other {
 
-  using Octant = BvhNode<8, OCTREE>;
-  using Octree = Bvh<8, OCTREE>;
+  using Octant = BvhNode<8>;
+  using Octree = Bvh<8>;
 
 }  // namespace other
 
