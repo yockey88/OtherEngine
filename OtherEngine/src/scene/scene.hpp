@@ -14,26 +14,24 @@
 #include <reflection/object_proxy.hpp>
 #include <reflection/reflected_object.hpp>
 
-#include "core/uuid.hpp"
 #include "core/ref.hpp"
+#include "core/uuid.hpp"
+
 #include "asset/asset.hpp"
 
 #include "ecs/component.hpp"
-#include "ecs/components/relationship.hpp"
-#include "ecs/components/transform.hpp"
-#include "ecs/components/mesh.hpp"
 #include "ecs/components/light_source.hpp"
+#include "ecs/components/mesh.hpp"
+#include "ecs/components/relationship.hpp"
 #include "ecs/components/script.hpp"
-
+#include "ecs/components/transform.hpp"
 #include "scene/environment.hpp"
-
-#include "scripting/script_object.hpp"
-#include "scripting/cs/cs_object.hpp"
 
 #include "physics/2D/physics_world_2d.hpp"
 #include "physics/3D/physics_world.hpp"
-
 #include "rendering/scene_renderer.hpp"
+#include "scripting/cs/cs_object.hpp"
+#include "scripting/script_object.hpp"
 
 namespace echo = dotother::echo;
 
@@ -41,159 +39,156 @@ namespace other {
 
   class Entity;
 
-  class Scene : public Asset , dotother::NObject {
+  class Scene : public Asset, dotother::NObject {
     ECHO_REFLECT();
-    public:
-      OE_ASSET(SCENE);
 
-      Scene();
-      virtual ~Scene() override;
+   public:
+    OE_ASSET(SCENE);
 
-      UUID SceneHandle() const;
+    Scene();
+    virtual ~Scene() override;
 
-      template <typename Fn>
-      void ForEachEntity(Fn&& fn) {
-        for (auto& [id , ent] : entities) {
-          fn(ent);
-        }
+    UUID SceneHandle() const;
+
+    template <typename Fn>
+    void ForEachEntity(Fn&& fn) {
+      for (auto& [id, ent] : entities) {
+        fn(ent);
       }
+    }
 
-      void Initialize();
-      void Start(EngineMode mode = EngineMode::DEBUG); 
+    void Initialize();
+    void Start(EngineMode mode = EngineMode::DEBUG);
 
-      void EarlyUpdate(float dt);
-      void Update(float dt);
-      void LateUpdate(float dt);
+    void EarlyUpdate(float dt);
+    void Update(float dt);
+    void LateUpdate(float dt);
 
-      Ref<CameraBase> GetPrimaryCamera() const;
+    Ref<CameraBase> GetPrimaryCamera() const;
 
-      void Render(Ref<SceneRenderer>& scene_renderer);
+    void Render(Ref<SceneRenderer>& scene_renderer);
 
-      void RenderUI();
+    void RenderUI();
 
-      void Stop(); 
-      void Shutdown();
+    void Stop();
+    void Shutdown();
 
-      bool IsHandleValid(Entity* ent) const;
+    bool IsHandleValid(Entity* ent) const;
 
-      entt::registry& Registry();
+    entt::registry& Registry();
 
-      ScriptRef<CsObject> SceneScriptObject();
+    ScriptRef<CsObject> SceneScriptObject();
 
-      Ref<PhysicsWorld2D> Get2DPhysicsWorld() const;
-      Ref<PhysicsWorld> GetPhysicsWorld() const;
+    Ref<PhysicsWorld2D> Get2DPhysicsWorld() const;
+    Ref<PhysicsWorld> GetPhysicsWorld() const;
 
-      Ref<Environment> GetEnvironment() const;
+    Ref<Environment> GetEnvironment() const;
 
-      const bool IsInitialized() const;
-      const bool IsRunning() const;
-      const bool IsDirty() const;
+    const bool IsInitialized() const;
+    const bool IsRunning() const;
+    const bool IsDirty() const;
 
-      bool EntityExists(UUID id) const;
-      bool EntityExists(const std::string& name) const;
+    bool EntityExists(UUID id) const;
+    bool EntityExists(const std::string& name) const;
 
-      size_t NumCameras() const;
+    size_t NumCameras() const;
 
-      const std::map<UUID , Entity*>& RootEntities() const;
-      const std::map<UUID , Entity*>& SceneEntities() const;
+    const std::map<UUID, Entity*>& RootEntities() const;
+    const std::map<UUID, Entity*>& SceneEntities() const;
 
-      bool HasEntity(const std::string& name) const;
-      bool HasEntity(UUID id) const;
+    bool HasEntity(const std::string& name) const;
+    bool HasEntity(UUID id) const;
 
-      Entity* GetEntity(const std::string& name);
-      Entity* GetEntity(UUID id) const;
+    Entity* GetEntity(const std::string& name);
+    Entity* GetEntity(UUID id) const;
 
-      Entity* CreateEntity(const std::string& name = "");
-      Entity* CreateEntity(const std::string& name , UUID id);
+    Entity* CreateEntity(const std::string& name = "");
+    Entity* CreateEntity(const std::string& name, UUID id);
 
-      void DestroyEntity(UUID id);
+    void DestroyEntity(UUID id);
 
-      void RenameEntity(UUID curr_id , UUID new_id , const std::string_view name);
+    void RenameEntity(UUID curr_id, UUID new_id, const std::string_view name);
 
-      void ParentEntity(UUID id , UUID parent_id);
-      void OrphanEntity(UUID id);
-      
-      void GeometryChanged();
-      void RebuildEnvironment();
+    void ParentEntity(UUID id, UUID parent_id);
+    void OrphanEntity(UUID id);
 
-    protected:
-      other::AssetHandle model_handle;
-      Ref<StaticModel> model = nullptr;
-      Ref<ModelSource> model_source = nullptr;
+    void GeometryChanged();
+    void RebuildEnvironment();
 
-      Ref<Environment> environment = nullptr;
+   protected:
+    other::AssetHandle model_handle;
+    Ref<StaticModel> model = nullptr;
+    Ref<ModelSource> model_source = nullptr;
 
-      void RenderToPipeline(const std::string_view plname , Ref<SceneRenderer>& scene_renderer , bool do_debug = false);
+    Ref<Environment> environment = nullptr;
 
-      void OnAddRigidBody2D(entt::registry& context , entt::entity ent);
-      void OnAddCollider2D(entt::registry& context , entt::entity ent);
-      
-      void OnAddRigidBody(entt::registry& context , entt::entity ent);
-      void OnAddCollider(entt::registry& context , entt::entity ent);      
+    void RenderToPipeline(const std::string_view plname, Ref<SceneRenderer>& scene_renderer, bool do_debug = false);
 
-      void RefreshCameraTransforms();
+    void OnAddRigidBody2D(entt::registry& context, entt::entity ent);
+    void OnAddCollider2D(entt::registry& context, entt::entity ent);
 
-      virtual void OnInit() {}
-      virtual void OnStart() {}
+    void OnAddRigidBody(entt::registry& context, entt::entity ent);
+    void OnAddCollider(entt::registry& context, entt::entity ent);
 
-      virtual void OnEarlyUpdate(float dt) {}
-      virtual void OnUpdate(float dt) {}
-      virtual void OnLateUpdate(float dt) {}
+    void RefreshCameraTransforms();
 
-      virtual void OnRender() {}
-      virtual void OnRenderUI() {}
+    virtual void OnInit() {}
+    virtual void OnStart() {}
 
-      virtual void OnStop() {}
-      virtual void OnShutdown() {}
+    virtual void OnEarlyUpdate(float dt) {}
+    virtual void OnUpdate(float dt) {}
+    virtual void OnLateUpdate(float dt) {}
 
-    private:
-      friend class Entity;
-      friend class SceneSerializer;
+    virtual void OnRender() {}
+    virtual void OnRenderUI() {}
 
-      bool initialized = false;
-      bool running = false;
-      bool corrupt = false;
+    virtual void OnStop() {}
+    virtual void OnShutdown() {}
 
-      /// true until first render
-      bool scene_geometry_changed = true;
+   private:
+    friend class Entity;
+    friend class SceneSerializer;
 
-      entt::registry registry;
-      UUID scene_handle;
-      ScriptRef<CsObject> scene_object = nullptr;
+    bool initialized = false;
+    bool running = false;
+    bool corrupt = false;
 
-      SystemGroup<Relationship> connection_group;
-      SystemGroup<LightSource , Transform> light_group;
-      SystemGroup<Script> script_group;
-  
-      template <RenderableComp RC>
-      using RenderGroup = SystemGroup<RC , Transform>;
+    /// true until first render
+    bool scene_geometry_changed = true;
 
-      RenderGroup<Mesh> dynamic_mesh_group;
-      RenderGroup<StaticMesh> static_mesh_group;
+    entt::registry registry;
+    UUID scene_handle;
+    ScriptRef<CsObject> scene_object = nullptr;
 
-      Ref<PhysicsWorld2D> physics_world_2d;
-      Ref<PhysicsWorld> physics_world;
+    SystemGroup<Relationship> connection_group;
+    SystemGroup<LightSource, Transform> light_group;
+    SystemGroup<Script> script_group;
 
-      std::map<UUID , Entity*> root_entities{};
-      std::map<UUID , Entity*> entities{};
+    template <RenderableComp RC>
+    using RenderGroup = SystemGroup<RC, Transform>;
 
-      template <ComponentType T1 , ComponentType T2 = NullComponent , ComponentType T3 = NullComponent>
-      auto GetGroup() -> SystemGroup<T1 , T2 , T3> {
-        return registry.group<T1>(entt::get<T2> , entt::exclude<T3>);
-      }
+    RenderGroup<Mesh> dynamic_mesh_group;
+    RenderGroup<StaticMesh> static_mesh_group;
 
-      void FixRoots();
-      void BuildGroups();
+    Ref<PhysicsWorld2D> physics_world_2d;
+    Ref<PhysicsWorld> physics_world;
+
+    std::map<UUID, Entity*> root_entities{};
+    std::map<UUID, Entity*> entities{};
+
+    template <ComponentType T1, ComponentType T2 = NullComponent, ComponentType T3 = NullComponent>
+    auto GetGroup() -> SystemGroup<T1, T2, T3> {
+      return registry.group<T1>(entt::get<T2>, entt::exclude<T3>);
+    }
+
+    void FixRoots();
+    void BuildGroups();
   };
 
-} // namespace other
+}  // namespace other
 
 ECHO_TYPE(
-  type(
-    other::Scene ,
-    refl::attr::bases<dotother::NObject>
-  ) ,
-  func(GetEntity)
-);
+  type(other::Scene, refl::attr::bases<dotother::NObject>),
+  func(GetEntity));
 
-#endif // !OTHER_ENGINE_SCENE_HPP
+#endif  // !OTHER_ENGINE_SCENE_HPP

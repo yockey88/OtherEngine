@@ -15,7 +15,7 @@ namespace other {
     glm::vec3 direction;
 
     glm::vec3 At(float t) {
-      return vec3_sum(origin , vec3_product(t , direction));
+      return vec3_sum(origin, vec3_product(t, direction));
     }
   };
 
@@ -24,6 +24,6 @@ namespace other {
     Opt<glm::vec3> point = std::nullopt;
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_RAY_HPP
+#endif  // !OTHER_ENGINE_RAY_HPP

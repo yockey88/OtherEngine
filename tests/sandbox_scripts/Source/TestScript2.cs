@@ -15,12 +15,11 @@ namespace Other {
       transform.Rotate(0.1f , new Vec3(1.0f , 1.0f , 1.0f));
 
 
-      // accum += (UInt32)dt;
-      // if (accum != 0 && accum % 100.0f < 1.0f) {
-      //   transform.Position += new Vec3(dt);
-      //   Logger.WriteDebug($"Position updated : {accum}");
-      //   accum = 0;
-      // }
+      accum += (UInt32)dt;
+      if (accum != 0 && accum % 100.0f < 1.0f) {
+        transform.Position += new Vec3(1f , 1f , 1f);
+        accum = 0;
+      }
     }
   }
 
