@@ -11,7 +11,7 @@
 namespace other {
 
   template <typename T>
-  T Clamp(T val , double min , double max) {
+  T Clamp(T val, double min, double max) {
     if (val < min) {
       return min;
     } else if (val > max) {
@@ -21,7 +21,7 @@ namespace other {
     }
   }
 
-  constexpr static inline size_t FastPow(size_t base , size_t exp) {
+  constexpr static inline size_t FastPow(size_t base, size_t exp) {
     size_t result = 1;
     while (exp > 0) {
       if (exp & 1) {
@@ -33,6 +33,6 @@ namespace other {
     return result;
   }
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_MATH_HPP
+#endif  // !OTHER_ENGINE_MATH_HPP

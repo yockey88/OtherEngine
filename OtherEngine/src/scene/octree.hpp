@@ -8,14 +8,14 @@
 
 #include <spdlog/fmt/fmt.h>
 
-#include "scene/bvh_node.hpp"
 #include "scene/bvh.hpp"
+#include "scene/bvh_node.hpp"
 
 namespace other {
 
-  using Octant = BvhNode<8 , OCTREE>;
-  using Octree = Bvh<8 , OCTREE>;
+  using Octant = BvhNode<8, OCTREE>;
+  using Octree = Bvh<8, OCTREE>;
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_OCTREE_HPP
+#endif  // !OTHER_ENGINE_OCTREE_HPP

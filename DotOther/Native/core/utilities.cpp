@@ -8,22 +8,22 @@
 #include "core/hook_definitions.hpp"
 
 namespace dotother {
-namespace util {
-  
-  detail::UtilityObjects utils = {};
+  namespace util {
 
-namespace detail {
+    detail::UtilityObjects utils = {};
 
-  using namespace std::string_view_literals;
-  void UtilityObjects::OverRideLogSink(native_log_callback_t sink) {
-    log_sink = sink;
-  }
+    namespace detail {
 
-  void UtilityObjects::ResetLogSink() {
-    std::print("reseting log sink\n"sv);
-    log_sink = nullptr;
-  }
+      using namespace std::string_view_literals;
+      void UtilityObjects::OverRideLogSink(native_log_callback_t sink) {
+        log_sink = sink;
+      }
 
-} // namespace detail
-} // namespace util
-} // namespace dotother
+      void UtilityObjects::ResetLogSink() {
+        std::print("reseting log sink\n"sv);
+        log_sink = nullptr;
+      }
+
+    }  // namespace detail
+  }  // namespace util
+}  // namespace dotother

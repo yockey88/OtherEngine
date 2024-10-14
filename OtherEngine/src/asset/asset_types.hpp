@@ -1,17 +1,18 @@
 /**
  * \file asset/asset_types.hpp
-*/
+ */
 #ifndef OTHER_ENGINE_ASSET_TYPES_HPP
 #define OTHER_ENGINE_ASSET_TYPES_HPP
 
 #include <array>
-#include <string_view>
 #include <map>
 #include <set>
+#include <string_view>
 
 #include "core/defines.hpp"
-#include "core/uuid.hpp"
 #include "core/ref.hpp"
+#include "core/uuid.hpp"
+
 
 namespace other {
 
@@ -25,14 +26,14 @@ namespace other {
     }
 
     constexpr AssetHandle()
-      : id(0) {}
+        : id(0) {}
 
     constexpr AssetHandle(uint64_t uid) {
       id = uid;
     }
 
-    constexpr AssetHandle(UUID id) 
-      : id(id) {}
+    constexpr AssetHandle(UUID id)
+        : id(id) {}
   };
 
   template <>
@@ -40,135 +41,133 @@ namespace other {
     return ValueType::ASSET;
   }
 
-  inline bool operator==(const AssetHandle& lhs , const AssetHandle& rhs) {
+  inline bool operator==(const AssetHandle& lhs, const AssetHandle& rhs) {
     return lhs.id == rhs.id;
   }
 
   enum AssetFlag : uint16_t {
-    NO_ASSET_FLAGS = 0 , 
-    READ_ONLY = bit(0) ,
-    READ_WRITE = bit(1) ,
-    MISSING = bit(2) ,
-    DIRTY = bit(3) ,
-    ASSET_INVALID = bit(4) ,
-    ASSET_LOADED = bit(5) ,
+    NO_ASSET_FLAGS = 0,
+    READ_ONLY = bit(0),
+    READ_WRITE = bit(1),
+    MISSING = bit(2),
+    DIRTY = bit(3),
+    ASSET_INVALID = bit(4),
+    ASSET_LOADED = bit(5),
   };
 
   enum AssetType : uint16_t {
-    BLANK_ASSET = 0 ,
-    SCENE ,
+    BLANK_ASSET = 0,
+    SCENE,
     // PREFAB ,
-    MODEL_SOURCE , 
-    MODEL ,
-    SHADER ,
+    MODEL_SOURCE,
+    MODEL,
+    SHADER,
     // MATERIAL ,
-    TEXTURE ,
+    TEXTURE,
     // ENVMAP ,
     // AUDIO ,
     // SOUNDCONFIG ,
     // SPATIALIZATIONCONFIG ,
     // FONT ,
-    SCRIPTFILE ,
-    // MESHCOLLIDER , 
+    SCRIPTFILE,
+    // MESHCOLLIDER ,
     // SOUNDGRAPHSOUND ,
     // SKELETON ,
-    // ANIMATION , 
+    // ANIMATION ,
     // ANIMATIONGRAPH ,
-    SOURCE_FILE ,
+    SOURCE_FILE,
 
-    NUM_ASSET_TYPES ,
+    NUM_ASSET_TYPES,
     INVALID_ASSET = 0xFFFF
   };
-  
+
   using AssetSet = std::set<AssetHandle>;
   using AssetMap = std::map<AssetHandle, Ref<Asset>>;
 
-namespace util {
-  
+  namespace util {
 
-  inline AssetType AssetTypeFromString(std::string_view asset_str) {
-    if (asset_str == "SCENE") return AssetType::SCENE;
-    // if (asset_str == "PREFAB") return AssetType::PREFAB;
-    if (asset_str == "MODEL-SOURCE") return AssetType::MODEL_SOURCE;
-    if (asset_str == "MODEL") return AssetType::MODEL;
-    if (asset_str == "SHADER") return AssetType::SHADER;
-    // if (asset_str == "MATERIAL") return AssetType::MATERIAL;  
-    if (asset_str == "TEXTURE") return AssetType::TEXTURE;
-    // if (asset_str == "ENV-MAP") return AssetType::ENVMAP;
-    // if (asset_str == "AUDIO") return AssetType::AUDIO;
-    // if (asset_str == "SOUND-CONFIG") return AssetType::SOUNDCONFIG;
-    // if (asset_str == "SPATIALIZATION-CONFIG") return AssetType::SPATIALIZATIONCONFIG;
-    // if (asset_str == "FONT") return AssetType::FONT;
-    if (asset_str == "SCRIPT-FILE") return AssetType::SCRIPTFILE;
-    // if (asset_str == "MESH-COLLIDER") return AssetType::MESHCOLLIDER;
-    // if (asset_str == "SOUND-GRAPH-SOUND") return AssetType::SOUNDGRAPHSOUND;
-    // if (asset_str == "SKELETON") return AssetType::SKELETON;
-    // if (asset_str == "ANIMATION") return AssetType::ANIMATION;
-    // if (asset_str == "ANIMATION-GRAPH") return AssetType::ANIMATIONGRAPH;
-    if (asset_str == "SOURCE-FILE") return AssetType::SOURCE_FILE;
-    return AssetType::INVALID_ASSET;
-  }
+    inline AssetType AssetTypeFromString(std::string_view asset_str) {
+      if (asset_str == "SCENE") return AssetType::SCENE;
+      // if (asset_str == "PREFAB") return AssetType::PREFAB;
+      if (asset_str == "MODEL-SOURCE") return AssetType::MODEL_SOURCE;
+      if (asset_str == "MODEL") return AssetType::MODEL;
+      if (asset_str == "SHADER") return AssetType::SHADER;
+      // if (asset_str == "MATERIAL") return AssetType::MATERIAL;
+      if (asset_str == "TEXTURE") return AssetType::TEXTURE;
+      // if (asset_str == "ENV-MAP") return AssetType::ENVMAP;
+      // if (asset_str == "AUDIO") return AssetType::AUDIO;
+      // if (asset_str == "SOUND-CONFIG") return AssetType::SOUNDCONFIG;
+      // if (asset_str == "SPATIALIZATION-CONFIG") return AssetType::SPATIALIZATIONCONFIG;
+      // if (asset_str == "FONT") return AssetType::FONT;
+      if (asset_str == "SCRIPT-FILE") return AssetType::SCRIPTFILE;
+      // if (asset_str == "MESH-COLLIDER") return AssetType::MESHCOLLIDER;
+      // if (asset_str == "SOUND-GRAPH-SOUND") return AssetType::SOUNDGRAPHSOUND;
+      // if (asset_str == "SKELETON") return AssetType::SKELETON;
+      // if (asset_str == "ANIMATION") return AssetType::ANIMATION;
+      // if (asset_str == "ANIMATION-GRAPH") return AssetType::ANIMATIONGRAPH;
+      if (asset_str == "SOURCE-FILE") return AssetType::SOURCE_FILE;
+      return AssetType::INVALID_ASSET;
+    }
 
-  constexpr static uint16_t kNumAssetTypes = AssetType::NUM_ASSET_TYPES + 1; 
-  constexpr static std::array<std::string_view , kNumAssetTypes> kAssetTypeStrings = {
-    "EMPTY_ASSET" ,
-    "SCENE" , 
-    // "PREFAB" , 
-    "MODEL-SOURCE" ,
-    "MODEL" ,
-    "SHADER" , 
-    //"MATERIAL" , 
-    "TEXTURE" , 
-    // "ENV-MAP" , 
-    // "AUDIO" , 
-    // "SOUND-CONFIG" , 
-    // "SPATIALIZATION-CONFIG" , 
-    // "FONT" , 
-    "SCRIPT-FILE" , 
-    // "MESH-COLLIDER" , 
-    // "SOUND-GRAPH-SOUND" , 
-    // "SKELETON" , 
-    // "ANIMATION" , 
-    // "ANIMATION-GRAPH" ,
-    "SOURCE-FILE" ,
+    constexpr static uint16_t kNumAssetTypes = AssetType::NUM_ASSET_TYPES + 1;
+    constexpr static std::array<std::string_view, kNumAssetTypes> kAssetTypeStrings = {
+      "EMPTY_ASSET",
+      "SCENE",
+      // "PREFAB" ,
+      "MODEL-SOURCE",
+      "MODEL",
+      "SHADER",
+      //"MATERIAL" ,
+      "TEXTURE",
+      // "ENV-MAP" ,
+      // "AUDIO" ,
+      // "SOUND-CONFIG" ,
+      // "SPATIALIZATION-CONFIG" ,
+      // "FONT" ,
+      "SCRIPT-FILE",
+      // "MESH-COLLIDER" ,
+      // "SOUND-GRAPH-SOUND" ,
+      // "SKELETON" ,
+      // "ANIMATION" ,
+      // "ANIMATION-GRAPH" ,
+      "SOURCE-FILE",
 
-    "INVALID"
-  };
+      "INVALID"};
 
-} // namespace util
-} // namespace other
+  }  // namespace util
+}  // namespace other
 
 template <>
 struct fmt::formatter<other::AssetType> : public fmt::formatter<std::string_view> {
-  auto format(other::AssetType type , fmt::format_context& ctx) {
+  auto format(other::AssetType type, fmt::format_context& ctx) {
     constexpr std::string_view fmt_str = "{}";
-    return fmt::formatter<std::string_view>::format(fmt::format(fmt_str , other::util::kAssetTypeStrings[type]) , ctx);
+    return fmt::formatter<std::string_view>::format(fmt::format(fmt_str, other::util::kAssetTypeStrings[type]), ctx);
   }
 };
 
 template <>
 struct fmt::formatter<other::AssetHandle> : public fmt::formatter<std::string_view> {
   auto format(const other::AssetHandle& handle, fmt::format_context& ctx) {
-    return fmt::formatter<std::string_view>::format(fmt::format(std::string_view{ "[{}:{:#08x}]" } , handle.Get() , handle.Get()) , ctx);
+    return fmt::formatter<std::string_view>::format(fmt::format(std::string_view{"[{}:{:#08x}]"}, handle.Get(), handle.Get()), ctx);
   }
 };
 
 namespace std {
 
-  template<>
+  template <>
   struct hash<other::AssetHandle> {
     size_t operator()(const other::AssetHandle& handle) const {
       return hash<other::UUID>{}(handle.id);
     }
   };
-  
-  template<>
+
+  template <>
   struct less<other::AssetHandle> {
-    size_t operator()(const other::AssetHandle& lhs , const other::AssetHandle& rhs) const {
+    size_t operator()(const other::AssetHandle& lhs, const other::AssetHandle& rhs) const {
       return lhs.Get() < rhs.Get();
     }
   };
 
-} // namespace std
+}  // namespace std
 
-#endif // !OTHER_ENGINE_ASSET_TYPES_HPP
+#endif  // !OTHER_ENGINE_ASSET_TYPES_HPP

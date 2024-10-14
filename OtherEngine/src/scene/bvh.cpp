@@ -7,5 +7,4 @@
 
 namespace other {
 
-
-} // namespace other
+}  // namespace other
