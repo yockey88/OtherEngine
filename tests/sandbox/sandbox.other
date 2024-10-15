@@ -2,6 +2,7 @@
 name = "Sandbox"
 bin-dir = "C:/Yock/code/OtherEngine/bin/Debug"
 script-bin-dir = "SandboxScripts"
+lua-directory = "C:/Yock/code/OtherEngine/tests/sandbox_scripts/lua"
 author = "Y"
 version = 0.0.1
 need-primary-scene = false
@@ -22,4 +23,9 @@ path = "./logs/sandbox.log"
 [script-engine.C#]
 modules = { 
   "SandboxScripts.dll"
+}
+
+[script-engine.Lua]
+modules = {
+  "sandbox_ui.lua"
 }

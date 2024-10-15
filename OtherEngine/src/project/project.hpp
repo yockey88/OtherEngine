@@ -4,6 +4,7 @@
 #ifndef OTHER_ENGINE_PROJECT_HPP
 #define OTHER_ENGINE_PROJECT_HPP
 
+#include <optional>
 #include <string>
 
 #include "core/defines.hpp"
@@ -65,6 +66,7 @@ namespace other {
     Path assets_dir = "";
 
     Opt<Path> script_bin_dir = std::nullopt;
+    Opt<Path> lua_directory = std::nullopt;
 
     Opt<std::string> primary_scene = std::nullopt;
 

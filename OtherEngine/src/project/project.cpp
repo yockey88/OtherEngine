@@ -3,73 +3,73 @@
  **/
 #include "project/project.hpp"
 
-#include "core/logger.hpp"
-#include "core/filesystem.hpp"
-#include "core/config_keys.hpp"
 #include <filesystem>
 
+#include "core/config_keys.hpp"
+#include "core/filesystem.hpp"
+#include "core/logger.hpp"
+
 namespace other {
-namespace {
-  
-  static Ref<Directory> GetDirStructure(Ref<Directory>& parent , const Path& path) {
-    Ref<Directory> this_dir = Ref<Directory>::Create(parent , path);
+  namespace {
 
-    std::vector<Path> sub_dirs = Filesystem::GetSubDirs(path);
-    std::vector<Ref<Directory>> dirs;
-    for (auto& p : sub_dirs) {
-      dirs.push_back(GetDirStructure(this_dir , p)); 
+    static Ref<Directory> GetDirStructure(Ref<Directory>& parent, const Path& path) {
+      Ref<Directory> this_dir = Ref<Directory>::Create(parent, path);
+
+      std::vector<Path> sub_dirs = Filesystem::GetSubDirs(path);
+      std::vector<Ref<Directory>> dirs;
+      for (auto& p : sub_dirs) {
+        dirs.push_back(GetDirStructure(this_dir, p));
+      }
+
+      return this_dir;
     }
 
-    return this_dir;
-  }
+    static Ref<Directory> GetDirStructure(const Path& path) {
+      Ref<Directory> this_dir = Ref<Directory>::Create(path);
 
-  static Ref<Directory> GetDirStructure(const Path& path) {
-    Ref<Directory> this_dir = Ref<Directory>::Create(path);
+      std::vector<Path> sub_dirs = Filesystem::GetSubDirs(path);
+      std::vector<Ref<Directory>> dirs;
+      for (auto& p : sub_dirs) {
+        dirs.push_back(GetDirStructure(this_dir, p));
+      }
 
-    std::vector<Path> sub_dirs = Filesystem::GetSubDirs(path);
-    std::vector<Ref<Directory>> dirs;
-    for (auto& p : sub_dirs) {
-      dirs.push_back(GetDirStructure(this_dir , p)); 
+      return this_dir;
     }
 
-    return this_dir;
-  }
-
-  static std::vector<Ref<Directory>> GetAllDirectories(const Path& basepath) {
-    std::vector<Path> sub_dirs = Filesystem::GetSubDirs(basepath);
-    std::vector<Ref<Directory>> dirs;
-    for (auto& p : sub_dirs) {
-      dirs.push_back(GetDirStructure(p)); 
+    static std::vector<Ref<Directory>> GetAllDirectories(const Path& basepath) {
+      std::vector<Path> sub_dirs = Filesystem::GetSubDirs(basepath);
+      std::vector<Ref<Directory>> dirs;
+      for (auto& p : sub_dirs) {
+        dirs.push_back(GetDirStructure(p));
+      }
+      return dirs;
     }
-    return dirs; 
-  }
 
-} // anonymous namespace 
+  }  // anonymous namespace
 
   Opt<std::string> Project::queued_project_path = std::nullopt;
-   
-  Project::Project(const CmdLine& cmdline , const ConfigTable& config)
-      : cmdline(cmdline) , config(config) {
-    metadata.name = config.GetVal<std::string>(kProjectSection , kNameValue).value_or("Unnamed Project");
-    OE_DEBUG("Project Name : {}" , metadata.name);
 
-    metadata.bin_dir = config.GetVal<std::string>(kProjectSection , kBinDirValue).value_or("bin/Debug/");
-    OE_DEBUG("Bin Dir : {}" , metadata.bin_dir);
+  Project::Project(const CmdLine& cmdline, const ConfigTable& config)
+      : cmdline(cmdline), config(config) {
+    metadata.name = config.GetVal<std::string>(kProjectSection, kNameValue, false).value_or("Unnamed Project");
+    OE_DEBUG("Project Name : {}", metadata.name);
 
-    auto script_bin = config.GetVal<std::string>(kProjectSection , kScriptBinDirValue);
+    metadata.bin_dir = config.GetVal<std::string>(kProjectSection, kBinDirValue, false).value_or("bin/Debug/");
+    OE_DEBUG("Bin Dir : {}", metadata.bin_dir);
+
+    /// optionals so even if no value, no need to unwrap
+    metadata.primary_scene = config.GetVal<std::string>(kProjectSection, kPrimarySceneValue, false);
+    metadata.lua_directory = config.GetVal<std::string>(kProjectSection, kLuaDirValue, false);
+
+    auto script_bin = config.GetVal<std::string>(kProjectSection, kScriptBinDirValue, false);
     if (script_bin.has_value()) {
       metadata.script_bin_dir = *script_bin;
-    }
-
-    auto primary_scene = config.GetVal<std::string>(kProjectSection , kPrimarySceneValue);
-    if (primary_scene.has_value()) {
-      metadata.primary_scene = *primary_scene;
     }
 
     auto proj_path = cmdline.GetArg("--project").value_or(Arg{});
     if (proj_path.hash != 0 && proj_path.args.size() > 0) {
       metadata.file_path = Path(proj_path.args[0]);
-      OE_DEBUG("Project Path : {}" , metadata.file_path);
+      OE_DEBUG("Project Path : {}", metadata.file_path);
     }
 
     auto project_dir = cmdline.GetArg("--cwd").value_or(Arg{});
@@ -78,36 +78,36 @@ namespace {
     } else {
       metadata.project_directory = Filesystem::GetWorkingDirectory();
     }
-    OE_DEBUG("Project Directory : {}" , metadata.project_directory);
+    OE_DEBUG("Project Directory : {}", metadata.project_directory);
 
-    auto assets_dir = config.GetVal<std::string>(kProjectSection , kAssetsDirValue);
+    auto assets_dir = config.GetVal<std::string>(kProjectSection, kAssetsDirValue, false);
     if (assets_dir.has_value()) {
       metadata.assets_dir = metadata.project_directory / *assets_dir;
     } else {
       metadata.assets_dir = metadata.project_directory / "assets";
     }
-    OE_DEBUG("Assets Directory : {}" , metadata.assets_dir);
+    OE_DEBUG("Assets Directory : {}", metadata.assets_dir);
 
     auto paths = Filesystem::GetSubPaths(metadata.project_directory);
     for (auto& p : paths) {
       if (p.extension() == ".csproj" && p.string().find("Editor") != std::string::npos) {
         metadata.cs_editor_project_file = p;
       } else if (p.extension() == ".csproj") {
-        metadata.cs_project_file = p; 
+        metadata.cs_project_file = p;
       }
     }
   }
 
-  Ref<Project> Project::Create(const CmdLine& cmdline , const ConfigTable& data) {
-    return NewRef<Project>(cmdline , data);
+  Ref<Project> Project::Create(const CmdLine& cmdline, const ConfigTable& data) {
+    return NewRef<Project>(cmdline, data);
   }
-      
+
   void Project::LoadFiles() {
     auto dirs = GetAllDirectories(metadata.project_directory);
     for (auto& d : dirs) {
       auto stem = d->path.stem();
 
-      /// ignore dot dirs and build dirs 
+      /// ignore dot dirs and build dirs
       if (stem.string()[0] == '.' || stem == "bin" || stem == "obj") {
         continue;
       }
@@ -115,7 +115,7 @@ namespace {
       /// check if this is our assets dir
       if (stem == "assets") {
         metadata.assets_dir = d->path;
-        OE_DEBUG("project assets directory {}" , metadata.assets_dir);
+        OE_DEBUG("project assets directory {}", metadata.assets_dir);
       }
 
       metadata.directories[FNV(stem.string())] = d;
@@ -126,34 +126,34 @@ namespace {
 
     OE_DEBUG("Creating Directory Watchers for Reloading");
 
-    metadata.cs_editor_watcher = NewScope<DirectoryWatcher>(editor_path.string() , ".cs");
-    metadata.cs_scripts_watcher = NewScope<DirectoryWatcher>(scripts_path.string() , ".cs");
-    
-    metadata.lua_editor_watcher = NewScope<DirectoryWatcher>(editor_path.string() , ".lua");
-    metadata.lua_scripts_watcher = NewScope<DirectoryWatcher>(scripts_path.string() , ".lua");
+    metadata.cs_editor_watcher = NewScope<DirectoryWatcher>(editor_path.string(), ".cs");
+    metadata.cs_scripts_watcher = NewScope<DirectoryWatcher>(scripts_path.string(), ".cs");
+
+    metadata.lua_editor_watcher = NewScope<DirectoryWatcher>(editor_path.string(), ".lua");
+    metadata.lua_scripts_watcher = NewScope<DirectoryWatcher>(scripts_path.string(), ".lua");
 
     OE_DEBUG("Creating Script Watchers");
     CreateScriptWatchers();
   }
- 
+
   bool Project::RegenProjectFile() {
     CreateScriptWatchers();
 
-    std::string makefilename = "premake5.lua"; // metadata.name + ".lua";
+    std::string makefilename = "premake5.lua";  // metadata.name + ".lua";
     Path premake = metadata.file_path.parent_path() / "premake" / "premake5.exe";
     Path project = metadata.file_path.parent_path() / makefilename;
 
     std::string premakestr = premake.string();
-    std::string projectstr =project.string();
+    std::string projectstr = project.string();
 
-    std::replace(premakestr.begin() , premakestr.end() , '/' , '\\');
-    std::replace(projectstr.begin() , projectstr.end() , '/' , '\\');
+    std::replace(premakestr.begin(), premakestr.end(), '/', '\\');
+    std::replace(projectstr.begin(), projectstr.end(), '/', '\\');
 
-    /// TODO: replace vs2022 with platform specific generator 
-    std::string cmd = fmtstr("{} vs2022 --file={}" , premakestr , projectstr);
+    /// TODO: replace vs2022 with platform specific generator
+    std::string cmd = fmtstr("{} vs2022 --file={}", premakestr, projectstr);
     return system(cmd.c_str()) == 0;
   }
-  
+
   void Project::CreateScriptWatchers() {
     if (metadata.filewatchers.size() > 0) {
       metadata.filewatchers.clear();
@@ -167,15 +167,15 @@ namespace {
   }
 
   bool Project::EditorDirectoryChanged() {
-    OE_ASSERT(metadata.cs_editor_watcher != nullptr  && metadata.lua_editor_watcher != nullptr, "Project editor watchdog nullptr!");
-    return metadata.cs_editor_watcher->DirectoryChanged() || 
-           metadata.lua_editor_watcher->DirectoryChanged();
+    OE_ASSERT(metadata.cs_editor_watcher != nullptr && metadata.lua_editor_watcher != nullptr, "Project editor watchdog nullptr!");
+    return metadata.cs_editor_watcher->DirectoryChanged() ||
+      metadata.lua_editor_watcher->DirectoryChanged();
   }
 
   bool Project::ScriptDirectoryChanged() {
-    OE_ASSERT(metadata.cs_scripts_watcher != nullptr  && metadata.lua_scripts_watcher != nullptr, "Project scripts watchdog nullptr!");
-    return metadata.cs_scripts_watcher->DirectoryChanged() || 
-           metadata.lua_scripts_watcher->DirectoryChanged();
+    OE_ASSERT(metadata.cs_scripts_watcher != nullptr && metadata.lua_scripts_watcher != nullptr, "Project scripts watchdog nullptr!");
+    return metadata.cs_scripts_watcher->DirectoryChanged() ||
+      metadata.lua_scripts_watcher->DirectoryChanged();
   }
 
   bool Project::AnyScriptChanged() {
@@ -190,10 +190,10 @@ namespace {
 
   void Project::CreateFileWatchers(const Path& dirpath) {
     if (!Filesystem::PathExists(dirpath)) {
-      OE_ERROR("Creating file watchers for non-existent directory {}" , dirpath);
+      OE_ERROR("Creating file watchers for non-existent directory {}", dirpath);
       return;
     } else if (!Filesystem::IsDirectory(dirpath)) {
-      OE_ERROR("CreateFileWatchers param must be a directory. {} is a file." , dirpath);
+      OE_ERROR("CreateFileWatchers param must be a directory. {} is a file.", dirpath);
       return;
     }
 
@@ -208,18 +208,17 @@ namespace {
     queued_project_path = path;
   }
 
-  bool Project::HasQueuedProject() { 
-    return queued_project_path.has_value(); 
+  bool Project::HasQueuedProject() {
+    return queued_project_path.has_value();
   }
 
   // this should attempt to relaunch the launcher
-  std::string Project::GetQueuedProjectPath() { 
-    return queued_project_path.value_or("OtherEngine-Launcher/launcher.other"); 
+  std::string Project::GetQueuedProjectPath() {
+    return queued_project_path.value_or("OtherEngine-Launcher/launcher.other");
   }
 
   void Project::ClearQueuedProject() {
     queued_project_path = std::nullopt;
   }
 
-
-} // namespace other
+}  // namespace other

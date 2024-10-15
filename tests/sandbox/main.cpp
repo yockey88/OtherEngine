@@ -12,7 +12,6 @@
 #include <SDL_keyboard.h>
 #include <SDL_mouse.h>
 
-#include "application/app.hpp"
 #include "core/defines.hpp"
 #include "core/engine.hpp"
 #include "core/errors.hpp"
@@ -20,6 +19,7 @@
 #include "core/logger.hpp"
 #include "core/time.hpp"
 
+#include "application/app.hpp"
 #include "event/event_queue.hpp"
 #include "input/io.hpp"
 #include "parsing/cmd_line_parser.hpp"
@@ -78,7 +78,7 @@ int main(int argc, char* argv[]) {
     const Path config_path = sandbox_dir / "sandbox.other";
 
     CmdLine cmd_line(argc, argv);
-    cmd_line.SetFlag("--project", {config_path.string()});
+    cmd_line.SetFlag("--project", { config_path.string() });
 
     /// for test reasons
     Engine mock_engine(cmd_line);
@@ -119,8 +119,8 @@ int main(int argc, char* argv[]) {
 
     {
       auto win_size = Renderer::WindowSize();
-      Ref<CameraBase> camera = NewRef<PerspectiveCamera>(glm::ivec2{win_size.x, win_size.y});
-      camera->SetPosition({0.f, 0.f, 3.f});
+      Ref<CameraBase> camera = NewRef<PerspectiveCamera>(glm::ivec2{ win_size.x, win_size.y });
+      camera->SetPosition({ 0.f, 0.f, 3.f });
 
       Ref<Shader> fbshader = BuildShader(fbshader_path);
 
@@ -131,37 +131,38 @@ int main(int argc, char* argv[]) {
 
       uint32_t camera_binding_pnt = 0;
       std::vector<Uniform> cam_unis = {
-        {"projection", ValueType::MAT4},
-        {"view", ValueType::MAT4},
-        {"viewpoint", ValueType::VEC4},
+        { "projection", ValueType::MAT4 },
+        { "view", ValueType::MAT4 },
+        { "viewpoint", ValueType::VEC4 },
       };
 
       uint32_t model_binding_pnt = 1;
       std::vector<Uniform> model_unis = {
-        {"models", ValueType::MAT4, 100},
+        { "models", ValueType::MAT4, 100 },
       };
 
       uint32_t material_binding_pnt = 2;
       std::vector<Uniform> material_unis = {
-        {"materials", ValueType::USER_TYPE, 100, sizeof(Material)},
+        { "materials", ValueType::USER_TYPE, 100, sizeof(Material) },
       };
 
       uint32_t light_binding_pnt = 3;
       std::vector<Uniform> light_unis = {
-        {"num_lights", ValueType::VEC4},
-        {"point_lights", ValueType::USER_TYPE, 100, sizeof(PointLight)},
-        {"direction_lights", ValueType::USER_TYPE, 100, sizeof(DirectionLight)},
+        { "num_lights", ValueType::VEC4 },
+        { "point_lights", ValueType::USER_TYPE, 100, sizeof(PointLight) },
+        { "direction_lights", ValueType::USER_TYPE, 100, sizeof(DirectionLight) },
       };
 
       Layout default_layout = {
-        {ValueType::VEC3, "position"},
-        {ValueType::VEC3, "normal"},
-        {ValueType::VEC3, "tangent"},
-        {ValueType::VEC3, "binormal"},
-        {ValueType::VEC2, "uvs"}};
+        { ValueType::VEC3, "position" },
+        { ValueType::VEC3, "normal" },
+        { ValueType::VEC3, "tangent" },
+        { ValueType::VEC3, "binormal" },
+        { ValueType::VEC2, "uvs" }
+      };
 
       std::vector<Uniform> outline_unis = {
-        {"outline_color", VEC3},
+        { "outline_color", VEC3 },
       };
       std::vector<Uniform> geometry_unis = {};
       Ref<Shader> outline_shader = BuildShader(outline_path);
@@ -169,9 +170,9 @@ int main(int argc, char* argv[]) {
 
       RenderPassSpec normal_pass_spec{
         .name = "Draw Normals",
-        .tag_col = {0.f, 1.f, 0.f, 1.f},
+        .tag_col = { 0.f, 1.f, 0.f, 1.f },
         .uniforms = {
-          {"magnitude", ValueType::FLOAT},
+          { "magnitude", ValueType::FLOAT },
         },
         .shader = BuildShader(normals_path),
       };
@@ -180,7 +181,7 @@ int main(int argc, char* argv[]) {
 
       RenderPassSpec pure_geom_pass_spec{
         .name = "Pure Geometry",
-        .tag_col = {0.f, 0.f, 1.f, 1.f},
+        .tag_col = { 0.f, 0.f, 1.f, 1.f },
         .uniforms = {},
         .shader = BuildShader(pure_geometry_path),
       };
@@ -197,7 +198,7 @@ int main(int argc, char* argv[]) {
             .topology = DrawMode::TRIANGLES,
             .framebuffer_spec = {
               .depth_func = LESS_EQUAL,
-              .clear_color = {0.1f, 0.1f, 0.1f, 1.f},
+              .clear_color = { 0.1f, 0.1f, 0.1f, 1.f },
               .size = Renderer::WindowSize(),
             },
             .vertex_layout = default_layout,
@@ -211,7 +212,7 @@ int main(int argc, char* argv[]) {
             .topology = DrawMode::TRIANGLES,
             .framebuffer_spec = {
               .depth_func = LESS_EQUAL,
-              .clear_color = {0.1f, 0.1f, 0.1f, 1.f},
+              .clear_color = { 0.1f, 0.1f, 0.1f, 1.f },
               .size = Renderer::WindowSize(),
             },
             .vertex_layout = default_layout,
@@ -254,12 +255,12 @@ int main(int argc, char* argv[]) {
       }
 
       Material cube_material1 = {
-        .color = {1.0f, 0.5f, 0.31f, 1.f},
+        .color = { 1.0f, 0.5f, 0.31f, 1.f },
         .shininess = 32.f,
       };
 
       Material cube_material2 = {
-        .color = {0.1f, 0.5f, 0.31f, 1.f},
+        .color = { 0.1f, 0.5f, 0.31f, 1.f },
         .shininess = 32.f,
       };
 
@@ -275,7 +276,7 @@ int main(int argc, char* argv[]) {
       light_model2 = glm::translate(light_model2, light_pos2);
       light_model2 = glm::scale(light_model2, light_scale);
 
-      glm::vec3 outline_color{1.f, 0.f, 0.f};
+      glm::vec3 outline_color{ 1.f, 0.f, 0.f };
 
       SceneSerializer serializer;
       Ref<Scene> scene = nullptr;
@@ -288,7 +289,7 @@ int main(int argc, char* argv[]) {
         scene = loaded_scene.scene;
       }
 
-      Ref<BvhTree> bvh = NewRef<BvhTree>(glm::vec3{0.f, 0.f, 0.f});
+      Ref<BvhTree> bvh = NewRef<BvhTree>(glm::vec3{ 0.f, 0.f, 0.f });
       bvh->AddScene(scene, glm::zero<glm::vec3>());
 
       auto* cube = scene->GetEntity("cube");
@@ -303,9 +304,11 @@ int main(int argc, char* argv[]) {
 
       auto& sun_l = sun->GetComponent<LightSource>();
       sun_l.direction_light = {
-        .direction = {0.f, -1.f, 0.f, 1.f},
-        .color = {0.22f, 0.22f, 0.11f, 1.f},
+        .direction = { 0.f, -1.f, 0.f, 1.f },
+        .color = { 0.22f, 0.22f, 0.11f, 1.f },
       };
+
+      ScriptRef<LuaObject> sandbox_ui = ScriptEngine::GetScriptObject("SandboxUI", "", "sandbox_ui");
 
       ScriptEngine::SetSceneContext(scene);
       Renderer::SetSceneContext(scene);
@@ -419,7 +422,7 @@ int main(int argc, char* argv[]) {
         };
 
         UI::BeginFrame();
-        const ImVec2 win_size = {(float)Renderer::WindowSize().x, (float)Renderer::WindowSize().y};
+        const ImVec2 win_size = { (float)Renderer::WindowSize().x, (float)Renderer::WindowSize().y };
         if (ImGui::Begin("Stats")) {
           ImGui::Text("FPS : %.2f", fps(delta));
         }
@@ -445,7 +448,7 @@ int main(int argc, char* argv[]) {
           ImGui::Text("Debug Controls");
           ImGui::Separator();
           ui::widgets::DrawVec3Control("outline color", outline_color, edited, 0.f, 100.f, ui::VectorAxis::ZERO,
-                                       {0.f, 0.f, 0.f}, {1.f, 1.f, 1.f}, 0.1f);
+                                       { 0.f, 0.f, 0.f }, { 1.f, 1.f, 1.f }, 0.1f);
           ImGui::Separator();
 
           ImGui::Text("===== Scene Controls =====");
@@ -456,7 +459,7 @@ int main(int argc, char* argv[]) {
             ImGui::PushID((tag.name + "##transform-widget").c_str());
             if (ui::widgets::DrawVec3Control(fmtstr("{} position", tag.name),
                                              transform.position, edited, 0.f, 100.f, ui::VectorAxis::ZERO,
-                                             {-100.f, -100.f, -100.f}, {100.f, 100.f, 100.f}, 0.5f)) {}
+                                             { -100.f, -100.f, -100.f }, { 100.f, 100.f, 100.f }, 0.5f)) {}
             ImGui::Separator();
             ImGui::PopID();
           });

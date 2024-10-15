@@ -42,7 +42,7 @@ namespace other {
     }
 
     auto transform_serializer = EntitySerialization::GetComponentSerializer(kTransformIndex);
-    OE_ASSERT(transform_serializer != nullptr , "Failed to retrive transffomr serializer!");
+    OE_ASSERT(transform_serializer != nullptr , "Failed to retrive transform serializer!");
     transform_serializer->Serialize(stream , entity , ctx);
     
     auto relationship_serializer = EntitySerialization::GetComponentSerializer(kRelationshipIndex);

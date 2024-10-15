@@ -1,19 +1,22 @@
 /**
  * \file event\event_queue.cpp
-*/
+ */
 #include "event/event_queue.hpp"
 
-#include <SDL.h>
 #include <imgui/backends/imgui_impl_sdl2.h>
 
+#include <SDL.h>
+
+#include "core/config_keys.hpp"
 #include "core/defines.hpp"
 #include "core/engine.hpp"
-#include "core/config_keys.hpp"
+
 #include "event/app_events.hpp"
+#include "event/core_events.hpp"
 #include "event/event.hpp"
 #include "event/window_events.hpp"
-#include "event/core_events.hpp"
 #include "project/project.hpp"
+
 #include "rendering/renderer.hpp"
 
 namespace other {
@@ -21,14 +24,14 @@ namespace other {
   uint32_t EventQueue::buffer_offset = 0;
   uint8_t* EventQueue::event_buffer = nullptr;
   uint8_t* EventQueue::cursor = nullptr;
-      
+
   bool EventQueue::process_ui_events = false;
 
   void EventQueue::Initialize(const ConfigTable& config) {
     event_buffer = new uint8_t[buffer_size];
     cursor = event_buffer;
 
-    auto ui_enabled = config.GetVal<bool>(kUiSection , kDisabledValue);
+    auto ui_enabled = config.GetVal<bool>(kUiSection, kDisabledValue, false);
     if (!ui_enabled.has_value() || !ui_enabled.value()) {
       EnableUIEvents();
     } else {
@@ -37,7 +40,7 @@ namespace other {
   }
 
   void EventQueue::Poll(App* app) {
-    OE_ASSERT(event_buffer != nullptr , "Event buffer not initialized");
+    OE_ASSERT(event_buffer != nullptr, "Event buffer not initialized");
 
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
@@ -47,14 +50,13 @@ namespace other {
           switch (event.window.event) {
             case SDL_WINDOWEVENT_RESIZED:
               PushEvent<WindowResized>(
-                glm::ivec2(event.window.data1, event.window.data2) ,
-                Renderer::WindowSize() 
-              );
-            break;
+                glm::ivec2(event.window.data1, event.window.data2),
+                Renderer::WindowSize());
+              break;
             case SDL_WINDOWEVENT_MINIMIZED: PushEvent<WindowMinimized>(); break;
-            case SDL_WINDOWEVENT_CLOSE: PushEvent<WindowClosed>(); break; 
+            case SDL_WINDOWEVENT_CLOSE: PushEvent<WindowClosed>(); break;
           }
-        break;
+          break;
       }
 
       if (process_ui_events) {
@@ -64,12 +66,12 @@ namespace other {
 
     Dispatch(app);
   }
- 
+
   void EventQueue::Clear() {
     cursor = event_buffer;
     buffer_offset = 0;
   }
-   
+
   void EventQueue::EnableUIEvents() {
     process_ui_events = true;
   }
@@ -82,10 +84,10 @@ namespace other {
     delete[] event_buffer;
     event_buffer = nullptr;
   }
-  
+
   void EventQueue::Dispatch(App* app) {
-    OE_ASSERT(event_buffer != nullptr , "Event buffer not initialized");
-    OE_ASSERT(cursor != nullptr , "Event buffer cursor not initialized");
+    OE_ASSERT(event_buffer != nullptr, "Event buffer not initialized");
+    OE_ASSERT(cursor != nullptr, "Event buffer cursor not initialized");
 
     uint8_t* tmp_cursor = event_buffer;
 
@@ -96,7 +98,7 @@ namespace other {
 
     while (tmp_cursor != cursor) {
       Event* event = reinterpret_cast<Event*>(tmp_cursor);
-      
+
       if (event->Type() == EventType::PROJECT_DIR_UPDATE) {
         ProjectDirectoryUpdateEvent* e = Cast<ProjectDirectoryUpdateEvent>(event);
         if (e != nullptr) {
@@ -110,7 +112,7 @@ namespace other {
         tmp_cursor += event->Size();
         reload_scripts = true;
         continue;
-      } 
+      }
 
       if (app != nullptr && !event->handled) {
         app->ProcessEvent(event);
@@ -133,4 +135,4 @@ namespace other {
     Clear();
   }
 
-} // namespace other
+}  // namespace other

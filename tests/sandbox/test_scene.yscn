@@ -1,3 +1,7 @@
+#[
+  primary sandbox scene and primary OtherEngine test scene  
+#]
+
 [metadata]
 name = "Test Scene"
 entities = {
@@ -34,7 +38,7 @@ is-primitive = true
 primitive = 3
 
 [cube.script]
-SandboxScripts = { "Other::TestScript2" }
+*SandboxScripts = { "Other::TestScript2" }
 
 [sun]
 UUID = 4025795962345870502

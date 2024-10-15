@@ -7,35 +7,36 @@
 #include <string_view>
 
 #include "core/config_keys.hpp"
-#include "core/logger.hpp"
-#include "core/time.hpp"  
 #include "core/engine.hpp"
 #include "core/engine_state.hpp"
+#include "core/logger.hpp"
+#include "core/time.hpp"
+
+#include "application/app_state.hpp"
+#include "asset/runtime_asset_handler.hpp"
+#include "event/app_events.hpp"
 #include "event/core_events.hpp"
+#include "event/event_handler.hpp"
+#include "event/event_queue.hpp"
+#include "event/ui_events.hpp"
 #include "input/io.hpp"
 #include "parsing/cmd_line_parser.hpp"
-#include "application/app_state.hpp"
 
-#include "asset/runtime_asset_handler.hpp"
-#include "event/event_queue.hpp"
-#include "event/app_events.hpp"
-#include "event/event_handler.hpp"
-#include "event/ui_events.hpp"
-
-#include "scripting/script_defines.hpp"
-#include "scripting/script_engine.hpp"
+#include "physics/phyics_engine.hpp"
 #include "rendering/renderer.hpp"
 #include "rendering/rendering_defines.hpp"
 #include "rendering/ui/ui.hpp"
-#include "physics/phyics_engine.hpp"
+#include "scripting/script_defines.hpp"
+#include "scripting/script_engine.hpp"
+
 
 namespace other {
 
-  App::App(const CmdLine& cmdline , const ConfigTable& config)
-      : cmdline(cmdline) , config(config) {}
+  App::App(const CmdLine& cmdline, const ConfigTable& config)
+      : cmdline(cmdline), config(config) {}
 
   App::~App() {}
-      
+
   Ref<Project> App::GetProjectContext() {
     return Ref<Project>::Clone(project_metadata);
   }
@@ -46,11 +47,11 @@ namespace other {
 
     layer_stack = NewScope<LayerStack>();
 
-    project_metadata = Ref<Project>::Create(cmdline , config);
+    project_metadata = Ref<Project>::Create(cmdline, config);
     asset_handler = CreateAssetHandler();
 
     scene_manager = NewScope<SceneManager>();
- 
+
     OnLoad();
 
     OE_DEBUG("Application loaded");
@@ -63,19 +64,19 @@ namespace other {
     delta_time.Start();
     while (!EngineState::exit_code.has_value()) {
       float dt = delta_time.Get();
-      
+
       // updates mouse/keyboard/any connected controllers
       IO::Update();
 
       if (Renderer::IsWindowFocused()) {
-        DoEarlyUpdate(dt); 
+        DoEarlyUpdate(dt);
       }
-      
+
       /// process all events queued from io/early update/physics steps
       EventQueue::Poll(this);
 
       /// process any updates that are the result of events here
-      
+
       /// if the window is focuseed we update the application and then the scene
       if (Renderer::IsWindowFocused()) {
         DoUpdate(dt);
@@ -89,7 +90,7 @@ namespace other {
       ///     std::vector<RenderPass> passes = ....
       ///     Renderer::RenderFrame({ camera , framebuffer , passes });
       ///
-        
+
       /**
        * rendering workflow
        *  - for all things that need rendering
@@ -104,11 +105,11 @@ namespace other {
       DoRender();
       DoRenderUI();
       Renderer::GetWindow()->SwapBuffers();
-      
+
       CHECKGL();
 
       // FrameMark;
-    } 
+    }
 
     Detach();
 
@@ -126,25 +127,25 @@ namespace other {
 
     OE_DEBUG(" > Application unloaded");
   }
-  
-  void App::PushLayer(Ref<Layer>&  layer) {
+
+  void App::PushLayer(Ref<Layer>& layer) {
     layer->Attach();
     layer_stack->PushLayer(layer);
-    EventQueue::PushEvent<AppLayerEvent>(LayerEventType::LAYER_PUSH , layer->GetUUID() , layer->Name());
+    EventQueue::PushEvent<AppLayerEvent>(LayerEventType::LAYER_PUSH, layer->GetUUID(), layer->Name());
   }
 
-  void App::PushOverlay(Ref<Layer>&  overlay) {
+  void App::PushOverlay(Ref<Layer>& overlay) {
     overlay->Attach();
     layer_stack->PushOverlay(overlay);
 
-    EventQueue::PushEvent<AppLayerEvent>(LayerEventType::OVERLAY_PUSH , overlay->GetUUID() , overlay->Name());
+    EventQueue::PushEvent<AppLayerEvent>(LayerEventType::OVERLAY_PUSH, overlay->GetUUID(), overlay->Name());
   }
 
-  void App::PopLayer(Ref<Layer>&  layer) {
-    OE_DEBUG("Popping Layer : {}" , layer->Name());
+  void App::PopLayer(Ref<Layer>& layer) {
+    OE_DEBUG("Popping Layer : {}", layer->Name());
     layer->Detach();
     layer_stack->PopLayer(layer);
-    EventQueue::PushEvent<AppLayerEvent>(LayerEventType::LAYER_POP , layer->GetUUID() , layer->Name());
+    EventQueue::PushEvent<AppLayerEvent>(LayerEventType::LAYER_POP, layer->GetUUID(), layer->Name());
   }
 
   void App::PopLayer() {
@@ -154,15 +155,15 @@ namespace other {
     }
 
     layer_stack->Top()->Detach();
-    EventQueue::PushEvent<AppLayerEvent>(LayerEventType::LAYER_POP , layer_stack->Top()->GetUUID() , layer_stack->Top()->Name());
+    EventQueue::PushEvent<AppLayerEvent>(LayerEventType::LAYER_POP, layer_stack->Top()->GetUUID(), layer_stack->Top()->Name());
     layer_stack->PopLayer();
   }
 
-  void App::PopOverlay(Ref<Layer>&  overlay) {
+  void App::PopOverlay(Ref<Layer>& overlay) {
     overlay->Detach();
     layer_stack->PopOverlay(overlay);
 
-    EventQueue::PushEvent<AppLayerEvent>(LayerEventType::OVERLAY_POP , layer_stack->Top()->GetUUID() , overlay->Name());
+    EventQueue::PushEvent<AppLayerEvent>(LayerEventType::OVERLAY_POP, layer_stack->Top()->GetUUID(), overlay->Name());
   }
 
   void App::ProcessEvent(Event* event) {
@@ -171,7 +172,7 @@ namespace other {
     }
 
     EventHandler event_handler(event);
-    event_handler.Handle<UIWindowClosed>([this] (UIWindowClosed& event) -> bool {
+    event_handler.Handle<UIWindowClosed>([this](UIWindowClosed& event) -> bool {
       return RemoveUIWindow(event.GetWindowId());
     });
 
@@ -182,19 +183,19 @@ namespace other {
     for (auto itr = layer_stack->end(); itr != layer_stack->begin();) {
       --itr;
       (*itr)->ProcessEvent(event);
-    
+
       if (event->handled) {
         itr = layer_stack->begin();
       }
     }
-    
+
     if (event->handled) {
       return;
     }
 
     EventHandler handler(event);
-    handler.Handle<ShutdownEvent>([this](ShutdownEvent& sd) -> bool { 
-      EngineState::exit_code = sd.GetExitCode(); 
+    handler.Handle<ShutdownEvent>([this](ShutdownEvent& sd) -> bool {
+      EngineState::exit_code = sd.GetExitCode();
       return true;
     });
   }
@@ -218,7 +219,7 @@ namespace other {
     return ui_windows[id];
   }
 
-  UUID App::PushUIWindow(const std::string& name , Ref<UIWindow> window) {
+  UUID App::PushUIWindow(const std::string& name, Ref<UIWindow> window) {
     UUID id = FNV(name);
     if (ui_windows.find(id) != ui_windows.end()) {
       OE_WARN("UIWindow with name: {} already exists, overwriting", name);
@@ -269,7 +270,7 @@ namespace other {
 
   void App::LoadSceneByName(const std::string_view name) {
     auto scene_dir = project_metadata->GetMetadata().assets_dir / "scenes";
-    OE_DEBUG("Searching for {} in {}" , name , scene_dir.string());
+    OE_DEBUG("Searching for {} in {}", name, scene_dir.string());
     for (auto& entry : std::filesystem::directory_iterator(scene_dir)) {
       if (entry.is_regular_file() && entry.path().stem() == name) {
         LoadScene(entry.path());
@@ -277,29 +278,29 @@ namespace other {
       }
     }
   }
-  
+
   void App::LoadScene(const Path& path) {
     if (HasActiveScene() && ActiveScene()->path == path) {
       return;
     }
-      
+
     if (HasActiveScene()) {
       UnloadScene();
     }
 
     if (!scene_manager->HasScene(path) && !scene_manager->LoadScene(path)) {
-      OE_ERROR("Failed to load scene : {}" , path);
+      OE_ERROR("Failed to load scene : {}", path);
       return;
     }
-      
+
     scene_manager->SetAsActive(path);
     const SceneMetadata* scn_metadata = ActiveScene();
     if (scn_metadata == nullptr) {
-      OE_ERROR("Failed to load scene : {}" , path);
+      OE_ERROR("Failed to load scene : {}", path);
       return;
     }
-    
-    /// alert the client app new scene is loaded 
+
+    /// alert the client app new scene is loaded
     OnSceneLoad(ActiveScene());
 
     /// propogate scene loading through layers
@@ -310,7 +311,7 @@ namespace other {
     ScriptEngine::SetSceneContext(scn_metadata->scene);
     PhysicsEngine::SetSceneContext(scn_metadata->scene);
   }
-      
+
   bool App::HasActiveScene() {
     return scene_manager->ActiveScene() != nullptr;
   }
@@ -326,13 +327,13 @@ namespace other {
 
     /// Do we need to save before we offload
     // scene_manager->SaveActiveScene();
-    
+
     /// alert client app about scene unload
     OnSceneUnload();
 
-    OE_DEBUG("Unloading scene : {}" , ActiveScene()->path);
+    OE_DEBUG("Unloading scene : {}", ActiveScene()->path);
     scene_manager->UnloadActive();
-    
+
     /// propogate scene loading through layers
     for (auto& l : *layer_stack) {
       l->UnloadScene();
@@ -340,7 +341,7 @@ namespace other {
 
     OE_DEBUG("Scene Unloaded");
   }
-  
+
   void App::ReloadScripts() {
     bool scene_playing = false;
     Opt<Path> active_path = std::nullopt;
@@ -348,8 +349,8 @@ namespace other {
       scene_playing = scene_manager->IsPlaying();
       active_path = scene_manager->ActiveScene()->path;
       UnloadScene();
-    } 
-      
+    }
+
     scene_manager->ClearScenes();
     ScriptEngine::ReloadAllScripts();
 
@@ -367,12 +368,11 @@ namespace other {
   void App::Attach() {
     CHECKGL();
 
-
     GetProjectContext()->LoadFiles();
     ScriptEngine::LoadProjectModules();
     OnAttach();
-    
-    bool need_primary = config.GetVal<bool>(kProjectSection, kNeedPrimarySceneValue).value_or(true);
+
+    bool need_primary = config.GetVal<bool>(kProjectSection, kNeedPrimarySceneValue, false).value_or(true);
     if (need_primary) {
       auto& proj_data = project_metadata->GetMetadata();
       if (proj_data.primary_scene.has_value()) {
@@ -387,22 +387,22 @@ namespace other {
 
   /// TODO: add early update to layers and scene
   void App::DoEarlyUpdate(float dt) {
-    EarlyUpdate(dt);  
+    EarlyUpdate(dt);
 
-    layer_stack->InvokeControlledLoop(&Layer::EarlyUpdate , dt);
+    layer_stack->InvokeControlledLoop(&Layer::EarlyUpdate, dt);
   }
 
   void App::DoUpdate(float dt) {
     Update(dt);
 
-    layer_stack->InvokeControlledLoop(&Layer::Update , dt);
-    
+    layer_stack->InvokeControlledLoop(&Layer::Update, dt);
+
     LateUpdate(dt);
-    
+
     for (auto& l : *layer_stack) {
       l->LateUpdate(dt);
     }
-    
+
     auto itr = ui_windows.begin();
     while (itr != ui_windows.end()) {
       itr->second->OnUpdate(dt);
@@ -414,7 +414,7 @@ namespace other {
     Render();
 
     CHECKGL();
-    
+
     for (auto& l : *layer_stack) {
       l->Render();
     }
@@ -425,12 +425,12 @@ namespace other {
   void App::DoRenderUI() {
     if (UI::Enabled()) {
       UI::BeginFrame();
-      
+
       RenderUI();
-      
+
       layer_stack->InvokeControlledLoop(&Layer::UIRender);
-      
-      for (auto& [id , window] : ui_windows) {
+
+      for (auto& [id, window] : ui_windows) {
         window->Render();
       }
 
@@ -440,14 +440,14 @@ namespace other {
 
   void App::Detach() {
     OE_DEBUG("Detaching application");
-    
+
     OnDetach();
 
     if (HasActiveScene()) {
       UnloadScene();
     }
 
-    for (auto& [id , window] : ui_windows) {
+    for (auto& [id, window] : ui_windows) {
       window->OnDetach();
       window = nullptr;
     }
@@ -462,9 +462,9 @@ namespace other {
 
     OE_DEBUG("Application detached");
   }
-       
+
   Ref<AssetHandler> App::CreateAssetHandler() {
     return NewRef<RuntimeAssetHandler>();
   }
 
-} // namespace other
+}  // namespace other

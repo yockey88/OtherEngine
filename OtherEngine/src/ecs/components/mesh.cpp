@@ -11,7 +11,6 @@
 
 #include "rendering/model_factory.hpp"
 
-
 namespace other {
 
   void MeshSerializer::Serialize(std::ostream& stream, Entity* entity, const Ref<Scene>& scene) const {
@@ -25,11 +24,11 @@ namespace other {
   }
 
   void MeshSerializer::Deserialize(Entity* entity, const ConfigTable& scene_table, Ref<Scene>& scene) const {
-    std::string key_value = GetComponentSectionKey(entity->Name(), std::string{kMeshValue});
+    std::string key_value = GetComponentSectionKey(entity->Name(), std::string{ kMeshValue });
 
     auto& mesh = entity->AddComponent<Mesh>();
-    mesh.visible = scene_table.GetVal<bool>(key_value, kVisibleValue).value_or(false);
-    mesh.handle = scene_table.GetVal<uint64_t>(key_value, kHandleValue).value_or(0);
+    mesh.visible = scene_table.GetVal<bool>(key_value, kVisibleValue, false).value_or(false);
+    mesh.handle = scene_table.GetVal<uint64_t>(key_value, kHandleValue, false).value_or(0);
 
     /// material data
     /// paths/other metadata
@@ -49,15 +48,15 @@ namespace other {
 
   void StaticMeshSerializer::Deserialize(Entity* entity, const ConfigTable& scene_table, Ref<Scene>& scene) const {
     OE_ASSERT(entity != nullptr && scene != nullptr, "Attempting to deserialize a static-mesh into null entity or scene!");
-    std::string key_value = GetComponentSectionKey(entity->Name(), std::string{kStaticMeshValue});
+    std::string key_value = GetComponentSectionKey(entity->Name(), std::string{ kStaticMeshValue });
 
     auto& mesh = entity->AddComponent<StaticMesh>();
     /// we dont deserialize the handle because CreateBox below will create a new one,
     ///   because the old would be invalid anyways
-    mesh.visible = scene_table.GetVal<bool>(key_value, kVisibleValue).value_or(false);
-    mesh.is_primitive = scene_table.GetVal<bool>(key_value, kIsPrimitiveValue).value_or(false);
+    mesh.visible = scene_table.GetVal<bool>(key_value, kVisibleValue, false).value_or(false);
+    mesh.is_primitive = scene_table.GetVal<bool>(key_value, kIsPrimitiveValue, false).value_or(false);
     if (mesh.is_primitive) {
-      mesh.primitive_id = scene_table.GetVal<uint32_t>(key_value, kPrimitiveValue).value_or(0);
+      mesh.primitive_id = scene_table.GetVal<uint32_t>(key_value, kPrimitiveValue, false).value_or(0);
     } else {
       return;
     }
@@ -74,10 +73,10 @@ namespace other {
     auto scale = glm::vec3(1.f);
     switch (mesh.primitive_id) {
       case kTriangleIdx: {
-        mesh.handle = ModelFactory::CreateTriangle({scale.x / 2, scale.y / 2});
+        mesh.handle = ModelFactory::CreateTriangle({ scale.x / 2, scale.y / 2 });
       } break;
       case kRectIdx: {
-        mesh.handle = ModelFactory::CreateRect({scale.x / 2, scale.y / 2});
+        mesh.handle = ModelFactory::CreateRect({ scale.x / 2, scale.y / 2 });
       } break;
 
       case kCubeIdx: {

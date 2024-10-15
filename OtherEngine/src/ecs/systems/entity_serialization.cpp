@@ -37,6 +37,8 @@ namespace other {
   };
 
   Scope<ComponentSerializer> EntitySerialization::GetComponentSerializer(const std::string_view tag) {
+    std::string t = tag.data();
+    std::ranges::transform(t.begin() , t.end() , t.begin() , ::toupper);
     auto itr = std::find_if(kComponentTags.begin() , kComponentTags.end() , [&tag](const ComponentTagPair& tag_pair) -> bool {
         if (tag == tag_pair.first) {
           return true;

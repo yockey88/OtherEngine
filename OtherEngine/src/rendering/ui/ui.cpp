@@ -5,13 +5,13 @@
 
 #include <filesystem>
 
-#include <imgui/imgui_internal.h>
-#include <imgui/backends/imgui_impl_sdl2.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
+#include <imgui/backends/imgui_impl_sdl2.h>
+#include <imgui/imgui_internal.h>
 
+#include "core/config_keys.hpp"
 #include "core/defines.hpp"
 #include "core/logger.hpp"
-#include "core/config_keys.hpp"
 
 namespace other {
 
@@ -23,13 +23,13 @@ namespace other {
   Scope<WindowRef> UI::windowref = nullptr;
   ImGuiContext* UI::ui_context = nullptr;
 
-  std::unordered_map<UUID , Scope<UIWindow>> UI::ui_windows;
+  std::unordered_map<UUID, Scope<UIWindow>> UI::ui_windows;
 
   UITheme::UITheme() {
     name = "Default";
   }
 
-  UITheme::UITheme(const std::string& name , ImVec4 colors[UI_THEME_INDEX_COUNT]) {
+  UITheme::UITheme(const std::string& name, ImVec4 colors[UI_THEME_INDEX_COUNT]) {
     this->name = name;
     for (int i = 0; i < UI_THEME_INDEX_COUNT; i++) {
       this->colors[i] = colors[i];
@@ -37,7 +37,7 @@ namespace other {
   }
 
   void UI::SetTheme() {
-    // ImGuiStyle& style = ui_context->Style; 
+    // ImGuiStyle& style = ui_context->Style;
     // style.Colors[ImGuiCol_Text] = theme.colors[UIThemeIndex::TEXT];
     // style.Colors[ImGuiCol_TextDisabled] = theme.colors[UIThemeIndex::TEXT_DISABLED];
     // style.Colors[ImGuiCol_WindowBg] = theme.colors[UIThemeIndex::WINDOW_BG];
@@ -95,7 +95,7 @@ namespace other {
     // style.Colors[ImGuiCol_ModalWindowDimBg] = theme.colors[UIThemeIndex::MODAL_WINDOW_DIM_BG];
   }
 
-  void UI::Initialize(const ConfigTable& config , const Scope<Window>& window) {
+  void UI::Initialize(const ConfigTable& config, const Scope<Window>& window) {
     windowref = NewScope<WindowRef>(window);
 
     IMGUI_CHECKVERSION();
@@ -111,26 +111,26 @@ namespace other {
 
     ImGui::StyleColorsDark();
 
-    ImGui_ImplSDL2_InitForOpenGL(win_handle , ctx_handle);
+    ImGui_ImplSDL2_InitForOpenGL(win_handle, ctx_handle);
     ImGui_ImplOpenGL3_Init("#version 460 core");
 
     ui_context = ImGui::GetCurrentContext();
 
-    auto disabled = config.GetVal<bool>(kUiSection , kDisabledValue);
+    auto disabled = config.GetVal<bool>(kUiSection, kDisabledValue, false);
     if (!disabled.has_value() || !disabled.value()) {
       enabled = true;
     }
 
-    auto theme = config.GetVal<std::string>(kUiSection , kThemeValue);
+    auto theme = config.GetVal<std::string>(kUiSection, kThemeValue, false);
     if (theme.has_value()) {
       // SetTheme(theme.value());
     }
 
-    auto ipath = config.GetVal<std::string>(kUiSection , kIniPathValue);
+    auto ipath = config.GetVal<std::string>(kUiSection, kIniPathValue, false);
     if (ipath.has_value()) {
       ini_path = ipath.value();
-      std::transform(ini_path.begin() , ini_path.end() , ini_path.begin() , ::tolower);
-      if (std::find(ini_path.begin() , ini_path.end() , '.') == ini_path.end()) {
+      std::transform(ini_path.begin(), ini_path.end(), ini_path.begin(), ::tolower);
+      if (std::find(ini_path.begin(), ini_path.end(), '.') == ini_path.end()) {
         ini_path += ".ini";
       }
 
@@ -144,11 +144,11 @@ namespace other {
           break;
         }
 
-        auto pos = std::min(fslash_pos , bslash_pos);
+        auto pos = std::min(fslash_pos, bslash_pos);
         if (!dir.empty()) {
           dir += "/";
         }
-        dir += remaining.substr(0 , pos);
+        dir += remaining.substr(0, pos);
         remaining = remaining.substr(pos + 1);
 
         if (dir.empty()) {
@@ -164,7 +164,7 @@ namespace other {
       ImGui::GetIO().IniFilename = ini_path.c_str();
     }
   }
-      
+
   void UI::SetTheme(const UITheme& theme) {
     // this->theme = theme;
     SetTheme();
@@ -173,24 +173,24 @@ namespace other {
   bool UI::Enabled() {
     return enabled;
   }
-      
+
   bool UI::HasWindow(const std::string& title) {
-    OE_ASSERT(ui_context != nullptr , "UI context not initialized");
-    OE_ASSERT(windowref != nullptr , "Window reference not initialized");
-    OE_ASSERT(windowref->main_window != nullptr , "Main window not initialized");
+    OE_ASSERT(ui_context != nullptr, "UI context not initialized");
+    OE_ASSERT(windowref != nullptr, "Window reference not initialized");
+    OE_ASSERT(windowref->main_window != nullptr, "Main window not initialized");
 
     UUID id = FNV(title);
     return ui_windows.find(id) != ui_windows.end();
   }
 
   void UI::RemoveWindow(const std::string& title) {
-    OE_ASSERT(ui_context != nullptr , "UI context not initialized");
-    OE_ASSERT(windowref != nullptr , "Window reference not initialized");
-    OE_ASSERT(windowref->main_window != nullptr , "Main window not initialized");
+    OE_ASSERT(ui_context != nullptr, "UI context not initialized");
+    OE_ASSERT(windowref != nullptr, "Window reference not initialized");
+    OE_ASSERT(windowref->main_window != nullptr, "Main window not initialized");
 
     UUID id = FNV(title);
     if (ui_windows.find(id) == ui_windows.end()) {
-      OE_WARN("UI window [{}] not found" , title);
+      OE_WARN("UI window [{}] not found", title);
       return;
     }
 
@@ -198,33 +198,33 @@ namespace other {
   }
 
   void UI::RemoveWindow(const UUID& id) {
-    OE_ASSERT(ui_context != nullptr , "UI context not initialized");
-    OE_ASSERT(windowref != nullptr , "Window reference not initialized");
-    OE_ASSERT(windowref->main_window != nullptr , "Main window not initialized");
+    OE_ASSERT(ui_context != nullptr, "UI context not initialized");
+    OE_ASSERT(windowref != nullptr, "Window reference not initialized");
+    OE_ASSERT(windowref->main_window != nullptr, "Main window not initialized");
 
     if (ui_windows.find(id) == ui_windows.end()) {
-      OE_WARN("UI window with id [{}] not found" , id);
+      OE_WARN("UI window with id [{}] not found", id);
       return;
     } else {
-      OE_DEBUG("Removing UI window [{}]" , id);
+      OE_DEBUG("Removing UI window [{}]", id);
     }
 
     ui_windows.erase(id);
   }
-      
-  void UI::UpdateWindows(float dt) {
-    OE_ASSERT(ui_context != nullptr , "UI context not initialized");
-    OE_ASSERT(windowref != nullptr , "Window reference not initialized");
-    OE_ASSERT(windowref->main_window != nullptr , "Main window not initialized");
 
-    for (auto& [id , window] : ui_windows) {
+  void UI::UpdateWindows(float dt) {
+    OE_ASSERT(ui_context != nullptr, "UI context not initialized");
+    OE_ASSERT(windowref != nullptr, "Window reference not initialized");
+    OE_ASSERT(windowref->main_window != nullptr, "Main window not initialized");
+
+    for (auto& [id, window] : ui_windows) {
       window->OnUpdate(dt);
     }
 
     auto itr = ui_windows.begin();
     for (; itr != ui_windows.end();) {
       if (!itr->second->IsOpen() && !itr->second->Pinned()) {
-        OE_DEBUG("Removing UI window [{}]" , itr->second->Title());
+        OE_DEBUG("Removing UI window [{}]", itr->second->Title());
         itr->second->OnDetach();
         itr = ui_windows.erase(itr);
         continue;
@@ -234,9 +234,9 @@ namespace other {
   }
 
   void UI::BeginFrame() {
-    OE_ASSERT(ui_context != nullptr , "UI context not initialized");
-    OE_ASSERT(windowref != nullptr , "Window reference not initialized");
-    OE_ASSERT(windowref->main_window != nullptr , "Main window not initialized");
+    OE_ASSERT(ui_context != nullptr, "UI context not initialized");
+    OE_ASSERT(windowref != nullptr, "Window reference not initialized");
+    OE_ASSERT(windowref->main_window != nullptr, "Main window not initialized");
 
     const auto window_ctx = windowref->main_window->Context();
     auto win_handle = window_ctx.window;
@@ -245,15 +245,15 @@ namespace other {
     ImGui_ImplSDL2_NewFrame(win_handle);
     ImGui::NewFrame();
 
-    ImGui::DockSpaceOverViewport(ImGui::GetMainViewport() , ImGuiDockNodeFlags_PassthruCentralNode);
+    ImGui::DockSpaceOverViewport(ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
   }
 
   void UI::EndFrame() {
-    OE_ASSERT(ui_context != nullptr , "UI context not initialized");
-    OE_ASSERT(windowref != nullptr , "Window reference not initialized");
-    OE_ASSERT(windowref->main_window != nullptr , "Main window not initialized");
+    OE_ASSERT(ui_context != nullptr, "UI context not initialized");
+    OE_ASSERT(windowref != nullptr, "Window reference not initialized");
+    OE_ASSERT(windowref->main_window != nullptr, "Main window not initialized");
 
-    for (auto& [id , window] : ui_windows) {
+    for (auto& [id, window] : ui_windows) {
       window->Render();
     }
 
@@ -266,15 +266,15 @@ namespace other {
     const auto window_ctx = windowref->main_window->Context();
     auto win_handle = window_ctx.window;
     auto win_context = window_ctx.context;
-    SDL_GL_MakeCurrent(win_handle , win_context);
+    SDL_GL_MakeCurrent(win_handle, win_context);
   }
 
   void UI::Shutdown() {
-    OE_ASSERT(ui_context != nullptr , "UI context not initialized");
-    OE_ASSERT(windowref != nullptr , "Window reference not initialized");
-    OE_ASSERT(windowref->main_window != nullptr , "Main window not initialized");
+    OE_ASSERT(ui_context != nullptr, "UI context not initialized");
+    OE_ASSERT(windowref != nullptr, "Window reference not initialized");
+    OE_ASSERT(windowref->main_window != nullptr, "Main window not initialized");
 
-    for (auto& [id , window] : ui_windows) {
+    for (auto& [id, window] : ui_windows) {
       RemoveWindow(id);
     }
 
@@ -284,11 +284,11 @@ namespace other {
   }
 
   ImGuiContext* UI::GetContext() {
-    OE_ASSERT(ui_context != nullptr , "UI context not initialized");
-    OE_ASSERT(windowref != nullptr , "Window reference not initialized");
-    OE_ASSERT(windowref->main_window != nullptr , "Main window not initialized");
+    OE_ASSERT(ui_context != nullptr, "UI context not initialized");
+    OE_ASSERT(windowref != nullptr, "Window reference not initialized");
+    OE_ASSERT(windowref->main_window != nullptr, "Main window not initialized");
 
     return ui_context;
   }
 
-} // namespace other
+}  // namespace other
