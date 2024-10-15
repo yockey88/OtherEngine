@@ -86,20 +86,7 @@ namespace other {
       }
     }
 
-    try {
-      sol::table object;
-      if (nspace.empty()) {
-        object = lua_state[name];
-      } else {
-        object = lua_state[nspace][name];
-      }
-
-      if (object.valid()) {
-        return true;
-      }
-    } catch (...) {
-      return false;
-    }
+    return false;
   }
 
   Ref<ScriptObject> LuaScript::GetScriptObject(const std::string& name, const std::string& nspace) {
@@ -118,11 +105,16 @@ namespace other {
     ScriptRef<LuaObject> obj = nullptr;
     {
       try {
-        sol::table object;
-        if (nspace.empty()) {
-          object = lua_state[name];
-        } else {
-          object = lua_state[nspace][name];
+        sol::table search_table = lua_state.globals();
+        if (!nspace.empty()) {
+          search_table = lua_state.get_or(nspace, sol::nil);
+        }
+        OE_ASSERT(search_table != sol::nil, "Failed to find lua table for searching (why is globals() nil?) {}", nspace);
+
+        sol::table object = search_table[name];
+        if (object == sol::nil) {
+          OE_ERROR("Failed to find lua object {}", name);
+          return nullptr;
         }
 
         std::string real_name = "";

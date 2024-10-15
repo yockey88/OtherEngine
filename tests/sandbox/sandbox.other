@@ -41,7 +41,9 @@ modules = {
       inner_key2 = { ... }
     }
 
-    - small amounts of scripting?
+    - small amounts of scripting? 
+      (this might be the biggest argument for moving all configuration to lua, cause this would be nice but not worth the effort while also supporting three scripting language bindings unless it 
+        was part of the scripting language bindings which leaves lua/python and python is for toolchain/project-management/game-dev-logistics)
 
     [function-name] (params, ...) -> (rets, ...) {
       /// do some sort of configuration???
@@ -49,6 +51,7 @@ modules = {
 
     ex:
 
+    /// ran on game start-up
     [download-game-scripts] (endpoint, output_dir) -> bool {
       /// fetch game scripts from endpoint
       /// unpack into output_dir
@@ -56,4 +59,13 @@ modules = {
     }
       > would need some sort of internal api
         (maybe write something in lua and have it run with the engine lua module loads???)
+
+    - bind config file to reflection system
+    ex:
+
+    <transform> {
+      position = {}
+      ...
+    }
+      > parsing function could directly pull this from file and write it directly to the struct
 #]

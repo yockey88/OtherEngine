@@ -162,20 +162,14 @@ namespace other {
   void IniFileParser::HandleComment() {
     ++index;
     if (!AtEnd()) {
-      if (Peek() == '[') {
-        ++index;
-        while (!AtEnd()) {
-          if (Peek() == '#') {
-            ++index;
-            if (!AtEnd() && Peek() == ']') {
-              break;
-            }
-          }
-          ++index;
+      if (Match('[')) {
+        while (!(Match('#') && Match(']'))) {
+          Consume();
         }
+        Consume();
       } else {
-        while (!AtEnd() && Peek() != '\n') {
-          ++index;
+        while (!Match('\n')) {
+          Consume();
         }
       }
     }
@@ -183,51 +177,43 @@ namespace other {
 
   void IniFileParser::HandleSection() {
     while (!AtEnd() && Peek() != '\n') {
-      line += Peek();
-      ++index;
+      line += Advance();
     }
     ParseSection(line);
   }
 
   void IniFileParser::HandleKey(bool allow_key_modifications) {
     while (!AtEnd() && Peek() != '=') {
-      line += Peek();
-      ++index;
+      line += Advance();
     }
 
     /// save equals
-    if (index >= contents.length()) {
+    if (AtEnd()) {
       throw IniException("key value par without value", IniError::FILE_PARSE_ERROR);
     }
 
-    line += Peek();
-    ++index;
+    line += Advance();
 
     /// save whitespace
-    if (index >= contents.length()) {
+    if (AtEnd()) {
       throw IniException("key value pair without value", IniError::FILE_PARSE_ERROR);
     }
 
-    line += Peek();
-    ++index;
-
+    line += Advance();
     if (Peek() == '{') {
       while (!AtEnd() && Peek() != '}') {
-        line += Peek();
-        ++index;
+        line += Advance();
       }
 
       /// save '}'
-      if (index >= contents.length()) {
+      if (AtEnd()) {
         throw IniException("key value pair without value", IniError::FILE_PARSE_ERROR);
       }
 
-      line += Peek();
-      ++index;
+      line += Advance();
     } else {
       while (!AtEnd() && Peek() != '\n') {
-        line += Peek();
-        ++index;
+        line += Advance();
       }
     }
     ParseKeyValue(line, allow_key_modifications);
@@ -239,6 +225,33 @@ namespace other {
 
   char IniFileParser::Peek() const {
     return contents[index];
+  }
+
+  char IniFileParser::Previous() const {
+    if (index == 0) {
+      return '\0';
+    }
+    return contents[index - 1];
+  }
+
+  char IniFileParser::Advance() {
+    char c = Peek();
+    Consume();
+    return c;
+  }
+
+  void IniFileParser::Consume() {
+    if (!AtEnd()) {
+      ++index;
+    }
+  }
+
+  bool IniFileParser::Match(char c) {
+    char ch = Peek();
+    if (ch == c) {
+      Consume();
+    }
+    return ch == c;
   }
 
 }  // namespace other
