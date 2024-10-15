@@ -13,7 +13,7 @@
 
 namespace other {
 
-/// FIXME: why did I make this???? better way?
+/// FIXME: why did I make this????
 #define READ_INI_INTO(name, table, path)                                       \
   try {                                                                        \
     Path p = Filesystem::FindCoreFile(Path(path));                             \
@@ -64,6 +64,12 @@ namespace other {
 
     bool AtEnd() const;
     char Peek() const;
+    char Previous() const;
+
+    char Advance();
+    void Consume();
+
+    bool Match(char c);
   };
 
 }  // namespace other

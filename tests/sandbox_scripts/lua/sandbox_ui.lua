@@ -1,22 +1,19 @@
-local other = require("other")
 local behavior = require("other.behavior")
 
-local SandboxUI = behavior:new()
+SandboxUI = behavior:new()
+
 function SandboxUI:OnBehaviorLoad()
-  Logger.WriteDebug("SandboxUI.OnBehaviorLoad()")
+  -- Logger.WriteDebug("SandboxUI.OnBehaviorLoad()")
 end
 
 function SandboxUI:OnBehaviorUnload()
-  Logger.WriteDebug("SandboxUI.OnBehaviorUnload()")
+  -- Logger.WriteDebug("SandboxUI.OnBehaviorUnload()")
 end
 
 function SandboxUI:OnUpdate(dt)
 end
 
 function SandboxUI:RenderUI()
-  ImGui.Begin("SandboxUI")
-  ImGui.Text("Hello from SandboxUI")
-  ImGui.End()
 end
 
 --- goal is to implement all of this in lua
