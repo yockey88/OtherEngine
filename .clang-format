@@ -32,6 +32,8 @@ SpaceBeforeInheritanceColon: true
 SpaceBeforeParens: ControlStatements
 AlignOperands: DontAlign
 
+AlignAfterOpenBracket: BlockIndent
+
 ConstructorInitializerAllOnOneLineOrOnePerLine: false
 
 BreakBeforeBraces: Custom

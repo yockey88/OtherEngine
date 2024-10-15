@@ -303,6 +303,7 @@ namespace other {
 
   void ScriptEngine::SetSceneContext(const Ref<Scene>& scene) {
     scene_context = scene;
+    OE_DEBUG("Script Engine Scene Context changed : {}", scene->SceneHandle());
   }
 
   Ref<Scene> ScriptEngine::GetSceneContext() {

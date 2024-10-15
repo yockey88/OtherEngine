@@ -288,6 +288,7 @@ int main(int argc, char* argv[]) {
         }
         scene = loaded_scene.scene;
       }
+      OE_DEBUG("Loaded Scene : [{}]", scene->handle);
 
       Ref<BvhTree> bvh = NewRef<BvhTree>(glm::vec3{ 0.f, 0.f, 0.f });
       bvh->AddScene(scene, glm::zero<glm::vec3>());
@@ -309,6 +310,7 @@ int main(int argc, char* argv[]) {
       };
 
       ScriptRef<LuaObject> sandbox_ui = ScriptEngine::GetScriptObject("SandboxUI", "", "sandbox_ui");
+      sandbox_ui->Initialize();
 
       ScriptEngine::SetSceneContext(scene);
       Renderer::SetSceneContext(scene);
@@ -378,10 +380,16 @@ int main(int argc, char* argv[]) {
         }
 
         scene->EarlyUpdate(delta);
-        scene->Update(delta);
-        scene->LateUpdate(delta);
+        sandbox_ui->EarlyUpdate(delta);
+        // sandbox_ui2->EarlyUpdate(delta);
 
+        scene->Update(delta);
+        sandbox_ui->Update(delta);
         bvh->Update();
+
+        scene->LateUpdate(delta);
+        sandbox_ui->LateUpdate(delta);
+        // sandbox_ui2->LateUpdate(delta);
 
         Renderer::GetWindow()->Clear();
         // renderer->SetRenderMode(Render)
@@ -422,11 +430,10 @@ int main(int argc, char* argv[]) {
         };
 
         UI::BeginFrame();
+
+        sandbox_ui->RenderUI();
+
         const ImVec2 win_size = { (float)Renderer::WindowSize().x, (float)Renderer::WindowSize().y };
-        if (ImGui::Begin("Stats")) {
-          ImGui::Text("FPS : %.2f", fps(delta));
-        }
-        ImGui::End();
 
         if (ImGui::Begin("Frames")) {
           if (!success) {
@@ -445,21 +452,13 @@ int main(int argc, char* argv[]) {
           bool edited = false;
           ui::Underline();
 
-          ImGui::Text("Debug Controls");
-          ImGui::Separator();
-          ui::widgets::DrawVec3Control("outline color", outline_color, edited, 0.f, 100.f, ui::VectorAxis::ZERO,
-                                       { 0.f, 0.f, 0.f }, { 1.f, 1.f, 1.f }, 0.1f);
-          ImGui::Separator();
-
           ImGui::Text("===== Scene Controls =====");
           auto& reg = scene->Registry();
 
           ImGui::Text(" - Transforms =====");
           reg.view<Tag, Transform>().each([&](Tag& tag, Transform& transform) {
             ImGui::PushID((tag.name + "##transform-widget").c_str());
-            if (ui::widgets::DrawVec3Control(fmtstr("{} position", tag.name),
-                                             transform.position, edited, 0.f, 100.f, ui::VectorAxis::ZERO,
-                                             { -100.f, -100.f, -100.f }, { 100.f, 100.f, 100.f }, 0.5f)) {}
+            if (ui::widgets::DrawVec3Control(fmtstr("{} position", tag.name), transform.position, edited, 0.f, 100.f, ui::VectorAxis::ZERO, { -100.f, -100.f, -100.f }, { 100.f, 100.f, 100.f }, 0.5f)) {}
             ImGui::Separator();
             ImGui::PopID();
           });
@@ -506,6 +505,9 @@ int main(int argc, char* argv[]) {
 
       scene->Stop();
       scene->Shutdown();
+
+      sandbox_ui->Shutdown();
+      sandbox_ui = nullptr;
     }
 
     mock_engine.UnloadApp();

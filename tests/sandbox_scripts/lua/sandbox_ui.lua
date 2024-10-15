@@ -1,29 +1,75 @@
-local behavior = require("other.behavior")
-
-SandboxUI = behavior:new()
-
-function SandboxUI:OnBehaviorLoad()
-  -- Logger.WriteDebug("SandboxUI.OnBehaviorLoad()")
+local engine_stats = {}
+      
+local function fps(dt)
+  if (dt == nil or dt == 0) then
+    return 0
+  end
+  return (1 / dt) * 1000
 end
 
-function SandboxUI:OnBehaviorUnload()
-  -- Logger.WriteDebug("SandboxUI.OnBehaviorUnload()")
+local function render_stats(fps)
+  ImGui.Begin("Stats")
+  if (engine_stats.dt == nil or engine_stats.dt == 0) then
+    ImGui.Text("FPS : N/A")
+  else
+    text = string.format("FPS : %.2f", fps(engine_stats.dt))
+    ImGui.Text(text)
+  end
+  ImGui.End()
 end
 
-function SandboxUI:OnUpdate(dt)
+local function render_scene(scene_ctx)
+  ImGui.Begin("Scene")
+
+  scene_handle_str = string.format("Scene Handle : [%d:%x]" , scene_ctx, scene_ctx)
+  ImGui.Text(scene_handle_str)
+
+  entities = Scene.SceneEntities()
+  if (entities == nil) then
+    ImGui.Text("No entities in scene")
+  else
+    ImGui.Text(string.format("Entities In Scene : %d", #entities))
+    
+    for e=1,#entities do
+      ent = entities[e]
+      ImGui.Text(string.format("Entity [%d] : %s", ent.id, ent.name))
+      
+      transform = ent.transform
+      ImGui.Text(string.format("Position : < %.2f, %.2f, %.2f >", transform.position.x, transform.position.y, transform.position.z))
+    end
+
+  end
+
+  ImGui.End()
 end
 
-function SandboxUI:RenderUI()
-end
+SandboxUI = {
+  OnBehaviorLoad = function()
+    engine_stats.dt = 0
+    Logger.WriteDebug("Loading SandboxUI")
+  end ,
+  OnBehaviorUnload = function()
+    Logger.WriteDebug("Unload SandboxUI")
+  end ,
+
+  Update = function(dt)
+    if (engine_stats.dt ~= nil) then
+      engine_stats.dt = dt
+    end
+  end ,
+
+  RenderUI = function()
+    render_stats(fps)
+
+    scene_ctx = Scene.ContextHandle()
+    if (scene_ctx ~= nil) then
+      render_scene(scene_ctx)
+    end
+  end
+}
 
 --- goal is to implement all of this in lua
--- UI::BeginFrame();
 -- const ImVec2 win_size = {(float)Renderer::WindowSize().x, (float)Renderer::WindowSize().y};
--- if (ImGui::Begin("Stats")) {
---   ImGui::Text("FPS : %.2f", fps(delta));
--- }
--- ImGui::End();
-
 -- if (ImGui::Begin("Frames")) {
 --   if (!success) {
 --     ScopedColor red(ImGuiCol_Text, ImVec4(1.f, 0.f, 0.f, 1.f));
@@ -38,14 +84,7 @@ end
 -- ImGui::End();
 
 -- if (ImGui::Begin("Render Settings")) {
---   bool edited = false;
---   ui::Underline();
-
---   ImGui::Text("Debug Controls");
---   ImGui::Separator();
---   ui::widgets::DrawVec3Control("outline color", outline_color, edited, 0.f, 100.f, ui::VectorAxis::ZERO,
---                                {0.f, 0.f, 0.f}, {1.f, 1.f, 1.f}, 0.1f);
---   ImGui::Separator();
+--   bool edited = false
 
 --   ImGui::Text("===== Scene Controls =====");
 --   auto& reg = scene->Registry();
@@ -94,4 +133,3 @@ end
 --   ImGui::Separator();
 -- }
 -- ImGui::End();
--- UI::EndFrame();

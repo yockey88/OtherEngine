@@ -49,6 +49,11 @@ namespace other {
       obj = nullptr;
     }
     loaded_objects.clear();
+
+    for (auto& [id, obj] : objects) {
+      obj = nullptr;
+    }
+    objects.clear();
   }
 
   void LuaScript::Reload() {

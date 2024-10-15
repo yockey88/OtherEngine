@@ -15,7 +15,6 @@
 #include <hosting/native_string.hpp>
 
 #include "application/app_state.hpp"
-
 #include "asset/asset_manager.hpp"
 
 #include "ecs/components/camera.hpp"
@@ -73,6 +72,9 @@ namespace other {
 
     /// TODO: move this
     environment = NewRef<Environment>();
+
+    handle = Random::GenerateUUID();
+    scene_handle = handle.Get();
   }
 
   Scene::~Scene() {
