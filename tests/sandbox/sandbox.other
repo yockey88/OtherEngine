@@ -29,3 +29,31 @@ modules = {
 modules = {
   "sandbox_ui.lua"
 }
+
+#[
+  syntax ideas:
+    - nice way to have a value that is a key-value??
+    ex:
+
+    [section]  
+    outer_key = {
+      inner_key1 = { ... }
+      inner_key2 = { ... }
+    }
+
+    - small amounts of scripting?
+
+    [function-name] (params, ...) -> (rets, ...) {
+      /// do some sort of configuration???
+    }
+
+    ex:
+
+    [download-game-scripts] (endpoint, output_dir) -> bool {
+      /// fetch game scripts from endpoint
+      /// unpack into output_dir
+      /// return true or false
+    }
+      > would need some sort of internal api
+        (maybe write something in lua and have it run with the engine lua module loads???)
+#]
