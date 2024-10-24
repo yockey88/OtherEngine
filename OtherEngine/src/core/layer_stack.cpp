@@ -14,18 +14,42 @@ namespace other {
   }
 
   void LayerStack::PushLayer(const Ref<Layer>& layer) {
+    OE_ASSERT(layer != nullptr, "Attempting to push a null layer");
+
     layers.emplace(layers.begin() + layer_insert_index, layer);
     ++layer_insert_index;
   }
 
   void LayerStack::PopLayer(const Ref<Layer>& layer) {
-    auto itr = std::find(layers.begin(), layers.end(), layer);
-    if (itr != layers.end()) {
-      layers.erase(itr);
-      --layer_insert_index;
-    } else {
+    OE_ASSERT(layer != nullptr, "Attempting to pop a null layer");
+
+    auto layers_after_removal = layers |
+      std::views::filter([layer](const Ref<Layer>& l) { return l != layer; }) |
+      std::ranges::to<std::vector<Ref<Layer>>>();
+
+    if (layers_after_removal.size() == layers.size()) {
       OE_WARN("Attempting to pop a layer that does not exist");
+      return;
     }
+
+    layers.swap(layers_after_removal);
+    --layer_insert_index;
+  }
+
+  void LayerStack::PopLayer(UUID id) {
+    OE_ASSERT(id.Get() != 0, "Attempting to pop a layer with a null UUID");
+
+    auto layers_after_removal = layers |
+      std::views::filter([id](const Ref<Layer>& l) { return l->GetUUID() != id; }) |
+      std::ranges::to<std::vector<Ref<Layer>>>();
+
+    if (layers_after_removal.size() == layers.size()) {
+      OE_WARN("Attempting to pop a layer that does not exist");
+      return;
+    }
+
+    layers.swap(layers_after_removal);
+    --layer_insert_index;
   }
 
   void LayerStack::PopLayer() {
@@ -38,36 +62,23 @@ namespace other {
     --layer_insert_index;
   }
 
-  void LayerStack::PushOverlay(const Ref<Layer>& overlay) {
-    layers.emplace_back(overlay);
-  }
-
-  void LayerStack::PopOverlay(const Ref<Layer>& overlay) {
-    auto itr = std::find(layers.begin(), layers.end(), overlay);
-    if (itr != layers.end()) {
-      layers.erase(itr);
-    } else {
-      OE_WARN("Attempting to pop an overlay that does not exist");
-    }
-  }
-
   Ref<Layer>& LayerStack::operator[](size_t index) {
-    OE_ASSERT(index < layers.size() , "Attempting to access a layer that does not exist");
+    OE_ASSERT(index < layers.size(), "Attempting to access a layer that does not exist");
     return layers[index];
   }
 
   const Ref<Layer>& LayerStack::operator[](size_t index) const {
-    OE_ASSERT(index < layers.size() , "Attempting to access a layer that does not exist");
+    OE_ASSERT(index < layers.size(), "Attempting to access a layer that does not exist");
     return layers[index];
   }
 
   Ref<Layer>& LayerStack::At(size_t index) {
-    OE_ASSERT(index < layers.size() , "Attempting to access a layer that does not exist");
+    OE_ASSERT(index < layers.size(), "Attempting to access a layer that does not exist");
     return layers[index];
   }
 
   const Ref<Layer>& LayerStack::At(size_t index) const {
-    OE_ASSERT(index < layers.size() , "Attempting to access a layer that does not exist");
+    OE_ASSERT(index < layers.size(), "Attempting to access a layer that does not exist");
     return layers[index];
   }
 
@@ -103,4 +114,4 @@ namespace other {
     return layers.end();
   }
 
-} // namespace other
+}  // namespace other

@@ -403,7 +403,7 @@ namespace other {
     RenderToPipeline("Geometry", renderer);
 
     /// TODO: flesh this out
-    if (AppState::mode == EngineMode::DEBUG) {
+    if (AppState::mode == EngineMode::EDITOR) {
       RenderToPipeline("Debug", renderer, true);
     }
 

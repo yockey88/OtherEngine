@@ -3,6 +3,8 @@
  */
 #include "event/event_queue.hpp"
 
+#include <ranges>
+
 #include <imgui/backends/imgui_impl_sdl2.h>
 
 #include <SDL.h>
@@ -15,47 +17,58 @@
 #include "event/core_events.hpp"
 #include "event/event.hpp"
 #include "event/window_events.hpp"
+#include "input/io.hpp"
 #include "project/project.hpp"
 
 #include "rendering/renderer.hpp"
 
 namespace other {
 
-  uint32_t EventQueue::buffer_offset = 0;
-  uint8_t* EventQueue::event_buffer = nullptr;
-  uint8_t* EventQueue::cursor = nullptr;
-
   bool EventQueue::process_ui_events = false;
+  std::array<Event*, EventQueue::kBufferSize> EventQueue::event_buffer;
+  std::map<uint64_t, EventDispatcher> EventQueue::event_handlers;
 
   void EventQueue::Initialize(const ConfigTable& config) {
-    event_buffer = new uint8_t[buffer_size];
-    cursor = event_buffer;
+    std::ranges::for_each(event_buffer, [](Event* event) {
+      OE_ASSERT(event == nullptr, "Event buffer not properly initialized");
+      event = new Event();
+    });
 
     auto ui_enabled = config.GetVal<bool>(kUiSection, kDisabledValue, false);
-    if (!ui_enabled.has_value() || !ui_enabled.value()) {
-      EnableUIEvents();
-    } else {
-      DisableUIEvents();
-    }
+    process_ui_events = !ui_enabled.has_value() || !ui_enabled.value();
   }
 
   void EventQueue::Poll(App* app) {
-    OE_ASSERT(event_buffer != nullptr, "Event buffer not initialized");
+    OE_ASSERT(app != nullptr, "App is null");
+
+    IO::Update();
 
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
       switch (event.type) {
-        case SDL_QUIT: PushEvent<ShutdownEvent>(ExitCode::SUCCESS); break;
+        case SDL_QUIT:
+          PushEvent<ShutdownEvent>(ExitCode::SUCCESS);
+          break;
+
         case SDL_WINDOWEVENT:
           switch (event.window.event) {
             case SDL_WINDOWEVENT_RESIZED:
-              PushEvent<WindowResized>(
-                glm::ivec2(event.window.data1, event.window.data2),
-                Renderer::WindowSize());
+              PushEvent<WindowResized>(glm::ivec2(event.window.data1, event.window.data2), Renderer::WindowSize());
               break;
-            case SDL_WINDOWEVENT_MINIMIZED: PushEvent<WindowMinimized>(); break;
-            case SDL_WINDOWEVENT_CLOSE: PushEvent<WindowClosed>(); break;
+
+            case SDL_WINDOWEVENT_MINIMIZED:
+              PushEvent<WindowMinimized>();
+              break;
+
+            case SDL_WINDOWEVENT_CLOSE:
+              PushEvent<WindowClosed>();
+              break;
+            default:
+              break;
           }
+          break;
+
+        default:
           break;
       }
 
@@ -65,11 +78,11 @@ namespace other {
     }
 
     Dispatch(app);
+    Clear();
   }
 
   void EventQueue::Clear() {
-    cursor = event_buffer;
-    buffer_offset = 0;
+    curr_idx = 0;
   }
 
   void EventQueue::EnableUIEvents() {
@@ -81,23 +94,39 @@ namespace other {
   }
 
   void EventQueue::Shutdown() {
-    delete[] event_buffer;
-    event_buffer = nullptr;
+    Clear();
+
+    for (auto& [hash, dispatcher] : event_handlers) {
+      dispatcher.dispatcher = nullptr;
+    }
+
+    for (uint32_t i = 0; i < curr_idx; ++i) {
+      delete event_buffer[i];
+    }
+
+    event_handlers.clear();
+    std::ranges::fill(event_buffer, nullptr);
+  }
+
+  void EventQueue::SetEventFlag(EventType type) {
+    event_flags |= bit(static_cast<uint64_t>(type));
   }
 
   void EventQueue::Dispatch(App* app) {
-    OE_ASSERT(event_buffer != nullptr, "Event buffer not initialized");
-    OE_ASSERT(cursor != nullptr, "Event buffer cursor not initialized");
-
-    uint8_t* tmp_cursor = event_buffer;
-
-    bool reload_scripts = false;
-    bool regen_project = false;
+    OE_ASSERT(app != nullptr, "App is null");
 
     std::set<ProjectDirectoryType> directory_changes;
 
-    while (tmp_cursor != cursor) {
-      Event* event = reinterpret_cast<Event*>(tmp_cursor);
+    std::vector<Event**> events = event_buffer | std::views::take_while([](Event* e) { return e != nullptr; }) |
+      std::views::filter([](Event* e) { return e->Type() != EventType::EMPTY_EVNT; }) |
+      std::views::transform([](Event*& e) -> Event** { return &e; }) |
+      std::ranges::to<std::vector<Event**>>();
+
+    for (const auto& e : events) {
+      Event* event = *e;
+      OE_ASSERT(event != nullptr, "Event is null");
+
+      SetEventFlag(event->Type());
 
       if (event->Type() == EventType::PROJECT_DIR_UPDATE) {
         ProjectDirectoryUpdateEvent* e = Cast<ProjectDirectoryUpdateEvent>(event);
@@ -105,34 +134,33 @@ namespace other {
           directory_changes.insert(e->dir_type);
         }
 
-        tmp_cursor += event->Size();
-        regen_project = true;
         continue;
       } else if (event->Type() == EventType::SCRIPT_RELOAD) {
-        tmp_cursor += event->Size();
-        reload_scripts = true;
         continue;
       }
 
-      if (app != nullptr && !event->handled) {
-        app->ProcessEvent(event);
+      for (auto& [hash, dispatcher] : event_handlers) {
+        OE_ASSERT(dispatcher.dispatcher != nullptr, "Dispatcher is null");
+        dispatcher.dispatcher->Dispatch(event);
       }
 
-      tmp_cursor += event->Size();
+      if (event->handled) {
+        continue;
+      }
+
+      app->ProcessEvent(event);
     }
 
     /// trigger specific order-dependent events
-    if (regen_project) {
+    if (event_flags & EventType::PROJECT_DIR_UPDATE) {
       for (const auto& t : directory_changes) {
         ProjectDirectoryUpdateEvent e(t);
         app->ProcessEvent(&e);
       }
-    } else if (reload_scripts) {
+    } else if (event_flags & EventType::SCRIPT_RELOAD) {
       ScriptReloadEvent e;
       app->ProcessEvent(&e);
     }
-
-    Clear();
   }
 
 }  // namespace other

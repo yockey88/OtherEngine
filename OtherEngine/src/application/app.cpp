@@ -29,7 +29,6 @@
 #include "scripting/script_defines.hpp"
 #include "scripting/script_engine.hpp"
 
-
 namespace other {
 
   App::App(const CmdLine& cmdline, const ConfigTable& config)
@@ -65,41 +64,11 @@ namespace other {
     while (!EngineState::exit_code.has_value()) {
       float dt = delta_time.Get();
 
-      // updates mouse/keyboard/any connected controllers
-      IO::Update();
-
+      EventQueue::Poll(this);
       if (Renderer::IsWindowFocused()) {
         DoEarlyUpdate(dt);
-      }
-
-      /// process all events queued from io/early update/physics steps
-      EventQueue::Poll(this);
-
-      /// process any updates that are the result of events here
-
-      /// if the window is focuseed we update the application and then the scene
-      if (Renderer::IsWindowFocused()) {
         DoUpdate(dt);
       }
-
-      /// TODO: redo rendering stage
-      ///   ideal workflow:
-      ///     RenderPass pass1 = ...
-      ///     Renderer::RenderFrame({ camera , framebuffer , pass1 });
-      ///
-      ///     std::vector<RenderPass> passes = ....
-      ///     Renderer::RenderFrame({ camera , framebuffer , passes });
-      ///
-
-      /**
-       * rendering workflow
-       *  - for all things that need rendering
-       *    - give them the correct renderer
-       *    - submit all models
-       *
-       *  - for all renderers
-       *    - execute contstructed pipelines
-       **/
 
       Renderer::GetWindow()->Clear();
       DoRender();
@@ -107,8 +76,6 @@ namespace other {
       Renderer::GetWindow()->SwapBuffers();
 
       CHECKGL();
-
-      // FrameMark;
     }
 
     Detach();
@@ -134,13 +101,6 @@ namespace other {
     EventQueue::PushEvent<AppLayerEvent>(LayerEventType::LAYER_PUSH, layer->GetUUID(), layer->Name());
   }
 
-  void App::PushOverlay(Ref<Layer>& overlay) {
-    overlay->Attach();
-    layer_stack->PushOverlay(overlay);
-
-    EventQueue::PushEvent<AppLayerEvent>(LayerEventType::OVERLAY_PUSH, overlay->GetUUID(), overlay->Name());
-  }
-
   void App::PopLayer(Ref<Layer>& layer) {
     OE_DEBUG("Popping Layer : {}", layer->Name());
     layer->Detach();
@@ -159,21 +119,22 @@ namespace other {
     layer_stack->PopLayer();
   }
 
-  void App::PopOverlay(Ref<Layer>& overlay) {
-    overlay->Detach();
-    layer_stack->PopOverlay(overlay);
-
-    EventQueue::PushEvent<AppLayerEvent>(LayerEventType::OVERLAY_POP, layer_stack->Top()->GetUUID(), overlay->Name());
-  }
-
   void App::ProcessEvent(Event* event) {
     if (!event->handled) {
       OnEvent(event);
     }
 
     EventHandler event_handler(event);
+    event_handler.Handle<ShutdownEvent>([](ShutdownEvent& sd) -> bool {
+      EngineState::exit_code = sd.GetExitCode();
+      return true;
+    });
     event_handler.Handle<UIWindowClosed>([this](UIWindowClosed& event) -> bool {
       return RemoveUIWindow(event.GetWindowId());
+    });
+    event_handler.Handle<ScriptReloadEvent>([this](ScriptReloadEvent& event) -> bool {
+      ReloadScripts();
+      return true;
     });
 
     for (auto& window : ui_windows) {
@@ -188,16 +149,6 @@ namespace other {
         itr = layer_stack->begin();
       }
     }
-
-    if (event->handled) {
-      return;
-    }
-
-    EventHandler handler(event);
-    handler.Handle<ShutdownEvent>([this](ShutdownEvent& sd) -> bool {
-      EngineState::exit_code = sd.GetExitCode();
-      return true;
-    });
   }
 
   static Ref<UIWindow> null_window = nullptr;
@@ -362,6 +313,10 @@ namespace other {
 
     if (scene_playing) {
       scene_manager->StartScene();
+    }
+
+    for (auto& l : *layer_stack) {
+      l->ReloadScripts();
     }
   }
 

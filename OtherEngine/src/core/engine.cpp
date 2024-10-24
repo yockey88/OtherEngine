@@ -55,7 +55,7 @@ namespace other {
     EngineState::exit_code = std::nullopt;
     ExitCode ec;
 
-    /// TODO: initialize allocators
+    /// TODO: allocators
 
     Logger::Open(config);
     Logger::Instance()->RegisterThread("Other Engine Driver Thread");
@@ -89,7 +89,6 @@ namespace other {
   }
 
   void Engine::LoadApp() {
-#ifndef OTHERENGINE_DLL
     auto app = NewApp(cmd_line, config);
     OE_ASSERT(app != nullptr, "Attempting to load a null application (client implementation of other::NewApp(Engine*) is invalid)");
 
@@ -104,40 +103,16 @@ namespace other {
     }
 
     active_app->Load();
-    AppState::Initialize(active_app.get(), active_app->layer_stack, active_app->scene_manager,
-                         active_app->asset_handler, active_app->project_metadata);
+    AppState::Initialize(active_app.get(), active_app->layer_stack, active_app->scene_manager, active_app->asset_handler, active_app->project_metadata);
 
     Launch();
-
-    Ref<Layer> core_layer = nullptr;
     if (in_editor) {
-      if (config.GetVal<bool>(kDebugSection, "TEST-EDITOR", false).value_or(false)) {
-        core_layer = NewRef<TEditorLayer>(active_app.get(), active_app->config);
-      } else {
-        core_layer = NewRef<EditorLayer>(active_app.get(), active_app->config);
-      }
-      AppState::mode = EngineMode::DEBUG;
-    } else {
-      core_layer = NewRef<RuntimeLayer>(active_app.get(), active_app->config);
-      AppState::mode = EngineMode::RUNTIME;
+      PushCoreLayer();
+      RegisterLoggers();
     }
-    active_app->PushLayer(core_layer);
-
-    if (in_editor) {
-      Logger::Instance()->RegisterTarget({
-        .target_name = "Editor-Console",
-        .level = Logger::LevelFromLevel(Logger::Level::DEBUG),
-        .log_format = "%v",
-        .sink_factory = []() -> spdlog::sink_ptr {
-          return NewStdRef<EditorConsoleSink>(10);
-        },
-      });
-    }
-#endif  // !OTHERENGINE_DLL
   }
 
   void Engine::UnloadApp() {
-#ifndef OTHERENGINE_DLL
     Shutdown();
 
     OE_ASSERT(active_app != nullptr, "Attempting to unload a null application");
@@ -146,7 +121,6 @@ namespace other {
     active_app = nullptr;
 
     OE_DEBUG("Engine unloaded");
-#endif  // !OTHERENGINE_DLL
   }
 
   void Engine::Launch() {
@@ -176,18 +150,7 @@ namespace other {
   }
 
   Opt<Path> Engine::FindConfigFile() {
-    Opt<Path> cwd = std::nullopt;
     Opt<Path> ini_file = std::nullopt;
-
-    ProcessSingleArg("--cwd", 1, [&cwd](Arg& arg) -> bool {
-      auto path = arg.args[0];
-      if (Filesystem::PathExists(path)) {
-        cwd = path;
-      }
-
-      return cwd.has_value();
-    });
-
     ProcessSingleArg("--project", 1, [&ini_file](Arg& arg) -> bool {
       auto path = arg.args[0];
 
@@ -200,6 +163,20 @@ namespace other {
       }
 
       return ini_file.has_value();
+    });
+
+    if (ini_file.has_value()) {
+      return ini_file;
+    }
+
+    Opt<Path> cwd = std::nullopt;
+    ProcessSingleArg("--cwd", 1, [&cwd](Arg& arg) -> bool {
+      auto path = arg.args[0];
+      if (Filesystem::PathExists(path)) {
+        cwd = path;
+      }
+
+      return cwd.has_value();
     });
 
     if (!cwd.has_value()) {
@@ -217,19 +194,22 @@ namespace other {
       }
     }
 
-    /// if no .other file in current directory, use launcher file
-    if (!ini_file.has_value()) {
-      Path engine_core = Filesystem::GetEngineCoreDir();
-      ini_file = engine_core / "OtherEngine-Launcher" / "launcher.other";
-
-      println("Defaulting to {}", ini_file.value());
-      if (!Filesystem::PathExists(ini_file.value())) {
-        /// this means that engine core dir was not set correctly during build/install process
-        println("Other Engine Launcher configuration file not found [CORRUPT INSTALLATION]");
-        ini_file = std::nullopt;
-      }
+    if (ini_file.has_value()) {
+      println("Using configuration : {}", ini_file.value());
+      return ini_file;
     }
 
+    /// if no .other file in current directory, use launcher file
+    Path engine_core = Filesystem::GetEngineCoreDir();
+    ini_file = engine_core / "OtherEngine-Launcher" / "launcher.other";
+    if (!Filesystem::PathExists(ini_file.value())) {
+      /// this means that engine core dir was not set correctly during build/install process
+      println("Other Engine Launcher configuration file not found [CORRUPT INSTALLATION]");
+      return std::nullopt;
+    }
+
+    println("Opening Project Manager");
+    println(" > {}", ini_file.value());
     return ini_file;
   }
 
@@ -273,19 +253,40 @@ namespace other {
     return ExitCode::NO_EXIT;
   }
 
+  void Engine::PushCoreLayer() {
+    Ref<Layer> core_layer = nullptr;
+    if (config.GetVal<bool>(kDebugSection, "TEST-EDITOR", false).value_or(false)) {
+      core_layer = NewRef<TEditorLayer>(active_app.get(), active_app->config);
+    } else {
+      core_layer = NewRef<EditorLayer>(active_app.get(), active_app->config);
+    }
+    AppState::mode = EngineMode::EDITOR;
+    active_app->PushLayer(core_layer);
+  }
+
+  void Engine::RegisterLoggers() {
+    /// TODO: register client loggers (if any)
+
+    Logger::Instance()->RegisterTarget({
+      .target_name = "Editor-Console",
+      .level = Logger::LevelFromLevel(Logger::Level::DEBUG),
+      .log_format = "%v",
+      .sink_factory = []() -> spdlog::sink_ptr {
+        return NewStdRef<EditorConsoleSink>(10);
+      },
+    });
+  }
+
   void Engine::ProcessSingleArg(const std::string_view lflag, uint32_t min_args, std::function<bool(Arg&)> processor) {
     auto arg = cmd_line.GetArg(lflag);
-
     if (!arg.has_value()) {
       return;
     }
 
-    if (arg.value().args.size() < min_args) {
-      println("Invalid number of arguments for {}", lflag);
-      return;
-    }
+    OE_ASSERT(arg.value().args.size() >= min_args, "Invalid number of arguments for {}", lflag);
+    OE_ASSERT(processor != nullptr, "No processor for {}", lflag);
 
-    if (processor == nullptr || !processor(arg.value())) {
+    if (!processor(arg.value())) {
       println("Failed to process arg : {}", lflag);
     }
   }

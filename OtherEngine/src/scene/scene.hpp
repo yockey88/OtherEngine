@@ -58,7 +58,7 @@ namespace other {
     }
 
     void Initialize();
-    void Start(EngineMode mode = EngineMode::DEBUG);
+    void Start(EngineMode mode = EngineMode::EDITOR);
 
     void EarlyUpdate(float dt);
     void Update(float dt);
@@ -189,6 +189,7 @@ namespace other {
 
 ECHO_TYPE(
   type(other::Scene, refl::attr::bases<dotother::NObject>),
-  func(GetEntity));
+  func(GetEntity)
+);
 
 #endif  // !OTHER_ENGINE_SCENE_HPP

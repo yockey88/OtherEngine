@@ -5,9 +5,12 @@
 #define OTHER_ENGINE_APP_STATE_HPP
 
 #include "core/layer_stack.hpp"
+
 #include "asset/asset_handler.hpp"
-#include "scene/scene_manager.hpp"
 #include "project/project.hpp"
+
+#include "scene/scene_manager.hpp"
+
 #include "rendering/ui/ui_window.hpp"
 
 namespace other {
@@ -15,45 +18,49 @@ namespace other {
   class App;
 
   class AppState {
-    public:
-      static void Initialize(App* app_handle , Scope<LayerStack>& layers , Scope<SceneManager>& scenes , 
-                             Ref<AssetHandler>& assets , Ref<Project>& project_contex);
-      static void Shutdown();
+   public:
+    static void Initialize(App* app_handle, Scope<LayerStack>& layers, Scope<SceneManager>& scenes, Ref<AssetHandler>& assets, Ref<Project>& project_contex);
+    static void Shutdown();
 
-      static Ref<Project> ProjectContext();
-      static Ref<AssetHandler> Assets();
+    static Ref<Project> ProjectContext();
+    static Ref<AssetHandler> Assets();
 
-      static Scope<LayerStack>& Layers();
-      static Scope<SceneManager>& Scenes();
+    static Scope<LayerStack>& Layers();
+    static Scope<SceneManager>& Scenes();
 
-      static UUID PushUIWindow(Ref<UIWindow> window);
+    static UUID PushUIWindow(Ref<UIWindow> window);
+    static void PopUIWindow(UUID id);
 
-      inline static EngineMode mode = EngineMode::DEBUG;
+    static UUID PushLayer(Ref<Layer> layer);
+    static void PopLayer(Opt<UUID> id);
 
-    private:
-      struct Data {
-        App* app_handle; /// do not delete
-                         
-        Scope<LayerStack>& layers;
-        Scope<SceneManager>& scenes;
+    static App& AppHandle();
 
-        Ref<AssetHandler> assets;
-        Ref<Project> project;
+    inline static EngineMode mode = EngineMode::EDITOR;
 
-        Data(App* app_handle , Scope<LayerStack>& layers , Scope<SceneManager>& scenes , Ref<AssetHandler>& assets , Ref<Project>& context)
-            : app_handle(app_handle) , layers(layers) , scenes(scenes) , assets(assets) , project(context) {}
+   private:
+    struct Data {
+      App* app_handle;  /// do not delete
 
-        ~Data() {
-          app_handle = nullptr;
-          assets = nullptr;
-          project = nullptr;
-        }
-      };
+      Scope<LayerStack>& layers;
+      Scope<SceneManager>& scenes;
 
-      static Scope<Data> state;
+      Ref<AssetHandler> assets;
+      Ref<Project> project;
+
+      Data(App* app_handle, Scope<LayerStack>& layers, Scope<SceneManager>& scenes, Ref<AssetHandler>& assets, Ref<Project>& context)
+          : app_handle(app_handle), layers(layers), scenes(scenes), assets(assets), project(context) {}
+
+      ~Data() {
+        app_handle = nullptr;
+        assets = nullptr;
+        project = nullptr;
+      }
+    };
+
+    static Scope<Data> state;
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_APP_STATE_HPP
-
+#endif  // !OTHER_ENGINE_APP_STATE_HPP

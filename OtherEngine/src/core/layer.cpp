@@ -10,7 +10,7 @@ namespace other {
   void Layer::Attach() {
     OnAttach();
   }
-      
+
   void Layer::EarlyUpdate(float dt) {
     OnEarlyUpdate(dt);
   }
@@ -18,7 +18,7 @@ namespace other {
   void Layer::Update(float dt) {
     OnUpdate(dt);
   }
-  
+
   void Layer::LateUpdate(float dt) {
     OnLateUpdate(dt);
   }
@@ -38,7 +38,7 @@ namespace other {
   void Layer::Detach() {
     OnDetach();
   }
-      
+
   void Layer::LoadScene(const SceneMetadata* metadata) {
     OnSceneLoad(metadata);
   }
@@ -48,12 +48,11 @@ namespace other {
   }
 
   void Layer::ReloadScripts() {
-    ParentApp()->ReloadScripts();
     OnScriptReload();
   }
-      
+
   bool Layer::HasActiveScene() const {
     return ParentApp() != nullptr && ParentApp()->HasActiveScene();
   }
 
-} // namespace other
+}  // namespace other

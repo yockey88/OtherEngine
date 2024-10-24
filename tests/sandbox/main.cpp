@@ -20,7 +20,10 @@
 #include "core/time.hpp"
 
 #include "application/app.hpp"
+#include "event/app_events.hpp"
 #include "event/event_queue.hpp"
+#include "event/key_events.hpp"
+#include "event/window_events.hpp"
 #include "input/io.hpp"
 #include "parsing/cmd_line_parser.hpp"
 
@@ -45,13 +48,16 @@
 #include "rendering/rendering_defines.hpp"
 #include "rendering/scene_renderer.hpp"
 #include "rendering/shader.hpp"
+
+#define UI_ENABLED 0
+#if UI_ENABLED
 #include "rendering/ui/ui.hpp"
 #include "rendering/ui/ui_helpers.hpp"
 #include "rendering/ui/ui_widgets.hpp"
+#endif
+
 #include "rendering/uniform.hpp"
 #include "scripting/script_engine.hpp"
-
-#include "sandbox_ui.hpp"
 
 using namespace other;
 
@@ -72,13 +78,50 @@ std::vector<uint32_t> fb_layout = {
 };
 // clang-format on
 
+class SandboxLayer : public Layer {
+ public:
+ protected:
+  virtual void OnAttach();
+  virtual void OnDetach() {}
+  virtual void OnEarlyUpdate(float dt) {}
+  virtual void OnUpdate(float dt) {}
+  virtual void OnLateUpdate(float dt) {}
+  virtual void OnRender() {}
+  virtual void OnUIRender() {}
+  virtual void OnEvent(Event* event) {}
+
+  // virtual void OnSceneLoad(const SceneMetadata* metadata) {}
+  // virtual void OnSceneUnload() {}
+
+  // virtual void OnScriptReload() {}
+
+  Path engine_core_dir;
+  Path assets_dir;
+  Path shader_dir;
+  Path default_path;
+  Path normals_path;
+  Path fbshader_path;
+  Path deferred_shader_path;
+  Path add_fog_shader_path;
+  Path red_path;
+  Path outline_path;
+  Path pure_geometry_path;
+  Path texture_dir;
+  Path editor_texture_dir;
+  Path editor_folder_path;
+  Path scene_dir;
+  Path scenepath;
+  Path bin_dir;
+  Path debug_bin_dir;
+};
+
 int main(int argc, char* argv[]) {
   try {
-    const Path sandbox_dir = "C:/Yock/code/OtherEngine/tests/sandbox";
-    const Path config_path = sandbox_dir / "sandbox.other";
+    const std::vector<Arg> sandbox_cmd_line = {
+      Arg("--project", { "C:/Yock/code/OtherEngine/tests/sandbox/sandbox.other" })
+    };
 
-    CmdLine cmd_line(argc, argv);
-    cmd_line.SetFlag("--project", { config_path.string() });
+    CmdLine cmd_line(sandbox_cmd_line);
 
     /// for test reasons
     Engine mock_engine(cmd_line);
@@ -87,6 +130,8 @@ int main(int argc, char* argv[]) {
 
     mock_engine.LoadApp();
     OE_DEBUG("Sandbox Launched");
+
+    App& sandbox_app = AppState::AppHandle();
 
     ScriptEngine::LoadProjectModules();
 
@@ -109,7 +154,7 @@ int main(int argc, char* argv[]) {
 
     const Path scene_dir = assets_dir / "scenes";
 
-    const Path scenepath = sandbox_dir / "test_scene.yscn";
+    const Path scenepath = Path("C:/Yock/code/OtherEngine/tests/sandbox") / "test_scene.yscn";
     OE_ASSERT(Filesystem::PathExists(scenepath), "Scene file does not exist : {}", scenepath.string());
 
     const Path bin_dir = engine_core_dir / "bin";
@@ -319,6 +364,50 @@ int main(int argc, char* argv[]) {
       bool render_to_window = true;
       // renderer->ToggleWireframe();
 
+      EventQueue::RegisterEventDispatcher<KeyPressed>(
+        "Key-Bindings",
+        {
+          [&](KeyPressed& event) -> bool {
+            OE_DEBUG("Key Pressed : [{}]", (uint32_t)event.Key());
+            if (event.Key() == Keyboard::Key::OE_ESCAPE) {
+              running = false;
+              return true;
+            }
+
+            if (event.Key() == Keyboard::Key::OE_C) {
+              camera_lock = !camera_lock;
+              if (camera_lock) {
+                Mouse::FreeCursor();
+              } else {
+                Mouse::LockCursor();
+              }
+              return true;
+            }
+
+            if (event.Key() == Keyboard::Key::OE_W) {
+              render_to_window = !render_to_window;
+              return true;
+            }
+
+            if (event.Key() == Keyboard::Key::OE_R) {
+              EventQueue::PushEvent<ScriptReloadEvent>();
+            }
+
+            return false;
+          },
+        }
+      );
+
+      EventQueue::RegisterEventDispatcher<WindowClosed>(
+        "Close-Window",
+        {
+          [&](WindowClosed& event) -> bool {
+            running = false;
+            return true;
+          },
+        }
+      );
+
       time::DeltaTime dt;
       dt.Start();
 #if 0
@@ -326,47 +415,7 @@ int main(int argc, char* argv[]) {
 #endif
       while (running) {
         float delta = dt.Get();
-        IO::Update();
-
-        SDL_Event event;
-        while (SDL_PollEvent(&event)) {
-          switch (event.type) {
-            case SDL_QUIT:
-              running = false;
-              break;
-            case SDL_WINDOWEVENT:
-              switch (event.window.event) {
-                case SDL_WINDOWEVENT_CLOSE: running = false; break;
-                default: break;
-              }
-              break;
-            case SDL_KEYDOWN:
-              switch (event.key.keysym.sym) {
-                case SDLK_ESCAPE: running = false; break;
-                case SDLK_c:
-                  camera_lock = !camera_lock;
-                  if (camera_lock) {
-                    Mouse::FreeCursor();
-                  } else {
-                    Mouse::LockCursor();
-                  }
-                  break;
-                case SDLK_r:
-                  break;
-                case SDLK_s:
-                  // if scene started stop scene else start scene
-                  break;
-                default: break;
-              }
-              break;
-            default:
-              break;
-          }
-
-          ImGui_ImplSDL2_ProcessEvent(&event);
-        }
-
-        EventQueue::Clear();
+        EventQueue::Poll(&sandbox_app);
 
         if (!camera_lock) {
           DefaultUpdateCamera(camera);
@@ -449,7 +498,6 @@ int main(int argc, char* argv[]) {
           }
         }
 
-#define UI_ENABLED 1
 #if UI_ENABLED
         /// lambda to get fps from delta
         auto fps = [](float dt) -> float {
@@ -535,4 +583,31 @@ int main(int argc, char* argv[]) {
   }
 
   return 1;
+}
+
+void SandboxLayer::OnAttach() {
+  engine_core_dir = Filesystem::GetEngineCoreDir();
+  assets_dir = engine_core_dir / "OtherEngine" / "assets";
+
+  shader_dir = assets_dir / "shaders";
+  default_path = shader_dir / "default.oshader";
+  normals_path = shader_dir / "normals.oshader";
+  fbshader_path = shader_dir / "fbshader.oshader";
+  deferred_shader_path = shader_dir / "deferred_shading.oshader";
+  add_fog_shader_path = shader_dir / "fog.oshader";
+  red_path = shader_dir / "red.oshader";
+  outline_path = shader_dir / "outline.oshader";
+  pure_geometry_path = shader_dir / "pure_geometry.oshader";
+
+  texture_dir = assets_dir / "textures";
+  editor_texture_dir = texture_dir / "editor";
+  editor_folder_path = editor_texture_dir / "folder.png";
+
+  scene_dir = assets_dir / "scenes";
+
+  scenepath = Path("C:/Yock/code/OtherEngine/tests/sandbox") / "test_scene.yscn";
+  OE_ASSERT(Filesystem::PathExists(scenepath), "Scene file does not exist : {}", scenepath.string());
+
+  bin_dir = engine_core_dir / "bin";
+  debug_bin_dir = bin_dir / "Debug";
 }

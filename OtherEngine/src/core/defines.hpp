@@ -31,7 +31,7 @@
 namespace other {
 
   enum class EngineMode {
-    DEBUG,
+    EDITOR,
     RUNTIME,
 
     NUM_ENGINE_MODES,
@@ -62,7 +62,7 @@ namespace other {
   };
 
   enum ValueType {
-    EMPTY,  // Void , null , nil ,etc...
+    EMPTY_TYPE,  // Void , null , nil ,etc...
 
     /// primitive types
     BOOL,
@@ -136,7 +136,7 @@ namespace other {
     } else if constexpr (std::is_same_v<T, glm::mat4>) {
       return ValueType::MAT4;
     } else {
-      return ValueType::EMPTY;
+      return ValueType::EMPTY_TYPE;
     }
   }
 
