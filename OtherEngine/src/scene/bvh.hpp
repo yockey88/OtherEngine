@@ -123,10 +123,10 @@ namespace other {
       return GetSpace().FindFurthestNode(location);
     }
 
-    void PrintNodes(std::ostream& os) const { PrintNode(os, GetSpace()); }
+    void PrintNodes(std::ostream& os, bool print_children = false) const { PrintNode(os, GetSpace(), print_children); }
 
-    void PrintNode(std::ostream& os, const BvhNode<N>& node) const {
-      node.Serialize(os);
+    void PrintNode(std::ostream& os, const BvhNode<N>& node, bool print_children = false) const {
+      node.Serialize(os, print_children);
     }
 
     void ExpandToInclude(const glm::vec3& point) {
@@ -155,6 +155,7 @@ namespace other {
     void Rebuild() {
       OE_ASSERT(N != 8, "Rebuild not implemented for octrees!");
       space = GetSpace().RebuildTree(space, space->entities);
+      // PrintNodes(std::cout, true);
     }
 
     /**
@@ -189,10 +190,9 @@ namespace other {
       }
 
       GetSpace().Update();
-      if constexpr (N == 2) {
-        if (!GetSpace().built) {
-          space = GetSpace().RebuildTree(space, entities);
-        }
+      if (N == 2 && !GetSpace().built) {
+        OE_DEBUG("Rebuilding BVH");
+        Rebuild();
       }
     }
 

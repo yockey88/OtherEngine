@@ -7,26 +7,21 @@
 
 #include <entt/entt.hpp>
 
+#include <reflection/object_proxy.hpp>
+#include <sol/optional_implementation.hpp>
 #include <sol/property.hpp>
 #include <sol/raii.hpp>
 #include <sol/state_view.hpp>
 #include <sol/types.hpp>
 
-#include "core/rand.hpp"
-
 #include "input/keyboard.hpp"
 #include "input/mouse.hpp"
-
-#include "ecs/components/script.hpp"
-#include "ecs/components/transform.hpp"
-#include "ecs/entity.hpp"
 
 #include "scripting/lua/lua_component_bindings.hpp"
 #include "scripting/lua/lua_logging_bindings.hpp"
 #include "scripting/lua/lua_math_bindings.hpp"
 #include "scripting/lua/lua_scene_bindings.hpp"
 #include "scripting/lua/lua_ui_bindings.hpp"
-#include "scripting/script_engine.hpp"
 
 namespace other {
   namespace lua_script_bindings {
@@ -81,174 +76,22 @@ namespace other {
         "MousePreviousPos", []() -> glm::vec2 { return { Mouse::PreviousX(), Mouse::PreviousY() }; },
         "MouseDeltaPos", []() -> glm::vec2 { return { Mouse::GetDX(), Mouse::GetDY() }; }
       );
+
+      lua_state.new_usertype<U64Wrapper>(
+        "U64Wrapper",
+        "id", &U64Wrapper::id
+      );
     }
-
-    struct U64Wrapper {
-      uint64_t id = 0;
-      int64_t lua_id = 0;
-
-      U64Wrapper() = default;
-      U64Wrapper(uint64_t id) : id(id) {
-        /// will overflow/underflow matter? since it remains unique probably not
-        lua_id = static_cast<int64_t>(id);
-      }
-
-      // automatically bound for obj == obj [ __eq ]
-      bool operator==(const int64_t& right) const {
-        return lua_id == right;
-      }
-      // automatically bound for obj < obj [ __lt ]
-      bool operator<(const int64_t& right) const {
-        return lua_id < right;
-      }
-      // automatically bound for obj <= obj [ __le ]
-      bool operator<=(const int64_t& right) const {
-        return lua_id <= right;
-      }
-    };
-
-    std::ostream& operator<<(std::ostream& os, const U64Wrapper& wrapper) {
-      os << "[" << wrapper.id << ":" << wrapper.lua_id << "]";
-      return os;
-    }
-
-    struct EntityProxy {
-      U64Wrapper id;
-      std::string name;
-
-      EntityProxy() = default;
-      EntityProxy(const Entity& entity)
-          : id(entity.GetUUID().Get()), name(entity.Name()) {}
-
-      bool HasComponent(const std::string& component_name) {
-        auto scene = ScriptEngine::GetSceneContext();
-        OE_ASSERT(scene != nullptr, "Scene context is null");
-
-        Entity* entity = scene->GetEntity(UUID(id.id));
-        OE_ASSERT(entity != nullptr, "Entity is null");
-
-        return entity->CheckForComponentByName(component_name);
-      }
-
-      std::string Name() const {
-        auto scene = ScriptEngine::GetSceneContext();
-        OE_ASSERT(scene != nullptr, "Scene context is null");
-
-        Entity* entity = scene->GetEntity(UUID(id.id));
-        OE_ASSERT(entity != nullptr, "Entity is null");
-
-        return entity->ReadComponent<Tag>().name;
-      }
-
-      Transform GetTransform() {
-        auto scene = ScriptEngine::GetSceneContext();
-        OE_ASSERT(scene != nullptr, "Scene context is null");
-
-        Entity* entity = scene->GetEntity(UUID(id.id));
-        OE_ASSERT(entity != nullptr, "Entity is null");
-
-        return entity->GetComponent<Transform>();
-      }
-
-      int64_t GetId() const {
-        return id.lua_id;
-      }
-
-      bool operator==(const EntityProxy& other) const {
-        return id.id == other.id.id;
-      }
-    };
 
     void BindAll(sol::state& lua_state) {
       BindCoreTypes(lua_state);
       BindKeyEnums(lua_state);
       BindGlmTypes(lua_state);
 
-      BindEcsTypes(lua_state);
       BindScene(lua_state);
+      BindEcsTypes(lua_state);
 
       BindUiTypes(lua_state);
-
-      lua_state.new_usertype<U64Wrapper>(
-        "U64Wrapper",
-        sol::meta_function::construct,
-        [](int64_t id) { return U64Wrapper(static_cast<uint64_t>(id)); }
-      );
-
-      lua_state.new_usertype<Transform>(
-        "Transform",
-        "position", &Transform::position,
-        "rotation", &Transform::erotation,
-        "scale", &Transform::scale
-      );
-
-      lua_state.new_usertype<EntityProxy>(
-        "Entity",
-        sol::meta_function::construct,
-        sol::factories(
-          []() { return EntityProxy{}; },
-          [](int64_t id) {
-            uint64_t uuid = static_cast<uint64_t>(id);
-            auto scene = ScriptEngine::GetSceneContext();
-            OE_ASSERT(scene != nullptr, "Scene context is null");
-
-            Entity* entity = scene->GetEntity(UUID(uuid));
-            if (entity == nullptr) {
-              OE_ERROR("Entity with id {} not found", id);
-              return EntityProxy{};
-            }
-            return EntityProxy(*entity);
-          },
-          [](EntityProxy& proxy) { return proxy; }
-        ),
-        "name", sol::property(&EntityProxy::Name),
-        "id", sol::property(&EntityProxy::GetId),
-        "transform", sol::property(&EntityProxy::GetTransform),
-        "HasComponent", &EntityProxy::HasComponent
-      );
-
-      lua_state["Scene"] = lua_state.create_table_with(
-        "ContextHandle",
-        []() -> int64_t {
-          auto scene = ScriptEngine::GetSceneContext();
-          OE_ASSERT(scene != nullptr, "Scene context is null");
-
-          U64Wrapper handle(scene->handle.Get());
-          return handle.lua_id;
-        },
-        "EntityIds",
-        []() -> std::vector<int64_t> {
-          auto scene = ScriptEngine::GetSceneContext();
-          OE_ASSERT(scene != nullptr, "Scene context is null");
-
-          std::vector<int64_t> entities;
-          for (const auto& [id, entity] : scene->SceneEntities()) {
-            entities.push_back(U64Wrapper(id.Get()).lua_id);
-          }
-          return entities;
-        },
-        "SceneEntities",
-        []() -> std::vector<EntityProxy> {
-          auto scene = ScriptEngine::GetSceneContext();
-          OE_ASSERT(scene != nullptr, "Scene context is null");
-
-          std::vector<EntityProxy> entities;
-          for (const auto& [id, entity] : scene->SceneEntities()) {
-            entities.emplace_back(*entity);
-          }
-          return entities;
-        },
-        "EntityHasComponent",
-        [](EntityProxy& proxy, const std::string& component_name) {
-          auto scene = ScriptEngine::GetSceneContext();
-          OE_ASSERT(scene != nullptr, "Scene context is null");
-
-          Entity* entity = scene->GetEntity(UUID(proxy.id.id));
-          OE_ASSERT(entity != nullptr, "Entity is null");
-
-          return entity->CheckForComponentByName(component_name);
-        }
-      );
     }
 
     namespace {

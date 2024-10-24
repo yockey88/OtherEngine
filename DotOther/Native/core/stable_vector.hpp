@@ -96,7 +96,8 @@ namespace dotother {
       page_table[page_idx]->elements[elt_index] = std::move(new_elt);
       return {
         index,
-        page_table[page_idx]->elements[elt_index]};
+        page_table[page_idx]->elements[elt_index]
+      };
     }
 
     std::pair<uint32_t, T&> InsertNoLock(T&& new_elt) {
@@ -129,7 +130,8 @@ namespace dotother {
       page_table[page_idx]->elements[elt_index] = std::move(new_elt);
       return {
         index,
-        page_table[page_idx]->elements[elt_index]};
+        page_table[page_idx]->elements[elt_index]
+      };
     }
 
     std::pair<uint32_t, T&> EmplaceBack() {
@@ -157,7 +159,8 @@ namespace dotother {
       uint32_t elt_index = index - (page_idx * N);
       return {
         index,
-        page_table[page_idx]->elements[elt_index]};
+        page_table[page_idx]->elements[elt_index],
+      };
     }
 
     std::pair<uint32_t, T&> EmplaceBackNoLock() {
@@ -185,7 +188,8 @@ namespace dotother {
       uint32_t elt_index = index - (page_idx * N);
       return {
         index,
-        page_table[page_idx]->elements[elt_index]};
+        page_table[page_idx]->elements[elt_index]
+      };
     }
 
     template <typename Fn>

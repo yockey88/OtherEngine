@@ -4,37 +4,36 @@
 #include "ecs/systems/component_gui.hpp"
 
 #include <algorithm>
+
 #include <imgui/imgui.h>
 
-#include "event/event_queue.hpp"
-#include "event/app_events.hpp"
-
 #include "application/app_state.hpp"
+#include "event/app_events.hpp"
+#include "event/event_queue.hpp"
 
-#include "ecs/components/transform.hpp"
+#include "ecs/components/camera.hpp"
 #include "ecs/components/relationship.hpp"
 #include "ecs/components/script.hpp"
-#include "ecs/components/camera.hpp"
+#include "ecs/components/transform.hpp"
 
 #include "rendering/camera_base.hpp"
-#include "rendering/perspective_camera.hpp"
-#include "rendering/orthographic_camera.hpp"
 #include "rendering/model.hpp"
 #include "rendering/model_factory.hpp"
+#include "rendering/orthographic_camera.hpp"
+#include "rendering/perspective_camera.hpp"
 #include "scripting/script_engine.hpp"
-
 
 namespace other {
 
-  bool DrawTransform(Entity *ent) {
-    ScopedStyle spacing(ImGuiStyleVar_ItemSpacing , ImVec2(8.f , 8.f));
-    ScopedStyle padding(ImGuiStyleVar_FramePadding , ImVec2(4.f , 4.f));
+  bool DrawTransform(Entity* ent) {
+    ScopedStyle spacing(ImGuiStyleVar_ItemSpacing, ImVec2(8.f, 8.f));
+    ScopedStyle padding(ImGuiStyleVar_FramePadding, ImVec2(4.f, 4.f));
 
     bool modified = false;
 
-    ImGui::BeginTable("Transform Component" , 2 , ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_NoClip);
-    ImGui::TableSetupColumn("label_col" , 0 , 100.f);
-    ImGui::TableSetupColumn("value_col" , ImGuiTableColumnFlags_IndentEnable | ImGuiTableColumnFlags_NoClip , ImGui::GetContentRegionAvail().x - 100.f);
+    ImGui::BeginTable("Transform Component", 2, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_NoClip);
+    ImGui::TableSetupColumn("label_col", 0, 100.f);
+    ImGui::TableSetupColumn("value_col", ImGuiTableColumnFlags_IndentEnable | ImGuiTableColumnFlags_NoClip, ImGui::GetContentRegionAvail().x - 100.f);
 
     bool translation_manually_edited = false;
     bool rotation_manually_edited = false;
@@ -45,26 +44,26 @@ namespace other {
     if (multi_edit) {
     } else {
       auto& component = ent->GetComponent<Transform>();
-      
+
       ImGui::TableNextRow();
-      if (ui::widgets::DrawVec3Control("Translation" , component.position , translation_manually_edited , 0.f , /// replace this value from redo/undo stack
-                                    100.f , ui::VectorAxis::ZERO , glm::zero<glm::vec3>() , glm::zero<glm::vec3>() , 0.1f)) {
+      if (ui::widgets::DrawVec3Control("Translation", component.position, translation_manually_edited, 0.f,  /// replace this value from redo/undo stack
+                                       100.f, ui::VectorAxis::ZERO, glm::zero<glm::vec3>(), glm::zero<glm::vec3>(), 0.1f)) {
       }
 
       ImGui::TableNextRow();
-      if (ui::widgets::DrawVec3Control("Rotation" , component.erotation , rotation_manually_edited , 0.f , /// replace this value from redo/undo stack
-                                    100.f , ui::VectorAxis::ZERO , glm::zero<glm::vec3>() , glm::zero<glm::vec3>() , 0.1f)) {
+      if (ui::widgets::DrawVec3Control("Rotation", component.erotation, rotation_manually_edited, 0.f,  /// replace this value from redo/undo stack
+                                       100.f, ui::VectorAxis::ZERO, glm::zero<glm::vec3>(), glm::zero<glm::vec3>(), 0.1f)) {
         component.qrotation = glm::quat(component.erotation);
       }
 
       ImGui::TableNextRow();
-      if (ui::widgets::DrawVec3Control("Scale" , component.scale , scale_manually_edited , 1.f , /// replace this value from redo/undo stack
-                                    100.f , ui::VectorAxis::ZERO , glm::zero<glm::vec3>() , glm::zero<glm::vec3>() , 0.1f)) {
+      if (ui::widgets::DrawVec3Control("Scale", component.scale, scale_manually_edited, 1.f,  /// replace this value from redo/undo stack
+                                       100.f, ui::VectorAxis::ZERO, glm::zero<glm::vec3>(), glm::zero<glm::vec3>(), 0.1f)) {
       }
-      
+
       if (translation_manually_edited || rotation_manually_edited || scale_manually_edited) {
         component.CalcMatrix();
-        OE_DEBUG("Transform calculated : {}" , component.model_transform);
+        OE_DEBUG("Transform calculated : {}", component.model_transform);
 
         modified = true;
       }
@@ -94,7 +93,7 @@ namespace other {
   //   }
 
   //   if (ui::Property(field->name.c_str() , &v , min , max)) {
-  //     field->value.Set(v); 
+  //     field->value.Set(v);
   //     script_instance->SetField(field->name , field->value);
   //     result = true;
   //   }
@@ -107,7 +106,7 @@ namespace other {
   //   bool result = false;
 
   //   bool v = field->value.Get<bool>();
-    
+
   //   ui::BeginProperty(field->name.c_str());
   //   if (ImGui::Checkbox("" , &v)) {
   //     field->value.Set(v);
@@ -125,14 +124,14 @@ namespace other {
 
   //   char v = field->value.Get<char>();
   //   static std::array<char , 52> chars = {
-  //     'a' , 'b' , 'c' , 'd' , 'e' , 'f' , 'g' , 'h' , 'i' , 'j' , 'k' , 'l' , 'm' , 'n' , 
+  //     'a' , 'b' , 'c' , 'd' , 'e' , 'f' , 'g' , 'h' , 'i' , 'j' , 'k' , 'l' , 'm' , 'n' ,
   //           'o' , 'p' , 'q' , 'r' , 's' , 't' , 'u' , 'v' , 'w' , 'x' , 'y' , 'z' ,
   //     'A' , 'B' , 'C' , 'D' , 'E' , 'F' , 'G' , 'H' , 'I' , 'J' , 'K' , 'L' , 'M' , 'N' ,
   //           'O' , 'P' , 'Q' , 'R' , 'S' , 'T' , 'U' , 'V' , 'W' , 'X' , 'Y' , 'Z'
   //   };
-    
+
   //   ui::BeginProperty(field->name.c_str());
-    
+
   //   if (ImGui::BeginCombo(("##char-dropdown" + field->name).c_str() , &v)) {
   //     for (auto& c : chars) {
   //       bool is_selected = v == c;
@@ -151,7 +150,7 @@ namespace other {
   //   return result;
   // }
 
-  // template <> 
+  // template <>
   // bool DrawFieldValue<std::string>(ScriptField* field , Ref<ScriptObject> script_instance) {
   //   bool result = false;
 
@@ -181,7 +180,7 @@ namespace other {
   //   bool result = false;
 
   //   bool modified = false;
-    
+
   //   float min = 0 , max = 0 , speed = 1.f;
   //   if (field->bounds.has_value()) {
   //     min = field->bounds->x;
@@ -192,7 +191,7 @@ namespace other {
 
   //     speed = (max - min) / 20.f;
   //   }
-    
+
   //   ui::BeginProperty(field->name.c_str());
 
   //   glm::vec2 v = field->value.Get<glm::vec2>();
@@ -202,12 +201,12 @@ namespace other {
   //     script_instance->SetField(field->name , field->value);
   //     result = true;
   //   }
-    
+
   //   ui::EndProperty();
 
   //   return result;
   // }
-  
+
   // template <>
   // bool DrawFieldValue<glm::vec3>(ScriptField* field , Ref<ScriptObject> script_instance) {
   //   bool result = false;
@@ -239,13 +238,13 @@ namespace other {
 
   //   return result;
   // }
-  
+
   // template <>
   // bool DrawFieldValue<glm::vec4>(ScriptField* field , Ref<ScriptObject> script_instance) {
   //   bool result = false;
 
   //   bool modified = false;
-    
+
   //   float min = 0 , max = 0 , speed = 1.f;
   //   if (field->bounds.has_value()) {
   //     min = field->bounds->x;
@@ -256,7 +255,7 @@ namespace other {
 
   //     speed = (max - min) / 20.f;
   //   }
-    
+
   //   ui::BeginProperty(field->name.c_str());
 
   //   glm::vec4 v = field->value.Get<glm::vec4>();
@@ -266,15 +265,15 @@ namespace other {
   //     script_instance->SetField(field->name , field->value);
   //     result = true;
   //   }
-    
+
   //   ui::EndProperty();
 
   //   return result;
   // }
 
   // bool DrawScriptArray(ScriptField* array , Ref<ScriptObject> script_instance) {
-  //   // ImGui::Text("Script array : %s" , array->name.c_str()); 
-    
+  //   // ImGui::Text("Script array : %s" , array->name.c_str());
+
   //   return false;
   // }
 
@@ -298,10 +297,10 @@ namespace other {
   //     case ValueType::VEC3: result   = result &= DrawFieldValue<glm::vec3>(field , script_instance); break;
   //     case ValueType::VEC4: result   = result &= DrawFieldValue<glm::vec4>(field , script_instance); break;
   //     case ValueType::STRING: result = result &= DrawFieldValue<std::string>(field , script_instance); break;
-  //     case ValueType::ASSET: 
+  //     case ValueType::ASSET:
   //       ImGui::Text("Asset values unimplemented!");
   //     break;
-  //     case ValueType::ENTITY: 
+  //     case ValueType::ENTITY:
   //       ImGui::Text("Entity values unimplemented!");
   //     break;
   //     case ValueType::USER_TYPE:
@@ -336,34 +335,34 @@ namespace other {
 
     // bool has_script_attached = std::ranges::find_if(script.scripts , contains) != script.scripts.end();
     // if (!has_script_attached && ImGui::Button("Confirm")) {
-      // auto id = loaded_script_objs[slctn].object_id;
-      // auto name = loaded_script_objs[slctn].name;
-      // auto mod_name = loaded_script_objs[slctn].mod_name;
+    // auto id = loaded_script_objs[slctn].object_id;
+    // auto name = loaded_script_objs[slctn].name;
+    // auto mod_name = loaded_script_objs[slctn].mod_name;
 
-      // Opt<std::string> nspace = loaded_script_objs[slctn].nspace.empty() ?
-      // Opt<std::string>{ std::nullopt } : Opt<std::string>{ loaded_script_objs[slctn].nspace };
+    // Opt<std::string> nspace = loaded_script_objs[slctn].nspace.empty() ?
+    // Opt<std::string>{ std::nullopt } : Opt<std::string>{ loaded_script_objs[slctn].nspace };
 
-      // Ref<ScriptObject> inst = nullptr;
-      // if (nspace.has_value()) {
-      //   inst = ScriptEngine::GetScriptObject(nspace.value() + "::" + name , "");
-      // } else {
-      //   inst = ScriptEngine::GetScriptObject(name , "");
-      // }
+    // Ref<ScriptObject> inst = nullptr;
+    // if (nspace.has_value()) {
+    //   inst = ScriptEngine::GetScriptObject(nspace.value() + "::" + name , "");
+    // } else {
+    //   inst = ScriptEngine::GetScriptObject(name , "");
+    // }
 
-      // if (inst == nullptr) {
-      //   OE_ERROR("Failed to retrieve selection script object {} [{}]" , name , id);
-      // } else {
-      //   script.data[id] = {
-      //     .module = mod_name ,
-      //     .obj_name = name ,
-      //   };
+    // if (inst == nullptr) {
+    //   OE_ERROR("Failed to retrieve selection script object {} [{}]" , name , id);
+    // } else {
+    //   script.data[id] = {
+    //     .module = mod_name ,
+    //     .obj_name = name ,
+    //   };
 
-      //   auto& tag = ent->GetComponent<Tag>();
+    //   auto& tag = ent->GetComponent<Tag>();
 
-      //   script.scripts[id] = inst;
-      //   inst->SetEntityId(tag.id);
-      //   inst->Initialize();
-      // }
+    //   script.scripts[id] = inst;
+    //   inst->SetEntityId(tag.id);
+    //   inst->Initialize();
+    // }
     // }
 
     // if (script.scripts.size() == 0) {
@@ -387,7 +386,7 @@ namespace other {
     //     }
     //     return false;
     //   }
-    
+
     //   ui::BeginPropertyGrid();
     //   ui::ShiftCursor(10.f , 9.f);
     //   ImGui::Text("%s [ %s ]" , name.c_str() , lang_name.c_str());
@@ -428,10 +427,10 @@ namespace other {
     //   }
 
     //   ImGui::GetStyle().ButtonTextAlign = og_button_txt_align;
-    //   bool clear = false; 
+    //   bool clear = false;
     //   if (ImGui::BeginPopup(("##script_popup" + name).c_str())) {
     //     if (clear) {
-           
+
     //     }
 
     //     ImGui::EndPopup();
@@ -441,13 +440,13 @@ namespace other {
     //     OE_INFO("Removing script {} [{}]" , name , id);
     //     scripts_to_remove.push_back(id);
     //   }
-      
+
     //   ImGui::PopItemWidth();
 
     //   ui::EndPropertyGrid();
     //   ui::Underline();
     //   ui::BeginPropertyGrid();
-      
+
     //   /// display exported properties
     //   for (auto& [field_id , val] : s->GetFields()) {
     //     ImGui::PushID(("##script-field" + val.name).c_str());
@@ -457,7 +456,7 @@ namespace other {
     //     //   DrawScriptArray(&val , s);
     //     // } else {
     //     //   DrawScriptField(&val , s);
-    //     // } 
+    //     // }
 
     //     ImGui::PopID();
     //   }
@@ -466,7 +465,7 @@ namespace other {
 
     //   ImGui::PopID();
     // }
-    
+
     // auto& scenes = AppState::Scenes();
 
     // for (const auto& id : scripts_to_remove) {
@@ -482,18 +481,18 @@ namespace other {
 
     return false;
   }
-  
+
   bool DrawMesh(Entity* ent) {
     auto& mesh = ent->GetComponent<Mesh>();
 
     if (mesh.handle == 0) {
       /// display other meshes
       return false;
-    } 
+    }
 
     Ref<Model> model = AppState::Assets()->GetAsset(mesh.handle);
     if (model == nullptr) {
-      ScopedColor red_text(ImGuiCol_Text , ui::theme::red);
+      ScopedColor red_text(ImGuiCol_Text, ui::theme::red);
       ImGui::Text("Mesh [{}] invalid");
       return false;
     }
@@ -502,50 +501,49 @@ namespace other {
 
     return false;
   }
-  
+
   bool DrawStaticMesh(Entity* ent) {
     auto& mesh = ent->GetComponent<StaticMesh>();
 
     const char* options[] = {
-      "Empty" , "Triangle" , "Rect" , "Cube" , "Sphere" , "Capsule"
+      "Empty", "Triangle", "Rect", "Cube", "Sphere", "Capsule"
     };
 
-    if (ui::PropertyDropdown("Primitive Meshes" , options, kCapsuleIdx , mesh.primitive_selection)) {}
+    if (ui::PropertyDropdown("Primitive Meshes", options, kCapsuleIdx, mesh.primitive_selection)) {}
 
     if (mesh.primitive_id != mesh.primitive_selection && ImGui::Button("Confirm Change")) {
       bool change = false;
       switch (mesh.primitive_selection) {
         case kTriangleIdx: {
           auto& scale = ent->ReadComponent<Transform>().scale;
-          mesh.handle = ModelFactory::CreateTriangle({ scale.x / 2 , scale.y / 2 });
+          mesh.handle = ModelFactory::CreateTriangle({ scale.x / 2, scale.y / 2 });
           if (!AppState::Assets()->IsValid(mesh.handle)) {
             OE_ERROR("Failed to Create Rect Static Mesh");
           } else {
-            change = true; 
+            change = true;
           }
         } break;
 
         case kRectIdx: {
           auto& scale = ent->ReadComponent<Transform>().scale;
-          mesh.handle = ModelFactory::CreateRect({ scale.x / 2 , scale.y / 2 });
+          mesh.handle = ModelFactory::CreateRect({ scale.x / 2, scale.y / 2 });
           if (!AppState::Assets()->IsValid(mesh.handle)) {
             OE_ERROR("Failed to Create Rect Static Mesh");
           } else {
-            change = true; 
+            change = true;
           }
         } break;
 
         case kSphereIdx:
         case kCapsuleIdx:
-          OE_WARN("Assigning cube until implementations for others available!");
-          [[ fallthrough ]];
+          OE_WARN("Assigning cube until other implementations available!");
+          [[fallthrough]];
         case kCubeIdx: {
-          auto& scale = ent->ReadComponent<Transform>().scale;
           mesh.handle = ModelFactory::CreateBox();
           if (!AppState::Assets()->IsValid(mesh.handle)) {
             OE_ERROR("Failed to Create Cube Static Mesh");
           } else {
-            change = true; 
+            change = true;
           }
         } break;
 
@@ -565,60 +563,60 @@ namespace other {
     if (mesh.primitive_id == kEmptyIdx) {
       return false;
     }
-      
+
     bool valid = AppState::Assets()->IsHandleValid(mesh.handle);
     if (!valid) {
-      ScopedColor red_text(ImGuiCol_Text , ui::theme::red);
-      ImGui::Text("Static Mesh handle [%lld] invalid" , mesh.handle.Get());
+      ScopedColor red_text(ImGuiCol_Text, ui::theme::red);
+      ImGui::Text("Static Mesh handle [%lld] invalid", mesh.handle.Get());
       return false;
     }
 
     valid = AppState::Assets()->IsValid(mesh.handle);
     if (!valid) {
-      ScopedColor red_text(ImGuiCol_Text , ui::theme::red);
+      ScopedColor red_text(ImGuiCol_Text, ui::theme::red);
       ImGui::Text("Static Mesh [{}] invalid");
       return false;
     }
 
     Ref<StaticModel> model = AppState::Assets()->GetAsset(mesh.handle);
     if (model == nullptr) {
-      ScopedColor red_text(ImGuiCol_Text , ui::theme::red);
+      ScopedColor red_text(ImGuiCol_Text, ui::theme::red);
       ImGui::Text("Unknown error retrievieng Static Mesh [{}] from asset handler");
       return false;
     }
 
-    //// draw selection and settings 
+    //// draw selection and settings
 
     ImGui::Text("Rendering Mesh");
 
     return false;
   }
-  
+
   bool DrawCamera(Entity* ent) {
     auto& camera = ent->GetComponent<Camera>();
 
     ui::BeginPropertyGrid();
 
     const char* proj_types[] = {
-      "Perspective" ,
+      "Perspective",
       "Orthographic"
     };
 
-    if (ImGui::Checkbox("Primary Camera" , &camera.is_primary)) {
+    if (ImGui::Checkbox("Primary Camera", &camera.is_primary)) {
     }
 
     uint32_t current_proj = camera.camera->GetCameraProjectionType();
-    
-    if (ui::PropertyDropdown("Projection" , proj_types , 2 , current_proj)) {
+
+    if (ui::PropertyDropdown("Projection", proj_types, 2, current_proj)) {
       switch (current_proj) {
         case CameraProjectionType::PERSPECTIVE:
           camera.camera = Ref<PerspectiveCamera>::Create(camera.camera);
-        break;
+          break;
 
         case CameraProjectionType::ORTHOGRAPHIC:
           camera.camera = Ref<OrthographicCamera>::Create(camera.camera);
-        break;
-        
+          break;
+
         default:
           break;
       }
@@ -628,38 +626,37 @@ namespace other {
     bool orientation_modified = false;
 
     ui::ShiftCursorY(4.5f);
-    ImGui::Checkbox("Pinned to Object Position" , &camera.pinned_to_entity_position); 
+    ImGui::Checkbox("Pinned to Object Position", &camera.pinned_to_entity_position);
 
     ImGui::NextColumn();
 
     if (!camera.pinned_to_entity_position) {
-      ui::widgets::DrawVec3Control("Position" , camera.camera->position , position_modified);
-      ui::widgets::DrawVec3Control("Orientation" , camera.camera->euler_angles , orientation_modified);
+      ui::widgets::DrawVec3Control("Position", camera.camera->position, position_modified);
+      ui::widgets::DrawVec3Control("Orientation", camera.camera->euler_angles, orientation_modified);
     }
 
     ImGui::NextColumn();
 
-    switch(camera.camera->GetCameraProjectionType()) {
+    switch (camera.camera->GetCameraProjectionType()) {
       case CameraProjectionType::PERSPECTIVE: {
-        ui::DrawTodoReminder("PERSPECTIVE CAMERA OPTIONS"); 
+        ui::DrawTodoReminder("PERSPECTIVE CAMERA OPTIONS");
       } break;
 
       case CameraProjectionType::ORTHOGRAPHIC: {
         ui::DrawTodoReminder("ORTHOGRAPHIC CAMERA OPTIONS");
       } break;
 
-
       default:
-        ScopedColor col(ImGuiCol_Text , ui::theme::red);
+        ScopedColor col(ImGuiCol_Text, ui::theme::red);
         ImGui::Text("Invalid Camera Projection Type! Camera Corrupt");
-      break;
+        break;
     }
 
     ui::EndPropertyGrid();
 
     return false;
   }
-  
+
   bool DrawLightSource(Entity* ent) {
     ui::BeginPropertyGrid();
 
@@ -667,4 +664,4 @@ namespace other {
     return false;
   }
 
-} // namespace other
+}  // namespace other

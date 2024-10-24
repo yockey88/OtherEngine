@@ -9,6 +9,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include <reflection/echo_defines.hpp>
+
 #include "ecs/component.hpp"
 #include "ecs/component_serializer.hpp"
 
@@ -31,8 +33,8 @@ namespace other {
     [[maybe_unused]] const glm::mat4& CalcMatrix() {
       qrotation = glm::quat(erotation);
       model_transform = glm::translate(glm::mat4(1.f), position) *
-                        glm::scale(glm::mat4(1.f), scale) *
-                        glm::toMat4(qrotation);
+        glm::scale(glm::mat4(1.f), scale) *
+        glm::toMat4(qrotation);
       return model_transform;
     }
 
@@ -51,5 +53,14 @@ namespace other {
   };
 
 }  // namespace other
+
+ECHO_TYPE(
+  type(other::Transform),
+  field(scale),
+  field(position),
+  field(erotation),
+  field(qrotation),
+  field(model_transform)
+);
 
 #endif  // !OTHER_ENGINE_TRANSFORM_HPP

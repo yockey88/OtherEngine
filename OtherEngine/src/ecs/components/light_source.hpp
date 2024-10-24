@@ -9,17 +9,17 @@
 #include "ecs/component_serializer.hpp"
 
 #include "rendering/direction_light.hpp"
-#include "rendering/point_light.hpp"
 #include "rendering/material.hpp"
+#include "rendering/point_light.hpp"
 
 namespace other {
 
   enum LightSourceType {
-    DIRECTION_LIGHT_SRC = 0 ,
-    POINT_LIGHT_SRC ,
+    DIRECTION_LIGHT_SRC = 0,
+    POINT_LIGHT_SRC,
 
-    NUM_LIGHT_SRCS , 
-    INVALID_LIGHT_SRC = NUM_LIGHT_SRCS ,
+    NUM_LIGHT_SRCS,
+    INVALID_LIGHT_SRC = NUM_LIGHT_SRCS,
   };
 
   struct LightSource : public Component {
@@ -28,19 +28,23 @@ namespace other {
       DirectionLight direction_light;
       PointLight pointlight;
     };
-    
+
     Opt<AssetHandle> debug_model = std::nullopt;
 
     static Material debug_light_mat;
 
-    ECS_COMPONENT(LightSource, kLightSourceIndex); 
+    ECS_COMPONENT(LightSource, kLightSourceIndex);
   };
 
   class LightSourceSerializer : public ComponentSerializer {
-    public:
-      COMPONENT_SERIALIZERS(LightSource);
+   public:
+    COMPONENT_SERIALIZERS(LightSource);
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_LIGHT_SOURCE_HPP
+ECHO_TYPE(
+  type(other::LightSource, refl::attr::bases<other::Component>)
+);
+
+#endif  // !OTHER_ENGINE_LIGHT_SOURCE_HPP

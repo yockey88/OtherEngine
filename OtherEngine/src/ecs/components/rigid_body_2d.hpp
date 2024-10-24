@@ -16,7 +16,7 @@ namespace other {
 
   struct RigidBody2D : public Component {
     b2BodyDef body_def;
-    b2Body* physics_body = nullptr; 
+    b2Body* physics_body = nullptr;
     b2MassData mass_data;
 
     PhysicsBodyType type = STATIC;
@@ -28,14 +28,18 @@ namespace other {
     bool fixed_rotation = false;
     bool bullet = false;
 
-    ECS_COMPONENT(RigidBody2D , kRigidBody2DIndex);
-  }; 
-
-  class RigidBody2DSerializer : public ComponentSerializer {
-    public:
-      COMPONENT_SERIALIZERS(RigidBody2D);
+    ECS_COMPONENT(RigidBody2D, kRigidBody2DIndex);
   };
 
-} // namespace other
+  class RigidBody2DSerializer : public ComponentSerializer {
+   public:
+    COMPONENT_SERIALIZERS(RigidBody2D);
+  };
 
-#endif // !OTHER_ENGINE_RIGID_BODY_2D_HPP
+}  // namespace other
+
+ECHO_TYPE(
+  type(other::RigidBody2D, refl::attr::bases<other::Component>)
+);
+
+#endif  // !OTHER_ENGINE_RIGID_BODY_2D_HPP

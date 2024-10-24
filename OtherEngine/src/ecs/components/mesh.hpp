@@ -4,6 +4,9 @@
 #ifndef OTHER_ENGINE_MESH_HPP
 #define OTHER_ENGINE_MESH_HPP
 
+#include <reflection/echo_defines.hpp>
+#include <reflection/reflected_object.hpp>
+
 #include "asset/asset_types.hpp"
 
 #include "ecs/component.hpp"
@@ -56,5 +59,23 @@ namespace other {
   };
 
 }  // namespace other
+
+ECHO_TYPE(
+  type(other::Mesh),
+  field(handle),
+  field(material),
+  field(bone_entity_ids),
+  field(visible)
+);
+
+ECHO_TYPE(
+  type(other::StaticMesh),
+  field(handle),
+  field(material),
+  field(visible),
+  field(is_primitive),
+  field(primitive_id),
+  field(primitive_selection)
+);
 
 #endif  // !OTHER_ENGINE_MESH_HPP

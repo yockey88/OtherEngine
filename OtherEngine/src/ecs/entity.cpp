@@ -3,6 +3,8 @@
  **/
 #include "ecs/entity.hpp"
 
+#include "core/logger.hpp"
+
 #include "ecs/component.hpp"
 #include "ecs/components/serialization_data.hpp"
 #include "ecs/components/tag.hpp"
@@ -32,9 +34,9 @@ namespace other {
 
   bool Entity::CheckForComponentByName(const std::string_view name) {
     SerializationData& sdata = GetComponent<SerializationData>();
-    auto comp_itr = std::ranges::find_if(kComponentTags, [name](const auto& pair) { return pair.first == name; });
+    auto comp_itr = std::ranges::find_if(kComponentTags, [name](const auto& pair) { return pair.name == name; });
     if (comp_itr == kComponentTags.end()) {
-      OE_DEBUG("Component {} not found", name);
+      OE_WARN("Component {} not found", name);
       return false;
     }
     auto& [n, idx] = *comp_itr;

@@ -4,10 +4,13 @@
 #ifndef OTHER_ENGINE_TAG_HPP
 #define OTHER_ENGINE_TAG_HPP
 
+#include <entt/entity/fwd.hpp>
+
 #include "core/defines.hpp"
 #include "core/uuid.hpp"
+
 #include "ecs/component.hpp"
-#include <entt/entity/fwd.hpp>
+
 
 namespace other {
 
@@ -17,13 +20,17 @@ namespace other {
     entt::entity handle = entt::null;
 
     Tag(const std::string& name)
-      : Component(kTagIndex) , name(name) , id(FNV(name)) {}
-    Tag(const std::string& name , UUID id)
-      : Component(kTagIndex) , name(name) , id(id) {}
+        : Component(kTagIndex), name(name), id(FNV(name)) {}
+    Tag(const std::string& name, UUID id)
+        : Component(kTagIndex), name(name), id(id) {}
 
-    ECS_COMPONENT(Tag , kTagIndex); 
-  };  
+    ECS_COMPONENT(Tag, kTagIndex);
+  };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_TAG_HPP
+ECHO_TYPE(
+  type(other::Tag, refl::attr::bases<other::Component>)
+);
+
+#endif  // !OTHER_ENGINE_TAG_HPP

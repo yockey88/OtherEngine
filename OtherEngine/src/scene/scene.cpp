@@ -715,9 +715,7 @@ namespace other {
         return;
       }
 
-      Material light_material = {
-        .color = light.pointlight.color,
-      };
+      Material light_material = Material(light.pointlight.color, 32.f);
 
       auto model = AssetManager::GetAsset<StaticModel>(cube_handle);
       renderer->SubmitStaticModel(plname, model, transform.model_transform, light_material);
