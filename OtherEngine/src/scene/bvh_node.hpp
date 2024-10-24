@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <ostream>
 #include <ranges>
+#include <stack>
 #include <string_view>
 #include <vector>
 
@@ -219,7 +220,7 @@ namespace other {
     }
 
     bool IsLeaf() const {
-      return std::ranges::all_of(children, [](BvhNode* octant) { return octant == nullptr; });
+      return std::ranges::all_of(children, [](BvhNode* child) { return child == nullptr; });
     }
 
     const std::array<BvhNode*, N>& Children() const {
@@ -237,13 +238,6 @@ namespace other {
     const glm::vec3& Max() const {
       return bbox.max;
     }
-
-    /// TODO: FIGURE OUT HOW TO USE RANGE ADAPTORS
-    // struct DepthCounter : std::ranges::range_adaptor_closure<DepthCounter> {
-    //   constexpr uint64_t operator()(const std::array<BvhNode<N>*>& children) const {
-    //     return 0;
-    //   }
-    // };
 
     int64_t GetMinDepth() const {
       if (IsLeaf()) {
@@ -533,10 +527,8 @@ namespace other {
   void BvhNode<N>::RenderEntityBounds(const std::string_view pl_name, Ref<SceneRenderer>& renderer, bool outline) {
     const static AssetHandle wireframe = ModelFactory::CreateBoxWireframe();
     Ref<StaticModel> model = AssetManager::GetAsset<StaticModel>(wireframe);
-    Material mat = {
-      .color = glm::vec4(0.f, 1.f, 0.f, 1.f),
-      .shininess = 16.f,
-    };
+
+    Material mat(glm::vec4(0.f, 1.f, 0.f, 1.f), 16.f);
 
     for (const auto& e : entities) {
       if (e->visited) {
@@ -572,10 +564,7 @@ namespace other {
     const static AssetHandle wireframe = ModelFactory::CreateBoxWireframe();
 
     Ref<StaticModel> model = AssetManager::GetAsset<StaticModel>(wireframe);
-    Material mat = {
-      .color = glm::vec4(1.f, 0.f, 0.f, 1.f),
-      .shininess = 16.f,
-    };
+    Material mat(glm::vec4(1.f, 0.f, 0.f, 1.f), 16.f);
 
     glm::mat4 model_mat = glm::translate(identity, bbox.Center());
     model_mat = glm::scale(model_mat, bbox.extent);
@@ -617,8 +606,7 @@ namespace other {
     w << fmtstr("[BvhNode [{}] = {:p}\n", tree_index, static_cast<const void*>(this));
     w.increment();
     w << fmtstr("(@{})\n", bbox);
-    w << fmtstr("(@Location({:>03b} , {}) @Dimensions{}  @Center{})\n",
-                partition_location, partition_index, bbox.extent, bbox.Center());
+    w << fmtstr("(@Location({:>03b} , {}) @Dimensions{}  @Center{})\n", partition_location, partition_index, bbox.extent, bbox.Center());
 
     std::stringstream ss;
     if (entities.empty()) {

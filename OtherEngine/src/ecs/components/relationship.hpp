@@ -8,8 +8,10 @@
 
 #include "core/defines.hpp"
 #include "core/uuid.hpp"
+
 #include "ecs/component.hpp"
 #include "ecs/component_serializer.hpp"
+
 
 namespace other {
 
@@ -17,14 +19,18 @@ namespace other {
     Opt<UUID> parent;
     std::set<UUID> children;
 
-    ECS_COMPONENT(Relationship , kRelationshipIndex);
+    ECS_COMPONENT(Relationship, kRelationshipIndex);
   };
-  
+
   class RelationshipSerializer : public ComponentSerializer {
-    public:
-      COMPONENT_SERIALIZERS(Relationship);
+   public:
+    COMPONENT_SERIALIZERS(Relationship);
   };
 
-} // namespace other 
+}  // namespace other
 
-#endif // !OTHER_ENGINE_RELATIONSHIP_HPP
+ECHO_TYPE(
+  type(other::Relationship, refl::attr::bases<other::Component>)
+);
+
+#endif  // !OTHER_ENGINE_RELATIONSHIP_HPP

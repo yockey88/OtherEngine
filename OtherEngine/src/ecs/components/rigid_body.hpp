@@ -20,13 +20,13 @@ namespace other {
   ///   to merge them into one
   struct RigidBody : public Component {
     PhysicsBodyType type = STATIC;
-    uint32_t layer_id = 0; /// Jolt layer id
+    uint32_t layer_id = 0;  /// Jolt layer id
     bool enable_dynamic_type_change = false;
 
     float mass = 1.f;
     float linear_drag = 0.01f;
     float angular_drag = 0.05f;
-    
+
     bool disable_gravity = false;
     bool is_trigger = false;
 
@@ -41,14 +41,18 @@ namespace other {
     JPH::BodyID body_id;
     // JPH::Body* body = nullptr;
 
-    ECS_COMPONENT(RigidBody , kRigidBodyIndex);
+    ECS_COMPONENT(RigidBody, kRigidBodyIndex);
   };
 
   class RigidBodySerializer : public ComponentSerializer {
-    public:
-      COMPONENT_SERIALIZERS(RigidBody);
+   public:
+    COMPONENT_SERIALIZERS(RigidBody);
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_RIGID_BODY_HPP
+ECHO_TYPE(
+  type(other::RigidBody, refl::attr::bases<other::Component>)
+);
+
+#endif  // !OTHER_ENGINE_RIGID_BODY_HPP

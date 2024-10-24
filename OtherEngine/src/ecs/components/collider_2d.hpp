@@ -5,6 +5,7 @@
 #define OTHER_ENGINE_COLLIDER_2D_HPP
 
 #include <glm/glm.hpp>
+
 #include <box2d/box2d.h>
 
 #include "ecs/component.hpp"
@@ -13,22 +14,26 @@
 namespace other {
 
   struct Collider2D : Component {
-    glm::vec2 offset = { 0.f , 0.f };
-    glm::vec2 size = { 0.5f , 0.5f };
+    glm::vec2 offset = { 0.f, 0.f };
+    glm::vec2 size = { 0.5f, 0.5f };
 
     float density = 1.f;
     float friction = 1.f;
 
     b2Fixture* fixture = nullptr;
 
-    ECS_COMPONENT(Collider2D , kCollider2DIndex);
-  }; 
-
-  class Collider2DSerializer : public ComponentSerializer {
-    public:
-      COMPONENT_SERIALIZERS(Collider2D);
+    ECS_COMPONENT(Collider2D, kCollider2DIndex);
   };
 
-} // namespace other
+  class Collider2DSerializer : public ComponentSerializer {
+   public:
+    COMPONENT_SERIALIZERS(Collider2D);
+  };
 
-#endif // !OTHER_ENGINE_COLLIDER_2D_HPP
+}  // namespace other
+
+ECHO_TYPE(
+  type(other::Collider2D, refl::attr::bases<other::Component>)
+);
+
+#endif  // !OTHER_ENGINE_COLLIDER_2D_HPP

@@ -8,9 +8,9 @@ function TestScript:test()
   return "TestScript.test()"
 end
 
-function TestScript:Method()
-  Logger.WriteDebug("TestScript.Method()")
-end
+-- function TestScript:Method()
+--   Logger.WriteDebug("TestScript.Method()")
+-- end
 
 TestScript2 = object:new()
 
@@ -19,10 +19,10 @@ function TestScript2:test()
   return "TestScript2.test()"
 end
 
-function TestScript2:OnBehaviorLoad()
-  Logger.WriteDebug("TestScript2.OnBehaviorLoad()")
-end
+-- function TestScript2:OnBehaviorLoad()
+--   Logger.WriteDebug("TestScript2.OnBehaviorLoad()")
+-- end
 
-function TestScript2:OnBehaviorUnload()
-  Logger.WriteDebug("TestScript2.OnBehaviorUnload()")
-end
+-- function TestScript2:OnBehaviorUnload()
+--   Logger.WriteDebug("TestScript2.OnBehaviorUnload()")
+-- end

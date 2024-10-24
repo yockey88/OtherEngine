@@ -11,14 +11,18 @@
 namespace other {
 
   struct Collider : public Component {
-    ECS_COMPONENT(Collider , kRigidBodyIndex);
+    ECS_COMPONENT(Collider, kRigidBodyIndex);
   };
 
   class ColliderSerializer : public ComponentSerializer {
-    public:
-      COMPONENT_SERIALIZERS(Collider);
+   public:
+    COMPONENT_SERIALIZERS(Collider);
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_COLLIDER_HPP
+ECHO_TYPE(
+  type(other::Collider, refl::attr::bases<other::Component>)
+);
+
+#endif  // !OTHER_ENGINE_COLLIDER_HPP

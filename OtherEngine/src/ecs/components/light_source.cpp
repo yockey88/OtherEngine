@@ -10,9 +10,7 @@
 
 namespace other {
 
-  Material LightSource::debug_light_mat = {
-    .color = { 1.f, 1.f, 1.f, 1.f },
-  };
+  Material LightSource::debug_light_mat = Material({ 1.f, 1.f, 1.f, 1.f }, 32.f);
 
   void LightSourceSerializer::Serialize(std::ostream& stream, Entity* entity, const Ref<Scene>& scene) const {
     auto& light_source = entity->GetComponent<LightSource>();

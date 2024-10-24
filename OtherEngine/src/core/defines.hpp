@@ -1,93 +1,109 @@
 /**
  * \file core/defines.hpp
-*/
+ */
 #ifndef OTHER_ENGINE_DEFINES_HPP
 #define OTHER_ENGINE_DEFINES_HPP
 
-#include <string_view>
 #include <cstdint>
+#include <filesystem>
+#include <iostream>
 #include <memory>
 #include <optional>
-#include <iostream>
-#include <filesystem>
-#include <utility>
-
-#include <spdlog/fmt/fmt.h>
-#include <glm/glm.hpp>
+#include <string_view>
 #include <type_traits>
 #include <utility>
+
+#include <glm/glm.hpp>
+#include <spdlog/fmt/fmt.h>
 
 #define bit(x) (1 << x)
 
 #ifdef OE_MODULE
-  #define OE_CLIENT
+#define OE_CLIENT
 #else
-  #define OE_ENGINE
+#define OE_ENGINE
+#endif
+
+#ifdef OTHER_DEBUG_BUILD
+#define OE_DEBUG_BUILD
 #endif
 
 namespace other {
 
   enum class EngineMode {
-    DEBUG ,
-    RUNTIME ,
+    DEBUG,
+    RUNTIME,
 
-    NUM_ENGINE_MODES ,
-    INVALID_ENGINE_MODE = NUM_ENGINE_MODES ,
+    NUM_ENGINE_MODES,
+    INVALID_ENGINE_MODE = NUM_ENGINE_MODES,
   };
-  
+
   enum ExitCode : uint8_t {
-    /// for os (program exit) 
-    SUCCESS = 0x00 ,
-    FAILURE = 0x01 ,
+    /// for os (program exit)
+    SUCCESS = 0x00,
+    FAILURE = 0x01,
 
     /// for internal use (reboot, reload, etc...)
     ///   internal good codes
-    RELOAD_PROJECT ,
-    LOAD_NEW_PROJECT ,
-    NO_EXIT ,
+    RELOAD_PROJECT,
+    LOAD_NEW_PROJECT,
+    NO_EXIT,
 
     ///   internal bad codes
-    UNKNOWN_EXCEPTION ,
-    NO_CONFIG_FILE ,
-    CONFIG_PARSE_FAILURE ,
+    UNKNOWN_EXCEPTION,
+    NO_CONFIG_FILE,
+    CONFIG_PARSE_FAILURE,
 
     /// for user (config, etc...)
-    CORRUPT_CONFIGURATION  ,
+    CORRUPT_CONFIGURATION,
 
-    NUM_EXIT_CODES ,
-    INVALID =NUM_EXIT_CODES , 
+    NUM_EXIT_CODES,
+    INVALID = NUM_EXIT_CODES,
   };
-  
+
   enum ValueType {
-    EMPTY , // Void , null , nil ,etc...
-            
+    EMPTY,  // Void , null , nil ,etc...
+
     /// primitive types
-    BOOL , CHAR ,
-    INT8 , INT16 , INT32 , INT64 ,
-    UINT8 , UINT16 , UINT32 , UINT64 ,
-    FLOAT , DOUBLE ,
-    STRING ,
+    BOOL,
+    CHAR,
+    INT8,
+    INT16,
+    INT32,
+    INT64,
+    UINT8,
+    UINT16,
+    UINT32,
+    UINT64,
+    FLOAT,
+    DOUBLE,
+    STRING,
 
     /// engine types
-    VEC2 , VEC3 , VEC4 , 
-    
-    MAT2 , MAT3 , MAT4 ,
+    VEC2,
+    VEC3,
+    VEC4,
 
-    SAMPLER2D ,
+    MAT2,
+    MAT3,
+    MAT4,
 
-    ASSET , ENTITY ,
+    SAMPLER2D,
+
+    ASSET,
+    ENTITY,
 
     /// user types
-    USER_TYPE ,
+    USER_TYPE,
   };
-  
+
   template <typename T>
   static constexpr ValueType GetValueType() {
-    if constexpr (std::is_same_v<T , bool>) {
+    if constexpr (std::is_same_v<T, bool>) {
       return ValueType::BOOL;
-    } else if constexpr (std::is_same_v<T , char>) {
+    } else if constexpr (std::is_same_v<T, char>) {
       return ValueType::CHAR;
-    } else if constexpr (std::is_same_v<T , int8_t>) {
+    } else if constexpr (std::is_same_v<T, int8_t>) {
       return ValueType::INT8;
     } else if constexpr (std::is_same_v<T, int16_t>) {
       return ValueType::INT16;
@@ -107,17 +123,17 @@ namespace other {
       return ValueType::FLOAT;
     } else if constexpr (std::is_same_v<T, double>) {
       return ValueType::DOUBLE;
-    } else if constexpr (std::is_same_v<T , glm::vec2>) {
+    } else if constexpr (std::is_same_v<T, glm::vec2>) {
       return ValueType::VEC2;
-    } else if constexpr (std::is_same_v<T , glm::vec3>) {
+    } else if constexpr (std::is_same_v<T, glm::vec3>) {
       return ValueType::VEC3;
-    } else if constexpr (std::is_same_v<T , glm::vec4>) {
+    } else if constexpr (std::is_same_v<T, glm::vec4>) {
       return ValueType::VEC4;
-    } else if constexpr (std::is_same_v<T , glm::mat2>) {
+    } else if constexpr (std::is_same_v<T, glm::mat2>) {
       return ValueType::MAT2;
-    } else if constexpr (std::is_same_v<T , glm::mat3>) {
+    } else if constexpr (std::is_same_v<T, glm::mat3>) {
       return ValueType::MAT3;
-    } else if constexpr (std::is_same_v<T , glm::mat4>) {
+    } else if constexpr (std::is_same_v<T, glm::mat4>) {
       return ValueType::MAT4;
     } else {
       return ValueType::EMPTY;
@@ -126,24 +142,24 @@ namespace other {
 
   static constexpr size_t GetValueSize(ValueType type) {
     switch (type) {
-      case BOOL: 
-      case CHAR: 
-      case INT8: 
-      case UINT8: 
+      case BOOL:
+      case CHAR:
+      case INT8:
+      case UINT8:
         return 1;
-      
-      case INT16: 
-      case UINT16: 
+
+      case INT16:
+      case UINT16:
         return 2;
-      
-      case INT32: 
-      case UINT32: 
+
+      case INT32:
+      case UINT32:
       case FLOAT:
       case SAMPLER2D:
         return 4;
-      
-      case INT64: 
-      case UINT64: 
+
+      case INT64:
+      case UINT64:
       case DOUBLE:
         /// these are here because they are UUIDs which are uint64
       case ASSET:
@@ -156,7 +172,7 @@ namespace other {
         return 3 * 4;
       case VEC4:
         return 4 * 4;
-      
+
       case MAT2:
         return 2 * 2 * 4;
       case MAT3:
@@ -171,7 +187,7 @@ namespace other {
 
   template <typename T>
   using Scope = std::unique_ptr<T>;
-  
+
   template <typename T>
   using StdRef = std::shared_ptr<T>;
 
@@ -180,12 +196,12 @@ namespace other {
 
   using Path = std::filesystem::path;
 
-  template <typename T , typename... Args>
+  template <typename T, typename... Args>
   Scope<T> NewScope(Args&&... args) {
     return std::make_unique<T>(std::forward<Args>(args)...);
   }
 
-  template <typename T , typename... Args>
+  template <typename T, typename... Args>
   StdRef<T> NewStdRef(Args&&... args) {
     return std::make_shared<T>(std::forward<Args>(args)...);
   }
@@ -200,13 +216,13 @@ namespace other {
 
     inline T& Unwrap() { return value.value(); }
     inline const T& Unwrap() const { return value.value(); }
-    
+
     inline std::string& Error() { return error.value(); }
   };
 
   static constexpr uint64_t kFnvOffsetBasis = 0xBCF29CE484222325;
   static constexpr uint64_t kFnvPrime = 0x100000001B3;
-  
+
   static constexpr uint64_t FNV(std::string_view str) {
     uint64_t hash = kFnvOffsetBasis;
     for (auto& c : str) {
@@ -215,7 +231,7 @@ namespace other {
     }
     hash ^= str.length();
     hash *= kFnvPrime;
-  
+
     return hash;
   }
 
@@ -250,7 +266,7 @@ namespace other {
     if (opt.has_value()) {
       return fmtstr(format, opt.value());
     } else {
-      return fmtstr("ERR"); 
+      return fmtstr("ERR");
     }
   }
 
@@ -264,15 +280,16 @@ namespace other {
     return fmt::underlying(e);
   }
 
-} // namespace other
+}  // namespace other
 
 template <>
 struct fmt::formatter<glm::vec4> : public fmt::formatter<std::string_view> {
   template <typename FormatContext>
   auto format(const glm::vec4& v, FormatContext& ctx) {
     return fmt::formatter<std::string_view>::format(
-        fmt::format(std::string_view{ "({:.2f}, {:.2f}, {:.2f}, {:.2f})" } , v.x , v.y , v.z , v.w), ctx);
+      fmt::format(std::string_view{ "({:.2f}, {:.2f}, {:.2f}, {:.2f})" }, v.x, v.y, v.z, v.w), ctx
+    );
   }
 };
 
-#endif // !OTHER_ENGINE_DEFINES_HPP
+#endif  // !OTHER_ENGINE_DEFINES_HPP

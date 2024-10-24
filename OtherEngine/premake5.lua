@@ -41,6 +41,7 @@ local OtherEngine = {
     }
     defines {
       "OE_TESTING_ENVIRONMENT",
+      "OTHER_DEBUG_BUILD"
     }
   end ,
 

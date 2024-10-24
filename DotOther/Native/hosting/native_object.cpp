@@ -9,17 +9,17 @@
 namespace dotother {
 
   NObject::NObject(uint64_t handle) {
-    this->handle = handle;
+    this->object_handle = handle;
     proxy = new echo::ObjectProxy<NObject>(this);
     InteropInterface::Instance().RegisterObject(handle, this);
   }
 
   NObject::~NObject() {
-    InteropInterface::Instance().UnregisterObject(handle);
+    InteropInterface::Instance().UnregisterObject(object_handle);
 
     delete proxy;
     proxy = nullptr;
-    handle = 0;
+    object_handle = 0;
   }
 
-} // namespace dotother
+}  // namespace dotother

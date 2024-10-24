@@ -254,15 +254,8 @@ int main(int argc, char* argv[]) {
         Mouse::LockCursor();
       }
 
-      Material cube_material1 = {
-        .color = { 1.0f, 0.5f, 0.31f, 1.f },
-        .shininess = 32.f,
-      };
-
-      Material cube_material2 = {
-        .color = { 0.1f, 0.5f, 0.31f, 1.f },
-        .shininess = 32.f,
-      };
+      Material cube_material1({ 1.0f, 0.5f, 0.31f, 1.f }, 32.f);
+      Material cube_material2({ 0.1f, 0.5f, 0.31f, 1.f }, 32.f);
 
       const glm::vec3 light_scale = glm::vec3(0.2f, 0.2f, 0.2f);
 
@@ -288,6 +281,7 @@ int main(int argc, char* argv[]) {
         }
         scene = loaded_scene.scene;
       }
+      OE_DEBUG("Loaded Scene : [{}]", scene->handle);
 
       Ref<BvhTree> bvh = NewRef<BvhTree>(glm::vec3{ 0.f, 0.f, 0.f });
       bvh->AddScene(scene, glm::zero<glm::vec3>());
@@ -309,6 +303,7 @@ int main(int argc, char* argv[]) {
       };
 
       ScriptRef<LuaObject> sandbox_ui = ScriptEngine::GetScriptObject("SandboxUI", "", "sandbox_ui");
+      sandbox_ui->Initialize();
 
       ScriptEngine::SetSceneContext(scene);
       Renderer::SetSceneContext(scene);
@@ -377,11 +372,51 @@ int main(int argc, char* argv[]) {
           DefaultUpdateCamera(camera);
         }
 
-        scene->EarlyUpdate(delta);
-        scene->Update(delta);
-        scene->LateUpdate(delta);
+        /// trace mouse cursor ray
+        /**
+      int32_t mouse_x , mouse_y;
+      SDL_GetMouseState(&mouse_x , &mouse_y);
 
+      glm::vec3 mouse_screen_pos{
+        static_cast<float>(mouse_x) / renderer->window->size.x ,
+        static_cast<float>(mouse_y) / renderer->window->size.y ,
+        1.f
+      };
+
+      glm::vec4 homo_clip_pos{
+        mouse_screen_pos.x , mouse_screen_pos.y ,
+        -1.f , 1.f
+      };
+
+      glm::vec4 cam_pos = glm::inverse(camera.Projection()) * homo_clip_pos;
+      glm::vec4 eye_pos{
+        cam_pos.x , cam_pos.y ,
+        -1.f , 1.f
+      };
+
+      glm::vec4 intermediate_world_pos = glm::inverse(camera.View()) * eye_pos;
+      glm::vec3 mouse_ray_direction = glm::normalize(glm::vec3{
+        intermediate_world_pos.x ,
+        intermediate_world_pos.y ,
+        intermediate_world_pos.z
+      });
+
+      scene->TraceRay(Ray(origin = camera->position , direction = mouse_ray_direction))
+         **/
+
+        scene->EarlyUpdate(delta);
+        sandbox_ui->EarlyUpdate(delta);
+        // sandbox_ui2->EarlyUpdate(delta);
+
+        scene->Update(delta);
+        sandbox_ui->Update(delta);
+
+        scene->LateUpdate(delta);
+        /// bvh updated after late update to accumulate all changes
         bvh->Update();
+
+        sandbox_ui->LateUpdate(delta);
+        // sandbox_ui2->LateUpdate(delta);
 
         Renderer::GetWindow()->Clear();
         // renderer->SetRenderMode(Render)
@@ -422,11 +457,10 @@ int main(int argc, char* argv[]) {
         };
 
         UI::BeginFrame();
+
+        sandbox_ui->RenderUI();
+
         const ImVec2 win_size = { (float)Renderer::WindowSize().x, (float)Renderer::WindowSize().y };
-        if (ImGui::Begin("Stats")) {
-          ImGui::Text("FPS : %.2f", fps(delta));
-        }
-        ImGui::End();
 
         if (ImGui::Begin("Frames")) {
           if (!success) {
@@ -445,34 +479,8 @@ int main(int argc, char* argv[]) {
           bool edited = false;
           ui::Underline();
 
-          ImGui::Text("Debug Controls");
-          ImGui::Separator();
-          ui::widgets::DrawVec3Control("outline color", outline_color, edited, 0.f, 100.f, ui::VectorAxis::ZERO,
-                                       { 0.f, 0.f, 0.f }, { 1.f, 1.f, 1.f }, 0.1f);
-          ImGui::Separator();
-
           ImGui::Text("===== Scene Controls =====");
           auto& reg = scene->Registry();
-
-          ImGui::Text(" - Transforms =====");
-          reg.view<Tag, Transform>().each([&](Tag& tag, Transform& transform) {
-            ImGui::PushID((tag.name + "##transform-widget").c_str());
-            if (ui::widgets::DrawVec3Control(fmtstr("{} position", tag.name),
-                                             transform.position, edited, 0.f, 100.f, ui::VectorAxis::ZERO,
-                                             { -100.f, -100.f, -100.f }, { 100.f, 100.f, 100.f }, 0.5f)) {}
-            ImGui::Separator();
-            ImGui::PopID();
-          });
-
-          ImGui::Text(" - Materials =====");
-
-          reg.view<Tag, StaticMesh>().each([&](Tag& tag, StaticMesh& mesh) {
-            ImGui::PushID((tag.name + "##static-mesh-widget").c_str());
-            RenderMaterial(fmtstr("{} material", tag.name), mesh.material);
-            ImGui::Separator();
-            ImGui::PopID();
-          });
-          ImGui::Separator();
 
           ImGui::Text(" - Light Controls =====");
           uint32_t i = 0;
@@ -506,6 +514,9 @@ int main(int argc, char* argv[]) {
 
       scene->Stop();
       scene->Shutdown();
+
+      sandbox_ui->Shutdown();
+      sandbox_ui = nullptr;
     }
 
     mock_engine.UnloadApp();

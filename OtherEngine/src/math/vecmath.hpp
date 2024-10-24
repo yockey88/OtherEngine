@@ -34,7 +34,7 @@ namespace other {
   using Point = glm::vec3;
 
   template <typename... Ts>
-  concept zero_initializable = requires(Ts...) { (Ts{0}, ...); };
+  concept zero_initializable = requires(Ts...) { (Ts{ 0 }, ...); };
 
   template <typename T, typename U>
   concept subtractable = requires(T t, U u) { t - u; };
@@ -105,7 +105,7 @@ namespace other {
   template <typename T>
     requires epsilon_comparable<T>
   constexpr T EpsilonClamp(T val) {
-    return EpsilonZero(val) ? T{0} : val;
+    return EpsilonZero(val) ? T{ 0 } : val;
   }
 
   template <typename T, typename U>
@@ -126,9 +126,9 @@ namespace other {
     requires epsilon_comparable<T>
   constexpr T EpsilonAbs(T val) {
     if (EpsilonZero(val)) {
-      return T{0};
+      return T{ 0 };
     }
-    return val < T{0} ? -val : val;
+    return val < T{ 0 } ? -val : val;
   }
 
   template <typename T, typename U>
@@ -147,7 +147,7 @@ namespace other {
 
   template <typename T, typename U>
     requires product_defined<T, U> && epsilon_comparable_with<T, U> &&
-             defined_infinity<U>
+    defined_infinity<U>
   constexpr T EpsilonQuotient(T lhs, U rhs) {
     if (EpsilonZero(rhs)) {
       return std::numeric_limits<T>::infinity();
@@ -176,10 +176,12 @@ namespace other {
   }
 
   template <glm::length_t N, typename T, glm::qualifier Q>
+  using glm_length_t = glm::vec<N, T, Q>::length_type;
+
+  template <glm::length_t N, typename T, glm::qualifier Q>
   struct lexicographical_order {
-    constexpr auto operator()(const glm::vec<N, T, Q>& lhs,
-                              const glm::vec<N, T, Q>& rhs) const {
-      for (size_t i = 0; i < N; ++i) {
+    constexpr auto operator()(const glm::vec<N, T, Q>& lhs, const glm::vec<N, T, Q>& rhs) const {
+      for (glm_length_t<N, T, Q> i = 0; i < N; ++i) {
         if (lhs[i] < rhs[i]) {
           return -1;
         } else if (lhs[i] > rhs[i]) {
@@ -195,10 +197,9 @@ namespace other {
 
   template <glm::length_t N, typename T, glm::qualifier Q>
   struct vec_epsilon_lt {
-    constexpr auto operator()(const glm::vec<N, T, Q>& lhs,
-                              const glm::vec<N, T, Q>& rhs) const {
+    constexpr auto operator()(const glm::vec<N, T, Q>& lhs, const glm::vec<N, T, Q>& rhs) const {
       bool result = false;
-      for (size_t i = 0; i < N; ++i) {
+      for (glm_length_t<N, T, Q> i = 0; i < N; ++i) {
         result = EpsilonLt(lhs[i], rhs[i]);
         if (!result) {
           break;
@@ -213,10 +214,9 @@ namespace other {
 
   template <glm::length_t N, typename T, glm::qualifier Q>
   struct vec_epsilon_gt {
-    constexpr auto operator()(const glm::vec<N, T, Q>& lhs,
-                              const glm::vec<N, T, Q>& rhs) const {
+    constexpr auto operator()(const glm::vec<N, T, Q>& lhs, const glm::vec<N, T, Q>& rhs) const {
       bool result = false;
-      for (size_t i = 0; i < N; ++i) {
+      for (glm_length_t<N, T, Q> i = 0; i < N; ++i) {
         result = EpsilonGt(lhs[i], rhs[i]);
         if (!result) {
           break;
@@ -231,8 +231,7 @@ namespace other {
 
   template <glm::length_t N, typename T, glm::qualifier Q>
   struct vec_epsilon_lte {
-    constexpr auto operator()(const glm::vec<N, T, Q>& lhs,
-                              const glm::vec<N, T, Q>& rhs) const {
+    constexpr auto operator()(const glm::vec<N, T, Q>& lhs, const glm::vec<N, T, Q>& rhs) const {
       return !vec_epsilon_gt<N, T, Q>{}(lhs, rhs);
     }
   };
@@ -242,8 +241,7 @@ namespace other {
 
   template <glm::length_t N, typename T, glm::qualifier Q>
   struct vec_epsilon_gte {
-    constexpr auto operator()(const glm::vec<N, T, Q>& lhs,
-                              const glm::vec<N, T, Q>& rhs) const {
+    constexpr auto operator()(const glm::vec<N, T, Q>& lhs, const glm::vec<N, T, Q>& rhs) const {
       return !vec_epsilon_lt<N, T, Q>{}(lhs, rhs);
     }
   };
@@ -253,10 +251,9 @@ namespace other {
 
   template <glm::length_t N, typename T, glm::qualifier Q>
   struct vec_epsilon_eq {
-    constexpr auto operator()(const glm::vec<N, T, Q>& lhs,
-                              const glm::vec<N, T, Q>& rhs) const {
+    constexpr auto operator()(const glm::vec<N, T, Q>& lhs, const glm::vec<N, T, Q>& rhs) const {
       bool result = true;
-      for (size_t i = 0; i < N; ++i) {
+      for (glm_length_t<N, T, Q> i = 0; i < N; ++i) {
         result = EpsilonEqual(lhs[i], rhs[i]);
         if (!result) {
           break;
@@ -271,8 +268,7 @@ namespace other {
 
   template <glm::length_t N, typename T, glm::qualifier Q>
   struct checked_min {
-    constexpr auto operator()(const glm::vec<N, T, Q>& lhs,
-                              const glm::vec<N, T, Q>& rhs) const {
+    constexpr auto operator()(const glm::vec<N, T, Q>& lhs, const glm::vec<N, T, Q>& rhs) const {
       return vec_epsilon_lt<N, T, Q>{}(lhs, rhs) ? lhs : rhs;
     }
   };
@@ -282,8 +278,7 @@ namespace other {
 
   template <glm::length_t N, typename T, glm::qualifier Q>
   struct checked_max {
-    constexpr auto operator()(const glm::vec<N, T, Q>& lhs,
-                              const glm::vec<N, T, Q>& rhs) const {
+    constexpr auto operator()(const glm::vec<N, T, Q>& lhs, const glm::vec<N, T, Q>& rhs) const {
       return vec_epsilon_gt<N, T, Q>{}(lhs, rhs) ? lhs : rhs;
     }
   };
@@ -293,10 +288,9 @@ namespace other {
 
   template <glm::length_t N, typename T, glm::qualifier Q>
   struct checked_subtract {
-    constexpr auto operator()(const glm::vec<N, T, Q>& lhs,
-                              const glm::vec<N, T, Q>& rhs) const {
+    constexpr auto operator()(const glm::vec<N, T, Q>& lhs, const glm::vec<N, T, Q>& rhs) const {
       glm::vec<N, T, Q> diff;
-      for (size_t i = 0; i < N; ++i) {
+      for (glm_length_t<N, T, Q> i = 0; i < N; ++i) {
         diff[i] = EpsilonSubtract(lhs[i], rhs[i]);
       }
       return diff;
@@ -304,7 +298,7 @@ namespace other {
 
     constexpr auto operator()(const glm::vec<N, T, Q>& lhs, T rhs) const {
       glm::vec<N, T, Q> diff;
-      for (size_t i = 0; i < N; ++i) {
+      for (glm_length_t<N, T, Q> i = 0; i < N; ++i) {
         diff[i] = EpsilonSubtract(lhs[i], rhs);
       }
       return diff;
@@ -312,7 +306,7 @@ namespace other {
 
     constexpr auto operator()(T lhs, const glm::vec<N, T, Q>& rhs) const {
       glm::vec<N, T, Q> diff;
-      for (size_t i = 0; i < N; ++i) {
+      for (glm_length_t<N, T, Q> i = 0; i < N; ++i) {
         diff[i] = EpsilonSubtract(lhs, rhs[i]);
       }
       return diff;
@@ -324,10 +318,9 @@ namespace other {
 
   template <glm::length_t N, typename T, glm::qualifier Q>
   struct checked_sum {
-    constexpr auto operator()(const glm::vec<N, T, Q>& lhs,
-                              const glm::vec<N, T, Q>& rhs) const {
+    constexpr auto operator()(const glm::vec<N, T, Q>& lhs, const glm::vec<N, T, Q>& rhs) const {
       glm::vec<N, T, Q> sum;
-      for (size_t i = 0; i < N; ++i) {
+      for (glm_length_t<N, T, Q> i = 0; i < N; ++i) {
         sum[i] = EpsilonAdd(lhs[i], rhs[i]);
       }
       return sum;
@@ -335,7 +328,7 @@ namespace other {
 
     constexpr auto operator()(const glm::vec<N, T, Q>& lhs, T rhs) const {
       glm::vec<N, T, Q> sum;
-      for (size_t i = 0; i < N; ++i) {
+      for (glm_length_t<N, T, Q> i = 0; i < N; ++i) {
         sum[i] = EpsilonAdd(lhs[i], rhs);
       }
       return sum;
@@ -343,7 +336,7 @@ namespace other {
 
     constexpr auto operator()(T lhs, const glm::vec<N, T, Q>& rhs) const {
       glm::vec<N, T, Q> sum;
-      for (size_t i = 0; i < N; ++i) {
+      for (glm_length_t<N, T, Q> i = 0; i < N; ++i) {
         sum[i] = EpsilonAdd(lhs, rhs[i]);
       }
       return sum;
@@ -355,10 +348,9 @@ namespace other {
 
   template <glm::length_t N, typename T, glm::qualifier Q>
   struct checked_difference {
-    constexpr auto operator()(const glm::vec<N, T, Q>& lhs,
-                              const glm::vec<N, T, Q>& rhs) const {
+    constexpr auto operator()(const glm::vec<N, T, Q>& lhs, const glm::vec<N, T, Q>& rhs) const {
       glm::vec<N, T, Q> diff;
-      for (size_t i = 0; i < N; ++i) {
+      for (glm_length_t<N, T, Q> i = 0; i < N; ++i) {
         diff[i] = EpsilonDifference(lhs[i], rhs[i]);
       }
       return diff;
@@ -372,7 +364,7 @@ namespace other {
   struct checked_product {
     constexpr auto operator()(float lhs, const glm::vec<N, T, Q>& rhs) const {
       glm::vec<N, T, Q> product;
-      for (size_t i = 0; i < N; ++i) {
+      for (glm_length_t<N, T, Q> i = 0; i < N; ++i) {
         product[i] = EpsilonProduct(lhs, rhs[i]);
       }
       return product;
@@ -380,7 +372,7 @@ namespace other {
 
     constexpr auto operator()(const glm::vec<N, T, Q>& lhs, float rhs) const {
       glm::vec<N, T, Q> product;
-      for (size_t i = 0; i < N; ++i) {
+      for (glm_length_t<N, T, Q> i = 0; i < N; ++i) {
         product[i] = EpsilonProduct(lhs[i], rhs);
       }
       return product;
@@ -394,7 +386,7 @@ namespace other {
   struct checked_divided {
     constexpr auto operator()(const glm::vec<N, T, Q>& lhs, float rhs) const {
       glm::vec<N, T, Q> quotient;
-      for (size_t i = 0; i < N; ++i) {
+      for (glm_length_t<N, T, Q> i = 0; i < N; ++i) {
         /// dividing by zero is infinity and is checked in EpsilonQuotient
         quotient[i] = EpsilonQuotient(lhs[i], rhs);
       }
@@ -427,7 +419,8 @@ struct fmt::formatter<glm::vec<N, T, Q>>
     }
     ss << ">";
     return fmt::formatter<std::string_view>::format(
-      other::fmtstr("{}", ss.str()), ctx);
+      other::fmtstr("{}", ss.str()), ctx
+    );
   }
 };
 
@@ -443,7 +436,8 @@ struct fmt::formatter<glm::mat4> : public fmt::formatter<std::string_view> {
     std::string mat_fmt_str = fmt::format(
       fmt::runtime(mat_str), mat[0][0], mat[1][0], mat[2][0], mat[3][0],
       mat[0][1], mat[1][1], mat[2][1], mat[3][1], mat[0][2], mat[1][2],
-      mat[2][2], mat[3][2], mat[0][3], mat[1][3], mat[2][3], mat[3][3]);
+      mat[2][2], mat[3][2], mat[0][3], mat[1][3], mat[2][3], mat[3][3]
+    );
     return fmt::formatter<std::string_view>::format(mat_fmt_str, ctx);
   }
 };

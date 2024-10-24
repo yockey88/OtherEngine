@@ -36,11 +36,12 @@ namespace other {
       context.set_exception_handler(LuaExceptionHandler);
       lua_script_bindings::BindAll(context);
 
-      context.open_libraries(sol::lib::base, sol::lib::package);
-      context.require_file("other", "./OtherEngine-ScriptCore/lua/core/other.lua");
-      context.require_file("other.behavior", "./OtherEngine-ScriptCore/lua/core/other_behavior.lua");
-      context.require_file("other.object", "./OtherEngine-ScriptCore/lua/core/other_object.lua");
-      context.require_file("other.scene", "./OtherEngine-ScriptCore/lua/scene/scene.lua");
+      // debug,
+      context.open_libraries(sol::lib::base, sol::lib::package, sol::lib::table, sol::lib::string, sol::lib::math, sol::lib::io, sol::lib::os);
+      // context.require_file("other", "./OtherEngine-ScriptCore/lua/core/other.lua");
+      // context.require_file("other.behavior", "./OtherEngine-ScriptCore/lua/core/other_behavior.lua");
+      // context.require_file("other.object", "./OtherEngine-ScriptCore/lua/core/other_object.lua");
+      // context.require_file("other.scene", "./OtherEngine-ScriptCore/lua/scene/scene.lua");
 
       load_success = true;
     } catch (const std::exception& e) {

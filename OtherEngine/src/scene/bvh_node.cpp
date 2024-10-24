@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <stack>
 
 #include <glm/common.hpp>
@@ -20,57 +21,70 @@ namespace other {
 
   template <>
   void BvhNode<2>::Update() {
-    if (IsLeaf()) {
-      OE_ASSERT(entities.size() == 1, "Leaf node has invalid number of entites! {} [{} , {}]", entities.size(), tree_index, bbox);
-      auto* entity = entities[0];
-      auto& t = entity->ReadComponent<Transform>();
-
-      /// scale each bounding box so the entity's max extent fits inside the bounding box
-      glm::vec3 half_scale = vec3_div(t.scale, 2.f);
-      glm::vec3 e_min = vec3_sub(t.position, half_scale);
-      glm::vec3 e_max = vec3_sum(t.position, half_scale);
-      float scale_factor = EpsilonQuotient(glm::sqrt(3.f) - 1, 2);
-      glm::vec3 real_min = vec3_sub(e_min, scale_factor);
-      glm::vec3 real_max = vec3_sum(e_max, scale_factor);
-      bbox = BBox(real_min, real_max);
-      global_position = bbox.Center();
-
-      if (parent != nullptr) {
-        BBox parent_bbox = parent->bbox;
-
-        BvhChildIdx cousin = parent->partition_index == LEFT ? RIGHT : LEFT;
-        BvhNode<2>* cousin_node = nullptr;
-
-        if (parent->parent != nullptr && parent->parent->children[cousin] != nullptr) {
-          cousin_node = parent->parent->children[cousin];
-        }
-
-        if (cousin_node != nullptr && parent_bbox.SurfaceArea() > cousin_node->bbox.SurfaceArea()) {
-          built = false;
-        }
-      }
-
-      return;
-    }
-    /// else if its not a leaf and we dont contain our children
-    else if (children[LEFT] != nullptr && children[RIGHT] != nullptr && (!Contains(children[LEFT]->bbox.min) || !Contains(children[RIGHT]->bbox.max))) {
-      bbox = BBox::Union(children[LEFT]->bbox, children[RIGHT]->bbox);
-      global_position = bbox.Center();
-    } else if (children[LEFT] != nullptr) {
-      bbox = BBox::Union(bbox, children[LEFT]->bbox);
-    } else if (children[RIGHT] != nullptr) {
-      bbox = BBox::Union(bbox, children[RIGHT]->bbox);
-    }
-
     for (auto* child : children) {
       if (child == nullptr) {
         continue;
       }
 
       child->Update();
-      if (built) {
-        built = child->built;
+    }
+
+    if (IsLeaf()) {
+      OE_ASSERT(entities.size() == 1, "Leaf node has invalid number of entites! {} [{} , {}]", entities.size(), tree_index, bbox);
+
+      /// entity scale might have changed
+      /// TODO: optimize this out to not do it on every iteration since we know it doesnt happen often.
+      ///         have the entity notify the tree that it has changed and the tree can rebuild or check if it needs to rebuild
+      auto* entity = entities[0];
+      auto& t = entity->ReadComponent<Transform>();
+
+      const float scale_factor = EpsilonQuotient(std::sqrt(3.f) - 1, 2);
+      glm::vec3 half_scale = vec3_div(t.scale, 2.f);
+      glm::vec3 e_min = vec3_sub(t.position, half_scale);
+      glm::vec3 e_max = vec3_sum(t.position, half_scale);
+
+      glm::vec3 real_min = vec3_sub(e_min, scale_factor);
+      glm::vec3 real_max = vec3_sum(e_max, scale_factor);
+
+      bbox = BBox(real_min, real_max);
+      global_position = bbox.Center();
+
+      BvhChildIdx sibling = partition_index == LEFT ? RIGHT : LEFT;
+      /// sanity check/this node might be the space
+      if (parent == nullptr || parent->children[sibling] == nullptr) {
+        return;
       }
+
+      BBox parent_bbox = parent->bbox;
+      BvhNode<2>* sibling_node = parent->children[sibling];
+
+      /// only continue if that sibling has both children
+      if (sibling_node == nullptr || sibling_node->IsLeaf() ||
+          sibling_node->children[LEFT] == nullptr || sibling_node->children[RIGHT] == nullptr) {
+        return;
+      }
+
+      /// test if this node and either of its siblings bounding boxes would be smaller, if so then we rebuild the tree
+      BBox combined_sibling_box = BBox::Union(bbox, sibling_node->bbox);
+
+      if (combined_sibling_box.SurfaceArea() > parent_bbox.SurfaceArea()) {
+        built = false;
+      }
+    } else {
+      const bool has_both_children = children[LEFT] != nullptr && children[RIGHT] != nullptr;
+      const bool has_left_child = children[LEFT] != nullptr;
+      const bool has_right_child = children[RIGHT] != nullptr;
+
+      /// else if its not a leaf and we dont contain our children
+      if (has_both_children) {
+        bbox = BBox::Union(children[LEFT]->bbox, children[RIGHT]->bbox);
+      } else if (has_left_child) {
+        bbox = BBox::Union(bbox, children[LEFT]->bbox);
+      } else if (has_right_child) {
+        bbox = BBox::Union(bbox, children[RIGHT]->bbox);
+      }
+
+      global_position = bbox.Center();
     }
   }
 
@@ -229,7 +243,7 @@ namespace other {
       }
 
       /// find the pairing (center and left/center and right) that creates the smallest surface area bounding box
-      ///   and make 'parent' the parent of those two with that bounding box making parent the left child of 'space'
+      ///   and make 'parent' the parent of those two with that bounding box and making that parent the left child of 'space'
       ///   and the other child the right child of 'space'
 
       BBox lchild_box = BBox::Union(center_node->bbox, lchild->bbox);
@@ -318,6 +332,8 @@ namespace other {
     OE_ASSERT(false, "RebuildTree not implemented for BvhNode<8>!");
   }
 
+  /// TODO: refactor the building algorithm to use morton codes to optimize both the building and traversal of the tree
+
   template <>
   BvhNode<2>* BvhNode<2>::RebuildTree(BvhNode<2>* space, std::vector<Entity*>& entities) {
     OE_ASSERT(space != nullptr, "Space is null!");
@@ -360,8 +376,7 @@ namespace other {
     };
 
     std::stack<BvhNode<2>*> pear_stack{};
-    std::vector<BvhNode<2>*> nodes =
-      entities |
+    std::vector<BvhNode<2>*> nodes = entities |
       std::views::transform(create_node) |
       std::ranges::to<std::vector<BvhNode<2>*>>();
 

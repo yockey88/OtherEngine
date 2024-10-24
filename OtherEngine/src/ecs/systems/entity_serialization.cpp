@@ -7,43 +7,43 @@
 
 #include "ecs/component.hpp"
 #include "ecs/component_serializer.hpp"
-#include "ecs/components/transform.hpp"
-#include "ecs/components/relationship.hpp"
-#include "ecs/components/mesh.hpp"
-#include "ecs/components/script.hpp"
 #include "ecs/components/camera.hpp"
-#include "ecs/components/rigid_body_2d.hpp"
-#include "ecs/components/collider_2d.hpp"
-#include "ecs/components/rigid_body.hpp"
 #include "ecs/components/collider.hpp"
+#include "ecs/components/collider_2d.hpp"
 #include "ecs/components/light_source.hpp"
+#include "ecs/components/mesh.hpp"
+#include "ecs/components/relationship.hpp"
+#include "ecs/components/rigid_body.hpp"
+#include "ecs/components/rigid_body_2d.hpp"
+#include "ecs/components/script.hpp"
+#include "ecs/components/transform.hpp"
 
 namespace other {
 
-  constexpr static std::array<Scope<ComponentSerializer>(*)() , kNumComponents> kComponentSerializerTable = {
+  constexpr static std::array<Scope<ComponentSerializer> (*)(), kNumComponents> kComponentSerializerTable = {
     /// tags are implicitly deserialized so this should never be called
-    []() -> Scope<ComponentSerializer> { return nullptr; } ,
-    []() -> Scope<ComponentSerializer> { return NewScope<TransformSerializer>(); } ,
-    []() -> Scope<ComponentSerializer> { return NewScope<RelationshipSerializer>(); } ,
-    []() -> Scope<ComponentSerializer> { return NewScope<MeshSerializer>(); } ,
-    []() -> Scope<ComponentSerializer> { return NewScope<StaticMeshSerializer>(); } ,
-    []() -> Scope<ComponentSerializer> { return NewScope<ScriptSerializer>(); } ,
-    []() -> Scope<ComponentSerializer> { return NewScope<CameraSerializer>(); } , 
-    []() -> Scope<ComponentSerializer> { return NewScope<RigidBody2DSerializer>(); } ,
-    []() -> Scope<ComponentSerializer> { return NewScope<Collider2DSerializer>(); } ,
-    []() -> Scope<ComponentSerializer> { return NewScope<RigidBodySerializer>(); } ,
-    []() -> Scope<ComponentSerializer> { return NewScope<ColliderSerializer>(); } ,
-    []() -> Scope<ComponentSerializer> { return NewScope<LightSourceSerializer>(); } ,
+    []() -> Scope<ComponentSerializer> { return nullptr; },
+    []() -> Scope<ComponentSerializer> { return NewScope<TransformSerializer>(); },
+    []() -> Scope<ComponentSerializer> { return NewScope<RelationshipSerializer>(); },
+    []() -> Scope<ComponentSerializer> { return NewScope<MeshSerializer>(); },
+    []() -> Scope<ComponentSerializer> { return NewScope<StaticMeshSerializer>(); },
+    []() -> Scope<ComponentSerializer> { return NewScope<ScriptSerializer>(); },
+    []() -> Scope<ComponentSerializer> { return NewScope<CameraSerializer>(); },
+    []() -> Scope<ComponentSerializer> { return NewScope<RigidBody2DSerializer>(); },
+    []() -> Scope<ComponentSerializer> { return NewScope<Collider2DSerializer>(); },
+    []() -> Scope<ComponentSerializer> { return NewScope<RigidBodySerializer>(); },
+    []() -> Scope<ComponentSerializer> { return NewScope<ColliderSerializer>(); },
+    []() -> Scope<ComponentSerializer> { return NewScope<LightSourceSerializer>(); },
   };
 
   Scope<ComponentSerializer> EntitySerialization::GetComponentSerializer(const std::string_view tag) {
     std::string t = tag.data();
-    std::ranges::transform(t.begin() , t.end() , t.begin() , ::toupper);
-    auto itr = std::find_if(kComponentTags.begin() , kComponentTags.end() , [&tag](const ComponentTagPair& tag_pair) -> bool {
-        if (tag == tag_pair.first) {
-          return true;
-        }
-        return false;
+    std::ranges::transform(t.begin(), t.end(), t.begin(), ::toupper);
+    auto itr = std::find_if(kComponentTags.begin(), kComponentTags.end(), [&tag](const ComponentTag& tag_pair) -> bool {
+      if (tag == tag_pair.name) {
+        return true;
+      }
+      return false;
     });
 
     if (itr == kComponentTags.end()) {
@@ -51,15 +51,15 @@ namespace other {
       return nullptr;
     }
 
-    return kComponentSerializerTable[itr->second](); 
+    return kComponentSerializerTable[itr->idx]();
   }
-      
+
   Scope<ComponentSerializer> EntitySerialization::GetComponentSerializer(uint32_t idx) {
-    auto itr = std::find_if(kComponentTags.begin() , kComponentTags.end() , [&idx](const ComponentTagPair& tag_pair) -> bool {
-        if (idx == tag_pair.second) {
-          return true;
-        }
-        return false;
+    auto itr = std::find_if(kComponentTags.begin(), kComponentTags.end(), [&idx](const ComponentTag& tag_pair) -> bool {
+      if (idx == tag_pair.idx) {
+        return true;
+      }
+      return false;
     });
 
     if (itr == kComponentTags.end()) {
@@ -67,7 +67,7 @@ namespace other {
       return nullptr;
     }
 
-    return kComponentSerializerTable[itr->second](); 
+    return kComponentSerializerTable[itr->idx]();
   }
 
-} // namespace other
+}  // namespace other

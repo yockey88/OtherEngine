@@ -10,9 +10,8 @@
 
 namespace other {
 
-  int32_t LuaExceptionHandler(lua_State* L , sol::optional<const std::exception&> exception , 
-                              sol::string_view description); 
+  int32_t LuaExceptionHandler(lua_State* L, sol::optional<const std::exception&> exception, sol::string_view description);
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_LUA_ERROR_HANDLERS_HPP
+#endif  // !OTHER_ENGINE_LUA_ERROR_HANDLERS_HPP
