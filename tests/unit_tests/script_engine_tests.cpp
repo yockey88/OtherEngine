@@ -17,7 +17,6 @@
 #include "mock_app.hpp"
 #include "oetest.hpp"
 
-
 using namespace std::string_literals;
 using namespace std::string_view_literals;
 using namespace other;
@@ -30,12 +29,7 @@ class ScriptEngineTests : public OtherTest {
   //// no default behavior for now
   virtual void SetUp() override {}
   virtual void TearDown() override {}
-
- protected:
-  static Scope<App> active_app;
 };
-
-Scope<App> ScriptEngineTests::active_app = nullptr;
 
 TEST_F(ScriptEngineTests, load_project_modules) {
 #if 0  // toggle to disable test
@@ -233,17 +227,14 @@ void ScriptEngineTests::SetUpTestSuite() {
   Logger::Open(test_config);
   Logger::Instance()->RegisterThread("Script Engine Test Main Thread");
 
-  active_app = NewScope<TestApp>(cmdline, test_config);
-  active_app->Load();
-  AppState::Initialize(active_app.get(), active_app->layer_stack, active_app->scene_manager,
-                       active_app->asset_handler, active_app->project_metadata);
+  App* active_app = new TestApp(cmdline, test_config);
+  AppState::Initialize(cmdline, test_config, active_app);
 
   ScriptEngine::Initialize(test_config);
 }
 
 void ScriptEngineTests::TearDownTestSuite() {
   ASSERT_NO_FATAL_FAILURE(ScriptEngine::Shutdown());
-  active_app = nullptr;
   ASSERT_NO_FATAL_FAILURE(AppState::Shutdown());
   ASSERT_NO_FATAL_FAILURE(CloseLog());
 }

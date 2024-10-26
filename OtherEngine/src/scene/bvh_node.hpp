@@ -562,7 +562,6 @@ namespace other {
   void BvhNode<N>::RenderNodeBounds(const std::string_view pl_name, Ref<SceneRenderer>& renderer, size_t depth) {
     constexpr glm::mat4 identity = glm::identity<glm::mat4>();
     const static AssetHandle wireframe = ModelFactory::CreateBoxWireframe();
-
     Ref<StaticModel> model = AssetManager::GetAsset<StaticModel>(wireframe);
     Material mat(glm::vec4(1.f, 0.f, 0.f, 1.f), 16.f);
 

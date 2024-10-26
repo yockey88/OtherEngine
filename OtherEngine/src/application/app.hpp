@@ -27,54 +27,40 @@ namespace other {
     App(const CmdLine& cmdline, const ConfigTable& config);
     virtual ~App();
 
-    Ref<Project> GetProjectContext();
+    virtual Ref<AssetHandler> CreateAssetHandler();
 
     void Load();
     void Run();
     void Unload();
 
-    void PushLayer(Ref<Layer>& layer);
-    void PopLayer(Ref<Layer>& layer);
-    /// pops the last layer pushed
-    void PopLayer();
-
-    void ProcessEvent(Event* event);
-
-    Ref<UIWindow>& GetUIWindow(const std::string& name);
-    Ref<UIWindow>& GetUIWindow(UUID id);
-    UUID PushUIWindow(const std::string& name, Ref<UIWindow> window);
-    UUID PushUIWindow(Ref<UIWindow> window);
-    bool RemoveUIWindow(const std::string& name);
-    bool RemoveUIWindow(UUID id);
-
-    void LoadSceneByName(const std::string_view name);
-    void LoadScene(const Path& path);
-    bool HasActiveScene();
-    SceneMetadata* ActiveScene();
-    void UnloadScene();
-
-    void ReloadScripts();
-
-    Ref<Project> project_metadata;
-    Ref<AssetHandler> asset_handler = nullptr;
-
-    Scope<LayerStack> layer_stack = nullptr;
-    Scope<SceneManager> scene_manager = nullptr;
-
-   protected:
     void Attach();
     /// this is seperate because this triggers events which need to be polled while update
     ///  responds to process events
     void DoEarlyUpdate(float dt);
     void DoUpdate(float dt);
+    void DoLateUpdate(float dt);
     void DoRender();
     void DoRenderUI();
     void Detach();
 
+    // void LoadSceneByName(const std::string_view name);
+    // void LoadScene(const Path& path);
+    // bool HasActiveScene();
+    // SceneMetadata* ActiveScene();
+    // void UnloadScene();
+
+    // void ReloadScripts();
+
+    // Ref<Project> project_metadata;
+    // Ref<AssetHandler> asset_handler = nullptr;
+
+    // Scope<LayerStack> layer_stack = nullptr;
+    // Scope<SceneManager> scene_manager = nullptr;
+
+   protected:
     virtual void OnLoad() {}
     virtual void OnAttach() {}
 
-    virtual void OnEvent(Event* event) {}
     virtual void EarlyUpdate(float dt) {}
     virtual void Update(float dt) {}
     virtual void LateUpdate(float dt) {}
@@ -91,28 +77,12 @@ namespace other {
     ///   wont be reloaded
     virtual void OnScriptReload() {}
 
-    virtual Ref<AssetHandler> CreateAssetHandler();
-
     const CmdLine& cmdline;
     const ConfigTable& config;
 
     UIWindowMap ui_windows;
 
-    bool lost_window_focus = false;
-
-    enum LayerFlags : uint64_t {
-      NO_LAYER_FLAGS = 0,
-
-      LAYER_PUSHED_EU = bit(1),
-      LAYER_PUSHED_U = bit(2),
-      LAYER_PUSHED_LU = bit(3),
-
-      LAYER_PUSHED_R = bit(4),
-      LAYER_PUSHED_RUI = bit(5),
-    };
-
     friend class Engine;
-    friend class AppState;
     friend class Editor;
   };
 

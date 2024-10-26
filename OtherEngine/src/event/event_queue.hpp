@@ -4,6 +4,7 @@
 #ifndef OTHER_ENGINE_EVENT_QUEUE_HPP
 #define OTHER_ENGINE_EVENT_QUEUE_HPP
 
+#include "core/buffer.hpp"
 #include "core/config.hpp"
 #include "core/logger.hpp"
 #include "core/ref.hpp"
@@ -26,19 +27,32 @@ namespace other {
    public:
     static void Initialize(const ConfigTable& config);
 
-    static void Poll(App* app);
+    static void Poll();
     static void Clear();
 
-    template <event_t T, typename... Args>
-    static void PushEvent(Args&&... args) {
-      OE_ASSERT(curr_idx + 1 < kBufferSize, "Event buffer overflow");
+    template <typename T>
+      requires Event<T>
+    static void PushEvent(const T& arg) {
+      /// write the event
+      size_t idx = event_buffer.BufferData(arg);
 
-      delete event_buffer[curr_idx];
-      event_buffer[curr_idx] = new T(std::forward<Args>(args)...);
-      ++curr_idx;
+      /// write the event handle
+      EventHandle handle{
+        .ptr = event_buffer.PointerAt<T>(idx),
+        .type = T::GetStaticType(),
+      };
+      scratch_buffer.BufferData(handle);
+      ++num_events;
     }
 
-    template <event_t E>
+    template <typename T>
+      requires Event<T>
+    static void PushEvent() {
+      PushEvent<T>(T{});
+    }
+
+    template <typename E>
+      requires Event<E>
     static void RegisterEventDispatcher(const std::string_view name, const std::vector<Handler<E>>& fns) {
       uint64_t h = FNV(name);
 
@@ -60,17 +74,16 @@ namespace other {
 
    private:
     static constexpr size_t kBufferSize = 1024 * 1024;
-    static std::array<Event*, kBufferSize> event_buffer;
+    static inline uint64_t event_flags = 0;
+    static inline bool process_ui_events = true;
+    static inline size_t num_events = 0;
+
+    static Buffer event_buffer;
+    static Buffer scratch_buffer;
     static std::map<uint64_t, EventDispatcher> event_handlers;
 
-    static inline uint32_t curr_idx = 0;
-    static inline uint64_t event_flags = 0;
-
-    static bool process_ui_events;
-
     static void SetEventFlag(EventType type);
-
-    static void Dispatch(App* app_data);
+    static void Dispatch();
   };
 
 }  // namespace other

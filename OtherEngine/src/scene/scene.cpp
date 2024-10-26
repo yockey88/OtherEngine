@@ -236,6 +236,8 @@ namespace other {
       return;
     }
 
+    OE_DEBUG("Scene::EarlyUpdate: Updating scene with dt [{}]", dt);
+
     registry.view<Script>().each([&dt](Script& script) {
       script.ApiCall("EarlyUpdate", dt);
     });
@@ -277,6 +279,7 @@ namespace other {
      *
      * use late update to react to other entity's changes
      **/
+    OE_DEBUG("Scene::Update: Updating scene with dt [{}]", dt);
 
     if (physics_world_2d != nullptr) {
       physics_world_2d->Step(dt, 32, 2);
@@ -404,7 +407,7 @@ namespace other {
 
     /// TODO: flesh this out
     if (AppState::mode == EngineMode::EDITOR) {
-      RenderToPipeline("Debug", renderer, true);
+      // RenderToPipeline("Debug", renderer, true);
     }
 
     scene_object->Render();
@@ -704,22 +707,22 @@ namespace other {
       return;
     }
 
-    AssetHandle cube_handle = ModelFactory::CreateBox();
+    // AssetHandle cube_handle = ModelFactory::CreateBox();
 
-    light_group.each([&renderer, cube_handle, plname](const LightSource& light, const Transform& transform) {
-      if (light.type == DIRECTION_LIGHT_SRC) {
-        return;
-      }
+    // light_group.each([&renderer, cube_handle, plname](const LightSource& light, const Transform& transform) {
+    //   if (light.type == DIRECTION_LIGHT_SRC) {
+    //     return;
+    //   }
 
-      if (!AppState::Assets()->IsValid(cube_handle)) {
-        return;
-      }
+    //   if (!AppState::Assets()->IsValid(cube_handle)) {
+    //     return;
+    //   }
 
-      Material light_material = Material(light.pointlight.color, 32.f);
+    //   Material light_material = Material(light.pointlight.color, 32.f);
 
-      auto model = AssetManager::GetAsset<StaticModel>(cube_handle);
-      renderer->SubmitStaticModel(plname, model, transform.model_transform, light_material);
-    });
+    //   auto model = AssetManager::GetAsset<StaticModel>(cube_handle);
+    //   renderer->SubmitStaticModel(plname, model, transform.model_transform, light_material);
+    // });
   }
 
   void Scene::OnAddRigidBody2D(entt::registry& context, entt::entity entt) {

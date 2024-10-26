@@ -6,41 +6,41 @@
 
 #include <imgui/imgui.h>
 
-#include "editor/editor_panel.hpp"
 #include "editor/editor_console_sink.hpp"
+#include "editor/editor_panel.hpp"
+
 
 namespace other {
 
   class ConsolePanel : public EditorPanel {
-    public:
-      ConsolePanel(Editor& editor) 
+   public:
+    ConsolePanel(Editor& editor)
         : EditorPanel(editor) {}
-      
-      virtual bool OnGuiRender(bool& is_open);
-      virtual void OnEvent(Event* e);
-      virtual void OnProjectChange(const Ref<Project>& project);
-      virtual void SetSceneContext(const Ref<Scene>& scene);
 
-      static void PushMessage(const ConsoleMessage& message);
+    virtual bool OnGuiRender(bool& is_open);
+    virtual void OnProjectChange(const Ref<Project>& project);
+    virtual void SetSceneContext(const Ref<Scene>& scene);
 
-    private:
-      uint8_t active_filters = ValOf(ALL);
+    static void PushMessage(const ConsoleMessage& message);
 
-      bool scroll_to_latest = true;
-      float previous_scroll_h = 0.f;
+   private:
+    uint8_t active_filters = ValOf(ALL);
 
-      bool open_details_popup = false;
+    bool scroll_to_latest = true;
+    float previous_scroll_h = 0.f;
 
-      static std::vector<ConsoleMessage> message_buffer;
+    bool open_details_popup = false;
 
-      void RenderMenu(const ImVec2& size);
-      void RenderConsole(const ImVec2& size);
+    static std::vector<ConsoleMessage> message_buffer;
 
-      ImVec4 GetToolbarButtonColor(const bool value) const;
-      ImVec4 GetMessageColor(const ConsoleMessage& msg) const;
-      std::string GetMessageType(const ConsoleMessage& msg) const;
+    void RenderMenu(const ImVec2& size);
+    void RenderConsole(const ImVec2& size);
+
+    ImVec4 GetToolbarButtonColor(const bool value) const;
+    ImVec4 GetMessageColor(const ConsoleMessage& msg) const;
+    std::string GetMessageType(const ConsoleMessage& msg) const;
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_CONSOLE_PANEL_HPP
+#endif  // !OTHER_ENGINE_CONSOLE_PANEL_HPP

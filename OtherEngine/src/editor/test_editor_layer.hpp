@@ -12,38 +12,32 @@
 namespace other {
 
   class TEditorLayer : public Layer {
-    public:
-      TEditorLayer(App* editor, const ConfigTable& app_config) 
-          : Layer(editor , "TEditorLayer") , app_config(app_config) {}
-      virtual ~TEditorLayer() override {}
+   public:
+    TEditorLayer(App* editor, const ConfigTable& app_config)
+        : Layer(editor, "TEditorLayer"), app_config(app_config) {}
+    virtual ~TEditorLayer() override {}
 
-      virtual void OnAttach() override;
-      virtual void OnDetach() override;
-      virtual void OnEarlyUpdate(float dt) override;
-      virtual void OnUpdate(float dt) override;
-      virtual void OnLateUpdate(float dt) override;
-      virtual void OnRender() override;
-      virtual void OnUIRender() override;
-      virtual void OnEvent(Event* event) override;
+    virtual void OnAttach() override;
+    virtual void OnDetach() override;
+    virtual void OnEarlyUpdate(float dt) override;
+    virtual void OnUpdate(float dt) override;
+    virtual void OnLateUpdate(float dt) override;
+    virtual void OnRender() override;
+    virtual void OnUIRender() override;
 
-      virtual void OnSceneLoad(const SceneMetadata* metadata) override;
-      virtual void OnSceneUnload() override;
+   private:
+    const ConfigTable& app_config;
+    ConfigTable editor_config;
 
-      virtual void OnScriptReload() override;
+    Ref<CameraBase> editor_camera = nullptr;
+    Ref<SceneRenderer> scene_renderer = nullptr;
 
-    private:
-      const ConfigTable& app_config;
-      ConfigTable editor_config;
+    Script editor_scripts;
 
-      Ref<CameraBase> editor_camera = nullptr;
-      Ref<SceneRenderer> scene_renderer = nullptr;
-
-      Script editor_scripts;
-
-      void LoadScripts();
-      Ref<SceneRenderer> CreateRenderer();
+    void LoadScripts();
+    Ref<SceneRenderer> CreateRenderer();
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_EDITOR_LAYER_HPP
+#endif  // !OTHER_ENGINE_EDITOR_LAYER_HPP

@@ -4,17 +4,18 @@
 #define OTHER_ENGINE_ENGINE_HPP
 
 #include "core/defines.hpp"
+#include "core/time.hpp"
 
 #include "application/app.hpp"
 #include "parsing/cmd_line_parser.hpp"
 
 namespace other {
 
-  class Event;
-
   /// implemented by client
 #ifndef OTHERENGINE_DLL
-  extern Scope<App> NewApp(const CmdLine& cmd_line, const ConfigTable& config);
+  extern App* NewApp(const CmdLine& cmd_line, const ConfigTable& config);
+#else
+  OE_API App* NewApp(const CmdLine& cmd_line, const ConfigTable& config);
 #endif  // !OTHERENGINE_DLL
 
   class Engine {
@@ -30,13 +31,16 @@ namespace other {
     void Launch();
     void Shutdown();
 
+    void Start();
+    void Tick();
+    void Stop();
+
     CmdLine cmd_line;
     ConfigTable config;
 
    private:
+    time::DeltaTime delta;
     std::string config_path;
-
-    Scope<App> active_app;
 
     Opt<Path> FindConfigFile();
     ExitCode ProcessExitCode(ExitCode code);

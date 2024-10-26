@@ -16,33 +16,32 @@ namespace other {
   };
 
   class PanelManager {
-    public:
-      void Attach(Editor* editor , const Ref<Project>& context , const ConfigTable& editor_config);
+   public:
+    void Attach(Editor* editor, const Ref<Project>& context, const ConfigTable& editor_config);
 
-      void AddPanel(const Ref<EditorPanel>& panel) {}
+    void AddPanel(const Ref<EditorPanel>& panel) {}
 
-      void OnEvent(Event* event);
-      void EarlyUpdate(float dt) {}
-      void Update(float dt);
-      void LateUpdate(float dt) {}
-      /// placeholder because this matches a generic pattern and might be useful
-      void Render();
-      bool RenderUI();
+    void EarlyUpdate(float dt) {}
+    void Update(float dt);
+    void LateUpdate(float dt) {}
+    /// placeholder because this matches a generic pattern and might be useful
+    void Render();
+    bool RenderUI();
 
-      void Detach();
+    void Detach();
 
-      void OnSceneLoad(const SceneMetadata* scene_metadata); 
-      void OnSceneUnload();
+    void OnSceneLoad(const SceneMetadata* scene_metadata);
+    void OnSceneUnload();
 
-      void OnScriptReload();
+    void OnScriptReload();
 
-    private:
-      Ref<Project> project_context = nullptr;
-      SceneMetadata* scene_context = nullptr;
+   private:
+    Ref<Project> project_context = nullptr;
+    SceneMetadata* scene_context = nullptr;
 
-      std::map<UUID , Panel> active_panels;
+    std::map<UUID, Panel> active_panels;
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_PANEL_MANAGER_HPP
+#endif  // !OTHER_ENGINE_PANEL_MANAGER_HPP

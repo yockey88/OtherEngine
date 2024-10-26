@@ -5,6 +5,9 @@
 
 #include "core/logger.hpp"
 
+#include "event/app_events.hpp"
+#include "event/event_queue.hpp"
+
 namespace other {
 
   LayerStack::~LayerStack() {
@@ -13,31 +16,26 @@ namespace other {
     }
   }
 
-  void LayerStack::PushLayer(const Ref<Layer>& layer) {
+  void LayerStack::PushLayer(Ref<Layer>& layer) {
     OE_ASSERT(layer != nullptr, "Attempting to push a null layer");
+    OE_ASSERT(layer->GetUUID().Get() != 0, "Layer UUID is 0, this is not allowed");
 
+    layer->Attach();
     layers.emplace(layers.begin() + layer_insert_index, layer);
     ++layer_insert_index;
-  }
 
-  void LayerStack::PopLayer(const Ref<Layer>& layer) {
-    OE_ASSERT(layer != nullptr, "Attempting to pop a null layer");
-
-    auto layers_after_removal = layers |
-      std::views::filter([layer](const Ref<Layer>& l) { return l != layer; }) |
-      std::ranges::to<std::vector<Ref<Layer>>>();
-
-    if (layers_after_removal.size() == layers.size()) {
-      OE_WARN("Attempting to pop a layer that does not exist");
-      return;
-    }
-
-    layers.swap(layers_after_removal);
-    --layer_insert_index;
+    EventQueue::PushEvent<AppLayerEvent>({ LayerEventType::LAYER_PUSH, layer->GetUUID().Get() });
   }
 
   void LayerStack::PopLayer(UUID id) {
     OE_ASSERT(id.Get() != 0, "Attempting to pop a layer with a null UUID");
+
+    for (auto& l : layers) {
+      if (l->GetUUID() == id) {
+        l->Detach();
+        break;
+      }
+    }
 
     auto layers_after_removal = layers |
       std::views::filter([id](const Ref<Layer>& l) { return l->GetUUID() != id; }) |
@@ -50,6 +48,8 @@ namespace other {
 
     layers.swap(layers_after_removal);
     --layer_insert_index;
+
+    EventQueue::PushEvent<AppLayerEvent>({ LayerEventType::LAYER_POP, id.Get() });
   }
 
   void LayerStack::PopLayer() {
@@ -58,8 +58,15 @@ namespace other {
       return;
     }
 
+    Ref<Layer>& layer = layers.back();
+    OE_ASSERT(layer != nullptr, "Attempting to pop a null layer");
+
+    UUID id = layer->GetUUID();
+    OE_ASSERT(id.Get() != 0, "Layer UUID is 0, this is not allowed");
     layers.pop_back();
     --layer_insert_index;
+
+    EventQueue::PushEvent<AppLayerEvent>({ LayerEventType::LAYER_POP, id.Get() });
   }
 
   Ref<Layer>& LayerStack::operator[](size_t index) {

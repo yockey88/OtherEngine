@@ -1,6 +1,6 @@
 /**
  * \file event\window_events.hpp
-*/
+ */
 #ifndef OTHER_ENGINE_WINDOW_EVENTS_HPP
 #define OTHER_ENGINE_WINDOW_EVENTS_HPP
 
@@ -12,70 +12,65 @@
 
 namespace other {
 
-  class WindowEvent : public Event {
-    public:
-      WindowEvent() {}
-      ~WindowEvent() {}
+  class WindowEvent {
+   public:
+    WindowEvent() {}
+    ~WindowEvent() {}
 
-      EVENT_CATEGORY(WINDOW_EVENT | APPLICATION_EVENT | CORE_EVENT);
+    EVENT_CATEGORY(WINDOW_EVENT | APPLICATION_EVENT | CORE_EVENT);
   };
 
-  class WindowResized : public WindowEvent {
-    public:
-      WindowResized(const glm::ivec2& size , const glm::ivec2& old_size) 
-        : size(size) , old_size(old_size) {}
-      ~WindowResized() {}
+#define WINDOW_EVENT() EVENT_CATEGORY(WINDOW_EVENT | APPLICATION_EVENT | CORE_EVENT);
 
-      glm::ivec2 WindowSize() const { return size; }
-      glm::ivec2 OldWindowSize() const { return old_size; }
+  struct WindowResized {
+    WINDOW_EVENT();
+    EVENT_TYPE(WINDOW_RESIZE);
 
-      uint32_t Width() const { return size.x; }
-      uint32_t Height() const { return size.y; }
+    glm::ivec2 WindowSize() const { return size; }
+    glm::ivec2 OldWindowSize() const { return old_size; }
 
-      uint32_t OldWidth() const { return old_size.x; }
-      uint32_t OldHeight() const { return old_size.y; }
+    uint32_t Width() const { return size.x; }
+    uint32_t Height() const { return size.y; }
 
-      virtual std::string ToString() const override {
-        std::stringstream ss;
-        ss << "WindowResizeEvent: " << size.x << ", " << size.y;
-        return ss.str();
-      }
+    uint32_t OldWidth() const { return old_size.x; }
+    uint32_t OldHeight() const { return old_size.y; }
 
-      EVENT_TYPE(WINDOW_RESIZE);
-      
-    private:
-      glm::ivec2 size;
-      glm::ivec2 old_size;
+    std::string ToString() const {
+      std::stringstream ss;
+      ss << "WindowResizeEvent: " << size.x << ", " << size.y;
+      return ss.str();
+    }
+
+    glm::ivec2 size;
+    glm::ivec2 old_size;
   };
 
-  class WindowMinimized : public WindowEvent {
-    public:
-      WindowMinimized() {}
-      ~WindowMinimized() {}
+  struct WindowMinimized {
+    WINDOW_EVENT();
+    EVENT_TYPE(WINDOW_MINIMIZE);
 
-      virtual std::string ToString() const override {
-        std::stringstream ss;
-        ss << "WindowMinimizedEvent";
-        return ss.str();
-      }
-
-      EVENT_TYPE(WINDOW_MINIMIZE);
+    std::string ToString() const {
+      std::stringstream ss;
+      ss << "WindowMinimizedEvent";
+      return ss.str();
+    }
   };
 
-  class WindowClosed : public WindowEvent {
-    public:
-      WindowClosed() {}
-      ~WindowClosed() {}
+  struct WindowClosed {
+    WINDOW_EVENT();
+    EVENT_TYPE(WINDOW_CLOSE);
 
-      virtual std::string ToString() const override {
-        std::stringstream ss;
-        ss << "WindowClosedEvent";
-        return ss.str();
-      }
-
-      EVENT_TYPE(WINDOW_CLOSE);
+    std::string ToString() const {
+      std::stringstream ss;
+      ss << "WindowClosedEvent";
+      return ss.str();
+    }
   };
 
-} // namespace other
+  static_assert(Event<WindowResized>, "WindowResized does not meet the Event concept");
+  static_assert(Event<WindowMinimized>, "WindowMinimized does not meet the Event concept");
+  static_assert(Event<WindowClosed>, "WindowClosed does not meet the Event concept");
 
-#endif // !OTHER_ENGINE_WINDOW_EVENTS_HPP
+}  // namespace other
+
+#endif  // !OTHER_ENGINE_WINDOW_EVENTS_HPP

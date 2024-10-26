@@ -4,7 +4,6 @@
 #ifndef OTHER_ENGINE_LAYER_STACK_HPP
 #define OTHER_ENGINE_LAYER_STACK_HPP
 
-#include <type_traits>
 #include <vector>
 
 #include "core/layer.hpp"
@@ -17,8 +16,7 @@ namespace other {
     LayerStack() {}
     ~LayerStack();
 
-    void PushLayer(const Ref<Layer>& layer);
-    void PopLayer(const Ref<Layer>& layer);
+    void PushLayer(Ref<Layer>& layer);
     void PopLayer(UUID id);
     void PopLayer();
 

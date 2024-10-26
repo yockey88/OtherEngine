@@ -6,17 +6,18 @@
 
 #include <map>
 
-#include "core/defines.hpp"
 #include "core/config.hpp"
-#include "core/uuid.hpp"
+#include "core/defines.hpp"
 #include "core/ref.hpp"
+#include "core/uuid.hpp"
 
-#include "scene/scene.hpp"
 #include "scene/environment.hpp"
+#include "scene/scene.hpp"
 
 #include "rendering/scene_renderer.hpp"
 
 #include "editor/saves.hpp"
+
 
 namespace other {
 
@@ -28,47 +29,49 @@ namespace other {
   };
 
   class SceneManager {
-    public:
-      SceneManager() {}
-      ~SceneManager() {}
+   public:
+    SceneManager() {}
+    ~SceneManager() {}
 
-      bool LoadScene(const Path& scenepath);
-      void SetAsActive(const Path& name);
+    bool LoadScene(const Path& scenepath);
+    void SetAsActive(const Path& name);
 
-      void StartScene();
-      void StopScene();
+    void StartScene();
+    void StopScene();
 
-      bool IsPlaying() const;
+    bool IsPlaying() const;
 
-      bool HasScene(const Path& path);
-      bool HasActiveScene() const;
+    Ref<Scene> GetScene(UUID id) const;
 
-      SceneMetadata* ActiveScene() const;
-      void SaveActiveScene();
-      void UnloadActive();
+    bool HasScene(const Path& path);
+    bool HasActiveScene() const;
 
-      StateCapture CaptureScene();
-      void LoadCapture(StateCapture& capture);
+    SceneMetadata* ActiveScene() const;
+    void SaveActiveScene();
+    void UnloadActive();
 
-      void ClearScenes();
+    StateCapture CaptureScene();
+    void LoadCapture(StateCapture& capture);
 
-      const std::vector<std::string>& ScenePaths() const; 
-      const std::map<UUID , SceneMetadata>& GetScenes() const;
+    void ClearScenes();
 
-      void EarlyUpdateScene(float dt);
-      void UpdateScene(float dt);
-      void LateUpdateScene(float dt);
-      bool RenderScene(Ref<SceneRenderer>& scene_renderer , Ref<CameraBase> viewpoint = nullptr);
-      void RenderSceneUI();
+    const std::vector<std::string>& ScenePaths() const;
+    const std::map<UUID, SceneMetadata>& GetScenes() const;
 
-    private:
-      bool playing_scene = false;
-      SceneMetadata* active_scene = nullptr;
+    void EarlyUpdateScene(float dt);
+    void UpdateScene(float dt);
+    void LateUpdateScene(float dt);
+    bool RenderScene(Ref<SceneRenderer>& scene_renderer, Ref<CameraBase> viewpoint = nullptr);
+    void RenderSceneUI();
 
-      std::vector<std::string> scene_paths;
-      std::map<UUID , SceneMetadata> loaded_scenes;
+   private:
+    bool playing_scene = false;
+    SceneMetadata* active_scene = nullptr;
+
+    std::vector<std::string> scene_paths;
+    std::map<UUID, SceneMetadata> loaded_scenes;
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_SCENE_MANAGER_HPP
+#endif  // !OTHER_ENGINE_SCENE_MANAGER_HPP

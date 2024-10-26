@@ -1,6 +1,6 @@
 /**
  * \file event\key_events.hpp
-*/
+ */
 #ifndef OTHER_ENGINE_KEY_EVENTS_HPP
 #define OTHER_ENGINE_KEY_EVENTS_HPP
 
@@ -11,64 +11,66 @@
 
 namespace other {
 
-  class KeyEvent : public Event {
-    protected:
-      KeyEvent(Keyboard::Key key_code) : key_code(key_code) {}
-      Keyboard::Key key_code;
+#define KEY_EVENT()                                     \
+  EVENT_CATEGORY(KEYBOARD_EVENT | INPUT_EVENT);         \
+  inline Keyboard::Key Key() const { return key_code; } \
+  Keyboard::Key key_code;
 
-    public:
-      inline Keyboard::Key Key() const { return key_code; }
+  struct KeyPressed {
+    KEY_EVENT();
+    EVENT_TYPE(KEY_PRESSED);
 
-      EVENT_CATEGORY(KEYBOARD_EVENT | INPUT_EVENT);
-  }; 
-
-  class KeyPressed : public KeyEvent {
-    public:
-      KeyPressed(Keyboard::Key key_code) 
-        : KeyEvent(key_code) {}
-
-      virtual std::string ToString() const override {
-        std::stringstream ss;
-        ss << "Key Pressed : " << static_cast<uint16_t>(key_code);
-        return ss.str();
-      }
-
-      EVENT_TYPE(KEY_PRESSED);
+    std::string ToString() const {
+      std::stringstream ss;
+      ss << "Key Pressed : " << static_cast<uint16_t>(key_code);
+      return ss.str();
+    }
   };
 
-  class KeyReleased : public KeyEvent {
-    public:
-      KeyReleased(Keyboard::Key key_code) 
-        : KeyEvent(key_code) {}
+  struct KeyReleased {
+    KEY_EVENT();
+    EVENT_TYPE(KEY_RELEASED);
 
-      virtual std::string ToString() const override {
-        std::stringstream ss;
-        ss << "Key Released : " << static_cast<uint16_t>(key_code);
-        return ss.str();
-      }
-
-      EVENT_TYPE(KEY_RELEASED);
+    std::string ToString() const {
+      std::stringstream ss;
+      ss << "Key Released : " << static_cast<uint16_t>(key_code);
+      return ss.str();
+    }
   };
 
-  class KeyHeld : public KeyEvent {
-    public:
-      KeyHeld(Keyboard::Key key_code , uint32_t repeat)
-        : KeyEvent(key_code) , repeat(repeat) {}
+  struct KeyHeld {
+    KEY_EVENT();
+    EVENT_TYPE(KEY_HELD);
 
-      virtual std::string ToString() const override {
-        std::stringstream ss;
-        ss << "Key Held : " << static_cast<uint16_t>(key_code);
-        return ss.str();
-      }
+    std::string ToString() const {
+      std::stringstream ss;
+      ss << "Key Held : " << static_cast<uint16_t>(key_code);
+      return ss.str();
+    }
 
-      uint32_t FramesHeld() const { return repeat; }
+    uint32_t FramesHeld() const { return repeat; }
 
-      EVENT_TYPE(KEY_HELD);
-
-    public:
-      uint32_t repeat;
+    uint32_t repeat;
   };
 
-} // namespace other
+  static_assert(Event<KeyPressed>, "KeyPressed does not meet the Event concept");
+  static_assert(Event<KeyReleased>, "KeyReleased does not meet the Event concept");
+  static_assert(Event<KeyHeld>, "KeyHeld does not meet the Event concept");
 
-#endif // !OTHER_ENGINE_KEY_EVENTS_HPP
+  template <typename KE, typename Fn>
+    requires(std::same_as<KE, KeyPressed> ||
+             std::same_as<KE, KeyReleased> ||
+             std::same_as<KE, KeyHeld>) &&
+    requires(KE& e, Fn f) {
+      f(e);
+      { f(e) } -> std::same_as<void>;
+    }
+  static void HandleKeyEvent(KE& event, Keyboard::Key key, Fn fn) {
+    if (event.key_code == key) {
+      fn(event);
+    }
+  }
+
+}  // namespace other
+
+#endif  // !OTHER_ENGINE_KEY_EVENTS_HPP

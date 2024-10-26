@@ -253,9 +253,6 @@ namespace other {
     return edited;
   }
 
-  void EntityProperties::OnEvent(Event* e) {
-  }
-
   void EntityProperties::OnProjectChange(const Ref<Project>& project) {
   }
 
@@ -271,14 +268,14 @@ namespace other {
 
     edited = DrawComponent<Transform, &DrawTransform>("Transform") || edited;
     edited = DrawComponent<Script, &DrawScript>("Script") || edited;
-    edited = DrawComponent<Mesh , &DrawMesh>("Mesh") || edited;
-    edited = DrawComponent<StaticMesh , &DrawStaticMesh>("Static Mesh") || edited;
-    edited = DrawComponent<Camera , &DrawCamera>("Camera") || edited;
-    edited = DrawComponent<RigidBody2D , &DrawRigidBody<RigidBody2D>>("Rigid Body 2D") || edited;
-    edited = DrawComponent<Collider2D , &DrawCollider<Collider2D>>("Collider 2D") || edited;
-    edited = DrawComponent<RigidBody , &DrawRigidBody<RigidBody>>("Rigid Body") || edited;
-    edited = DrawComponent<Collider , &DrawCollider<Collider>>("Collider") || edited;
-    edited = DrawComponent<LightSource , &DrawLightSource>("Light Source") || edited;
+    edited = DrawComponent<Mesh, &DrawMesh>("Mesh") || edited;
+    edited = DrawComponent<StaticMesh, &DrawStaticMesh>("Static Mesh") || edited;
+    edited = DrawComponent<Camera, &DrawCamera>("Camera") || edited;
+    edited = DrawComponent<RigidBody2D, &DrawRigidBody<RigidBody2D>>("Rigid Body 2D") || edited;
+    edited = DrawComponent<Collider2D, &DrawCollider<Collider2D>>("Collider 2D") || edited;
+    edited = DrawComponent<RigidBody, &DrawRigidBody<RigidBody>>("Rigid Body") || edited;
+    edited = DrawComponent<Collider, &DrawCollider<Collider>>("Collider") || edited;
+    edited = DrawComponent<LightSource, &DrawLightSource>("Light Source") || edited;
 
     return edited;
   }

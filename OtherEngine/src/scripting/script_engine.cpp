@@ -290,8 +290,7 @@ namespace other {
     Ref<ScriptModule> mod = GetScriptModule(mod_name);
     /// if its null we have the equivalent of the above case so we don't need to return cause we might still find the object
     if (mod == nullptr) {
-      OE_ERROR("Failed to retrireve script module : {}", mod_name);
-      OE_WARN("Falling back to loaded modules");
+      return nullptr;
     }
 
     return mod->GetScriptObject(search_name, search_nspace);

@@ -31,28 +31,8 @@ namespace other {
     OnUIRender();
   }
 
-  void Layer::ProcessEvent(Event* event) {
-    OnEvent(event);
-  }
-
   void Layer::Detach() {
     OnDetach();
-  }
-
-  void Layer::LoadScene(const SceneMetadata* metadata) {
-    OnSceneLoad(metadata);
-  }
-
-  void Layer::UnloadScene() {
-    OnSceneUnload();
-  }
-
-  void Layer::ReloadScripts() {
-    OnScriptReload();
-  }
-
-  bool Layer::HasActiveScene() const {
-    return ParentApp() != nullptr && ParentApp()->HasActiveScene();
   }
 
 }  // namespace other

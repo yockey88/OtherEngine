@@ -6,38 +6,40 @@
 
 #include "core/ref.hpp"
 #include "core/ref_counted.hpp"
+
 #include "event/event.hpp"
 #include "project/project.hpp"
+
 #include "scene/scene.hpp"
+
 
 namespace other {
 
   class Editor;
 
   class EditorPanel : public RefCounted {
-    public:
-      EditorPanel(Editor& editor) 
+   public:
+    EditorPanel(Editor& editor)
         : editor(editor) {}
-      virtual ~EditorPanel() {}
+    virtual ~EditorPanel() {}
 
-      virtual void OnAttach() {}
-      /// used for signaling events, temporary??
-      virtual bool OnGuiRender(bool& is_open) { return false; }
-      virtual void OnUpdate(float dt) {} 
-      virtual void OnEvent(Event* e) {}
-      virtual void OnProjectChange(const Ref<Project>& project) {}
-      virtual void SetSceneContext(const Ref<Scene>& scene) {}
-      virtual void OnDetach() {}
+    virtual void OnAttach() {}
+    /// used for signaling events, temporary??
+    virtual bool OnGuiRender(bool& is_open) { return false; }
+    virtual void OnUpdate(float dt) {}
+    virtual void OnProjectChange(const Ref<Project>& project) {}
+    virtual void SetSceneContext(const Ref<Scene>& scene) {}
+    virtual void OnDetach() {}
 
-      virtual void OnScriptReload() {}
+    virtual void OnScriptReload() {}
 
-    protected:
-      Editor& GetEditor() const { return editor; }
+   protected:
+    Editor& GetEditor() const { return editor; }
 
-    private:
-      Editor& editor;
+   private:
+    Editor& editor;
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_EDITOR_PANEL_HPP
+#endif  // !OTHER_ENGINE_EDITOR_PANEL_HPP

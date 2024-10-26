@@ -12,59 +12,61 @@
 
 namespace other {
 
-  template <event_t E>
+  template <typename E>
+    requires Event<E>
   using Handler = std::function<bool(E&)>;
 
-  template <event_t E>
+  template <typename E>
+    requires Event<E>
   struct DispatchInvoker;
 
-  class EventHandler {
-   public:
-    EventHandler(Event* event)
+  struct EventHandler {
+    EventHandler(void* event)
         : event(event) {}
 
-    template <event_t E>
+    template <typename E>
+      requires Event<E>
     bool Handle(Handler<E> handler) {
+      OE_ASSERT(event != nullptr, "Event is null");
+
       E* e = Cast<E>(event);
       if (e == nullptr) {
         return false;
       }
 
-      event->handled = handler(*e);
-      return event->handled;
+      return handler(*e);
     }
 
-    template <event_t E>
+    template <typename E>
+      requires Event<E>
     bool Handle(DispatchInvoker<E>& handler) {
+      OE_ASSERT(event != nullptr, "Event is null");
       for (auto& h : handler.handlers) {
         if (Handle(h)) {
           return true;
         }
       }
-      return event->handled;
+      return false;
     }
 
-   private:
-    Event* event;
+    void* event;
   };
 
   struct Dispatcher : public RefCounted {
     virtual ~Dispatcher() = default;
     virtual EventType Type() const = 0;
 
-    bool Dispatch(Event* event) {
-      if (event->Type() != Type()) {
-        return false;
-      }
-
-      return DispatchEvent(event);
+    bool Dispatch(EventHandle& event) {
+      OE_ASSERT(event.ptr != nullptr, "Event is null");
+      return event.Type() == Type() && DispatchEvent(event.ptr);
     }
 
    protected:
-    virtual bool DispatchEvent(Event* event) = 0;
+    virtual bool DispatchEvent(void* event) = 0;
   };
 
-  template <event_t E>
+  template <typename E>
+    requires Event<E>
   struct DispatchInvoker : public Dispatcher {
     DispatchInvoker(const std::vector<Handler<E>>& event_handlers)
         : handlers(event_handlers) {}
@@ -76,8 +78,15 @@ namespace other {
     std::vector<Handler<E>> handlers;
 
    protected:
-    virtual bool DispatchEvent(Event* event) override {
-      EventHandler handler(event);
+    virtual bool DispatchEvent(void* event) override {
+      OE_ASSERT(event != nullptr, "Event is null");
+
+      E* e = Cast<E>(event);
+      if (e == nullptr) {
+        return false;
+      }
+
+      EventHandler handler(e);
       return handler.Handle<E>(*this);
     }
   };

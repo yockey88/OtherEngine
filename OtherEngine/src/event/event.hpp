@@ -5,12 +5,14 @@
 #define OTHER_ENGINE_EVENT_HPP
 
 #include <string>
+#include <type_traits>
 
 #include "core/defines.hpp"
+#include "core/logger.hpp"
 
 namespace other {
 
-  enum EventType : int64_t {
+  enum EventType : uint64_t {
     EMPTY_EVNT = 0,
 
     // window events
@@ -74,33 +76,44 @@ namespace other {
     UI_EVENT = bit(10),
   };
 
-#define EVENT_TYPE(type)                                              \
-  static EventType GetStaticType() { return EventType::type; }        \
-  virtual EventType Type() const override { return GetStaticType(); } \
-  virtual std::string EventName() const override { return #type; }    \
-  virtual uint32_t Size() const override { return sizeof(*this); }
+#define EVENT_TYPE(type)                                       \
+  static EventType GetStaticType() { return EventType::type; } \
+  EventType Type() const { return GetStaticType(); }           \
+  std::string EventName() const { return #type; }              \
+  uint32_t Size() const { return sizeof(*this); }
 
 #define EVENT_CATEGORY(category) \
-  virtual uint32_t CategoryFlags() const override { return category; }
+  uint32_t CategoryFlags() const { return category; }
 
-  class Event {
-   public:
-    Event() {}
-    virtual ~Event() {}
+  template <typename E>
+  concept Event =
+    std::is_trivially_copyable_v<E> &&
+    requires(E e) {
+      { E::GetStaticType() } -> std::same_as<other::EventType>;
+      { e.Type() } -> std::same_as<other::EventType>;
+      { e.EventName() } -> std::same_as<std::string>;
+      { e.Size() } -> std::same_as<uint32_t>;
+    };
 
-    virtual EventType Type() const { return EventType::EMPTY_EVNT; }
-    virtual std::string EventName() const { return "EmptyEvent"; }
-    virtual uint32_t CategoryFlags() const { return EventCategory::NONE; }
-    virtual uint32_t Size() const { return sizeof(Event); };
+  struct EventHandle {
+    void* ptr;
+    EventType type;
+    size_t wrapped_event_size;
 
-    virtual std::string ToString() const { return EventName(); }
-    inline bool InCategory(EventCategory category) const { return CategoryFlags() & category; }
-
-    bool handled = false;
+    /// necessary for concept but SHOULD NOT BE USED!!!!
+    static EventType GetStaticType() { return EMPTY_EVNT; }
+    EventType Type() const { return type; }
+    std::string EventName() const { return "EventHandle"; }
+    uint32_t Size() const { return sizeof(*this); }
+    EVENT_CATEGORY(NONE);
   };
 
-  template <typename T>
-  T* Cast(Event* event) {
+  static_assert(Event<EventHandle>, "EventHandle does not meet the Event concept");
+
+  template <typename E, typename T>
+    requires Event<E> && Event<T>
+  T* Cast(E* event) {
+    OE_ASSERT(event != nullptr, "Event is null");
     if (event->Type() == T::GetStaticType()) {
       return static_cast<T*>(event);
     }
@@ -108,12 +121,12 @@ namespace other {
     return nullptr;
   }
 
-  inline std::ostream& operator<<(std::ostream& os, const Event& e) {
-    return os << e.EventName();
+  template <typename E>
+    requires Event<E>
+  E* Cast(void* event) {
+    OE_ASSERT(event != nullptr, "Event is null");
+    return static_cast<E*>(event);
   }
-
-  template <typename T>
-  concept event_t = std::derived_from<T, Event>;
 
 }  // namespace other
 

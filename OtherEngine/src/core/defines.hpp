@@ -9,6 +9,8 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stack>
+#include <stacktrace>
 #include <string_view>
 #include <type_traits>
 #include <utility>
@@ -16,7 +18,7 @@
 #include <glm/glm.hpp>
 #include <spdlog/fmt/fmt.h>
 
-#define bit(x) (1 << x)
+#define bit(x) (1u << x)
 
 #ifdef OE_MODULE
 #define OE_CLIENT
@@ -279,6 +281,23 @@ namespace other {
     /// solve really annoying LSP issue
     return fmt::underlying(e);
   }
+
+#ifdef OE_DEBUG_BUILD
+
+  class StackTracer {
+   public:
+    StackTracer() = default;
+    ~StackTracer() = default;
+
+    void PrintStack() const;
+
+    // void Push
+
+   private:
+    std::stack<std::stacktrace_entry> traces;
+  };
+
+#endif  // !OE_DEBUG_BUILD
 
 }  // namespace other
 

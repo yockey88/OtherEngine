@@ -9,31 +9,22 @@
 #include "core/logger.hpp"
 
 #include "application/app_state.hpp"
-#include "asset/asset_manager.hpp"
 #include "event/app_events.hpp"
-#include "event/event_handler.hpp"
 #include "event/event_queue.hpp"
-#include "event/key_events.hpp"
-#include "event/mouse_events.hpp"
-#include "input/keyboard.hpp"
 #include "parsing/ini_parser.hpp"
 
 #include "rendering/camera_base.hpp"
 #include "rendering/geometry_pass.hpp"
-#include "rendering/model.hpp"
-#include "rendering/model_factory.hpp"
 #include "rendering/perspective_camera.hpp"
 #include "rendering/render_pass.hpp"
 #include "rendering/renderer.hpp"
 #include "rendering/ui/ui_helpers.hpp"
 #include "rendering/uniform.hpp"
-#include "rendering/vertex.hpp"
 #include "scripting/script_engine.hpp"
 
 #include "editor/editor.hpp"
 #include "editor/editor_images.hpp"
 #include "editor/editor_settings.hpp"
-
 
 namespace other {
 
@@ -93,12 +84,12 @@ namespace other {
 
       bool project_directories_changed = false;
       if (AppState::ProjectContext()->EditorDirectoryChanged()) {
-        EventQueue::PushEvent<ProjectDirectoryUpdateEvent>(EDITOR_DIR);
+        EventQueue::PushEvent<ProjectDirectoryUpdateEvent>({ EDITOR_DIR });
         project_directories_changed = true;
       }
 
       if (AppState::ProjectContext()->ScriptDirectoryChanged()) {
-        EventQueue::PushEvent<ProjectDirectoryUpdateEvent>(SCRIPT_DIR);
+        EventQueue::PushEvent<ProjectDirectoryUpdateEvent>({ SCRIPT_DIR });
         project_directories_changed = true;
       }
 
@@ -151,7 +142,7 @@ namespace other {
     if (ImGui::BeginMainMenuBar()) {
       if (ImGui::BeginMenu("File")) {
         if (ImGui::MenuItem("Reload")) {
-          ReloadScripts();
+          // ReloadScripts();
         }
 
         if (ImGui::MenuItem("Settings")) {
@@ -177,7 +168,7 @@ namespace other {
     }
 
 #if 1
-    if (HasActiveScene() && ImGui::Begin("Viewport")) {
+    if (AppState::Scenes()->HasActiveScene() && ImGui::Begin("Viewport")) {
       auto& frames = default_renderer->GetRender();
       viewport = nullptr;
 
@@ -238,93 +229,49 @@ namespace other {
 #endif
   }
 
-  void EditorLayer::OnEvent(Event* event) {
-    EventHandler handler(event);
-    handler.Handle<ProjectDirectoryUpdateEvent>([this](ProjectDirectoryUpdateEvent& e) -> bool {
-      AppState::ProjectContext()->CreateScriptWatchers();
+  // void EditorLayer::OnEvent(Event* event) {
+  //   EventHandler handler(event);
+  //   handler.Handle<ProjectDirectoryUpdateEvent>([this](ProjectDirectoryUpdateEvent& e) -> bool {
+  //     AppState::ProjectContext()->CreateScriptWatchers();
 
-      if (!AppState::ProjectContext()->RegenProjectFile()) {
-        OE_ERROR("Failed to generate project files! Project metadata corrupted!");
-        return false;
-      }
+  //     if (!AppState::ProjectContext()->RegenProjectFile()) {
+  //       OE_ERROR("Failed to generate project files! Project metadata corrupted!");
+  //       return false;
+  //     }
 
-      ReloadScripts();
-      return true;
-    });
+  //     ReloadScripts();
+  //     return true;
+  //   });
 
-    handler.Handle<KeyPressed>([this](KeyPressed& key) -> bool {
-      if (key.Key() == Keyboard::Key::OE_ESCAPE) {
-        if (playing) {
-          AppState::Scenes()->StopScene();
-          playing = false;
-        }
+  //   handler.Handle<KeyPressed>([this](KeyPressed& key) -> bool {
+  //     if (key.Key() == Keyboard::Key::OE_ESCAPE) {
+  //       if (playing) {
+  //         AppState::Scenes()->StopScene();
+  //         playing = false;
+  //       }
 
-        Mouse::FreeCursor();
-        camera_free = false;
+  //       Mouse::FreeCursor();
+  //       camera_free = false;
 
-        return true;
-      }
+  //       return true;
+  //     }
 
-      return false;
-    });
+  //     return false;
+  //   });
 
-    handler.Handle<MouseButtonPressed>([this](MouseButtonPressed& e) -> bool {
-      if (e.Button() == Mouse::MIDDLE && !playing) {
-        Mouse::LockCursor();
-        camera_free = true;
-        DefaultUpdateCamera(editor_camera);
-        return true;
-      }
+  //   handler.Handle<MouseButtonPressed>([this](MouseButtonPressed& e) -> bool {
+  //     if (e.Button() == Mouse::MIDDLE && !playing) {
+  //       Mouse::LockCursor();
+  //       camera_free = true;
+  //       DefaultUpdateCamera(editor_camera);
+  //       return true;
+  //     }
 
-      return false;
-    });
+  //     return false;
+  //   });
 
-    panel_manager->OnEvent(event);
-  }
-
-  void EditorLayer::OnSceneLoad(const SceneMetadata* metadata) {
-    panel_manager->OnSceneLoad(metadata);
-  }
-
-  void EditorLayer::OnSceneUnload() {
-    panel_manager->OnSceneUnload();
-  }
-
-  void EditorLayer::OnScriptReload() {
-    // editor_scripts.Clear();
-    // for (const auto& [id , info] : editor_scripts.data) {
-    //   Ref<ScriptModule> mod = ScriptEngine::GetScriptModule(info.module);
-    //   if (mod == nullptr) {
-    //     OE_ERROR("Failed to find editor scripting module {} [{}]" , info.module , FNV(info.module));
-    //     continue;
-    //   }
-
-    //   std::string nspace = "";
-    //   std::string name = info.obj_name;
-    //   if (name.find("::") != std::string::npos) {
-    //     nspace = name.substr(0 , name.find_first_of(":"));
-    //     OE_DEBUG("Editor script from namespace {}" , nspace);
-
-    //     name = name.substr(name.find_last_of(":") + 1 , name.length() - nspace.length() - 2);
-    //     OE_DEBUG(" > with name {}" , name);
-    //   }
-
-    //   // ScriptObject* inst = mod->GetScriptObject(name , nspace);
-    //   // if (inst == nullptr) {
-    //   //   OE_ERROR("Failed to get script {} from script module {}" , name , info.module);
-    //   //   continue;
-    //   // } else {
-    //   //   std::string case_ins_name;
-    //   //   std::transform(name.begin() , name.end() , std::back_inserter(case_ins_name) , ::toupper);
-
-    //   //   UUID id = FNV(case_ins_name);
-    //   //   auto& obj = editor_scripts.scripts[id] = inst;
-    //   //   obj->Start();
-    //   // }
-    // }
-
-    panel_manager->OnScriptReload();
-  }
+  //   panel_manager->OnEvent(event);
+  // }
 
   void EditorLayer::SaveActiveScene() {
     OE_ASSERT(AppState::Scenes()->ActiveScene() != nullptr, "Attempting to save null scene!");
@@ -340,8 +287,8 @@ namespace other {
 
     scenes->SaveActiveScene();
 
-    ParentApp()->UnloadScene();
-    ParentApp()->LoadScene(p);
+    // ParentApp()->UnloadScene();
+    // ParentApp()->LoadScene(p);
 
     if (is_playing) {
       scenes->StartScene();
@@ -435,7 +382,7 @@ namespace other {
 
   void EditorLayer::LaunchSettingsWindow() {
     Ref<UIWindow> settings_window = NewRef<SettingsWindow>();
-    ParentApp()->PushUIWindow(settings_window);
+    // AppState::PushUIWindow(settings_window);
   }
 
 }  // namespace other

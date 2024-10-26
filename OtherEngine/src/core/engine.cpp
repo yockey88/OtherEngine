@@ -69,7 +69,7 @@ namespace other {
     try {
       do {
         LoadApp();
-        active_app->Run();
+        // active_app->Run();
         UnloadApp();
       } while (!EngineState::exit_code.has_value());
       ec = EngineState::exit_code.value();
@@ -89,36 +89,34 @@ namespace other {
   }
 
   void Engine::LoadApp() {
-    auto app = NewApp(cmd_line, config);
+    App* app = NewApp(cmd_line, config);
     OE_ASSERT(app != nullptr, "Attempting to load a null application (client implementation of other::NewApp(Engine*) is invalid)");
 
     println("Loading application");
     bool in_editor = cmd_line.HasFlag("--editor");
+    App* active_app = nullptr;
 
     if (in_editor) {
-      auto editor_app = NewScope<Editor>(cmd_line, config /* , app */);
-      active_app = std::move(editor_app);
+      App* editor_app = new Editor(cmd_line, config /* , app */);
+      active_app = editor_app;
     } else {
       active_app = std::move(app);
     }
 
-    active_app->Load();
-    AppState::Initialize(active_app.get(), active_app->layer_stack, active_app->scene_manager, active_app->asset_handler, active_app->project_metadata);
+    AppState::Initialize(cmd_line, config, active_app);
 
     Launch();
     if (in_editor) {
       PushCoreLayer();
       RegisterLoggers();
     }
+
+    AppState::AttachApplication();
   }
 
   void Engine::UnloadApp() {
     Shutdown();
-
-    OE_ASSERT(active_app != nullptr, "Attempting to unload a null application");
-
-    active_app->Unload();
-    active_app = nullptr;
+    AppState::Shutdown();
 
     OE_DEBUG("Engine unloaded");
   }
@@ -147,6 +145,21 @@ namespace other {
     IO::Shutdown();
 
     OE_INFO("Shutdown complete");
+  }
+
+  void Engine::Start() {
+    delta.Start();
+  }
+
+  void Engine::Tick() {
+    float dt = delta.Get();
+
+    AppState::OnEngineTick(dt);
+    EventQueue::Poll();
+  }
+
+  void Engine::Stop() {
+    AppState::DetachApplication();
   }
 
   Opt<Path> Engine::FindConfigFile() {
@@ -255,13 +268,24 @@ namespace other {
 
   void Engine::PushCoreLayer() {
     Ref<Layer> core_layer = nullptr;
-    if (config.GetVal<bool>(kDebugSection, "TEST-EDITOR", false).value_or(false)) {
-      core_layer = NewRef<TEditorLayer>(active_app.get(), active_app->config);
+
+    App& active_app = AppState::AppHandle();
+    bool in_editor = cmd_line.HasFlag("--editor");
+    bool debug_editor = config.GetVal<bool>(kDebugSection, "EDITOR").value_or(false);
+
+    if (in_editor || debug_editor) {
+      if (debug_editor) {
+        core_layer = NewRef<TEditorLayer>(&active_app, active_app.config);
+      } else {
+        core_layer = NewRef<EditorLayer>(&active_app, active_app.config);
+      }
+      AppState::mode = EngineMode::EDITOR;
     } else {
-      core_layer = NewRef<EditorLayer>(active_app.get(), active_app->config);
+      core_layer = NewRef<RuntimeLayer>(&active_app, active_app.config);
+      AppState::mode = EngineMode::RUNTIME;
     }
-    AppState::mode = EngineMode::EDITOR;
-    active_app->PushLayer(core_layer);
+
+    AppState::PushLayer(core_layer);
   }
 
   void Engine::RegisterLoggers() {

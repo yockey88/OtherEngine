@@ -10,27 +10,17 @@
 
 namespace other {
 
-  class UIEvent : public Event {
-    public:
-      virtual ~UIEvent() override {}
+  struct UIWindowClosed {
+    UUID GetWindowId() const { return id; }
 
-      EVENT_CATEGORY(UI_EVENT | APPLICATION_EVENT);
+    EVENT_CATEGORY(UI_EVENT | WINDOW_EVENT | APPLICATION_EVENT | CORE_EVENT);
+    EVENT_TYPE(UI_WINDOW_CLOSE);
+
+    uint64_t id;
   };
 
-  class UIWindowClosed : public UIEvent {
-    public:
-      UIWindowClosed(UUID window_id) 
-        : id(window_id) {}
-      virtual ~UIWindowClosed() override {}
+  static_assert(Event<UIWindowClosed>, "UIWindowClosed does not meet the Event concept");
 
-      UUID GetWindowId() const { return id; }
+}  // namespace other
 
-      EVENT_TYPE(UI_WINDOW_CLOSE);
-
-    private:
-      UUID id;
-  };
-
-} // namespace other 
-
-#endif // !OTHER_ENGINE_UI_EVENTS_HPP
+#endif  // !OTHER_ENGINE_UI_EVENTS_HPP

@@ -149,30 +149,21 @@ SandboxUI = {
     Logger.WriteDebug("Unload SandboxUI")
   end ,
 
-  Update = function(dt)
-    if (engine_stats.dt ~= nil) 
-    then
-      engine_stats.dt = dt
-    end
-  end ,
+  -- Update = function(dt)
+  --   if (engine_stats.dt ~= nil) 
+  --   then
+  --     engine_stats.dt = dt
+  --   end
+  -- end ,
 
   RenderUI = function()
-    render_stats(fps)
+    -- render_stats(fps)
 
     scene_ctx = Scene.ContextHandle()
     if (scene_ctx ~= nil) 
     then
       render_scene(scene_ctx)
     end
-
-    -- ImGui.Begin("Other UI")
-    
-    -- pressed = ImGui.Button("Press Me")
-    -- if (pressed) then
-    --   Logger.WriteDebug("Button Pressed")
-    -- end
-
-    -- ImGui.End()
   end
 }
 

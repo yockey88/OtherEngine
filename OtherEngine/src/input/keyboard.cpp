@@ -33,14 +33,14 @@ namespace other {
         key_state.current_state = State::RELEASED;
         key_state.frames_held = 0;
 
-        EventQueue::PushEvent<KeyReleased>(key);
+        EventQueue::PushEvent<KeyReleased>({ key });
 
         continue;
       }
 
       if (state[k] && key_state.current_state == State::RELEASED) {
         key_state.current_state = State::PRESSED;
-        EventQueue::PushEvent<KeyPressed>(key);
+        EventQueue::PushEvent<KeyPressed>({ key });
 
         continue;
       }
@@ -65,7 +65,7 @@ namespace other {
 
       if (key_state.current_state == State::HELD) {
         ++key_state.frames_held;
-        EventQueue::PushEvent<KeyHeld>(key, key_state.frames_held);
+        EventQueue::PushEvent<KeyHeld>({ key, key_state.frames_held });
 
         continue;
       }
