@@ -7,12 +7,14 @@
 
 #include "application/app_state.hpp"
 #include "event/event_queue.hpp"
+#include "input/mouse.hpp"
 
 #include "rendering/geometry_pass.hpp"
 #include "rendering/outline_pass.hpp"
 #include "rendering/perspective_camera.hpp"
 #include "rendering/renderer.hpp"
 #include "scripting/script_engine.hpp"
+
 
 using namespace other;
 
