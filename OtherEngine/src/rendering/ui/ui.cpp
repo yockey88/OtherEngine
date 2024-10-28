@@ -218,14 +218,14 @@ namespace other {
     OE_ASSERT(windowref->main_window != nullptr, "Main window not initialized");
 
     for (auto& [id, window] : ui_windows) {
-      window->OnUpdate(dt);
+      window->Update(dt);
     }
 
     auto itr = ui_windows.begin();
     for (; itr != ui_windows.end();) {
       if (!itr->second->IsOpen() && !itr->second->Pinned()) {
         OE_DEBUG("Removing UI window [{}]", itr->second->Title());
-        itr->second->OnDetach();
+        itr->second->Detach();
         itr = ui_windows.erase(itr);
         continue;
       }

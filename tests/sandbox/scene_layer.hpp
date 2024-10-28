@@ -24,7 +24,7 @@ class SceneLayer : public Layer {
 
  protected:
   virtual void OnAttach() override;
-  // virtual void OnDetach() {}
+  virtual void OnDetach() override;
   // virtual void OnEarlyUpdate(float dt) {}
   // virtual void OnUpdate(float dt) {}
   virtual void OnLateUpdate(float dt) override;

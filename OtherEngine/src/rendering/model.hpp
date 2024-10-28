@@ -10,10 +10,10 @@
 #include "math/bounding_box.hpp"
 
 #include "asset/asset.hpp"
+#include "asset/asset_types.hpp"
 
 #include "rendering/rendering_defines.hpp"
 #include "rendering/vertex.hpp"
-
 
 namespace other {
 
@@ -27,8 +27,8 @@ namespace other {
   /// bone serializer?
 
   struct BoneInfl {
-    uint32_t bone_info_indices[4] = {0, 0, 0, 0};
-    float weights[4] = {0.f, 0.f, 0.f, 0.f};
+    uint32_t bone_info_indices[4] = { 0, 0, 0, 0 };
+    float weights[4] = { 0.f, 0.f, 0.f, 0.f };
 
     /// void AddBoneData(uint32_t idx , float weight) {}
     /// void NormalizeWeights() {}
@@ -48,8 +48,8 @@ namespace other {
     uint32_t idx_cnt = 0;
     uint32_t vert_cnt = 0;
 
-    glm::mat4 transform{0.f};
-    glm::mat4 local_transform{0.f};
+    glm::mat4 transform{ 0.f };
+    glm::mat4 local_transform{ 0.f };
     BBox bounds{};
 
     UUID sub_mesh_id;
@@ -73,6 +73,8 @@ namespace other {
 
   class ModelSource : public Asset {
    public:
+    OE_ASSET(MODEL_SOURCE);
+
     ModelSource() {}
     ModelSource(std::vector<Vertex>& vertices, std::vector<Index>& indices, const glm::mat4& transform);
     ModelSource(std::vector<Vertex>& vertices, std::vector<Index>& indices, std::vector<SubMesh>& submeshes);
@@ -131,6 +133,8 @@ namespace other {
 
   class Model : public Asset {
    public:
+    OE_ASSET(MODEL);
+
     explicit Model(Ref<ModelSource>& mesh_source);
     Model(Ref<ModelSource>& mesh_src, const std::vector<uint32_t>& sub_meshes);
     Model(const Ref<Model>& other);
@@ -159,6 +163,8 @@ namespace other {
 
   class StaticModel : public Asset {
    public:
+    OE_ASSET(MODEL);
+
     explicit StaticModel(Ref<ModelSource>& mesh_source);
     StaticModel(Ref<ModelSource>& mesh_src, const std::vector<uint32_t>& sub_meshes);
     StaticModel(const Ref<StaticModel>& other);

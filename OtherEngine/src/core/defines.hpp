@@ -16,9 +16,10 @@
 #include <utility>
 
 #include <glm/glm.hpp>
+#include <magic_enum/magic_enum.hpp>
 #include <spdlog/fmt/fmt.h>
 
-#define bit(x) (1u << x)
+#define bit(x) (1ll << x)
 
 #ifdef OE_MODULE
 #define OE_CLIENT
@@ -307,6 +308,17 @@ struct fmt::formatter<glm::vec4> : public fmt::formatter<std::string_view> {
   auto format(const glm::vec4& v, FormatContext& ctx) {
     return fmt::formatter<std::string_view>::format(
       fmt::format(std::string_view{ "({:.2f}, {:.2f}, {:.2f}, {:.2f})" }, v.x, v.y, v.z, v.w), ctx
+    );
+  }
+};
+
+template <typename E>
+  requires std::is_enum_v<E>
+struct fmt::formatter<E> : public fmt::formatter<std::string_view> {
+  template <typename FormatContext>
+  auto format(const E& e, FormatContext& ctx) {
+    return fmt::formatter<std::string_view>::format(
+      fmt::format(std::string_view{ "{}" }, magic_enum::enum_name(e)), ctx
     );
   }
 };

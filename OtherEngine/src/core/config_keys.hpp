@@ -213,6 +213,9 @@ namespace other {
   constexpr static std::string_view kModulesValue = "MODULES";
   constexpr static uint64_t kModulesValueHash = FNV(kModulesValue);
 
+  constexpr static std::string_view kAttachmentsValue = "ATTACHMENTS";
+  constexpr static uint64_t kAttachmentsValueHash = FNV(kAttachmentsValue);
+
   constexpr static std::string_view kEntitiesValue = "ENTITIES";
   constexpr static uint64_t kEntitiesValueHash = FNV(kEntitiesValue);
 

@@ -3,33 +3,35 @@
  */
 #include "asset/asset.hpp"
 
+#include "core/rand.hpp"
+
 namespace other {
 
-  AssetType Asset::GetStaticType() { 
-    return AssetType::BLANK_ASSET; 
-  }  
-
-  AssetType Asset::GetAssetType() const { 
-    return AssetType::BLANK_ASSET; 
+  Asset::Asset() {
+    handle = Random::GenerateUUID();
   }
 
-  bool Asset::operator==(const Asset& other) const { 
-    return handle == other.handle; 
+  AssetType Asset::GetStaticType() {
+    OE_ASSERT(false, "Asset::GetStaticType() called on base class");
   }
 
-  bool Asset::operator!=(const Asset& other) const { 
-    return !(*this == other); 
+  bool Asset::operator==(const Asset& other) const {
+    return handle == other.handle;
   }
 
-  bool Asset::IsValid() const { 
-    return (!CheckFlag(AssetFlag::ASSET_INVALID) && !CheckFlag(AssetFlag::MISSING)); 
+  bool Asset::operator!=(const Asset& other) const {
+    return !(*this == other);
   }
 
-  bool Asset::CheckFlag(AssetFlag flag) const { 
-    return (flags & flag); 
+  bool Asset::IsValid() const {
+    return (!CheckFlag(AssetFlag::ASSET_INVALID) && !CheckFlag(AssetFlag::MISSING));
   }
 
-  void Asset::SetFlag(AssetFlag flag , bool val) {
+  bool Asset::CheckFlag(AssetFlag flag) const {
+    return (flags & flag);
+  }
+
+  void Asset::SetFlag(AssetFlag flag, bool val) {
     if (val) {
       flags |= flag;
     } else {
@@ -37,4 +39,4 @@ namespace other {
     }
   }
 
-} // namespace other
+}  // namespace other

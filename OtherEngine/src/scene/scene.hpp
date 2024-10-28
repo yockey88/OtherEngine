@@ -33,8 +33,6 @@
 #include "scripting/cs/cs_object.hpp"
 #include "scripting/script_object.hpp"
 
-namespace echo = dotother::echo;
-
 namespace other {
 
   class Entity;

@@ -8,6 +8,7 @@
 
 #include "application/app.hpp"
 #include "event/key_events.hpp"
+#include "event/window_events.hpp"
 
 using namespace other;
 
@@ -15,9 +16,6 @@ class ControlLayer : public Layer {
  public:
   ControlLayer(App* parent_app, const std::string& name)
       : Layer(parent_app, name) {}
-
-  bool running = true;
-  bool camera_lock = true;
 
  protected:
   virtual void OnAttach() override;
@@ -28,6 +26,7 @@ class ControlLayer : public Layer {
   // virtual void OnRender() {}
   // virtual void OnUIRender() {}
 
+  bool HandleWindowClosed(WindowClosed& event);
   bool HandleKeyPress(KeyPressed& event);
 };
 

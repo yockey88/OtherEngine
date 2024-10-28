@@ -15,7 +15,6 @@
 
 #include "event/event.hpp"
 
-
 namespace other {
 
 #define UI_FUNC(name) \
@@ -34,10 +33,12 @@ namespace other {
 
     void GiveChild(Ref<UIWindow> child);
 
-    virtual void OnAttach() {}
-    virtual void OnDetach() {}
-    virtual void OnUpdate(float dt) {}
-    virtual void Render();
+    void Attach();
+    void Detach();
+    void Update(float dt);
+    void Render();
+
+    bool IsFocused() const;
 
     const std::string& Title() const { return title; }
     inline bool IsOpen() const { return window_open; }
@@ -56,10 +57,16 @@ namespace other {
 
     bool window_open;
     bool pinned;
+    bool focused = false;
 
     bool render_function_popped = false;
 
     ImGuiWindowFlags flags;
+
+    virtual void OnAttach() {}
+    virtual void OnDetach() {}
+    virtual void OnUpdate(float dt) {}
+    virtual void OnRender() {}
 
     void PopFrontFunction();
     void RenderAllChildren();

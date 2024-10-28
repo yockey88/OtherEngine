@@ -3,6 +3,7 @@
  */
 #include "scripting/script_engine.hpp"
 
+#include <ranges>
 #include <string_view>
 
 #include <spdlog/cfg/helpers.h>
@@ -45,60 +46,72 @@ namespace other {
 
     LoadModule(CS_MODULE);
     LoadModule(LUA_MODULE);
-  }
 
-  void ScriptEngine::LoadProjectModules() {
-    auto project_metadata = AppState::ProjectContext();
-    if (project_metadata == nullptr) {
-      OE_ERROR("Failed to load project metadata");
-      return;
-    } else {
-      OE_DEBUG("loading scripts modules from project metadata");
-    }
-
-    auto project_path = project_metadata->GetMetadata().file_path.parent_path();
-
-    /// C# binary location data
-    auto project_bin = project_metadata->GetMetadata().bin_dir;
-    auto script_bin = project_metadata->GetMetadata().script_bin_dir;
-
-    Path cs_prefix = project_path / project_bin;
-    if (script_bin.has_value()) {
-      cs_prefix /= script_bin.value();
-    }
-    //// FIXME: this feels really hacky???
-    cs_prefix /= "net8.0";
-
-    Path lua_prefix = project_metadata->GetMetadata().assets_dir / "scripts";
-    if (project_metadata->GetMetadata().lua_directory.has_value()) {
-      Path p = project_metadata->GetMetadata().lua_directory.value();
-      if (!Filesystem::PathExists(p)) {
-        OE_ERROR("Invalid Lua script directory!");
-      } else {
-        lua_prefix = p;
-        OE_DEBUG("Lua Directory : {}", lua_prefix);
-      }
-    }
-
-    Ref<LanguageModule> cs_language_module = ScriptEngine::GetModule(CS_MODULE);
-    Ref<LanguageModule> lua_language_module = ScriptEngine::GetModule(LUA_MODULE);
-
-    OE_DEBUG("Loading C# script modules");
-    /// TODO: fix hardcoded path below, retrieve from cached engine config
-    constexpr std::string_view core_cs_name = "OtherEngine.CsCore";
-    loaded_modules[FNV(core_cs_name)] = cs_language_module->LoadScriptModule({
-      .name = std::string{ core_cs_name },
-      .path = "./bin/Debug/OtherEngine-CsCore/net8.0/OtherEngine-CsCore.dll",
-    });
-    LoadProjectModule(cs_language_module, kCsModuleSection, cs_prefix);
-
-    OE_DEBUG("Loading Lua script modules");
-    constexpr std::string_view core_lua_name = "OtherEngine.LuaCore";
+    // constexpr std::string_view core_lua_name = "OtherEngine.LuaCore";
     // loaded_modules[FNV(core_lua_name)] = lua_language_module->LoadScriptModule({
     //   .name = std::string{ core_lua_name } ,
     //   .path = "./OtherEngine-ScriptCore/lua/core/other.lua"  ,
     // });
-    LoadProjectModule(lua_language_module, kLuaModuleSection, lua_prefix);
+  }
+
+  void ScriptEngine::LoadProjectModules() {
+    LoadCoreModules();
+    // LoadScripts();
+  }
+
+  void ScriptEngine::LoadAttachments(const std::string_view section) {
+    Ref<LanguageModule> cs_language_module = ScriptEngine::GetModule(CS_MODULE);
+    Ref<LanguageModule> lua_language_module = ScriptEngine::GetModule(LUA_MODULE);
+    OE_ASSERT(cs_language_module != nullptr, "Failed to retrieve C# language module");
+    OE_ASSERT(lua_language_module != nullptr, "Failed to retrieve Lua language module");
+
+    std::string cs_config_section = std::string{ kScriptEngineSection } + "." + std::string{ kCsModuleSection };
+    std::string lua_config_section = std::string{ kScriptEngineSection } + "." + std::string{ kLuaModuleSection };
+    std::string attachment_key = std::string{ kAttachmentsValue } + "." + std::string{ section };
+
+    auto cs_attachments = config.Get(cs_config_section, attachment_key);
+    auto lua_attachments = config.Get(lua_config_section, attachment_key);
+
+    ScriptType script_type = ScriptType::EDITOR_SCRIPT;
+    if (section == "scene") {
+      script_type = ScriptType::SCENE_SCRIPT;
+    }
+
+    if (!cs_attachments.empty()) {
+      Ref<Directory> script_bin = Filesystem::GetDirectory("script-bin");
+      if (script_bin == nullptr) {
+        script_bin = Filesystem::GetDirectory("bin");
+      }
+      OE_ASSERT(script_bin != nullptr, "Failed to retrieve script bin directory");
+
+      Ref<FileHandle> cs_file = script_bin->OpenFile(cs_attachments[0]);
+      if (cs_file == nullptr) {
+        OE_ERROR("Failed to load C# attachment file {} ({})", cs_attachments[0], (*script_bin) / Path(cs_attachments[0]));
+        return;
+      }
+      OE_ASSERT(cs_file != nullptr, "Failed to load C# attachment file {}", cs_attachments[0]);
+
+      LoadScriptFile(script_type, cs_file);
+    }
+
+    if (!lua_attachments.empty()) {
+      Ref<FileHandle> lua_file = nullptr;
+
+      Ref<Directory> lua_dir = Filesystem::GetDirectory("lua");
+      if (lua_dir == nullptr) {
+        lua_dir = script_type == ScriptType::EDITOR_SCRIPT ? Filesystem::GetDirectory("editor") : Filesystem::GetDirectory("scripts");
+        OE_ASSERT(lua_dir != nullptr, "Failed to retrieve lua directory");
+      }
+
+      lua_file = lua_dir->OpenFile(lua_attachments[0]);
+      if (lua_file == nullptr) {
+        OE_ERROR("Failed to load Lua attachment file {}", lua_attachments[0]);
+        return;
+      }
+      OE_ASSERT(lua_file != nullptr, "Failed to load Lua attachment file {}", lua_attachments[0]);
+
+      LoadScriptFile(script_type, lua_file);
+    }
   }
 
   void ScriptEngine::Shutdown() {
@@ -112,15 +125,20 @@ namespace other {
     Ref<LanguageModule> lua_language_module = ScriptEngine::GetModule(LUA_MODULE);
     Ref<LanguageModule> cs_language_module = ScriptEngine::GetModule(CS_MODULE);
 
-    OE_DEBUG("Unloading Lua script modules");
-    UnloadProjectModule(lua_language_module, kLuaModuleSection);
+    // OE_DEBUG("Unloading Lua script modules");
+    // UnloadProjectModule(lua_language_module, kLuaModuleSection);
     // lua_language_module->UnloadScript("OtherEngine.LuaCore");
 
-    OE_DEBUG("Unloading C# script modules");
-    UnloadProjectModule(cs_language_module, kCsModuleSection);
-    cs_language_module->UnloadScript("OtherEngine.CsCore");
+    // OE_DEBUG("Unloading C# script modules");
+    // UnloadProjectModule(cs_language_module, kCsModuleSection);
 
+    cs_language_module->UnloadScript("OtherEngine.CsCore");
     loaded_modules.clear();
+  }
+
+  void ScriptEngine::UnloadAttachments() {
+    Ref<LanguageModule> lua_language_module = ScriptEngine::GetModule(LUA_MODULE);
+    Ref<LanguageModule> cs_language_module = ScriptEngine::GetModule(CS_MODULE);
   }
 
   std::string ScriptEngine::GetProjectAssemblyDir() {
@@ -171,6 +189,10 @@ namespace other {
 
   const std::vector<ScriptObjectTag>& ScriptEngine::GetLoadedObjects() {
     return object_tags;
+  }
+
+  Ref<ScriptModule> ScriptEngine::LoadScriptModule(const Path& path) {
+    return nullptr;
   }
 
   Ref<ScriptModule> ScriptEngine::GetScriptModule(const std::string_view name) {
@@ -302,7 +324,6 @@ namespace other {
 
   void ScriptEngine::SetSceneContext(const Ref<Scene>& scene) {
     scene_context = scene;
-    OE_DEBUG("Script Engine Scene Context changed : {}", scene->SceneHandle());
   }
 
   Ref<Scene> ScriptEngine::GetSceneContext() {
@@ -348,72 +369,138 @@ namespace other {
     return LanguageModuleType::INVALID_LANGUAGE_MODULE;
   }
 
+  std::pair<std::string, std::string> ScriptEngine::GetLuaCsPrefixes() {
+    auto project_metadata = AppState::ProjectContext();
+    OE_ASSERT(project_metadata != nullptr, "Failed to load project metadata");
+
+    Ref<Directory> editor_dir = Filesystem::GetDirectory("project-root");
+    OE_ASSERT(editor_dir != nullptr, "Failed to load project root directory");
+
+    // /// C# binary location data
+    // auto project_bin = project_metadata->GetMetadata().bin_dir;
+    // auto script_bin = project_metadata->GetMetadata().script_bin_dir;
+
+    // Path cs_prefix = project_path / project_bin;
+    // if (script_bin.has_value()) {
+    //   cs_prefix /= script_bin.value();
+    // }
+    // cs_prefix /= "net8.0";
+
+    // if (!Filesystem::PathExists(cs_prefix)) {
+    //   OE_ERROR("Invalid C# script directory!");
+    // } else {
+    //   OE_DEBUG("C# Directory : {}", cs_prefix);
+    // }
+
+    // Path lua_prefix = project_metadata->GetMetadata().assets_dir / "scripts";
+    // if (project_metadata->GetMetadata().lua_directory.has_value()) {
+    //   Path p = project_metadata->GetMetadata().lua_directory.value();
+    //   if (!Filesystem::PathExists(p)) {
+    //     OE_ERROR("Invalid Lua script directory!");
+    //   } else {
+    //     lua_prefix = p;
+    //     OE_DEBUG("Lua Directory : {}", lua_prefix);
+    //   }
+    // }
+
+    // return { cs_prefix.string(), lua_prefix.string() };
+    return {};
+  }
+
+  void ScriptEngine::LoadCoreModules() {
+    auto project_metadata = AppState::ProjectContext();
+    if (project_metadata == nullptr) {
+      OE_ERROR("Failed to load project metadata");
+      return;
+    } else {
+      OE_DEBUG("loading scripts modules from project metadata");
+    }
+
+    const Path engine_core_dir = Filesystem::GetEngineCoreDir();
+    const Path engine_bin = engine_core_dir / "bin" / "Debug";
+    const Path cs_core = engine_bin / "OtherEngine-CsCore" / "net8.0" / "OtherEngine-CsCore.dll";
+
+    Ref<FileHandle> cs_core_dll = Filesystem::RegisterFile(cs_core);
+
+    Ref<LanguageModule> cs_language_module = ScriptEngine::GetModule(CS_MODULE);
+    Ref<LanguageModule> lua_language_module = ScriptEngine::GetModule(LUA_MODULE);
+
+    /// load c# core module
+    constexpr std::string_view core_cs_name = "OtherEngine.CsCore";
+    loaded_modules[FNV(core_cs_name)] = cs_language_module->LoadScriptModule({
+      .name = std::string{ core_cs_name },
+      .handle = cs_core_dll,
+    });
+  }
+
+  void ScriptEngine::LoadScripts() {
+    Ref<Directory> editor_dir = Filesystem::GetDirectory("editor");
+    OE_ASSERT(editor_dir != nullptr, "Failed to load editor directory");
+
+    Ref<Directory> script_dir = Filesystem::GetDirectory("scripts");
+    OE_ASSERT(script_dir != nullptr, "Failed to load scripts directory");
+
+    std::vector<Path> editor_scripts = editor_dir->GetFiles();
+    std::vector<Path> script_scripts = script_dir->GetFiles();
+
+    for (const auto& script : editor_scripts) {
+      Ref<FileHandle> file = Filesystem::GetFile(script);
+      OE_ASSERT(file != nullptr, "Failed to load script file, file handle was null : {}", script.string());
+      OE_ASSERT(file->Exists(), "Failed to load script file, file does not exist : {}", script.string());
+
+      if (file->GetAssetType() == AssetType::SCRIPTFILE) {
+        LoadScriptFile(ScriptType::EDITOR_SCRIPT, file);
+      }
+    }
+
+    for (const auto& script : script_scripts) {
+      Ref<FileHandle> file = Filesystem::GetFile(script);
+      OE_ASSERT(file != nullptr, "Failed to load script file, file handle was null : {}", script.string());
+      OE_ASSERT(file->Exists(), "Failed to load script file, file does not exist : {}", script.string());
+
+      if (file->GetAssetType() == AssetType::SCRIPTFILE) {
+        LoadScriptFile(ScriptType::SCENE_SCRIPT, file);
+      }
+    }
+  }
+
+  void ScriptEngine::LoadScriptFile(ScriptType type, const Ref<FileHandle>& path) {
+    OE_ASSERT(path != nullptr, "Failed to load script file, file handle was null");
+    OE_ASSERT(path->Exists(), "Failed to load script file, path does not exist : {}", path->AbsolutePath());
+    OE_ASSERT(path->GetAssetType() == AssetType::SCRIPTFILE, "Failed to load script file, file is not a script file : {}", path->AbsolutePath());
+
+    if (AppState::mode == EngineMode::RUNTIME && type == ScriptType::EDITOR_SCRIPT) {
+      return;
+    }
+
+    LanguageModuleType lang_type = ModuleTypeFromExtension(path->Extension());
+    if (lang_type == LanguageModuleType::INVALID_LANGUAGE_MODULE) {
+      OE_ERROR("Failed to load script file, invalid language module type : {}", path->AbsolutePath());
+      return;
+    }
+
+    Ref<LanguageModule> module = GetModule(lang_type);
+    OE_ASSERT(module != nullptr, "Failed to load script file, language module was null");
+
+    std::string name = path->FileName();
+    std::string case_ins_name = "";
+    std::transform(name.begin(), name.end(), std::back_inserter(case_ins_name), ::toupper);
+
+    OE_DEBUG("Loading script module {} into [{}] ({})", name, module->GetLanguageType(), path->AbsolutePath());
+    Ref<ScriptModule> script = module->LoadScriptModule({
+      .name = name,
+      .case_ins_name = case_ins_name,
+      .handle = path,
+    });
+    OE_ASSERT(script != nullptr, "Failed to load script module : {}", name);
+  }
+
   void ScriptEngine::LoadModule(LanguageModuleType type) {
     language_modules[type].id = kModuleInfo[type].hash;
     language_modules[type].name = kModuleInfo[type].name;
 
     language_modules[type].module = kModuleGetters[type]();
     language_modules[type].module->Initialize();
-  }
-
-  void ScriptEngine::LoadProjectModule(Ref<LanguageModule>& module, const std::string_view config_tag, const Path& prefix_path) {
-    OE_ASSERT(module != nullptr, "Failed to load project module, module was null!");
-
-    auto project_metadata = AppState::ProjectContext();
-    OE_ASSERT(project_metadata != nullptr, "Failed to load project metadata");
-
-    std::string real_key = std::string{ kScriptEngineSection } + "." + std::string{ config_tag };
-    auto modules = config.Get(real_key, kModulesValue);
-
-    for (const auto& mod : modules) {
-      if (mod == "") {
-        continue;
-      }
-
-      Path path = mod;
-      if (!prefix_path.empty()) {
-        path = prefix_path / mod;
-      }
-
-      size_t ext = path.extension().string().find_last_of('/');
-      if (ext == std::string::npos) {
-        ext = 0;
-      } else {
-        ext += 1;
-      }
-
-      size_t length = path.string().length() - ext;
-      std::string name = path.filename().string().substr(ext, length);
-      name = name.substr(0, name.find_last_of('.'));
-
-      std::string case_ins_name = "";
-      std::transform(name.begin(), name.end(), std::back_inserter(case_ins_name), ::toupper);
-
-      OE_DEBUG("Loading script module {} from [{}]", name, module->GetLanguageType());
-      Ref<ScriptModule> script = module->LoadScriptModule({
-        .name = name,
-        .case_ins_name = case_ins_name,
-        .path = path.string(),
-      });
-      loaded_modules[FNV(name)] = script;
-    }
-  }
-
-  void ScriptEngine::UnloadProjectModule(Ref<LanguageModule>& module, const std::string_view config_tag) {
-    if (module != nullptr) {
-      std::string real_key = std::string{ kScriptEngineSection } + "." + std::string{ config_tag };
-      auto modules = config.Get(real_key, kModulesValue);
-
-      for (const auto& mod : modules) {
-        Path path = mod;
-        std::string name = path.filename().string().substr(0, path.filename().string().find_last_of('.'));
-
-        OE_DEBUG(" > Unloading script module {}", name);
-        module->UnloadScript(name);
-      }
-    } else {
-      OE_ERROR("Failed to unload script module, module was null!");
-    }
   }
 
   LanguageModuleType ScriptEngine::ModuleTypeFromExtension(const std::string_view ext) {
@@ -426,15 +513,17 @@ namespace other {
   }
 
   void ScriptEngine::LoadScriptModule(Path& module_path) {
-    const std::string fname = module_path.filename().string();
-    const std::string mname = fname.substr(0, fname.find_last_of('.'));
-    const std::string ext = module_path.extension().string();
+    Ref<FileHandle> file = Filesystem::RegisterFile(module_path);
+    if (file == nullptr) {
+      OE_ERROR("Failed to load script module : {}", module_path.string());
+      return;
+    }
+    OE_DEBUG("Loading Editor Script Module : {} ({})", file->FileName(), module_path.string());
 
-    OE_DEBUG("Loading Editor Script Module : {} ({})", mname, module_path.string());
-
-    language_modules[ModuleTypeFromExtension(ext)].module->LoadScriptModule({
-      .name = mname,
-      .path = module_path.string(),
+    LanguageModuleType lang_type = ModuleTypeFromExtension(file->Extension());
+    language_modules[lang_type].module->LoadScriptModule({
+      .name = file->FileName(),
+      .handle = file,
       .type = ScriptType::EDITOR_SCRIPT,
     });
   }

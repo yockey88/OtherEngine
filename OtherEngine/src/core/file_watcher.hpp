@@ -5,21 +5,27 @@
 #define OTHER_ENGINE_FILE_WATCHER_HPP
 
 #include <filesystem>
-#include <string_view>
+
+#include "core/defines.hpp"
+#include "core/ref_counted.hpp"
+#include "core/uuid.hpp"
 
 namespace other {
 
-  class FileWatcher {
-    public:
-      FileWatcher(const std::string_view file_path);
+  class FileWatcher : public RefCounted {
+   public:
+    FileWatcher(UUID handle, const Path& path);
+    virtual ~FileWatcher() = default;
 
-      bool ChangedSinceLastCheck();
+    bool Poll();
 
-    protected:
-      std::string file_path;
-      std::filesystem::file_time_type last_write;
-  }; 
+   protected:
+    bool exists = false;
+    UUID handle = 0;
+    Path file_path;
+    std::filesystem::file_time_type last_write;
+  };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_FILE_WATCHER_HPP
+#endif  // !OTHER_ENGINE_FILE_WATCHER_HPP

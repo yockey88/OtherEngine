@@ -49,7 +49,7 @@ namespace other {
       return;
     }
 
-    window->OnAttach();
+    window->Attach();
     windows[id] = window;
   }
 
@@ -62,7 +62,7 @@ namespace other {
       return;
     }
 
-    windows[id]->OnDetach();
+    windows[id]->Detach();
     windows.erase(itr);
   }
 

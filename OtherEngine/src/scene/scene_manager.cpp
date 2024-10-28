@@ -206,7 +206,7 @@ namespace other {
       return {};
     }
 
-    return StateStack::RecordState(ActiveScene()->scene);
+    return SaveStack::RecordState(ActiveScene()->scene);
   }
 
   void SceneManager::LoadCapture(StateCapture& capture) {
@@ -220,7 +220,7 @@ namespace other {
       scene_playing = true;
     }
 
-    StateStack::RestoreState(ActiveScene()->scene, capture);
+    SaveStack::RestoreState(ActiveScene()->scene, capture);
 
     if (scene_playing) {
       active_scene->scene->Start(AppState::mode);
@@ -237,6 +237,15 @@ namespace other {
     }
 
     loaded_scenes.clear();
+  }
+
+  void SceneManager::LoadRenderer(Ref<SceneRenderer> renderer) {
+    if (renderer == nullptr) {
+      renderer = Renderer::DefaultSceneRenderer();
+    }
+    OE_ASSERT(renderer != nullptr, "Renderer is null!");
+
+    scene_renderer = renderer;
   }
 
   const std::vector<std::string>& SceneManager::ScenePaths() const {
@@ -271,24 +280,40 @@ namespace other {
     active_scene->scene->LateUpdate(dt);
   }
 
-  bool SceneManager::RenderScene(Ref<SceneRenderer>& scene_renderer, Ref<CameraBase> viewpoint) {
+  bool SceneManager::RenderScene() {
     if (!HasActiveScene()) {
       return true;
     }
 
-    if (viewpoint != nullptr) {
-      scene_renderer->SubmitCamera(viewpoint);
-    } else {
-      auto primary_cam = active_scene->scene->GetPrimaryCamera();
-      if (primary_cam == nullptr) {
-        OE_WARN("attempting to render scene without camera!");
-        return true;
-      }
+    OE_ASSERT(scene_renderer != nullptr, "Scene Renderer is null!");
+    auto primary_cam = active_scene->scene->GetPrimaryCamera();
+    if (primary_cam != nullptr) {
       scene_renderer->SubmitCamera(primary_cam);
     }
 
     active_scene->scene->Render(scene_renderer);
-    scene_renderer->EndScene();
+    bool render_success = scene_renderer->EndScene();
+
+    //// debug rendering ?????
+    //  debug rendering
+    // scene_layer->bvh->RenderBounds("Debug", rendering_layer->renderer);
+    // scene_layer->bvh->RenderEntityBounds("Debug", rendering_layer->renderer);
+    // for (auto& [id, e] : scene->SceneEntities()) {
+    //   OE_ASSERT(e != nullptr, "Entity is null");
+    //   e->visited = false;
+    // }
+    ///
+
+    /// present main frame and check whether to render to window or not
+    /// TODO: customize which frame is considered the 'main' frame
+    const auto& frames = scene_renderer->GetRender();
+    auto itr = frames.find(FNV("Geometry"));
+    if (render_success && itr != frames.end()) {
+      const auto& vp = itr->second;
+      Renderer::DrawFramebufferToWindow(vp);
+    } else {
+      return false;
+    }
 
     return true;
   }

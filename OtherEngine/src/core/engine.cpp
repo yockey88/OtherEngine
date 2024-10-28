@@ -8,12 +8,13 @@
 #include "core/config.hpp"
 #include "core/config_keys.hpp"
 #include "core/defines.hpp"
-#include "core/engine_state.hpp"
 #include "core/filesystem.hpp"
 #include "core/logger.hpp"
 
 #include "application/app_state.hpp"
+#include "application/app_state_machine.hpp"
 #include "application/runtime_layer.hpp"
+#include "event/core_events.hpp"
 #include "event/event_queue.hpp"
 #include "input/io.hpp"
 #include "parsing/ini_parser.hpp"
@@ -34,7 +35,7 @@ namespace other {
 
   Engine::Engine(const CmdLine& cmdline)
       : cmd_line(cmdline) {
-    EngineState::exit_code = LoadConfig();
+    exit_code = LoadConfig();
   }
 
   ExitCode Engine::Run() {
@@ -42,17 +43,17 @@ namespace other {
     println("Running Other Engine in {}", std::filesystem::current_path().string());
 #endif  // OE_DEBUG_BUILD
 
-    if (!EngineState::exit_code.has_value()) {
+    if (!exit_code.has_value()) {
       println("Engine in invalid state for Engine::Run(). config never loaded");
       return ExitCode::FAILURE;
     }
 
-    if (EngineState::exit_code.value() != ExitCode::NO_EXIT) {
+    if (exit_code.value() != ExitCode::NO_EXIT) {
       println("Failed to load configuration!");
       return ExitCode::FAILURE;
     }
 
-    EngineState::exit_code = std::nullopt;
+    exit_code = std::nullopt;
     ExitCode ec;
 
     /// TODO: allocators
@@ -71,8 +72,8 @@ namespace other {
         LoadApp();
         // active_app->Run();
         UnloadApp();
-      } while (!EngineState::exit_code.has_value());
-      ec = EngineState::exit_code.value();
+      } while (!exit_code.has_value());
+      ec = exit_code.value();
     } catch (const std::exception& e) {
       OE_CRITICAL("Fatal error caught (std::exception) : {}", e.what());
       ec = ExitCode::FAILURE;
@@ -111,7 +112,7 @@ namespace other {
       RegisterLoggers();
     }
 
-    AppState::AttachApplication();
+    AppState::AppEvent(NewRef<ApplicationAttached>());
   }
 
   void Engine::UnloadApp() {
@@ -148,17 +149,28 @@ namespace other {
   }
 
   void Engine::Start() {
+    exit_code = std::nullopt;
     delta.Start();
   }
 
-  void Engine::Tick() {
+  void Engine::Step() {
     float dt = delta.Get();
-
     AppState::OnEngineTick(dt);
     EventQueue::Poll();
   }
 
   void Engine::Stop() {
+    /// stop command
+    EventQueue::PushEvent<StopCommand>({});
+
+    /// poll to enforce stop
+    EventQueue::Poll();
+    /// flush loop
+    AppState::RunEarlyUpdate();
+    AppState::RunUpdate();
+    AppState::RunLateUpdate();
+    /// stopped
+
     AppState::DetachApplication();
   }
 

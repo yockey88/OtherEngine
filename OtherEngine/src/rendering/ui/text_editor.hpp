@@ -12,7 +12,6 @@
 
 #include "rendering/ui/ui_window.hpp"
 
-
 namespace Zep {
 
   using MessagePtr = std::shared_ptr<ZepMessage>;
@@ -85,7 +84,7 @@ namespace other {
     virtual void OnAttach() override;
     virtual void OnDetach() override;
     virtual void OnUpdate(float dt) override;
-    virtual void Render() override;
+    virtual void OnRender() override;
 
     void LoadFile(const std::string& file);
 

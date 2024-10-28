@@ -5,18 +5,19 @@
 
 #include "core/logger.hpp"
 
+#include "asset/asset_database.hpp"
 #include "asset/asset_loader.hpp"
 
 namespace other {
 
-  AssetType RuntimeAssetHandler::GetAssetType(AssetHandle handle) { 
+  AssetType RuntimeAssetHandler::GetAssetType(AssetHandle handle) {
     if (IsHandleValid(handle)) {
       return GetAsset(handle)->GetAssetType();
     }
     return AssetType::BLANK_ASSET;
   }
-  
-  Ref<Asset> RuntimeAssetHandler::GetAsset(AssetHandle handle) { 
+
+  Ref<Asset> RuntimeAssetHandler::GetAsset(AssetHandle handle) {
     Ref<Asset> asset = nullptr;
 
     if (IsMemOnly(handle)) {
@@ -30,77 +31,77 @@ namespace other {
 
       Ref<Asset> asset = nullptr;
       if (!metadata.loaded) {
-        metadata.loaded = AssetLoader::TryLoad(metadata , asset);
+        asset = AssetLoader::Load(metadata);
+        metadata.loaded = asset != nullptr;
         LoadAsset(handle);
         // loaded_assets[handle] = asset;
       } else {
-        OE_ASSERT(false , "Asset loading not implemented yet");
+        OE_ASSERT(false, "Asset loading not implemented yet");
         /// asset = loaded_assets[handle];
       }
     }
 
     return asset;
   }
-  
-  void RuntimeAssetHandler::AddMemOnly(Ref<Asset>& asset) {
-    if (asset == nullptr) {
-      OE_ERROR("Attempting to add null memory-only asset!");
-      return;
-    }
 
-    AssetMetadata metadata;
-    metadata.handle = asset->handle;
-    metadata.loaded = true;
-    metadata.type = asset->GetAssetType();
-    metadata.memory_asset = true;
-    registry[asset->handle] = metadata;
+  void RuntimeAssetHandler::AddMemOnly(Ref<Asset>& asset) {
+    OE_ASSERT(asset != nullptr, "Attempting to add null memory-only asset!");
+    OE_ASSERT(asset->handle != 0, "Attempting to add memory-only asset with invalid handle!");
+
+    AssetDatabase::RegisterAsset({
+      .handle = asset->handle,
+      .type = asset->GetAssetType(),
+      .path = Path(""),
+      .loaded = true,
+      .memory_asset = true,
+    });
+
+    OE_ASSERT(AssetDatabase::Contains(asset->handle), "Failed to register memory-only asset : {}", asset->handle);
     memory_assets[asset->handle] = asset;
   }
-  
-  bool RuntimeAssetHandler::ReloadData(AssetHandle handle) { 
+
+  bool RuntimeAssetHandler::ReloadData(AssetHandle handle) {
     if (IsHandleValid(handle)) {
     }
     return false;
   }
-  
-  bool RuntimeAssetHandler::IsHandleValid(AssetHandle handle) { 
-    return registry.find(handle) != registry.end() && 
-           (assets.find(handle) != assets.end() || 
-            memory_assets.find(handle) != memory_assets.end()); 
+
+  bool RuntimeAssetHandler::IsHandleValid(AssetHandle handle) {
+    return AssetDatabase::Contains(handle);
   }
-  
-  bool RuntimeAssetHandler::IsMemOnly(AssetHandle handle) { 
+
+  bool RuntimeAssetHandler::IsMemOnly(AssetHandle handle) {
     return memory_assets.find(handle) != memory_assets.end();
   }
-  
-  bool RuntimeAssetHandler::IsLoaded(AssetHandle handle) { 
+
+  bool RuntimeAssetHandler::IsLoaded(AssetHandle handle) {
     if (IsHandleValid(handle)) {
       return assets[handle]->CheckFlag(AssetFlag::ASSET_LOADED);
     }
     return false;
   }
-  
-  bool RuntimeAssetHandler::IsValid(AssetHandle handle) { 
+
+  bool RuntimeAssetHandler::IsValid(AssetHandle handle) {
     if (IsHandleValid(handle)) {
       return GetAsset(handle)->IsValid();
     }
     return false;
   }
-  
-  bool RuntimeAssetHandler::IsMissing(AssetHandle handle) { 
+
+  bool RuntimeAssetHandler::IsMissing(AssetHandle handle) {
     if (IsHandleValid(handle)) {
       return GetAsset(handle)->CheckFlag(AssetFlag::MISSING);
     }
     return false;
   }
-  
+
   void RuntimeAssetHandler::Remove(AssetHandle handle) {
     if (IsHandleValid(handle)) {
       assets.erase(assets.find(handle));
     }
   }
-  
-  AssetSet RuntimeAssetHandler::GetAllOfType(AssetType type) { 
+
+  AssetSet RuntimeAssetHandler::GetAllOfType(AssetType type) {
     AssetSet result;
     for (auto& asset : assets) {
       if (asset.second->GetAssetType() == type) {
@@ -109,28 +110,28 @@ namespace other {
     }
     return result;
   }
-  
-  AssetMap& RuntimeAssetHandler::GetAll() { 
+
+  AssetMap& RuntimeAssetHandler::GetAll() {
     return assets;
   }
-      
+
   Ref<Asset> RuntimeAssetHandler::FindAsset(AssetHandle handle) {
     Ref<Asset> asset = nullptr;
 
     if (IsMemOnly(handle)) {
       asset = memory_assets[handle];
       return asset;
-    } 
-    
+    }
+
     auto& metadata = GetMetadata(handle);
     if (!metadata.IsValid()) {
-      OE_ERROR("Asset not found: {0}" , handle);
+      OE_ERROR("Asset not found: {0}", handle);
       return nullptr;
     }
 
     if (!metadata.loaded) {
       LoadAsset(handle);
-    } 
+    }
 
     asset = assets[handle];
 
@@ -139,22 +140,23 @@ namespace other {
 
   static AssetMetadata null_metadata;
   AssetMetadata& RuntimeAssetHandler::GetMetadata(AssetHandle handle) {
-    if (registry.Contains(handle)) {
-      return registry[handle];
+    if (IsHandleValid(handle)) {
+      return AssetDatabase::Get(handle);
     }
-    return null_metadata;
   }
 
   void RuntimeAssetHandler::LoadAsset(AssetHandle handle) {
-    auto& metadata = GetMetadata(handle);
-    if (metadata.IsValid()) {
-      metadata.loaded = AssetLoader::Load(metadata , assets[handle]);
-      if (!metadata.loaded) {
-        OE_ERROR("Failed to load asset: {0}" , handle);
-      } else {
-        assets[handle]->SetFlag(AssetFlag::ASSET_LOADED);
-      }
-    }
+    // auto& metadata = GetMetadata(handle);
+    // if (metadata.IsValid() && !metadata.loaded) {
+    //   assets[handle] = AssetLoader::Load(metadata);
+    //   metadata.loaded = AssetLoader::Load(metadata);
+    //   if (!metadata.loaded) {
+    //     OE_ERROR("Failed to load asset: {0}", handle);
+    //   } else {
+    //     assets[handle]->SetFlag(AssetFlag::ASSET_LOADED);
+    //   }
+    // }
+    OE_ASSERT(false, "UNIMPLEMENTED");
   }
 
-} // namespace other
+}  // namespace other

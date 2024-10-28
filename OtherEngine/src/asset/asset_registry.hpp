@@ -1,40 +1,42 @@
 /**
  * \file asset/asset_registry.hpp
-*/
+ */
 #ifndef OTHER_ENGINE_ASSET_REGISTRY_HPP
 #define OTHER_ENGINE_ASSET_REGISTRY_HPP
 
 #include <map>
 
-#include "asset/asset_types.hpp"
 #include "asset/asset_metadata.hpp"
+#include "asset/asset_types.hpp"
 
 namespace other {
 
   using AssetDataMap = std::map<AssetHandle, AssetMetadata>;
 
   class AssetRegistry {
-    public:
-      AssetMetadata& operator[](AssetHandle handle) { return assets[handle]; }
-      const AssetMetadata& operator[](AssetHandle handle) const { return assets.at(handle); }
-      AssetMetadata& At(AssetHandle handle) { return assets.at(handle); }
-      const AssetMetadata& At(AssetHandle handle) const { return assets.at(handle); }
+   public:
+    AssetMetadata& operator[](AssetHandle handle);
+    const AssetMetadata& operator[](AssetHandle handle) const;
+    AssetMetadata& At(AssetHandle handle);
+    const AssetMetadata& At(AssetHandle handle) const;
 
-      size_t Size() const { return assets.size(); }
-      bool Contains(AssetHandle handle) const { return assets.find(handle) != assets.end(); }
-      bool Empty() const { return assets.empty(); }
-      void Clear() { assets.clear(); }
+    size_t Size() const;
+    bool Contains(AssetHandle handle) const;
+    bool Empty() const;
+    void Clear();
 
-      auto find(AssetHandle handle) { return assets.find(handle); }
-      auto begin() { return assets.begin(); }
-      auto end() { return assets.end(); }
-      auto cbegin() const { return assets.cbegin(); }
-      auto cend() const { return assets.cend(); }
+    AssetDataMap::iterator find(AssetHandle handle);
+    AssetDataMap::iterator begin();
+    AssetDataMap::iterator end();
+    AssetDataMap::const_iterator cbegin() const;
+    AssetDataMap::const_iterator cend() const;
 
-    private:
-      AssetDataMap assets;
+   private:
+    AssetDataMap assets;
+
+    friend class AssetDatabase;
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_ASSET_REGISTRY_HPP
+#endif  // !OTHER_ENGINE_ASSET_REGISTRY_HPP

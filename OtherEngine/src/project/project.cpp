@@ -10,56 +10,18 @@
 #include "core/logger.hpp"
 
 namespace other {
-  namespace {
-
-    static Ref<Directory> GetDirStructure(Ref<Directory>& parent, const Path& path) {
-      Ref<Directory> this_dir = Ref<Directory>::Create(parent, path);
-
-      std::vector<Path> sub_dirs = Filesystem::GetSubDirs(path);
-      std::vector<Ref<Directory>> dirs;
-      for (auto& p : sub_dirs) {
-        dirs.push_back(GetDirStructure(this_dir, p));
-      }
-
-      return this_dir;
-    }
-
-    static Ref<Directory> GetDirStructure(const Path& path) {
-      Ref<Directory> this_dir = Ref<Directory>::Create(path);
-
-      std::vector<Path> sub_dirs = Filesystem::GetSubDirs(path);
-      std::vector<Ref<Directory>> dirs;
-      for (auto& p : sub_dirs) {
-        dirs.push_back(GetDirStructure(this_dir, p));
-      }
-
-      return this_dir;
-    }
-
-    static std::vector<Ref<Directory>> GetAllDirectories(const Path& basepath) {
-      std::vector<Path> sub_dirs = Filesystem::GetSubDirs(basepath);
-      std::vector<Ref<Directory>> dirs;
-      for (auto& p : sub_dirs) {
-        dirs.push_back(GetDirStructure(p));
-      }
-      return dirs;
-    }
-
-  }  // anonymous namespace
 
   Opt<std::string> Project::queued_project_path = std::nullopt;
 
   Project::Project(const CmdLine& cmdline, const ConfigTable& config)
       : cmdline(cmdline), config(config) {
     metadata.name = config.GetVal<std::string>(kProjectSection, kNameValue, false).value_or("Unnamed Project");
-    OE_DEBUG("Project Name : {}", metadata.name);
-
     metadata.bin_dir = config.GetVal<std::string>(kProjectSection, kBinDirValue, false).value_or("bin/Debug/");
-    OE_DEBUG("Bin Dir : {}", metadata.bin_dir);
-
-    /// optionals so even if no value, no need to unwrap
     metadata.primary_scene = config.GetVal<std::string>(kProjectSection, kPrimarySceneValue, false);
     metadata.lua_directory = config.GetVal<std::string>(kProjectSection, kLuaDirValue, false);
+
+    OE_DEBUG("Project Name : {}", metadata.name);
+    OE_DEBUG("Bin Dir : {}", metadata.bin_dir);
 
     auto script_bin = config.GetVal<std::string>(kProjectSection, kScriptBinDirValue, false);
     if (script_bin.has_value()) {
@@ -96,48 +58,16 @@ namespace other {
         metadata.cs_project_file = p;
       }
     }
+
+    InitializeVirtualFolders();
   }
 
   Ref<Project> Project::Create(const CmdLine& cmdline, const ConfigTable& data) {
     return NewRef<Project>(cmdline, data);
   }
 
-  void Project::LoadFiles() {
-    auto dirs = GetAllDirectories(metadata.project_directory);
-    for (auto& d : dirs) {
-      auto stem = d->path.stem();
-
-      /// ignore dot dirs and build dirs
-      if (stem.string()[0] == '.' || stem == "bin" || stem == "obj") {
-        continue;
-      }
-
-      /// check if this is our assets dir
-      if (stem == "assets") {
-        metadata.assets_dir = d->path;
-        OE_DEBUG("project assets directory {}", metadata.assets_dir);
-      }
-
-      metadata.directories[FNV(stem.string())] = d;
-    }
-
-    Path editor_path = metadata.assets_dir / kEditorDirName;
-    Path scripts_path = metadata.assets_dir / kScriptsDirName;
-
-    OE_DEBUG("Creating Directory Watchers for Reloading");
-
-    metadata.cs_editor_watcher = NewScope<DirectoryWatcher>(editor_path.string(), ".cs");
-    metadata.cs_scripts_watcher = NewScope<DirectoryWatcher>(scripts_path.string(), ".cs");
-
-    metadata.lua_editor_watcher = NewScope<DirectoryWatcher>(editor_path.string(), ".lua");
-    metadata.lua_scripts_watcher = NewScope<DirectoryWatcher>(scripts_path.string(), ".lua");
-
-    OE_DEBUG("Creating Script Watchers");
-    CreateScriptWatchers();
-  }
-
   bool Project::RegenProjectFile() {
-    CreateScriptWatchers();
+    // CreateScriptWatchers();
 
     std::string makefilename = "premake5.lua";  // metadata.name + ".lua";
     Path premake = metadata.file_path.parent_path() / "premake" / "premake5.exe";
@@ -154,58 +84,72 @@ namespace other {
     return system(cmd.c_str()) == 0;
   }
 
-  void Project::CreateScriptWatchers() {
-    if (metadata.filewatchers.size() > 0) {
-      metadata.filewatchers.clear();
+  ProjectMetadata& Project::GetMetadata() {
+    return metadata;
+  }
+
+  std::string Project::GetName() {
+    return metadata.name;
+  }
+
+  Path Project::GetFilePath() {
+    return metadata.file_path;
+  }
+
+  void Project::InitializeVirtualFolders() {
+    Ref<Directory> bin_dir = Filesystem::MountDirectory("bin", metadata.project_directory / metadata.bin_dir);
+    OE_ASSERT(bin_dir != nullptr, "Failed to create bin directory");
+    OE_ASSERT(bin_dir->Exists(), "Bin directory does not exist : {}", metadata.bin_dir);
+
+    Ref<Directory> assets_dir = Filesystem::MountDirectory("assets", metadata.assets_dir);
+    OE_ASSERT(assets_dir != nullptr, "Failed to create assets directory");
+    OE_ASSERT(assets_dir->Exists(), "Assets directory does not exist : {}", metadata.assets_dir);
+
+    if (metadata.script_bin_dir.has_value()) {
+      Ref<Directory> script_bin_dir = Filesystem::MountDirectory("script-bin", *bin_dir / *metadata.script_bin_dir);
+      OE_ASSERT(script_bin_dir != nullptr, "Failed to create script bin directory");
+      OE_ASSERT(script_bin_dir->Exists(), "Script bin directory does not exist : {}", *metadata.script_bin_dir);
+    } else {
+      Ref<Directory> script_bin_dir = Filesystem::MountDirectory("script-bin", *bin_dir);
+      OE_ASSERT(script_bin_dir != nullptr, "Failed to create script bin directory");
+      OE_ASSERT(script_bin_dir->Exists(), "Script bin directory does not exist : {}", *metadata.script_bin_dir);
     }
 
-    Path editor_path = metadata.assets_dir / kEditorDirName;
-    Path scripts_path = metadata.assets_dir / kScriptsDirName;
-
-    CreateFileWatchers(editor_path);
-    CreateFileWatchers(scripts_path);
-  }
-
-  bool Project::EditorDirectoryChanged() {
-    OE_ASSERT(metadata.cs_editor_watcher != nullptr && metadata.lua_editor_watcher != nullptr, "Project editor watchdog nullptr!");
-    return metadata.cs_editor_watcher->DirectoryChanged() ||
-      metadata.lua_editor_watcher->DirectoryChanged();
-  }
-
-  bool Project::ScriptDirectoryChanged() {
-    OE_ASSERT(metadata.cs_scripts_watcher != nullptr && metadata.lua_scripts_watcher != nullptr, "Project scripts watchdog nullptr!");
-    return metadata.cs_scripts_watcher->DirectoryChanged() ||
-      metadata.lua_scripts_watcher->DirectoryChanged();
-  }
-
-  bool Project::AnyScriptChanged() {
-    for (const auto& fw : metadata.filewatchers) {
-      if (fw->ChangedSinceLastCheck()) {
-        return true;
-      }
+    if (metadata.lua_directory.has_value()) {
+      Ref<Directory> lua_dir = Filesystem::MountDirectory("lua", *metadata.lua_directory);
+      OE_ASSERT(lua_dir != nullptr, "Failed to create lua directory");
+      OE_ASSERT(lua_dir->Exists(), "Lua directory does not exist : {}", *metadata.lua_directory);
     }
 
-    return false;
+    Ref<Directory> project_dir = Filesystem::MountDirectory("project-root", metadata.project_directory);
+    OE_ASSERT(project_dir != nullptr, "Failed to create project directory");
+    OE_ASSERT(project_dir->Exists(), "Project directory does not exist : {}", metadata.project_directory);
+
+    const Path editor_dir = metadata.project_directory / kEditorDirName;
+    Ref<Directory> editor_dir_handle = Filesystem::MountDirectory("editor", editor_dir);
+    OE_ASSERT(editor_dir_handle != nullptr, "Failed to create editor directory");
+    OE_ASSERT(editor_dir_handle->Exists(), "Editor directory does not exist : {}", editor_dir);
+
+    const Path materials_dir = metadata.project_directory / kMaterialsDirName;
+    Ref<Directory> materials_dir_handle = Filesystem::MountDirectory("materials", materials_dir);
+    OE_ASSERT(materials_dir_handle != nullptr, "Failed to create materials directory");
+    OE_ASSERT(materials_dir_handle->Exists(), "Materials directory does not exist : {}", materials_dir);
+
+    const Path scenes_dir = metadata.project_directory / kScenesDirName;
+    Ref<Directory> scenes_dir_handle = Filesystem::MountDirectory("scenes", scenes_dir);
+    OE_ASSERT(scenes_dir_handle != nullptr, "Failed to create scenes directory");
+
+    const Path scripts_dir = metadata.project_directory / kScriptsDirName;
+    Ref<Directory> scripts_dir_handle = Filesystem::MountDirectory("scripts", scripts_dir);
+    OE_ASSERT(scripts_dir_handle != nullptr, "Failed to create scripts directory");
+
+    const Path shaders_dir = metadata.project_directory / kShadersDirName;
+    Ref<Directory> shaders_dir_handle = Filesystem::MountDirectory("shaders", shaders_dir);
+    OE_ASSERT(shaders_dir_handle != nullptr, "Failed to create shaders directory");
   }
 
-  void Project::CreateFileWatchers(const Path& dirpath) {
-    if (!Filesystem::PathExists(dirpath)) {
-      OE_ERROR("Creating file watchers for non-existent directory {}", dirpath);
-      return;
-    } else if (!Filesystem::IsDirectory(dirpath)) {
-      OE_ERROR("CreateFileWatchers param must be a directory. {} is a file.", dirpath);
-      return;
-    }
-
-    for (auto entry : std::filesystem::recursive_directory_iterator(dirpath)) {
-      if (entry.is_regular_file() && (entry.path().extension() == ".cs" || entry.path().extension() == ".lua")) {
-        metadata.filewatchers.push_back(NewScope<FileWatcher>(entry.path().string()));
-      }
-    }
-  }
-
-  void Project::QueueNewProject(const std::string& path) {
-    queued_project_path = path;
+  void Project::QueueNewProject(const Path& path) {
+    queued_project_path = path.string();
   }
 
   bool Project::HasQueuedProject() {

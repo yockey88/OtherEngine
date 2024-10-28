@@ -1,40 +1,13 @@
 /**
  * \file sandbox/main.cpp
  **/
-#include <glad/glad.h>
-#include <glm/ext/matrix_transform.hpp>
-#include <glm/fwd.hpp>
-#include <imgui/backends/imgui_impl_opengl3.h>
-#include <imgui/backends/imgui_impl_sdl2.h>
-#include <imgui/imgui.h>
-
-#include <SDL.h>
-#include <SDL_keyboard.h>
-#include <SDL_mouse.h>
-
-#include "core/defines.hpp"
 #include "core/engine.hpp"
-#include "core/errors.hpp"
+#include "core/filesystem.hpp"
 #include "core/logger.hpp"
-#include "core/time.hpp"
 
-#include "application/app.hpp"
+#include "event/core_events.hpp"
 #include "event/event_queue.hpp"
 #include "parsing/cmd_line_parser.hpp"
-
-#include "rendering/camera_base.hpp"
-#include "rendering/framebuffer.hpp"
-#include "rendering/renderer.hpp"
-#include "rendering/scene_renderer.hpp"
-#include "scripting/script_engine.hpp"
-
-#define UI_ENABLED 1
-#if UI_ENABLED
-#include "rendering/ui/ui.hpp"
-#include "rendering/ui/ui_helpers.hpp"
-
-#include "sandbox_ui.hpp"
-#endif
 
 #include "control_layer.hpp"
 #include "rendering_layer.hpp"
@@ -42,8 +15,23 @@
 
 using namespace other;
 
+#include <iostream>
+
+bool ProcessFileMod(const ModifyFileEvent& event) {
+  Ref<FileHandle> file = Filesystem::GetFile(event.handle);
+  OE_ASSERT(file != nullptr, "Failed to get file handle for event : {}", event.handle);
+
+  if (file->GetAssetType() == AssetType::SCRIPTFILE) {
+    /// reload script
+    OE_INFO("Reloading script : {}", file->AbsolutePath());
+  }
+
+  return false;
+}
+
 int main() {
   try {
+    std::cout << "hello from sandbox" << std::endl;
     const std::vector<Arg> sandbox_cmd_line = {
       Arg("--project", { "C:/Yock/code/OtherEngine/tests/sandbox/sandbox.other" })
     };
@@ -59,6 +47,21 @@ int main() {
     OE_DEBUG("Sandbox Launched");
 
     {
+      EventQueue::RegisterEventDispatcher<ShutdownEvent>(
+        "Sandbox-Shutdown",
+        {
+          [&](ShutdownEvent& event) -> bool {
+            mock_engine.exit_code = event.exit_code;
+            return true;
+          },
+        }
+      );
+
+      EventQueue::RegisterEventDispatcher<ModifyFileEvent>(
+        "Sandbox-File-Listener",
+        { &ProcessFileMod }
+      );
+
       Ref<ControlLayer> control_layer = NewRef<ControlLayer>(&AppState::AppHandle(), "Control-Layer");
       Ref<RenderingLayer> rendering_layer = NewRef<RenderingLayer>(&AppState::AppHandle(), "Rendering-Layer");
       Ref<SceneLayer> scene_layer = NewRef<SceneLayer>(&AppState::AppHandle(), "Scene-Layer");
@@ -67,94 +70,14 @@ int main() {
       AppState::PushLayer(scene_layer);
       EventQueue::Poll();
 
-      Ref<Scene> scene = scene_layer->scene;
-      ScriptRef<LuaObject> sandbox_ui = ScriptEngine::GetScriptObject("SandboxUI", "", "sandbox_ui");
-      sandbox_ui->Initialize();
-
-      DefaultUpdateCamera(rendering_layer->camera);
-
-      bool render_to_window = true;
-
       mock_engine.Start();
       OE_INFO("Running");
-      while (control_layer->running) {
+      while (!mock_engine.exit_code.has_value()) {
         /// engine tick, will send events to event queue and dispatch them to listeners
         ///   and will trigger an application tick every ??? seconds
-        mock_engine.Tick();
-
-        if (!control_layer->camera_lock) {
-          DefaultUpdateCamera(rendering_layer->camera);
-        }
-
-        AppState::RunEarlyUpdate();
-        AppState::RunUpdate();
-        AppState::RunLateUpdate();
-
-        Renderer::GetWindow()->Clear();
-
-        auto cam = scene->GetPrimaryCamera();
-        if (cam == nullptr) {
-          rendering_layer->renderer->SubmitCamera(/* editor camera */ rendering_layer->camera);
-        }
-
-        scene->Render(rendering_layer->renderer);
-
-        // / debug rendering
-        scene_layer->bvh->RenderBounds("Debug", rendering_layer->renderer);
-        scene_layer->bvh->RenderEntityBounds("Debug", rendering_layer->renderer);
-        for (auto& [id, e] : scene->SceneEntities()) {
-          OE_ASSERT(e != nullptr, "Entity is null");
-          e->visited = false;
-        }
-        ///
-
-        bool success = rendering_layer->renderer->EndScene();
-
-        const auto& frames = rendering_layer->renderer->GetRender();
-        auto itr = frames.find(FNV("Geometry"));
-        if (itr != frames.end()) {
-          const auto& vp = itr->second;
-          if (render_to_window) {
-            Renderer::DrawFramebufferToWindow(vp);
-          } else {
-          }
-        }
-
-#if UI_ENABLED
-        /// lambda to get fps from delta
-        auto fps = [](float dt) -> float {
-          return (1.f / dt) * 1000.f;
-        };
-
-        UI::BeginFrame();
-
-        sandbox_ui->RenderUI();
-        const ImVec2 win_size = { (float)Renderer::WindowSize().x, (float)Renderer::WindowSize().y };
-
-        if (ImGui::Begin("Frames")) {
-          if (!success) {
-            ScopedColor red(ImGuiCol_Text, ImVec4(1.f, 0.f, 0.f, 1.f));
-            ImGui::Text("Failed to render frame");
-          } else {
-            ImGui::Text("Frames %llu", frames.size());
-            if (auto frame = frames.find(FNV("Debug")); frame != frames.end()) {
-              RenderItem(frame->second->texture, "Debug", ImVec2(win_size.x, win_size.y));
-            }
-          }
-        }
-        ImGui::End();
-        UI::EndFrame();
-#endif  // !UI_ENABLED
-
-        Renderer::GetWindow()->SwapBuffers();
+        mock_engine.Step();
       }
       mock_engine.Stop();
-
-      // scene_layer->scene->Stop();
-      // scene_layer->scene->Shutdown();
-
-      sandbox_ui->Shutdown();
-      sandbox_ui = nullptr;
     }
 
     mock_engine.UnloadApp();

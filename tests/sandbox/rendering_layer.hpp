@@ -7,6 +7,8 @@
 #include "core/defines.hpp"
 #include "core/layer.hpp"
 
+#include "event/key_events.hpp"
+
 #include "rendering/camera_base.hpp"
 #include "rendering/framebuffer.hpp"
 #include "rendering/render_pass.hpp"
@@ -36,19 +38,26 @@ class RenderingLayer : public Layer {
   Ref<RenderPass> geom_pass = nullptr;
   Ref<RenderPass> outline_pass = nullptr;
 
+  Ref<ScriptObject> sandbox_ui = nullptr;
+
  protected:
   virtual void OnAttach() override;
-  // virtual void OnDetach() {}
+  virtual void OnDetach() override;
+
   // virtual void OnEarlyUpdate(float dt) {}
   // virtual void OnUpdate(float dt) {}
-  // virtual void OnLateUpdate(float dt) {}
-  // virtual void OnRender() {}
-  // virtual void OnUIRender() {}
+  virtual void OnLateUpdate(float dt) override;
+  virtual void OnRender() override;
+  virtual void OnUIRender() override;
 
   // virtual void OnSceneLoad(const SceneMetadata* metadata) {}
   // virtual void OnSceneUnload() {}
 
   // virtual void OnScriptReload() {}
+
+  bool HandleKeyPressed(KeyPressed& event);
+
+  bool camera_lock = true;
 
   Path shader_dir;
   Path default_path;

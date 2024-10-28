@@ -82,20 +82,20 @@ namespace other {
     if (Renderer::IsWindowFocused() && lost_window_focus) {
       lost_window_focus = false;
 
-      bool project_directories_changed = false;
-      if (AppState::ProjectContext()->EditorDirectoryChanged()) {
-        EventQueue::PushEvent<ProjectDirectoryUpdateEvent>({ EDITOR_DIR });
-        project_directories_changed = true;
-      }
+      //   bool project_directories_changed = false;
+      //   if (AppState::ProjectContext()->EditorDirectoryChanged()) {
+      //     EventQueue::PushEvent<ProjectDirectoryUpdateEvent>({ EDITOR_DIR });
+      //     project_directories_changed = true;
+      //   }
 
-      if (AppState::ProjectContext()->ScriptDirectoryChanged()) {
-        EventQueue::PushEvent<ProjectDirectoryUpdateEvent>({ SCRIPT_DIR });
-        project_directories_changed = true;
-      }
+      //   if (AppState::ProjectContext()->ScriptDirectoryChanged()) {
+      //     EventQueue::PushEvent<ProjectDirectoryUpdateEvent>({ SCRIPT_DIR });
+      //     project_directories_changed = true;
+      //   }
 
-      if (!project_directories_changed && AppState::ProjectContext()->AnyScriptChanged()) {
-        EventQueue::PushEvent<ScriptReloadEvent>();
-      }
+      //   if (!project_directories_changed && AppState::ProjectContext()->AnyScriptChanged()) {
+      //     EventQueue::PushEvent<ScriptReloadEvent>();
+      //   }
     } else {
       lost_window_focus = true;
     }
@@ -130,10 +130,10 @@ namespace other {
 
   void EditorLayer::OnRender() {
     /// TODO add the ability to see scene without editor camera
-    bool scene_active = AppState::Scenes()->RenderScene(default_renderer, editor_camera);
-    if (scene_active) {
-      return;
-    }
+    // bool scene_active = AppState::Scenes()->RenderScene(editor_camera);
+    // if (scene_active) {
+    //   return;
+    // }
 
     /// render default something or other
   }
@@ -301,13 +301,6 @@ namespace other {
   }
 
   Ref<SceneRenderer> EditorLayer::GetDefaultRenderer() {
-    uint32_t camera_binding_pnt = 0;
-    std::vector<Uniform> cam_unis = {
-      { "projection", other::ValueType::MAT4 },
-      { "view", other::ValueType::MAT4 },
-      { "viewpoint", other::ValueType::VEC4 },
-    };
-
     uint32_t model_binding_pnt = 1;
     std::vector<Uniform> model_unis = {
       { "models", other::ValueType::MAT4, 100 },
@@ -316,13 +309,6 @@ namespace other {
     uint32_t material_binding_pnt = 2;
     std::vector<Uniform> material_unis = {
       { "materials", other::ValueType::USER_TYPE, 100, sizeof(other::Material) },
-    };
-
-    uint32_t light_binding_pnt = 3;
-    std::vector<Uniform> light_unis = {
-      { "num_lights", other::ValueType::VEC4 },
-      { "direction_lights", other::ValueType::USER_TYPE, 100, sizeof(other::DirectionLight) },
-      { "point_lights", other::ValueType::USER_TYPE, 100, sizeof(other::PointLight) },
     };
 
     glm::vec2 window_size = Renderer::WindowSize();
@@ -351,8 +337,6 @@ namespace other {
     };
 
     SceneRenderSpec spec{
-      .camera_uniforms = NewRef<UniformBuffer>("Camera", cam_unis, camera_binding_pnt),
-      .light_uniforms = NewRef<UniformBuffer>("Lights", light_unis, light_binding_pnt),
       .pipelines = {
         {
           .framebuffer_spec = fb_spec,

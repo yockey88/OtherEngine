@@ -41,10 +41,11 @@ namespace other {
    private:
     std::string file_path;
     std::string contents;
-    std::string line;
+    std::string current_line;
 
     Opt<std::string> current_section = "";
-    Opt<std::string> current_key = "";
+    std::stack<std::string> current_key = {};
+    std::string full_current_key = "";
 
     size_t index = 0;
 
@@ -54,9 +55,20 @@ namespace other {
     void Trim(std::string& str);
     void TrimQuotes(std::string& str);
 
+    std::string StripParens(const std::string& str);
+    std::vector<std::string> SplitOn(const std::string& str, char c);
+    std::pair<std::string, std::string> SplitOnFirst(const std::string& str, char c);
+
+    void PushKey(const std::string& key);
+    void PopKey();
+
     void ParseSection(const std::string& line);
     void ParseKeyValue(const std::string& line, bool allow_key_modifications);
+    void ParseKey(const std::string& key, bool allow_key_modifications);
+    void ParseValue(const std::string& value, bool allow_key_modifications);
     void ParseValueList(const std::string& list, bool allow_key_modifications);
+
+    std::string GetFullKey() const;
 
     void HandleComment();
     void HandleSection();
@@ -68,7 +80,9 @@ namespace other {
 
     char Advance();
     void Consume();
+    bool ConsumeUntil(char c);
 
+    bool Check(char c);
     bool Match(char c);
   };
 

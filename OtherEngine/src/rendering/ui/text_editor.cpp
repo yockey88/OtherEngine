@@ -13,7 +13,6 @@
 #include "event/event_handler.hpp"
 #include "event/key_events.hpp"
 
-
 namespace other {
 
   void TextEditor::CreateEditor() {
@@ -73,7 +72,7 @@ namespace other {
   //   });
   // }
 
-  void TextEditor::Render() {
+  void TextEditor::OnRender() {
     if (!file_exists) {
       ImGui::Text(
         "File does not exist: %s. Create file?",

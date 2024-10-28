@@ -18,6 +18,18 @@ namespace other {
     children.push_back(child);
   }
 
+  void UIWindow::Attach() {
+    OnAttach();
+  }
+
+  void UIWindow::Detach() {
+    OnDetach();
+  }
+
+  void UIWindow::Update(float dt) {
+    OnUpdate(dt);
+  }
+
   void UIWindow::Render() {
     if (!window_open) {
       return;
@@ -26,6 +38,12 @@ namespace other {
     if (!ImGui::Begin(title.c_str(), &window_open, flags)) {
       ImGui::End();
       return;
+    }
+
+    focused = ImGui::IsItemFocused();
+
+    if (render_functions.size() == 0) {
+      window_open = false;
     }
 
     for (auto& render_function : render_functions) {
@@ -37,12 +55,13 @@ namespace other {
     }
 
     RenderAllChildren();
-
-    if (render_functions.size() == 0) {
-      window_open = false;
-    }
+    OnRender();
 
     ImGui::End();
+  }
+
+  bool UIWindow::IsFocused() const {
+    return focused;
   }
 
   void UIWindow::Open() {

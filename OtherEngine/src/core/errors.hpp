@@ -5,6 +5,7 @@
 #define OTHER_ENGINE_ERRORS_HPP
 
 #include <array>
+#include <source_location>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -86,12 +87,12 @@ namespace other {
 
   class IniException : public std::runtime_error {
    public:
-    IniException(const std::string_view message)
-        : std::runtime_error(message.data()){};
-    IniException(const std::string_view message, IniError error)
-        : std::runtime_error(fmterr("[ {} ] : {}", message, kIniErrStrings[error]).data()){};
-    IniException(const std::string_view message, IniError error, const std::string_view curr_line)
-        : std::runtime_error(fmterr("[ {} ] : {}\ncurr_line:\n{}", message, kIniErrStrings[error], curr_line).data()){};
+    IniException(const std::string_view message, std::source_location loc = std::source_location::current())
+        : std::runtime_error(fmtstr("[ {} ] [{}:{} in {}]", message.data(), loc.line(), loc.column(), loc.file_name())) {}
+    IniException(const std::string_view message, IniError error, std::source_location loc = std::source_location::current())
+        : std::runtime_error(fmterr("[ {} ] : {} [{}:{} in {}]", message, kIniErrStrings[error], loc.line(), loc.column(), loc.file_name()).data()) {}
+    IniException(const std::string_view message, IniError error, const std::string_view curr_line, std::source_location loc = std::source_location::current())
+        : std::runtime_error(fmterr("[ {} ] : {} [{}:{} in {}]\ncurr_line:\n{}", message, kIniErrStrings[error], loc.line(), loc.column(), loc.file_name(), curr_line).data()) {}
 
     IniError error;
 

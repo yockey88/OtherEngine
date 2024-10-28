@@ -62,12 +62,12 @@ namespace other {
   }
 
   void TEditorLayer::OnRender() {
-    bool scene_active = AppState::Scenes()->RenderScene(scene_renderer, editor_camera);
-    if (scene_active) {
-      const auto& frames = scene_renderer->GetRender();
-      const auto& vp = frames.at(FNV("Geometry"));
-      other::Renderer::DrawFramebufferToWindow(vp);
-    }
+    // bool scene_active = AppState::Scenes()->RenderScene(editor_camera);
+    // if (scene_active) {
+    //   const auto& frames = scene_renderer->GetRender();
+    //   const auto& vp = frames.at(FNV("Geometry"));
+    //   other::Renderer::DrawFramebufferToWindow(vp);
+    // }
   }
 
   void TEditorLayer::OnUIRender() {
@@ -82,13 +82,6 @@ namespace other {
   }
 
   Ref<SceneRenderer> TEditorLayer::CreateRenderer() {
-    uint32_t camera_binding_pnt = 0;
-    std::vector<Uniform> cam_unis = {
-      { "projection", other::ValueType::MAT4 },
-      { "view", other::ValueType::MAT4 },
-      { "viewpoint", other::ValueType::VEC4 },
-    };
-
     uint32_t model_binding_pnt = 1;
     std::vector<Uniform> model_unis = {
       { "models", other::ValueType::MAT4, 100 },
@@ -97,13 +90,6 @@ namespace other {
     uint32_t material_binding_pnt = 2;
     std::vector<Uniform> material_unis = {
       { "materials", other::ValueType::USER_TYPE, 100, sizeof(other::Material) },
-    };
-
-    uint32_t light_binding_pnt = 3;
-    std::vector<Uniform> light_unis = {
-      { "num_lights", other::ValueType::VEC4 },
-      { "direction_lights", other::ValueType::USER_TYPE, 100, sizeof(other::DirectionLight) },
-      { "point_lights", other::ValueType::USER_TYPE, 100, sizeof(other::PointLight) },
     };
 
     glm::vec2 window_size = Renderer::WindowSize();
@@ -137,10 +123,7 @@ namespace other {
     debug_spec.debug_name = "Debug";
 
     SceneRenderSpec spec{
-      .camera_uniforms = NewRef<UniformBuffer>("Camera", cam_unis, camera_binding_pnt),
-      .light_uniforms = NewRef<UniformBuffer>("Lights", light_unis, light_binding_pnt),
-      .passes{
-        geom_pass },
+      .passes = { geom_pass },
       .pipeline_to_pass_map = {
         { FNV("Geometry"), { FNV(geom_pass->Name()) } },
         { FNV("Debug"), { FNV(geom_pass->Name()) } },

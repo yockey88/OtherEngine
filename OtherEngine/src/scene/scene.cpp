@@ -236,8 +236,6 @@ namespace other {
       return;
     }
 
-    OE_DEBUG("Scene::EarlyUpdate: Updating scene with dt [{}]", dt);
-
     registry.view<Script>().each([&dt](Script& script) {
       script.ApiCall("EarlyUpdate", dt);
     });
@@ -279,7 +277,6 @@ namespace other {
      *
      * use late update to react to other entity's changes
      **/
-    OE_DEBUG("Scene::Update: Updating scene with dt [{}]", dt);
 
     if (physics_world_2d != nullptr) {
       physics_world_2d->Step(dt, 32, 2);
@@ -392,27 +389,27 @@ namespace other {
   }
 
   void Scene::Render(Ref<SceneRenderer>& renderer) {
+    OnRender();
+
     renderer->ClearPipelines();
     if (auto primary_cam = GetPrimaryCamera(); primary_cam != nullptr) {
       renderer->SubmitCamera(primary_cam);
     }
-    renderer->SubmitEnvironment(environment);
 
     // if (scene_geometry_changed) {
     //   RebuildEnvironment();
     //   scene_geometry_changed = false;
     //   renderer->SubmitEnvironment(environment);
     // }
-    RenderToPipeline("Geometry", renderer);
+    renderer->SubmitEnvironment(environment);
 
-    /// TODO: flesh this out
+    RenderToPipeline("Geometry", renderer);
     if (AppState::mode == EngineMode::EDITOR) {
+      /// TODO: flesh this out
       // RenderToPipeline("Debug", renderer, true);
     }
 
     scene_object->Render();
-
-    OnRender();
   }
 
   void Scene::RenderUI() {
