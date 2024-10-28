@@ -24,8 +24,7 @@ local sandbox = {
       "." ,
     }
     externalincludedirs {
-      "%{wks.location}/DotOther/NetCore",
-      "%{wks.location}/externals/gtest/googlemock/include"
+      "%{wks.location}/DotOther/NetCore"
     }
   end,
 

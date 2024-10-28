@@ -53,7 +53,7 @@ namespace dotother {
 #else
                            fmt
 #endif  // DOTOTHER_WIDE_CHARS
-                             ),
+                         ),
                          std::forward<Args>(args)...);
     }
 

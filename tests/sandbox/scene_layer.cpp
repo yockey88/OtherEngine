@@ -61,33 +61,38 @@ void SceneLayer::OnLateUpdate(float dt) {
 }
 
 bool SceneLayer::HandleSceneLoad(SceneLoad& event) {
-  scene = AppState::Scenes()->GetScene(event.scene_id);
-  OE_ASSERT(scene != nullptr, "Scene is null!");
+  {
+    scene = AppState::Scenes()->GetScene(event.scene_id);
+    OE_ASSERT(scene != nullptr, "Scene is null!");
 
-  auto* cube = scene->GetEntity("cube");
-  auto* floor = scene->GetEntity("floor");
-  auto* sun = scene->GetEntity("sun");
+    auto* cube = scene->GetEntity("cube");
+    auto* floor = scene->GetEntity("floor");
+    auto* sun = scene->GetEntity("sun");
 
-  auto& cube_mesh = cube->GetComponent<StaticMesh>();
-  cube_mesh.material = cube_material1;
+    auto& cube_mesh = cube->GetComponent<StaticMesh>();
+    cube_mesh.material = cube_material1;
 
-  auto& floor_mesh = floor->GetComponent<StaticMesh>();
-  floor_mesh.material = cube_material2;
+    auto& floor_mesh = floor->GetComponent<StaticMesh>();
+    floor_mesh.material = cube_material2;
 
-  auto& sun_l = sun->GetComponent<LightSource>();
-  sun_l.direction_light = {
-    .direction = { 0.f, -1.f, 0.f, 1.f },
-    .color = { 0.22f, 0.22f, 0.11f, 1.f },
-  };
+    auto& sun_l = sun->GetComponent<LightSource>();
+    sun_l.direction_light = {
+      .direction = { 0.f, -1.f, 0.f, 1.f },
+      .color = { 0.22f, 0.22f, 0.11f, 1.f },
+    };
 
-  bvh = NewRef<BvhTree>(glm::vec3{ 0.f, 0.f, 0.f });
-  bvh->AddScene(scene, glm::zero<glm::vec3>());
-  OE_DEBUG("Scene loaded {}", scenepath.string());
+    bvh = NewRef<BvhTree>(glm::vec3{ 0.f, 0.f, 0.f });
+    bvh->AddScene(scene, glm::zero<glm::vec3>());
+    OE_DEBUG("Scene loaded {}", scenepath.string());
 
-  ScriptEngine::SetSceneContext(scene);
-  Renderer::SetSceneContext(scene);
-
-  scene->Initialize();
+    ScriptEngine::SetSceneContext(scene);
+    Renderer::SetSceneContext(scene);
+  }
+  AppState::Scenes()->SetAsActive(scenepath);
+  AppState::Scenes()->StartScene();
 
   return false;
+}
+
+void SceneLayer::OnDetach() {
 }

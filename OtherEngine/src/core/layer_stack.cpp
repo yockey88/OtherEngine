@@ -98,9 +98,6 @@ namespace other {
   }
 
   void LayerStack::Clear() {
-    for (auto& layer : layers) {
-      layer->Detach();
-    }
     layers.clear();
     layer_insert_index = 0;
   }

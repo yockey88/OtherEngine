@@ -10,44 +10,32 @@
 #include "input/mouse.hpp"
 
 void ControlLayer::OnAttach() {
-  EventQueue::RegisterEventDispatcher<KeyPressed>(
-    "Key-Bindings",
-    {
-      std::bind_front(&ControlLayer::HandleKeyPress, this),
-    }
-  );
-
   EventQueue::RegisterEventDispatcher<WindowClosed>(
     "Close-Window",
-    {
-      [&](WindowClosed& event) -> bool {
-        running = false;
-        return true;
-      },
-    }
+    { std::bind_front(&ControlLayer::HandleWindowClosed, this) }
+  );
+
+  EventQueue::RegisterEventDispatcher<KeyPressed>(
+    "Control-Layer-Key-Bindings",
+    { std::bind_front(&ControlLayer::HandleKeyPress, this) }
   );
 
   Mouse::FreeCursor();
 }
 
-bool ControlLayer::HandleKeyPress(KeyPressed& event) {
-  HandleKeyEvent(event, Keyboard::Key::OE_C, [&](KeyPressed& event) {
-    camera_lock = !camera_lock;
-    if (camera_lock) {
-      Mouse::FreeCursor();
-    } else {
-      Mouse::LockCursor();
-    }
-  });
+bool ControlLayer::HandleWindowClosed(WindowClosed& event) {
+  EventQueue::PushEvent<ShutdownEvent>({ ExitCode::SUCCESS });
+  return true;
+}
 
+bool ControlLayer::HandleKeyPress(KeyPressed& event) {
   HandleKeyEvent(event, Keyboard::Key::OE_ESCAPE, [&](KeyPressed& event) {
-    // EventQueue::PushEvent<ShutdownEvent>({ ExitCode::SUCCESS });
-    running = false;
+    EventQueue::PushEvent<ShutdownEvent>({ ExitCode::SUCCESS });
   });
 
   HandleKeyEvent(event, Keyboard::Key::OE_R, [&](KeyPressed& event) {
     EventQueue::PushEvent<ScriptReloadEvent>();
   });
 
-  return !running;
+  return false;
 }

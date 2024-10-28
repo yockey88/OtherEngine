@@ -3,9 +3,12 @@
  */
 #include "scripting/cs/cs_module.hpp"
 
+#include <core/dotother_defines.hpp>
 #include <core/stable_vector.hpp>
 #include <hosting/garbage_collector.hpp>
 #include <hosting/host.hpp>
+
+#include "core/filesystem.hpp"
 
 #include "scripting/cs/cs_script.hpp"
 
@@ -78,13 +81,22 @@ namespace other {
   }  // anonymous namespace
 
   using namespace std::string_view_literals;
+  using namespace dotother::literals;
 
   bool CsModule::Initialize() {
     try {
+      const Path engine_core_dir = Filesystem::GetEngineCoreDir();
+      const Path dotother_dir = engine_core_dir / "DotOther";
+      const Path bin_dir = engine_core_dir / "bin" / "Debug" / "DotOther.Managed" / "net8.0";
+      const Path managed_asm_dir = dotother_dir / "Managed";
+
+      const Path host_config_path = managed_asm_dir / "DotOther.Managed.runtimeconfig.json";
+      const Path managed_asm_path = bin_dir / "DotOther.Managed.dll";
+
       const dotother::HostConfig config = {
         /// TODO: create dotother config folder to store paths and type/entry point info
-        .host_config_path = DO_STR("./DotOther/Managed/DotOther.Managed.runtimeconfig.json"),
-        .managed_asm_path = DO_STR("./bin/Debug/DotOther.Managed/net8.0/DotOther.Managed.dll"),
+        .host_config_path = host_config_path,
+        .managed_asm_path = managed_asm_path,
         .dotnet_type = DO_STR("DotOther.Managed.DotOtherHost, DotOther.Managed"),
         .entry_point = DO_STR("EntryPoint"),
 
@@ -205,6 +217,9 @@ namespace other {
     OE_ASSERT(host != nullptr, "Attempting to load script module when C# module is not loaded");
     OE_ASSERT(load_success, "Attempting to load script module when C# module is not loaded");
 
+    OE_ASSERT(module_info.handle != nullptr, "Failed to load script module : {}", module_info.name);
+    OE_ASSERT(module_info.handle->Exists(), "Failed to load script module : {}", module_info.name);
+
     UUID id = IdFromName(module_info.name);
     OE_DEBUG(" > CsModule::LoadScriptModule({}) => id = {}", module_info.name, id);
 
@@ -212,6 +227,8 @@ namespace other {
       OE_WARN("Script module {} already loaded", module_info.name);
       return loaded_modules[id];
     }
+
+    Ref<FileHandle> file = module_info.handle;
 
     AssemblyContext ctx = host->CreateAsmContext(module_info.name);
     if (ctx.context_id == -1) {
@@ -221,14 +238,23 @@ namespace other {
       OE_DEBUG(" > Created C# assembly context {} [{}]", module_info.name, ctx.context_id);
     }
 
+    Path real_path = file->AbsolutePath();
     assembly_contexts.assembly_ids[id] = ctx.context_id;
     assembly_contexts.contexts[ctx.context_id] = ctx;
-    OE_DEBUG(" > ctx[{}].LoadAssembly({}) [{}]", module_info.name, module_info.path, id);
+    OE_DEBUG(" > ctx[{}].LoadAssembly({}) [{}]", module_info.name, file->ProjectRelativePath(), id);
+
+    /// we have to give up the resource here for a second, but we will get it back
+    file->Close();
 
     ref<Assembly> assembly = nullptr;
-    assembly = ctx.LoadAssembly(module_info.path);
+    assembly = ctx.LoadAssembly(file->AbsolutePath().string());
     if (assembly == nullptr) {
       OE_ERROR("Failed to load C# assembly {} [{}]", module_info.name, id);
+
+      file->Open();
+      if (!file->IsOpen()) {
+        OE_ERROR("File may be corrupt : {}", real_path.string());
+      }
       return nullptr;
     } else {
       OE_DEBUG(" > Loaded C# assembly {} [{}]", module_info.name, id);
@@ -238,6 +264,8 @@ namespace other {
     m->Initialize();
     loaded_modules_data[id] = module_info;
 
+    file->Open();
+    OE_ASSERT(file->IsOpen(), "Failed to reopen file : {}", real_path.string());
     return m;
   }
 

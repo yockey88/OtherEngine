@@ -5,14 +5,26 @@
 
 #include "core/filesystem.hpp"
 
+#include "application/app_state.hpp"
+#include "event/event_queue.hpp"
+#include "input/io.hpp"
+
 #include "rendering/geometry_pass.hpp"
 #include "rendering/outline_pass.hpp"
 #include "rendering/perspective_camera.hpp"
 #include "rendering/renderer.hpp"
+#include "scripting/script_engine.hpp"
 
 using namespace other;
 
 void RenderingLayer::OnAttach() {
+  EventQueue::RegisterEventDispatcher<KeyPressed>(
+    "Rendering-Layer-Key-Bindings",
+    {
+      std::bind_front(&RenderingLayer::HandleKeyPressed, this),
+    }
+  );
+
   Path engine_core_dir = Filesystem::GetEngineCoreDir();
   Path assets_dir = engine_core_dir / "OtherEngine" / "assets";
 
@@ -30,6 +42,7 @@ void RenderingLayer::OnAttach() {
 
   camera = NewRef<PerspectiveCamera>(glm::ivec2{ win_size.x, win_size.y });
   camera->SetPosition({ 0.f, 0.f, 3.f });
+  DefaultUpdateCamera(camera);
 
   Ref<Shader> fbshader = BuildShader(fbshader_path);
 
@@ -53,13 +66,6 @@ void RenderingLayer::OnAttach() {
     .size = win_size,
   });
 
-  uint32_t camera_binding_pnt = 0;
-  std::vector<Uniform> cam_unis = {
-    { "projection", ValueType::MAT4 },
-    { "view", ValueType::MAT4 },
-    { "viewpoint", ValueType::VEC4 },
-  };
-
   uint32_t model_binding_pnt = 1;
   std::vector<Uniform> model_unis = {
     { "models", ValueType::MAT4, 100 },
@@ -68,13 +74,6 @@ void RenderingLayer::OnAttach() {
   uint32_t material_binding_pnt = 2;
   std::vector<Uniform> material_unis = {
     { "materials", ValueType::USER_TYPE, 100, sizeof(Material) },
-  };
-
-  uint32_t light_binding_pnt = 3;
-  std::vector<Uniform> light_unis = {
-    { "num_lights", ValueType::VEC4 },
-    { "point_lights", ValueType::USER_TYPE, 100, sizeof(PointLight) },
-    { "direction_lights", ValueType::USER_TYPE, 100, sizeof(DirectionLight) },
   };
 
   Layout default_layout = {
@@ -112,12 +111,7 @@ void RenderingLayer::OnAttach() {
   normal_pass = NewRef<RenderPass>(normal_pass_spec);
   normal_pass->SetInput("magnitude", 0.2f);
 
-  camera_uniforms = NewRef<UniformBuffer>("Camera", cam_unis, camera_binding_pnt);
-  light_uniforms = NewRef<UniformBuffer>("Lights", light_unis, light_binding_pnt, SHADER_STORAGE);
-
   SceneRenderSpec render_spec{
-    .camera_uniforms = camera_uniforms,
-    .light_uniforms = light_uniforms,
     .pipelines = {
       {
         .topology = DrawMode::TRIANGLES,
@@ -148,26 +142,64 @@ void RenderingLayer::OnAttach() {
         .debug_name = "Debug",
       },
     },
-    .passes = {
-      geom_pass,
-      normal_pass,
-      pure_geom_pass,
-    },
+    .passes = { geom_pass, normal_pass, pure_geom_pass },
     .pipeline_to_pass_map = {
       {
         FNV("Geometry"),
-        {
-          FNV(geom_pass->Name()),
-        },
+        { FNV(geom_pass->Name()) },
       },
       {
         FNV("Debug"),
-        {
-          FNV(pure_geom_pass->Name()),
-        },
+        { FNV(pure_geom_pass->Name()) },
       },
     },
   };
 
   renderer = NewRef<SceneRenderer>(render_spec);
+  AppState::Scenes()->LoadRenderer(renderer);
+
+  sandbox_ui = ScriptEngine::GetScriptObject("SandboxUI", "", "sandbox_ui");
+  OE_ASSERT(sandbox_ui != nullptr, "Failed to load sandbox ui script object");
+
+  sandbox_ui->Initialize();
+}
+
+void RenderingLayer::OnDetach() {
+  sandbox_ui->Shutdown();
+  sandbox_ui = nullptr;
+}
+
+void RenderingLayer::OnLateUpdate(float dt) {
+  if (camera == nullptr) {
+    return;
+  }
+
+  if (!camera_lock) {
+    DefaultUpdateCamera(camera);
+  }
+
+  sandbox_ui->Update(dt);
+
+  renderer->SubmitCamera(camera);
+}
+
+void RenderingLayer::OnRender() {
+  sandbox_ui->Render();
+}
+
+void RenderingLayer::OnUIRender() {
+  sandbox_ui->RenderUI();
+}
+
+bool RenderingLayer::HandleKeyPressed(KeyPressed& event) {
+  HandleKeyEvent(event, Keyboard::Key::OE_C, [&](KeyPressed& event) {
+    camera_lock = !camera_lock;
+    if (camera_lock) {
+      Mouse::FreeCursor();
+    } else {
+      Mouse::LockCursor();
+    }
+  });
+
+  return event.Key() != Keyboard::Key::OE_C;
 }

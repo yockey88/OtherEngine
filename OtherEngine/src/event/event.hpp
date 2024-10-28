@@ -4,6 +4,7 @@
 #ifndef OTHER_ENGINE_EVENT_HPP
 #define OTHER_ENGINE_EVENT_HPP
 
+#include <cstdio>
 #include <string>
 #include <type_traits>
 
@@ -12,7 +13,7 @@
 
 namespace other {
 
-  enum EventType : uint64_t {
+  enum class EventType : uint64_t {
     EMPTY_EVNT = 0,
 
     // window events
@@ -57,8 +58,16 @@ namespace other {
     EDITOR_SCENE_STOP = bit(29),
 
     // core events
-    SHUTDOWN = bit(30),
-    ENGINE_LAYER = bit(31)
+    STOP_COMMAND = bit(30),
+    SHUTDOWN = bit(31),
+    ENGINE_LAYER = bit(32),
+
+    // filesystem events
+    CREATE_DIR = bit(33),
+    DELETE_DIR = bit(34),
+    CREATE_FILE = bit(35),
+    DELETE_FILE = bit(36),
+    MODIFY_FILE = bit(37),
   };
 
   enum EventCategory : uint64_t {
@@ -74,6 +83,7 @@ namespace other {
     SHUTDOWN_EVENT = bit(8),
     CORE_EVENT = bit(9),
     UI_EVENT = bit(10),
+    FILESYSTEM_EVENT = bit(11),
   };
 
 #define EVENT_TYPE(type)                                       \
@@ -101,7 +111,7 @@ namespace other {
     size_t wrapped_event_size;
 
     /// necessary for concept but SHOULD NOT BE USED!!!!
-    static EventType GetStaticType() { return EMPTY_EVNT; }
+    static EventType GetStaticType() { return EventType::EMPTY_EVNT; }
     EventType Type() const { return type; }
     std::string EventName() const { return "EventHandle"; }
     uint32_t Size() const { return sizeof(*this); }

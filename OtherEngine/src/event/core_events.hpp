@@ -13,6 +13,17 @@
 
 namespace other {
 
+  struct StopCommand {
+    std::string ToString() const {
+      std::stringstream ss;
+      ss << "StopCommand";
+      return ss.str();
+    }
+
+    EVENT_TYPE(STOP_COMMAND);
+    EVENT_CATEGORY(APPLICATION_EVENT | CORE_EVENT);
+  };
+
   struct ShutdownEvent {
     ExitCode exit_code = ExitCode::SUCCESS;
 
@@ -25,6 +36,7 @@ namespace other {
     EVENT_TYPE(SHUTDOWN);
     EVENT_CATEGORY(APPLICATION_EVENT | SHUTDOWN_EVENT | CORE_EVENT);
   };
+  static_assert(Event<ShutdownEvent>, "ShutdownEvent does not meet the Event concept");
 
   enum class LayerEventType : uint8_t {
     LAYER_PUSH,
@@ -57,6 +69,79 @@ namespace other {
     }
   };
   static_assert(Event<EngineLayerEvent>, "EngineLayerEvent does not meet the Event concept");
+
+#define FILESYSTEM_EVENT() \
+  EVENT_CATEGORY(FILESYSTEM_EVENT | CORE_EVENT);
+
+  struct CreateDirectoryEvent {
+    FILESYSTEM_EVENT();
+    EVENT_TYPE(CREATE_DIR);
+
+    uint64_t handle = 0;
+
+    std::string ToString() const {
+      std::stringstream ss;
+      ss << "FilesystemEvent";
+      return ss.str();
+    }
+  };
+  static_assert(Event<CreateDirectoryEvent>, "CreateDirectoryEvent does not meet the Event concept");
+
+  struct DeleteDirectoryEvent {
+    FILESYSTEM_EVENT();
+    EVENT_TYPE(DELETE_DIR);
+
+    uint64_t handle = 0;
+
+    std::string ToString() const {
+      std::stringstream ss;
+      ss << "FilesystemEvent";
+      return ss.str();
+    }
+  };
+  static_assert(Event<DeleteDirectoryEvent>, "DeleteDirectoryEvent does not meet the Event concept");
+
+  struct CreateFileEvent {
+    FILESYSTEM_EVENT();
+    EVENT_TYPE(CREATE_FILE);
+
+    uint64_t handle = 0;
+
+    std::string ToString() const {
+      std::stringstream ss;
+      ss << "FilesystemEvent";
+      return ss.str();
+    }
+  };
+  static_assert(Event<CreateFileEvent>, "CreateFileEvent does not meet the Event concept");
+
+  struct DeleteFileEvent {
+    FILESYSTEM_EVENT();
+    EVENT_TYPE(DELETE_FILE);
+
+    uint64_t handle = 0;
+
+    std::string ToString() const {
+      std::stringstream ss;
+      ss << "FilesystemEvent";
+      return ss.str();
+    }
+  };
+  static_assert(Event<DeleteFileEvent>, "DeleteFileEvent does not meet the Event concept");
+
+  struct ModifyFileEvent {
+    FILESYSTEM_EVENT();
+    EVENT_TYPE(MODIFY_FILE);
+
+    uint64_t handle = 0;
+
+    std::string ToString() const {
+      std::stringstream ss;
+      ss << "FilesystemEvent";
+      return ss.str();
+    }
+  };
+  static_assert(Event<ModifyFileEvent>, "ModifyFileEvent does not meet the Event concept");
 
 }  // namespace other
 

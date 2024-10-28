@@ -11,6 +11,7 @@
 
 #include "core/config_keys.hpp"
 #include "core/defines.hpp"
+#include "core/filesystem.hpp"
 #include "core/logger.hpp"
 
 #include "event/core_events.hpp"
@@ -35,8 +36,6 @@ namespace other {
   }
 
   void EventQueue::Poll() {
-    IO::Update();
-
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
       switch (event.type) {

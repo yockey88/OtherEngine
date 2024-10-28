@@ -7,17 +7,20 @@
 #include <optional>
 #include <string>
 
-#include "core/defines.hpp"
-#include "core/ref_counted.hpp"
-#include "core/ref.hpp"
 #include "core/config.hpp"
+#include "core/defines.hpp"
 #include "core/directory.hpp"
 #include "core/directory_watcher.hpp"
 #include "core/file_watcher.hpp"
+#include "core/ref.hpp"
+#include "core/ref_counted.hpp"
 
 #include "parsing/cmd_line_parser.hpp"
 
 namespace other {
+
+  constexpr std::string_view kProjectRoot = "project-root";
+  constexpr UUID kProjectRootHash = FNV(kProjectRoot);
 
   constexpr std::string_view kAssetsDirName = "assets";
   constexpr UUID kAssetsDirNameHash = FNV(kAssetsDirName);
@@ -27,7 +30,7 @@ namespace other {
 
   constexpr std::string_view kMaterialsDirName = "materials";
   constexpr UUID kMaterialsDirNameHash = FNV(kMaterialsDirName);
-  
+
   constexpr std::string_view kScenesDirName = "scenes";
   constexpr UUID kScenesDirNameHash = FNV(kScenesDirName);
 
@@ -38,26 +41,17 @@ namespace other {
   constexpr UUID kShadersDirNameHash = FNV(kShadersDirName);
 
   enum ProjectDirectoryType {
-    ASSETS_DIR = 0 ,
-    EDITOR_DIR ,
-    MATERIALS_DIR ,
-    SCENES_DIR ,
-    SCRIPT_DIR , 
-    SHADERS_DIR ,
+    ASSETS_DIR = 0,
+    EDITOR_DIR,
+    MATERIALS_DIR,
+    SCENES_DIR,
+    SCRIPT_DIR,
+    SHADERS_DIR,
 
-    NUM_PROJECT_DIRS , 
-    INVALID_PROJECT_DIR = NUM_PROJECT_DIRS ,
+    NUM_PROJECT_DIRS,
+    INVALID_PROJECT_DIR = NUM_PROJECT_DIRS,
   };
 
-  using ProjectDirectoryPair = std::pair<UUID , std::string_view>;
-  constexpr std::array<ProjectDirectoryPair , NUM_PROJECT_DIRS> kProjectTags = {
-    ProjectDirectoryPair{ kAssetsDirNameHash , kAssetsDirName } ,  
-    ProjectDirectoryPair{ kEditorDirNameHash , kEditorDirName } ,  
-    ProjectDirectoryPair{ kMaterialsDirNameHash , kMaterialsDirName } ,  
-    ProjectDirectoryPair{ kScenesDirNameHash , kScenesDirName } ,  
-    ProjectDirectoryPair{ kShadersDirNameHash , kShadersDirName } ,  
-  };
-  
   struct ProjectMetadata {
     std::string name = "";
     Path project_directory = "";
@@ -72,61 +66,41 @@ namespace other {
 
     Path cs_project_file = "";
     Path cs_editor_project_file = "";
-
-    std::map<UUID , Ref<Directory>> directories{};
-
-    std::vector<Scope<FileWatcher>> filewatchers;
-
-    Scope<DirectoryWatcher> cs_editor_watcher = nullptr;
-    Scope<DirectoryWatcher> lua_editor_watcher = nullptr;
-
-    Scope<DirectoryWatcher> cs_scripts_watcher = nullptr;
-    Scope<DirectoryWatcher> lua_scripts_watcher = nullptr;
   };
-  
+
   class Project : public RefCounted {
-    public:
-      Project(const CmdLine& cmdline , const ConfigTable& config);
-      virtual ~Project() override {}
+   public:
+    Project(const CmdLine& cmdline, const ConfigTable& config);
+    virtual ~Project() override {}
 
-      static Ref<Project> Create(const CmdLine& cmdline , const ConfigTable& data);
+    static Ref<Project> Create(const CmdLine& cmdline, const ConfigTable& data);
 
-      void LoadFiles();
+    void LoadFiles(Ref<Directory> project_dir_handle);
+    bool RegenProjectFile();
 
-      bool RegenProjectFile();
-      void CreateScriptWatchers();
+    ProjectMetadata& GetMetadata();
+    std::string GetName();
+    Path GetFilePath();
 
-      const CmdLine& cmdline;
-      const ConfigTable& config;
+    const CmdLine& cmdline;
+    const ConfigTable& config;
 
-      ProjectMetadata& GetMetadata() { return metadata; }
-      bool EditorDirectoryChanged();
-      bool ScriptDirectoryChanged();
-      bool AnyScriptChanged();
+   private:
+    ProjectMetadata metadata;
 
-      std::string GetName() { return metadata.name; }
-      Path GetFilePath() { return metadata.file_path; }
-      const std::map<UUID , Ref<Directory>>& GetProjectDirectories() const {
-        return metadata.directories;
-      }
+    void InitializeVirtualFolders();
 
-    private:
-      ProjectMetadata metadata;
-      
-      void CreateFileWatchers(const Path& dirpath);
+   public:
+    static void QueueNewProject(const Path& path);
+    static bool HasQueuedProject();
+    // this should attempt to relaunch the launcher
+    static std::string GetQueuedProjectPath();
+    static void ClearQueuedProject();
 
-    public:
-      static void QueueNewProject(const std::string& path);
-      static bool HasQueuedProject();
-      // this should attempt to relaunch the launcher
-      static std::string GetQueuedProjectPath();
-      static void ClearQueuedProject();
-
-    private:
-      static Opt<std::string> queued_project_path;
-
+   private:
+    static Opt<std::string> queued_project_path;
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_PROJECT_HPP
+#endif  // !OTHER_ENGINE_PROJECT_HPP

@@ -32,11 +32,12 @@ namespace other {
     void Shutdown();
 
     void Start();
-    void Tick();
+    void Step();
     void Stop();
 
     CmdLine cmd_line;
     ConfigTable config;
+    Opt<ExitCode> exit_code = std::nullopt;
 
    private:
     time::DeltaTime delta;

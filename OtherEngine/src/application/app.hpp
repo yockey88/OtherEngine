@@ -28,6 +28,7 @@ namespace other {
     virtual ~App();
 
     virtual Ref<AssetHandler> CreateAssetHandler();
+    virtual Ref<SceneRenderer> CreateSceneRenderer();
 
     void Load();
     void Run();
@@ -42,20 +43,6 @@ namespace other {
     void DoRender();
     void DoRenderUI();
     void Detach();
-
-    // void LoadSceneByName(const std::string_view name);
-    // void LoadScene(const Path& path);
-    // bool HasActiveScene();
-    // SceneMetadata* ActiveScene();
-    // void UnloadScene();
-
-    // void ReloadScripts();
-
-    // Ref<Project> project_metadata;
-    // Ref<AssetHandler> asset_handler = nullptr;
-
-    // Scope<LayerStack> layer_stack = nullptr;
-    // Scope<SceneManager> scene_manager = nullptr;
 
    protected:
     virtual void OnLoad() {}

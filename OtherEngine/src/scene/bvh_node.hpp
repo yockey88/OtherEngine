@@ -179,23 +179,23 @@ namespace other {
 
 }  // namespace other
 
-template <>
-struct fmt::formatter<other::BvhChildIdx> : public fmt::formatter<std::string_view> {
- public:
-  auto format(other::BvhChildIdx& idx, fmt::format_context& ctx) {
-    std::string_view name = magic_enum::enum_name(idx);
-    return fmt::formatter<std::string_view>::format(name, ctx);
-  }
-};
+// template <>
+// struct fmt::formatter<other::BvhChildIdx> : public fmt::formatter<std::string_view> {
+//  public:
+//   auto format(other::BvhChildIdx& idx, fmt::format_context& ctx) {
+//     std::string_view name = magic_enum::enum_name(idx);
+//     return fmt::formatter<std::string_view>::format(name, ctx);
+//   }
+// };
 
-template <>
-struct fmt::formatter<other::BvhPartitionAlgorithm> : public fmt::formatter<std::string_view> {
- public:
-  auto format(other::BvhPartitionAlgorithm& algo, fmt::format_context& ctx) {
-    std::string_view name = magic_enum::enum_name(algo);
-    return fmt::formatter<std::string_view>::format(name, ctx);
-  }
-};
+// template <>
+// struct fmt::formatter<other::BvhPartitionAlgorithm> : public fmt::formatter<std::string_view> {
+//  public:
+//   auto format(other::BvhPartitionAlgorithm& algo, fmt::format_context& ctx) {
+//     std::string_view name = magic_enum::enum_name(algo);
+//     return fmt::formatter<std::string_view>::format(name, ctx);
+//   }
+// };
 
 namespace other {
 

@@ -15,20 +15,12 @@
 #include "core/filesystem.hpp"
 #include "core/logger.hpp"
 
-#include "application/app_state.hpp"
-#include "asset/asset_metadata.hpp"
-#include "event/event_handler.hpp"
-#include "event/ui_events.hpp"
 #include "input/mouse.hpp"
 #include "project/project.hpp"
 
 #include "rendering/ui/confirmation_window.hpp"
-#include "rendering/ui/ui_colors.hpp"
 #include "rendering/ui/ui_helpers.hpp"
 
-#include "editor/content_browser_item.hpp"
-#include "editor/editor.hpp"
-#include "editor/editor_asset_handler.hpp"
 #include "editor/script_editor.hpp"
 #include "editor/script_window.hpp"
 
@@ -180,7 +172,7 @@ namespace other {
 
   void ProjectPanel::OnUpdate(float dt) {
     for (auto& [id, window] : ui_windows) {
-      window->OnUpdate(dt);
+      window->Update(dt);
     }
   }
 
@@ -218,7 +210,7 @@ namespace other {
     {
       if (selection.has_value()) {
         /// construct navigation string
-        ImGui::Text("%s", selection.value()->path.filename().string().c_str());
+        ImGui::Text("%s", selection.value()->ProjectRelativePath().filename().string().c_str());
       } else {
         ImGui::Text("No Directory Selected");
       }
@@ -404,7 +396,7 @@ namespace other {
     }
 
     auto itr = std::ranges::find_if(tags, [&](const auto& tag_pair) -> bool {
-      std::string tag = selection.value()->path.stem().string();
+      std::string tag = selection.value()->ProjectRelativePath().stem().string();
       return tag_pair.first.Get() == FNV(tag);
     });
 
@@ -462,7 +454,7 @@ namespace other {
   }
 
   bool ProjectPanel::IsDirSelected(const Ref<Directory>& dir) const {
-    return selection.has_value() && dir->path == selection.value()->path;
+    return selection.has_value() && dir->ProjectRelativePath() == selection.value()->ProjectRelativePath();
   }
 
   bool ProjectPanel::IsDescendantSelected(const Ref<Directory>& dir) const {
@@ -470,7 +462,7 @@ namespace other {
       return false;
     }
 
-    if (dir->path == selection.value()->path) {
+    if (dir->ProjectRelativePath() == selection.value()->ProjectRelativePath()) {
       return true;
     }
 

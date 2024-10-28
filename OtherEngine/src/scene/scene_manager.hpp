@@ -11,13 +11,11 @@
 #include "core/ref.hpp"
 #include "core/uuid.hpp"
 
-#include "scene/environment.hpp"
 #include "scene/scene.hpp"
 
 #include "rendering/scene_renderer.hpp"
 
 #include "editor/saves.hpp"
-
 
 namespace other {
 
@@ -55,18 +53,21 @@ namespace other {
 
     void ClearScenes();
 
+    void LoadRenderer(Ref<SceneRenderer> renderer);
+
     const std::vector<std::string>& ScenePaths() const;
     const std::map<UUID, SceneMetadata>& GetScenes() const;
 
     void EarlyUpdateScene(float dt);
     void UpdateScene(float dt);
     void LateUpdateScene(float dt);
-    bool RenderScene(Ref<SceneRenderer>& scene_renderer, Ref<CameraBase> viewpoint = nullptr);
+    bool RenderScene();
     void RenderSceneUI();
 
    private:
     bool playing_scene = false;
     SceneMetadata* active_scene = nullptr;
+    Ref<SceneRenderer> scene_renderer = nullptr;
 
     std::vector<std::string> scene_paths;
     std::map<UUID, SceneMetadata> loaded_scenes;

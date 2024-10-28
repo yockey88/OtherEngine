@@ -8,29 +8,28 @@
 #include <string_view>
 
 #include "core/defines.hpp"
+#include "core/ref_counted.hpp"
+#include "core/uuid.hpp"
 
 namespace other {
 
-  class DirectoryWatcher {
-    public:
-      DirectoryWatcher(const std::string_view dir_path , const std::string_view extension = "");
-      virtual ~DirectoryWatcher() {}
+  class DirectoryWatcher : public RefCounted {
+   public:
+    DirectoryWatcher(UUID dir_handle, const Path& dir_path);
+    virtual ~DirectoryWatcher() {}
 
-      bool DirectoryChanged();
+    void Poll();
 
-      const std::set<Path>& ViewFiles() const;
+   protected:
+    bool dir_open = true;
+    Path path;
+    UUID handle;
 
-    protected:
-      bool dir_open = true;
-      std::string path;
-      std::string extension;
+    size_t num_files_last_check = 0;
 
-      size_t num_files_last_check = 0;
-      std::set<Path> files{};
-
-      void CollectFiles();
+    size_t CheckNumFiles();
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_DIRECTORY_WATCHER_HPP
+#endif  // !OTHER_ENGINE_DIRECTORY_WATCHER_HPP

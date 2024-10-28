@@ -1,60 +1,55 @@
 /**
  * \file editor\editor_asset_handler.hpp
-*/
+ */
 #ifndef OTHER_ENGINE_EDITOR_ASSET_HANDLER_HPP
 #define OTHER_ENGINE_EDITOR_ASSET_HANDLER_HPP
 
 #include "core/ref.hpp"
 
-#include "asset/asset_types.hpp"
 #include "asset/asset.hpp"
-#include "asset/asset_registry.hpp"
 #include "asset/asset_handler.hpp"
+#include "asset/asset_registry.hpp"
+#include "asset/asset_types.hpp"
 
 namespace other {
 
   class EditorAssetHandler : public AssetHandler {
-    public:
-      EditorAssetHandler() {}
-      virtual ~EditorAssetHandler() override {}
-      
-      const AssetMetadata& GetMetadata(AssetHandle handle);
-      const AssetMetadata& GetMetadata(const Path& path);
-      AssetMetadata& GetMutableMetadata(AssetHandle handle);
+   public:
+    EditorAssetHandler() {}
+    virtual ~EditorAssetHandler() override {}
 
-      AssetHandle ImportAsset(const Path& path);
-      AssetHandle GetAssetHandleFromFilePath(const Path& filepath);
-      
-      AssetType GetAssetTypeFromExtension(const std::string& extension);
-      AssetType GetAssetTypeFromPath(const Path& path);
+    const AssetMetadata& GetMetadata(AssetHandle handle);
+    const AssetMetadata& GetMetadata(const Path& path);
+    AssetMetadata& GetMutableMetadata(AssetHandle handle);
 
-      virtual AssetType GetAssetType(AssetHandle handle) override;
-      virtual Ref<Asset> GetAsset(AssetHandle handle) override;
-      virtual void AddMemOnly(Ref<Asset>& asset) override;
-      virtual bool ReloadData(AssetHandle handle) override;
+    AssetHandle ImportAsset(const Path& path);
+    AssetHandle GetAssetHandleFromFilePath(const Path& filepath);
 
-      virtual bool IsHandleValid(AssetHandle handle) override;
-      virtual bool IsMemOnly(AssetHandle handle) override;
-      virtual bool IsLoaded(AssetHandle handle) override;
-      virtual bool IsValid(AssetHandle handle) override;
-      virtual bool IsMissing(AssetHandle handle) override;
+    AssetType GetAssetTypeFromExtension(const std::string& extension);
+    AssetType GetAssetTypeFromPath(const Path& path);
 
-      virtual void Remove(AssetHandle handle) override;
+    virtual AssetType GetAssetType(AssetHandle handle) override;
+    virtual Ref<Asset> GetAsset(AssetHandle handle) override;
+    virtual void AddMemOnly(Ref<Asset>& asset) override;
+    virtual bool ReloadData(AssetHandle handle) override;
 
-      virtual AssetSet GetAllOfType(AssetType type) override;
-      virtual AssetMap& GetAll() override;
+    virtual bool IsHandleValid(AssetHandle handle) override;
+    virtual bool IsMemOnly(AssetHandle handle) override;
+    virtual bool IsLoaded(AssetHandle handle) override;
+    virtual bool IsValid(AssetHandle handle) override;
+    virtual bool IsMissing(AssetHandle handle) override;
 
-    private:
-      AssetMap assets;
-      AssetMap memory_assets;
+    virtual void Remove(AssetHandle handle) override;
 
-      AssetRegistry registry;
+    virtual AssetSet GetAllOfType(AssetType type) override;
+    virtual AssetMap& GetAll() override;
 
-      Ref<Asset> FindAsset(AssetHandle handle);
+   private:
+    Ref<Asset> FindAsset(AssetHandle handle);
 
-      void LoadAsset(AssetHandle handle);
+    void LoadAsset(AssetHandle handle);
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_EDITOR_ASSET_HANDLER_HPP
+#endif  // !OTHER_ENGINE_EDITOR_ASSET_HANDLER_HPP

@@ -6,8 +6,11 @@
 
 #include "core/defines.hpp"
 #include "core/layer_stack.hpp"
+#include "core/state.hpp"
 
+#include "application/app_state_machine.hpp"
 #include "asset/asset_handler.hpp"
+#include "event/scene_events.hpp"
 #include "project/project.hpp"
 
 #include "scene/scene_manager.hpp"
@@ -24,6 +27,9 @@ namespace other {
     static void Initialize(const CmdLine& cmd_line, const ConfigTable& config, App* app_handle);
     static void Shutdown();
 
+    static CmdLine& GetProcessArguments();
+    static ConfigTable& GetLoadedConfig();
+
     static Ref<Project> ProjectContext();
     static Ref<AssetHandler> Assets();
 
@@ -38,23 +44,11 @@ namespace other {
 
     static App& AppHandle();
 
-    static void AttachApplication();
-    static void DetachApplication();
-
-    static void RunEarlyUpdate();
-    static void RunUpdate();
-    static void RunLateUpdate();
-    static void HandleRender();
+    static void AppEvent(const Ref<AppStateEvent>& event);
 
     inline static EngineMode mode = EngineMode::EDITOR;
 
-   private:
-    friend class Engine;
-    static void OnEngineTick(float dt);
-
-    static Opt<Path> FindSceneFileByName(const std::string_view name);
-
-    struct Data {
+    struct Data : public RefCounted {
       App* app_handle;  /// do not delete
       CmdLine cmd_line;
       ConfigTable config;
@@ -73,7 +67,25 @@ namespace other {
       ~Data();
     };
 
-    static Scope<Data> state;
+    inline Ref<Data> GetData();
+
+    static void AttachApplication();
+    static void DetachApplication();
+    static void RunEarlyUpdate();
+    static void RunUpdate();
+    static void RunLateUpdate();
+    static void HandleRender();
+
+   private:
+    friend class Engine;
+    static void OnEngineTick(float dt);
+
+    static bool HandleSceneLoad(SceneLoad& event);
+
+    static Opt<Path> FindSceneFileByName(const std::string_view name);
+
+    static Ref<StateMachine> state;
+    static Ref<Data> data;
   };
 
 }  // namespace other
