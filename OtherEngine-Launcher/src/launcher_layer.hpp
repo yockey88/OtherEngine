@@ -5,9 +5,11 @@
 #define OTHER_ENGINE_LAUNCHER_LAYER_HPP
 
 #include "core/layer.hpp"
-#include "core/uuid.hpp"
 #include "core/platform.hpp"
+#include "core/uuid.hpp"
+
 #include "scripting/script_object.hpp"
+
 
 namespace other {
 
@@ -25,52 +27,51 @@ namespace other {
   };
 
   class LauncherLayer : public Layer {
-    public:
-      LauncherLayer(App* parent_app)
-        : Layer(parent_app , "LauncherLayer") {}
-      virtual ~LauncherLayer() override {}
+   public:
+    LauncherLayer(App* parent_app)
+        : Layer(parent_app, "LauncherLayer") {}
+    virtual ~LauncherLayer() override {}
 
-      virtual void OnAttach() override;
-      virtual void OnUpdate(float dt) override;
-      virtual void OnRender() override;
-      virtual void OnUIRender() override;
-      virtual void OnEvent(Event* event) override;
-      virtual void OnDetach() override;
+    virtual void OnAttach() override;
+    virtual void OnUpdate(float dt) override;
+    virtual void OnRender() override;
+    virtual void OnUIRender() override;
+    virtual void OnDetach() override;
 
-    private:
-      enum class RenderState {
-        MAIN = 0 ,
-        OPENING_PROJECT ,
-        CREATING_PROJECT ,
+   private:
+    enum class RenderState {
+      MAIN = 0,
+      OPENING_PROJECT,
+      CREATING_PROJECT,
 
-        NUM_RENDER_STATES ,
-        INVALID_RENDER_STATE = NUM_RENDER_STATES
-      };
+      NUM_RENDER_STATES,
+      INVALID_RENDER_STATE = NUM_RENDER_STATES
+    };
 
-      RenderState render_state = RenderState::INVALID_RENDER_STATE;
+    RenderState render_state = RenderState::INVALID_RENDER_STATE;
 
-      UUID editor_id = 0;
-      UUID create_proj_id = 0;
+    UUID editor_id = 0;
+    UUID create_proj_id = 0;
 
-      /// these need to be true so window doesnt close first time it is opened
-      bool rendering_open_project = true;
-      bool rendering_create_project = true;
+    /// these need to be true so window doesnt close first time it is opened
+    bool rendering_open_project = true;
+    bool rendering_create_project = true;
 
-      SelectionContext selection_context;
+    SelectionContext selection_context;
 
-      ScriptObject* script = nullptr;
-      ScriptObject* lua_script = nullptr;
+    ScriptObject* script = nullptr;
+    ScriptObject* lua_script = nullptr;
 
-      void CreateProject();
-      void OpenProject();
+    void CreateProject();
+    void OpenProject();
 
-      void RenderMain();
-      void RenderOpeningProject();
-      void RenderCreateProject();
+    void RenderMain();
+    void RenderOpeningProject();
+    void RenderCreateProject();
 
-      void Launch(const std::filesystem::path& path , LaunchType type);
+    void Launch(const std::filesystem::path& path, LaunchType type);
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_LAUNCHER_LAYER_HPP
+#endif  // !OTHER_ENGINE_LAUNCHER_LAYER_HPP

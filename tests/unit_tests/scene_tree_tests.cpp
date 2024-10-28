@@ -22,6 +22,7 @@
 
 using namespace std::string_view_literals;
 
+using other::App;
 using other::NewRef;
 using other::NewScope;
 using other::Ref;
@@ -35,9 +36,6 @@ class SceneTreeTests : public other::OtherTest {
   //// no default behavior for now
   virtual void SetUp() override;
   virtual void TearDown() override;
-
- protected:
-  static inline Scope<other::App> active_app = nullptr;
 };
 
 using other::Entity;
@@ -198,15 +196,12 @@ void SceneTreeTests::SetUpTestSuite() {
   Logger::Open(test_config);
   Logger::Instance()->RegisterThread("Script Scene Integration Test Main Thread");
 
-  active_app = NewScope<TestApp>(cmdline, test_config);
-  active_app->Load();
-  ASSERT_NO_FATAL_FAILURE(AppState::Initialize(active_app.get(), active_app->layer_stack, active_app->scene_manager,
-                                               active_app->asset_handler, active_app->project_metadata));
+  App* active_app = new TestApp(cmdline, test_config);
+  ASSERT_NO_FATAL_FAILURE(AppState::Initialize(cmdline, test_config, active_app));
 }
 
 void SceneTreeTests::TearDownTestSuite() {
   ASSERT_NO_FATAL_FAILURE(AppState::Shutdown());
-  active_app = nullptr;
   CloseLog();
 }
 

@@ -389,27 +389,27 @@ namespace other {
   }
 
   void Scene::Render(Ref<SceneRenderer>& renderer) {
+    OnRender();
+
     renderer->ClearPipelines();
     if (auto primary_cam = GetPrimaryCamera(); primary_cam != nullptr) {
       renderer->SubmitCamera(primary_cam);
     }
-    renderer->SubmitEnvironment(environment);
 
     // if (scene_geometry_changed) {
     //   RebuildEnvironment();
     //   scene_geometry_changed = false;
     //   renderer->SubmitEnvironment(environment);
     // }
-    RenderToPipeline("Geometry", renderer);
+    renderer->SubmitEnvironment(environment);
 
-    /// TODO: flesh this out
-    if (AppState::mode == EngineMode::DEBUG) {
-      RenderToPipeline("Debug", renderer, true);
+    RenderToPipeline("Geometry", renderer);
+    if (AppState::mode == EngineMode::EDITOR) {
+      /// TODO: flesh this out
+      // RenderToPipeline("Debug", renderer, true);
     }
 
     scene_object->Render();
-
-    OnRender();
   }
 
   void Scene::RenderUI() {
@@ -704,22 +704,22 @@ namespace other {
       return;
     }
 
-    AssetHandle cube_handle = ModelFactory::CreateBox();
+    // AssetHandle cube_handle = ModelFactory::CreateBox();
 
-    light_group.each([&renderer, cube_handle, plname](const LightSource& light, const Transform& transform) {
-      if (light.type == DIRECTION_LIGHT_SRC) {
-        return;
-      }
+    // light_group.each([&renderer, cube_handle, plname](const LightSource& light, const Transform& transform) {
+    //   if (light.type == DIRECTION_LIGHT_SRC) {
+    //     return;
+    //   }
 
-      if (!AppState::Assets()->IsValid(cube_handle)) {
-        return;
-      }
+    //   if (!AppState::Assets()->IsValid(cube_handle)) {
+    //     return;
+    //   }
 
-      Material light_material = Material(light.pointlight.color, 32.f);
+    //   Material light_material = Material(light.pointlight.color, 32.f);
 
-      auto model = AssetManager::GetAsset<StaticModel>(cube_handle);
-      renderer->SubmitStaticModel(plname, model, transform.model_transform, light_material);
-    });
+    //   auto model = AssetManager::GetAsset<StaticModel>(cube_handle);
+    //   renderer->SubmitStaticModel(plname, model, transform.model_transform, light_material);
+    // });
   }
 
   void Scene::OnAddRigidBody2D(entt::registry& context, entt::entity entt) {

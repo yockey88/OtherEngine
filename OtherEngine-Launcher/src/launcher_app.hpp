@@ -9,20 +9,19 @@
 namespace other {
 
   class LauncherApp : public other::App {
-    public:
-      LauncherApp(const CmdLine& cmd_line, const ConfigTable& config) 
+   public:
+    LauncherApp(const CmdLine& cmd_line, const ConfigTable& config)
         : other::App(cmd_line, config) {}
-      virtual ~LauncherApp() override {}
+    virtual ~LauncherApp() override {}
 
-    private:      
-      virtual void OnAttach() override;
-      virtual void OnEvent(other::Event* event) override;
-      virtual void Update(float dt) override {}
-      virtual void Render() override {}
-      virtual void RenderUI() override {}
-      virtual void OnDetach() override {}
+   private:
+    virtual void OnAttach() override;
+    virtual void Update(float dt) override {}
+    virtual void Render() override {}
+    virtual void RenderUI() override {}
+    virtual void OnDetach() override {}
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_LAUNCHER_APP_HPP
+#endif  // !OTHER_ENGINE_LAUNCHER_APP_HPP

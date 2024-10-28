@@ -80,12 +80,7 @@ namespace other {
 
   Ref<ScriptModule> LuaModule::GetScriptModule(const std::string_view name) {
     UUID id = FNV(name);
-    Ref<ScriptModule> module = GetScriptModule(id);
-    if (module == nullptr) {
-      OE_ERROR("Script module {} not found", name);
-    }
-
-    return module;
+    return GetScriptModule(id);
   }
 
   Ref<ScriptModule> LuaModule::GetScriptModule(const UUID& id) {
@@ -93,16 +88,12 @@ namespace other {
     if (itr != loaded_modules.end()) {
       return itr->second;
     }
-
-    OE_ERROR("Script module {} not found", id);
     return nullptr;
   }
 
   Ref<ScriptModule> LuaModule::LoadScriptModule(const ScriptMetadata& module_info) {
-    if (!Filesystem::PathExists(module_info.path)) {
-      OE_ERROR("Script module {} ({}) does not exist", module_info.name, module_info.path);
-      return nullptr;
-    }
+    OE_ASSERT(module_info.handle != nullptr, "Failed to load Lua script module : {}", module_info.name);
+    OE_ASSERT(module_info.handle->Exists(), "Failed to load Lua script module : {}", module_info.name);
 
     UUID id = FNV(module_info.name);
     OE_DEBUG("Loading Lua script module {} [{}]", module_info.name, id);
@@ -112,10 +103,12 @@ namespace other {
       return nullptr;
     }
 
-    auto& m = loaded_modules[id] = NewRef<LuaScript>(context, module_info.path, module_info.name);
+    auto& m = loaded_modules[id] = NewRef<LuaScript>(context, module_info.handle->AbsolutePath().string(), module_info.name);
+    OE_ASSERT(m != nullptr, "Failed to create Lua script module : {}", module_info.name);
+
     m->Initialize();
     loaded_modules_data[id] = module_info;
-    OE_DEBUG("Script module {} ({}) loaded", module_info.name, module_info.path);
+    OE_DEBUG("Script module {} ({}) loaded", module_info.name, module_info.handle->ProjectRelativePath());
 
     return m;
   }

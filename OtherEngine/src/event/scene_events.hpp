@@ -1,6 +1,6 @@
 /**
  * \file event/scene_events.hpp
-*/
+ */
 #ifndef OTHER_ENGINE_SCENE_EVENTS_HPP
 #define OTHER_ENGINE_SCENE_EVENTS_HPP
 
@@ -8,62 +8,58 @@
 
 namespace other {
 
-  class SceneEvent : public Event {
-    public:
-      SceneEvent() = default;
-
-      EVENT_CATEGORY(APPLICATION_EVENT | SCENE_EVENT);
-  };
+#define SCENE_EVENT() EVENT_CATEGORY(APPLICATION_EVENT | SCENE_EVENT);
 
   /// \todo fix this, string is corrupted
-  class SceneLoad : public SceneEvent {
-    public:
-      SceneLoad(const std::string& p) {} 
+  struct SceneLoad {
+    SCENE_EVENT();
+    EVENT_TYPE(SCENE_LOAD);
 
-      ~SceneLoad() {}
+    uint64_t scene_id;
 
-      virtual std::string ToString() const override {
-        return "SceneLoadEvent";
-      }
-
-      EVENT_TYPE(SCENE_LOAD);
-
-    private:
+    std::string ToString() const {
+      return "SceneLoadEvent";
+    }
   };
 
-  class SceneStart : public SceneEvent {
-    public:
-      SceneStart() = default;
+  struct SceneStart {
+    SCENE_EVENT();
+    EVENT_TYPE(SCENE_START);
 
-      virtual std::string ToString() const override {
-        return "SceneStartEvent";
-      }
+    uint64_t scene_id;
 
-      EVENT_TYPE(SCENE_START);
+    std::string ToString() const {
+      return "SceneStartEvent";
+    }
   };
 
-  class SceneStop : public SceneEvent {
-    public:
-      SceneStop() = default;
+  struct SceneStop {
+    SCENE_EVENT();
+    EVENT_TYPE(SCENE_STOP);
 
-      virtual std::string ToString() const override {
-        return "SceneStopEvent";
-      }
+    uint64_t scene_id;
 
-      EVENT_TYPE(SCENE_STOP);
+    std::string ToString() const {
+      return "SceneStopEvent";
+    }
   };
 
-  class SceneUnload : public SceneEvent {
-    public:
-      SceneUnload() = default;
+  struct SceneUnload {
+    SCENE_EVENT();
+    EVENT_TYPE(SCENE_UNLOAD);
 
-      virtual std::string ToString() const override {
-        return "SceneUnloadEvent";
-      }
+    uint64_t scene_id;
 
-      EVENT_TYPE(SCENE_UNLOAD);
+    std::string ToString() const {
+      return "SceneUnloadEvent";
+    }
   };
 
-} // namespace other
+  static_assert(Event<SceneLoad>, "SceneLoad does not meet the Event concept");
+  static_assert(Event<SceneStart>, "SceneStart does not meet the Event concept");
+  static_assert(Event<SceneStop>, "SceneStop does not meet the Event concept");
+  static_assert(Event<SceneUnload>, "SceneUnload does not meet the Event concept");
 
-#endif // !OTHER_ENGINE_SCENE_EVENTS_HPP
+}  // namespace other
+
+#endif  // !OTHER_ENGINE_SCENE_EVENTS_HPP

@@ -3,59 +3,65 @@
  */
 #include "event/event_queue.hpp"
 
+#include <ranges>
+
 #include <imgui/backends/imgui_impl_sdl2.h>
 
 #include <SDL.h>
 
 #include "core/config_keys.hpp"
 #include "core/defines.hpp"
-#include "core/engine.hpp"
+#include "core/filesystem.hpp"
+#include "core/logger.hpp"
 
-#include "event/app_events.hpp"
 #include "event/core_events.hpp"
 #include "event/event.hpp"
 #include "event/window_events.hpp"
-#include "project/project.hpp"
+#include "input/io.hpp"
 
 #include "rendering/renderer.hpp"
 
 namespace other {
 
-  uint32_t EventQueue::buffer_offset = 0;
-  uint8_t* EventQueue::event_buffer = nullptr;
-  uint8_t* EventQueue::cursor = nullptr;
-
-  bool EventQueue::process_ui_events = false;
+  Buffer EventQueue::event_buffer;
+  Buffer EventQueue::scratch_buffer;
+  std::map<uint64_t, EventDispatcher> EventQueue::event_handlers;
 
   void EventQueue::Initialize(const ConfigTable& config) {
-    event_buffer = new uint8_t[buffer_size];
-    cursor = event_buffer;
+    event_buffer.Allocate(kBufferSize);
+    scratch_buffer.Allocate(kBufferSize);
 
     auto ui_enabled = config.GetVal<bool>(kUiSection, kDisabledValue, false);
-    if (!ui_enabled.has_value() || !ui_enabled.value()) {
-      EnableUIEvents();
-    } else {
-      DisableUIEvents();
-    }
+    process_ui_events = !ui_enabled.has_value() || !ui_enabled.value();
   }
 
-  void EventQueue::Poll(App* app) {
-    OE_ASSERT(event_buffer != nullptr, "Event buffer not initialized");
-
+  void EventQueue::Poll() {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
       switch (event.type) {
-        case SDL_QUIT: PushEvent<ShutdownEvent>(ExitCode::SUCCESS); break;
+        case SDL_QUIT:
+          PushEvent<ShutdownEvent>({ ExitCode::SUCCESS });
+          break;
+
         case SDL_WINDOWEVENT:
           switch (event.window.event) {
             case SDL_WINDOWEVENT_RESIZED:
-              PushEvent<WindowResized>(
-                glm::ivec2(event.window.data1, event.window.data2),
-                Renderer::WindowSize());
+              PushEvent<WindowResized>({ glm::ivec2(event.window.data1, event.window.data2), Renderer::WindowSize() });
               break;
-            case SDL_WINDOWEVENT_MINIMIZED: PushEvent<WindowMinimized>(); break;
-            case SDL_WINDOWEVENT_CLOSE: PushEvent<WindowClosed>(); break;
+
+            case SDL_WINDOWEVENT_MINIMIZED:
+              PushEvent<WindowMinimized>();
+              break;
+
+            case SDL_WINDOWEVENT_CLOSE:
+              PushEvent<WindowClosed>();
+              break;
+            default:
+              break;
           }
+          break;
+
+        default:
           break;
       }
 
@@ -64,12 +70,14 @@ namespace other {
       }
     }
 
-    Dispatch(app);
+    Dispatch();
+    Clear();
   }
 
   void EventQueue::Clear() {
-    cursor = event_buffer;
-    buffer_offset = 0;
+    scratch_buffer.ZeroMem();
+    event_buffer.ZeroMem();
+    num_events = 0;
   }
 
   void EventQueue::EnableUIEvents() {
@@ -81,55 +89,31 @@ namespace other {
   }
 
   void EventQueue::Shutdown() {
-    delete[] event_buffer;
-    event_buffer = nullptr;
-  }
+    Clear();
 
-  void EventQueue::Dispatch(App* app) {
-    OE_ASSERT(event_buffer != nullptr, "Event buffer not initialized");
-    OE_ASSERT(cursor != nullptr, "Event buffer cursor not initialized");
-
-    uint8_t* tmp_cursor = event_buffer;
-
-    bool reload_scripts = false;
-    bool regen_project = false;
-
-    std::set<ProjectDirectoryType> directory_changes;
-
-    while (tmp_cursor != cursor) {
-      Event* event = reinterpret_cast<Event*>(tmp_cursor);
-
-      if (event->Type() == EventType::PROJECT_DIR_UPDATE) {
-        ProjectDirectoryUpdateEvent* e = Cast<ProjectDirectoryUpdateEvent>(event);
-        if (e != nullptr) {
-          directory_changes.insert(e->dir_type);
-        }
-
-        tmp_cursor += event->Size();
-        regen_project = true;
-        continue;
-      } else if (event->Type() == EventType::SCRIPT_RELOAD) {
-        tmp_cursor += event->Size();
-        reload_scripts = true;
-        continue;
-      }
-
-      if (app != nullptr && !event->handled) {
-        app->ProcessEvent(event);
-      }
-
-      tmp_cursor += event->Size();
+    for (auto& [hash, dispatcher] : event_handlers) {
+      dispatcher.dispatcher = nullptr;
     }
 
-    /// trigger specific order-dependent events
-    if (regen_project) {
-      for (const auto& t : directory_changes) {
-        ProjectDirectoryUpdateEvent e(t);
-        app->ProcessEvent(&e);
+    event_handlers.clear();
+  }
+
+  void EventQueue::SetEventFlag(EventType type) {
+    event_flags |= bit(static_cast<uint64_t>(type));
+  }
+
+  void EventQueue::Dispatch() {
+    OE_ASSERT(scratch_buffer.NumElements() == num_events, "No events to dispatch");
+
+    for (size_t handle_idx = 0; handle_idx < num_events; ++handle_idx) {
+      EventHandle* event = scratch_buffer.PointerAt<EventHandle>(handle_idx);
+      OE_ASSERT(event != nullptr, "Event is null");
+      OE_ASSERT(event->ptr != nullptr, "Event ptr is null");
+
+      for (auto& [hash, dispatcher] : event_handlers) {
+        OE_ASSERT(dispatcher.dispatcher != nullptr, "Dispatcher is null");
+        dispatcher.dispatcher->Dispatch(*event);
       }
-    } else if (reload_scripts) {
-      ScriptReloadEvent e;
-      app->ProcessEvent(&e);
     }
 
     Clear();

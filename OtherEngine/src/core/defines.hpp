@@ -9,14 +9,17 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stack>
+#include <stacktrace>
 #include <string_view>
 #include <type_traits>
 #include <utility>
 
 #include <glm/glm.hpp>
+#include <magic_enum/magic_enum.hpp>
 #include <spdlog/fmt/fmt.h>
 
-#define bit(x) (1 << x)
+#define bit(x) (1ll << x)
 
 #ifdef OE_MODULE
 #define OE_CLIENT
@@ -31,7 +34,7 @@
 namespace other {
 
   enum class EngineMode {
-    DEBUG,
+    EDITOR,
     RUNTIME,
 
     NUM_ENGINE_MODES,
@@ -62,7 +65,7 @@ namespace other {
   };
 
   enum ValueType {
-    EMPTY,  // Void , null , nil ,etc...
+    EMPTY_TYPE,  // Void , null , nil ,etc...
 
     /// primitive types
     BOOL,
@@ -136,7 +139,7 @@ namespace other {
     } else if constexpr (std::is_same_v<T, glm::mat4>) {
       return ValueType::MAT4;
     } else {
-      return ValueType::EMPTY;
+      return ValueType::EMPTY_TYPE;
     }
   }
 
@@ -280,6 +283,23 @@ namespace other {
     return fmt::underlying(e);
   }
 
+#ifdef OE_DEBUG_BUILD
+
+  class StackTracer {
+   public:
+    StackTracer() = default;
+    ~StackTracer() = default;
+
+    void PrintStack() const;
+
+    // void Push
+
+   private:
+    std::stack<std::stacktrace_entry> traces;
+  };
+
+#endif  // !OE_DEBUG_BUILD
+
 }  // namespace other
 
 template <>
@@ -288,6 +308,17 @@ struct fmt::formatter<glm::vec4> : public fmt::formatter<std::string_view> {
   auto format(const glm::vec4& v, FormatContext& ctx) {
     return fmt::formatter<std::string_view>::format(
       fmt::format(std::string_view{ "({:.2f}, {:.2f}, {:.2f}, {:.2f})" }, v.x, v.y, v.z, v.w), ctx
+    );
+  }
+};
+
+template <typename E>
+  requires std::is_enum_v<E>
+struct fmt::formatter<E> : public fmt::formatter<std::string_view> {
+  template <typename FormatContext>
+  auto format(const E& e, FormatContext& ctx) {
+    return fmt::formatter<std::string_view>::format(
+      fmt::format(std::string_view{ "{}" }, magic_enum::enum_name(e)), ctx
     );
   }
 };

@@ -4,8 +4,11 @@
 #include "parsing/ini_parser.hpp"
 
 #include <fstream>
+#include <ranges>
 #include <sstream>
+#include <string>
 
+#include "core/defines.hpp"
 #include "core/errors.hpp"
 #include "core/logger.hpp"
 
@@ -42,7 +45,7 @@ namespace other {
         case '*':
           ++index;
           if (AtEnd()) {
-            throw IniException("Invalid key-value pair", IniError::FILE_PARSE_ERROR, line);
+            throw IniException("Invalid key-value pair", IniError::FILE_PARSE_ERROR, current_line);
           }
           HandleKey(false);
           break;
@@ -53,7 +56,7 @@ namespace other {
       }
 
       ++index;
-      line.clear();
+      current_line.clear();
     } while (index < contents.size());
 
     return table;
@@ -63,6 +66,7 @@ namespace other {
     str.erase(str.begin(), std::find_if(str.begin(), str.end(), [](char ch) {
                 return !std::isspace(ch);
               }));
+
     str.erase(std::find_if(str.rbegin(), str.rend(), [](char ch) {
                 return !std::isspace(ch);
               }).base(),
@@ -76,16 +80,58 @@ namespace other {
     }
   }
 
+  std::string IniFileParser::StripParens(const std::string& str) {
+    return str |
+      std::views::filter([](char c) { return c != '{' && c != '}'; }) |
+      std::views::filter([](char c) { return c != '[' && c != ']'; }) |
+      std::views::filter([](char c) { return c != '(' && c != ')'; }) |
+      std::ranges::to<std::string>();
+  }
+
+  std::vector<std::string> IniFileParser::SplitOn(const std::string& str, char c) {
+    return str |
+      std::views::split(c) |
+      std::ranges::to<std::vector<std::string>>();
+  }
+
+  std::pair<std::string, std::string> IniFileParser::SplitOnFirst(const std::string& str, char c) {
+    auto first_half = str |
+      std::views::take_while([c](char ch) { return ch != c; }) |
+      std::ranges::to<std::string>();
+
+    auto second_half = str |
+      std::views::drop_while([c](char ch) { return ch != c; }) |
+      std::views::drop(1) |
+      std::views::all |
+      std::ranges::to<std::string>();
+
+    Trim(first_half);
+    Trim(second_half);
+    return { first_half, second_half };
+  }
+
+  void IniFileParser::PushKey(const std::string& key) {
+    current_key.push(key);
+    full_current_key = GetFullKey();
+  }
+
+  void IniFileParser::PopKey() {
+    if (!current_key.empty()) {
+      current_key.pop();
+    }
+    full_current_key = GetFullKey();
+  }
+
   void IniFileParser::ParseSection(const std::string& line) {
-    if (line[0] != '[') {
-      throw IniException("Invalid section", IniError::FILE_PARSE_ERROR);
+    if (!current_key.empty()) {
+      throw IniException(fmtstr("Invalid syntax, previous section invalid : {}", line), IniError::FILE_PARSE_ERROR);
     }
 
-    if (line[line.size() - 1] != ']') {
-      throw IniException("Invalid section", IniError::FILE_PARSE_ERROR);
+    if (line.size() <= 2 || !line.starts_with('[') || !line.ends_with(']')) {
+      throw IniException(fmtstr("Invalid section : {}", line), IniError::FILE_PARSE_ERROR);
     }
 
-    std::string section = line.substr(1, line.size() - 2);
+    std::string section = StripParens(line);
     Trim(section);
 
     if (section.empty()) {
@@ -100,67 +146,121 @@ namespace other {
 
   void IniFileParser::ParseKeyValue(const std::string& line, bool allow_key_modifications) {
     if (!current_section.has_value()) {
-      throw IniException("Key-value pair defined without section", IniError::FILE_PARSE_ERROR);
+      throw IniException(fmtstr("Key-value pair defined without section", line), IniError::FILE_PARSE_ERROR);
     }
 
-    auto pos = line.find('=');
-    if (pos == std::string::npos) {
-      throw IniException("Invalid key-value pair", IniError::FILE_PARSE_ERROR);
+    auto [k, v] = SplitOnFirst(line, '=');
+    // std::cout << "k : " << k << " v : " << v << std::endl;
+    if (v.empty()) {
+      in_string = false;
+      return;
+    }
+    if (v.starts_with('{') && !v.ends_with('}')) {
+      v += "}";
     }
 
-    std::string key = line.substr(0, pos);
-    std::string value = line.substr(pos + 1);
+    ParseKey(k, allow_key_modifications);
+    ParseValue(v, allow_key_modifications);
+    current_key.pop();
+    in_string = false;
+  }
 
-    Trim(key);
-    TrimQuotes(value);
-
-    Trim(value);
-    TrimQuotes(value);
-
-    /// remove trailing commas
-    if (key.back() == ',') {
-      key = key.substr(0, key.size() - 1);
-    }
-
+  void IniFileParser::ParseKey(const std::string& key, bool allow_key_modifications) {
     if (key.empty()) {
       throw IniException("Empty key", IniError::FILE_PARSE_ERROR);
     }
 
-    current_key = key;
+    std::string k = key;
 
-    if (value.empty()) {
-      throw IniException(fmtstr("Key {} has empty value", key), IniError::FILE_PARSE_ERROR);
-    } else if (value[0] == '{') {
-      ParseValueList(value, allow_key_modifications);
-      return;
+    /// remove trailing commas
+    if (k.back() == ',') {
+      k = k.substr(0, k.size() - 1);
     }
 
-    table.Add(current_section.value(), current_key.value(), value, in_string, allow_key_modifications);
-    in_string = false;
+    if (k.empty()) {
+      throw IniException("Empty key", IniError::FILE_PARSE_ERROR);
+    }
+
+    PushKey(k);
+  }
+
+  void IniFileParser::ParseValue(const std::string& value, bool allow_key_modifications) {
+    if (current_key.empty()) {
+      throw IniException(fmtstr("Value defined without key : {}", value), IniError::FILE_PARSE_ERROR);
+    }
+    std::string v = value;
+
+    TrimQuotes(v);
+    if (v.empty()) {
+      throw IniException(fmtstr("Key {} has empty value", full_current_key), IniError::FILE_PARSE_ERROR);
+    }
+
+    if (v[0] != '{') {
+      table.Add(current_section.value(), full_current_key, v, in_string, allow_key_modifications);
+    } else {
+      /// resursively parses value list
+      ParseValueList(v, allow_key_modifications);
+    }
   }
 
   void IniFileParser::ParseValueList(const std::string& line, bool allow_key_modifications) {
-    if (!current_key.has_value()) {
-      throw IniException("Value list defined without key", IniError::FILE_PARSE_ERROR);
+    if (current_key.empty()) {
+      throw IniException(fmtstr("Value list defined without key : {}", line), IniError::FILE_PARSE_ERROR);
     }
 
-    if (line[line.size() - 1] != '}') {
-      throw IniException("Unclosed value list", IniError::FILE_PARSE_ERROR);
+    if (!line.ends_with('}')) {
+      throw IniException(fmtstr("Unclosed value list : {}", line), IniError::FILE_PARSE_ERROR);
     }
 
-    std::string list = line.substr(1, line.size() - 2);
+    std::string list = StripParens(line);
     std::stringstream ss(list);
     std::string value;
-    while (std::getline(ss, value, ',')) {
-      Trim(value);
-      TrimQuotes(value);
-      table.Add(current_section.value(), current_key.value(), value, in_string, allow_key_modifications);
-      in_string = false;
+
+    /// if there are no '=' then this is a straight list { x_1 , x_2 , ... , x_n }
+    if (!list.contains('=')) {
+      while (std::getline(ss, value, ',')) {
+        Trim(value);
+        TrimQuotes(value);
+        table.Add(current_section.value(), full_current_key, value, in_string, allow_key_modifications);
+        in_string = false;
+      }
+      return;
+    }
+    /// if there are equals then this is a list of key-value pairs { x_1 = y_1 , x_2 = y_2 , ... , x_n = y_n }
+    /// so we recursively call ParseValue to handle each key-value pair
+    else {
+      while (std::getline(ss, value, ',')) {
+        Trim(value);
+        ParseKeyValue(value, allow_key_modifications);
+      }
     }
   }
 
+  std::string IniFileParser::GetFullKey() const {
+    if (current_key.empty()) {
+      return "";
+    }
+
+    std::stack<std::string> temp = {};
+    std::stack<std::string> temp2 = current_key;
+    while (!temp2.empty()) {
+      temp.push(temp2.top());
+      temp2.pop();
+    }
+
+    std::string full_key = "";
+    while (!temp.empty()) {
+      full_key += temp.top();
+      temp.pop();
+      if (!temp.empty()) {
+        full_key += ".";
+      }
+    }
+    return full_key;
+  }
+
   void IniFileParser::HandleComment() {
-    ++index;
+    Consume();
     if (!AtEnd()) {
       if (Match('[')) {
         while (!(Match('#') && Match(']'))) {
@@ -176,47 +276,44 @@ namespace other {
   }
 
   void IniFileParser::HandleSection() {
-    while (!AtEnd() && Peek() != '\n') {
-      line += Advance();
-    }
-    ParseSection(line);
+    ConsumeUntil('\n');
+    ParseSection(current_line);
   }
 
   void IniFileParser::HandleKey(bool allow_key_modifications) {
-    while (!AtEnd() && Peek() != '=') {
-      line += Advance();
-    }
-
     /// save equals
-    if (AtEnd()) {
-      throw IniException("key value par without value", IniError::FILE_PARSE_ERROR);
+    if (!ConsumeUntil('=')) {
+      throw IniException("key value pair without value", IniError::FILE_PARSE_ERROR);
     }
 
-    line += Advance();
+    current_line += Advance();
 
     /// save whitespace
     if (AtEnd()) {
       throw IniException("key value pair without value", IniError::FILE_PARSE_ERROR);
     }
 
-    line += Advance();
+    current_line += Advance();
     if (Peek() == '{') {
-      while (!AtEnd() && Peek() != '}') {
-        line += Advance();
-      }
+      std::stack<char> stack = {};
+      stack.push('{');
+      current_line += Advance();
 
-      /// save '}'
-      if (AtEnd()) {
-        throw IniException("key value pair without value", IniError::FILE_PARSE_ERROR);
-      }
-
-      line += Advance();
+      do {
+        if (Peek() == '{') {
+          stack.push('{');
+        } else if (Peek() == '}') {
+          if (stack.empty()) {
+            break;
+          }
+          stack.pop();
+        }
+        current_line += Advance();
+      } while (!stack.empty());
     } else {
-      while (!AtEnd() && Peek() != '\n') {
-        line += Advance();
-      }
+      ConsumeUntil('\n');
     }
-    ParseKeyValue(line, allow_key_modifications);
+    ParseKeyValue(current_line, allow_key_modifications);
   }
 
   bool IniFileParser::AtEnd() const {
@@ -224,6 +321,9 @@ namespace other {
   }
 
   char IniFileParser::Peek() const {
+    if (AtEnd()) {
+      return '\0';
+    }
     return contents[index];
   }
 
@@ -244,6 +344,17 @@ namespace other {
     if (!AtEnd()) {
       ++index;
     }
+  }
+
+  bool IniFileParser::ConsumeUntil(char c) {
+    while (!AtEnd() && Peek() != c) {
+      current_line += Advance();
+    }
+    return Check(c);
+  }
+
+  bool IniFileParser::Check(char c) {
+    return Peek() == c;
   }
 
   bool IniFileParser::Match(char c) {

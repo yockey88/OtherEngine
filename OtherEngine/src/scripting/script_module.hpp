@@ -1,6 +1,6 @@
 /**
  * \file scripting/script_module.hpp
- * \note a script module is a single translation unit of the scripting language 
+ * \note a script module is a single translation unit of the scripting language
  **/
 #ifndef OTHER_ENGINE_SCRIPT_MODULE_HPP
 #define OTHER_ENGINE_SCRIPT_MODULE_HPP
@@ -9,20 +9,23 @@
 #include <string_view>
 #include <vector>
 
+#include "core/file_handle.hpp"
 #include "core/ref.hpp"
-#include "core/ref_counted.hpp"
+
+#include "asset/asset.hpp"
 
 #include "scripting/script_defines.hpp"
 #include "scripting/script_object.hpp"
 
+
 namespace other {
 
   enum class ScriptType {
-    SCENE_SCRIPT , 
-    EDITOR_SCRIPT ,
+    SCENE_SCRIPT,
+    EDITOR_SCRIPT,
 
-    NUM_SCRIPT_TYPES , 
-    INVALID_SCRIPT_TYPE = NUM_SCRIPT_TYPES ,
+    NUM_SCRIPT_TYPES,
+    INVALID_SCRIPT_TYPE = NUM_SCRIPT_TYPES,
   };
 
   struct ScriptObjectTag {
@@ -30,7 +33,7 @@ namespace other {
     std::string name;
     std::string mod_name;
     std::string nspace;
-    std::string path;
+    Path path;
     LanguageModuleType lang_type;
     ScriptType type = ScriptType::SCENE_SCRIPT;
   };
@@ -38,51 +41,53 @@ namespace other {
   struct ScriptMetadata {
     std::string name;
     std::string case_ins_name;
-    std::string path;
+    Ref<FileHandle> handle;
     ScriptType type = ScriptType::SCENE_SCRIPT;
   };
-  
-  class ScriptModule : public RefCounted {
-    public:
-      ScriptModule(LanguageModuleType language , const std::string& module_name) 
-          : language(language) , module_name(module_name) {}
-      virtual ~ScriptModule() {}
 
-      LanguageModuleType GetLanguage() const;
-      const std::string& ModuleName() const;
-    
-      virtual void Initialize(/* bool editor_script = false */) = 0;
-      virtual void Shutdown() = 0;
-      virtual void Reload() = 0;
-      virtual bool HasScript(UUID id) const = 0;
-      virtual bool HasScript(const std::string_view name , const std::string_view nspace) const = 0;
+  class ScriptModule : public Asset {
+   public:
+    OE_ASSET(SCRIPTFILE);
 
-      virtual Ref<ScriptObject> GetScriptObject(const std::string& name , const std::string& nspace = "") = 0;
+    ScriptModule(LanguageModuleType language, const std::string& module_name)
+        : language(language), module_name(module_name) {}
+    virtual ~ScriptModule() {}
 
-      template <typename T>
-        requires script_object_t<T>
-      Ref<T> GetScriptObject(const std::string& name , const std::string& nspace = "") {
-        Ref<ScriptObject> obj = GetScriptObject(name , nspace);
-        if (obj == nullptr) {
-          return nullptr;
-        }
+    LanguageModuleType GetLanguage() const;
+    const std::string& ModuleName() const;
 
-        return Ref<ScriptObject>::Cast<T>(obj);
+    virtual void Initialize(/* bool editor_script = false */) = 0;
+    virtual void Shutdown() = 0;
+    virtual void Reload() = 0;
+    virtual bool HasScript(UUID id) const = 0;
+    virtual bool HasScript(const std::string_view name, const std::string_view nspace) const = 0;
+
+    virtual Ref<ScriptObject> GetScriptObject(const std::string& name, const std::string& nspace = "") = 0;
+
+    template <typename T>
+      requires script_object_t<T>
+    Ref<T> GetScriptObject(const std::string& name, const std::string& nspace = "") {
+      Ref<ScriptObject> obj = GetScriptObject(name, nspace);
+      if (obj == nullptr) {
+        return nullptr;
       }
 
-      virtual std::vector<ScriptObjectTag> GetObjectTags() = 0;
+      return Ref<ScriptObject>::Cast<T>(obj);
+    }
 
-      bool IsValid() const { return valid; }
-    
-    protected:
-      LanguageModuleType language;
-      bool valid = false;
+    virtual std::vector<ScriptObjectTag> GetObjectTags() = 0;
 
-      std::string module_name;
-      
-      std::map<UUID , Ref<ScriptObject>> objects;
+    bool IsValid() const { return valid; }
+
+   protected:
+    LanguageModuleType language;
+    bool valid = false;
+
+    std::string module_name;
+
+    std::map<UUID, Ref<ScriptObject>> objects;
   };
-  
-} // namespace other
 
-#endif // !OTHER_ENGINE_SCRIPT_MODULE_HPP
+}  // namespace other
+
+#endif  // !OTHER_ENGINE_SCRIPT_MODULE_HPP

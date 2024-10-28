@@ -4,69 +4,77 @@
 #ifndef OTHER_ENGINE_UI_WINDOW_HPP
 #define OTHER_ENGINE_UI_WINDOW_HPP
 
+#include <functional>
 #include <string>
 #include <vector>
-#include <functional>
 
 #include <imgui/imgui.h>
 
-#include "core/ref_counted.hpp"
 #include "core/ref.hpp"
+#include "core/ref_counted.hpp"
+
 #include "event/event.hpp"
 
 namespace other {
 
 #define UI_FUNC(name) \
-  std::bind_front((&name) , this)
+  std::bind_front((&name), this)
 
-#define BIND_FUNC(name , obj) \
-  std::bind_front((&name) , obj)
+#define BIND_FUNC(name, obj) \
+  std::bind_front((&name), obj)
 
   class UIWindow : public RefCounted {
-    public:
-      UIWindow(const std::string& title , ImGuiWindowFlags flags = 0 , bool open = true , bool pinned = false) 
-        : id(FNV(title)) , title(title) , window_open(open) , pinned(pinned) , flags(flags) {}
-      virtual ~UIWindow() {}
+   public:
+    UIWindow(const std::string& title, ImGuiWindowFlags flags = 0, bool open = true, bool pinned = false)
+        : id(FNV(title)), title(title), window_open(open), pinned(pinned), flags(flags) {}
+    virtual ~UIWindow() {}
 
-      void PushRenderFunction(std::function<void()> render_function);
+    void PushRenderFunction(std::function<void()> render_function);
 
-      void GiveChild(Ref<UIWindow> child);
+    void GiveChild(Ref<UIWindow> child);
 
-      virtual void OnAttach() {}
-      virtual void OnDetach() {}
-      virtual void OnUpdate(float dt) {}
-      virtual void OnEvent(Event* event) {}
-      virtual void Render();
+    void Attach();
+    void Detach();
+    void Update(float dt);
+    void Render();
 
-      const std::string& Title() const { return title; }
-      inline bool IsOpen() const { return window_open; }
-      inline bool Pinned() const { return pinned; }
-      void Open(); 
-      void Close();
-      inline void Pin() { pinned = true; }
+    bool IsFocused() const;
 
-      inline uint64_t ID() const { return id; }
+    const std::string& Title() const { return title; }
+    inline bool IsOpen() const { return window_open; }
+    inline bool Pinned() const { return pinned; }
+    void Open();
+    void Close();
+    inline void Pin() { pinned = true; }
 
-    protected:
-      uint64_t id;
-      std::string title;
-      std::vector<std::function<void()>> render_functions;
-      std::vector<Ref<UIWindow>> children;
+    inline uint64_t ID() const { return id; }
 
-      bool window_open;
-      bool pinned;
+   protected:
+    uint64_t id;
+    std::string title;
+    std::vector<std::function<void()>> render_functions;
+    std::vector<Ref<UIWindow>> children;
 
-      bool render_function_popped = false;
+    bool window_open;
+    bool pinned;
+    bool focused = false;
 
-      ImGuiWindowFlags flags;
+    bool render_function_popped = false;
 
-      void PopFrontFunction();
-      void RenderAllChildren();
+    ImGuiWindowFlags flags;
+
+    virtual void OnAttach() {}
+    virtual void OnDetach() {}
+    virtual void OnUpdate(float dt) {}
+    virtual void OnRender() {}
+
+    void PopFrontFunction();
+    void RenderAllChildren();
   };
 
-} // namespace other
+}  // namespace other
 
 template <typename T>
-concept ui_type = std::derived_from<T , other::UIWindow>;
+concept ui_type = std::derived_from<T, other::UIWindow>;
 
-#endif // !OTHER_ENGINE_UI_WINDOW_HPP
+#endif  // !OTHER_ENGINE_UI_WINDOW_HPP

@@ -10,51 +10,53 @@
 #include "core/defines.hpp"
 
 namespace other {
-  
+
   class Engine;
   class App;
   class LanguageModule;
 
   enum LanguageModuleType {
-    CS_MODULE = 0 ,
-    LUA_MODULE ,
-    PYTHON_MODULE ,
+    CS_MODULE = 0,
+    LUA_MODULE,
+    PYTHON_MODULE,
 
-    NUM_LANGUAGE_MODULES ,
+    NUM_LANGUAGE_MODULES,
     INVALID_LANGUAGE_MODULE = NUM_LANGUAGE_MODULES
   };
 
   constexpr static size_t kNumModules = NUM_LANGUAGE_MODULES;
-  constexpr static std::array<std::string_view , kNumModules> kModuleNames = {
+  constexpr static std::array<std::string_view, kNumModules> kModuleNames = {
     /// to match the fact config parse use uppercase for case insensitivity
-    "C#" , "LUA" , "PYTHON" , 
+    "C#",
+    "LUA",
+    "PYTHON",
   };
 
-  using FunctionModuleBuilder = Scope<LanguageModule>(*)();
+  using FunctionModuleBuilder = Scope<LanguageModule> (*)();
 
   struct ModuleInfo {
     LanguageModuleType type;
     std::string_view name;
     uint64_t hash;
 
-    constexpr ModuleInfo(LanguageModuleType t , std::string_view n) 
-      : type(t) , name(n) , hash(FNV(n)) {}
+    constexpr ModuleInfo(LanguageModuleType t, std::string_view n)
+        : type(t), name(n), hash(FNV(n)) {}
   };
 
-  constexpr static std::array<ModuleInfo , kNumModules> kModuleInfo = {
-    ModuleInfo(CS_MODULE , kModuleNames[CS_MODULE]) ,
-    ModuleInfo(LUA_MODULE , kModuleNames[LUA_MODULE]) ,
-    ModuleInfo(PYTHON_MODULE , kModuleNames[PYTHON_MODULE]) ,
+  constexpr static std::array<ModuleInfo, kNumModules> kModuleInfo = {
+    ModuleInfo(CS_MODULE, kModuleNames[CS_MODULE]),
+    ModuleInfo(LUA_MODULE, kModuleNames[LUA_MODULE]),
+    ModuleInfo(PYTHON_MODULE, kModuleNames[PYTHON_MODULE]),
   };
 
-} // namespace other
+}  // namespace other
 
 template <>
 struct fmt::formatter<other::LanguageModuleType> : fmt::formatter<std::string_view> {
   template <typename FormatContext>
-  auto format(other::LanguageModuleType t , FormatContext& ctx) {
-    return fmt::formatter<std::string_view>::format(other::kModuleNames[t] , ctx);
+  auto format(other::LanguageModuleType t, FormatContext& ctx) {
+    return fmt::formatter<std::string_view>::format(other::kModuleNames[t], ctx);
   }
 };
 
-#endif // !OTHER_ENGINE_SCRIPT_DEFINES_HPP
+#endif  // !OTHER_ENGINE_SCRIPT_DEFINES_HPP

@@ -1,53 +1,91 @@
 /**
  * \file event/event_queue.hpp
-*/
+ */
 #ifndef OTHER_ENGINE_EVENT_QUEUE_HPP
 #define OTHER_ENGINE_EVENT_QUEUE_HPP
 
+#include "core/buffer.hpp"
 #include "core/config.hpp"
 #include "core/logger.hpp"
+#include "core/ref.hpp"
+
 #include "event/event.hpp"
+#include "event/event_handler.hpp"
 
 namespace other {
 
   class Engine;
   class App;
 
-  class EventQueue { 
-    public:
-      static void Initialize(const ConfigTable& config);
-
-      static void Poll(App* app);
-      static void Clear();
-
-      template<event_t T , typename... Args>
-      static void PushEvent(Args&&... args) {
-        // OE_ASSERT(std::is_trivially_copyable_v<T> , "Event type [{}] is not trivially copyable" , typeid(T).name());
-        OE_ASSERT(sizeof(T) + buffer_offset < buffer_size , "Event buffer overflow");
-
-        T event(std::forward<Args>(args)...);
-        memcpy(cursor , &event , sizeof(T));
-        cursor += sizeof(T);
-        buffer_offset += sizeof(T);
-      }
-
-      static void EnableUIEvents();
-      static void DisableUIEvents();
-
-      static void Shutdown();
-
-    private:
-      constexpr static uint32_t buffer_size = 4096;
-      static uint32_t buffer_offset;
-      static uint8_t* event_buffer;
-      static uint8_t* cursor;
-
-      static bool process_ui_events;
-
-      static void Dispatch(App* app_data);
-      
+  struct EventDispatcher {
+    uint64_t hash = 0;
+    std::string name = "<invalid>";
+    Ref<Dispatcher> dispatcher = nullptr;
   };
 
-} // namespace other
+  class EventQueue {
+   public:
+    static void Initialize(const ConfigTable& config);
 
-#endif // !OTHER_ENGINE_EVENT_QUEUE_HPP
+    static void Poll();
+    static void Clear();
+
+    template <typename T>
+      requires Event<T>
+    static void PushEvent(const T& arg) {
+      /// write the event
+      size_t idx = event_buffer.BufferData(arg);
+
+      /// write the event handle
+      EventHandle handle{
+        .ptr = event_buffer.PointerAt<T>(idx),
+        .type = T::GetStaticType(),
+      };
+      scratch_buffer.BufferData(handle);
+      ++num_events;
+    }
+
+    template <typename T>
+      requires Event<T>
+    static void PushEvent() {
+      PushEvent<T>(T{});
+    }
+
+    template <typename E>
+      requires Event<E>
+    static void RegisterEventDispatcher(const std::string_view name, const std::vector<Handler<E>>& fns) {
+      uint64_t h = FNV(name);
+
+      auto itr = event_handlers.find(h);
+      if (itr == event_handlers.end()) {
+        auto& handler = event_handlers[h] = EventDispatcher{};
+        handler.hash = h;
+        handler.name = name;
+        handler.dispatcher = Ref<DispatchInvoker<E>>::Create(fns);
+      } else {
+        OE_WARN("Event dispatcher [{}] already registered", name);
+      }
+    }
+
+    static void EnableUIEvents();
+    static void DisableUIEvents();
+
+    static void Shutdown();
+
+   private:
+    static constexpr size_t kBufferSize = 1024 * 1024;
+    static inline uint64_t event_flags = 0;
+    static inline bool process_ui_events = true;
+    static inline size_t num_events = 0;
+
+    static Buffer event_buffer;
+    static Buffer scratch_buffer;
+    static std::map<uint64_t, EventDispatcher> event_handlers;
+
+    static void SetEventFlag(EventType type);
+    static void Dispatch();
+  };
+
+}  // namespace other
+
+#endif  // !OTHER_ENGINE_EVENT_QUEUE_HPP

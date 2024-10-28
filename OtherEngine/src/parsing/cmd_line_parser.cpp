@@ -3,43 +3,55 @@
  **/
 #include "parsing\cmd_line_parser.hpp"
 
+#include <ranges>
+
 namespace other {
-namespace {
+  namespace {
 
-  class CmdLineParser {
-    public:
-      CmdLineParser(const std::vector<std::string>& argv) 
-        : argc(argv.size()) , argv(argv) {}
+    class CmdLineParser {
+     public:
+      CmdLineParser(const std::vector<std::string>& argv)
+          : argc(argv.size()), argv(argv) {}
 
-      std::map<uint64_t , Arg> Parse();
+      std::map<uint64_t, Arg> Parse();
 
-    private:
+     private:
       int argc;
       const std::vector<std::string>& argv;
 
       size_t i = 0;
-      std::map<uint64_t , Arg> args;
+      std::map<uint64_t, Arg> args;
 
       void ParseArgs();
       bool AtEnd() const;
       const std::string PeekRaw() const;
       const RawArg* Peek() const;
       void Advance();
-  };
+    };
 
-} // namespace <anonymous>
+  }  // namespace
 
-  CmdLine::CmdLine(int argc , char* argv[]) {
+  CmdLine::CmdLine(int argc, char* argv[]) {
     program_name = argv[0];
 
     raw_args.reserve(argc - 1);
-    raw_args.insert(raw_args.end() , argv + 1 , argv + argc);
+    raw_args.insert(raw_args.end(), argv + 1, argv + argc);
 
     CmdLineParser parser{ raw_args };
     args = parser.Parse();
   }
 
-  void CmdLine::SetFlag(const std::string_view flag , const std::vector<std::string>& flag_args) {
+  // clang-format off
+  CmdLine::CmdLine(const std::vector<Arg>& argv) {
+    args = argv | 
+          std::views::transform([](const Arg& arg) -> std::pair<uint64_t, Arg> {
+            return std::pair{ arg.hash, arg };
+          }) | 
+          std::ranges::to<std::map<uint64_t, Arg>>();
+  }
+  // clang-format on
+
+  void CmdLine::SetFlag(const std::string_view flag, const std::vector<std::string>& flag_args) {
     auto ra = std::ranges::find_if(kRawArgs, [&](const RawArg& arg) {
       return arg.sflag == flag || arg.lflag == flag;
     });
@@ -48,10 +60,10 @@ namespace {
       return;
     }
 
-    Arg arg = { ra->hash , ra->lflag , flag_args };
-    const auto& [itr , inserted] = args.insert({ ra->hash , arg }); 
+    Arg arg = { ra->hash, ra->lflag, flag_args };
+    const auto& [itr, inserted] = args.insert({ ra->hash, arg });
     if (!inserted) {
-      args[ra->hash] = arg; 
+      args[ra->hash] = arg;
     }
   }
 
@@ -73,83 +85,79 @@ namespace {
     }
   }
 
-namespace {
+  namespace {
 
-  std::map<uint64_t , Arg> CmdLineParser::Parse() {
-    ParseArgs();
-    return args;
-  }
+    std::map<uint64_t, Arg> CmdLineParser::Parse() {
+      ParseArgs();
+      return args;
+    }
 
-  void CmdLineParser::ParseArgs() {
-    while (!AtEnd()) {
-      const RawArg* ra = Peek();
+    void CmdLineParser::ParseArgs() {
+      while (!AtEnd()) {
+        const RawArg* ra = Peek();
 
-      if (ra != nullptr) {
-        Arg arg { 
-          .hash = ra->hash ,
-          .flag = ra->lflag  ,
-          .args = {}
-        };
+        if (ra != nullptr) {
+          Arg arg(ra->hash, ra->lflag, {});
 
-        if (ra->has_args) {
-          for (uint32_t j = 0; j < ra->num_args; ++j) {
-            Advance();
-            if (AtEnd()) {
-              println("Expected {} arguments for flag {}" , ra->num_args , ra->lflag);
-              break;
+          if (ra->has_args) {
+            for (uint32_t j = 0; j < ra->num_args; ++j) {
+              Advance();
+              if (AtEnd()) {
+                println("Expected {} arguments for flag {}", ra->num_args, ra->lflag);
+                break;
+              }
+
+              arg.args.push_back(PeekRaw());
             }
-
-            arg.args.push_back(PeekRaw());
           }
+
+          args.insert({ arg.hash, arg });
+        } else {
+          println("Unknown flag: ", PeekRaw());
         }
 
-        args.insert({ arg.hash , arg });
-      } else {
-        println("Unknown flag: ", PeekRaw());
+        Advance();
       }
 
-      Advance();
-    }
-
-    for (const auto& [hash , arg] : args) {
-      println("Flag: {}" , arg.flag);
-      for (const auto& a : arg.args) {
-        println("  Arg: {}" , a);
+      for (const auto& [hash, arg] : args) {
+        println("Flag: {}", arg.flag);
+        for (const auto& a : arg.args) {
+          println("  Arg: {}", a);
+        }
       }
     }
-  }
 
-  bool CmdLineParser::AtEnd() const { 
-    return i >= argc; 
-  }
-
-  const std::string CmdLineParser::PeekRaw() const {
-    if (AtEnd()) {
-      return "";
-    } else {
-      return argv[i];
+    bool CmdLineParser::AtEnd() const {
+      return i >= argc;
     }
-  }
 
-  const RawArg* CmdLineParser::Peek() const {
-    if (AtEnd()) {
-      return nullptr;
-    } else {
-      auto ra = std::ranges::find_if(kRawArgs, [&](const RawArg& arg) {
-        return arg.sflag == argv[i] || arg.lflag == argv[i];
-      });
-
-      if (ra != kRawArgs.end()) {
-        return &(*ra);
+    const std::string CmdLineParser::PeekRaw() const {
+      if (AtEnd()) {
+        return "";
       } else {
+        return argv[i];
+      }
+    }
+
+    const RawArg* CmdLineParser::Peek() const {
+      if (AtEnd()) {
         return nullptr;
+      } else {
+        auto ra = std::ranges::find_if(kRawArgs, [&](const RawArg& arg) {
+          return arg.sflag == argv[i] || arg.lflag == argv[i];
+        });
+
+        if (ra != kRawArgs.end()) {
+          return &(*ra);
+        } else {
+          return nullptr;
+        }
       }
     }
-  }
 
-  void CmdLineParser::Advance() { 
-    i++; 
-  }
+    void CmdLineParser::Advance() {
+      i++;
+    }
 
-} // anonymous namespace
-} // namespace other
+  }  // anonymous namespace
+}  // namespace other

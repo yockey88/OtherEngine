@@ -4,56 +4,90 @@
 #ifndef OTHER_ENGINE_APP_STATE_HPP
 #define OTHER_ENGINE_APP_STATE_HPP
 
+#include "core/defines.hpp"
 #include "core/layer_stack.hpp"
+#include "core/state.hpp"
+
+#include "application/app_state_machine.hpp"
 #include "asset/asset_handler.hpp"
-#include "scene/scene_manager.hpp"
+#include "event/scene_events.hpp"
 #include "project/project.hpp"
+
+#include "scene/scene_manager.hpp"
+
 #include "rendering/ui/ui_window.hpp"
+#include "rendering/ui/ui_window_map.hpp"
 
 namespace other {
 
   class App;
 
   class AppState {
-    public:
-      static void Initialize(App* app_handle , Scope<LayerStack>& layers , Scope<SceneManager>& scenes , 
-                             Ref<AssetHandler>& assets , Ref<Project>& project_contex);
-      static void Shutdown();
+   public:
+    static void Initialize(const CmdLine& cmd_line, const ConfigTable& config, App* app_handle);
+    static void Shutdown();
 
-      static Ref<Project> ProjectContext();
-      static Ref<AssetHandler> Assets();
+    static CmdLine& GetProcessArguments();
+    static ConfigTable& GetLoadedConfig();
 
-      static Scope<LayerStack>& Layers();
-      static Scope<SceneManager>& Scenes();
+    static Ref<Project> ProjectContext();
+    static Ref<AssetHandler> Assets();
 
-      static UUID PushUIWindow(Ref<UIWindow> window);
+    static Scope<LayerStack>& Layers();
+    static Scope<SceneManager>& Scenes();
 
-      inline static EngineMode mode = EngineMode::DEBUG;
+    static UUID PushUIWindow(Ref<UIWindow> window);
+    static void PopUIWindow(UUID id);
 
-    private:
-      struct Data {
-        App* app_handle; /// do not delete
-                         
-        Scope<LayerStack>& layers;
-        Scope<SceneManager>& scenes;
+    static UUID PushLayer(Ref<Layer> layer);
+    static void PopLayer(Opt<UUID> id);
 
-        Ref<AssetHandler> assets;
-        Ref<Project> project;
+    static App& AppHandle();
 
-        Data(App* app_handle , Scope<LayerStack>& layers , Scope<SceneManager>& scenes , Ref<AssetHandler>& assets , Ref<Project>& context)
-            : app_handle(app_handle) , layers(layers) , scenes(scenes) , assets(assets) , project(context) {}
+    static void AppEvent(const Ref<AppStateEvent>& event);
 
-        ~Data() {
-          app_handle = nullptr;
-          assets = nullptr;
-          project = nullptr;
-        }
-      };
+    inline static EngineMode mode = EngineMode::EDITOR;
 
-      static Scope<Data> state;
+    struct Data : public RefCounted {
+      App* app_handle;  /// do not delete
+      CmdLine cmd_line;
+      ConfigTable config;
+
+      Scope<LayerStack> layers;
+      Scope<SceneManager> scenes;
+
+      Ref<AssetHandler> assets;
+      Ref<Project> project;
+
+      UIWindowMap ui_windows;
+
+      float frame_delta = 0.0f;
+
+      Data(App* app_handle, Ref<Project> proj);
+      ~Data();
+    };
+
+    inline Ref<Data> GetData();
+
+    static void AttachApplication();
+    static void DetachApplication();
+    static void RunEarlyUpdate();
+    static void RunUpdate();
+    static void RunLateUpdate();
+    static void HandleRender();
+
+   private:
+    friend class Engine;
+    static void OnEngineTick(float dt);
+
+    static bool HandleSceneLoad(SceneLoad& event);
+
+    static Opt<Path> FindSceneFileByName(const std::string_view name);
+
+    static Ref<StateMachine> state;
+    static Ref<Data> data;
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_APP_STATE_HPP
-
+#endif  // !OTHER_ENGINE_APP_STATE_HPP

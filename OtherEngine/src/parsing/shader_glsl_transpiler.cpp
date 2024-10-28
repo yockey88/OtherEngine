@@ -3,13 +3,17 @@
  **/
 #include "parsing/shader_glsl_transpiler.hpp"
 
+#include "core/defines.hpp"
 #include "core/errors.hpp"
+
 #include "parsing/parsing_defines.hpp"
 #include "parsing/shader_ast_node.hpp"
+
 #include "rendering/rendering_defines.hpp"
 
+
 namespace other {
-      
+
   ShaderIr ShaderGlslTranspiler::Transpile() {
     ProcessNodes();
 
@@ -41,25 +45,25 @@ namespace other {
 
     if (!other_shader) {
       if (correct_nodes == nullptr || output_src == nullptr) {
-        throw ShaderException("GLSL Transpiler state corrupted, transpiling invalid shader!" , INVALID_SHADER_CTX , 0 , 0);
+        throw ShaderException("GLSL Transpiler state corrupted, transpiling invalid shader!", INVALID_SHADER_CTX, 0, 0);
       }
 
-      *output_src = TranspileTo(*correct_nodes); 
+      *output_src = TranspileTo(*correct_nodes);
     } else {
       context = VERTEX_SHADER;
-      result.vert_source = TranspileTo(ast.vertex_nodes); 
-      
+      result.vert_source = TranspileTo(ast.vertex_nodes);
+
       context = FRAGMENT_SHADER;
-      result.frag_source = TranspileTo(ast.fragment_nodes); 
-      
+      result.frag_source = TranspileTo(ast.fragment_nodes);
+
       if (ast.geometry_nodes.size() > 0) {
         context = GEOMETRY_SHADER;
-        result.geom_source = TranspileTo(ast.geometry_nodes); 
+        result.geom_source = TranspileTo(ast.geometry_nodes);
       }
     }
 
     if (!mesh_layout.has_value()) {
-      throw Error(SHADER_TRANSPILATION , "Failed to set mesh layout parsing shader!");
+      throw Error(SHADER_TRANSPILATION, "Failed to set mesh layout parsing shader!");
     }
     result.layout = mesh_layout.value();
 
@@ -91,7 +95,7 @@ namespace other {
   }
 
   void ShaderGlslTranspiler::Visit(AssignExpr& expr) {
-    expr.value->Accept(*this);  
+    expr.value->Accept(*this);
   }
 
   void ShaderGlslTranspiler::Visit(ArrayExpr& expr) {
@@ -115,7 +119,7 @@ namespace other {
       expr.index->Accept(*this);
     }
   }
-  
+
   void ShaderGlslTranspiler::Visit(ExprStmt& stmt) {
     stmt.expr->Accept(*this);
   }
@@ -123,28 +127,27 @@ namespace other {
   void ShaderGlslTranspiler::Visit(VarDecl& stmt) {
     if (!flags.is_uniform.empty()) {
       Uniform uni{
-        .name = stmt.name.value , 
-        .type = ValueTypeFromString(stmt.type.value) ,
-      }; 
-    
-      if(!flags.push_uniforms.empty()) {
+        .name = stmt.name.value,
+        .type = ValueTypeFromString(stmt.type.value),
+      };
+
+      if (!flags.push_uniforms.empty()) {
         uniform_stack.push(uni);
       } else {
         result.uniforms[FNV(uni.name)] = uni;
       }
       return;
     }
-      
 
     if (stmt.initializer != nullptr) {
-      stmt.initializer->Accept(*this); 
-    } 
+      stmt.initializer->Accept(*this);
+    }
   }
 
   void ShaderGlslTranspiler::Visit(ArrayDecl& stmt) {
     if (stmt.initializer != nullptr) {
-      stmt.initializer->Accept(*this); 
-    } 
+      stmt.initializer->Accept(*this);
+    }
   }
 
   void ShaderGlslTranspiler::Visit(BlockStmt& stmt) {
@@ -170,7 +173,7 @@ namespace other {
 
   void ShaderGlslTranspiler::Visit(VersionExpr& expr) {
   }
-      
+
   void ShaderGlslTranspiler::Visit(ShaderAttribute& expr) {
     if (expr.key.value == "mesh") {
       SetMeshLayout(expr.value.value);
@@ -182,14 +185,14 @@ namespace other {
 
     if (expr.type.type == LOCATION_KW) {
       if (token_stack.size() != 1) {
-        throw Error(SHADER_TRANSPILATION , "Corrupt token stack transpiling layout 'location' descriptor! size = {}" , token_stack.size());
+        throw Error(SHADER_TRANSPILATION, "Corrupt token stack transpiling layout 'location' descriptor! size = {}", token_stack.size());
       }
 
       Token literal = token_stack.top();
       token_stack.pop();
 
       if (mesh_layout.has_value() && mesh_layout->override) {
-         return;
+        return;
       }
 
       if (!mesh_layout.has_value()) {
@@ -198,7 +201,7 @@ namespace other {
 
       /// curr_idx and what we're reading will always be the same
       vertex_attr_stack.push({
-        .idx = std::stoul(literal.value) , 
+        .idx = std::stoul(literal.value),
       });
 
       mesh_layout->curr_idx++;
@@ -206,14 +209,14 @@ namespace other {
 
     if (expr.type.type == BINDING_KW) {
       if (token_stack.size() != 1) {
-        throw Error(SHADER_TRANSPILATION , "Corrupt token stack transpiling layout 'binding' descriptor! size = {}" , token_stack.size());
+        throw Error(SHADER_TRANSPILATION, "Corrupt token stack transpiling layout 'binding' descriptor! size = {}", token_stack.size());
       }
 
       Token literal = token_stack.top();
       token_stack.pop();
 
       shader_storage_stack.push({
-        .binding_point = std::stoul(literal.value) , 
+        .binding_point = std::stoul(literal.value),
       });
     }
   }
@@ -240,7 +243,7 @@ namespace other {
 
     if (vertex_attr_stack.size() == 1 && token_stack.size() == 2) {
       if (context != VERTEX_SHADER) {
-        throw Error(INVALID_SHADER_CTX , "Can not write vertex attributes from anywhere but the vertex shader");
+        throw Error(INVALID_SHADER_CTX, "Can not write vertex attributes from anywhere but the vertex shader");
       }
 
       auto attr = vertex_attr_stack.top();
@@ -255,7 +258,7 @@ namespace other {
       attr.size = SizeFromString(type.value);
 
       if (!mesh_layout.has_value()) {
-        throw Error(SHADER_TRANSPILATION , "Corrupted transpiler state");
+        throw Error(SHADER_TRANSPILATION, "Corrupted transpiler state");
       }
 
       mesh_layout->stride += attr.size;
@@ -267,16 +270,16 @@ namespace other {
       token_stack.pop();
     }
   }
-      
+
   void ShaderGlslTranspiler::Visit(LayoutVarDecl& stmt) {
-    token_stack.push(stmt.type.value_or(Token({} , INVALID_TOKEN , "")));
-    token_stack.push(stmt.name.value_or(Token({} , INVALID_TOKEN , "")));
+    token_stack.push(stmt.type.value_or(Token({}, INVALID_TOKEN, "")));
+    token_stack.push(stmt.name.value_or(Token({}, INVALID_TOKEN, "")));
   }
 
   void ShaderGlslTranspiler::Visit(ShaderStorageStmt& stmt) {
     if (shader_storage_stack.size() != 1) {
-      throw Error(SHADER_TRANSPILATION , "Shader storage stack is corrupt parsing shader uniforms!");
-    }  
+      throw Error(SHADER_TRANSPILATION, "Shader storage stack is corrupt parsing shader uniforms!");
+    }
 
     flags.push_uniforms.push(true);
     stmt.body->Accept(*this);
@@ -292,7 +295,7 @@ namespace other {
   }
 
   void ShaderGlslTranspiler::Visit(InOutBlockStmt& stmt) {
-    stmt.body->Accept(*this); 
+    stmt.body->Accept(*this);
   }
 
   void ShaderGlslTranspiler::Visit(UniformDecl& stmt) {
@@ -310,14 +313,14 @@ namespace other {
 
     for (auto& s : stmt.statements) {
       s->Accept(*this);
-    } 
+    }
   }
 
   std::string ShaderGlslTranspiler::TranspileTo(std::vector<Ref<AstNode>>& nodes) {
     std::stringstream stream;
     stream << "#version 460 core\n\n";
 
-    /// define this in both vertex and fragment 
+    /// define this in both vertex and fragment
     if (context == VERTEX_SHADER || context == FRAGMENT_SHADER) {
       stream << "struct Material {\n";
       stream << "  vec4 color;\n";
@@ -335,7 +338,7 @@ namespace other {
       stream << "  float linear;\n";
       stream << "  float quadratic;\n";
       stream << "};\n\n";
-      
+
       stream << "struct DirectionLight {\n";
       stream << "  vec4 direction;\n";
       stream << "  vec4 color;\n";
@@ -405,67 +408,67 @@ namespace other {
     }
 
     for (auto& n : nodes) {
-      n->Stream(stream , *this);
+      n->Stream(stream, *this);
     }
 
     return stream.str();
   }
-    
+
   void ShaderGlslTranspiler::ProcessNodes() {
     context = VERTEX_SHADER;
     for (auto& n : ast.vertex_nodes) {
-      n->Accept(*this);   
+      n->Accept(*this);
     }
-    
+
     context = FRAGMENT_SHADER;
     for (auto& n : ast.fragment_nodes) {
-      n->Accept(*this);   
+      n->Accept(*this);
     }
 
     if (ast.geometry_nodes.size() > 0) {
       context = GEOMETRY_SHADER;
       for (auto& n : ast.fragment_nodes) {
-        n->Accept(*this);   
+        n->Accept(*this);
       }
     }
   }
-  
+
   constexpr static uint64_t kDefaultMeshHash = FNV("default");
   const static MeshLayout kDefaultMesh = {
-    .layout_name = "default" ,
-    .stride = 9 ,
+    .layout_name = "default",
+    .stride = 9,
     .attrs = {
-      { .attr_name = "voe_position"     , .idx = 0 , .size = 3 },
-      { .attr_name = "voe_normal"    , .idx = 1 , .size = 3 },
-      { .attr_name = "voe_tangent"     , .idx = 2 , .size = 3 },
-      { .attr_name = "voe_bitangent"   , .idx = 3 , .size = 3 },
-      { .attr_name = "voe_uvs"     , .idx = 4 , .size = 2 },
-    } ,
+      { .attr_name = "voe_position", .idx = 0, .size = 3 },
+      { .attr_name = "voe_normal", .idx = 1, .size = 3 },
+      { .attr_name = "voe_tangent", .idx = 2, .size = 3 },
+      { .attr_name = "voe_bitangent", .idx = 3, .size = 3 },
+      { .attr_name = "voe_uvs", .idx = 4, .size = 2 },
+    },
   };
 
   constexpr static uint64_t kTexturedQuadMeshHash = FNV("textured_quad");
   const static MeshLayout kTexturedQuadMesh = {
-    .layout_name = "textured_quad" ,
-    .stride = 5 , 
+    .layout_name = "textured_quad",
+    .stride = 5,
     .attrs = {
-      { .attr_name = "voe_position" , .idx = 0 , .size = 3 } ,
-      { .attr_name = "voe_uvs" , .idx = 1 , .size = 2 } ,
-    } ,
+      { .attr_name = "voe_position", .idx = 0, .size = 3 },
+      { .attr_name = "voe_uvs", .idx = 1, .size = 2 },
+    },
   };
-      
+
   void ShaderGlslTranspiler::SetMeshLayout(const std::string& value) {
     if (context != VERTEX_SHADER) {
-      throw Error(INVALID_SHADER_CTX , "Can not change mesh layout from anything but a vertex shader!");
-    }
-    
-    /// only allow one override
-    if (mesh_layout.has_value() && mesh_layout->override) {
-      return; 
+      throw Error(INVALID_SHADER_CTX, "Can not change mesh layout from anything but a vertex shader!");
     }
 
-    /// if we haven't come down this path before but there is a mesh layout, issue warning 
+    /// only allow one override
+    if (mesh_layout.has_value() && mesh_layout->override) {
+      return;
+    }
+
+    /// if we haven't come down this path before but there is a mesh layout, issue warning
     if (mesh_layout.has_value() && !mesh_layout->override) {
-      OE_WARN("Overwriting provided input layout because mesh attribute {} was present in shader attributes" , value);
+      OE_WARN("Overwriting provided input layout because mesh attribute {} was present in shader attributes", value);
     }
 
     switch (FNV(value)) {
@@ -479,16 +482,16 @@ namespace other {
         if (!mesh_layout.has_value()) {
           OE_ERROR("Invalid mesh in vertex shader attibutes!");
           return;
-        } 
+        }
         break;
     }
 
-    OE_INFO("Set mesh layout to {}" , value);
+    OE_INFO("Set mesh layout to {}", value);
 
     /// mark we have already set one mesh attribute
     mesh_layout->override = true;
   }
-      
+
   uint32_t ShaderGlslTranspiler::SizeFromString(const std::string& str) {
     if (str == "int") {
       return 1;
@@ -507,7 +510,7 @@ namespace other {
     }
     return 0;
   }
-      
+
   ValueType ShaderGlslTranspiler::ValueTypeFromString(const std::string& str) {
     if (str == "int") {
       return INT32;
@@ -524,7 +527,7 @@ namespace other {
     } else if (str == "mat4") {
       return MAT4;
     }
-    return EMPTY;
+    return EMPTY_TYPE;
   }
 
-} // namespace other
+}  // namespace other

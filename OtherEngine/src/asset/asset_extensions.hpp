@@ -7,38 +7,39 @@
 #include <map>
 
 #include "core/uuid.hpp"
+
 #include "asset/asset_types.hpp"
 
 namespace other {
 
-  static const std::map<UUID , AssetType> asset_extensions = {
+  static const std::map<UUID, AssetType> asset_extensions = {
     /// scene extensions
-    { FNV(".yscn") , AssetType::SCENE } ,
-    { FNV(".yscene") , AssetType::SCENE } ,
+    { FNV(".yscn"), AssetType::SCENE },
+    { FNV(".yscene"), AssetType::SCENE },
 
     /// prefabs
 
     /// mesh/animations
-    { FNV(".fbx") , AssetType::MODEL } ,
-    { FNV(".gltf") , AssetType::MODEL } ,
-    { FNV(".glb") , AssetType::MODEL } ,
-    { FNV(".obj") , AssetType::MODEL } ,
+    { FNV(".fbx"), AssetType::MODEL },
+    { FNV(".gltf"), AssetType::MODEL },
+    { FNV(".glb"), AssetType::MODEL },
+    { FNV(".obj"), AssetType::MODEL },
 
     /// shaders
-    { FNV(".glsl")    , AssetType::SHADER } ,
-    { FNV(".vert")    , AssetType::SHADER } ,
-    { FNV(".frag")    , AssetType::SHADER } ,
-    { FNV(".geom")    , AssetType::SHADER } ,
-    { FNV(".oshader") , AssetType::SHADER } ,
+    { FNV(".glsl"), AssetType::SHADER },
+    { FNV(".vert"), AssetType::SHADER },
+    { FNV(".frag"), AssetType::SHADER },
+    { FNV(".geom"), AssetType::SHADER },
+    { FNV(".oshader"), AssetType::SHADER },
 
     /// materials
 
     /// textures
-    { FNV(".png") , AssetType::TEXTURE } ,
-    { FNV(".jpg") , AssetType::TEXTURE } ,
-    { FNV(".jpeg") , AssetType::TEXTURE } ,
+    { FNV(".png"), AssetType::TEXTURE },
+    { FNV(".jpg"), AssetType::TEXTURE },
+    { FNV(".jpeg"), AssetType::TEXTURE },
 
-    /// env maps 
+    /// env maps
     /// audio
     /// fonts
     /// { FNV(".ttf") , AssetType::FONT } ,
@@ -46,15 +47,16 @@ namespace other {
     /// { FNV(".otf") , AssetType::FONT } ,
 
     /// scripts
-    { FNV(".cs") , AssetType::SCRIPTFILE } , 
-    { FNV(".lua") , AssetType::SCRIPTFILE } ,
+    { FNV(".cs"), AssetType::SCRIPTFILE },
+    { FNV(".dll"), AssetType::SCRIPTFILE },
+    { FNV(".lua"), AssetType::SCRIPTFILE },
 
-    // source 
-    { FNV(".h") , AssetType::SOURCE_FILE } ,
-    { FNV(".hpp") , AssetType::SOURCE_FILE } ,
-    { FNV(".cpp") , AssetType::SOURCE_FILE } ,
+    // source
+    { FNV(".h"), AssetType::SOURCEFILE },
+    { FNV(".hpp"), AssetType::SOURCEFILE },
+    { FNV(".cpp"), AssetType::SOURCEFILE },
   };
 
-} // nmamespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_ASSET_EXTENSIONS_HPP
+#endif  // !OTHER_ENGINE_ASSET_EXTENSIONS_HPP

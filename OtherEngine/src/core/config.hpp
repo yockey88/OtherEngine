@@ -25,7 +25,7 @@ namespace other {
     const std::vector<std::string> GetKeys(const std::string_view section) const;
 
     template <typename T>
-    const Opt<T> GetVal(const std::string_view section, const std::string_view key, bool case_sensitive_key) const;
+    const Opt<T> GetVal(const std::string_view section, const std::string_view key, bool case_sensitive_key = false) const;
 
     std::string TableString();
 

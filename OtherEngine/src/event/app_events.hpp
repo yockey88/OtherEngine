@@ -12,52 +12,29 @@
 
 namespace other {
 
-  class AppLayerEvent : public LayerEvent {
-    public:
-      AppLayerEvent(LayerEventType type , UUID layer_id , const std::string& layer_name)
-        : LayerEvent(type , layer_id , layer_name) {}
-
-      virtual std::string ToString() const override {
-        std::stringstream ss;
-        ss << "AppLayerEvent: " 
-           << (IsPush() ? 
-                "Push" : "Pop") 
-           << " " << LayerName();
-        return ss.str();
-      }
-
-      EVENT_TYPE(APP_LAYER);
+  struct AppLayerEvent {
+    LAYER_EVENT();
+    EVENT_TYPE(APP_LAYER);
   };
-  
-  class ScriptReloadEvent : public Event {
-    public:
-      ScriptReloadEvent()
-        : Event() {}
+  static_assert(sizeof(AppLayerEvent) == 16, "AppLayerEvent size is not correct");
 
-      virtual std::string ToString() const override {
-        return "ScriptReloadEvent";
-      }
-
-      EVENT_CATEGORY(APPLICATION_EVENT);
-      EVENT_TYPE(SCRIPT_RELOAD);
+  struct ScriptReloadEvent {
+    EVENT_CATEGORY(APPLICATION_EVENT);
+    EVENT_TYPE(SCRIPT_RELOAD);
   };
+  static_assert(sizeof(ScriptReloadEvent) == 1, "ScriptReloadEvent size is not correct");
 
-
-  class ProjectDirectoryUpdateEvent : public Event {
-    public: 
-      ProjectDirectoryUpdateEvent(ProjectDirectoryType type)
-        : Event() , dir_type(type) {}
-
-      virtual std::string ToString() const override {
-        return "ProjectDirectoryUpdateEvent";
-      }
-
-      ProjectDirectoryType dir_type;
-
-      EVENT_CATEGORY(APPLICATION_EVENT);
-      EVENT_TYPE(PROJECT_DIR_UPDATE);
+  struct ProjectDirectoryUpdateEvent {
+    ProjectDirectoryType dir_type;
+    EVENT_CATEGORY(APPLICATION_EVENT);
+    EVENT_TYPE(PROJECT_DIR_UPDATE);
   };
+  static_assert(sizeof(ProjectDirectoryUpdateEvent) == 4, "ProjectDirectoryUpdateEvent size is not correct");
 
-} // namespace other
+  static_assert(Event<AppLayerEvent>, "AppLayerEvent does not meet the Event concept");
+  static_assert(Event<ScriptReloadEvent>, "ScriptReloadEvent does not meet the Event concept");
+  static_assert(Event<ProjectDirectoryUpdateEvent>, "ProjectDirectoryUpdateEvent does not meet the Event concept");
 
-#endif // !OTHER_ENGINE_APP_EVENTS_HPP
+}  // namespace other
+
+#endif  // !OTHER_ENGINE_APP_EVENTS_HPP

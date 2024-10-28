@@ -12,7 +12,7 @@ namespace other {
   const Ref<UIWindow>& UIWindowMap::at(UUID id) const {
     return windows.at(id);
   }
-      
+
   UIMapItr UIWindowMap::begin() {
     return windows.begin();
   }
@@ -28,7 +28,7 @@ namespace other {
   UIMapCItr UIWindowMap::cend() const {
     return windows.cend();
   }
-      
+
   UIMapItr UIWindowMap::find(UUID id) {
     return windows.find(id);
   }
@@ -36,22 +36,34 @@ namespace other {
   void UIWindowMap::erase(UIMapItr itr) {
     windows.erase(itr);
   }
-      
+
   void UIWindowMap::clear() {
     windows.clear();
   }
-      
-  void UIWindowMap::AddWindow(UUID id , Ref<UIWindow> window) {
-    windows[id] = window;
-  }
-      
-  void UIWindowMap::RemoveWindow(UUID id) {
+
+  void UIWindowMap::AddWindow(UUID id, Ref<UIWindow> window) {
+    OE_ASSERT(window != nullptr, "Can not add null window to UIWindowMap");
     auto itr = windows.find(id);
-    if (itr == windows.end()) {
+    if (itr != windows.end()) {
+      OE_WARN("UIWindow with id: {} already exists, overwriting", id);
       return;
     }
 
+    window->Attach();
+    windows[id] = window;
+  }
+
+  void UIWindowMap::RemoveWindow(UUID id) {
+    OE_ASSERT(windows.find(id) != windows.end(), "UIWindow with id: {} does not exist", id);
+
+    auto itr = windows.find(id);
+    if (itr == windows.end()) {
+      OE_WARN("UIWindow with id: {} does not exist", id);
+      return;
+    }
+
+    windows[id]->Detach();
     windows.erase(itr);
   }
 
-} // namespace other
+}  // namespace other

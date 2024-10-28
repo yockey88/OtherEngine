@@ -1,6 +1,6 @@
 /**
  * \file core/time.hpp
-*/
+ */
 #ifndef OTHER_ENGINE_TIME_HPP
 #define OTHER_ENGINE_TIME_HPP
 
@@ -8,26 +8,26 @@
 #include <thread>
 
 namespace other {
-namespace time {
+  namespace time {
 
-  using Clock = std::chrono::steady_clock;
-  using Duration = std::chrono::duration<uint64_t , std::micro>;
-  using TimePoint = std::chrono::time_point<std::chrono::steady_clock>;
+    using Clock = std::chrono::steady_clock;
+    using Duration = std::chrono::duration<uint64_t, std::micro>;
+    using TimePoint = std::chrono::time_point<std::chrono::steady_clock>;
 
-  class Timer {
-    TimePoint start;
-    TimePoint end;
-    Duration remaining_time;
-    Duration duration;
-    Duration paused_duration;
+    class Timer {
+      TimePoint start;
+      TimePoint end;
+      Duration remaining_time;
+      Duration duration;
+      Duration paused_duration;
 
-    bool running = false;
-    bool repeat = false;
+      bool running = false;
+      bool repeat = false;
 
-    public:
+     public:
       template <typename T>
-      Timer(T duration , bool repeat = false) 
-        : duration(std::chrono::duration_cast<Duration>(duration)) , repeat(repeat) {}
+      Timer(T duration, bool repeat = false)
+          : duration(std::chrono::duration_cast<Duration>(duration)), repeat(repeat) {}
       ~Timer() {}
 
       void Start();
@@ -41,18 +41,18 @@ namespace time {
       bool Finished() const;
       uint64_t GetRemainingTime() const;
       uint64_t GetDuration() const;
-  };
+    };
 
-  class Stopwatch {
-    TimePoint start;
-    TimePoint end;
-    Duration duration;
-    Duration paused_duration;
+    class Stopwatch {
+      TimePoint start;
+      TimePoint end;
+      Duration duration;
+      Duration paused_duration;
 
-    bool running = true;
-    bool paused = false;
-    
-    public:
+      bool running = true;
+      bool paused = false;
+
+     public:
       Stopwatch() : start(Clock::now()) {}
       ~Stopwatch() {}
 
@@ -63,18 +63,15 @@ namespace time {
       void Reset();
 
       uint64_t GetDuration();
-  };
+    };
 
-  class DeltaTime {
-    Duration duration;
-    TimePoint last_time_point;
-
-    public:
+    class DeltaTime {
+     public:
       DeltaTime() {}
       ~DeltaTime() {}
 
-      inline void Start() { 
-        last_time_point = Clock::now(); 
+      inline void Start() {
+        last_time_point = Clock::now();
       }
 
       inline float Get() {
@@ -91,14 +88,18 @@ namespace time {
         last_time_point = current_time_point;
         return (float)duration.count();
       }
-  };
 
-  template <uint32_t fps>
-  class FrameRateEnforcer {
-    std::chrono::duration<double , std::ratio<1 , fps>> frame_duration;
-    std::chrono::time_point<std::chrono::steady_clock , decltype(frame_duration)> time_point;
+     private:
+      Duration duration;
+      TimePoint last_time_point;
+    };
 
-    public:
+    template <uint32_t fps>
+    class FrameRateEnforcer {
+      std::chrono::duration<double, std::ratio<1, fps>> frame_duration;
+      std::chrono::time_point<std::chrono::steady_clock, decltype(frame_duration)> time_point;
+
+     public:
       FrameRateEnforcer() { time_point = std::chrono::steady_clock::now(); }
 
       inline float TimeStep() const { return (float)(1.f / fps); }
@@ -107,9 +108,9 @@ namespace time {
         time_point += frame_duration;
         std::this_thread::sleep_until(time_point);
       }
-  };
+    };
 
-} // namespace time
-} // namespace other
+  }  // namespace time
+}  // namespace other
 
-#endif // !OTHER_ENGINE_TIME_HPP
+#endif  // !OTHER_ENGINE_TIME_HPP

@@ -9,6 +9,7 @@
 #include <string_view>
 
 #include "core/config.hpp"
+#include "core/file_handle.hpp"
 #include "core/rand.hpp"
 #include "core/ref.hpp"
 #include "core/uuid.hpp"
@@ -69,15 +70,19 @@ namespace other {
    public:
     static void Initialize(const ConfigTable& config);
     static void LoadProjectModules();
+    static void LoadAttachments(const std::string_view section);
 
     static void Shutdown();
     static void UnloadProjectModules();
+    static void UnloadAttachments();
 
     static std::string GetProjectAssemblyDir();
 
     static void ReloadAllScripts();
 
     static Ref<LanguageModule> GetModule(LanguageModuleType type);
+
+    static Ref<ScriptModule> LoadScriptModule(const Path& path);
 
     static Ref<ScriptModule> GetScriptModule(const std::string_view name);
     static Ref<ScriptModule> GetScriptModule(UUID id);
@@ -92,33 +97,6 @@ namespace other {
     //   UUID id = Random::GenerateUUID();
     //   native_object_registry.proxy_map<T>[id] = obj;
     // }
-
-    template <typename SO>
-      requires script_object_t<SO>
-    static ScriptRef<SO> GetObjectRef(const std::string_view name, const std::string_view nspace) {
-      // LanguageModuleType type = ModuleTypeFromObjStaticType<SO>();
-      // auto& mod = language_modules[type];
-      // if (mod.module == nullptr) {
-      //   OE_ERROR("Failed to get module for object {}::{}", nspace, name);
-      //   return nullptr;
-      // }
-
-      // Ref<ScriptObject> obj = nullptr;
-      // for (auto& [id, script_mod] : mod.module->GetModules()) {
-      //   if (script_mod->HasScript(name, nspace)) {
-      //     obj = script_mod->GetScriptObject(name, nspace);
-      //     if (obj == nullptr) {
-      //       // OE_ERROR("Failed to get script object {}::{} from module {}" , nspace , name , script_mod->ModuleName());
-      //       return nullptr;
-      //     }
-
-      //     return Ref<ScriptObject>::Cast<ScriptObjectHandle<SO>>(obj);
-      //   }
-      // }
-
-      // OE_ERROR("Failed to find script object {}::{} in module {}", nspace, name, mod.module->ModuleName());
-      return nullptr;
-    }
 
     template <typename SO>
       requires script_object_t<SO>
@@ -171,10 +149,13 @@ namespace other {
     static LanguageModuleType StringToModuleType(const std::string_view);
     static LanguageModuleType IdToModuleType(UUID id);
 
+    static std::pair<std::string, std::string> GetLuaCsPrefixes();
+
+    static void LoadCoreModules();
     static void LoadModule(LanguageModuleType type);
 
-    static void LoadProjectModule(Ref<LanguageModule>& module, const std::string_view config_tag, const Path& prefix_path = "");
-    static void UnloadProjectModule(Ref<LanguageModule>& module, const std::string_view config_tag);
+    static void LoadScripts();
+    static void LoadScriptFile(ScriptType type, const Ref<FileHandle>& path);
 
     static LanguageModuleType ModuleTypeFromExtension(const std::string_view extension);
     static void LoadScriptModule(Path& module_path);

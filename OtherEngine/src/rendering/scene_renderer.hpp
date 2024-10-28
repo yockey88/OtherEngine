@@ -18,8 +18,11 @@
 namespace other {
 
   struct SceneRenderSpec {
-    Ref<UniformBuffer> camera_uniforms;
-    Ref<UniformBuffer> light_uniforms;
+    uint32_t camera_binding_pnt = 0;
+    std::vector<Uniform> cam_unis = {};
+
+    uint32_t light_binding_pnt = 3;
+    std::vector<Uniform> light_unis = {};
 
     std::vector<PipelineSpec> pipelines;
     std::vector<Ref<RenderPass>> passes;
@@ -48,8 +51,14 @@ namespace other {
 
     template <typename T>
     void SetLightUniform(const std::string_view name, const T& val, uint32_t index = 0) {
-      spec.light_uniforms->BindBase();
-      spec.light_uniforms->SetUniform(name, val, index);
+      light_uniforms->BindBase();
+      light_uniforms->SetUniform(name, val, index);
+    }
+
+    template <typename T>
+    void SetCameraUniform(const std::string_view name, const T& val, uint32_t index = 0) {
+      camera_uniforms->BindBase();
+      camera_uniforms->SetUniform(name, val, index);
     }
 
     void SetViewportSize(const glm::ivec2& size);
@@ -74,6 +83,9 @@ namespace other {
     glm::ivec2 viewport_size;
     SceneRenderSpec spec;
 
+    Ref<UniformBuffer> camera_uniforms = nullptr;
+    Ref<UniformBuffer> light_uniforms = nullptr;
+
     uint32_t gbuffer = 0;
 
     enum GBufferTextureType {
@@ -85,7 +97,8 @@ namespace other {
       NUM_GBUFFER_TEXTURES,
     };
     uint32_t gbuffer_textures[NUM_GBUFFER_TEXTURES] = {
-      0, 0, 0, 0};
+      0, 0, 0, 0
+    };
 
     struct FrameSubmissions {
       Ref<CameraBase> viewpoint = nullptr;

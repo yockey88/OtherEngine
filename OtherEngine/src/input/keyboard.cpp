@@ -1,6 +1,6 @@
 /**
  * \file input/keyboard.cpp
-*/
+ */
 #include "input/keyboard.hpp"
 
 #include <SDL.h>
@@ -11,10 +11,10 @@
 namespace other {
 
   uint8_t* Keyboard::state = nullptr;
-  std::map<Keyboard::Key , Keyboard::KeyState> Keyboard::keys = {};
+  std::map<Keyboard::Key, Keyboard::KeyState> Keyboard::keys = {};
 
   void Keyboard::Initialize() {
-    for (uint16_t i = 0 ; i < kKeyCount ; ++i)
+    for (uint16_t i = 0; i < kKeyCount; ++i)
       keys[static_cast<Key>(i)] = KeyState{};
   }
 
@@ -26,21 +26,21 @@ namespace other {
       KeyState& key_state = keys[key];
       key_state.previous_state = key_state.current_state;
 
-      if (!state[k] && 
-          (key_state.current_state == State::PRESSED || 
-           key_state.current_state == State::BLOCKED || 
+      if (!state[k] &&
+          (key_state.current_state == State::PRESSED ||
+           key_state.current_state == State::BLOCKED ||
            key_state.current_state == State::HELD)) {
         key_state.current_state = State::RELEASED;
         key_state.frames_held = 0;
 
-        EventQueue::PushEvent<KeyReleased>(key);
+        EventQueue::PushEvent<KeyReleased>({ key });
 
         continue;
       }
 
       if (state[k] && key_state.current_state == State::RELEASED) {
         key_state.current_state = State::PRESSED;
-        EventQueue::PushEvent<KeyPressed>(key);
+        EventQueue::PushEvent<KeyPressed>({ key });
 
         continue;
       }
@@ -65,39 +65,39 @@ namespace other {
 
       if (key_state.current_state == State::HELD) {
         ++key_state.frames_held;
-        EventQueue::PushEvent<KeyHeld>(key , key_state.frames_held);
+        EventQueue::PushEvent<KeyHeld>({ key, key_state.frames_held });
 
         continue;
       }
     }
   }
 
-  Keyboard::KeyState Keyboard::GetKeyState(Key key) { 
-    return keys[key]; 
+  Keyboard::KeyState Keyboard::GetKeyState(Key key) {
+    return keys[key];
   }
-    
+
   int32_t Keyboard::FramesHeld(Key key) {
     return keys[key].frames_held;
   }
 
-  bool Keyboard::Pressed(Key key) { 
-    return keys[key].current_state == State::PRESSED; 
+  bool Keyboard::Pressed(Key key) {
+    return keys[key].current_state == State::PRESSED;
   }
 
-  bool Keyboard::Blocked(Key key) { 
-    return keys[key].current_state == State::BLOCKED; 
+  bool Keyboard::Blocked(Key key) {
+    return keys[key].current_state == State::BLOCKED;
   }
 
-  bool Keyboard::Held(Key key) { 
-    return keys[key].current_state == State::HELD; 
+  bool Keyboard::Held(Key key) {
+    return keys[key].current_state == State::HELD;
   }
 
-  bool Keyboard::Down(Key key) { 
-    return keys[key].current_state != State::RELEASED; 
+  bool Keyboard::Down(Key key) {
+    return keys[key].current_state != State::RELEASED;
   }
 
   bool Keyboard::Released(Key key) {
-    return keys[key].current_state == State::RELEASED; 
+    return keys[key].current_state == State::RELEASED;
   }
 
-} // namespace other
+}  // namespace other

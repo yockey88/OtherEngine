@@ -4,14 +4,15 @@
 #ifndef OTHER_ENGINE_APP_HPP
 #define OTHER_ENGINE_APP_HPP
 
-#include "core/defines.hpp"
 #include "core/config.hpp"
+#include "core/defines.hpp"
 #include "core/layer.hpp"
 #include "core/layer_stack.hpp"
+
+#include "asset/asset_handler.hpp"
 #include "parsing/cmd_line_parser.hpp"
 #include "project/project.hpp"
 
-#include "asset/asset_handler.hpp"
 #include "scene/scene_manager.hpp"
 
 #include "rendering/ui/ui_window.hpp"
@@ -21,102 +22,57 @@ namespace other {
 
   class Engine;
 
-  class App { 
-    public:
-      App(const CmdLine& cmdline, const ConfigTable& config);
-      virtual ~App();
+  class App {
+   public:
+    App(const CmdLine& cmdline, const ConfigTable& config);
+    virtual ~App();
 
-      Ref<Project> GetProjectContext();
-    
-      void Load();
-      void Run();
-      void Unload();
+    virtual Ref<AssetHandler> CreateAssetHandler();
+    virtual Ref<SceneRenderer> CreateSceneRenderer();
 
-      void PushLayer(Ref<Layer>& layer);
-      void PushOverlay(Ref<Layer>& overlay);
-      void PopLayer(Ref<Layer>& layer);
-      /// pops the last layer pushed 
-      void PopLayer();
-      void PopOverlay(Ref<Layer>& overlay);
-    
-      void ProcessEvent(Event* event);
+    void Load();
+    void Run();
+    void Unload();
 
-      Ref<UIWindow>& GetUIWindow(const std::string& name);
-      Ref<UIWindow>& GetUIWindow(UUID id);
-      UUID PushUIWindow(const std::string& name , Ref<UIWindow> window);
-      UUID PushUIWindow(Ref<UIWindow> window);
-      bool RemoveUIWindow(const std::string& name);
-      bool RemoveUIWindow(UUID id);
+    void Attach();
+    /// this is seperate because this triggers events which need to be polled while update
+    ///  responds to process events
+    void DoEarlyUpdate(float dt);
+    void DoUpdate(float dt);
+    void DoLateUpdate(float dt);
+    void DoRender();
+    void DoRenderUI();
+    void Detach();
 
-      void LoadSceneByName(const std::string_view name);
-      void LoadScene(const Path& path);
-      bool HasActiveScene();
-      SceneMetadata* ActiveScene();
-      void UnloadScene();
+   protected:
+    virtual void OnLoad() {}
+    virtual void OnAttach() {}
 
-      void ReloadScripts();
-      
-      Ref<Project> project_metadata;
-      Ref<AssetHandler> asset_handler = nullptr;
+    virtual void EarlyUpdate(float dt) {}
+    virtual void Update(float dt) {}
+    virtual void LateUpdate(float dt) {}
+    virtual void Render() {}
+    virtual void RenderUI() {}
 
-      Scope<LayerStack> layer_stack = nullptr;
-      Scope<SceneManager> scene_manager = nullptr;
+    virtual void OnDetach() {}
+    virtual void OnUnload() {}
 
-    protected:
-      void Attach();
-      /// this is seperate because this triggers events which need to be polled while update
-      ///  responds to process events
-      void DoEarlyUpdate(float dt);
-      void DoUpdate(float dt);
-      void DoRender();
-      void DoRenderUI();
-      void Detach();
+    virtual void OnSceneLoad(const SceneMetadata* path) {}
+    virtual void OnSceneUnload() {}
 
-      virtual void OnLoad() {}
-      virtual void OnAttach() {} 
+    /// will only ever be called if editor is active because otherwise the scripts
+    ///   wont be reloaded
+    virtual void OnScriptReload() {}
 
-      virtual void OnEvent(Event* event) {}
-      virtual void EarlyUpdate(float dt) {}
-      virtual void Update(float dt) {}
-      virtual void LateUpdate(float dt) {}
-      virtual void Render() {}
-      virtual void RenderUI() {}
+    const CmdLine& cmdline;
+    const ConfigTable& config;
 
-      virtual void OnDetach() {}
-      virtual void OnUnload() {}
+    UIWindowMap ui_windows;
 
-      virtual void OnSceneLoad(const SceneMetadata* path) {}
-      virtual void OnSceneUnload() {}
-
-      /// will only ever be called if editor is active because otherwise the scripts
-      ///   wont be reloaded
-      virtual void OnScriptReload() {}
-
-      virtual Ref<AssetHandler> CreateAssetHandler();
-
-      const CmdLine& cmdline;
-      const ConfigTable& config;
-
-      UIWindowMap ui_windows;
-
-      bool lost_window_focus = false;
-
-      enum LayerFlags : uint64_t {
-        NO_LAYER_FLAGS = 0 ,
-        
-        LAYER_PUSHED_EU = bit(1) ,
-        LAYER_PUSHED_U = bit(2) , 
-        LAYER_PUSHED_LU = bit(3) , 
-
-        LAYER_PUSHED_R = bit(4) ,
-        LAYER_PUSHED_RUI = bit(5) , 
-      };
-
-      friend class Engine;
-      friend class AppState;
-      friend class Editor;
+    friend class Engine;
+    friend class Editor;
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_APP_HPP
+#endif  // !OTHER_ENGINE_APP_HPP

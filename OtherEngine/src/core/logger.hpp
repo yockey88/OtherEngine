@@ -6,6 +6,7 @@
 
 #include <map>
 #include <source_location>
+#include <stacktrace>
 #include <thread>
 
 #include <spdlog/common.h>
@@ -178,6 +179,15 @@ struct fmt::formatter<other::Path> : fmt::formatter<std::string_view> {
   }
 };
 
+template <>
+struct fmt::formatter<std::stacktrace> : fmt::formatter<std::string_view> {
+  auto format(std::stacktrace st, fmt::format_context& ctx) {
+    std::stringstream ss;
+    ss << st;
+    return fmt::formatter<std::string_view>::format(ss.str(), ctx);
+  }
+};
+
 #define VA_ARGS(...) , ##__VA_ARGS__
 
 #define LOG_ARGS(level, fmt) other::Logger::Level::level, fmt, std::source_location::current(), std::this_thread::get_id()
@@ -189,22 +199,27 @@ struct fmt::formatter<other::Path> : fmt::formatter<std::string_view> {
   } while (false)
 
 #ifdef OE_DEBUG_BUILD
-#define OE_ASSERT(x, fmt, ...)       \
-  do {                               \
-    if ((x)) {                       \
-    } else {                         \
-      OE_CRITICAL(fmt, __VA_ARGS__); \
-      std::abort();                  \
-    }                                \
+#define OE_ASSERT(x, fmt, ...)                                                \
+  do {                                                                        \
+    if ((x)) {                                                                \
+    } else {                                                                  \
+      OE_CRITICAL(fmt, __VA_ARGS__);                                          \
+      OE_ERROR(" STACK TRACE -------------\n{}", std::stacktrace::current()); \
+      std::abort();                                                           \
+    }                                                                         \
   } while (false)
 
 #define OE_TRACE(fmt, ...) OE_LOG(TRACE, fmt, __VA_ARGS__)
 #define OE_DEBUG(fmt, ...) OE_LOG(DEBUG, fmt, __VA_ARGS__)
+
+#define DUMP_STACKTRACE() OE_DEBUG(" STACK TRACE -------------\n{}", std::stacktrace::current())
+
 #else
 /// maybe we should still log these somewhere???
 #define OE_ASSERT(x, fmt, ...) (void)0;
 #define OE_TRACE(fmt, ...) (void)0;
 #define OE_DEBUG(fmt, ...) (void)0;
+#define DUMP_STACKTRACE() (void)0;
 #endif
 
 #define OE_INFO(fmt, ...) OE_LOG(INFO, fmt, __VA_ARGS__)

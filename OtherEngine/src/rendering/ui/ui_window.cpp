@@ -18,14 +18,32 @@ namespace other {
     children.push_back(child);
   }
 
+  void UIWindow::Attach() {
+    OnAttach();
+  }
+
+  void UIWindow::Detach() {
+    OnDetach();
+  }
+
+  void UIWindow::Update(float dt) {
+    OnUpdate(dt);
+  }
+
   void UIWindow::Render() {
     if (!window_open) {
       return;
     }
 
-    if (!ImGui::Begin(title.c_str() , &window_open , flags)) {
+    if (!ImGui::Begin(title.c_str(), &window_open, flags)) {
       ImGui::End();
       return;
+    }
+
+    focused = ImGui::IsItemFocused();
+
+    if (render_functions.size() == 0) {
+      window_open = false;
     }
 
     for (auto& render_function : render_functions) {
@@ -35,25 +53,26 @@ namespace other {
         break;
       }
     }
-    
+
     RenderAllChildren();
-    
-    if (render_functions.size() == 0) {
-      window_open = false;
-    }
+    OnRender();
 
     ImGui::End();
   }
 
-  void UIWindow::Open() { 
-    window_open = true; 
+  bool UIWindow::IsFocused() const {
+    return focused;
   }
-  void UIWindow::Close() { 
-    window_open = false; 
 
-    EventQueue::PushEvent<UIWindowClosed>(FNV(title));
+  void UIWindow::Open() {
+    window_open = true;
   }
-      
+  void UIWindow::Close() {
+    window_open = false;
+
+    EventQueue::PushEvent<UIWindowClosed>({ FNV(title) });
+  }
+
   void UIWindow::PopFrontFunction() {
     render_functions.erase(render_functions.begin());
     render_function_popped = true;
@@ -65,4 +84,4 @@ namespace other {
     }
   }
 
-} // namespace other
+}  // namespace other

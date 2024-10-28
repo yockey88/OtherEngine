@@ -179,23 +179,23 @@ namespace other {
 
 }  // namespace other
 
-template <>
-struct fmt::formatter<other::BvhChildIdx> : public fmt::formatter<std::string_view> {
- public:
-  auto format(other::BvhChildIdx& idx, fmt::format_context& ctx) {
-    std::string_view name = magic_enum::enum_name(idx);
-    return fmt::formatter<std::string_view>::format(name, ctx);
-  }
-};
+// template <>
+// struct fmt::formatter<other::BvhChildIdx> : public fmt::formatter<std::string_view> {
+//  public:
+//   auto format(other::BvhChildIdx& idx, fmt::format_context& ctx) {
+//     std::string_view name = magic_enum::enum_name(idx);
+//     return fmt::formatter<std::string_view>::format(name, ctx);
+//   }
+// };
 
-template <>
-struct fmt::formatter<other::BvhPartitionAlgorithm> : public fmt::formatter<std::string_view> {
- public:
-  auto format(other::BvhPartitionAlgorithm& algo, fmt::format_context& ctx) {
-    std::string_view name = magic_enum::enum_name(algo);
-    return fmt::formatter<std::string_view>::format(name, ctx);
-  }
-};
+// template <>
+// struct fmt::formatter<other::BvhPartitionAlgorithm> : public fmt::formatter<std::string_view> {
+//  public:
+//   auto format(other::BvhPartitionAlgorithm& algo, fmt::format_context& ctx) {
+//     std::string_view name = magic_enum::enum_name(algo);
+//     return fmt::formatter<std::string_view>::format(name, ctx);
+//   }
+// };
 
 namespace other {
 
@@ -562,7 +562,6 @@ namespace other {
   void BvhNode<N>::RenderNodeBounds(const std::string_view pl_name, Ref<SceneRenderer>& renderer, size_t depth) {
     constexpr glm::mat4 identity = glm::identity<glm::mat4>();
     const static AssetHandle wireframe = ModelFactory::CreateBoxWireframe();
-
     Ref<StaticModel> model = AssetManager::GetAsset<StaticModel>(wireframe);
     Material mat(glm::vec4(1.f, 0.f, 0.f, 1.f), 16.f);
 

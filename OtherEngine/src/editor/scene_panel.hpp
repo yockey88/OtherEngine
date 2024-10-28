@@ -11,27 +11,26 @@ namespace other {
   class Editor;
 
   class ScenePanel : public EditorPanel {
-    public:
-      ScenePanel(Editor& parent_app) 
+   public:
+    ScenePanel(Editor& parent_app)
         : EditorPanel(parent_app) {}
-      virtual ~ScenePanel() override {}
+    virtual ~ScenePanel() override {}
 
-      virtual bool OnGuiRender(bool& is_open) override;
-      virtual void OnEvent(Event* e) override;
-      virtual void OnProjectChange(const Ref<Project>& project) override;
-      virtual void SetSceneContext(const Ref<Scene>& scene) override;
+    virtual bool OnGuiRender(bool& is_open) override;
+    virtual void OnProjectChange(const Ref<Project>& project) override;
+    virtual void SetSceneContext(const Ref<Scene>& scene) override;
 
-    private:
-      Ref<Scene> active_scene;
+   private:
+    Ref<Scene> active_scene;
 
-      bool shift_selection_running = false;
-      int32_t first_selected_row = -1;
-      int32_t last_selected_row = -1;
+    bool shift_selection_running = false;
+    int32_t first_selected_row = -1;
+    int32_t last_selected_row = -1;
 
-      void RenderCreateEntity(Entity* parent = nullptr);
-      bool RenderEntity(const UUID& id , Entity* entity);
+    void RenderCreateEntity(Entity* parent = nullptr);
+    bool RenderEntity(const UUID& id, Entity* entity);
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_SCENE_PANEL_HPP
+#endif  // !OTHER_ENGINE_SCENE_PANEL_HPP

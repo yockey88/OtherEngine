@@ -13,7 +13,6 @@
 #include "core/ref.hpp"
 #include "core/uuid.hpp"
 
-
 namespace other {
 
   class Asset;
@@ -57,6 +56,8 @@ namespace other {
 
   enum AssetType : uint16_t {
     BLANK_ASSET = 0,
+    GENERIC_FILE,
+    MEMORY_ONLY,
     SCENE,
     // PREFAB ,
     MODEL_SOURCE,
@@ -69,13 +70,14 @@ namespace other {
     // SOUNDCONFIG ,
     // SPATIALIZATIONCONFIG ,
     // FONT ,
+    SCRIPT,
     SCRIPTFILE,
     // MESHCOLLIDER ,
     // SOUNDGRAPHSOUND ,
     // SKELETON ,
     // ANIMATION ,
     // ANIMATIONGRAPH ,
-    SOURCE_FILE,
+    SOURCEFILE,
 
     NUM_ASSET_TYPES,
     INVALID_ASSET = 0xFFFF
@@ -87,6 +89,8 @@ namespace other {
   namespace util {
 
     inline AssetType AssetTypeFromString(std::string_view asset_str) {
+      if (asset_str == "GENERIC-FILE") return AssetType::GENERIC_FILE;
+      if (asset_str == "MEMORY-ONLY") return AssetType::MEMORY_ONLY;
       if (asset_str == "SCENE") return AssetType::SCENE;
       // if (asset_str == "PREFAB") return AssetType::PREFAB;
       if (asset_str == "MODEL-SOURCE") return AssetType::MODEL_SOURCE;
@@ -99,56 +103,24 @@ namespace other {
       // if (asset_str == "SOUND-CONFIG") return AssetType::SOUNDCONFIG;
       // if (asset_str == "SPATIALIZATION-CONFIG") return AssetType::SPATIALIZATIONCONFIG;
       // if (asset_str == "FONT") return AssetType::FONT;
-      if (asset_str == "SCRIPT-FILE") return AssetType::SCRIPTFILE;
+      if (asset_str == "SCRIPT") return AssetType::SCRIPT;
+      if (asset_str == "SCRIPTFILE") return AssetType::SCRIPTFILE;
       // if (asset_str == "MESH-COLLIDER") return AssetType::MESHCOLLIDER;
       // if (asset_str == "SOUND-GRAPH-SOUND") return AssetType::SOUNDGRAPHSOUND;
       // if (asset_str == "SKELETON") return AssetType::SKELETON;
       // if (asset_str == "ANIMATION") return AssetType::ANIMATION;
       // if (asset_str == "ANIMATION-GRAPH") return AssetType::ANIMATIONGRAPH;
-      if (asset_str == "SOURCE-FILE") return AssetType::SOURCE_FILE;
+      if (asset_str == "SOURCEFILE") return AssetType::SOURCEFILE;
       return AssetType::INVALID_ASSET;
     }
-
-    constexpr static uint16_t kNumAssetTypes = AssetType::NUM_ASSET_TYPES + 1;
-    constexpr static std::array<std::string_view, kNumAssetTypes> kAssetTypeStrings = {
-      "EMPTY_ASSET",
-      "SCENE",
-      // "PREFAB" ,
-      "MODEL-SOURCE",
-      "MODEL",
-      "SHADER",
-      //"MATERIAL" ,
-      "TEXTURE",
-      // "ENV-MAP" ,
-      // "AUDIO" ,
-      // "SOUND-CONFIG" ,
-      // "SPATIALIZATION-CONFIG" ,
-      // "FONT" ,
-      "SCRIPT-FILE",
-      // "MESH-COLLIDER" ,
-      // "SOUND-GRAPH-SOUND" ,
-      // "SKELETON" ,
-      // "ANIMATION" ,
-      // "ANIMATION-GRAPH" ,
-      "SOURCE-FILE",
-
-      "INVALID"};
 
   }  // namespace util
 }  // namespace other
 
 template <>
-struct fmt::formatter<other::AssetType> : public fmt::formatter<std::string_view> {
-  auto format(other::AssetType type, fmt::format_context& ctx) {
-    constexpr std::string_view fmt_str = "{}";
-    return fmt::formatter<std::string_view>::format(fmt::format(fmt_str, other::util::kAssetTypeStrings[type]), ctx);
-  }
-};
-
-template <>
 struct fmt::formatter<other::AssetHandle> : public fmt::formatter<std::string_view> {
   auto format(const other::AssetHandle& handle, fmt::format_context& ctx) {
-    return fmt::formatter<std::string_view>::format(fmt::format(std::string_view{"[{}:{:#08x}]"}, handle.Get(), handle.Get()), ctx);
+    return fmt::formatter<std::string_view>::format(fmt::format(std::string_view{ "[{}:{:#08x}]" }, handle.Get(), handle.Get()), ctx);
   }
 };
 
