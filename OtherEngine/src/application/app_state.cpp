@@ -18,16 +18,17 @@
 #include "rendering/ui/ui.hpp"
 #include "scripting/script_engine.hpp"
 
+#include "engine/engine.hpp"
+
 namespace other {
 
-  Ref<StateMachine> AppState::state = nullptr;
+  // Ref<StateMachine> AppState::state = nullptr;
   Ref<AppState::Data> AppState::data = nullptr;
 
-  void AppState::Initialize(const CmdLine& cmd_line, const ConfigTable& config, App* app_handle) {
-    OE_ASSERT(app_handle != nullptr, "Can not load null application");
-    Filesystem::Initialize(cmd_line, config);
-    data = NewRef<Data>(app_handle, Ref<Project>::Create(cmd_line, config));
-    state = NewRef<AppStateMachine>();
+  void AppState::Initialize(const CmdLine& cmd_line, const ConfigTable& config) {
+    // OE_ASSERT(app_handle != nullptr, "Can not load null application");
+
+    data = NewRef<Data>(NewApp(cmd_line, config), Ref<Project>::Create(cmd_line, config));
     data->cmd_line = cmd_line;
     data->config = config;
 
@@ -116,8 +117,8 @@ namespace other {
     return *data->app_handle;
   }
 
-  void AppState::AppEvent(const Ref<AppStateEvent>& event) {
-    state->DispatchEvent(event);
+  void AppState::AppEvent(const Ref<EngineStateEvent>& event) {
+    // state->DispatchEvent(event);
   }
 
   Ref<AppState::Data> AppState::GetData() {
@@ -169,16 +170,12 @@ namespace other {
   }
 
   void AppState::OnEngineTick(float dt) {
-    data->frame_delta = dt;
+    if (data != nullptr) {
+      data->frame_delta = dt;
+    }
     Filesystem::Poll();
     IO::Update();
-
-    // AppState::RunEarlyUpdate();
-    // AppState::RunUpdate();
-    // AppState::RunLateUpdate();
-    // AppState::HandleRender();
-
-    state->Step();
+    EventQueue::Poll();
   }
 
   void AppState::RunEarlyUpdate() {
@@ -273,17 +270,13 @@ namespace other {
   }
 
   bool AppState::HandleSceneLoad(SceneLoad& event) {
-    state->DispatchEvent(NewRef<SceneLoaded>(event.scene_id));
+    // state->DispatchEvent(NewRef<SceneLoaded>(event.scene_id));
     return false;
   }
 
   AppState::Data::Data(App* app_handle, Ref<Project> proj)
       : app_handle(app_handle) {
     OE_ASSERT(app_handle != nullptr, "Can not load null application");
-    /// TODO:
-    ///   add override ability
-    ///  state = app_handle->HookStateControl();
-    state = NewRef<AppStateMachine>();
 
     layers = NewScope<LayerStack>();
     scenes = NewScope<SceneManager>();
@@ -291,8 +284,6 @@ namespace other {
   }
 
   AppState::Data::~Data() {
-    state = nullptr;
-
     delete app_handle;
     app_handle = nullptr;
     layers = nullptr;

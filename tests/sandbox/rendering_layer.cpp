@@ -7,6 +7,7 @@
 
 #include "application/app_state.hpp"
 #include "event/event_queue.hpp"
+#include "input/mouse.hpp"
 
 #include "rendering/geometry_pass.hpp"
 #include "rendering/outline_pass.hpp"
@@ -191,7 +192,7 @@ void RenderingLayer::OnUIRender() {
 }
 
 bool RenderingLayer::HandleKeyPressed(KeyPressed& event) {
-  HandleKeyEvent(event, Keyboard::Key::OE_C, [&](KeyPressed& event) {
+  HandleKeyEvent(event, Keyboard::Key::OE_C, [&]() {
     camera_lock = !camera_lock;
     if (camera_lock) {
       Mouse::FreeCursor();

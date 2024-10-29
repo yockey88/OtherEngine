@@ -53,8 +53,7 @@ namespace other {
     other::Logger::Instance()->RegisterThread("Main Other Engine Test Engine Thread");
     OE_TRACE("Logger initialized for unit test");
 
-    App* mock_application = NewApp(command_line, config);
-    AppState::Initialize(command_line, config, mock_application);
+    AppState::Initialize(command_line, config);
 
     InitializeEngineSubSystems();
     OE_TRACE("Engine sub-systems initialized");

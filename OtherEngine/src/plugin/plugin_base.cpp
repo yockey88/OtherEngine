@@ -3,7 +3,7 @@
  */
 #include "plugin/plugin.hpp"
 
-#include "core/engine.hpp"
+#include "engine/engine.hpp"
 
 namespace other {
 
@@ -11,4 +11,4 @@ namespace other {
     return engine;
   }
 
-} // namespace other
+}  // namespace other

@@ -67,6 +67,8 @@ namespace other {
       }
     }
 
+    static void UnregisterEventDispatcher(const std::string_view name);
+
     static void EnableUIEvents();
     static void DisableUIEvents();
 

@@ -80,6 +80,14 @@ namespace other {
     num_events = 0;
   }
 
+  void EventQueue::UnregisterEventDispatcher(const std::string_view name) {
+    uint64_t h = FNV(name);
+    auto itr = event_handlers.find(h);
+    if (itr != event_handlers.end()) {
+      event_handlers.erase(itr);
+    }
+  }
+
   void EventQueue::EnableUIEvents() {
     process_ui_events = true;
   }

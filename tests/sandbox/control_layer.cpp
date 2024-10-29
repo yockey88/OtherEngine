@@ -29,11 +29,11 @@ bool ControlLayer::HandleWindowClosed(WindowClosed& event) {
 }
 
 bool ControlLayer::HandleKeyPress(KeyPressed& event) {
-  HandleKeyEvent(event, Keyboard::Key::OE_ESCAPE, [&](KeyPressed& event) {
+  HandleKeyEvent(event, Keyboard::Key::OE_ESCAPE, [&]() {
     EventQueue::PushEvent<ShutdownEvent>({ ExitCode::SUCCESS });
   });
 
-  HandleKeyEvent(event, Keyboard::Key::OE_R, [&](KeyPressed& event) {
+  HandleKeyEvent(event, Keyboard::Key::OE_R, [&]() {
     EventQueue::PushEvent<ScriptReloadEvent>();
   });
 

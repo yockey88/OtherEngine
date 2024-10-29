@@ -62,12 +62,12 @@ namespace other {
              std::same_as<KE, KeyReleased> ||
              std::same_as<KE, KeyHeld>) &&
     requires(KE& e, Fn f) {
-      f(e);
-      { f(e) } -> std::same_as<void>;
+      f();
+      { f() } -> std::same_as<void>;
     }
   static void HandleKeyEvent(KE& event, Keyboard::Key key, Fn fn) {
     if (event.key_code == key) {
-      fn(event);
+      fn();
     }
   }
 

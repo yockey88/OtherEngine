@@ -228,7 +228,7 @@ void ScriptEngineTests::SetUpTestSuite() {
   Logger::Instance()->RegisterThread("Script Engine Test Main Thread");
 
   App* active_app = new TestApp(cmdline, test_config);
-  AppState::Initialize(cmdline, test_config, active_app);
+  AppState::Initialize(cmdline, test_config);
 
   ScriptEngine::Initialize(test_config);
 }

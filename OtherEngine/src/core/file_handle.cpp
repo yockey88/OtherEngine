@@ -6,6 +6,8 @@
 #include <cstddef>
 #include <filesystem>
 
+#include "core/filesystem.hpp"
+
 #include "asset/asset_database.hpp"
 #include "asset/asset_manager.hpp"
 #include "event/core_events.hpp"
@@ -13,10 +15,9 @@
 
 namespace other {
 
-  FileHandle::FileHandle(UUID hash, const Path& path, std::ios_base::openmode mode) {
+  FileHandle::FileHandle(UUID hash, const Path& path, Opt<std::ios_base::openmode> mode) {
     project_relative_path = path;
     handle = hash;
-    watcher = NewRef<FileWatcher>(handle, AbsolutePath());
 
     auto ext_t = AssetManager::AssetTypeFromExtension(project_relative_path.extension().string());
     if (ext_t.has_value()) {
@@ -32,10 +33,21 @@ namespace other {
       });
     }
 
-    Open(mode);
-
-    if (IsOpen()) {
-      OE_DEBUG("File Opened : {} ({})", project_relative_path.string(), handle);
+    if (mode.has_value()) {
+      Open(*mode);
+      if (IsOpen()) {
+        OE_DEBUG("File Opened : {} ({})", project_relative_path.string(), handle);
+        // this->mode = *mode;
+        try {
+          watcher = NewRef<FileWatcher>(handle, AbsolutePath());
+        } catch (std::exception& e) {
+          OE_ERROR("Failed to create file watcher : {}", e.what());
+          handle = 0;
+          asset_type = std::nullopt;
+        }
+      } else {
+        OE_ERROR("Failed to open file : {}", project_relative_path.string());
+      }
     }
   }
 

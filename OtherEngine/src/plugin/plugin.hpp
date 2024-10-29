@@ -1,28 +1,28 @@
 /**
  * \file plugin/plugin_base.hpp
-*/
+ */
 #ifndef OTHER_ENGINE_PLUGIN_BASE_HPP
 #define OTHER_ENGINE_PLUGIN_BASE_HPP
 
 #include <string>
 
-#include "core/engine.hpp"
+#include "engine/engine.hpp"
 
 namespace other {
 
   class Plugin {
-    public:
-      Plugin(Engine* engine) 
+   public:
+    Plugin(Engine* engine)
         : engine(engine) {}
-      virtual ~Plugin() {}
+    virtual ~Plugin() {}
 
-    protected:
-      Engine* GetEngine();
-    
-    private:
-      Engine* engine = nullptr;
+   protected:
+    Engine* GetEngine();
+
+   private:
+    Engine* engine = nullptr;
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_PLUGIN_BASE_HPP
+#endif  // !OTHER_ENGINE_PLUGIN_BASE_HPP

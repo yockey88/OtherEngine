@@ -27,12 +27,12 @@ void SceneLayer::OnAttach() {
     {
       [&](KeyPressed& event) -> bool {
         bool handled = false;
-        HandleKeyEvent(event, Keyboard::Key::OE_S, [&](KeyPressed& event) {
+        HandleKeyEvent(event, Keyboard::Key::OE_S, [&]() {
           AppState::Scenes()->StartScene();
           handled = true;
         });
 
-        HandleKeyEvent(event, Keyboard::Key::OE_P, [&](KeyPressed& event) {
+        HandleKeyEvent(event, Keyboard::Key::OE_P, [&]() {
           AppState::Scenes()->StopScene();
           handled = true;
         });

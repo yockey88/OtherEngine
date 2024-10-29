@@ -6,9 +6,7 @@
 
 #include "core/defines.hpp"
 #include "core/layer_stack.hpp"
-#include "core/state.hpp"
 
-#include "application/app_state_machine.hpp"
 #include "asset/asset_handler.hpp"
 #include "event/scene_events.hpp"
 #include "project/project.hpp"
@@ -18,13 +16,15 @@
 #include "rendering/ui/ui_window.hpp"
 #include "rendering/ui/ui_window_map.hpp"
 
+#include "engine/engine_state_machine.hpp"
+
 namespace other {
 
   class App;
 
   class AppState {
    public:
-    static void Initialize(const CmdLine& cmd_line, const ConfigTable& config, App* app_handle);
+    static void Initialize(const CmdLine& cmd_line, const ConfigTable& config);
     static void Shutdown();
 
     static CmdLine& GetProcessArguments();
@@ -44,7 +44,7 @@ namespace other {
 
     static App& AppHandle();
 
-    static void AppEvent(const Ref<AppStateEvent>& event);
+    static void AppEvent(const Ref<EngineStateEvent>& event);
 
     inline static EngineMode mode = EngineMode::EDITOR;
 
@@ -84,7 +84,6 @@ namespace other {
 
     static Opt<Path> FindSceneFileByName(const std::string_view name);
 
-    static Ref<StateMachine> state;
     static Ref<Data> data;
   };
 
