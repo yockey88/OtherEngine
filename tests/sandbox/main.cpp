@@ -33,6 +33,21 @@ class SandboxApp : public other::App {
   SandboxApp(const other::CmdLine& cmd_line, const other::ConfigTable& config)
       : other::App(cmd_line, config) {}
   virtual ~SandboxApp() override {}
+
+  virtual void OnAttach() override {
+    OE_INFO("Sandbox App Attached");
+    EventQueue::RegisterEventDispatcher<ModifyFileEvent>(
+      "Sandbox-File-Listener",
+      { &ProcessFileMod }
+    );
+
+    Ref<ControlLayer> control_layer = NewRef<ControlLayer>(&AppState::AppHandle(), "Control-Layer");
+    Ref<RenderingLayer> rendering_layer = NewRef<RenderingLayer>(&AppState::AppHandle(), "Rendering-Layer");
+    Ref<SceneLayer> scene_layer = NewRef<SceneLayer>(&AppState::AppHandle(), "Scene-Layer");
+    AppState::PushLayer(control_layer);
+    AppState::PushLayer(rendering_layer);
+    AppState::PushLayer(scene_layer);
+  }
 };
 
 namespace other {
@@ -51,19 +66,6 @@ int main() {
     Engine mock_engine(cmd_line, "Sandbox Thread");
     OE_DEBUG("Sandbox Launched");
     {
-      // EventQueue::RegisterEventDispatcher<ModifyFileEvent>(
-      //   "Sandbox-File-Listener",
-      //   { &ProcessFileMod }
-      // );
-
-      // Ref<ControlLayer> control_layer = NewRef<ControlLayer>(&AppState::AppHandle(), "Control-Layer");
-      // Ref<RenderingLayer> rendering_layer = NewRef<RenderingLayer>(&AppState::AppHandle(), "Rendering-Layer");
-      // Ref<SceneLayer> scene_layer = NewRef<SceneLayer>(&AppState::AppHandle(), "Scene-Layer");
-      // AppState::PushLayer(control_layer);
-      // AppState::PushLayer(rendering_layer);
-      // AppState::PushLayer(scene_layer);
-      // EventQueue::Poll();
-
       mock_engine.Start();
       OE_INFO("Running");
       do {
@@ -71,7 +73,7 @@ int main() {
       } while (!mock_engine.exit_code.has_value());
       mock_engine.Stop();
     }
-    OE_INFO("Succesful exit");
+    OE_INFO("Successful exit");
     return 0;
   } catch (const IniException& e) {
     std::cout << "caught ini error : " << e.what() << "\n";

@@ -59,6 +59,7 @@ namespace other {
       current_line.clear();
     } while (index < contents.size());
 
+    table.SetPath(file_path);
     return table;
   }
 

@@ -48,6 +48,10 @@ namespace other {
     data = nullptr;
   }
 
+  bool AppState::HasAppLoaded() {
+    return data != nullptr;
+  }
+
   CmdLine& AppState::GetProcessArguments() {
     OE_ASSERT(data != nullptr, "Can not access apps data until app is loaded");
     return data->cmd_line;
@@ -76,6 +80,11 @@ namespace other {
   Scope<SceneManager>& AppState::Scenes() {
     OE_ASSERT(data != nullptr, "Can not access app data until app is loaded");
     return data->scenes;
+  }
+
+  Ref<SceneRenderer> AppState::GetSceneRenderer() {
+    OE_ASSERT(data != nullptr, "Can not access app data until app is loaded");
+    return data->scenes->GetRenderer();
   }
 
   UUID AppState::PushUIWindow(Ref<UIWindow> window) {
@@ -127,35 +136,19 @@ namespace other {
   }
 
   void AppState::AttachApplication() {
-    auto& proj_meta = data->project->GetMetadata();
-
-    EventQueue::RegisterEventDispatcher<SceneLoad>(
-      "App-State-Scene-Load-Handler",
-      { &AppState::HandleSceneLoad }
-    );
-
     ScriptEngine::LoadProjectModules();
-
     ScriptEngine::LoadAttachments("scene");
     ScriptEngine::LoadAttachments("ui");
 
     data->app_handle->Attach();
+    /// initial flush of events, poll filesystem in case attaching created new files
+    ///   and poll event queue to ensure all update events are processed before stepping
+    Filesystem::Poll();
+    EventQueue::Poll();
 
+    // then create application objects
     data->assets = data->app_handle->CreateAssetHandler();
     data->scenes->LoadRenderer(data->app_handle->CreateSceneRenderer());
-
-    bool need_primary = data->config.GetVal<bool>(kProjectSection, kNeedPrimarySceneValue, false).value_or(true);
-    if (need_primary && !proj_meta.primary_scene.has_value()) {
-      OE_WARN("Primary Scene marked as present but no primary scene proved (config is corrupt)");
-    } else if (need_primary && proj_meta.primary_scene.has_value()) {
-      auto primary_scene = FindSceneFileByName(*proj_meta.primary_scene);
-
-      if (!primary_scene.has_value()) {
-        OE_WARN("Could not find primary scene : {}", *proj_meta.primary_scene);
-      } else if (data->scenes->LoadScene(*primary_scene)) {
-        data->scenes->SetAsActive(*primary_scene);
-      }
-    }
   }
 
   void AppState::DetachApplication() {
@@ -179,29 +172,18 @@ namespace other {
   }
 
   void AppState::RunEarlyUpdate() {
-    if (!Renderer::IsWindowFocused()) {
-      return;
-    }
     data->app_handle->DoEarlyUpdate(data->frame_delta);
     data->layers->InvokeControlledLoop(&Layer::EarlyUpdate, data->frame_delta);
     data->scenes->EarlyUpdateScene(data->frame_delta);
   }
 
   void AppState::RunUpdate() {
-    if (!Renderer::IsWindowFocused()) {
-      return;
-    }
-
     data->app_handle->DoUpdate(data->frame_delta);
     data->layers->InvokeControlledLoop(&Layer::Update, data->frame_delta);
     data->scenes->UpdateScene(data->frame_delta);
   }
 
   void AppState::RunLateUpdate() {
-    if (!Renderer::IsWindowFocused()) {
-      return;
-    }
-
     data->app_handle->DoLateUpdate(data->frame_delta);
     data->layers->InvokeControlledLoop(&Layer::LateUpdate, data->frame_delta);
     data->scenes->LateUpdateScene(data->frame_delta);
@@ -218,15 +200,18 @@ namespace other {
   void AppState::HandleRender() {
     Renderer::GetWindow()->Clear();
 
-    data->app_handle->DoRender();
+    data->scenes->GetRenderer()->ClearPipelines();
+    data->app_handle->OnRender();
     data->layers->InvokeControlledLoop(&Layer::Render);
-    data->scenes->RenderScene();
+    if (!data->scenes->RenderScene()) {
+      OE_ERROR("Failed to render scene");
+    };
 
     if (UI::Enabled()) {
       UI::BeginFrame();
-      data->layers->InvokeControlledLoop(&Layer::UIRender);
-      data->app_handle->DoRenderUI();
 
+      data->app_handle->OnRenderUI();
+      data->layers->InvokeControlledLoop(&Layer::UIRender);
       for (auto& [id, window] : data->ui_windows) {
         window->Render();
       }
@@ -256,22 +241,6 @@ namespace other {
       UI::EndFrame();
     }
     Renderer::GetWindow()->SwapBuffers();
-  }
-
-  Opt<Path> AppState::FindSceneFileByName(const std::string_view name) {
-    auto scene_dir = data->project->GetMetadata().assets_dir / "scenes";
-    for (auto& entry : std::filesystem::directory_iterator(scene_dir)) {
-      if (entry.is_regular_file() && entry.path().stem() == name) {
-        return entry.path();
-      }
-    }
-
-    return std::nullopt;
-  }
-
-  bool AppState::HandleSceneLoad(SceneLoad& event) {
-    // state->DispatchEvent(NewRef<SceneLoaded>(event.scene_id));
-    return false;
   }
 
   AppState::Data::Data(App* app_handle, Ref<Project> proj)

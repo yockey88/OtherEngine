@@ -5,7 +5,7 @@ bin-dir = "C:/Yock/code/OtherEngine/bin/Debug"
 script-bin-dir = "SandboxScripts/net8.0"
 author = "Y"
 version = 0.0.1
-need-primary-scene = false
+primary-scene = test_scene
 
 [debug]
 editor = true

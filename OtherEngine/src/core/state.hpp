@@ -68,8 +68,7 @@ namespace other {
       current_state->Attach();
     }
     virtual ~StateMachine() {
-      OE_ASSERT(current_state != nullptr, "Invalid state");
-      current_state->Detach();
+      OE_ASSERT(current_state == nullptr, "State machine not properly detached, end state not reached");
     }
 
     void HandleEvent(const ET event) {
@@ -80,7 +79,15 @@ namespace other {
         current_state->Detach();
         new_state->Attach();
         current_state = new_state;
+      } else {
+        /// have accepted final state, detach and clear, HandleEvent should not be called again
+        current_state->Detach();
+        current_state = nullptr;
       }
+    }
+
+    bool IsFinished() {
+      return current_state == nullptr;
     }
 
     Ref<ST> CurrentState() {

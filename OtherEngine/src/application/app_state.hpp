@@ -27,6 +27,8 @@ namespace other {
     static void Initialize(const CmdLine& cmd_line, const ConfigTable& config);
     static void Shutdown();
 
+    static bool HasAppLoaded();
+
     static CmdLine& GetProcessArguments();
     static ConfigTable& GetLoadedConfig();
 
@@ -35,6 +37,8 @@ namespace other {
 
     static Scope<LayerStack>& Layers();
     static Scope<SceneManager>& Scenes();
+
+    static Ref<SceneRenderer> GetSceneRenderer();
 
     static UUID PushUIWindow(Ref<UIWindow> window);
     static void PopUIWindow(UUID id);
@@ -47,6 +51,7 @@ namespace other {
     static void AppEvent(const Ref<EngineStateEvent>& event);
 
     inline static EngineMode mode = EngineMode::EDITOR;
+    inline static Opt<ExitCode> exit_code = std::nullopt;
 
     struct Data : public RefCounted {
       App* app_handle;  /// do not delete
@@ -79,10 +84,6 @@ namespace other {
    private:
     friend class Engine;
     static void OnEngineTick(float dt);
-
-    static bool HandleSceneLoad(SceneLoad& event);
-
-    static Opt<Path> FindSceneFileByName(const std::string_view name);
 
     static Ref<Data> data;
   };

@@ -4,6 +4,8 @@
 #ifndef OTHER_ENGINE_APP_STATE_MACHINE_HPP
 #define OTHER_ENGINE_APP_STATE_MACHINE_HPP
 
+#include <magic_enum/magic_enum.hpp>
+
 #include "core/state.hpp"
 
 namespace other {
@@ -23,6 +25,18 @@ namespace other {
     SCENE_LOADED = bit(6),
     SCENE_UNLOADED = bit(7),
   };
+
+}  // namespace other
+
+template <>
+struct fmt::formatter<other::EngineStateEvent> : public fmt::formatter<std::string_view> {
+  auto format(other::EngineStateEvent e, fmt::format_context& ctx) {
+    std::string_view enum_name = magic_enum::enum_name(e);
+    return fmt::formatter<std::string_view>::format(enum_name, ctx);
+  }
+};
+
+namespace other {
 
   enum class EngineStateTypes : uint64_t {
     IDLE = 0,
@@ -52,6 +66,7 @@ namespace other {
 
     virtual void OnAttach() override;
     virtual void OnStep() override;
+    virtual void OnDetach() override;
   };
 
   struct EngineIdle : public EngineState {
@@ -71,7 +86,9 @@ namespace other {
     virtual ~EngineShutdown() override {}
     virtual Ref<EngineState> HandleEvent(const EngineStateEvent event) override;
 
+    virtual void OnAttach() override;
     virtual void OnStep() override;
+    virtual void OnDetach() override;
   };
 
   /// application states
@@ -82,7 +99,11 @@ namespace other {
     virtual ~AppIdle() override {}
     virtual Ref<EngineState> HandleEvent(const EngineStateEvent event) override;
 
+    virtual void OnAttach() override;
     virtual void OnStep() override;
+    virtual void OnDetach() override;
+
+    bool immediate_scene_load = false;
   };
 
   struct SceneIdle : public EngineState {
@@ -91,7 +112,9 @@ namespace other {
     virtual ~SceneIdle() override {}
     virtual Ref<EngineState> HandleEvent(const EngineStateEvent event) override;
 
+    virtual void OnAttach() override;
     virtual void OnStep() override;
+    virtual void OnDetach() override;
   };
 
   class EngineStateMachine : public StateMachine<EngineState, EngineStateEvent> {

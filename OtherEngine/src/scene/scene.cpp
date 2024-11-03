@@ -70,7 +70,6 @@ namespace other {
     registry.on_destroy<Mesh>().connect<&Scene::GeometryChanged>(this);
     registry.on_destroy<StaticMesh>().connect<&Scene::GeometryChanged>(this);
 
-    /// TODO: move this
     environment = NewRef<Environment>();
 
     handle = Random::GenerateUUID();
@@ -391,7 +390,6 @@ namespace other {
   void Scene::Render(Ref<SceneRenderer>& renderer) {
     OnRender();
 
-    renderer->ClearPipelines();
     if (auto primary_cam = GetPrimaryCamera(); primary_cam != nullptr) {
       renderer->SubmitCamera(primary_cam);
     }

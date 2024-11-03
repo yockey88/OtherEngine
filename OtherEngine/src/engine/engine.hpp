@@ -6,7 +6,6 @@
 #include <queue>
 
 #include "core/defines.hpp"
-#include "core/state.hpp"
 #include "core/time.hpp"
 
 #include "application/app.hpp"
@@ -14,6 +13,7 @@
 #include "parsing/cmd_line_parser.hpp"
 
 #include "engine/engine_state_machine.hpp"
+
 
 namespace other {
 
@@ -34,6 +34,8 @@ namespace other {
     void Step();
     void Stop();
 
+    bool IsRunning() const;
+
     void EngineEvent(EngineStateEvent event);
 
     CmdLine cmd_line;
@@ -48,10 +50,11 @@ namespace other {
     Ref<EngineStateMachine> state = nullptr;
 
     Opt<Path> FindConfigFile();
-    ExitCode ProcessExitCode(ExitCode code);
+    /// TODO: implement this when we add more exit codes
+    // ExitCode ProcessExitCode(ExitCode code);
     ExitCode LoadConfig();
 
-    // bool HandleShutdownEvent(ShutdownEvent& event);
+    bool HandleShutdownEvent(ShutdownEvent& event);
 
     void ProcessSingleArg(const std::string_view lflag, uint32_t min_args, std::function<bool(Arg&)> processor = nullptr);
   };

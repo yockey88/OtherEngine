@@ -155,18 +155,15 @@ void RenderingLayer::OnAttach() {
     },
   };
 
-  renderer = NewRef<SceneRenderer>(render_spec);
-  AppState::Scenes()->LoadRenderer(renderer);
+  // sandbox_ui = ScriptEngine::GetScriptObject("SandboxUI", "", "sandbox_ui");
+  // OE_ASSERT(sandbox_ui != nullptr, "Failed to load sandbox ui script object");
 
-  sandbox_ui = ScriptEngine::GetScriptObject("SandboxUI", "", "sandbox_ui");
-  OE_ASSERT(sandbox_ui != nullptr, "Failed to load sandbox ui script object");
-
-  sandbox_ui->Initialize();
+  // sandbox_ui->Initialize();
 }
 
 void RenderingLayer::OnDetach() {
-  sandbox_ui->Shutdown();
-  sandbox_ui = nullptr;
+  // sandbox_ui->Shutdown();
+  // sandbox_ui = nullptr;
 }
 
 void RenderingLayer::OnLateUpdate(float dt) {
@@ -178,17 +175,16 @@ void RenderingLayer::OnLateUpdate(float dt) {
     DefaultUpdateCamera(camera);
   }
 
-  sandbox_ui->Update(dt);
+  // sandbox_ui->Update(dt);
 
-  renderer->SubmitCamera(camera);
+  AppState::Scenes()->GetRenderer()->SubmitCamera(camera);
 }
 
 void RenderingLayer::OnRender() {
-  sandbox_ui->Render();
 }
 
 void RenderingLayer::OnUIRender() {
-  sandbox_ui->RenderUI();
+  // sandbox_ui->RenderUI();
 }
 
 bool RenderingLayer::HandleKeyPressed(KeyPressed& event) {

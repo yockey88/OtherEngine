@@ -93,6 +93,10 @@ namespace other {
     return asset_type.has_value();
   }
 
+  FileHandle::operator Path() const {
+    return AbsolutePath();
+  }
+
   AssetType FileHandle::GetAssetType() const {
     return IsAsset() ? *asset_type : AssetType::GENERIC_FILE;
   }

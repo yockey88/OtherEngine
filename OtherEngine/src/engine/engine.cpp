@@ -50,6 +50,11 @@ namespace other {
   void Engine::Start() {
     exit_code = std::nullopt;
     delta.Start();
+
+    EventQueue::RegisterEventDispatcher<ShutdownEvent>(
+      "Other-Engine--Shutdown",
+      { std::bind_front(&Engine::HandleShutdownEvent, this) }
+    );
   }
 
   void Engine::Step() {
@@ -59,7 +64,13 @@ namespace other {
       state->HandleEvent(event_queue.front());
       event_queue.pop();
     }
-    state->Step();
+
+    if (state->IsFinished()) {
+      OE_ASSERT(AppState::exit_code.has_value(), "No exit code set for engine shutdown");
+      exit_code = AppState::exit_code.value();
+    } else {
+      state->Step();
+    }
   }
 
   void Engine::Stop() {
@@ -67,7 +78,12 @@ namespace other {
     Step();
   }
 
+  bool Engine::IsRunning() const {
+    return exit_code.has_value();
+  }
+
   void Engine::EngineEvent(EngineStateEvent event) {
+    OE_DEBUG("Engine Event : {}", event);
     event_queue.push(event);
   }
 
@@ -136,19 +152,19 @@ namespace other {
   }
 
   /// FIXME: switch missing cases!!! default triggered in most cases
-  ExitCode Engine::ProcessExitCode(ExitCode code) {
-    switch (code) {
-      case ExitCode::FAILURE:
-        OE_CRITICAL("Application RUN failure");
-        return code;
+  // ExitCode Engine::ProcessExitCode(ExitCode code) {
+  //   switch (code) {
+  //     case ExitCode::FAILURE:
+  //       OE_CRITICAL("Application RUN failure");
+  //       return code;
 
-      case ExitCode::SUCCESS:
-        return code;
+  //     case ExitCode::SUCCESS:
+  //       return code;
 
-      default:
-        return ExitCode::FAILURE;
-    }
-  }
+  //     default:
+  //       return ExitCode::FAILURE;
+  //   }
+  // }
 
   ExitCode Engine::LoadConfig() {
     auto ini_file = FindConfigFile();
@@ -175,10 +191,12 @@ namespace other {
     return ExitCode::NO_EXIT;
   }
 
-  // bool Engine::HandleShutdownEvent(ShutdownEvent& event) {
-  //   exit_code = event.exit_code;
-  //   return false;
-  // }
+  bool Engine::HandleShutdownEvent(ShutdownEvent& event) {
+    OE_DEBUG("Engine Shutdown Event : {}", event.exit_code);
+    AppState::exit_code = event.exit_code;
+    EngineEvent(EngineStateEvent::ENGINE_SHUTDOWN);
+    return false;
+  }
 
   void Engine::ProcessSingleArg(const std::string_view lflag, uint32_t min_args, std::function<bool(Arg&)> processor) {
     auto arg = cmd_line.GetArg(lflag);

@@ -102,6 +102,14 @@ namespace other {
     return nullptr;
   }
 
+  Ref<SceneRenderer> SceneManager::GetRenderer() const {
+    if (scene_renderer == nullptr) {
+      OE_DEBUG("No Scene Renderer set, using default renderer");
+      return Renderer::DefaultSceneRenderer();
+    }
+    return scene_renderer;
+  }
+
   /// TODO: create state system so we don't have to reload the scene each time we stop it to reset
   ///         it to how it was.
   ///       this should also be the same system to handle undoing changes and stuff like that
@@ -286,10 +294,6 @@ namespace other {
     }
 
     OE_ASSERT(scene_renderer != nullptr, "Scene Renderer is null!");
-    auto primary_cam = active_scene->scene->GetPrimaryCamera();
-    if (primary_cam != nullptr) {
-      scene_renderer->SubmitCamera(primary_cam);
-    }
 
     active_scene->scene->Render(scene_renderer);
     bool render_success = scene_renderer->EndScene();
@@ -311,11 +315,9 @@ namespace other {
     if (render_success && itr != frames.end()) {
       const auto& vp = itr->second;
       Renderer::DrawFramebufferToWindow(vp);
-    } else {
-      return false;
     }
 
-    return true;
+    return render_success;
   }
 
   void SceneManager::RenderSceneUI() {

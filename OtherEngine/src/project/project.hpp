@@ -54,6 +54,7 @@ namespace other {
 
   struct ProjectMetadata {
     std::string name = "";
+    Path main_project_file = "";
     Path project_directory = "";
     Path file_path = "";
     Path bin_dir = "";

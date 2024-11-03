@@ -31,6 +31,8 @@ namespace other {
     bool IsOpen() const;
     bool IsAsset() const;
 
+    operator Path() const;
+
     AssetType GetAssetType() const;
 
     void Poll();
