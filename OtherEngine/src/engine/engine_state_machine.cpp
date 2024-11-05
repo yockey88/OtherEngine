@@ -62,15 +62,13 @@ namespace other {
     /// TODO: implement actual engine launch logic,
     ///       - check if headless mode
     ///       - check configuration settings (server, client, editor, runtime, etc....)
-    ///       - push engine load complete event
-    /// curently we just end up in idle state and force an app load
-    /// we load here so we can poll events, use the script engine, and use ui
     AppState::Initialize(engine->cmd_line, engine->config);
     Renderer::Initialize(engine->config);
     UI::Initialize(engine->config, Renderer::GetWindow());
     ScriptEngine::Initialize(engine->config);
     PhysicsEngine::Initialize(engine->config);
 
+    /// MAYBE: indicate what mode the engine is running using this event (headless_load_finished, server_load_finished, etc...)
     engine->EngineEvent(EngineStateEvent::ENGINE_LOAD_FINISHED);
   }
 
@@ -131,7 +129,7 @@ namespace other {
   }
 
   void EngineIdle::OnStep() {
-    /// render ui
+    ScriptEngine::UpdateAttachments(engine->dt);
   }
 
   void EngineIdle::OnDetach() {
@@ -183,8 +181,14 @@ namespace other {
 
   Ref<EngineState> AppIdle::HandleEvent(const EngineStateEvent event) {
     if (event == EngineStateEvent::APP_DETACHED) {
+      OE_ASSERT(AppState::IsAttached(), "Application is not attached");
       AppState::DetachApplication();
-      return NewRef<EngineIdle>(engine);
+
+      if (AppState::exit_code.has_value()) {
+        return NewRef<EngineShutdown>(engine);
+      } else {
+        return NewRef<EngineIdle>(engine);
+      }
     }
 
     if (event == EngineStateEvent::SCENE_LOADED) {
@@ -192,6 +196,7 @@ namespace other {
     }
 
     if (event == EngineStateEvent::ENGINE_SHUTDOWN) {
+      OE_ASSERT(AppState::exit_code.has_value(), "No exit code set for engine shutdown");
       return NewRef<EngineShutdown>(engine);
     }
 
@@ -199,14 +204,14 @@ namespace other {
   }
 
   void AppIdle::OnAttach() {
-    AppState::AttachApplication();
+    if (!AppState::IsAttached()) {
+      AppState::AttachApplication();
+    }
 
     /// if primary-scene then load it, else either issue error (if runtime) or
     ///   open sandbox (if editor)
     auto& proj_data = AppState::ProjectContext()->GetMetadata();
     immediate_scene_load = proj_data.primary_scene.has_value();
-    OE_DEBUG("Loading Application : {} [ {} ]", proj_data.name, proj_data.main_project_file);
-    OE_DEBUG("App Idle Attached : immediate-load : {}", immediate_scene_load);
   }
 
   void AppIdle::OnStep() {
@@ -234,7 +239,10 @@ namespace other {
       return;
     }
 
-    /// render ui for application
+    AppState::RunEarlyUpdate();
+    AppState::RunUpdate();
+    AppState::RunLateUpdate();
+    AppState::HandleRender();
   }
 
   void AppIdle::OnDetach() {
@@ -246,7 +254,11 @@ namespace other {
     }
 
     if (event == EngineStateEvent::ENGINE_SHUTDOWN) {
-      return NewRef<EngineShutdown>(engine);
+      /// this returns app idle so the scene gets unloaded and we queue
+      ///   app detached event so that app-idle state gets immediately detached
+      ///   and the engine can shutdown
+      engine->EngineEvent(EngineStateEvent::APP_DETACHED);
+      return NewRef<AppIdle>(engine);
     }
 
     return nullptr;

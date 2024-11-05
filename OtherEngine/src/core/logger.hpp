@@ -69,7 +69,7 @@ namespace other {
 
     template <typename... Args>
     void Log(Level l, const std::string_view format, std::source_location src_pos, std::thread::id thread_id, Args&&... args) {
-#ifndef OE_DEBUG_BUILD
+#ifdef OTHER_RELEASE_BUILD
       /// during release build we only log info or higher
       if (l < Level::INFO) {
         return;
@@ -198,34 +198,22 @@ struct fmt::formatter<std::stacktrace> : fmt::formatter<std::string_view> {
     LOG_INSTANCE()->Log(LOG_ARGS(level, fmt) VA_ARGS(__VA_ARGS__)); \
   } while (false)
 
-#ifdef OE_DEBUG_BUILD
+#define OE_TRACE(fmt, ...) OE_LOG(TRACE, fmt, __VA_ARGS__)
+#define OE_DEBUG(fmt, ...) OE_LOG(DEBUG, fmt, __VA_ARGS__)
+#define OE_INFO(fmt, ...) OE_LOG(INFO, fmt, __VA_ARGS__)
+#define OE_WARN(fmt, ...) OE_LOG(WARN, fmt, __VA_ARGS__)
+#define OE_ERROR(fmt, ...) OE_LOG(ERR, fmt, __VA_ARGS__)
+#define OE_CRITICAL(fmt, ...) OE_LOG(CRITICAL, fmt, __VA_ARGS__)
 #define OE_ASSERT(x, fmt, ...)                                                \
   do {                                                                        \
     if ((x)) {                                                                \
     } else {                                                                  \
+      std::cerr << "Assertion failed : " << #x << std::endl;                  \
       OE_CRITICAL(fmt, __VA_ARGS__);                                          \
       OE_ERROR(" STACK TRACE -------------\n{}", std::stacktrace::current()); \
       std::abort();                                                           \
     }                                                                         \
   } while (false)
-
-#define OE_TRACE(fmt, ...) OE_LOG(TRACE, fmt, __VA_ARGS__)
-#define OE_DEBUG(fmt, ...) OE_LOG(DEBUG, fmt, __VA_ARGS__)
-
-#define DUMP_STACKTRACE() OE_DEBUG(" STACK TRACE -------------\n{}", std::stacktrace::current())
-
-#else
-/// maybe we should still log these somewhere???
-#define OE_ASSERT(x, fmt, ...) (void)0;
-#define OE_TRACE(fmt, ...) (void)0;
-#define OE_DEBUG(fmt, ...) (void)0;
-#define DUMP_STACKTRACE() (void)0;
-#endif
-
-#define OE_INFO(fmt, ...) OE_LOG(INFO, fmt, __VA_ARGS__)
-#define OE_WARN(fmt, ...) OE_LOG(WARN, fmt, __VA_ARGS__)
-#define OE_ERROR(fmt, ...) OE_LOG(ERR, fmt, __VA_ARGS__)
-#define OE_CRITICAL(fmt, ...) OE_LOG(CRITICAL, fmt, __VA_ARGS__)
 
 #define OE_REGISTER_THREAD(name)          \
   do {                                    \

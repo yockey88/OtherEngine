@@ -7,6 +7,7 @@ local sandbox = {
   kind = "ConsoleApp",
   language = "C++",
   cppdialect = "C++latest",
+  architecture = "x86_64",
 
   files = function()
     files {
@@ -24,6 +25,10 @@ local sandbox = {
 
   defines = function()
     defines { "OE_MODULE" }
+  end,
+
+  windows_configuration = function()
+    entrypoint "WinMainCRTStartup"
   end,
 
   components = {

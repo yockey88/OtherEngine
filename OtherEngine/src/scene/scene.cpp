@@ -14,6 +14,8 @@
 
 #include <hosting/native_string.hpp>
 
+#include "core/rand.hpp"
+
 #include "application/app_state.hpp"
 #include "asset/asset_manager.hpp"
 
@@ -31,9 +33,9 @@
 
 #include "rendering/camera_base.hpp"
 #include "rendering/model.hpp"
-#include "rendering/model_factory.hpp"
 #include "scripting/cs/cs_object.hpp"
 #include "scripting/script_engine.hpp"
+
 
 namespace other {
 

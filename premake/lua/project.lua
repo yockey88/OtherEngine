@@ -8,6 +8,8 @@ local function ProjectHeader(project_data)
 
     if project_data.architecture ~= nil then
       architecture (project_data.architecture)
+    else 
+      architecture "x86_64"
     end
     
     if project_data.language == "C#" then
@@ -103,6 +105,7 @@ local function ProcessConfigurations(project , external)
       else
           systemversion "latest"
       end
+      defines { "OE_WINDOWS" }
 
     filter { "system:windows", "configurations:Debug" }
       if project.windows_debug_configuration ~= nil then
@@ -122,9 +125,9 @@ local function ProcessConfigurations(project , external)
       if project.linux_configuration ~= nil then
         project.linux_configuration()
       end
+      defines { "OE_LINUX" }
 
     filter "configurations:Debug"
-      defines { "OE_DEBUG_BUILD" }
       if project.debug_configuration ~= nil then
         project.debug_configuration()
       else
@@ -134,6 +137,7 @@ local function ProcessConfigurations(project , external)
         symbols "On"
         -- conformancemode "On"
       end
+      defines { "OE_DEBUG" }
 
       if not external and project.language == "C++" then
         ProcessDependencies("Debug")
@@ -143,7 +147,6 @@ local function ProcessConfigurations(project , external)
       end
 
     filter "configurations:Release"
-      defines { "OE_RELEASE_BUILD" }
       if project.release_configuration ~= nil then
         project.release_configuration()
       else
@@ -152,6 +155,7 @@ local function ProcessConfigurations(project , external)
         symbols "Off"
         -- conformancemode "On"
       end
+      defines { "OE_RELEASE" }
 
       if not external and project.language == "C++" then
         ProcessDependencies("Release")

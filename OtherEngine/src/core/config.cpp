@@ -121,9 +121,11 @@ namespace other {
         return ret;
       }
 
+      OE_WARN("Key {} not found in section {}", k, sec);
       return {};
     }
 
+    OE_WARN("Section {} not found", sec);
     return {};
   }
 

@@ -5,13 +5,11 @@
 
 #include <imgui/imgui.h>
 
-#include "core/config_keys.hpp"
 #include "core/filesystem.hpp"
 #include "core/logger.hpp"
 
 #include "application/app.hpp"
 #include "event/event_queue.hpp"
-#include "event/scene_events.hpp"
 #include "input/io.hpp"
 
 #include "rendering/renderer.hpp"
@@ -135,10 +133,15 @@ namespace other {
     return data;
   }
 
+  bool AppState::IsAttached() {
+    return is_attached;
+  }
+
   void AppState::AttachApplication() {
     ScriptEngine::LoadProjectModules();
     ScriptEngine::LoadAttachments("scene");
     ScriptEngine::LoadAttachments("ui");
+    ScriptEngine::AttachObjects();
 
     data->app_handle->Attach();
     /// initial flush of events, poll filesystem in case attaching created new files
@@ -149,6 +152,7 @@ namespace other {
     // then create application objects
     data->assets = data->app_handle->CreateAssetHandler();
     data->scenes->LoadRenderer(data->app_handle->CreateSceneRenderer());
+    is_attached = true;
   }
 
   void AppState::DetachApplication() {
@@ -160,6 +164,7 @@ namespace other {
 
     ScriptEngine::UnloadAttachments();
     ScriptEngine::UnloadProjectModules();
+    is_attached = false;
   }
 
   void AppState::OnEngineTick(float dt) {
@@ -188,13 +193,12 @@ namespace other {
     data->layers->InvokeControlledLoop(&Layer::LateUpdate, data->frame_delta);
     data->scenes->LateUpdateScene(data->frame_delta);
 
-    /// run update on state machine
-    // state->Step(data->frame_delta);
-
     /// update ui windows after all other updates
     for (auto& [id, window] : data->ui_windows) {
       window->Update(data->frame_delta);
     }
+
+    ScriptEngine::UpdateAttachments(data->frame_delta);
   }
 
   void AppState::HandleRender() {
@@ -203,6 +207,7 @@ namespace other {
     data->scenes->GetRenderer()->ClearPipelines();
     data->app_handle->OnRender();
     data->layers->InvokeControlledLoop(&Layer::Render);
+    ScriptEngine::RenderAttachments();
     if (!data->scenes->RenderScene()) {
       OE_ERROR("Failed to render scene");
     };
@@ -216,7 +221,7 @@ namespace other {
         window->Render();
       }
 
-      // ScriptEngine::RenderUI();
+      ScriptEngine::RenderUIAttachments();
 
       // /// lambda to get fps from delta
       // auto fps = [](float dt) -> float {

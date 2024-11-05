@@ -14,7 +14,6 @@
 
 #include "engine/engine_state_machine.hpp"
 
-
 namespace other {
 
   /// implemented by client
@@ -41,6 +40,8 @@ namespace other {
     CmdLine cmd_line;
     ConfigTable config;
     Opt<ExitCode> exit_code = std::nullopt;
+
+    float dt = 0.0f;
 
    private:
     time::DeltaTime delta;

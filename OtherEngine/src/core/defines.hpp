@@ -19,16 +19,13 @@
 #include <magic_enum/magic_enum.hpp>
 #include <spdlog/fmt/fmt.h>
 
+
 #define bit(x) (1ll << x)
 
 #ifdef OE_MODULE
 #define OE_CLIENT
 #else
 #define OE_ENGINE
-#endif
-
-#ifdef OTHER_DEBUG_BUILD
-#define OE_DEBUG_BUILD
 #endif
 
 namespace other {
@@ -283,7 +280,7 @@ namespace other {
     return fmt::underlying(e);
   }
 
-#ifdef OE_DEBUG_BUILD
+#ifdef OTHER_DEBUG_BUILD
 
   class StackTracer {
    public:

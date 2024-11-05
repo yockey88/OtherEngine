@@ -8,7 +8,6 @@
 #include "core/layer_stack.hpp"
 
 #include "asset/asset_handler.hpp"
-#include "event/scene_events.hpp"
 #include "project/project.hpp"
 
 #include "scene/scene_manager.hpp"
@@ -52,6 +51,7 @@ namespace other {
 
     inline static EngineMode mode = EngineMode::EDITOR;
     inline static Opt<ExitCode> exit_code = std::nullopt;
+    inline static bool is_attached = false;
 
     struct Data : public RefCounted {
       App* app_handle;  /// do not delete
@@ -73,6 +73,8 @@ namespace other {
     };
 
     inline Ref<Data> GetData();
+
+    static bool IsAttached();
 
     static void AttachApplication();
     static void DetachApplication();

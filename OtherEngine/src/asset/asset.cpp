@@ -13,6 +13,7 @@ namespace other {
 
   AssetType Asset::GetStaticType() {
     OE_ASSERT(false, "Asset::GetStaticType() called on base class");
+    return AssetType::BLANK_ASSET;
   }
 
   bool Asset::operator==(const Asset& other) const {

@@ -4,12 +4,13 @@
 #ifndef OTHER_ENGINE_INI_PARSER_HPP
 #define OTHER_ENGINE_INI_PARSER_HPP
 
-#include <optional>
+#include <span>
+#include <stack>
 #include <string>
 
 #include "core/config.hpp"
 #include "core/defines.hpp"
-#include "core/errors.hpp"
+
 
 namespace other {
 
@@ -63,6 +64,7 @@ namespace other {
     void PopKey();
 
     void ParseSection(const std::string& line);
+    void ParseScriptSection(const std::string& line);
     void ParseKeyValue(const std::string& line, bool allow_key_modifications);
     void ParseKey(const std::string& key, bool allow_key_modifications);
     void ParseValue(const std::string& value, bool allow_key_modifications);
@@ -80,10 +82,15 @@ namespace other {
 
     char Advance();
     void Consume();
+    bool AdvanceUntil(char c);
+    bool AdvanceUntil(const std::span<const char>& chars);
     bool ConsumeUntil(char c);
+    bool ConsumeUntil(const std::span<const char>& chars);
 
     bool Check(char c);
+    bool Check(const std::span<const char>& chars);
     bool Match(char c);
+    bool Match(const std::span<const char>& chars);
   };
 
 }  // namespace other

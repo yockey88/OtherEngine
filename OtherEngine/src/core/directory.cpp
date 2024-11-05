@@ -4,6 +4,7 @@
 #include "core/directory.hpp"
 
 #include <filesystem>
+#include <ranges>
 
 #include "core/logger.hpp"
 #include "core/rand.hpp"

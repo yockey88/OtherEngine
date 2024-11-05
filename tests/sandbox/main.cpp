@@ -15,8 +15,6 @@
 
 using namespace other;
 
-#include <iostream>
-
 bool ProcessFileMod(const ModifyFileEvent& event) {
   Ref<FileHandle> file = Filesystem::GetFile(event.handle);
   OE_ASSERT(file != nullptr, "Failed to get file handle for event : {}", event.handle);
@@ -50,14 +48,11 @@ class SandboxApp : public other::App {
   }
 };
 
-namespace other {
-  App* NewApp(const CmdLine& cmd_line, const ConfigTable& config);
-}  // namespace other
-
-int main() {
+int sandbox_main() {
   try {
     const std::vector<Arg> sandbox_cmd_line = {
-      Arg("--project", { "C:/Yock/code/OtherEngine/tests/sandbox/sandbox.other" })
+      Arg("--project", { "C:/Yock/code/OtherEngine/tests/sandbox/sandbox.other" }),
+      Arg("--editor", {})
     };
 
     CmdLine cmd_line(sandbox_cmd_line);
@@ -86,6 +81,23 @@ int main() {
   }
   return 1;
 }
+
+#ifdef OE_WINDOWS
+static HINSTANCE other_engine_instance = nullptr;
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+  other_engine_instance = hInstance;
+  __try {
+    return sandbox_main();
+  } __except (EXCEPTION_EXECUTE_HANDLER) {
+    std::cout << "SEH Exception caught" << std::endl;
+    return 1;
+  }
+}
+#else
+int main(int argc, char** argv) {
+  return sandbox_main();
+}
+#endif
 
 namespace other {
   App* NewApp(const CmdLine& cmd_line, const ConfigTable& config) {

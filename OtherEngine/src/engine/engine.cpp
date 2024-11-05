@@ -38,6 +38,8 @@ namespace other {
 
     state = NewRef<EngineStateMachine>(this);
     OE_ASSERT(state != nullptr, "Failed to create Engine State Machine");
+
+    exit_code = std::nullopt;
   }
 
   Engine::~Engine() {
@@ -48,7 +50,6 @@ namespace other {
   }
 
   void Engine::Start() {
-    exit_code = std::nullopt;
     delta.Start();
 
     EventQueue::RegisterEventDispatcher<ShutdownEvent>(
@@ -58,8 +59,11 @@ namespace other {
   }
 
   void Engine::Step() {
-    AppState::OnEngineTick(delta.Get());
+    dt = delta.Get();
+    AppState::OnEngineTick(dt);
 
+    /// copy this over in case any states push events
+    // std::queue<EngineStateEvent> eq = event_queue;
     while (!event_queue.empty()) {
       state->HandleEvent(event_queue.front());
       event_queue.pop();
@@ -183,8 +187,8 @@ namespace other {
       return ExitCode::CONFIG_PARSE_FAILURE;
     }
 
-    auto config_table_str = config.TableString();
-#ifdef OE_DEBUG_BUILD
+    std::string config_table_str = config.TableString();
+#ifdef OTHER_DEBUG_BUILD
     println(config_table_str);
 #endif  // OE_DEBUG_BUILD
 
