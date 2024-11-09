@@ -53,52 +53,6 @@ class Pipeline(Singleton):
   @classmethod
   def _gen_projects(self):
     return gen_projects()
-  
-  @classmethod
-  def _open_editor(self):
-    if oe_env.get_settings().edit is None:
-      return 0
-    
-    config = oe_env.project_configuration()
-    verbose: bool = oe_env.is_verbose()
-
-    project = oe_env.get_settings().edit[0]
-
-    path_dir = Path(".")
-    candidates: list[Path] = []
-    for _, _, paths in os.walk(".", False):
-      for path in paths:
-        p = Path(path)
-        if p.suffix == ".other" and p.stem == project:
-          candidates.append(p) 
-          path_dir = p.parent.absolute()
-
-    if len(candidates) == 0:
-      print(" > no project found for {}".format(project))
-      return 1
-    
-    if len(candidates) > 1:
-      print(" > multiple projects found named {}!".format(project))
-      return 1
-    
-    name = candidates[0].stem
-    filename = candidates[0].name
-
-    if sys.platform == "linux":
-      c_offset, cpath = _process_linux_path(path_dir)
-      path_dir = Path(cpath)
-
-    print("{}/{}/{}".format(path_dir, name, filename))
-    res = utilities.run_project(config, name, [
-      "--project", "{}/{}/{}.other".format(path_dir, name, name),
-      "--cwd", "./{}".format(name) ,
-      "--editor"
-    ])
-
-    if oe_env.get_settings().run is not None:
-      oe_env.get_settings().run = None
-
-    return res
 
   @classmethod
   def _try_build(self):
@@ -143,44 +97,32 @@ class Pipeline(Singleton):
         break
 
     return c_offset, cpath
-  
+
   @classmethod
   def _run_project(self):
     config = oe_env.project_configuration()
     verbose: bool = oe_env.is_verbose()
 
     project = oe_env.get_settings().run[0]
+    curr_dir = Path(".")
 
-    path_dir = Path(".")
-    candidates: list[Path] = []
-    for _, _, paths in os.walk(".", False):
-      for path in paths:
-        p = Path(path)
-        if p.suffix == ".other" and p.stem == project:
-          candidates.append(p) 
-          path_dir = p.parent.absolute()
+    print(oe_env.get_project_path(project))
+    [real_name,proj_path,config_file] = oe_env.get_project_path(project)
+    config_file = curr_dir / config_file
+    project_work_dir = curr_dir / proj_path
+    print(" > running project {} [{} in {}]".format(real_name, proj_path, project_work_dir))
 
-    if len(candidates) == 0:
-      ## if no candidates, attempt to just run diurectly from the name
-      print(" > attempting to run project {} directly".format(project))
-      return utilities.run_project(config, project, oe_env.get_settings().run[1:])
-    
-    if len(candidates) > 1:
-      print(" > multiple projects found named {}!".format(project))
-      return 1
-    
-    name = candidates[0].stem
-    filename = candidates[0].name
+    print("{}".format(proj_path))
+    args = [
+      "--project", "{}".format(config_file),
+      "--cwd", "{}".format(project_work_dir)
+    ]
 
-    if sys.platform == "linux":
-      c_offset, cpath = _process_linux_path(path_dir)
-      path_dir = Path(cpath)
+    if oe_env.get_settings().edit is not None:
+      print(" > editing project")
+      args.append("--editor")
 
-    print("{}/{}/{}".format(path_dir, name, filename))
-    res = utilities.run_project(config, name, [
-      "--project", "{}/{}/{}.other".format(path_dir, name, name),
-      "--cwd", "./{}".format(name)
-    ])
+    res = utilities.run_project(config, real_name, args)
 
   @classmethod 
   def _run_dotnet_project(self):
@@ -197,16 +139,25 @@ class Pipeline(Singleton):
     res = utilities.run_dotnet_project(config, project, oe_env.get_settings().run_dotnet[1:])
 
     return res
-    
+
   @classmethod
   def _try_run(self):
-    if oe_env.get_settings().run is None and oe_env.get_settings().run_dotnet is None:
+    if oe_env.get_settings().run is None and oe_env.get_settings().edit is None:
       return 0
     
+    ### one of run or edit must be set, if run is set then edit is optional, if edit is set then run must be forced
+    ##  if edit is set and run is not set, then run is set to edit
+    ##  if edit is set and run is set, do nothing
+    if oe_env.get_settings().edit is not None and len(oe_env.get_settings().edit) > 0:
+      if oe_env.get_settings().run is None:
+        setattr(oe_env.get_settings(), "run", [])
+      
+      oe_env.get_settings().run.extend(oe_env.get_settings().edit)
+
     if oe_env.get_settings().run is not None:
       return self._run_project()
     else:
-      return self._run_dotnet_project()
+      return 1
 
   @classmethod
   def _try_test(self):
@@ -224,9 +175,8 @@ class Pipeline(Singleton):
       return 0
     
     project_name = oe_env.get_settings().create_project[0]
-    project_type = oe_env.get_settings().create_project[1]
 
-    return utilities.create_project(project_name, project_type)
+    return utilities.create_project(project_name)
 
   @abstractmethod
   def run(self):

@@ -26,6 +26,7 @@ namespace other {
   void Filesystem::Initialize(const CmdLine& cmdline, const ConfigTable& config) {
     Opt<Path> cwd = std::nullopt;
     Opt<Arg> arg = cmdline.GetArg("--cwd");
+    auto cwd_from_cfg = config.GetVal<std::string>(kProjectSection, "WORKING-DIRECTORY");
 
     if (arg.has_value()) {
       if (arg->args.size() != 1) {
@@ -34,13 +35,8 @@ namespace other {
       } else {
         cwd = arg->args[0];
       }
-    }
-
-    if (!cwd.has_value()) {
-      auto cwd_from_cfg = config.GetVal<std::string>(kProjectSection, "WORKING-DIRECTORY");
-      if (cwd_from_cfg.has_value()) {
-        cwd = cwd_from_cfg.value();
-      }
+    } else if (cwd_from_cfg.has_value()) {
+      cwd = cwd_from_cfg.value();
     }
 
     if (!cwd.has_value()) {

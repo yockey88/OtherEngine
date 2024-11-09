@@ -48,12 +48,20 @@ class SandboxApp : public other::App {
   }
 };
 
-int sandbox_main() {
+int sandbox_main(int argc, char* argv[]) {
   try {
-    const std::vector<Arg> sandbox_cmd_line = {
+    other::CmdLine cmdline(argc, argv);
+
+    std::vector<Arg> sandbox_cmd_line = {
       Arg("--project", { "C:/Yock/code/OtherEngine/tests/sandbox/sandbox.other" }),
-      Arg("--editor", {})
+      Arg("--cwd", { "C:/Yock/code/OtherEngine/tests/sandbox" }),
     };
+    for (const auto& [hash, arg] : cmdline.GetArgs()) {
+      if (arg.flag == "--project" || arg.flag == "--cwd") {
+        continue;
+      }
+      sandbox_cmd_line.push_back(arg);
+    }
 
     CmdLine cmd_line(sandbox_cmd_line);
 
@@ -87,7 +95,7 @@ static HINSTANCE other_engine_instance = nullptr;
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
   other_engine_instance = hInstance;
   __try {
-    return sandbox_main();
+    return sandbox_main(__argc, __argv);
   } __except (EXCEPTION_EXECUTE_HANDLER) {
     std::cout << "SEH Exception caught" << std::endl;
     return 1;
@@ -95,7 +103,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 }
 #else
 int main(int argc, char** argv) {
-  return sandbox_main();
+  return sandbox_main(argc, argv);
 }
 #endif
 

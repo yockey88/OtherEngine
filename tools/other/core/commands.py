@@ -86,13 +86,6 @@ engine_cmds: list[Command] = [
         "output verbose logging (trace level logging)"
     ),
 
-    # edit project
-    Command(
-        "-e", "--edit",
-        "opens the project specified by 'project' in the default editor",
-        nargs=1, metavar="project", action=EditAction()
-    ),
-
     # build project
     Command(
         "-b", "--build",
@@ -126,8 +119,14 @@ engine_cmds: list[Command] = [
 
     Command(
         "-cp", "--create-project",
-        "creates a new project with the name 'project' and type 'type'",
-        action=CreateProjectAction(), nargs=2, metavar=("project", "type")
+        "creates a new project with the name 'project'",
+        action=CreateProjectAction(), nargs='*',metavar="project"
+    ),
+
+    Command(
+        "-e", "--edit",
+        "opens the project specified by 'project' in the default editor",
+         action=EditAction(), nargs='*', metavar="project"
     ),
 
     # run project

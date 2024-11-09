@@ -46,10 +46,6 @@ namespace other {
     data = nullptr;
   }
 
-  bool AppState::HasAppLoaded() {
-    return data != nullptr;
-  }
-
   CmdLine& AppState::GetProcessArguments() {
     OE_ASSERT(data != nullptr, "Can not access apps data until app is loaded");
     return data->cmd_line;
@@ -137,7 +133,35 @@ namespace other {
     return is_attached;
   }
 
+  bool AppState::HasPrimaryScene() {
+    return data->project->GetMetadata().primary_scene.has_value();
+  }
+
+  void AppState::LoadPrimaryScene() {
+    auto& proj_meta = data->project->GetMetadata();
+    OE_ASSERT(proj_meta.primary_scene.has_value(), "No primary scene provided in project file");
+
+    Ref<Directory> scene_dir = Filesystem::GetDirectory("scenes");
+    OE_ASSERT(scene_dir != nullptr, "Failed to get scene directory");
+    OE_ASSERT(scene_dir->Exists(), "Scene directory does not exist");
+
+    Ref<FileHandle> primary_scene = scene_dir->GetFileHandleByName(*proj_meta.primary_scene);
+    OE_ASSERT(primary_scene != nullptr, "Failed to get primary scene file handle");
+
+    if (!data->scenes->LoadScene(*primary_scene)) {
+      OE_ERROR("Failed to load primary scene : {}", *proj_meta.primary_scene);
+      return;
+    }
+
+    data->scenes->SetAsActive(*primary_scene);
+    OE_DEBUG("Primary Scene Loaded : {}", *proj_meta.primary_scene);
+  }
+
   void AppState::AttachApplication() {
+    if (is_attached) {
+      return;
+    }
+
     ScriptEngine::LoadProjectModules();
     ScriptEngine::LoadAttachments("scene");
     ScriptEngine::LoadAttachments("ui");

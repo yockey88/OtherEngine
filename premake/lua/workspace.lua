@@ -31,6 +31,21 @@ local function WorkspaceHeader(config)
   else
     staticruntime "On"
   end
+
+  filter "system:windows"
+    flags { "MultiProcessorCompile" }
+    defines {
+      "_CRT_SECURE_NO_WARNINGS",
+      "NOMINMAX",
+      "_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING",
+      -- "TRACY_ENABLE",
+      -- "TRACY_ON_DEMAND",
+      -- "TRACY_CALLSTACK=10",
+    }
+
+  filter "action:vs*"
+    linkoptions { "/ignore:4099" } 
+    disablewarnings { "4068" }
 end
 
 local function ProcessGroups(groups)

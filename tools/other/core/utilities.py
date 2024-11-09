@@ -8,6 +8,7 @@ import platform
 
 from . import project_settings
 from . import project_builders
+from . import file_generators
 
 TOOLS_DIR = project_settings.TOOLS_DIR
 PLATFORM = sys.platform
@@ -113,7 +114,7 @@ def list_projects():
     
     return ret
 
-def create_project(name, type):
+def create_project(name):
     # create top-level project directory
     os.makedirs(name, exist_ok=True)
     print(" > creating project {}".format(name))
@@ -126,7 +127,20 @@ def create_project(name, type):
     scripts_dir = os.path.join(proj_dir, "scripts")
     editor_dir = os.path.join(proj_dir, "editor")
     materials_dir = os.path.join(proj_dir, "materials")
+    shaders_dir = os.path.join(proj_dir, "shaders")
+    scenes_dir = os.path.join(proj_dir, "scenes")
+
+    os.makedirs(src_dir, exist_ok=True)
+    os.makedirs(assets_dir, exist_ok=True)
+    os.makedirs(scripts_dir, exist_ok=True)
+    os.makedirs(editor_dir, exist_ok=True)
+    os.makedirs(materials_dir, exist_ok=True)
+    os.makedirs(shaders_dir, exist_ok=True)
+    os.makedirs(scenes_dir, exist_ok=True)
     
+    file_generators.generate_config_file(name)
+    file_generators.generate_build_file(name)
+    return 0
 
 class Singleton(metaclass=ABCMeta):
     __metaclass__ = ABCMeta

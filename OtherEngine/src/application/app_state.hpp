@@ -26,8 +26,6 @@ namespace other {
     static void Initialize(const CmdLine& cmd_line, const ConfigTable& config);
     static void Shutdown();
 
-    static bool HasAppLoaded();
-
     static CmdLine& GetProcessArguments();
     static ConfigTable& GetLoadedConfig();
 
@@ -75,6 +73,9 @@ namespace other {
     inline Ref<Data> GetData();
 
     static bool IsAttached();
+    static bool HasPrimaryScene();
+
+    static void LoadPrimaryScene();
 
     static void AttachApplication();
     static void DetachApplication();

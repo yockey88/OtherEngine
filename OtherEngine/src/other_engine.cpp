@@ -34,16 +34,27 @@ namespace other {
 
     Engine driver(cmd_line);
     try {
-      // ec = driver.Run();
+      driver.Start();
+      OE_INFO("Running");
+      do {
+        driver.Step();
+      } while (!driver.exit_code.has_value());
+
+      OE_ASSERT(driver.exit_code.has_value(), "Driver did not set exit code");
+      driver.Stop();
+
+      return driver.exit_code.value();
+    } catch (const IniException& e) {
+      println("caught ini error : {}", e.what());
+    } catch (const ShaderException& e) {
+      println("caught shader error : {}", e.what());
+    } catch (const std::exception& e) {
+      println("caught std error : {}", e.what());
     } catch (...) {
       println("Unknown exception caught at top level : MAJOR ERROR");
-      ec = ExitCode::FAILURE;
     }
-    return ec;
-  }
 
-  OE_API void PrintHello() {
-    println("Hello from OtherEngine!");
+    return ExitCode::FAILURE;
   }
 
   namespace {

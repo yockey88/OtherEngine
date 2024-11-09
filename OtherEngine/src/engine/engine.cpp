@@ -59,6 +59,7 @@ namespace other {
   }
 
   void Engine::Step() {
+    // try {
     dt = delta.Get();
     AppState::OnEngineTick(dt);
 
@@ -75,6 +76,19 @@ namespace other {
     } else {
       state->Step();
     }
+    // } catch (const IniException& e) {
+    //   println("caught ini error : {}", e.what());
+    //   state->HandleEvent(EngineStateEvent::CORRUPT_CONFIG_ERROR);
+    // } catch (const ShaderException& e) {
+    //   println("caught shader error : {}", e.what());
+    //   state->HandleEvent(EngineStateEvent::CORRUPT_SHADER_ERROR);
+    // } catch (const std::exception& e) {
+    //   println("caught std error : {}", e.what());
+    //   state->HandleEvent(EngineStateEvent::ENGINE_FAILURE);
+    // } catch (...) {
+    //   println("Unknown exception caught at top level : MAJOR ERROR");
+    //   state->HandleEvent(EngineStateEvent::ENGINE_FAILURE);
+    // }
   }
 
   void Engine::Stop() {
