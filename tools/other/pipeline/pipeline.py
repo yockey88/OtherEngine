@@ -218,6 +218,16 @@ class Pipeline(Singleton):
     print("> running tests w/ filters : tests = {} , ignore = {}".format("all" if len(test_list) == 0 else test_list, ignore_list))
     return run_test(test_list , ignore_list if len(test_list) == 0 else [] , [])
     
+  @classmethod
+  def _try_create_project(self):
+    if oe_env.get_settings().create_project is None:
+      return 0
+    
+    project_name = oe_env.get_settings().create_project[0]
+    project_type = oe_env.get_settings().create_project[1]
+
+    return utilities.create_project(project_name, project_type)
+
   @abstractmethod
   def run(self):
     pass

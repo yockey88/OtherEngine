@@ -113,6 +113,21 @@ def list_projects():
     
     return ret
 
+def create_project(name, type):
+    # create top-level project directory
+    os.makedirs(name, exist_ok=True)
+    print(" > creating project {}".format(name))
+    
+    #create core project directory
+    proj_dir = os.path.join(name, name)
+    os.makedirs(proj_dir, exist_ok=True)
+    src_dir = os.path.join(proj_dir, "src")
+    assets_dir = os.path.join(proj_dir, "assets")
+    scripts_dir = os.path.join(proj_dir, "scripts")
+    editor_dir = os.path.join(proj_dir, "editor")
+    materials_dir = os.path.join(proj_dir, "materials")
+    
+
 class Singleton(metaclass=ABCMeta):
     __metaclass__ = ABCMeta
     instance: Singleton = None

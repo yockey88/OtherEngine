@@ -7,7 +7,7 @@ from .actions import RunAction
 from .actions import RunDotnetAction
 from .actions import TestAction
 from .actions import GenFileAction
-
+from .actions import CreateProjectAction
 
 class Command:
     def __init__(self, sflag, lflag, help_msg,
@@ -122,6 +122,12 @@ engine_cmds: list[Command] = [
     Command(
         "-lp", "--list-projects",
         "lists all projects registered with the engine"
+    ),
+
+    Command(
+        "-cp", "--create-project",
+        "creates a new project with the name 'project' and type 'type'",
+        action=CreateProjectAction(), nargs=2, metavar=("project", "type")
     ),
 
     # run project
