@@ -17,6 +17,10 @@ namespace other {
     ConfigTable() = default;
     ~ConfigTable() = default;
 
+    void SetPath(const Path& path);
+    Path GetPath() const;
+    void Load();
+
     void Add(const std::string_view section, const std::string_view key = "", const std::string_view value = "", bool is_string = false, bool allow_key_modifications = true);
     void Add(const std::string_view section, const std::string_view key, const std::vector<std::string>& list, bool is_string = false, bool allow_key_modifications = true);
 
@@ -30,10 +34,13 @@ namespace other {
     std::string TableString();
 
    private:
+    Path config_path;
     std::map<uint64_t, std::string> section_map;
     std::map<uint64_t, std::string> key_map;
     std::map<uint64_t, std::vector<std::string>> key_names;
     std::map<uint64_t, std::map<uint64_t, std::vector<std::string>>> table;
+
+    // std::map<uint64_t,
   };
 
 }  // namespace other

@@ -5,12 +5,16 @@
 
 namespace other {
 
+  void State::Attach() {
+    OnAttach();
+  }
+
   void State::Step() {
     OnStep();
   }
 
-  void StateMachine::Step() {
-    OnStep();
+  void State::Detach() {
+    OnDetach();
   }
 
 }  // namespace other

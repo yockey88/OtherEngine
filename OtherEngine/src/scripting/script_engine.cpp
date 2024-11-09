@@ -14,6 +14,8 @@
 
 #include "application/app_state.hpp"
 
+#include "ecs/components/script.hpp"
+
 #include "scripting/language_module.hpp"
 #include "scripting/script_defines.hpp"
 #include "scripting/script_module.hpp"
@@ -30,6 +32,7 @@ namespace other {
   std::map<UUID, LanguageModuleMetadata> ScriptEngine::language_modules;
   std::map<UUID, Ref<ScriptModule>> ScriptEngine::loaded_modules;
   std::map<UUID, Ref<ScriptObject>> ScriptEngine::objects;
+  std::map<UUID, Ref<ScriptObject>> ScriptEngine::attachments;
 
   constexpr static std::array<Ref<LanguageModule> (*)(), kNumModules> kModuleGetters = {
     []() -> Ref<LanguageModule> { return Ref<CsModule>::Create(); },
@@ -60,6 +63,8 @@ namespace other {
   }
 
   void ScriptEngine::LoadAttachments(const std::string_view section) {
+    OE_DEBUG("Loading attachments for section {}", section);
+
     Ref<LanguageModule> cs_language_module = ScriptEngine::GetModule(CS_MODULE);
     Ref<LanguageModule> lua_language_module = ScriptEngine::GetModule(LUA_MODULE);
     OE_ASSERT(cs_language_module != nullptr, "Failed to retrieve C# language module");
@@ -91,6 +96,7 @@ namespace other {
       }
       OE_ASSERT(cs_file != nullptr, "Failed to load C# attachment file {}", cs_attachments[0]);
 
+      OE_DEBUG("Loading C# attachment file {}", cs_file->ProjectRelativePath());
       LoadScriptFile(script_type, cs_file);
     }
 
@@ -110,7 +116,64 @@ namespace other {
       }
       OE_ASSERT(lua_file != nullptr, "Failed to load Lua attachment file {}", lua_attachments[0]);
 
+      OE_DEBUG("Loading Lua attachment file {}", lua_file->ProjectRelativePath());
       LoadScriptFile(script_type, lua_file);
+    }
+  }
+
+  void ScriptEngine::AttachObjects() {
+    auto attachment_keys = config.GetKeys(kAttachmentsValue);
+    for (auto& key : attachment_keys) {
+      std::vector<std::string> split_key = key | std::views::split('.') | std::ranges::to<std::vector<std::string>>();
+      OE_ASSERT(split_key.size() == 2, "Invalid attachment key : {}", key);
+
+      std::vector<std::string> objs = config.Get(kAttachmentsValue, key, /* case_sensitive = */ true);
+      OE_DEBUG("Loading attachments for key {} [{} attachments]", key, objs.size());
+
+      std::string_view module = split_key[1];
+
+      /// FIXME: find a more scalable, consistent way to do this
+      // std::string_view category = split_key[0];
+      Ref<ScriptModule> mod = GetScriptModule(module);
+      if (mod == nullptr) {
+        OE_ERROR("Failed to retrieve script module {}", module);
+        continue;
+      }
+
+      for (auto& obj : objs) {
+        Ref<ScriptObject> script_obj = mod->GetScriptObject(obj);
+        if (script_obj == nullptr) {
+          OE_ERROR("Failed to retrieve script object {} from module {}", obj, module);
+          continue;
+        }
+
+        script_obj->Initialize();
+        attachments[FNV(obj)] = script_obj;
+      }
+    }
+  }
+
+  void ScriptEngine::UpdateAttachments(float dt) {
+    for (auto& [id, obj] : attachments) {
+      obj->EarlyUpdate(dt);
+    }
+    for (auto& [id, obj] : attachments) {
+      obj->Update(dt);
+    }
+    for (auto& [id, obj] : attachments) {
+      obj->LateUpdate(dt);
+    }
+  }
+
+  void ScriptEngine::RenderAttachments() {
+    for (auto& [id, obj] : attachments) {
+      obj->Render();
+    }
+  }
+
+  void ScriptEngine::RenderUIAttachments() {
+    for (auto& [id, obj] : attachments) {
+      obj->RenderUI();
     }
   }
 
@@ -125,20 +188,20 @@ namespace other {
     Ref<LanguageModule> lua_language_module = ScriptEngine::GetModule(LUA_MODULE);
     Ref<LanguageModule> cs_language_module = ScriptEngine::GetModule(CS_MODULE);
 
-    // OE_DEBUG("Unloading Lua script modules");
-    // UnloadProjectModule(lua_language_module, kLuaModuleSection);
-    // lua_language_module->UnloadScript("OtherEngine.LuaCore");
-
-    // OE_DEBUG("Unloading C# script modules");
-    // UnloadProjectModule(cs_language_module, kCsModuleSection);
-
     cs_language_module->UnloadScript("OtherEngine.CsCore");
     loaded_modules.clear();
   }
 
   void ScriptEngine::UnloadAttachments() {
-    Ref<LanguageModule> lua_language_module = ScriptEngine::GetModule(LUA_MODULE);
-    Ref<LanguageModule> cs_language_module = ScriptEngine::GetModule(CS_MODULE);
+    DetachObjects();
+  }
+
+  void ScriptEngine::DetachObjects() {
+    for (auto& [id, obj] : attachments) {
+      obj->Shutdown();
+      obj = nullptr;
+    }
+    attachments.clear();
   }
 
   std::string ScriptEngine::GetProjectAssemblyDir() {
@@ -367,44 +430,6 @@ namespace other {
     }
 
     return LanguageModuleType::INVALID_LANGUAGE_MODULE;
-  }
-
-  std::pair<std::string, std::string> ScriptEngine::GetLuaCsPrefixes() {
-    auto project_metadata = AppState::ProjectContext();
-    OE_ASSERT(project_metadata != nullptr, "Failed to load project metadata");
-
-    Ref<Directory> editor_dir = Filesystem::GetDirectory("project-root");
-    OE_ASSERT(editor_dir != nullptr, "Failed to load project root directory");
-
-    // /// C# binary location data
-    // auto project_bin = project_metadata->GetMetadata().bin_dir;
-    // auto script_bin = project_metadata->GetMetadata().script_bin_dir;
-
-    // Path cs_prefix = project_path / project_bin;
-    // if (script_bin.has_value()) {
-    //   cs_prefix /= script_bin.value();
-    // }
-    // cs_prefix /= "net8.0";
-
-    // if (!Filesystem::PathExists(cs_prefix)) {
-    //   OE_ERROR("Invalid C# script directory!");
-    // } else {
-    //   OE_DEBUG("C# Directory : {}", cs_prefix);
-    // }
-
-    // Path lua_prefix = project_metadata->GetMetadata().assets_dir / "scripts";
-    // if (project_metadata->GetMetadata().lua_directory.has_value()) {
-    //   Path p = project_metadata->GetMetadata().lua_directory.value();
-    //   if (!Filesystem::PathExists(p)) {
-    //     OE_ERROR("Invalid Lua script directory!");
-    //   } else {
-    //     lua_prefix = p;
-    //     OE_DEBUG("Lua Directory : {}", lua_prefix);
-    //   }
-    // }
-
-    // return { cs_prefix.string(), lua_prefix.string() };
-    return {};
   }
 
   void ScriptEngine::LoadCoreModules() {

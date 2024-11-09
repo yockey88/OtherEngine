@@ -40,8 +40,8 @@ namespace other {
     void DoEarlyUpdate(float dt);
     void DoUpdate(float dt);
     void DoLateUpdate(float dt);
-    void DoRender();
-    void DoRenderUI();
+    void OnRender();
+    void OnRenderUI();
     void Detach();
 
    protected:

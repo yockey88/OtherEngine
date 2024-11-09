@@ -211,37 +211,37 @@ namespace {
   }
 
   void LoadSystems() {
-    other::Logger::Open(*PyEnv::config);
-    other::Logger::Instance()->RegisterThread("Other Environment");
+    // other::Logger::Open(*PyEnv::config);
+    // other::Logger::Instance()->RegisterThread("Other Environment");
 
-    PyEnv::application = NewScope<EnvironmentApp>(PyEnv::cmd_line, *PyEnv::config);
-    PyEnv::application->Load();
-    AppState::Initialize(PyEnv::application.get(), PyEnv::application->layer_stack, PyEnv::application->scene_manager, PyEnv::application->asset_handler, PyEnv::application->project_metadata);
+    // PyEnv::application = NewScope<EnvironmentApp>(PyEnv::cmd_line, *PyEnv::config);
+    // PyEnv::application->Load();
+    // AppState::Initialize(PyEnv::application.get(), PyEnv::application->layer_stack, PyEnv::application->scene_manager, PyEnv::application->asset_handler, PyEnv::application->project_metadata);
 
-    IO::Initialize();
-    EventQueue::Initialize(*PyEnv::config);
+    // IO::Initialize();
+    // EventQueue::Initialize(*PyEnv::config);
 
-    Renderer::Initialize(*PyEnv::config);
-    CHECKGL();
+    // Renderer::Initialize(*PyEnv::config);
+    // CHECKGL();
 
-    UI::Initialize(*PyEnv::config, Renderer::GetWindow());
-    ScriptEngine::Initialize(*PyEnv::config);
+    // UI::Initialize(*PyEnv::config, Renderer::GetWindow());
+    // ScriptEngine::Initialize(*PyEnv::config);
 
-    PhysicsEngine::Initialize(*PyEnv::config);
+    // PhysicsEngine::Initialize(*PyEnv::config);
   }
 
   void ShutdownSystems() {
-    PhysicsEngine::Shutdown();
+    // PhysicsEngine::Shutdown();
 
-    ScriptEngine::Shutdown();
+    // ScriptEngine::Shutdown();
 
-    UI::Shutdown();
-    Renderer::Shutdown();
-    EventQueue::Shutdown();
-    IO::Shutdown();
+    // UI::Shutdown();
+    // Renderer::Shutdown();
+    // EventQueue::Shutdown();
+    // IO::Shutdown();
 
-    PyEnv::application->Unload();
-    other::Logger::Shutdown();
+    // PyEnv::application->Unload();
+    // other::Logger::Shutdown();
   }
 
   void LogWrapper::Trace(const std::string& msg) {

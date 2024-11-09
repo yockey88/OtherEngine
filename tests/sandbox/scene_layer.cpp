@@ -3,9 +3,6 @@
  **/
 #include "scene_layer.hpp"
 
-#include "core/filesystem.hpp"
-
-#include "event/core_events.hpp"
 #include "event/event_queue.hpp"
 #include "event/key_events.hpp"
 
@@ -16,44 +13,29 @@ using namespace other;
 
 void SceneLayer::OnAttach() {
   EventQueue::RegisterEventDispatcher<SceneLoad>(
-    "Scene-Load",
-    {
-      std::bind_front(&SceneLayer::HandleSceneLoad, this),
-    }
+    "SceneLayer--SceneLoad",
+    { std::bind_front(&SceneLayer::HandleSceneLoad, this) }
   );
 
-  EventQueue::RegisterEventDispatcher<KeyPressed>(
-    "Scene-Control-Key-Binds",
-    {
-      [&](KeyPressed& event) -> bool {
-        bool handled = false;
-        HandleKeyEvent(event, Keyboard::Key::OE_S, [&](KeyPressed& event) {
-          AppState::Scenes()->StartScene();
-          handled = true;
-        });
+  // EventQueue::RegisterEventDispatcher<KeyPressed>(
+  //   "Scene-Control-Key-Binds",
+  //   {
+  //     [&](KeyPressed& event) -> bool {
+  //       bool handled = false;
+  //       HandleKeyEvent(event, Keyboard::Key::OE_S, [&]() {
+  //         AppState::Scenes()->StartScene();
+  //         handled = true;
+  //       });
 
-        HandleKeyEvent(event, Keyboard::Key::OE_P, [&](KeyPressed& event) {
-          AppState::Scenes()->StopScene();
-          handled = true;
-        });
+  //       HandleKeyEvent(event, Keyboard::Key::OE_P, [&]() {
+  //         AppState::Scenes()->StopScene();
+  //         handled = true;
+  //       });
 
-        return handled;
-      },
-    }
-  );
-
-  const Path engine_core_dir = Filesystem::GetEngineCoreDir();
-  const Path assets_dir = engine_core_dir / "OtherEngine" / "assets";
-  const Path scene_dir = assets_dir / "scenes";
-
-  scenepath = Path("C:/Yock/code/OtherEngine/tests/sandbox") / "test_scene.yscn";
-  OE_ASSERT(Filesystem::PathExists(scenepath), "Scene file does not exist : {}", scenepath.string());
-
-  if (!AppState::Scenes()->LoadScene(scenepath)) {
-    OE_ERROR("Failed to load scene : {}", scenepath.string());
-    EventQueue::PushEvent<ShutdownEvent>({ ExitCode::FAILURE });
-    return;
-  }
+  //       return handled;
+  //     },
+  //   }
+  // );
 }
 
 void SceneLayer::OnLateUpdate(float dt) {
@@ -62,8 +44,10 @@ void SceneLayer::OnLateUpdate(float dt) {
 
 bool SceneLayer::HandleSceneLoad(SceneLoad& event) {
   {
-    scene = AppState::Scenes()->GetScene(event.scene_id);
-    OE_ASSERT(scene != nullptr, "Scene is null!");
+    SceneMetadata* active_scene = AppState::Scenes()->ActiveScene();
+    OE_ASSERT(active_scene != nullptr, "No active scene to attach");
+    OE_ASSERT(active_scene->scene != nullptr, "Active scene has no scene to attach");
+    scene = active_scene->scene;
 
     auto* cube = scene->GetEntity("cube");
     auto* floor = scene->GetEntity("floor");
@@ -88,8 +72,6 @@ bool SceneLayer::HandleSceneLoad(SceneLoad& event) {
     ScriptEngine::SetSceneContext(scene);
     Renderer::SetSceneContext(scene);
   }
-  AppState::Scenes()->SetAsActive(scenepath);
-  AppState::Scenes()->StartScene();
 
   return false;
 }

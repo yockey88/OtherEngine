@@ -4,7 +4,9 @@
 #include "core/directory.hpp"
 
 #include <filesystem>
+#include <ranges>
 
+#include "core/logger.hpp"
 #include "core/rand.hpp"
 
 namespace other {
@@ -112,6 +114,37 @@ namespace other {
     return file_handles[handle];
   }
 
+  Ref<FileHandle> Directory::GetFileHandleByName(const std::string_view name) {
+    if (!Exists()) {
+      OE_ERROR("Failed to get file handle, directory does not exist : {}", proj_relative_path.string());
+      return nullptr;
+    }
+
+    for (auto& [id, file] : file_handles) {
+      OE_DEBUG("CHECKING FILE : {} == {}", file->FileName(), name);
+      if (file->FileName() == name) {
+        return file;
+      }
+    }
+
+    for (auto& p : paths) {
+      if (p.stem() == name) {
+        UUID hash = FNV(p.string());
+        file_handles[hash] = Ref<FileHandle>::Create(hash, p);
+        return file_handles[hash];
+      }
+    }
+
+    for (auto& [id, dir] : children) {
+      auto file = dir->GetFileHandleByName(name);
+      if (file != nullptr) {
+        return file;
+      }
+    }
+
+    return nullptr;
+  }
+
   std::vector<Path> Directory::GetFiles(Opt<std::string> ext) const {
     std::vector<Path> files;
     for (auto& entry : std::filesystem::directory_iterator(AbsolutePath())) {
@@ -168,11 +201,13 @@ namespace other {
       return;
     }
 
+    OE_TRACE("Collecting Children : {}", proj_relative_path);
     for (auto& entry : std::filesystem::directory_iterator(proj_relative_path)) {
       if (entry.is_directory()) {
         Path p = entry.path();
         children[FNV(p.string())] = NewRef<Directory>(this, entry.path());
       } else if (entry.is_regular_file()) {
+        OE_TRACE(" > {}", entry.path());
         paths.push_back(entry.path());
       }
     }

@@ -26,4 +26,10 @@ namespace other {
 
 }  // namespace other
 
+ECHO_TYPE(
+  type(other::Ray),
+  field(origin),
+  field(direction)
+)
+
 #endif  // !OTHER_ENGINE_RAY_HPP

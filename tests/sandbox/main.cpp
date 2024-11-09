@@ -1,7 +1,6 @@
 /**
  * \file sandbox/main.cpp
  **/
-#include "core/engine.hpp"
 #include "core/filesystem.hpp"
 #include "core/logger.hpp"
 
@@ -10,12 +9,11 @@
 #include "parsing/cmd_line_parser.hpp"
 
 #include "control_layer.hpp"
+#include "engine/engine.hpp"
 #include "rendering_layer.hpp"
 #include "scene_layer.hpp"
 
 using namespace other;
-
-#include <iostream>
 
 bool ProcessFileMod(const ModifyFileEvent& event) {
   Ref<FileHandle> file = Filesystem::GetFile(event.handle);
@@ -28,62 +26,49 @@ bool ProcessFileMod(const ModifyFileEvent& event) {
 
   return false;
 }
+class SandboxApp : public other::App {
+ public:
+  SandboxApp(const other::CmdLine& cmd_line, const other::ConfigTable& config)
+      : other::App(cmd_line, config) {}
+  virtual ~SandboxApp() override {}
 
-int main() {
+  virtual void OnAttach() override {
+    OE_INFO("Sandbox App Attached");
+    EventQueue::RegisterEventDispatcher<ModifyFileEvent>(
+      "Sandbox-File-Listener",
+      { &ProcessFileMod }
+    );
+
+    Ref<ControlLayer> control_layer = NewRef<ControlLayer>(&AppState::AppHandle(), "Control-Layer");
+    Ref<RenderingLayer> rendering_layer = NewRef<RenderingLayer>(&AppState::AppHandle(), "Rendering-Layer");
+    Ref<SceneLayer> scene_layer = NewRef<SceneLayer>(&AppState::AppHandle(), "Scene-Layer");
+    AppState::PushLayer(control_layer);
+    AppState::PushLayer(rendering_layer);
+    AppState::PushLayer(scene_layer);
+  }
+};
+
+int sandbox_main() {
   try {
-    std::cout << "hello from sandbox" << std::endl;
     const std::vector<Arg> sandbox_cmd_line = {
-      Arg("--project", { "C:/Yock/code/OtherEngine/tests/sandbox/sandbox.other" })
+      Arg("--project", { "C:/Yock/code/OtherEngine/tests/sandbox/sandbox.other" }),
+      Arg("--editor", {})
     };
 
     CmdLine cmd_line(sandbox_cmd_line);
 
     /// for test reasons
-    Engine mock_engine(cmd_line);
-    Logger::Open(mock_engine.config);
-    Logger::Instance()->RegisterThread("Sandbox Thread");
-
-    mock_engine.LoadApp();
+    Engine mock_engine(cmd_line, "Sandbox Thread");
     OE_DEBUG("Sandbox Launched");
-
     {
-      EventQueue::RegisterEventDispatcher<ShutdownEvent>(
-        "Sandbox-Shutdown",
-        {
-          [&](ShutdownEvent& event) -> bool {
-            mock_engine.exit_code = event.exit_code;
-            return true;
-          },
-        }
-      );
-
-      EventQueue::RegisterEventDispatcher<ModifyFileEvent>(
-        "Sandbox-File-Listener",
-        { &ProcessFileMod }
-      );
-
-      Ref<ControlLayer> control_layer = NewRef<ControlLayer>(&AppState::AppHandle(), "Control-Layer");
-      Ref<RenderingLayer> rendering_layer = NewRef<RenderingLayer>(&AppState::AppHandle(), "Rendering-Layer");
-      Ref<SceneLayer> scene_layer = NewRef<SceneLayer>(&AppState::AppHandle(), "Scene-Layer");
-      AppState::PushLayer(control_layer);
-      AppState::PushLayer(rendering_layer);
-      AppState::PushLayer(scene_layer);
-      EventQueue::Poll();
-
       mock_engine.Start();
       OE_INFO("Running");
-      while (!mock_engine.exit_code.has_value()) {
-        /// engine tick, will send events to event queue and dispatch them to listeners
-        ///   and will trigger an application tick every ??? seconds
+      do {
         mock_engine.Step();
-      }
+      } while (!mock_engine.exit_code.has_value());
       mock_engine.Stop();
     }
-
-    mock_engine.UnloadApp();
-    OE_INFO("Succesful exit");
-    Logger::Shutdown();
-
+    OE_INFO("Successful exit");
     return 0;
   } catch (const IniException& e) {
     std::cout << "caught ini error : " << e.what() << "\n";
@@ -94,9 +79,31 @@ int main() {
   } catch (...) {
     std::cout << "unknown error" << "\n";
   }
-
   return 1;
 }
+
+#ifdef OE_WINDOWS
+static HINSTANCE other_engine_instance = nullptr;
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+  other_engine_instance = hInstance;
+  __try {
+    return sandbox_main();
+  } __except (EXCEPTION_EXECUTE_HANDLER) {
+    std::cout << "SEH Exception caught" << std::endl;
+    return 1;
+  }
+}
+#else
+int main(int argc, char** argv) {
+  return sandbox_main();
+}
+#endif
+
+namespace other {
+  App* NewApp(const CmdLine& cmd_line, const ConfigTable& config) {
+    return new SandboxApp(cmd_line, config);
+  }
+}  // namespace other
 
 /// trace mouse cursor ray
 /**

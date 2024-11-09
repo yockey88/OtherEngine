@@ -195,9 +195,7 @@ void SceneTreeTests::SetUpTestSuite() {
 
   Logger::Open(test_config);
   Logger::Instance()->RegisterThread("Script Scene Integration Test Main Thread");
-
-  App* active_app = new TestApp(cmdline, test_config);
-  ASSERT_NO_FATAL_FAILURE(AppState::Initialize(cmdline, test_config, active_app));
+  ASSERT_NO_FATAL_FAILURE(AppState::Initialize(cmdline, test_config));
 }
 
 void SceneTreeTests::TearDownTestSuite() {

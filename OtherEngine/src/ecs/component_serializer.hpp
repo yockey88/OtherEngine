@@ -6,7 +6,9 @@
 
 #include "core/config.hpp"
 #include "core/ref.hpp"
-#include "core/serializer.hpp"
+
+#include "serialization/serializer.hpp"
+
 
 namespace other {
 
@@ -14,25 +16,24 @@ namespace other {
   class Scene;
 
   class ComponentSerializer : public Serializer {
-    public:
-      virtual ~ComponentSerializer() {}
+   public:
+    virtual ~ComponentSerializer() {}
 
-      virtual void Serialize(std::ostream& stream , Entity* owner , const Ref<Scene>& scene) const = 0;
-      virtual void Deserialize(Entity* entity , const ConfigTable& scn_table , Ref<Scene>& scene) const = 0;
+    virtual void Serialize(std::ostream& stream, Entity* owner, const Ref<Scene>& scene) const = 0;
+    virtual void Deserialize(Entity* entity, const ConfigTable& scn_table, Ref<Scene>& scene) const = 0;
 
-    protected:
-      std::string GetComponentSectionKey(const std::string& name , const std::string& section_key) const;
-      
-      void SerializeComponentSection(std::ostream& stream , Entity* owner , const std::string_view tag) const;
+   protected:
+    std::string GetComponentSectionKey(const std::string& name, const std::string& section_key) const;
+
+    void SerializeComponentSection(std::ostream& stream, Entity* owner, const std::string_view tag) const;
   };
 
-#define COMPONENT_SERIALIZERS(name) \
-  virtual ~name##Serializer() override {} \
-  const std::string GetSerializerName() const { return "ComponentSerializer[" #name "]"; } \
-  virtual void Serialize(std::ostream& stream , Entity* entity , const Ref<Scene>& scene) const override; \
-  virtual void Deserialize(Entity* entity , const ConfigTable& scene_table , Ref<Scene>& scene) const override;
+#define COMPONENT_SERIALIZERS(name)                                                                     \
+  virtual ~name##Serializer() override {}                                                               \
+  const std::string GetSerializerName() const { return "ComponentSerializer[" #name "]"; }              \
+  virtual void Serialize(std::ostream& stream, Entity* entity, const Ref<Scene>& scene) const override; \
+  virtual void Deserialize(Entity* entity, const ConfigTable& scene_table, Ref<Scene>& scene) const override;
 
+}  // namespace other
 
-} // namespace other 
-
-#endif // !OTHER_ENGINE_COMPONENT_SERIALIZER_HPP
+#endif  // !OTHER_ENGINE_COMPONENT_SERIALIZER_HPP

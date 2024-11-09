@@ -33,15 +33,13 @@ namespace other {
     template <typename T>
       requires Event<T>
     static void PushEvent(const T& arg) {
-      /// write the event
       size_t idx = event_buffer.BufferData(arg);
-
-      /// write the event handle
       EventHandle handle{
         .ptr = event_buffer.PointerAt<T>(idx),
         .type = T::GetStaticType(),
       };
       scratch_buffer.BufferData(handle);
+
       ++num_events;
     }
 
@@ -67,6 +65,8 @@ namespace other {
       }
     }
 
+    static void UnregisterEventDispatcher(const std::string_view name);
+
     static void EnableUIEvents();
     static void DisableUIEvents();
 
@@ -76,8 +76,8 @@ namespace other {
     static constexpr size_t kBufferSize = 1024 * 1024;
     static inline uint64_t event_flags = 0;
     static inline bool process_ui_events = true;
-    static inline size_t num_events = 0;
 
+    static inline size_t num_events = 0;
     static Buffer event_buffer;
     static Buffer scratch_buffer;
     static std::map<uint64_t, EventDispatcher> event_handlers;

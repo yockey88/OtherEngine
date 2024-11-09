@@ -28,7 +28,6 @@ class RenderingLayer : public Layer {
   Ref<VertexArray> fb_mesh = nullptr;
   Ref<CameraBase> camera = nullptr;
   Ref<Framebuffer> framebuffer = nullptr;
-  Ref<SceneRenderer> renderer = nullptr;
 
   Ref<UniformBuffer> camera_uniforms = nullptr;
   Ref<UniformBuffer> light_uniforms = nullptr;

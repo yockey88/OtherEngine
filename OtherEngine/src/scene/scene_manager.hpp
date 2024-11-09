@@ -40,6 +40,7 @@ namespace other {
     bool IsPlaying() const;
 
     Ref<Scene> GetScene(UUID id) const;
+    Ref<SceneRenderer> GetRenderer() const;
 
     bool HasScene(const Path& path);
     bool HasActiveScene() const;

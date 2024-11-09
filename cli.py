@@ -13,6 +13,11 @@ class OtherCliPipeline(Pipeline):
       print("> running pipeline")
       if env.get_settings().fnv:
         return utilities.fnv(env.get_settings().fnv)
+      
+      if env.get_settings().list_projects:
+        print("> listing projects")
+        return utilities.list_projects()
+
       if env.get_settings().generate_files:
         self._process_error(self._gen_files(), " > file generation successful", " !> file generation failed!")
       if env.get_settings().generate_projects or env.get_settings().generate_files:

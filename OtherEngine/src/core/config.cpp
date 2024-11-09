@@ -11,6 +11,17 @@
 
 namespace other {
 
+  void ConfigTable::SetPath(const Path& path) {
+    config_path = path;
+  }
+
+  Path ConfigTable::GetPath() const {
+    return config_path;
+  }
+
+  void ConfigTable::Load() {
+  }
+
   void ConfigTable::Add(const std::string_view section, const std::string_view key, const std::string_view value, bool is_string, bool allow_key_modifications) {
     if (section.empty()) {
       return;
@@ -110,9 +121,11 @@ namespace other {
         return ret;
       }
 
+      OE_WARN("Key {} not found in section {}", k, sec);
       return {};
     }
 
+    OE_WARN("Section {} not found", sec);
     return {};
   }
 

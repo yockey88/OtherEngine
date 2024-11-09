@@ -335,9 +335,7 @@ void ScriptSceneIntegrationTests::SetUpTestSuite() {
 
   Logger::Open(test_config);
   Logger::Instance()->RegisterThread("Script Scene Integration Test Main Thread");
-
-  App* active_app = new TestApp(cmdline, test_config);
-  AppState::Initialize(cmdline, test_config, active_app);
+  AppState::Initialize(cmdline, test_config);
 
   ScriptEngine::Initialize(test_config);
 }

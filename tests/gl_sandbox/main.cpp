@@ -18,24 +18,18 @@
 #include <rendering/gbuffer.hpp>
 
 #include "core/defines.hpp"
-#include "core/engine.hpp"
 #include "core/errors.hpp"
 #include "core/filesystem.hpp"
 #include "core/logger.hpp"
 #include "core/ref.hpp"
 
-#include "asset/asset_manager.hpp"
 #include "event/event_queue.hpp"
 #include "input/io.hpp"
-
-#include "ecs/components/mesh.hpp"
 
 #include "rendering/camera_base.hpp"
 #include "rendering/direction_light.hpp"
 #include "rendering/framebuffer.hpp"
 #include "rendering/material.hpp"
-#include "rendering/model.hpp"
-#include "rendering/model_factory.hpp"
 #include "rendering/perspective_camera.hpp"
 #include "rendering/point_light.hpp"
 #include "rendering/renderer.hpp"
@@ -46,10 +40,10 @@
 #include "rendering/vertex.hpp"
 #include "rendering/window.hpp"
 
+#include "engine/engine.hpp"
 #include "gl_helpers.hpp"
 #include "sandbox_ui.hpp"
 #include "shader_embed.hpp"
-
 
 struct Quad {
   uint32_t vao = 0, vbo = 0, ebo = 0;
@@ -137,7 +131,6 @@ int main(int argc, char* argv[]) {
     other::Logger::Open(mock_engine.config);
     other::Logger::Instance()->RegisterThread("Sandbox-Thread");
 
-    mock_engine.LoadApp();
     OE_DEBUG("GL Sandbox Launched");
 
     uint32_t shader1 = other::GetShader(vert1, frag1);
@@ -386,7 +379,7 @@ int main(int argc, char* argv[]) {
 
     glDeleteProgram(shader1);
     glDeleteProgram(shader2);
-    mock_engine.UnloadApp();
+    // mock_engine.UnloadApp();
     other::Logger::Shutdown();
   } catch (const other::IniException& e) {
     std::cout << "caught ini error : " << e.what() << "\n";

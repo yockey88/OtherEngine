@@ -6,11 +6,8 @@
 
 #include "core/defines.hpp"
 #include "core/layer_stack.hpp"
-#include "core/state.hpp"
 
-#include "application/app_state_machine.hpp"
 #include "asset/asset_handler.hpp"
-#include "event/scene_events.hpp"
 #include "project/project.hpp"
 
 #include "scene/scene_manager.hpp"
@@ -18,14 +15,18 @@
 #include "rendering/ui/ui_window.hpp"
 #include "rendering/ui/ui_window_map.hpp"
 
+#include "engine/engine_state_machine.hpp"
+
 namespace other {
 
   class App;
 
   class AppState {
    public:
-    static void Initialize(const CmdLine& cmd_line, const ConfigTable& config, App* app_handle);
+    static void Initialize(const CmdLine& cmd_line, const ConfigTable& config);
     static void Shutdown();
+
+    static bool HasAppLoaded();
 
     static CmdLine& GetProcessArguments();
     static ConfigTable& GetLoadedConfig();
@@ -36,6 +37,8 @@ namespace other {
     static Scope<LayerStack>& Layers();
     static Scope<SceneManager>& Scenes();
 
+    static Ref<SceneRenderer> GetSceneRenderer();
+
     static UUID PushUIWindow(Ref<UIWindow> window);
     static void PopUIWindow(UUID id);
 
@@ -44,9 +47,11 @@ namespace other {
 
     static App& AppHandle();
 
-    static void AppEvent(const Ref<AppStateEvent>& event);
+    static void AppEvent(const Ref<EngineStateEvent>& event);
 
     inline static EngineMode mode = EngineMode::EDITOR;
+    inline static Opt<ExitCode> exit_code = std::nullopt;
+    inline static bool is_attached = false;
 
     struct Data : public RefCounted {
       App* app_handle;  /// do not delete
@@ -69,6 +74,8 @@ namespace other {
 
     inline Ref<Data> GetData();
 
+    static bool IsAttached();
+
     static void AttachApplication();
     static void DetachApplication();
     static void RunEarlyUpdate();
@@ -80,11 +87,6 @@ namespace other {
     friend class Engine;
     static void OnEngineTick(float dt);
 
-    static bool HandleSceneLoad(SceneLoad& event);
-
-    static Opt<Path> FindSceneFileByName(const std::string_view name);
-
-    static Ref<StateMachine> state;
     static Ref<Data> data;
   };
 

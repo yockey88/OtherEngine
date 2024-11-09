@@ -19,7 +19,7 @@ namespace other {
 
   class FileHandle : public RefCounted {
    public:
-    FileHandle(UUID hash, const Path& path, std::ios_base::openmode mode = std::ios_base::in | std::ios_base::out);
+    FileHandle(UUID hash, const Path& path, Opt<std::ios_base::openmode> mode = std::nullopt);
     virtual ~FileHandle();
 
     // void Write(T) ???
@@ -30,6 +30,8 @@ namespace other {
     bool Exists() const;
     bool IsOpen() const;
     bool IsAsset() const;
+
+    operator Path() const;
 
     AssetType GetAssetType() const;
 

@@ -1,13 +1,18 @@
-/** \file core/engine.hpp
+/** \file engine/engine.hpp
  */
 #ifndef OTHER_ENGINE_ENGINE_HPP
 #define OTHER_ENGINE_ENGINE_HPP
+
+#include <queue>
 
 #include "core/defines.hpp"
 #include "core/time.hpp"
 
 #include "application/app.hpp"
+#include "event/core_events.hpp"
 #include "parsing/cmd_line_parser.hpp"
+
+#include "engine/engine_state_machine.hpp"
 
 namespace other {
 
@@ -21,34 +26,36 @@ namespace other {
   class Engine {
    public:
     Engine();
-    Engine(const CmdLine& cmd_line);
-
-    ExitCode Run();
-
-    void LoadApp();
-    void UnloadApp();
-
-    void Launch();
-    void Shutdown();
+    Engine(const CmdLine& cmd_line, Opt<std::string> main_thread_name = std::nullopt);
+    ~Engine();
 
     void Start();
     void Step();
     void Stop();
 
+    bool IsRunning() const;
+
+    void EngineEvent(EngineStateEvent event);
+
     CmdLine cmd_line;
     ConfigTable config;
     Opt<ExitCode> exit_code = std::nullopt;
+
+    float dt = 0.0f;
 
    private:
     time::DeltaTime delta;
     std::string config_path;
 
+    std::queue<EngineStateEvent> event_queue;
+    Ref<EngineStateMachine> state = nullptr;
+
     Opt<Path> FindConfigFile();
-    ExitCode ProcessExitCode(ExitCode code);
+    /// TODO: implement this when we add more exit codes
+    // ExitCode ProcessExitCode(ExitCode code);
     ExitCode LoadConfig();
 
-    void PushCoreLayer();
-    void RegisterLoggers();
+    bool HandleShutdownEvent(ShutdownEvent& event);
 
     void ProcessSingleArg(const std::string_view lflag, uint32_t min_args, std::function<bool(Arg&)> processor = nullptr);
   };

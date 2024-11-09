@@ -5,7 +5,7 @@ bin-dir = "C:/Yock/code/OtherEngine/bin/Debug"
 script-bin-dir = "SandboxScripts/net8.0"
 author = "Y"
 version = 0.0.1
-need-primary-scene = false
+primary-scene = test_scene
 
 [debug]
 editor = true
@@ -33,11 +33,21 @@ attachments = {
   ui = { "sandbox_ui.lua" }
 }
 
+[attachments]
+ui = { 
+  *sandbox_ui = { "SandboxUI" }
+}
+
 #[
   syntax ideas:
     - small amounts of scripting? 
       (this might be the biggest argument for moving all configuration to lua, cause this would be nice but not worth the effort while also supporting three scripting language bindings unless it 
-        was part of the scripting language bindings which leaves lua/python and python is for toolchain/project-management/game-dev-logistics)
+        was part of the scripting language bindings which leaves lua/python)
+
+    [OnAttach] :: {
+      script_engine = Script-Engine;
+      script_engine.Load(sandbox_ui) -> SandboxUI;
+    }
 
     [function-name] (params, ...) -> (rets, ...) {
       /// do some sort of configuration???

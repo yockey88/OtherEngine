@@ -7,6 +7,7 @@ import sys
 import platform
 
 from . import project_settings
+from . import project_builders
 
 TOOLS_DIR = project_settings.TOOLS_DIR
 PLATFORM = sys.platform
@@ -92,6 +93,25 @@ def fnv(arg):
         ["cmd.exe", "/c", ".\\bin\\Debug\\fnv\\fnv.exe", arg]
     )
 
+## TODO: fix this function we don't want to be tied to the solution file
+def list_projects():
+    # stdout = subprocess.DEVNULL if verbose is False else None
+    # stderr = subprocess.DEVNULL if verbose is False else None
+
+    ret = 0
+    if is_windows():
+        ret = subprocess.call(
+            [
+                "cmd.exe", "/c", 
+                "{}".format(project_builders.MSBUILD),
+                "-ts", "tests/sandbox.vcxproj",
+            ],
+            stdout=None, stdin=None
+        )
+    else:
+        raise EnvironmentError("Non-windows platform detected")
+    
+    return ret
 
 class Singleton(metaclass=ABCMeta):
     __metaclass__ = ABCMeta

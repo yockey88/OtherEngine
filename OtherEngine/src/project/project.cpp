@@ -15,6 +15,7 @@ namespace other {
 
   Project::Project(const CmdLine& cmdline, const ConfigTable& config)
       : cmdline(cmdline), config(config) {
+    metadata.main_project_file = config.GetPath();
     metadata.name = config.GetVal<std::string>(kProjectSection, kNameValue, false).value_or("Unnamed Project");
     metadata.bin_dir = config.GetVal<std::string>(kProjectSection, kBinDirValue, false).value_or("bin/Debug/");
     metadata.primary_scene = config.GetVal<std::string>(kProjectSection, kPrimarySceneValue, false);

@@ -57,7 +57,7 @@ IncludeCategories:
   - Regex:           '<([A-Za-z0-9\/-_])+>'
     Priority:        1
   # Headers in <> from specific external libraries.
-  - Regex:           '<(glm|spdlog|entt|glad|gtest|imgui|json|magic_enum)\/'
+  - Regex:           '<(glm|spdlog|entt|glad|gtest|imgui|json|magic_enum|refl)\/'
     Priority:        2
   - Regex:           '<(SDL)+>'
     Priority:        2

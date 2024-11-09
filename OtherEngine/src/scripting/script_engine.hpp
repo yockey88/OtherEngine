@@ -10,7 +10,6 @@
 
 #include "core/config.hpp"
 #include "core/file_handle.hpp"
-#include "core/rand.hpp"
 #include "core/ref.hpp"
 #include "core/uuid.hpp"
 
@@ -72,9 +71,16 @@ namespace other {
     static void LoadProjectModules();
     static void LoadAttachments(const std::string_view section);
 
+    static void AttachObjects();
+    static void UpdateAttachments(float dt);
+    static void RenderAttachments();
+    static void RenderUIAttachments();
+
     static void Shutdown();
     static void UnloadProjectModules();
     static void UnloadAttachments();
+
+    static void DetachObjects();
 
     static std::string GetProjectAssemblyDir();
 
@@ -91,12 +97,6 @@ namespace other {
     static Ref<ScriptObject> GetScriptObject(const std::string_view name);
     static Ref<ScriptObject> GetScriptObject(const std::string_view name, const std::string_view nspace);
     static Ref<ScriptObject> GetScriptObject(const std::string_view name, const std::string_view nspace, const std::string_view mod_name);
-
-    // template <typename T>
-    // static UUID RegisterNativeObject(T& obj) {
-    //   UUID id = Random::GenerateUUID();
-    //   native_object_registry.proxy_map<T>[id] = obj;
-    // }
 
     template <typename SO>
       requires script_object_t<SO>
@@ -145,11 +145,10 @@ namespace other {
     static std::map<UUID, LanguageModuleMetadata> language_modules;
     static std::map<UUID, Ref<ScriptModule>> loaded_modules;
     static std::map<UUID, Ref<ScriptObject>> objects;
+    static std::map<UUID, Ref<ScriptObject>> attachments;
 
     static LanguageModuleType StringToModuleType(const std::string_view);
     static LanguageModuleType IdToModuleType(UUID id);
-
-    static std::pair<std::string, std::string> GetLuaCsPrefixes();
 
     static void LoadCoreModules();
     static void LoadModule(LanguageModuleType type);

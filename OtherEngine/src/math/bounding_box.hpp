@@ -20,9 +20,9 @@ namespace other {
   constexpr inline static size_t kNumCubeCorners = 8;
 
   struct BBox {
-    glm::vec3 min{0.f, 0.f, 0.f};
-    glm::vec3 max{0.f, 0.f, 0.f};
-    glm::vec3 extent{0.f, 0.f, 0.f};
+    glm::vec3 min{ 0.f, 0.f, 0.f };
+    glm::vec3 max{ 0.f, 0.f, 0.f };
+    glm::vec3 extent{ 0.f, 0.f, 0.f };
 
     std::array<glm::vec3, kNumCubeCorners> corners = {};
 
@@ -33,7 +33,7 @@ namespace other {
     BBox(const glm::vec3& point)
         : BBox(point, point) {}
     BBox()
-        : BBox(glm::vec3{0.f}) {}
+        : BBox(glm::vec3{ 0.f }) {}
 
     bool Contains(const glm::vec3& point) const;
     bool OnBoundary(const glm::vec3& point) const;
@@ -56,11 +56,13 @@ namespace other {
       result.min = {
         glm::min(a.min.x, b.min.x),
         glm::min(a.min.y, b.min.y),
-        glm::min(a.min.z, b.min.z)};
+        glm::min(a.min.z, b.min.z)
+      };
       result.max = {
         glm::max(a.max.x, b.max.x),
         glm::max(a.max.y, b.max.y),
-        glm::max(a.max.z, b.max.z)};
+        glm::max(a.max.z, b.max.z)
+      };
       result.extent = vec3_sub(result.max, result.min);
       return result;
     }
@@ -79,5 +81,13 @@ struct fmt::formatter<other::BBox> : fmt::formatter<std::string_view> {
     return fmt::formatter<std::string_view>::format(ss.str(), ctx);
   }
 };
+
+ECHO_TYPE(
+  type(other::BBox),
+  field(min),
+  field(max),
+  field(extent),
+  field(corners)
+)
 
 #endif  // !OTHER_ENGINE_BOUNDING_BOX_HPP

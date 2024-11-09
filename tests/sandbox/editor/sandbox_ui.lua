@@ -143,18 +143,19 @@ end
 SandboxUI = {
   OnBehaviorLoad = function()
     engine_stats.dt = 0
-    Logger.WriteDebug("Loading SandboxUI")
-  end ,
-  OnBehaviorUnload = function()
-    Logger.WriteDebug("Unload SandboxUI")
+    Logger.WriteDebug("OnBehaviorLoad SandboxUI")
   end ,
 
-  -- Update = function(dt)
-  --   if (engine_stats.dt ~= nil) 
-  --   then
-  --     engine_stats.dt = dt
-  --   end
-  -- end ,
+  OnBehaviorUnload = function()
+    Logger.WriteDebug("OnBehaviorUnload SandboxUI")
+  end ,
+
+  Update = function(dt)
+    if (engine_stats.dt ~= nil) 
+    then
+      engine_stats.dt = dt
+    end
+  end ,
 
   RenderUI = function()
     -- render_stats(fps)
@@ -168,46 +169,6 @@ SandboxUI = {
 }
 
 --- goal is to implement all of this in lua
--- const ImVec2 win_size = {(float)Renderer::WindowSize().x, (float)Renderer::WindowSize().y};
--- if (ImGui::Begin("Frames")) {
---   if (!success) {
---     ScopedColor red(ImGuiCol_Text, ImVec4(1.f, 0.f, 0.f, 1.f));
---     ImGui::Text("Failed to render frame");
---   } else {
---     ImGui::Text("Frames %llu", frames.size());
---     if (auto frame = frames.find(FNV("Debug")); frame != frames.end()) {
---       RenderItem(frame->second->texture, "Debug", ImVec2(win_size.x, win_size.y));
---     }
---   }
--- }
--- ImGui::End();
-
--- if (ImGui::Begin("Render Settings")) {
---   bool edited = false
-
---   ImGui::Text("===== Scene Controls =====");
---   auto& reg = scene->Registry();
-
---   ImGui::Text(" - Transforms =====");
---   reg.view<Tag, Transform>().each([&](Tag& tag, Transform& transform) {
---     ImGui::PushID((tag.name + "##transform-widget").c_str());
---     if (ui::widgets::DrawVec3Control(fmtstr("{} position", tag.name),
---                                      transform.position, edited, 0.f, 100.f, ui::VectorAxis::ZERO,
---                                      {-100.f, -100.f, -100.f}, {100.f, 100.f, 100.f}, 0.5f)) {}
---     ImGui::Separator();
---     ImGui::PopID();
---   });
-
---   ImGui::Text(" - Materials =====");
-
---   reg.view<Tag, StaticMesh>().each([&](Tag& tag, StaticMesh& mesh) {
---     ImGui::PushID((tag.name + "##static-mesh-widget").c_str());
---     RenderMaterial(fmtstr("{} material", tag.name), mesh.material);
---     ImGui::Separator();
---     ImGui::PopID();
---   });
---   ImGui::Separator();
-
 --   ImGui::Text(" - Light Controls =====");
 --   uint32_t i = 0;
 --   edited = false;

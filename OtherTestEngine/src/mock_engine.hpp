@@ -8,10 +8,12 @@
 
 #include "core/config.hpp"
 #include "core/defines.hpp"
-#include "core/engine.hpp"
 #include "core/filesystem.hpp"
 
 #include "application/app.hpp"
+
+#include "engine/engine.hpp"
+
 
 #define TEST_ENGINE_ENV() \
   other::MockEngine::TestEngine()

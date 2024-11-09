@@ -52,37 +52,11 @@ namespace other {
     INVALID_CORE_ERROR = NUM_CORE_ERRORS,
   };
 
-  constexpr uint32_t kNumIniErrors = IniError::NUM_INI_ERRORS + 1;
-  constexpr std::array<std::string_view, kNumIniErrors> kIniErrStrings = {
-    "FILE NOT FOUND",
-    "FILE EMPTY",
-    "FILE PARSE ERROR",
+  enum AssetPipelineCompilerErrorType {
+    INVALID_COMMAND_KEYWORD,
 
-    "SECTION NOT FOUND",
-    "KEY NOT FOUND",
-
-    "UNKNOWN ERROR"
-  };
-
-  constexpr uint32_t kNumShaderErrors = ShaderError::NUM_SHADER_ERRORS + 1;
-  constexpr std::array<std::string_view, kNumShaderErrors> kShaderErrStrings = {
-    "SHADER_NOT_FOUND",
-    "SHADER_EMPTY",
-
-    "SHADER_COMPILATION",
-    "SHADER_LINKING",
-
-    "SYNTAX ERROR",
-    "INVALID_VALUE",
-
-    "INVALID_SHADER_DIRECTIVE",
-    "INVALID_SHADER_TYPE",
-
-    "INVALID_CONTEXT",
-
-    "SHADER_TRANSPILATION",
-
-    "UNKNOWN ERROR"
+    NUM_ASSET_PIPELINE_ERRORS,
+    INVALID_ASSET_PIPELINE_ERROR = NUM_ASSET_PIPELINE_ERRORS,
   };
 
   class IniException : public std::runtime_error {
@@ -90,9 +64,9 @@ namespace other {
     IniException(const std::string_view message, std::source_location loc = std::source_location::current())
         : std::runtime_error(fmtstr("[ {} ] [{}:{} in {}]", message.data(), loc.line(), loc.column(), loc.file_name())) {}
     IniException(const std::string_view message, IniError error, std::source_location loc = std::source_location::current())
-        : std::runtime_error(fmterr("[ {} ] : {} [{}:{} in {}]", message, kIniErrStrings[error], loc.line(), loc.column(), loc.file_name()).data()) {}
+        : std::runtime_error(fmterr("[ {} ] : {} [{}:{} in {}]", message, error, loc.line(), loc.column(), loc.file_name()).data()) {}
     IniException(const std::string_view message, IniError error, const std::string_view curr_line, std::source_location loc = std::source_location::current())
-        : std::runtime_error(fmterr("[ {} ] : {} [{}:{} in {}]\ncurr_line:\n{}", message, kIniErrStrings[error], loc.line(), loc.column(), loc.file_name(), curr_line).data()) {}
+        : std::runtime_error(fmterr("[ {} ] : {} [{}:{} in {}]\ncurr_line:\n{}", message, error, loc.line(), loc.column(), loc.file_name(), curr_line).data()) {}
 
     IniError error;
 
@@ -106,13 +80,19 @@ namespace other {
     ShaderException(const std::string_view message)
         : std::runtime_error(message.data()) {}
     ShaderException(const std::string_view message, ShaderError error, uint32_t line, uint32_t col)
-        : std::runtime_error(fmterr("[ {} ] : {} (at {}:{})", message, kShaderErrStrings[error].data(), line, col)) {}
+        : std::runtime_error(fmterr("[ {} ] : {} (at {}:{})", message, error, line, col)) {}
   };
 
   class InvalidRefCast : public std::runtime_error {
    public:
     InvalidRefCast(const std::type_info& t1, const std::type_info& t2)
         : std::runtime_error(fmterr("Invalid Ref Cast : {} -> {}", t1.name(), t2.name())) {}
+  };
+
+  class AssetPipelineCompilerError : public std::runtime_error {
+   public:
+    AssetPipelineCompilerError(const std::string_view message, AssetPipelineCompilerErrorType error, std::source_location loc = std::source_location::current())
+        : std::runtime_error(fmterr("[ {} ] : {} [{}:{} in {}]", message, error, loc.line(), loc.column(), loc.file_name()).data()) {}
   };
 
 }  // namespace other

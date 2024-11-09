@@ -52,7 +52,20 @@ namespace other {
 }  // namespace other
 
 ECHO_TYPE(
-  type(other::RigidBody, refl::attr::bases<other::Component>)
+  type(other::RigidBody, refl::attr::bases<other::Component>),
+  field(type),
+  field(layer_id),
+  field(enable_dynamic_type_change),
+  field(mass),
+  field(linear_drag),
+  field(angular_drag),
+  field(disable_gravity),
+  field(is_trigger),
+  field(collision_type),
+  field(initial_linear_velocity),
+  field(initial_angular_velocity),
+  field(max_linear_velocity),
+  field(max_angular_velocity)
 );
 
 #endif  // !OTHER_ENGINE_RIGID_BODY_HPP

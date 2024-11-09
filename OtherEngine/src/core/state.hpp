@@ -11,39 +11,31 @@
 
 namespace other {
 
-  struct StateEvent : public RefCounted {
-    virtual ~StateEvent() override {}
+  struct State : public RefCounted {
+    virtual ~State() override {}
+
+    void Attach();
+    void Step();
+    void Detach();
+
+   protected:
+    virtual void OnAttach() {}
+    virtual void OnStep() {}
+    virtual void OnDetach() {}
   };
 
   template <typename ET>
-  concept StateEventType = std::derived_from<ET, StateEvent>;
-
-  struct State : public RefCounted {
-    virtual ~State() override {}
-    virtual Ref<State> ProcessEvent(const Ref<StateEvent>& event) = 0;
-
-    void Step();
-
-   protected:
-    virtual void OnStep() {}
-  };
+  concept StateEventType = std::is_enum_v<ET>;
 
   template <typename ST, typename ET>
     requires StateEventType<ET>
   struct StateImpl : public State {
     virtual ~StateImpl() override {}
-    virtual Ref<State> ProcessEvent(const Ref<StateEvent>& event) override {
-      Ref<ET> cast_event = event;
-      OE_ASSERT(cast_event != nullptr, "Invalid event type");
-
-      if (cast_event != nullptr) {
-        return HandleEvent(cast_event);
-      }
-
-      return nullptr;
+    Ref<State> ProcessEvent(const ET event) {
+      return HandleEvent(event);
     }
 
-    virtual Ref<ST> HandleEvent(const Ref<ET>& event) = 0;
+    virtual Ref<ST> HandleEvent(const ET event) = 0;
   };
 
   template <typename ST>
@@ -61,49 +53,49 @@ namespace other {
   template <typename ST, typename ET>
   concept StateMachineTypes =
     CompatibleStateSets<ST, ET> &&
-    requires(Ref<ST> state_type, Ref<ET> event_type) {
-      { state_type->ProcessEvent(std::declval<const Ref<StateEvent>&>()) } -> std::same_as<Ref<State>>;
+    requires(Ref<ST> state_type, const ET event_type) {
+      { state_type->ProcessEvent(std::declval<const ET>()) } -> std::same_as<Ref<State>>;
       { state_type->HandleEvent(event_type) } -> std::same_as<Ref<ST>>;
     };
 
-  class StateMachine : public RefCounted {
-   public:
-    StateMachine() = default;
-    virtual ~StateMachine() override {}
-
-    virtual void DispatchEvent(const Ref<StateEvent>& event) = 0;
-    virtual Ref<State> CurrentState() = 0;
-
-    void Step();
-
-   protected:
-    virtual void OnStep() {}
-  };
-
   template <typename ST, typename ET>
     requires StateMachineTypes<ST, ET>
-  class StateMachineImpl : public StateMachine {
+  class StateMachine : public RefCounted {
    public:
-    StateMachineImpl(const Ref<ST>& first_state)
-        : current_state(first_state) {}
-    virtual ~StateMachineImpl() override {}
-
-    virtual void DispatchEvent(const Ref<StateEvent>& event) override {
+    StateMachine(const Ref<ST>& first_state)
+        : current_state(first_state) {
       OE_ASSERT(current_state != nullptr, "Invalid state");
-      OE_ASSERT(event != nullptr, "Invalid event");
+      current_state->Attach();
+    }
+    virtual ~StateMachine() {
+      OE_ASSERT(current_state == nullptr, "State machine not properly detached, end state not reached");
+    }
+
+    void HandleEvent(const ET event) {
+      OE_ASSERT(current_state != nullptr, "Invalid state");
 
       Ref<ST> new_state = current_state->ProcessEvent(event);
       if (new_state != nullptr) {
+        current_state->Detach();
+        new_state->Attach();
         current_state = new_state;
+      } else {
+        /// have accepted final state, detach and clear, HandleEvent should not be called again
+        current_state->Detach();
+        current_state = nullptr;
       }
     }
 
-    virtual Ref<State> CurrentState() override {
+    bool IsFinished() {
+      return current_state == nullptr;
+    }
+
+    Ref<ST> CurrentState() {
       OE_ASSERT(current_state != nullptr, "Invalid state");
       return current_state;
     }
 
-    void OnStep() override {
+    void Step() {
       OE_ASSERT(current_state != nullptr, "Invalid state");
       current_state->Step();
     }

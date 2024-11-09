@@ -14,6 +14,8 @@
 
 #include <hosting/native_string.hpp>
 
+#include "core/rand.hpp"
+
 #include "application/app_state.hpp"
 #include "asset/asset_manager.hpp"
 
@@ -31,7 +33,6 @@
 
 #include "rendering/camera_base.hpp"
 #include "rendering/model.hpp"
-#include "rendering/model_factory.hpp"
 #include "scripting/cs/cs_object.hpp"
 #include "scripting/script_engine.hpp"
 
@@ -70,7 +71,6 @@ namespace other {
     registry.on_destroy<Mesh>().connect<&Scene::GeometryChanged>(this);
     registry.on_destroy<StaticMesh>().connect<&Scene::GeometryChanged>(this);
 
-    /// TODO: move this
     environment = NewRef<Environment>();
 
     handle = Random::GenerateUUID();
@@ -391,7 +391,6 @@ namespace other {
   void Scene::Render(Ref<SceneRenderer>& renderer) {
     OnRender();
 
-    renderer->ClearPipelines();
     if (auto primary_cam = GetPrimaryCamera(); primary_cam != nullptr) {
       renderer->SubmitCamera(primary_cam);
     }

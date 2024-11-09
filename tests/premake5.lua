@@ -7,31 +7,28 @@ local sandbox = {
   kind = "ConsoleApp",
   language = "C++",
   cppdialect = "C++latest",
+  architecture = "x86_64",
 
   files = function()
     files {
       "./sandbox/**.cpp",
       "./sandbox/**.hpp",
       "./sandbox_ui.cpp" ,
-      "./sandbox_ui.hpp" ,
-      "./mock_app.cpp"
+      "./sandbox_ui.hpp"
     }
   end,
 
   include_dirs = function()
-    includedirs {
-      "./sandbox",
-      "." ,
-    }
-    externalincludedirs {
-      "%{wks.location}/DotOther/NetCore"
-    }
+    includedirs { "./sandbox" }
+    externalincludedirs { "%{wks.location}/DotOther/NetCore" }
   end,
 
   defines = function()
-    defines {
-      "OE_MODULE" ,
-    }
+    defines { "OE_MODULE" }
+  end,
+
+  windows_configuration = function()
+    entrypoint "WinMainCRTStartup"
   end,
 
   components = {
@@ -92,6 +89,7 @@ local unit_tests = {
   files = function()
     files {
       "./unit_tests/**.cpp" ,
+      "./mock_app.cpp" ,
     }
   end,
   

@@ -140,6 +140,7 @@ namespace other {
   template <>
   bool BvhNode<8>::NeedsRebuild(BvhNode<8>* space, const std::vector<Entity*>& entities) {
     OE_ASSERT(false, "NeedsRebuild not implemented for BvhNode<8 , OCTREE>!");
+    return false;
   }
 
   template <>
@@ -330,6 +331,7 @@ namespace other {
   template <>
   BvhNode<8>* BvhNode<8>::RebuildTree(BvhNode<8>* space, std::vector<Entity*>& entities) {
     OE_ASSERT(false, "RebuildTree not implemented for BvhNode<8>!");
+    return nullptr;
   }
 
   /// TODO: refactor the building algorithm to use morton codes to optimize both the building and traversal of the tree

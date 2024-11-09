@@ -11,14 +11,10 @@
 namespace other {
 
   FileWatcher::FileWatcher(UUID hash, const Path& path) {
-    try {
-      file_path = path;
-      last_write = std::filesystem::last_write_time(Path{ file_path });
-      exists = true;
-      handle = hash;
-    } catch (const std::exception& e) {
-      OE_ERROR("Failed to create file watcher : {}", e.what());
-    }
+    file_path = path;
+    last_write = std::filesystem::last_write_time(Path{ file_path });
+    exists = true;
+    handle = hash;
   }
 
   bool FileWatcher::Poll() {

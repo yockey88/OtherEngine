@@ -7,8 +7,11 @@
 #include <entt/entt.hpp>
 #include <glm/glm.hpp>
 
+#include <reflection/reflected_object.hpp>
+
 #include "core/logger.hpp"
 #include "core/ref.hpp"
+#include "core/reflection_attributes.hpp"
 #include "core/uuid.hpp"
 
 #include "ecs/component.hpp"
@@ -22,13 +25,14 @@ namespace other {
 
   class Scene;
 
-  class Entity {
+  class Entity : public dotother::NObject {
    public:
+    ECHO_REFLECT();
     /// this is allow us to modify components using our api instead of entt's
     ///   and also allows us to create really easy temporary entities in places
     /// NOTE: this will mean the scene context pointer internall is null
     Entity(entt::registry& registry, entt::entity handle)
-        : registry(registry), handle(handle) {}
+        : dotother::NObject(0), registry(registry), handle(handle) {}
 
     /// this is for loading entities from file in SceneManager
     Entity(Ref<Scene>& ctx, UUID uuid, const std::string& name);
@@ -181,8 +185,8 @@ namespace other {
 
 ECHO_TYPE(
   type(other::Entity),
-  func(GetUUID),
-  func(Name),
+  func(GetUUID, property("id"), other::Serializable()),
+  func(Name, property("name"), other::Serializable()),
   func(HasComponent),
   func(GetComponent),
   func(ReadComponent),

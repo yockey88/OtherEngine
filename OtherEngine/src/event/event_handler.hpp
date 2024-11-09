@@ -83,6 +83,7 @@ namespace other {
 
       E* e = Cast<E>(event);
       if (e == nullptr) {
+        OE_WARN("Failed to cast event to {}", typeid(E).name());
         return false;
       }
 

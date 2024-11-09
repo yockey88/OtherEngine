@@ -11,13 +11,11 @@
 
 #include "core/config_keys.hpp"
 #include "core/defines.hpp"
-#include "core/filesystem.hpp"
 #include "core/logger.hpp"
 
 #include "event/core_events.hpp"
 #include "event/event.hpp"
 #include "event/window_events.hpp"
-#include "input/io.hpp"
 
 #include "rendering/renderer.hpp"
 
@@ -39,10 +37,6 @@ namespace other {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
       switch (event.type) {
-        case SDL_QUIT:
-          PushEvent<ShutdownEvent>({ ExitCode::SUCCESS });
-          break;
-
         case SDL_WINDOWEVENT:
           switch (event.window.event) {
             case SDL_WINDOWEVENT_RESIZED:
@@ -75,9 +69,17 @@ namespace other {
   }
 
   void EventQueue::Clear() {
-    scratch_buffer.ZeroMem();
     event_buffer.ZeroMem();
+    scratch_buffer.ZeroMem();
     num_events = 0;
+  }
+
+  void EventQueue::UnregisterEventDispatcher(const std::string_view name) {
+    uint64_t h = FNV(name);
+    auto itr = event_handlers.find(h);
+    if (itr != event_handlers.end()) {
+      event_handlers.erase(itr);
+    }
   }
 
   void EventQueue::EnableUIEvents() {

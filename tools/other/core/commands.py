@@ -118,6 +118,12 @@ engine_cmds: list[Command] = [
     #     action=DotOtherTestAction(), nargs='*', metavar="dotother-test"
     # ) ,
 
+    # list projects
+    Command(
+        "-lp", "--list-projects",
+        "lists all projects registered with the engine"
+    ),
+
     # run project
     Command(
         "-r", "--run",

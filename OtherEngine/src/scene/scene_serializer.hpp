@@ -4,11 +4,13 @@
 #ifndef OTHER_ENGINE_SCENE_SERIALIZER_HPP
 #define OTHER_ENGINE_SCENE_SERIALIZER_HPP
 
-#include "core/ref.hpp"
 #include "core/config.hpp"
-#include "core/serializer.hpp"
+#include "core/ref.hpp"
 
 #include "scene/scene.hpp"
+
+#include "serialization/serializer.hpp"
+
 
 namespace other {
 
@@ -19,16 +21,16 @@ namespace other {
   };
 
   class SceneSerializer : public Serializer {
-    public: 
-      SceneSerializer() {}
-      ~SceneSerializer() {}
+   public:
+    SceneSerializer() {}
+    ~SceneSerializer() {}
 
-      void Serialize(const std::string_view scene_name , std::ostream& stream , const Ref<Scene>& scene) const;
-      DeserializedScene Deserialize(const std::string_view scn_path) const;
+    void Serialize(const std::string_view scene_name, std::ostream& stream, const Ref<Scene>& scene) const;
+    DeserializedScene Deserialize(const std::string_view scn_path) const;
 
-    private:
+   private:
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_SCENE_SERIALIZER_HPP
+#endif  // !OTHER_ENGINE_SCENE_SERIALIZER_HPP

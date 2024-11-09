@@ -33,7 +33,11 @@ namespace other {
 }  // namespace other
 
 ECHO_TYPE(
-  type(other::Collider2D, refl::attr::bases<other::Component>)
+  type(other::Collider2D, refl::attr::bases<other::Component>),
+  field(offset),
+  field(size),
+  field(density),
+  field(friction)
 );
 
 #endif  // !OTHER_ENGINE_COLLIDER_2D_HPP

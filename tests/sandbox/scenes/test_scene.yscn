@@ -1,5 +1,5 @@
 #[
-  primary sandbox scene and primary OtherEngine test scene  
+  primary sandbox scene
 #]
 
 [metadata]
@@ -9,6 +9,33 @@ entities = {
   "sun" ,
   "floor"
 }
+
+#[
+
+  cube = {
+    id = 12461263173642597452
+    <transform> = {
+      position = { 0 , 0 , 0 }
+      rotation = { 0 , 0 , 0 , 0 }
+      scale = { 1 , 1 , 1 }
+    }
+
+    <relationship> = {
+      children = {}
+    }
+
+    <static-mesh> = {
+      visible = true
+      is-primitive = true
+      primitive = 3
+    }
+
+    <script> = {
+      *SandboxScripts = { "Other::TestScript2" }
+    }
+  }
+
+#]
 
 
 [physics.2D]

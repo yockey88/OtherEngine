@@ -28,7 +28,6 @@ class SceneLayer : public Layer {
   // virtual void OnEarlyUpdate(float dt) {}
   // virtual void OnUpdate(float dt) {}
   virtual void OnLateUpdate(float dt) override;
-  // virtual void OnRender() {}
   // virtual void OnUIRender() {}
 
  private:

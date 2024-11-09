@@ -106,11 +106,11 @@ namespace other {
     LateUpdate(dt);
   }
 
-  void App::DoRender() {
+  void App::OnRender() {
     Render();
   }
 
-  void App::DoRenderUI() {
+  void App::OnRenderUI() {
     RenderUI();
   }
 

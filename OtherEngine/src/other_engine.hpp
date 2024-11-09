@@ -18,16 +18,14 @@
 #endif  // !OE_MODULE
 #endif  // _WIN32
 
-#include "core/engine.hpp"
+#include "engine/engine.hpp"
 
 // foward headers for the client
 #include "core/buffer.hpp"
 #include "core/config.hpp"
 #include "core/defines.hpp"
-#include "core/engine.hpp"
 #include "core/filesystem.hpp"
 #include "core/logger.hpp"
-#include "core/serializer.hpp"
 
 #include "application/app.hpp"
 #include "application/app_state.hpp"
@@ -52,6 +50,9 @@
 #include "rendering/renderer.hpp"
 #include "rendering/ui/ui.hpp"
 #include "scripting/script_engine.hpp"
+
+#include "engine/engine.hpp"
+#include "serialization/serializer.hpp"
 
 namespace other {
 

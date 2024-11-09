@@ -58,16 +58,15 @@ namespace other {
     EDITOR_SCENE_STOP = bit(29),
 
     // core events
-    STOP_COMMAND = bit(30),
-    SHUTDOWN = bit(31),
-    ENGINE_LAYER = bit(32),
+    SHUTDOWN = bit(30),
+    ENGINE_LAYER = bit(31),
 
     // filesystem events
-    CREATE_DIR = bit(33),
-    DELETE_DIR = bit(34),
-    CREATE_FILE = bit(35),
-    DELETE_FILE = bit(36),
-    MODIFY_FILE = bit(37),
+    CREATE_DIR = bit(32),
+    DELETE_DIR = bit(33),
+    CREATE_FILE = bit(34),
+    DELETE_FILE = bit(35),
+    MODIFY_FILE = bit(36),
   };
 
   enum EventCategory : uint64_t {

@@ -13,17 +13,6 @@
 
 namespace other {
 
-  struct StopCommand {
-    std::string ToString() const {
-      std::stringstream ss;
-      ss << "StopCommand";
-      return ss.str();
-    }
-
-    EVENT_TYPE(STOP_COMMAND);
-    EVENT_CATEGORY(APPLICATION_EVENT | CORE_EVENT);
-  };
-
   struct ShutdownEvent {
     ExitCode exit_code = ExitCode::SUCCESS;
 
