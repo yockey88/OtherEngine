@@ -36,7 +36,6 @@
 #include "scripting/cs/cs_object.hpp"
 #include "scripting/script_engine.hpp"
 
-
 namespace other {
 
   /// TODO: get rid of this in some nice ctor/dtor wrapper

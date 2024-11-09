@@ -90,7 +90,6 @@ namespace other {
   class Entity;
 
   struct Component : public echo::reflectable {
-    // Component() {}
     Component(int32_t idx) : component_idx(idx) {}
     virtual ~Component() = default;
 
@@ -99,6 +98,8 @@ namespace other {
     Entity* parent_handle = nullptr;
 
     int32_t component_idx = -1;
+
+    uint64_t GetId() const { return parent_uuid.Get(); }
 
     virtual std::string GetComponentName() const = 0;
     virtual std::string GetRawComponentName() const = 0;
@@ -154,7 +155,12 @@ namespace other {
 }  // namespace other
 
 ECHO_TYPE(
-  type(other::Component, refl::attr::bases<dotother::echo::reflectable>)
+  type(other::Component, refl::attr::bases<dotother::echo::reflectable>),
+  func(GetId, property("id")),
+  func(GetComponentName, property("name")),
+  func(GetRawComponentName, property("raw_name")),
+  field(parent_handle),
+  field(component_idx)
 );
 
 ECHO_TYPE(

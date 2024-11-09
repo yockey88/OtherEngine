@@ -57,7 +57,7 @@ def full_build(config, verbose):
         return
     else:
         print(" > Found MSBuild at [{}]".format(msbuild))
-
+    
     ret = 0
     if utilities.is_windows():
         ret = subprocess.call(
@@ -113,14 +113,16 @@ def build_project(config, verbose, filename):
         filepath, config
     ))
 
+    print(" > Building {}".format(filename))
+
     ret = 0
     if utilities.is_windows():
         ret = subprocess.call(
             [
                 "cmd.exe", "/c", MSBUILD,
-                "{}".format(filepath),
-                "/p:Configuration={}".format(config),
-                "/p:BuildProjectReferences=false"
+                "OtherEngine.sln",
+                "/project {}".format(filename),
+                "/p:Configuration={}".format(config)
             ],
             stdout=stdout, stdin=stderr
         )

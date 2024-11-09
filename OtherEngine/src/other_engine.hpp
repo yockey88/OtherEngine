@@ -26,7 +26,6 @@
 #include "core/defines.hpp"
 #include "core/filesystem.hpp"
 #include "core/logger.hpp"
-#include "core/serializer.hpp"
 
 #include "application/app.hpp"
 #include "application/app_state.hpp"
@@ -53,7 +52,7 @@
 #include "scripting/script_engine.hpp"
 
 #include "engine/engine.hpp"
-
+#include "serialization/serializer.hpp"
 
 namespace other {
 

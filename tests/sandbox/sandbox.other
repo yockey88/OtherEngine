@@ -42,11 +42,11 @@ ui = {
   syntax ideas:
     - small amounts of scripting? 
       (this might be the biggest argument for moving all configuration to lua, cause this would be nice but not worth the effort while also supporting three scripting language bindings unless it 
-        was part of the scripting language bindings which leaves lua/python and python is for toolchain/project-management/game-dev-logistics)
+        was part of the scripting language bindings which leaves lua/python)
 
     [OnAttach] :: {
-      local script_engine = ScriptEngine:new();
-      script_engine:attach_item(attachments.ui.sandbox_ui["SandboxUI"])
+      script_engine = Script-Engine;
+      script_engine.Load(sandbox_ui) -> SandboxUI;
     }
 
     [function-name] (params, ...) -> (rets, ...) {

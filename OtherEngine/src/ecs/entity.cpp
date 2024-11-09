@@ -13,7 +13,7 @@
 namespace other {
 
   Entity::Entity(Ref<Scene>& ctx, UUID uuid, const std::string& name)
-      : registry(ctx->registry), uuid(uuid), name(name) {
+      : dotother::NObject(uuid.Get()), registry(ctx->registry), uuid(uuid), name(name) {
     context = ctx;
     handle = context->registry.create();
 
@@ -23,7 +23,7 @@ namespace other {
   }
 
   Entity::Entity(Scene* ctx, UUID uuid, const std::string& name)
-      : registry(ctx->registry), uuid(uuid), name(name) {
+      : dotother::NObject(uuid.Get()), registry(ctx->registry), uuid(uuid), name(name) {
     context = Ref<Scene>(ctx);
     handle = registry.create();
 

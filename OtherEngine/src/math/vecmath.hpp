@@ -13,6 +13,8 @@
 #include <glm/glm.hpp>
 #include <spdlog/fmt/fmt.h>
 
+#include <reflection/echo_defines.hpp>
+
 #include "core/defines.hpp"
 
 namespace other {
@@ -267,6 +269,23 @@ namespace other {
   constexpr inline vec_epsilon_eq<4, float, glm::defaultp> vec4_eq;
 
   template <glm::length_t N, typename T, glm::qualifier Q>
+  struct mat_epsilon_eq {
+    constexpr auto operator()(const glm::mat<N, N, T, Q>& lhs, const glm::mat<N, N, T, Q>& rhs) const {
+      for (glm_length_t<N, T, Q> i = 0; i < N; ++i) {
+        for (glm_length_t<N, T, Q> j = 0; j < N; ++j) {
+          if (!EpsilonEqual(lhs[i][j], rhs[i][j])) {
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+  };
+  constexpr inline mat_epsilon_eq<2, float, glm::defaultp> mat2_eq;
+  constexpr inline mat_epsilon_eq<3, float, glm::defaultp> mat3_eq;
+  constexpr inline mat_epsilon_eq<4, float, glm::defaultp> mat4_eq;
+
+  template <glm::length_t N, typename T, glm::qualifier Q>
   struct checked_min {
     constexpr auto operator()(const glm::vec<N, T, Q>& lhs, const glm::vec<N, T, Q>& rhs) const {
       return vec_epsilon_lt<N, T, Q>{}(lhs, rhs) ? lhs : rhs;
@@ -397,6 +416,87 @@ namespace other {
   constexpr inline checked_divided<3, float, glm::defaultp> vec3_div;
   constexpr inline checked_divided<4, float, glm::defaultp> vec4_div;
 
+  template <glm::length_t N, typename T, glm::qualifier Q>
+  struct matrix_wrapper {
+    glm::mat<N, N, T, Q> mat;
+    constexpr std::span<T> operator[](glm_length_t<N, T, Q> i) {
+      return { mat[i] };
+    }
+    constexpr std::span<const T> operator[](glm_length_t<N, T, Q> i) const {
+      return { mat[i] };
+    }
+
+    constexpr T& ValueAt(glm_length_t<N, T, Q> i, glm_length_t<N, T, Q> j) {
+      return (*this)[i][j];
+    }
+
+    constexpr const T& ValueAt(glm_length_t<N, T, Q> i, glm_length_t<N, T, Q> j) const {
+      return (*this)[i][j];
+    }
+
+    constexpr auto operator*(const glm::vec<N, T, Q>& vec) const {
+      return mat * vec;
+    }
+
+    constexpr auto operator*(const matrix_wrapper<N, T, Q>& other) const {
+      return mat * other.mat;
+    }
+
+    constexpr auto operator+(const matrix_wrapper<N, T, Q>& other) const {
+      return mat + other.mat;
+    }
+
+    constexpr auto operator-(const matrix_wrapper<N, T, Q>& other) const {
+      return mat - other.mat;
+    }
+
+    constexpr auto operator*(T scalar) const {
+      return mat * scalar;
+    }
+
+    constexpr auto operator/(T scalar) const {
+      return mat / scalar;
+    }
+
+    constexpr auto operator-() const {
+      return -mat;
+    }
+
+    constexpr auto operator<=>(const matrix_wrapper<N, T, Q>& other) const = default;
+
+    constexpr auto Add(const matrix_wrapper<N, T, Q>& other) const {
+      return mat + other.mat;
+    }
+
+    constexpr auto Subtract(const matrix_wrapper<N, T, Q>& other) const {
+      return mat - other.mat;
+    }
+
+    constexpr auto Multiply(const matrix_wrapper<N, T, Q>& other) const {
+      return mat * other.mat;
+    }
+
+    constexpr auto Multiply(const glm::vec<N, T, Q>& vec) const {
+      return mat * vec;
+    }
+
+    constexpr auto Multiply(T scalar) const {
+      return mat * scalar;
+    }
+
+    constexpr auto Divide(T scalar) const {
+      return mat / scalar;
+    }
+
+    constexpr bool Equals(const matrix_wrapper<N, T, Q>& other) const {
+      return mat_epsilon_eq<N, T, Q>{}(mat, other.mat);
+    }
+  };
+
+  using mat2_wrapper = matrix_wrapper<2, float, glm::defaultp>;
+  using mat3_wrapper = matrix_wrapper<3, float, glm::defaultp>;
+  using mat4_wrapper = matrix_wrapper<4, float, glm::defaultp>;
+
 }  // namespace other
 
 template <glm::length_t N, typename T, glm::qualifier Q>
@@ -441,5 +541,62 @@ struct fmt::formatter<glm::mat4> : public fmt::formatter<std::string_view> {
     return fmt::formatter<std::string_view>::format(mat_fmt_str, ctx);
   }
 };
+
+ECHO_TYPE(
+  type(glm::vec2),
+  field(x),
+  field(y)
+)
+
+ECHO_TYPE(
+  type(glm::vec3),
+  field(x),
+  field(y),
+  field(z)
+)
+
+ECHO_TYPE(
+  type(glm::vec4),
+  field(x),
+  field(y),
+  field(z),
+  field(w)
+)
+
+ECHO_TYPE(
+  type(other::mat2_wrapper),
+  func(ValueAt),
+  func(Add),
+  func(Subtract),
+  func(Multiply),
+  func(Multiply),
+  func(Multiply),
+  func(Divide),
+  func(Equals)
+)
+
+ECHO_TYPE(
+  type(other::mat3_wrapper),
+  func(ValueAt),
+  func(Add),
+  func(Subtract),
+  func(Multiply),
+  func(Multiply),
+  func(Multiply),
+  func(Divide),
+  func(Equals)
+)
+
+ECHO_TYPE(
+  type(other::mat4_wrapper),
+  func(ValueAt),
+  func(Add),
+  func(Subtract),
+  func(Multiply),
+  func(Multiply),
+  func(Multiply),
+  func(Divide),
+  func(Equals)
+)
 
 #endif  // !OTHER_ENGINE_VECMATH_HPP

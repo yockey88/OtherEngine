@@ -44,7 +44,11 @@ namespace other {
 }  // namespace other
 
 ECHO_TYPE(
-  type(other::LightSource, refl::attr::bases<other::Component>)
+  type(other::LightSource, refl::attr::bases<other::Component>),
+  field(type),
+  field(direction_light),
+  field(pointlight),
+  field(debug_model)
 );
 
 #endif  // !OTHER_ENGINE_LIGHT_SOURCE_HPP

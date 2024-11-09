@@ -32,7 +32,10 @@ namespace other {
 }  // namespace other
 
 ECHO_TYPE(
-  type(other::Camera, refl::attr::bases<other::Component>)
+  type(other::Camera, refl::attr::bases<other::Component>),
+  field(camera),
+  field(pinned_to_entity_position),
+  field(is_primary)
 );
 
 #endif  // !OTHER_ENGINE_CAMERA_HPP

@@ -39,7 +39,13 @@ namespace other {
 }  // namespace other
 
 ECHO_TYPE(
-  type(other::RigidBody2D, refl::attr::bases<other::Component>)
+  type(other::RigidBody2D, refl::attr::bases<other::Component>),
+  field(mass),
+  field(linear_drag),
+  field(angular_drag),
+  field(gravity_scale),
+  field(fixed_rotation),
+  field(bullet)
 );
 
 #endif  // !OTHER_ENGINE_RIGID_BODY_2D_HPP
