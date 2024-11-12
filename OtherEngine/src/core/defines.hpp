@@ -19,7 +19,6 @@
 #include <magic_enum/magic_enum.hpp>
 #include <spdlog/fmt/fmt.h>
 
-
 #define bit(x) (1ll << x)
 
 #ifdef OE_MODULE
@@ -279,6 +278,24 @@ namespace other {
     /// solve really annoying LSP issue
     return fmt::underlying(e);
   }
+
+  template <typename T>
+  concept is_container = requires(T a) {
+    typename T::value_type;
+    typename T::iterator;
+    typename T::const_iterator;
+    typename T::size_type;
+
+    { a.begin() } -> std::same_as<typename T::iterator>;
+    { a.end() } -> std::same_as<typename T::iterator>;
+    { a.cbegin() } -> std::same_as<typename T::const_iterator>;
+    { a.cend() } -> std::same_as<typename T::const_iterator>;
+    { a.size() } -> std::same_as<typename T::size_type>;
+    { a.empty() } -> std::convertible_to<bool>;
+  };
+
+  template <typename T>
+  concept not_container = !is_container<T>;
 
 #ifdef OTHER_DEBUG_BUILD
 

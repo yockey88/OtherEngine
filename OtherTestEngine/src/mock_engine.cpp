@@ -40,7 +40,7 @@ namespace other {
 
   MockEngine* MockEngine::TestEngine() {
     if (instance == nullptr) {
-      throw std::logic_error("Cannot call MockEngine::TestEngine until after Gtest has begun!");
+      throw std::logic_error("Cannot call MockEngine::TestEngine until after test has been loaded!");
     }
     /// registered on gtest entry
     return instance;
@@ -54,15 +54,9 @@ namespace other {
     OE_TRACE("Logger initialized for unit test");
 
     AppState::Initialize(command_line, config);
-
-    InitializeEngineSubSystems();
-    OE_TRACE("Engine sub-systems initialized");
   }
 
   void MockEngine::TearDown() {
-    OE_TRACE("Engine sub-systems shutdown");
-    ShutdownEngineSubSystems();
-
     OE_TRACE("Shutting down logger for unit test");
     other::Logger::Shutdown();
   }

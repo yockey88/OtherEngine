@@ -160,11 +160,11 @@ namespace other {
       }
 
       if (getter != nullptr) {
-        assembly->SetInternalCall(name, "Get" + std::string{ prop_name }, getter);
+        assembly->SetInternalCall(name, "Get" + std::string{ prop_name }, &getter);
       }
 
       if (setter != nullptr) {
-        assembly->SetInternalCall(name, "Set" + std::string{ prop_name }, setter);
+        assembly->SetInternalCall(name, "Set" + std::string{ prop_name }, &setter);
       }
     }
 
@@ -177,11 +177,11 @@ namespace other {
       }
 
       if (getter != nullptr) {
-        assembly->SetInternalCall(name, "Get" + std::string{ prop_name }, getter);
+        assembly->SetInternalCall(name, "Get" + std::string{ prop_name }, &getter);
       }
 
       if (setter != nullptr) {
-        assembly->SetInternalCall(name, "Set" + std::string{ prop_name }, setter);
+        assembly->SetInternalCall(name, "Set" + std::string{ prop_name }, &setter);
       }
     }
 

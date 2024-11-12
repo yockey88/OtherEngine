@@ -18,6 +18,11 @@ class OtherCliPipeline(Pipeline):
         print("> listing projects")
         return utilities.list_projects()
 
+      if env.get_settings().create_project:
+        print("> creating project")
+        self._process_error(self._try_create_project(), " > project creation successful", " !> project creation failed!")
+        return 0
+
       if env.get_settings().generate_files:
         self._process_error(self._gen_files(), " > file generation successful", " !> file generation failed!")
       if env.get_settings().generate_projects or env.get_settings().generate_files:
@@ -28,7 +33,6 @@ class OtherCliPipeline(Pipeline):
         self._process_error(self._try_test() , " > testing successful", " !> testing failed!")
         sys.exit(0)
 
-      self._process_error(self._open_editor())
       self._process_error(self._try_run())
       return 0
 

@@ -85,6 +85,12 @@ namespace other {
     }
   }
 
+  std::vector<std::pair<uint64_t, Arg>> CmdLine::GetArgs() const {
+    return args |
+      std::views::transform([](const auto& pair) -> std::pair<uint64_t, Arg> { return pair; }) |
+      std::ranges::to<std::vector<std::pair<uint64_t, Arg>>>();
+  }
+
   namespace {
 
     std::map<uint64_t, Arg> CmdLineParser::Parse() {

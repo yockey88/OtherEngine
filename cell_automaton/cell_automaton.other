@@ -1,0 +1,21 @@
+[project]
+name = "CellAutomatonEngine"
+bin-dir = "C:/Yock/code/OtherEngine/bin/Debug"
+script-bin-dir = "CellAutomatonScripts/net8.0"
+author = "Y"
+version = 0.0.1
+primary-scene = game_of_life
+scenes = { "game_of_life" }
+
+[editor]
+test-editor = true
+
+[window]
+width = 1280
+height = 720
+title = "Cellular Automata"
+
+[log]
+console-level = "info"
+file-level = "trace"
+path = "./logs/cell_automaton.log"

@@ -7,7 +7,7 @@ from .actions import RunAction
 from .actions import RunDotnetAction
 from .actions import TestAction
 from .actions import GenFileAction
-
+from .actions import CreateProjectAction
 
 class Command:
     def __init__(self, sflag, lflag, help_msg,
@@ -86,13 +86,6 @@ engine_cmds: list[Command] = [
         "output verbose logging (trace level logging)"
     ),
 
-    # edit project
-    Command(
-        "-e", "--edit",
-        "opens the project specified by 'project' in the default editor",
-        nargs=1, metavar="project", action=EditAction()
-    ),
-
     # build project
     Command(
         "-b", "--build",
@@ -122,6 +115,18 @@ engine_cmds: list[Command] = [
     Command(
         "-lp", "--list-projects",
         "lists all projects registered with the engine"
+    ),
+
+    Command(
+        "-cp", "--create-project",
+        "creates a new project with the name 'project'",
+        action=CreateProjectAction(), nargs='*',metavar="project"
+    ),
+
+    Command(
+        "-e", "--edit",
+        "opens the project specified by 'project' in the default editor",
+         action=EditAction(), nargs='*', metavar="project"
     ),
 
     # run project

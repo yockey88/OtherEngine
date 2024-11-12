@@ -85,6 +85,18 @@ function ProcessModuleComponents(module)
       includedirs { comp }
     end
   end
+
+  filter "system:windows"
+    if module.windows_configuration ~= nil then
+      module.windows_configuration()
+    end
+    if module.language == "C#" then
+      clr "Unsafe"
+      propertytags {
+        { "AppendTargetFrameworkToOutputPath", "false" },
+        { "Nullable", "enable" },
+      }
+    end
 end
 
 function ProcessProjectComponents(project)
@@ -137,7 +149,6 @@ local function ProcessConfigurations(project , external)
         symbols "On"
         -- conformancemode "On"
       end
-      defines { "OE_DEBUG" }
 
       if not external and project.language == "C++" then
         ProcessDependencies("Debug")

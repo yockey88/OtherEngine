@@ -26,8 +26,6 @@ namespace other {
     static void Initialize(const CmdLine& cmd_line, const ConfigTable& config);
     static void Shutdown();
 
-    static bool HasAppLoaded();
-
     static CmdLine& GetProcessArguments();
     static ConfigTable& GetLoadedConfig();
 
@@ -75,6 +73,9 @@ namespace other {
     inline Ref<Data> GetData();
 
     static bool IsAttached();
+    static bool HasPrimaryScene();
+
+    static void LoadPrimaryScene();
 
     static void AttachApplication();
     static void DetachApplication();
@@ -88,6 +89,15 @@ namespace other {
     static void OnEngineTick(float dt);
 
     static Ref<Data> data;
+
+   public:
+    template <typename T>
+      requires layer_type<T>
+    static Ref<T> PushLayer() {
+      Ref<T> layer = NewRef<T>(data->app_handle, data->config);
+      PushLayer(layer);
+      return layer;
+    }
   };
 
 }  // namespace other

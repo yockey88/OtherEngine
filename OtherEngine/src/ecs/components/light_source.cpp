@@ -26,12 +26,30 @@ namespace other {
     auto& light = entity->AddComponent<LightSource>();
     light.type = (LightSourceType)scene_table.GetVal<uint32_t>(key_value, kTypeValue, false).value_or(POINT_LIGHT_SRC);
 
+    auto color = scene_table.GetVal<glm::vec4>(key_value, kColorValue, false).value_or(glm::vec4{ 1.f, 1.f, 1.f, 1.f });
+
     switch (light.type) {
       case DIRECTION_LIGHT_SRC: {
-        light.direction_light = {};
+        auto direction = scene_table.GetVal<glm::vec4>(key_value, kDirectionValue, false);
+        light.direction_light = {
+          .direction = direction.value_or(glm::vec4{ 0.f, -1.f, 0.f, 1.f }),
+          .color = color,
+        };
       } break;
       case POINT_LIGHT_SRC: {
-        light.pointlight = {};
+        auto position = scene_table.GetVal<glm::vec4>(key_value, kPositionValue, false);
+        auto radius = scene_table.GetVal<float>(key_value, kRadiusValue, false).value_or(100.f);
+        auto constant = scene_table.GetVal<float>(key_value, kConstantValue, false).value_or(1.f);
+        auto linear = scene_table.GetVal<float>(key_value, kLinearValue, false).value_or(0.09f);
+        auto quadratic = scene_table.GetVal<float>(key_value, kQuadraticValue, false).value_or(0.032f);
+        light.pointlight = {
+          .position = position.value_or(glm::vec4{ 0.f, 0.f, 0.f, 1.f }),
+          .color = color,
+          .radius = radius,
+          .constant = constant,
+          .linear = linear,
+          .quadratic = quadratic,
+        };
         light.pointlight.position = glm::vec4(entity->ReadComponent<Transform>().position, 1.f);
       } break;
       default:
@@ -39,6 +57,6 @@ namespace other {
     }
 
     entity->UpdateComponent(light);
-  }
+  }  // namespace other
 
 }  // namespace other

@@ -25,7 +25,10 @@ configuration.groups = {
   } ,
 
   -- ["Tools"] = { "./tools" } ,
-  ["Games"] = { "./yockcraft" } ,
+  ["Games"] = { 
+    "./yockcraft" ,
+    "./cell_automaton" ,
+  } ,
 }
 
 local choc = {}

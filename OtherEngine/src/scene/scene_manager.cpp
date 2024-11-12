@@ -128,8 +128,9 @@ namespace other {
 
     EventQueue::PushEvent<SceneStop>({ active_scene->scene->SceneHandle().Get() });
 
-#if 0  /// how to dynamically serialize scenes to only remember whats needed for undo/redo and
-       /// also things that result from only manual changes and not scene update (to preserve 'initial' scene state)
+/// TODO: how to dynamically serialize scenes to only remember whats needed for undo/redo and
+///         also things that result from only manual changes and not scene update (to preserve 'initial' scene state)
+#if 0  
     active_scene->scene->Shutdown();
 
     Path path = active_scene->path;
@@ -308,7 +309,11 @@ namespace other {
     // }
     ///
 
-    /// present main frame and check whether to render to window or not
+    /// dont render to window if in editor, save that for the viewport
+    if (AppState::mode == EngineMode::EDITOR) {
+      return render_success;
+    }
+
     /// TODO: customize which frame is considered the 'main' frame
     const auto& frames = scene_renderer->GetRender();
     auto itr = frames.find(FNV("Geometry"));

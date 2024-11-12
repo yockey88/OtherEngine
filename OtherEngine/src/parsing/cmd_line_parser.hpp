@@ -59,6 +59,8 @@ namespace other {
     bool HasFlag(const std::string_view flag) const;
     Opt<Arg> GetArg(const std::string_view flag) const;
 
+    std::vector<std::pair<uint64_t, Arg>> GetArgs() const;
+
    private:
     std::string program_name;
     std::vector<std::string> raw_args;

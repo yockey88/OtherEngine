@@ -10,6 +10,9 @@
 
 namespace other {
 
+  constexpr static std::string_view kTestEditorValue = "TEST-EDITOR";
+  constexpr static uint64_t kTestEditorValueHash = FNV(kTestEditorValue);
+
   /// section keys
   constexpr static std::string_view kProjectSection = "PROJECT";
   constexpr static uint64_t kProjectSectionHash = FNV(kProjectSection);
@@ -234,6 +237,18 @@ namespace other {
   constexpr static std::string_view kDirectionValue = "DIRECTION";
   constexpr static uint64_t kDirectionValueHash = FNV(kDirectionValue);
 
+  constexpr static std::string_view kRadiusValue = "RADIUS";
+  constexpr static uint64_t kRadiusValueHash = FNV(kRadiusValue);
+
+  constexpr static std::string_view kConstantValue = "CONSTANT";
+  constexpr static uint64_t kConstantValueHash = FNV(kConstantValue);
+
+  constexpr static std::string_view kLinearValue = "LINEAR";
+  constexpr static uint64_t kLinearValueHash = FNV(kLinearValue);
+
+  constexpr static std::string_view kQuadraticValue = "QUADRATIC";
+  constexpr static uint64_t kQuadraticValueHash = FNV(kQuadraticValue);
+
   constexpr static std::string_view kUpValue = "UP";
   constexpr static uint64_t kUpValueHash = FNV(kUpValue);
 
@@ -353,6 +368,9 @@ namespace other {
 
   constexpr static std::string_view kPrimitiveValue = "PRIMITIVE";
   constexpr static uint64_t kPrimitiveValueHash = FNV(kPrimitiveValue);
+
+  constexpr static std::string_view kMaterialValue = "MATERIAL";
+  constexpr static uint64_t kMaterialValueHash = FNV(kMaterialValue);
 
   constexpr static std::string_view kRigidBodyValue = "RIGID-BODY";
   constexpr static uint64_t kRigidBodyValueHash = FNV(kRigidBodyValue);

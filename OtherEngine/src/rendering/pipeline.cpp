@@ -56,6 +56,10 @@ namespace other {
     material_storage = NewRef<UniformBuffer>("MaterialData", spec.material_uniforms, spec.material_binding_point, SHADER_STORAGE);
   }
 
+  void Pipeline::SetViewportSize(const glm::ivec2& size) {
+    target->Resize(size);
+  }
+
   void Pipeline::SubmitRenderPass(const Ref<RenderPass>& render_pass) {
     passes.push_back(render_pass);
   }
@@ -196,7 +200,7 @@ namespace other {
       .cpu_material_storage = Buffer(),
     };
 
-    return model_submissions.insert({key, std::move(msl)}).first;
+    return model_submissions.insert({ key, std::move(msl) }).first;
   }
 
   void Pipeline::RenderAll() {

@@ -9,11 +9,9 @@
 #include "core/config.hpp"
 #include "core/defines.hpp"
 #include "core/filesystem.hpp"
-
-#include "application/app.hpp"
-
 #include "engine/engine.hpp"
 
+#include "application/app.hpp"
 
 #define TEST_ENGINE_ENV() \
   other::MockEngine::TestEngine()
@@ -38,6 +36,10 @@ namespace other {
 
     virtual void SetUp() override;
     virtual void TearDown() override;
+
+    Scope<Engine>& GetEngine() {
+      return engine_stub;
+    }
 
     Ref<SceneRenderer> GetDefaultSceneRenderer(const uint32_t max_entities = 100);
 

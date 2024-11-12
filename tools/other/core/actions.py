@@ -16,6 +16,12 @@ class BuildAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string):
         setattr(namespace, self.dest, values)
 
+class EditProjectAction(argparse.Action):
+    def __init__(self, **kwargs):
+        super().__init__("-e", "--edit", nargs=1, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string):
+        setattr(namespace, self.dest, values)
 
 class RunAction(argparse.Action):
     def __init__(self, **kwargs):
@@ -41,6 +47,13 @@ class TestAction(argparse.Action):
 class GenFileAction(argparse.Action):
     def __init__(self, **kwargs):
         super().__init__("-g", "--gen-file", nargs=1, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string):
+        setattr(namespace, self.dest, values)
+
+class CreateProjectAction(argparse.Action):
+    def __init__(self, **kwargs):
+        super().__init__("-c", "--create-project", nargs=1, **kwargs)
 
     def __call__(self, parser, namespace, values, option_string):
         setattr(namespace, self.dest, values)

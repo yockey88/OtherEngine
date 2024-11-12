@@ -11,7 +11,6 @@
 
 #include "rendering/rendering_defines.hpp"
 
-
 namespace other {
 
   ShaderIr ShaderGlslTranspiler::Transpile() {
@@ -486,7 +485,7 @@ namespace other {
         break;
     }
 
-    OE_INFO("Set mesh layout to {}", value);
+    OE_DEBUG("Set mesh layout to {}", value);
 
     /// mark we have already set one mesh attribute
     mesh_layout->override = true;

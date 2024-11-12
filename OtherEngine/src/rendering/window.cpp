@@ -149,24 +149,22 @@ namespace other {
     glClear(config.clear_flags);
   }
 
-  float Window::AspectRatio() const {
-    return (16.f / 9.f);
-  }
-
   void Window::SwapBuffers() {
     SDL_GL_MakeCurrent(context.window, context.context);
     SDL_GL_SwapWindow(context.window);
   }
 
-  glm::ivec2 Window::Size() const {
+  glm::ivec2 Window::Size() {
     glm::ivec2 size;
     SDL_GetWindowSize(context.window, &size.x, &size.y);
+    config.size = size;
     return size;
   }
 
-  glm::ivec2 Window::Position() const {
+  glm::ivec2 Window::Position() {
     glm::ivec2 pos;
     SDL_GetWindowPosition(context.window, &pos.x, &pos.y);
+    config.pos = pos;
     return pos;
   }
 
@@ -176,6 +174,10 @@ namespace other {
 
   uint32_t Window::ClearFlags() const {
     return config.clear_flags;
+  }
+
+  float Window::AspectRatio() const {
+    return static_cast<float>(config.size.x) / config.size.y;
   }
 
   void Window::Resize(const glm::ivec2& size) {

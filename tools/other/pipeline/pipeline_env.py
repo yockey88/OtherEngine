@@ -26,9 +26,9 @@ class PipelineConfig:
     self.project_list = project_list
   
   def find_project(self, name: str):
-    for proj_name, path in self.project_list:
+    for proj_name, path, config in self.project_list:
       if proj_name == name:
-        return (proj_name, path)
+        return (proj_name, path, config)
     return None
 
 class OtherEnginePipelineEnvironment(Singleton):
@@ -65,11 +65,6 @@ class OtherEnginePipelineEnvironment(Singleton):
       )
     
     self.pipeline_config = pipeline_config
-    cfg = self.pipeline_config.find_project("yockcraft")
-    if cfg is not None:
-      print("Found project configuration for 'yockcraft' at [{}]".format(cfg[1]))
-      oe.Native.set_cfg_path(str(p))
-
     if parse_cmds:
       parser = parsers.initialize_parser()
       if len(sys.argv) == 1:
@@ -99,13 +94,14 @@ class OtherEnginePipelineEnvironment(Singleton):
 
       print("Engine Config :>\n  - path: '{}'".format(pipeline_config.engine_path))
       if pipeline_config.project_list is not None and len(pipeline_config.project_list) > 0:
-        for proj, path in pipeline_config.project_list:
-          print("Project List :>\n  - [{}] at [{}]".format(
-            proj, path
-          ))
+        print("Project List :>")
+        for proj, path, config in pipeline_config.project_list:
+          print(" - [{}] at [{}] (config = {})".format(proj, path, config))
       else:
         print("No projects found in pipeline configuration")
-      
+    
+  def get_project_path(self, name):
+    return self.pipeline_config.find_project(name)
 
   def get_settings(self):
     return self.settings
@@ -177,7 +173,7 @@ class OtherEnginePipelineEnvironment(Singleton):
       projects = table["project"]
       projs = []
       for proj in projects:
-        projs.append((proj["name"], proj["path"]))
+        projs.append((proj["name"], proj["path"], proj["config"]))
     except KeyError or TypeError:
       projs = []
 

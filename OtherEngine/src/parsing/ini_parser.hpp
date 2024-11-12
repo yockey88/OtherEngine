@@ -11,7 +11,6 @@
 #include "core/config.hpp"
 #include "core/defines.hpp"
 
-
 namespace other {
 
 /// FIXME: why did I make this????
@@ -33,15 +32,19 @@ namespace other {
 
   class IniFileParser {
    public:
+    IniFileParser() = default;
     IniFileParser(const std::string& file_path)
         : file_path(file_path){};
     ~IniFileParser() = default;
 
     ConfigTable Parse();
+    ConfigTable Parse(const std::string_view src);
 
    private:
-    std::string file_path;
+    Opt<std::string> file_path = std::nullopt;
     std::string contents;
+    std::istringstream stream;
+
     std::string current_line;
 
     Opt<std::string> current_section = "";
@@ -52,6 +55,8 @@ namespace other {
 
     ConfigTable table;
     bool in_string = false;
+
+    void Reset();
 
     void Trim(std::string& str);
     void TrimQuotes(std::string& str);
@@ -82,6 +87,7 @@ namespace other {
 
     char Advance();
     void Consume();
+    void ConsumeWhitespace();
     bool AdvanceUntil(char c);
     bool AdvanceUntil(const std::span<const char>& chars);
     bool ConsumeUntil(char c);

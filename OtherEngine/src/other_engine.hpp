@@ -63,11 +63,11 @@ namespace other {
 
 }  // namespace other
 
-OE_API void PrintHello();
-
 #ifndef OTHERENGINE_DLL
 /// defines the entry poing for clients
-/// TODO: make this platform specific and add os signal handlers
+/// TODO:
+///   - add os signal handlers
+///   - remove this legacy macro
 #define OE_APPLICATION(project_name)                                                                     \
   namespace other {                                                                                      \
     App* NewApp(const CmdLine& cmd_line, const ConfigTable& config) {                                    \
@@ -80,6 +80,41 @@ OE_API void PrintHello();
     ExitCode exit = Main(argc, argv);                                                                    \
     return exit;                                                                                         \
   }
-#endif  // !OE_APPLICATION
+
+#ifdef OE_WINDOWS
+#define OTHER_ENTRY_POINT(project_name)                                                                  \
+  namespace other {                                                                                      \
+    App* NewApp(const CmdLine& cmd_line, const ConfigTable& config) {                                    \
+      static_assert(std::is_base_of_v<App, project_name>, #project_name " must derive from other::App"); \
+      return new project_name(cmd_line, config);                                                         \
+    }                                                                                                    \
+  }                                                                                                      \
+  static HINSTANCE other_engine_instance = nullptr;                                                      \
+  int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {      \
+    other_engine_instance = hInstance;                                                                   \
+    __try {                                                                                              \
+      using namespace other;                                                                             \
+      ExitCode exit = Main(__argc, __argv);                                                              \
+      return exit;                                                                                       \
+    } __except (EXCEPTION_EXECUTE_HANDLER) {                                                             \
+      other::println("SEH Exception caught");                                                            \
+      return 1;                                                                                          \
+    }                                                                                                    \
+  }
+#else
+#define OTHER_ENTRY_POINT(project_name)                                                                  \
+  namespace other {                                                                                      \
+    App* NewApp(const CmdLine& cmd_line, const ConfigTable& config) {                                    \
+      static_assert(std::is_base_of_v<App, project_name>, #project_name " must derive from other::App"); \
+      return new project_name(cmd_line, config);                                                         \
+    }                                                                                                    \
+  }                                                                                                      \
+  int main(int argc, char** argv) {                                                                      \
+    using namespace other;                                                                               \
+    ExitCode exit = Main(argc, argv);                                                                    \
+  }
+#endif
+
+#endif  // !OTHERENGINE_DLL
 
 #endif  // !OTHER_ENGINE_HPP

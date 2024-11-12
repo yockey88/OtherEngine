@@ -107,9 +107,8 @@ namespace other {
     operator bool() { return object != nullptr; }
     operator bool() const { return object != nullptr; }
 
-    T& operator*() {
-      return *object;
-    }
+    T& operator*() { return *object; }
+    const T& operator*() const { return *object; }
 
     T* operator->() { return object; }
     const T* operator->() const { return object; }

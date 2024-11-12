@@ -3,20 +3,21 @@
  **/
 #include "rendering/camera_base.hpp"
 
-#include <SDL_mouse.h>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/geometric.hpp>
-#include <SDL.h>
 
-#include "input/mouse.hpp"
+#include <SDL.h>
+#include <SDL_mouse.h>
+
 #include "input/keyboard.hpp"
+#include "input/mouse.hpp"
 
 #include "rendering/renderer.hpp"
 
 namespace other {
 
-  CameraBase::CameraBase(const Ref<CameraBase>& other , CameraProjectionType type)
+  CameraBase::CameraBase(const Ref<CameraBase>& other, CameraProjectionType type)
       : projection_type(type) {
     SetPosition(other->position);
     SetDirection(other->direction);
@@ -44,16 +45,16 @@ namespace other {
   CameraProjectionType CameraBase::GetCameraProjectionType() const {
     return projection_type;
   }
-      
+
   void CameraBase::CalculateMatrix() {
     UpdateCoordinateFrame();
     CalculateView();
     CalculateProjection();
     mvp = projection * view;
   }
-      
+
   void CameraBase::UpdateCoordinateFrame() {
-    glm::vec3 new_dir; 
+    glm::vec3 new_dir;
     new_dir.x = cos(glm::radians(Yaw())) * cos(glm::radians(Pitch()));
     new_dir.y = sin(glm::radians(Pitch()));
     new_dir.z = sin(glm::radians(Yaw())) * cos(glm::radians(Pitch()));
@@ -65,9 +66,9 @@ namespace other {
   }
 
   const glm::mat4& CameraBase::GetMatrix() const {
-    return mvp;     
-  }                
-                   
+    return mvp;
+  }
+
   const glm::mat4& CameraBase::ViewMatrix() const {
     return view;
   }
@@ -76,112 +77,112 @@ namespace other {
     return projection;
   }
 
-  void CameraBase::MoveForward() { 
-    position += speed * direction; 
+  void CameraBase::MoveForward() {
+    position += speed * direction;
   }
-  
-  void CameraBase::MoveBackward() { 
-    position -=  speed * direction; 
+
+  void CameraBase::MoveBackward() {
+    position -= speed * direction;
   }
-  
-  void CameraBase::MoveLeft() { 
+
+  void CameraBase::MoveLeft() {
     position -= speed * right;
   }
-  
-  void CameraBase::MoveRight() { 
-    position += speed * right; 
+
+  void CameraBase::MoveRight() {
+    position += speed * right;
   }
-  
-  void CameraBase::MoveUp() { 
-    position += speed * up; 
+
+  void CameraBase::MoveUp() {
+    position += speed * up;
   }
-  
-  void CameraBase::MoveDown() { 
+
+  void CameraBase::MoveDown() {
     position -= speed * up;
   }
-  
-  void CameraBase::Move(const glm::vec3& dir) { 
-    position += speed * dir; 
+
+  void CameraBase::Move(const glm::vec3& dir) {
+    position += speed * dir;
   }
 
-  void CameraBase::SetPosition(const glm::vec3& position) { 
-    this->position = position; 
-  }
-  
-  void CameraBase::SetDirection(const glm::vec3& direction) { 
-    this->direction = direction; 
-  }
-  
-  void CameraBase::SetUp(const glm::vec3& up) { 
-    this->up = up; 
-  }
-  
-  void CameraBase::SetRight(const glm::vec3& right) { 
-    this->right = right; 
-  }
-  
-  void CameraBase::SetWorldUp(const glm::vec3& world_up) { 
-    this->world_up = world_up; 
+  void CameraBase::SetPosition(const glm::vec3& position) {
+    this->position = position;
   }
 
-  void CameraBase::SetOrientation(const glm::vec3& orientation) { 
-    this->euler_angles = orientation; 
-  }
-  
-  void CameraBase::SetYaw(float yaw) { 
-    this->euler_angles.x = yaw; 
-  }
-  
-  void CameraBase::SetPitch(float pitch) { 
-    this->euler_angles.y = pitch; 
-  }
-  
-  void CameraBase::SetRoll(float roll) { 
-    this->euler_angles.z = roll; 
+  void CameraBase::SetDirection(const glm::vec3& direction) {
+    this->direction = direction;
   }
 
-  void CameraBase::SetViewport(const glm::ivec2& viewport) { 
+  void CameraBase::SetUp(const glm::vec3& up) {
+    this->up = up;
+  }
+
+  void CameraBase::SetRight(const glm::vec3& right) {
+    this->right = right;
+  }
+
+  void CameraBase::SetWorldUp(const glm::vec3& world_up) {
+    this->world_up = world_up;
+  }
+
+  void CameraBase::SetOrientation(const glm::vec3& orientation) {
+    this->euler_angles = orientation;
+  }
+
+  void CameraBase::SetYaw(float yaw) {
+    this->euler_angles.x = yaw;
+  }
+
+  void CameraBase::SetPitch(float pitch) {
+    this->euler_angles.y = pitch;
+  }
+
+  void CameraBase::SetRoll(float roll) {
+    this->euler_angles.z = roll;
+  }
+
+  void CameraBase::SetViewport(const glm::ivec2& viewport) {
     viewport_size = viewport;
   }
-  
-  void CameraBase::SetClip(const glm::vec2& clip) { 
-    this->clip = clip; 
-  }
-  
-  void CameraBase::SetMousePos(const glm::vec2& mouse) { 
-    this->mouse = mouse; 
-  }
-  
-  void CameraBase::SetLastMouse(const glm::vec2& last_mouse) { 
-    this->last_mouse = last_mouse; 
-  }
-  
-  void CameraBase::SetDeltaMouse(const glm::vec2& delta_mouse) { 
-    this->delta_mouse = delta_mouse; 
+
+  void CameraBase::SetClip(const glm::vec2& clip) {
+    this->clip = clip;
   }
 
-  void CameraBase::SetSpeed(float speed) { 
-    this->speed = speed; 
-  }
-  
-  void CameraBase::SetSensitivity(float sensitivity) { 
-    this->sensitivity = sensitivity; 
-  }
-  
-  void CameraBase::SetFov(float fov) { 
-    this->fov = fov; 
-  }
-  
-  void CameraBase::SetZoom(float zoom) { 
-    this->zoom = zoom; 
+  void CameraBase::SetMousePos(const glm::vec2& mouse) {
+    this->mouse = mouse;
   }
 
-  void CameraBase::SetConstrainPitch(bool constrain_pitch) { 
-    this->constrain_pitch = constrain_pitch; 
+  void CameraBase::SetLastMouse(const glm::vec2& last_mouse) {
+    this->last_mouse = last_mouse;
   }
-  
+
+  void CameraBase::SetDeltaMouse(const glm::vec2& delta_mouse) {
+    this->delta_mouse = delta_mouse;
+  }
+
+  void CameraBase::SetSpeed(float speed) {
+    this->speed = speed;
+  }
+
+  void CameraBase::SetSensitivity(float sensitivity) {
+    this->sensitivity = sensitivity;
+  }
+
+  void CameraBase::SetFov(float fov) {
+    this->fov = fov;
+  }
+
+  void CameraBase::SetZoom(float zoom) {
+    this->zoom = zoom;
+  }
+
+  void CameraBase::SetConstrainPitch(bool constrain_pitch) {
+    this->constrain_pitch = constrain_pitch;
+  }
+
   void CameraBase::CalculateView() {
-    view = glm::lookAt(position , position + direction , up);
+    view = glm::lookAt(position, position + direction, up);
   }
 
   const glm::vec3& CameraBase::Position() const {
@@ -202,7 +203,7 @@ namespace other {
 
   const glm::vec3& CameraBase::WorldUp() const {
     return world_up;
-  } 
+  }
 
   const glm::vec3& CameraBase::Orientation() const {
     return euler_angles;
@@ -251,7 +252,7 @@ namespace other {
   float CameraBase::FOV() const {
     return fov;
   }
-  
+
   float CameraBase::Zoom() const {
     return zoom;
   }
@@ -260,6 +261,8 @@ namespace other {
     return constrain_pitch;
   }
 
+  /// TODO: somehow take into account the fact that we want the center of the current viewport not just
+  ///         the entire window like this
   void DefaultUpdateCamera(Ref<CameraBase>& camera) {
     if (Keyboard::Down(Keyboard::Key::OE_W)) {
       camera->MoveForward();
@@ -282,14 +285,14 @@ namespace other {
 
     auto win_size = Renderer::WindowSize();
     glm::ivec2 mouse_pos = Mouse::GetPos();
-  
-    SDL_WarpMouseInWindow(SDL_GetMouseFocus() , win_size.x / 2 , win_size.y / 2);
+
+    SDL_WarpMouseInWindow(SDL_GetMouseFocus(), win_size.x / 2, win_size.y / 2);
 
     camera->SetLastMouse(camera->Mouse());
     camera->SetMousePos(mouse_pos);
-    camera->SetDeltaMouse({ 
-      camera->Mouse().x - camera->LastMouse().x ,
-      camera->LastMouse().y - camera->Mouse().y
+    camera->SetDeltaMouse({
+      camera->Mouse().x - camera->LastMouse().x,
+      camera->LastMouse().y - camera->Mouse().y,
     });
 
     glm::ivec2 rel_pos = Mouse::GetRelPos();
@@ -311,4 +314,4 @@ namespace other {
     camera->CalculateMatrix();
   }
 
-} // namespace other
+}  // namespace other
