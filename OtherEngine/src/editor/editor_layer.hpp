@@ -7,10 +7,11 @@
 #include "core/config.hpp"
 #include "core/layer.hpp"
 
+#include "event/key_events.hpp"
+
 #include "ecs/components/script.hpp"
 
 #include "rendering/camera_base.hpp"
-#include "rendering/scene_renderer.hpp"
 
 #include "editor/panel_manager.hpp"
 #include "editor/saves.hpp"
@@ -44,11 +45,10 @@ namespace other {
 
     Script editor_scripts;
 
-    Ref<CameraBase> editor_camera = nullptr;
     Scope<PanelManager> panel_manager = nullptr;
+    Ref<CameraBase> editor_camera = nullptr;
 
-    Ref<SceneRenderer> default_renderer = nullptr;
-    Ref<SceneRenderer> scene_renderer = nullptr;
+    glm::vec2 current_viewport_size = { 0.f, 0.f };
     Ref<Framebuffer> viewport = nullptr;
 
     /// TODO: move this somewhere else
@@ -57,7 +57,7 @@ namespace other {
 
     void LaunchSettingsWindow();
 
-    Ref<SceneRenderer> GetDefaultRenderer();
+    bool HandleKeyPressed(KeyPressed& event);
   };
 
 }  // namespace other

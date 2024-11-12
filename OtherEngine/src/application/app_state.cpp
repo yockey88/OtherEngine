@@ -7,6 +7,7 @@
 
 #include "core/filesystem.hpp"
 #include "core/logger.hpp"
+#include "engine/engine.hpp"
 
 #include "application/app.hpp"
 #include "event/event_queue.hpp"
@@ -15,8 +16,6 @@
 #include "rendering/renderer.hpp"
 #include "rendering/ui/ui.hpp"
 #include "scripting/script_engine.hpp"
-
-#include "engine/engine.hpp"
 
 namespace other {
 
@@ -227,14 +226,14 @@ namespace other {
 
   void AppState::HandleRender() {
     Renderer::GetWindow()->Clear();
-
     data->scenes->GetRenderer()->ClearPipelines();
+
     data->app_handle->OnRender();
     data->layers->InvokeControlledLoop(&Layer::Render);
     ScriptEngine::RenderAttachments();
     if (!data->scenes->RenderScene()) {
-      OE_ERROR("Failed to render scene");
-    };
+      /// render default view
+    }
 
     if (UI::Enabled()) {
       UI::BeginFrame();
@@ -246,27 +245,6 @@ namespace other {
       }
 
       ScriptEngine::RenderUIAttachments();
-
-      // /// lambda to get fps from delta
-      // auto fps = [](float dt) -> float {
-      //   return (1.f / dt) * 1000.f;
-      // };
-
-      // sandbox_ui->RenderUI();
-      // const ImVec2 win_size = { (float)Renderer::WindowSize().x, (float)Renderer::WindowSize().y };
-
-      // if (ImGui::Begin("Frames")) {
-      //   if (!success) {
-      //     ScopedColor red(ImGuiCol_Text, ImVec4(1.f, 0.f, 0.f, 1.f));
-      //     ImGui::Text("Failed to render frame");
-      //   } else {
-      //     ImGui::Text("Frames %llu", frames.size());
-      //     if (auto frame = frames.find(FNV("Debug")); frame != frames.end()) {
-      //       RenderItem(frame->second->texture, "Debug", ImVec2(win_size.x, win_size.y));
-      //     }
-      //   }
-      // }
-      // ImGui::End();
       UI::EndFrame();
     }
     Renderer::GetWindow()->SwapBuffers();

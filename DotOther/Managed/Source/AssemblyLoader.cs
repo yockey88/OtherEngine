@@ -151,7 +151,7 @@ namespace DotOther.Managed {
     [UnmanagedCallersOnly]
     private static int LoadAssembly(int context_id, NString file_path) {
       try {
-        LogMessage($"Loading assembly '{file_path}' [{context_id}]", MessageLevel.Info);
+        LogMessage($"Loading assembly '{file_path}' [{context_id}]", MessageLevel.Trace);
 
         if (string.IsNullOrEmpty(file_path)) {
           last_load_status = AsmLoadStatus.InvalidPath;

@@ -104,22 +104,20 @@ class Pipeline(Singleton):
     verbose: bool = oe_env.is_verbose()
 
     project = oe_env.get_settings().run[0]
-    curr_dir = Path(".")
 
-    print(oe_env.get_project_path(project))
     [real_name,proj_path,config_file] = oe_env.get_project_path(project)
-    config_file = curr_dir / config_file
-    project_work_dir = curr_dir / proj_path
-    print(" > running project {} [{} in {}]".format(real_name, proj_path, project_work_dir))
-
-    print("{}".format(proj_path))
+    config_file = Path(config_file).absolute()
+    project_work_dir = Path(proj_path).absolute()
     args = [
       "--project", "{}".format(config_file),
       "--cwd", "{}".format(project_work_dir)
     ]
 
+    if verbose:
+      print(" > running {} with arguments {}".format(real_name, args))
+
     if oe_env.get_settings().edit is not None:
-      print(" > editing project")
+      print("  > editing project")
       args.append("--editor")
 
     res = utilities.run_project(config, real_name, args)

@@ -21,6 +21,9 @@ namespace other {
   }
 
   void SceneRenderer::SetViewportSize(const glm::ivec2& size) {
+    for (auto& [_, pl] : pipelines) {
+      pl->SetViewportSize(size);
+    }
   }
 
   void SceneRenderer::SubmitCamera(const Ref<CameraBase>& camera) {

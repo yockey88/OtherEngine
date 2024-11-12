@@ -3,6 +3,9 @@
  **/
 #include "engine/engine_states.hpp"
 
+#include "engine/editor_states.hpp"
+#include "engine/engine.hpp"
+
 #include "application/app_state.hpp"
 #include "event/core_events.hpp"
 #include "event/event_queue.hpp"
@@ -13,9 +16,6 @@
 #include "rendering/renderer.hpp"
 #include "rendering/ui/ui.hpp"
 #include "scripting/script_engine.hpp"
-
-#include "engine/editor_states.hpp"
-#include "engine/engine.hpp"
 
 namespace other {
   namespace {
@@ -36,6 +36,11 @@ namespace other {
   }  // anonymous namespace
 
   Ref<EngineState> IdleState::HandleEvent(const EngineStateEvent event) {
+    if (event == EngineStateEvent::CORRUPT_CONFIG_ERROR || event == EngineStateEvent::CORRUPT_SHADER_ERROR ||
+        event == EngineStateEvent::ENGINE_FAILURE) {
+      return NewRef<ErrorState>(engine);
+    }
+
     if (event == EngineStateEvent::EDITOR_START) {
       return NewRef<EngineShutdown>(engine);
     }
@@ -43,7 +48,29 @@ namespace other {
     return nullptr;
   }
 
+  Ref<EngineState> ErrorState::HandleEvent(const EngineStateEvent event) {
+    if (event == EngineStateEvent::ENGINE_SHUTDOWN) {
+      return NewRef<EngineShutdown>(engine);
+    }
+
+    return nullptr;
+  }
+
+  // void ErrorState::OnAttach() {
+  // }
+
+  // void ErrorState::OnStep() {
+  // }
+
+  // void ErrorState::OnDetach() {
+  // }
+
   Ref<EngineState> EngineLaunching::HandleEvent(const EngineStateEvent event) {
+    if (event == EngineStateEvent::CORRUPT_CONFIG_ERROR || event == EngineStateEvent::CORRUPT_SHADER_ERROR ||
+        event == EngineStateEvent::ENGINE_FAILURE) {
+      return NewRef<ErrorState>(engine);
+    }
+
     if (event == EngineStateEvent::ENGINE_LOAD_FINISHED) {
       return NewRef<EngineIdle>(engine);
     }
@@ -80,6 +107,11 @@ namespace other {
   }
 
   Ref<EngineState> EngineIdle::HandleEvent(const EngineStateEvent event) {
+    if (event == EngineStateEvent::CORRUPT_CONFIG_ERROR || event == EngineStateEvent::CORRUPT_SHADER_ERROR ||
+        event == EngineStateEvent::ENGINE_FAILURE) {
+      return NewRef<ErrorState>(engine);
+    }
+
     if (event == EngineStateEvent::ENGINE_SHUTDOWN) {
       return NewRef<EngineShutdown>(engine);
     }
@@ -107,17 +139,19 @@ namespace other {
   }
 
   void EngineIdle::OnAttach() {
-    EventQueue::RegisterEventDispatcher<KeyPressed>(
-      "Other-Engine--AttachApplication",
-      {
-        [&](KeyPressed& event) {
-          HandleKeyEvent(event, Keyboard::Key::OE_F1, [&]() {
-            engine->EngineEvent(EngineStateEvent::APP_ATTACHED);
-          });
-          return false;
-        },
-      }
-    );
+    /// TODO: do we go straight from engine launching to app idle???
+    engine->EngineEvent(EngineStateEvent::APP_ATTACHED);
+    // EventQueue::RegisterEventDispatcher<KeyPressed>(
+    //   "Other-Engine--AttachApplication",
+    //   {
+    //     [&](KeyPressed& event) {
+    //       HandleKeyEvent(event, Keyboard::Key::OE_F1, [&]() {
+    //         engine->EngineEvent(EngineStateEvent::APP_ATTACHED);
+    //       });
+    //       return false;
+    //     },
+    //   }
+    // );
   }
 
   void EngineIdle::OnStep() {

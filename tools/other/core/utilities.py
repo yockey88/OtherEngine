@@ -5,6 +5,7 @@ import os
 import subprocess
 import sys
 import platform
+from pathlib import Path
 
 from . import project_settings
 from . import project_builders
@@ -39,7 +40,6 @@ def normalize_config_str(config):
 
 def run_project(config, name, arguments):
     if is_windows():
-        print(" > running {}".format(name))
         proc_args = ["cmd.exe", "/c", "{}\\run.bat".format(TOOLS_DIR), config, name]
         proc_args.extend(arguments)
         ret = subprocess.call(proc_args, cwd=os.getcwd())

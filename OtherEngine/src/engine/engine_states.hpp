@@ -24,6 +24,12 @@ namespace other {
     SCENE_LOADED,
     SCENE_UNLOADED,
 
+    CORRUPT_CONFIG_ERROR,
+    CORRUPT_SHADER_ERROR,
+    ENGINE_FAILURE,
+
+    NUM_ENGINE_EVENTS,
+    INVALID_ENGINE_EVENT = NUM_ENGINE_EVENTS,
   };
 
   enum class EngineStateTypes : uint64_t {
@@ -38,6 +44,11 @@ namespace other {
 
     APP_IDLE,
     SCENE_IDLE,
+
+    ERROR_STATE,
+
+    NUM_ENGINE_STATES,
+    INVALID_ENGINE_STATE = NUM_ENGINE_STATES,
   };
 
   class Engine;
@@ -58,6 +69,17 @@ namespace other {
         : EngineState(engine, EngineStateTypes::IDLE) {}
     virtual ~IdleState() override {}
     virtual Ref<EngineState> HandleEvent(const EngineStateEvent event) override;
+  };
+
+  struct ErrorState : public EngineState {
+    ErrorState(Engine* engine)
+        : EngineState(engine, EngineStateTypes::ERROR_STATE) {}
+    virtual ~ErrorState() override {}
+    virtual Ref<EngineState> HandleEvent(const EngineStateEvent event) override;
+
+    // virtual void OnAttach() override;
+    // virtual void OnStep() override;
+    // virtual void OnDetach() override;
   };
 
   struct EngineLaunching : public EngineState {

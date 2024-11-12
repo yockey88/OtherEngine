@@ -50,6 +50,9 @@ namespace other {
     virtual void OnUIRender() {}
   };
 
+  template <typename T>
+  concept layer_type = std::is_base_of_v<Layer, T>;
+
 }  // namespace other
 
 #endif  // !OTHER_ENGINE_LAYER_HPP

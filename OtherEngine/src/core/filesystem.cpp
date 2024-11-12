@@ -73,30 +73,64 @@ namespace other {
   }
 
   bool Filesystem::PathExists(const Path& path) {
-    return std::filesystem::exists(path);
+    try {
+      return std::filesystem::exists(path);
+    } catch (std::filesystem::filesystem_error& e) {
+      OE_ERROR("Filesystem error : {}", e.what());
+      return false;
+    } catch (...) {
+      OE_ERROR("Unknown Filesystem error");
+      return false;
+    }
   }
 
   bool Filesystem::IsDirectory(const Path& path) {
-    return std::filesystem::is_directory(path);
+    try {
+      return std::filesystem::is_directory(path);
+    } catch (std::filesystem::filesystem_error& e) {
+      OE_ERROR("Filesystem error : {}", e.what());
+      return false;
+    } catch (...) {
+      OE_ERROR("Unknown Filesystem error");
+      return false;
+    }
   }
 
   bool Filesystem::CreateDir(const Path& path) {
     if (PathExists(path)) {
       return true;
     }
-    return std::filesystem::create_directory(path);
+
+    try {
+      return std::filesystem::create_directory(path);
+    } catch (std::filesystem::filesystem_error& e) {
+      OE_ERROR("Filesystem error : {}", e.what());
+      return false;
+    } catch (...) {
+      OE_ERROR("Unknown Filesystem error");
+      return false;
+    }
   }
 
   bool Filesystem::AttemptDelete(const Path& path) {
-    return std::filesystem::remove(path);
+    try {
+      return std::filesystem::remove(path);
+    } catch (std::filesystem::filesystem_error& e) {
+      OE_ERROR("Filesystem error : {}", e.what());
+      return false;
+    } catch (...) {
+      OE_ERROR("Unknown Filesystem error");
+      return false;
+    }
   }
 
   Ref<Directory> Filesystem::MountDirectory(const std::string_view name, const Path& path) {
     if (!PathExists(path)) {
-      if (!CreateDir(path)) {
-        OE_ERROR("Failed to create directory : {}", path.string());
-        return nullptr;
-      }
+      /// TODO: decide if we want to create mounted directories
+      // if (!CreateDir(path)) {
+      //   OE_ERROR("Failed to create directory : {}", path.string());
+      // }
+      return nullptr;
     }
 
     UUID id = FNV(name);
@@ -370,8 +404,16 @@ namespace other {
     }
 
     std::vector<Path> paths;
-    for (auto& entry : std::filesystem::directory_iterator(path)) {
-      paths.push_back(entry.path());
+    try {
+      for (auto& entry : std::filesystem::directory_iterator(path)) {
+        paths.push_back(entry.path());
+      }
+    } catch (std::filesystem::filesystem_error& e) {
+      OE_ERROR("Filesystem error : {}", e.what());
+      return {};
+    } catch (...) {
+      OE_ERROR("Unknown Filesystem error");
+      return {};
     }
 
     return paths;
@@ -383,11 +425,19 @@ namespace other {
     }
 
     std::vector<Path> paths;
-    for (auto& entry : std::filesystem::directory_iterator(path)) {
-      if (!entry.is_directory()) {
-        continue;
+    try {
+      for (auto& entry : std::filesystem::directory_iterator(path)) {
+        if (!entry.is_directory()) {
+          continue;
+        }
+        paths.push_back(entry.path());
       }
-      paths.push_back(entry.path());
+    } catch (std::filesystem::filesystem_error& e) {
+      OE_ERROR("Filesystem error : {}", e.what());
+      return {};
+    } catch (...) {
+      OE_ERROR("Unknown Filesystem error");
+      return {};
     }
 
     return paths;
@@ -399,11 +449,19 @@ namespace other {
     }
 
     std::vector<Path> paths;
-    for (auto& entry : std::filesystem::directory_iterator(path)) {
-      if (entry.is_directory() || (entry.is_directory() && entry.path().parent_path().filename().string()[0] != '.')) {
-        continue;
+    try {
+      for (auto& entry : std::filesystem::directory_iterator(path)) {
+        if (entry.is_directory() || (entry.is_directory() && entry.path().parent_path().filename().string()[0] != '.')) {
+          continue;
+        }
+        paths.push_back(entry.path());
       }
-      paths.push_back(entry.path());
+    } catch (std::filesystem::filesystem_error& e) {
+      OE_ERROR("Filesystem error : {}", e.what());
+      return {};
+    } catch (...) {
+      OE_ERROR("Unknown Filesystem error");
+      return {};
     }
 
     return paths;

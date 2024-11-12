@@ -1,0 +1,39 @@
+#[
+  cellular automata: 
+    game of life
+#]
+
+[metadata]
+name = "Game Of Life"
+entities = {
+  "cube"
+}
+
+[physics.2D]
+gravity = { 0 , -9.8 }
+
+[physics.3D]
+
+[cube]
+UUID = 12461263173642597452
+components = {
+  static-mesh
+}
+
+[cube.transform]
+position = { 0 , 0 , 0 }
+rotation = { 0 , 0 , 0 , 0 }
+scale = { 1 , 1 , 1 }
+
+[cube.relationship]
+children = {}
+
+[cube.static-mesh]
+visible = true
+is-primitive = true
+primitive = 3
+material.color = { 1.0, 0.5, 0.31, 1 }
+material.shininess = 32
+
+[cube.script]
+*SandboxScripts = { "Other::TestScript2" }

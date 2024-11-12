@@ -66,7 +66,7 @@ IncludeCategories:
     Priority:        3
 
   # core headers
-  - Regex:           '"((core|math|thread)\/)'
+  - Regex:           '"((core|math|thread|engine)\/)'
     Priority:        4
   # application/asset/semi-core system headers
   - Regex:           '"((application|input|event|asset|parsing|project|plugin|layers)\/)'

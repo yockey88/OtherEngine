@@ -102,7 +102,7 @@ TEST_F(BufferTests, idx_from_buffer_data) {
 }
 
 /// tests writing glm types to copy into uniform on draw
-TEST_F(BufferTests, uniform_buffer_compatability) {
+TEST_F(BufferTests, death_uniform_buffer_compatability) {
   OE_DEBUG("6 ERRORS EXPECTED");
   using namespace std::string_view_literals;
 
@@ -183,8 +183,6 @@ TEST_F(BufferTests, uniform_buffer_compatability) {
   ASSERT_DEATH(buffer.At<glm::mat4>(3), "");
   ASSERT_DEATH(buffer.At<glm::vec4>(4), "");
   ASSERT_DEATH(buffer.At<glm::mat4>(5), "");
-  OE_DEBUG("-----");
-
   buffer.ZeroMem();
 }
 

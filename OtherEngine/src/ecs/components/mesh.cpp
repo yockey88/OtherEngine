@@ -29,6 +29,7 @@ namespace other {
     auto& mesh = entity->AddComponent<Mesh>();
     mesh.visible = scene_table.GetVal<bool>(key_value, kVisibleValue, false).value_or(false);
     mesh.handle = scene_table.GetVal<uint64_t>(key_value, kHandleValue, false).value_or(0);
+    mesh.material = scene_table.GetVal<Material>(key_value, kMaterialValue, false).value_or(Material{});
 
     /// material data
     /// paths/other metadata
@@ -60,6 +61,7 @@ namespace other {
     } else {
       return;
     }
+    mesh.material = scene_table.GetVal<Material>(key_value, kMaterialValue, false).value_or(Material{});
 
     mesh.primitive_selection = mesh.primitive_id;
 

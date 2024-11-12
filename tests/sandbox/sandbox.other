@@ -6,6 +6,10 @@ script-bin-dir = "SandboxScripts/net8.0"
 author = "Y"
 version = 0.0.1
 primary-scene = test_scene
+scenes = {
+  "test_scene",
+  "test_scene2"
+}
 
 [debug]
 editor = true

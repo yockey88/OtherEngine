@@ -26,7 +26,7 @@ namespace DotOther.Managed.Interop {
           LogMessage($"Cannot register internal call with null name!", MessageLevel.Error);
           return;
         } else {
-          LogMessage($"Registering internal call '{name}'...", MessageLevel.Info);
+          LogMessage($"Registering internal call '{name}'...", MessageLevel.Trace);
         }
 
         var name_start = name.IndexOf('+');
@@ -61,8 +61,8 @@ namespace DotOther.Managed.Interop {
           LogMessage($"  > Field '{name}' is a valid delegate", MessageLevel.Trace);
         }
 
-        LogMessage($"Internal call '{name}' registered in type '{containing_type_name}'!", MessageLevel.Info);
-        LogMessage($"  > [{call.Name} | 0x{call.Target.ToInt64():x}] registered", MessageLevel.Debug);
+        LogMessage($"Internal call '{name}' registered in type '{containing_type_name}'!", MessageLevel.Trace);
+        LogMessage($"  > [{call.Name} | 0x{call.Target.ToInt64():x}] registered", MessageLevel.Trace);
         field.SetValue(null, call.Target);
       } catch (Exception ex) {
         Console.WriteLine($"Exception: {ex} in {ex.StackTrace}");
@@ -72,7 +72,6 @@ namespace DotOther.Managed.Interop {
 
     [UnmanagedCallersOnly]
     private static unsafe void SetInternalCalls(IntPtr internall_calls, int length) {
-      Console.WriteLine($"SetInternalCalls: {internall_calls}, {length}");
       var calls = new NArray<InternalCall>(internall_calls, length);
 
       try {

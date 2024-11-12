@@ -63,6 +63,8 @@ children = {}
 visible = true
 is-primitive = true
 primitive = 3
+material.color = { 1.0, 0.5, 0.31, 1 }
+material.shininess = 32
 
 [cube.script]
 *SandboxScripts = { "Other::TestScript2" }
@@ -79,7 +81,9 @@ rotation = { 0 , 0 , 0 , 0 }
 scale = { 0.2 , 0.2 , 0.2 }
 
 [sun.light-source]
-type = 0
+type = 1
+direction = { 0 , -1.0 , 0 , 1.0 }
+color = { 0.22 , 0.22 , 0.11 , 1.0 }
 
 [floor]
 UUID = 14382231788964811176
@@ -99,6 +103,8 @@ children = {}
 visible = true
 is-primitive = true
 primitive = 3
+material.color = { 0.1, 0.5, 0.31, 1 }
+material.shininess = 32
 
 # [camera]
 # UUID = 4220486183894562136

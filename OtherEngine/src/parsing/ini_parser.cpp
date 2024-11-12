@@ -13,23 +13,36 @@
 #include "core/logger.hpp"
 
 #include "parsing/asset_pipeline_compiler.hpp"
+#include "parsing/parser.hpp"
 
 namespace other {
 
   ConfigTable IniFileParser::Parse() {
-    {
-      std::ifstream file(file_path);
-      if (!file.is_open()) {
-        throw IniException("File not found");
-      }
-
-      std::stringstream ss;
-      ss << file.rdbuf();
-      if (ss.str().empty()) {
-        return ConfigTable();
-      }
-      contents = ss.str();
+    if (!file_path.has_value()) {
+      throw IniException("No file path set for IniFileParser", IniError::NO_SRC_PROVIDED);
     }
+
+    std::ifstream file(*file_path);
+    if (!file.is_open()) {
+      throw IniException("File not found", IniError::FILE_NOT_FOUND);
+    }
+
+    std::stringstream ss;
+    ss << file.rdbuf();
+    if (ss.str().empty()) {
+      return ConfigTable();
+    }
+
+    /// Call to parse will force parser reset once table is constructed and return,
+    ///   save anything needed here before parsing
+    Path p = *file_path;
+    ConfigTable res = Parse(ss.str());
+    res.SetPath(p);
+    return res;
+  }
+
+  ConfigTable IniFileParser::Parse(const std::string_view src) {
+    contents = src;
 
     do {
       switch (Peek()) {
@@ -41,15 +54,17 @@ namespace other {
           HandleComment();
           break;
 
-        case '\n':
-          break;
-
         case '*':
           ++index;
           if (AtEnd()) {
-            throw IniException("Invalid key-value pair", IniError::FILE_PARSE_ERROR, current_line);
+            throw IniException("'*' found at <eof>", IniError::INVALID_KEY, current_line);
           }
           HandleKey(false);
+          break;
+
+        /// nothing on whitespace
+        case '\n':
+        case ' ':
           break;
 
         default:
@@ -61,8 +76,21 @@ namespace other {
       current_line.clear();
     } while (index < contents.size());
 
-    table.SetPath(file_path);
-    return table;
+    ConfigTable res = table;
+    Reset();
+    return res;
+  }
+
+  void IniFileParser::Reset() {
+    file_path = std::nullopt;
+    contents = "";
+    current_line = "";
+    current_section = "";
+    current_key = {};
+    full_current_key = "";
+    index = 0;
+    table = ConfigTable();
+    in_string = false;
   }
 
   void IniFileParser::Trim(std::string& str) {
@@ -127,19 +155,15 @@ namespace other {
 
   void IniFileParser::ParseSection(const std::string& line) {
     if (!current_key.empty()) {
-      throw IniException(fmtstr("Invalid syntax, previous section invalid : {}", line), IniError::FILE_PARSE_ERROR);
+      throw IniException(fmtstr("Key unclosed, previous section invalid, current key : {}", current_key.top()), IniError::UNCLOSED_KEY_VALUE);
     }
 
-    if (line.size() <= 2 || !line.starts_with('[') || !line.ends_with(']')) {
-      throw IniException(fmtstr("Invalid section : {}", line), IniError::FILE_PARSE_ERROR);
+    if (line.size() <= 2) {
+      throw IniException(fmtstr("Invalid section header : {}", line), IniError::INVALID_SECTION);
     }
 
     std::string section = StripParens(line);
     Trim(section);
-
-    if (section.empty()) {
-      throw IniException("Empty section", IniError::FILE_PARSE_ERROR);
-    }
 
     std::for_each(section.begin(), section.end(), ::toupper);
 
@@ -149,37 +173,33 @@ namespace other {
 
   void IniFileParser::ParseScriptSection(const std::string& line) {
     if (!current_section.has_value()) {
-      throw IniException(fmtstr("Scriptable section defined within section : {}", line), IniError::FILE_PARSE_ERROR);
+      throw IniException(fmtstr("Unexpected scriptable section header, previous section unclosed : {}", *current_section), IniError::UNCLOSED_SECTION);
     }
 
     std::string l = line;
     Trim(l);
     if (l.size() <= 2 || !l.starts_with('[') || !l.ends_with("]")) {
-      throw IniException(fmtstr("Invalid scriptable section : {}", l), IniError::FILE_PARSE_ERROR);
+      throw IniException(fmtstr("Invalid scriptable section header : {}", l), IniError::INVALID_SECTION);
     }
 
     std::string section = StripParens(l);
     Trim(section);
 
-    if (section.empty()) {
-      throw IniException("Empty scriptable section", IniError::FILE_PARSE_ERROR);
-    }
-
     std::for_each(section.begin(), section.end(), ::toupper);
-    /// save scriptable section to table
+    /// save scriptable section to table in a way it can be easily invoked later
 
     // table.Add(section);
     current_section = section;
 
     ConsumeUntil('{');
     if (!Check('{')) {
-      throw IniException("Invalid section header", IniError::FILE_PARSE_ERROR);
+      throw IniException(fmtstr("Invalid section header : {}", *current_section), IniError::INVALID_SECTION);
     }
     Consume();
 
     ConsumeUntil('\n');
     if (!Check('\n')) {
-      throw IniException("Invalid section header", IniError::FILE_PARSE_ERROR);
+      throw IniException(fmtstr("Invalid section header : {}", *current_section), IniError::INVALID_SECTION);
     }
     Consume();
 
@@ -187,7 +207,7 @@ namespace other {
     /// advance until here cause we want to capture the entire body of the section
     AdvanceUntil('}');
     if (!Check('}')) {
-      throw IniException(fmtstr("Failed to match closing brace : {}", line), IniError::FILE_PARSE_ERROR);
+      throw IniException(fmtstr("Failed to match closing brace : {}", line), IniError::UNCLOSED_SCRIPTABLE_SECTION);
     }
     Consume();
 
@@ -206,7 +226,7 @@ namespace other {
 
   void IniFileParser::ParseKeyValue(const std::string& line, bool allow_key_modifications) {
     if (!current_section.has_value()) {
-      throw IniException(fmtstr("Key-value pair defined without section", line), IniError::FILE_PARSE_ERROR);
+      throw IniException(fmtstr("Key-value pair defined without section : {}", line), IniError::KEY_VALUE_WITHOUT_SECTION);
     }
 
     auto [k, v] = SplitOnFirst(line, '=');
@@ -231,7 +251,7 @@ namespace other {
 
   void IniFileParser::ParseKey(const std::string& key, bool allow_key_modifications) {
     if (key.empty()) {
-      throw IniException("Empty key", IniError::FILE_PARSE_ERROR);
+      throw IniException("Empty key", IniError::INVALID_KEY);
     }
 
     std::string k = key;
@@ -242,7 +262,7 @@ namespace other {
     }
 
     if (k.empty()) {
-      throw IniException("Empty key", IniError::FILE_PARSE_ERROR);
+      throw IniException("Empty key", IniError::INVALID_KEY);
     }
 
     PushKey(k);
@@ -250,13 +270,13 @@ namespace other {
 
   void IniFileParser::ParseValue(const std::string& value, bool allow_key_modifications) {
     if (current_key.empty()) {
-      throw IniException(fmtstr("Value defined without key : {}", value), IniError::FILE_PARSE_ERROR);
+      throw IniException(fmtstr("Value defined without key : {}", value), IniError::VALUE_WITHOUT_KEY);
     }
     std::string v = value;
 
     TrimQuotes(v);
     if (v.empty()) {
-      throw IniException(fmtstr("Key {} has empty value", full_current_key), IniError::FILE_PARSE_ERROR);
+      throw IniException(fmtstr("Key {} has empty value", full_current_key), IniError::VALUE_WITHOUT_KEY);
     }
 
     if (v[0] != '{') {
@@ -269,14 +289,20 @@ namespace other {
 
   void IniFileParser::ParseValueList(const std::string& line, bool allow_key_modifications) {
     if (current_key.empty()) {
-      throw IniException(fmtstr("Value list defined without key : {}", line), IniError::FILE_PARSE_ERROR);
+      throw IniException(fmtstr("Value list defined without key : {}", line), IniError::VALUE_WITHOUT_KEY);
     }
 
     if (!line.ends_with('}')) {
-      throw IniException(fmtstr("Unclosed value list : {}", line), IniError::FILE_PARSE_ERROR);
+      throw IniException(fmtstr("Unclosed value list : {}", line), IniError::UNCLOSED_VALUE_LIST);
     }
 
     std::string list = StripParens(line);
+    Trim(list);
+    /// strip trailing commas
+    if (list.ends_with(',')) {
+      list = list.substr(0, list.size() - 1);
+    }
+
     std::stringstream ss(list);
     std::string value;
 
@@ -326,15 +352,22 @@ namespace other {
   void IniFileParser::HandleComment() {
     current_line.clear();
 
+    Ref<Parser<void>> skip_comment = SkipUntil('\n');
+    Ref<Parser<void>> skip_newline = Skip('\n');
+    Ref<Parser<void>> skip_any = SkipAny();
+
+    /// consumes '#'
     Consume();
     if (!AtEnd()) {
+      /// parse block comment
       if (Match('[')) {
         while (!(Match('#') && Match(']'))) {
           Consume();
         }
-        Consume();
-      } else {
-        while (!Match('\n')) {
+      }
+      /// parse line comment
+      else {
+        while (!Check('\n') && !AtEnd()) {
           Consume();
         }
       }
@@ -344,39 +377,44 @@ namespace other {
 
   void IniFileParser::HandleSection() {
     AdvanceUntil(']');
-    if (!Match(']')) {
-      throw IniException("Invalid section header", IniError::FILE_PARSE_ERROR);
+    if (!Check(']')) {
+      throw IniException(fmtstr("Invalid section header : {}", current_line), IniError::INVALID_SECTION);
     }
 
-    if (Check('\n')) {
-      ParseSection(current_line);
-    } else {
-      /// match '::' for scriptable sections
-      ConsumeUntil(':');
-      if (!Check(':')) {
-        throw IniException("Invalid section header", IniError::FILE_PARSE_ERROR);
-      }
-      Consume();
-      if (!Check(':')) {
-        throw IniException("Invalid section header", IniError::FILE_PARSE_ERROR);
-      }
-      Consume();
+    // if (!Check('\n')) {
+    //   throw IniException("Scriptable sections unimplemented", IniError::INVALID_SCRIPTABLE_SECTION);
+    //   // else {
+    //   //   // /// match '::' for scriptable sections
+    //   //   // ConsumeUntil(':');
+    //   //   // if (!Check(':')) {
+    //   //   //   throw IniException("Invalid section header", IniError::FILE_PARSE_ERROR);
+    //   //   // }
+    //   //   // Consume();
+    //   //   // if (!Check(':')) {
+    //   //   //   throw IniException("Invalid section header", IniError::FILE_PARSE_ERROR);
+    //   //   // }
+    //   //   // Consume();
 
-      ParseScriptSection(current_line);
-    }
+    //   //   // ParseScriptSection(current_line);
+    //   // }
+    // }
+
+    ParseSection(current_line);
+
+    ConsumeWhitespace();
   }
 
   void IniFileParser::HandleKey(bool allow_key_modifications) {
     /// save equals
     if (!AdvanceUntil('=')) {
-      throw IniException("key value pair without value", IniError::FILE_PARSE_ERROR);
+      throw IniException(fmtstr("key value pair without value : {}", current_key.top()), IniError::KEY_WITHOUT_VALUE);
     }
 
     current_line += Advance();
 
     /// save whitespace
     if (AtEnd()) {
-      throw IniException("key value pair without value", IniError::FILE_PARSE_ERROR);
+      throw IniException(fmtstr("key value pair without value : {}", current_key.top()), IniError::KEY_WITHOUT_VALUE);
     }
 
     current_line += Advance();
@@ -429,6 +467,12 @@ namespace other {
   void IniFileParser::Consume() {
     if (!AtEnd()) {
       ++index;
+    }
+  }
+
+  void IniFileParser::ConsumeWhitespace() {
+    while (!AtEnd() && std::isspace(Peek())) {
+      Consume();
     }
   }
 

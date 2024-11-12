@@ -9,13 +9,12 @@
 #include "core/defines.hpp"
 #include "core/filesystem.hpp"
 #include "core/logger.hpp"
+#include "engine/engine_state_machine.hpp"
 
 #include "application/app_state.hpp"
 #include "event/event_queue.hpp"
 #include "input/io.hpp"
 #include "parsing/ini_parser.hpp"
-
-#include "engine/engine_state_machine.hpp"
 
 namespace other {
 
@@ -59,36 +58,36 @@ namespace other {
   }
 
   void Engine::Step() {
-    // try {
-    dt = delta.Get();
-    AppState::OnEngineTick(dt);
+    try {
+      dt = delta.Get();
+      AppState::OnEngineTick(dt);
 
-    /// copy this over in case any states push events
-    // std::queue<EngineStateEvent> eq = event_queue;
-    while (!event_queue.empty()) {
-      state->HandleEvent(event_queue.front());
-      event_queue.pop();
-    }
+      /// copy this over in case any states push events
+      // std::queue<EngineStateEvent> eq = event_queue;
+      while (!event_queue.empty()) {
+        state->HandleEvent(event_queue.front());
+        event_queue.pop();
+      }
 
-    if (state->IsFinished()) {
-      OE_ASSERT(AppState::exit_code.has_value(), "No exit code set for engine shutdown");
-      exit_code = AppState::exit_code.value();
-    } else {
-      state->Step();
+      if (state->IsFinished()) {
+        OE_ASSERT(AppState::exit_code.has_value(), "No exit code set for engine shutdown");
+        exit_code = AppState::exit_code.value();
+      } else {
+        state->Step();
+      }
+    } catch (const IniException& e) {
+      println("caught ini error : {}", e.what());
+      state->HandleEvent(EngineStateEvent::CORRUPT_CONFIG_ERROR);
+    } catch (const ShaderException& e) {
+      println("caught shader error : {}", e.what());
+      state->HandleEvent(EngineStateEvent::CORRUPT_SHADER_ERROR);
+    } catch (const std::exception& e) {
+      println("caught std error : {}", e.what());
+      state->HandleEvent(EngineStateEvent::ENGINE_FAILURE);
+    } catch (...) {
+      println("Unknown exception caught at top level : MAJOR ERROR");
+      state->HandleEvent(EngineStateEvent::ENGINE_FAILURE);
     }
-    // } catch (const IniException& e) {
-    //   println("caught ini error : {}", e.what());
-    //   state->HandleEvent(EngineStateEvent::CORRUPT_CONFIG_ERROR);
-    // } catch (const ShaderException& e) {
-    //   println("caught shader error : {}", e.what());
-    //   state->HandleEvent(EngineStateEvent::CORRUPT_SHADER_ERROR);
-    // } catch (const std::exception& e) {
-    //   println("caught std error : {}", e.what());
-    //   state->HandleEvent(EngineStateEvent::ENGINE_FAILURE);
-    // } catch (...) {
-    //   println("Unknown exception caught at top level : MAJOR ERROR");
-    //   state->HandleEvent(EngineStateEvent::ENGINE_FAILURE);
-    // }
   }
 
   void Engine::Stop() {

@@ -8,6 +8,6 @@ build_property.PlatformNeutralAssembly =
 build_property.EnforceExtendedAnalyzerRules = 
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = CellAutomatonScripts
-build_property.ProjectDir = C:\Yock\code\OtherEngine\cell_automaton\cell_automaton_modules\
+build_property.ProjectDir = c:\Yock\code\OtherEngine\cell_automaton\cell_automaton_modules\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 

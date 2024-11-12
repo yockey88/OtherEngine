@@ -5,15 +5,19 @@
 
 #include "core/defines.hpp"
 #include "core/filesystem.hpp"
-
-#include "application/app_state.hpp"
-
 #include "engine/editor_states.hpp"
 #include "engine/engine.hpp"
+
+#include "application/app_state.hpp"
 
 namespace other {
 
   Ref<EngineState> AppIdle::HandleEvent(const EngineStateEvent event) {
+    if (event == EngineStateEvent::CORRUPT_CONFIG_ERROR || event == EngineStateEvent::CORRUPT_SHADER_ERROR ||
+        event == EngineStateEvent::ENGINE_FAILURE) {
+      return NewRef<ErrorState>(engine);
+    }
+
     if (event == EngineStateEvent::APP_DETACHED) {
       OE_ASSERT(AppState::IsAttached(), "Application is not attached");
       AppState::DetachApplication();
@@ -51,6 +55,11 @@ namespace other {
   }
 
   Ref<EngineState> SceneRunning::HandleEvent(const EngineStateEvent event) {
+    if (event == EngineStateEvent::CORRUPT_CONFIG_ERROR || event == EngineStateEvent::CORRUPT_SHADER_ERROR ||
+        event == EngineStateEvent::ENGINE_FAILURE) {
+      return NewRef<ErrorState>(engine);
+    }
+
     if (event == EngineStateEvent::SCENE_UNLOADED) {
       return NewRef<AppIdle>(engine);
     }

@@ -19,7 +19,9 @@ namespace other {
 
     void SetPath(const Path& path);
     Path GetPath() const;
-    void Load();
+
+    bool SectionExists(const std::string_view section) const;
+    bool KeyExists(const std::string_view section, const std::string_view key, bool case_sensitive = false) const;
 
     void Add(const std::string_view section, const std::string_view key = "", const std::string_view value = "", bool is_string = false, bool allow_key_modifications = true);
     void Add(const std::string_view section, const std::string_view key, const std::vector<std::string>& list, bool is_string = false, bool allow_key_modifications = true);
@@ -35,9 +37,13 @@ namespace other {
 
    private:
     Path config_path;
+    /// section hash -> section name
     std::map<uint64_t, std::string> section_map;
+    /// key hash -> key name
     std::map<uint64_t, std::string> key_map;
+    /// section hash -> list of key names
     std::map<uint64_t, std::vector<std::string>> key_names;
+    /// section hash -> (key hash -> list of raw str values)
     std::map<uint64_t, std::map<uint64_t, std::vector<std::string>>> table;
 
     // std::map<uint64_t,

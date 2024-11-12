@@ -15,9 +15,26 @@
 namespace other {
 
   enum IniError {
-    FILE_NOT_FOUND = 0,
+    NO_SRC_PROVIDED = 0,
+    FILE_NOT_FOUND,
     FILE_EMPTY,
     FILE_PARSE_ERROR,
+
+    INVALID_SECTION,
+    UNCLOSED_SECTION,
+
+    INVALID_SCRIPTABLE_SECTION,
+    UNCLOSED_SCRIPTABLE_SECTION,
+
+    INVALID_KEY,
+    UNCLOSED_KEY_VALUE,
+
+    KEY_VALUE_WITHOUT_SECTION,
+    KEY_WITHOUT_VALUE,
+
+    EMPTY_VALUE,
+    VALUE_WITHOUT_KEY,
+    UNCLOSED_VALUE_LIST,
 
     SECTION_NOT_FOUND,
     KEY_NOT_FOUND,
@@ -58,6 +75,8 @@ namespace other {
     NUM_ASSET_PIPELINE_ERRORS,
     INVALID_ASSET_PIPELINE_ERROR = NUM_ASSET_PIPELINE_ERRORS,
   };
+
+  class ParsingError {};
 
   class IniException : public std::runtime_error {
    public:

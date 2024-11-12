@@ -19,7 +19,6 @@
 #include "rendering/rendering_defines.hpp"
 #include "rendering/vertex.hpp"
 
-
 namespace other {
 
   using RenderFn = std::function<void(void*)>;
@@ -75,6 +74,8 @@ namespace other {
    public:
     Pipeline(PipelineSpec& spec);
     virtual ~Pipeline() override {}
+
+    void SetViewportSize(const glm::ivec2& size);
 
     void SubmitRenderPass(const Ref<RenderPass>& render_pass);
 

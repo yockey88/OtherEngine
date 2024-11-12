@@ -89,6 +89,15 @@ namespace other {
     static void OnEngineTick(float dt);
 
     static Ref<Data> data;
+
+   public:
+    template <typename T>
+      requires layer_type<T>
+    static Ref<T> PushLayer() {
+      Ref<T> layer = NewRef<T>(data->app_handle, data->config);
+      PushLayer(layer);
+      return layer;
+    }
   };
 
 }  // namespace other
