@@ -26,6 +26,7 @@ OtherEngine-ScriptCore/cs/obj
 tests/sandbox_scripts/obj
 tests/scripts/obj
 yockcraft/yockcraft_modules/obj
+cell_automaton/cell_automaton_modules/obj
 
 ## C# stuff
 packages/

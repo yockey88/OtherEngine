@@ -13,7 +13,7 @@
 #include "core/logger.hpp"
 
 #include "parsing/asset_pipeline_compiler.hpp"
-#include "parsing/parser.hpp"
+// #include "parsing/parser.hpp"
 
 namespace other {
 
@@ -43,6 +43,7 @@ namespace other {
 
   ConfigTable IniFileParser::Parse(const std::string_view src) {
     contents = src;
+    stream = std::istringstream(contents);
 
     do {
       switch (Peek()) {
@@ -352,9 +353,9 @@ namespace other {
   void IniFileParser::HandleComment() {
     current_line.clear();
 
-    Ref<Parser<void>> skip_comment = SkipUntil('\n');
-    Ref<Parser<void>> skip_newline = Skip('\n');
-    Ref<Parser<void>> skip_any = SkipAny();
+    // Ref<Parser<void>> skip_comment = SkipUntil('\n');
+    // Ref<Parser<void>> skip_newline = Skip('\n');
+    // Ref<Parser<void>> skip_any = SkipAny();
 
     /// consumes '#'
     Consume();
@@ -467,6 +468,7 @@ namespace other {
   void IniFileParser::Consume() {
     if (!AtEnd()) {
       ++index;
+      stream.ignore();
     }
   }
 

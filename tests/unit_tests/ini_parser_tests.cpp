@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 
 #include "parsing/ini_parser.hpp"
-#include "parsing/parser.hpp"
+#include "parsing/parser_combinators.hpp"
 
 #include "oetest.hpp"
 
@@ -66,17 +66,15 @@ TEST_F(IniParserTests, ini_combinator) {
   using section_t = std::pair<std::string, std::pair<std::string, std::string>>;
   std::vector<section_t> sections;
 
+  Ref<Parser<section_t>> section_parser = ParseMultiple(MatchIdentifierAndStripParens(), ForEach<std::vector<std::vector<std::string>>>(SplitStringOn('\n'), SplitStringOn('=')));
+
   Ref<Parser<std::string>> header_parser = MatchIdentifierAndStripParens();
   Ref<Parser<std::string>> section_data_parser = ParseUntil('[');
 
   Ref<Parser<std::vector<std::string>>> line_sep_parser = SplitStringOn('\n') | [](const std::vector<std::string>& vec) -> std::vector<std::string> {
-    std::vector<std::string> res;
-    for (const auto& str : vec) {
-      if (!str.empty()) {
-        res.push_back(str);
-      }
-    }
-    return res;
+    return vec |
+      std::views::filter([](const std::string& str) { return !str.empty(); }) |
+      std::ranges::to<std::vector<std::string>>();
   };
   Ref<Parser<std::vector<std::string>>> key_val_parser = SplitStringOn('=');
 
