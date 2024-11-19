@@ -341,7 +341,7 @@ namespace dotother {
     host_calls.entry = LoadManagedFunction<EntryPoint>(config->dotnet_type.c_str(), config->entry_point.c_str());
     if (host_calls.entry == nullptr) {
       util::print(DO_STR("Failed to load entry point"), MessageLevel::CRITICAL);
-      return 1;
+      return false;
     }
     util::print(DO_STR("Entry point loaded"), MessageLevel::INFO);
 

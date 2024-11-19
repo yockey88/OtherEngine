@@ -6,6 +6,7 @@
 
 #include <concepts>
 
+#include "core/logger.hpp"
 #include "core/ref.hpp"
 #include "core/ref_counted.hpp"
 
@@ -79,8 +80,11 @@ namespace other {
         current_state->Detach();
         new_state->Attach();
         current_state = new_state;
-      } else {
-        /// have accepted final state, detach and clear, HandleEvent should not be called again
+      }
+      /// nullptr means we have accepted final state,
+      ///   detach and clear our state,
+      ///   HandleEvent should NOT be called again
+      else {
         current_state->Detach();
         current_state = nullptr;
       }

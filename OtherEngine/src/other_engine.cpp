@@ -6,11 +6,10 @@
 #include <filesystem>
 
 #include "core/defines.hpp"
+#include "engine/engine.hpp"
 
 #include "event/event_queue.hpp"
 #include "parsing/cmd_line_parser.hpp"
-
-#include "engine/engine.hpp"
 
 namespace other {
   namespace {
@@ -22,39 +21,30 @@ namespace other {
   }  // anonymous namespace
 
   ExitCode Main(int argc, char* argv[]) {
+    CmdLine cmd_line(argc, argv);
+    ExitCode ec = ProcessArgs(cmd_line);
 #ifdef OE_DEBUG_BUILD
     println("OtherEngine Debug Build");
 #endif  // !OE_DEBUG_BUILD
-
-    CmdLine cmd_line(argc, argv);
-    ExitCode ec = ProcessArgs(cmd_line);
     if (ec != ExitCode::NO_EXIT) {
       return ec;
     }
 
-    Engine driver(cmd_line);
+    Engine* driver = LoadDriver(cmd_line);
     try {
-      driver.Start();
-      OE_INFO("Running");
-      do {
-        driver.Step();
-      } while (!driver.exit_code.has_value());
-
-      OE_ASSERT(driver.exit_code.has_value(), "Driver did not set exit code");
-      driver.Stop();
-
-      return driver.exit_code.value();
-    } catch (const IniException& e) {
-      println("caught ini error : {}", e.what());
-    } catch (const ShaderException& e) {
-      println("caught shader error : {}", e.what());
-    } catch (const std::exception& e) {
-      println("caught std error : {}", e.what());
+      OE_ASSERT(driver != nullptr, "Failed to load driver");
+      driver->Run();
+      ec = driver->exit_code.value();
+    } catch (std::exception& e) {
+      println("caught error at top level! error : {}", e.what());
+      ec = ExitCode::FAILURE;
     } catch (...) {
       println("Unknown exception caught at top level : MAJOR ERROR");
+      ec = ExitCode::FAILURE;
     }
 
-    return ExitCode::FAILURE;
+    UnloadDriver(driver);
+    return ec;
   }
 
   namespace {

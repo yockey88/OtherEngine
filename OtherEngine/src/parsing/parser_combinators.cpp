@@ -180,6 +180,10 @@ namespace other {
       update_stream(stream);
       c = stream.peek();
     }
+    /// ignores the delimiter character
+    if (!stream.eof()) {
+      stream.ignore();
+    }
 
     return result;
   }

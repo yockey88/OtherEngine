@@ -126,6 +126,13 @@ namespace other {
     loaded_modules[id] = nullptr;
     loaded_modules.erase(id);
   }
+      
+  void LuaModule::UnloadAll() {
+    for (auto& [_,m] : loaded_modules) {
+      m->Shutdown();
+    } 
+    loaded_modules.clear();
+  }
 
   std::string_view LuaModule::GetModuleName() const {
     return "Lua";

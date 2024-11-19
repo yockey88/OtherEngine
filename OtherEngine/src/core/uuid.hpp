@@ -11,7 +11,7 @@
 
 #include <reflection/echo_defines.hpp>
 
-#include "core/defines.hpp"
+#include "core/formatters.hpp"
 
 namespace other {
 
@@ -31,13 +31,6 @@ namespace other {
    private:
     uint64_t uuid;
   };
-
-  /// these return entity, because we should only ever be using this function for scripting
-  ///   apis, their use elsewhere doesn't ever use UUIDs
-  template <>
-  constexpr ValueType GetValueType<UUID>() {
-    return ValueType::ENTITY;
-  }
 
 }  // namespace other
 

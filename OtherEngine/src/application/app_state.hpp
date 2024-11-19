@@ -6,6 +6,7 @@
 
 #include "core/defines.hpp"
 #include "core/layer_stack.hpp"
+#include "engine/engine_state_machine.hpp"
 
 #include "asset/asset_handler.hpp"
 #include "project/project.hpp"
@@ -14,8 +15,6 @@
 
 #include "rendering/ui/ui_window.hpp"
 #include "rendering/ui/ui_window_map.hpp"
-
-#include "engine/engine_state_machine.hpp"
 
 namespace other {
 
@@ -86,6 +85,7 @@ namespace other {
 
    private:
     friend class Engine;
+    MOCK_ENGINE_FRIEND;
     static void OnEngineTick(float dt);
 
     static Ref<Data> data;

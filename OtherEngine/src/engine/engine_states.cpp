@@ -26,6 +26,7 @@ namespace other {
     }
 
     bool HandleKeyPress(KeyPressed& event) {
+      /// TODO: remove this, just for fast development iteration
       HandleKeyEvent(event, Keyboard::Key::OE_ESCAPE, [&]() {
         EventQueue::PushEvent<ShutdownEvent>({ ExitCode::SUCCESS });
       });
@@ -93,6 +94,10 @@ namespace other {
     /// TODO: implement actual engine launch logic,
     ///       - check if headless mode
     ///       - check configuration settings (server, client, editor, runtime, etc....)
+    if (engine->cmd_line.HasFlag("--headless")) {
+      AppState::mode = EngineMode::HEADLESS;
+    }
+
     AppState::Initialize(engine->cmd_line, engine->config);
     Renderer::Initialize(engine->config);
     UI::Initialize(engine->config, Renderer::GetWindow());
@@ -131,6 +136,10 @@ namespace other {
         AppState::mode = EngineMode::RUNTIME;
         main_idle = NewRef<AppIdle>(engine);
       }
+
+#ifdef OE_TESTING_ENVIRONMENT
+      AppState::mode = EngineMode::TESTING;
+#endif  // OE_TESTING_ENVIRONMENT
 
       return main_idle;
     }

@@ -4,6 +4,7 @@
 #ifndef OTHER_ENGINE_ENGINE_STATES_HPP
 #define OTHER_ENGINE_ENGINE_STATES_HPP
 
+#include "core/logger.hpp"
 #include "core/state.hpp"
 
 namespace other {

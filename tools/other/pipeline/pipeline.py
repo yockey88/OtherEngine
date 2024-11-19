@@ -105,7 +105,12 @@ class Pipeline(Singleton):
 
     project = oe_env.get_settings().run[0]
 
-    [real_name,proj_path,config_file] = oe_env.get_project_path(project)
+    proj_data = oe_env.get_project_path(project)
+    if proj_data is None:
+      print("project {} not found in environment configuration, did you remember to add it to the project list?".format(project))
+      return 1
+    
+    [real_name,proj_path,config_file] = proj_data
     config_file = Path(config_file).absolute()
     project_work_dir = Path(proj_path).absolute()
     args = [
@@ -120,7 +125,11 @@ class Pipeline(Singleton):
       print("  > editing project")
       args.append("--editor")
 
-    res = utilities.run_project(config, real_name, args)
+    if oe_env.get_settings().run_test_harness is not None:
+      print("  > running test harness")
+      args.append("--testing")
+
+    return utilities.run_project(config, real_name, args)
 
   @classmethod 
   def _run_dotnet_project(self):
@@ -143,10 +152,12 @@ class Pipeline(Singleton):
     if oe_env.get_settings().run is None and oe_env.get_settings().edit is None:
       return 0
     
-    ### one of run or edit must be set, if run is set then edit is optional, if edit is set then run must be forced
-    ##  if edit is set and run is not set, then run is set to edit
-    ##  if edit is set and run is set, do nothing
-    if oe_env.get_settings().edit is not None and len(oe_env.get_settings().edit) > 0:
+    if oe_env.get_settings().run_test_harness is not None and len(oe_env.get_settings().run_test_harness) > 0:
+      if oe_env.get_settings().run is None:
+        setattr(oe_env.get_settings(), "run", [])
+
+      oe_env.get_settings().run.extend(oe_env.get_settings().run_test_harness)
+    elif oe_env.get_settings().edit is not None and len(oe_env.get_settings().edit) > 0:
       if oe_env.get_settings().run is None:
         setattr(oe_env.get_settings(), "run", [])
       

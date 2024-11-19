@@ -12,7 +12,7 @@
 #include <string_view>
 #include <utility>
 
-#include "core/defines.hpp"
+#include "core/meta.hpp"
 #include "core/ref.hpp"
 #include "core/ref_counted.hpp"
 
@@ -406,6 +406,11 @@ namespace other {
 
         result.insert(result.end(), val);
       }
+
+      if (stream.eof()) {
+        stream.setstate(std::ios::failbit);
+      }
+
       return result;
     }
   };
@@ -744,7 +749,6 @@ namespace other {
 
       (*fallback)(stream);
       if (stream.fail()) {
-        stream.clear();
         throw ParsingError();
       }
 
@@ -829,7 +833,6 @@ namespace other {
         std::istringstream stream(data);
         C2 val = (*for_each)(stream);
         if (stream.fail()) {
-          stream.clear();
           return result;
         }
 
@@ -883,7 +886,6 @@ namespace other {
 
       T1 val = (*parsers1)(stream);
       if (stream.fail()) {
-        stream.clear();
         return C{};
       }
 
@@ -894,7 +896,6 @@ namespace other {
         val2 = (*parser2)(stream2);
 
         if (stream.fail()) {
-          stream.clear();
           return C{};
         }
       } else if constexpr (IterParsable<T1>) {
@@ -903,13 +904,42 @@ namespace other {
           val2 = (*parser2)(stream2);
 
           if (stream2.fail()) {
-            stream2.clear();
             return C{};
           }
           result.insert(result.end(), val2);
         }
       } else {
         static_assert(false, "Invalid type");
+      }
+
+      return result;
+    }
+  };
+
+  template <typename C, typename T>
+    requires Parsable<T> && std::same_as<T, typename C::value_type>
+  struct ParseAndCollect : Parser<C> {
+    const Ref<Parser<T>> parser1;
+    const Ref<Parser<C>> parser2;
+
+    ParseAndCollect(const Ref<Parser<T>>& parser1, const Ref<Parser<C>>& parser2)
+        : parser1(parser1), parser2(parser2) {}
+
+    C operator()(std::istream& stream) const override {
+      T val = (*parser1)(stream);
+      if (stream.fail()) {
+        return C{};
+      }
+
+      if (val == T{}) {
+        stream.setstate(std::ios_base::failbit);
+        return C{};
+      }
+
+      std::istringstream str2(val);
+      C result = (*parser2)(str2);
+      if (str2.fail()) {
+        return C{};
       }
 
       return result;
@@ -928,104 +958,51 @@ namespace other {
     return NewRef<ParseInto<C, T1, T2>>(parsers);
   }
 
-  // template <typename C1, typename C2>
-  //   requires is_container<C1> && is_container<C2> && std::same_as<typename C1::value_type, typename C2::value_type>
-  // struct ParserChain : Parser<C2> {
-  //   const Ref<Parser<C1>> first_parser;
-  //   const Ref<Parser<C2>> next_parser;
+  template <typename C, typename T>
+    requires Parsable<T> && std::same_as<T, typename C::value_type>
+  Ref<Parser<C>> CollectInto(const Ref<Parser<T>>& parser, const Ref<Parser<C>>& into) {
+    return NewRef<ParseAndCollect<C, T>>(parser, into);
+  }
 
-  //   ParserChain(const Ref<Parser<C1>>& first_parser, const Ref<Parser<C2>>& next_parser)
-  //       : first_parser(first_parser), next_parser(next_parser) {}
+  template <typename T>
+  struct MaybeParser : Parser<std::optional<T>> {
+    Ref<Parser<T>> parser = nullptr;
 
-  //   C2 operator()(std::istream& stream) const override {
-  //     C1 val = (*first_parser)(stream);
-  //     if (stream.fail()) {
-  //       stream.clear();
-  //       return C2{};
-  //     }
+    MaybeParser(const Ref<Parser<T>>& parser)
+        : parser(parser) {}
 
-  //     C2 result = (*next_parser)(stream);
-  //     if (stream.fail()) {
-  //       stream.clear();
-  //       return C2{};
-  //     }
+    std::optional<T> operator()(std::istream& stream) const override {
+      try {
+        std::streamoff start_off = tellg(stream, std::ios::beg);
 
-  //     return result;
-  //   }
-  // };
+        T val = (*parser)(stream);
+        if (!stream.fail()) {
+          return val;
+        }
 
-  // namespace detail {
+        if (stream.eof()) {
+          return std::nullopt;
+        }
 
-  //   template <typename... Ts>
-  //     requires(sizeof...(Ts) > 1)
-  //   struct tuple_begin_end_t {
-  //     using begin_t = std::tuple_element_t<0, std::tuple<Ts...>>;
-  //     using end_t = std::tuple_element_t<sizeof...(Ts) - 1u, std::tuple<Ts...>>;
-  //   };
+        stream.clear();
 
-  //   template <typename... Ts>
-  //     requires(sizeof...(Ts) > 1)
-  //   struct tuple_meta_t {
-  //     using tuple = std::tuple<Ts...>;
-  //     using begin_t = std::tuple_element_t<0, std::tuple<Ts...>>;
-  //     using end_t = std::tuple_element_t<sizeof...(Ts) - 1u, std::tuple<Ts...>>;
-  //   };
+        std::streamoff curr_off = tellg(stream, std::ios::beg);
+        update_stream(stream);
+        if (start_off != curr_off) {
+          stream.seekg(start_off);
+        }
 
-  //   template <typename...>
-  //   struct tuple_pairs_t;
+        return std::nullopt;
+      } catch (...) {
+        return std::nullopt;
+      }
+    }
+  };
 
-  //   template <size_t... Idxs, typename... Ts>
-  //   struct tuple_pairs_t<std::index_sequence<Idxs...>, Ts...> {
-  //     using tuple_t = tuple_meta_t<Ts...>::tuple;
-
-  //     using tuple_elt_0 = std::tuple<std::tuple_element_t<Idxs, tuple_t>...>;
-  //     using tuple_elt_1 = std::tuple<std::tuple_element_t<Idxs + 1u, tuple_t>...>;
-  //     using pair_t = std::pair<tuple_elt_0, tuple_elt_1>;
-  //   };
-
-  //   template <typename... Ts>
-  //   struct chain_t {
-  //     using tuple_t = tuple_meta_t<Ts...>::tuple;
-  //     using type_pairs = tuple_pairs_t<std::make_index_sequence<sizeof...(Ts) - 1u>, Ts...>;
-  //     using chain_tuple_t = std::tuple<type_pairs>;
-
-  //     using begin_t = typename tuple_begin_end_t<Ts...>::begin_t;
-  //     using end_t = typename tuple_begin_end_t<Ts...>::end_t;
-  //   };
-
-  // }  // namespace detail
-
-  // template <typename... Ts>
-  //   requires(sizeof...(Ts) > 1)
-  // struct type_pair_collection_t {
-  //   using get_t = get_tuple_pairs_t<std::make_index_sequence<sizeof...(Ts) - 1u>, Ts...>;
-  //   using tuple_elt_0 = typename get_t::tuple_elt_0;
-  //   using tuple_elt_1 = typename get_t::tuple_elt_1;
-
-  //   template <typename... FTs, typename... STs>
-  //     requires std::same_as<tuple_elt_0, std::tuple<FTs...>> && std::same_as<tuple_elt_1, std::tuple<STs...>>
-  //   type_pair_collection_t(double_type_t<FTs, STs>...) {}
-  // };
-
-  // template <typename C, typename... Ts>
-  // concept AllChainable = (Chainable<Ts, Ts, Ts> && ...);
-
-  // template <typename C, typename... Ts>
-  //   requires(sizeof...(Ts) > 1) && std::same_as<typename C::value_type, typename tuple_begin_end_t<Ts...>::end_t>
-  // struct ParserChain : Parser<C> {
-  //   const ParserTuple<Ts...> parsers;
-  //   // const ParserChain<typename C::value_type, Ts...> next;
-
-  //   ParserChain(const Ref<Parser<Ts>>&... parsers)
-  //       : parsers(std::make_tuple(parsers...)) {}
-
-  //   C operator()(std::istream& stream) const override {
-  //     auto evaluate = [&stream](auto& parser) -> decltype((*parser)(stream)) {
-  //       return (*parser)(stream);
-  //     };
-  //     return Apply<0, decltype(evaluate), Ts...>(parsers, evaluate);
-  //   }
-  // };
+  template <typename T>
+  Ref<Parser<std::optional<T>>> Maybe(Ref<Parser<T>> parser) {
+    return NewRef<MaybeParser<T>>(parser);
+  }
 
 }  // namespace other
 

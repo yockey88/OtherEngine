@@ -5,6 +5,8 @@
 
 #include <ranges>
 
+#include "core/formatters.hpp"
+
 namespace other {
   namespace {
 
@@ -32,6 +34,9 @@ namespace other {
   }  // namespace
 
   CmdLine::CmdLine(int argc, char* argv[]) {
+    raw_cmd_line.argc = argc;
+    raw_cmd_line.argv = argv;
+
     program_name = argv[0];
 
     raw_args.reserve(argc - 1);

@@ -37,8 +37,12 @@ namespace other {
     bool Contains(const Path& path) const;
     bool Contains(UUID handle) const;
 
-    Ref<FileHandle> OpenFile(const Path& path, std::ios_base::openmode mode = std::ios_base::in | std::ios_base::out);
-    Ref<FileHandle> OpenFile(UUID handle, std::ios_base::openmode mode = std::ios_base::in | std::ios_base::out);
+    Ref<Directory> AddFolder(const std::string_view name);
+
+    Ref<FileHandle> GetFile(const Path& path);
+    Ref<FileHandle> GetFile(UUID handle);
+    Ref<FileHandle> OpenFile(const Path& path, std::ios_base::openmode mode = std::ios_base::in | std::ios_base::out | std::ios_base::app);
+    Ref<FileHandle> OpenFile(UUID handle, std::ios_base::openmode mode = std::ios_base::in | std::ios_base::out | std::ios_base::app);
     Ref<FileHandle> GetFileHandleByName(const std::string_view name);
 
     std::vector<Path> GetFiles(Opt<std::string> ext = std::nullopt) const;

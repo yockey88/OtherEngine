@@ -46,7 +46,7 @@ namespace Other {
         return;
       }
 
-      Console.WriteLine($" This Name : {Name}");
+      // Console.WriteLine($" This Name : {Name}");
       Console.WriteLine($" > Transform.Position: {transform.Position.ToString()}");
       Console.WriteLine($" > Transform.Scale: {transform.Scale.ToString()}");
       Console.WriteLine($" > Transform.Rotation: {transform.Rotation.ToString()}");
@@ -72,20 +72,20 @@ namespace Other {
         return;
       }
 
-      EntityHandle child = Scene.GetEntityHandle(child_id);
-      if (child == null) {
-        Console.WriteLine(" > EntityHandle is null");
-        return;
-      }
+      // EntityHandle child = Scene.GetEntityHandle(child_id);
+      // if (child == null) {
+      //   Console.WriteLine(" > EntityHandle is null");
+      //   return;
+      // }
 
-      OtherObject obj = child;
-      Console.WriteLine($" > OtherObject.Name: {obj.Name}");
+      // OtherObject obj = child;
+      // Console.WriteLine($" > OtherObject.Name: {obj.Name}");
       
-      var t = obj.GetComponent<Transform>();
-      t.Rotate(0.1f , new Vec3(1.0f , 1.0f , 1.0f));
+      // var t = obj.GetComponent<Transform>();
+      // t.Rotate(0.1f , new Vec3(1.0f , 1.0f , 1.0f));
 
-      Console.WriteLine($" > Transform.Position: {t.Position.ToString()}");
-      Console.WriteLine($" > Transform.Position: {t.Rotation.ToString()}");
+      // Console.WriteLine($" > Transform.Position: {t.Position.ToString()}");
+      // Console.WriteLine($" > Transform.Position: {t.Rotation.ToString()}");
     }
 
     public override void LateUpdate(float dt) {

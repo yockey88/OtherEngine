@@ -19,7 +19,6 @@
 
 namespace other {
 
-  // Ref<StateMachine> AppState::state = nullptr;
   Ref<AppState::Data> AppState::data = nullptr;
 
   void AppState::Initialize(const CmdLine& cmd_line, const ConfigTable& config) {
@@ -260,7 +259,7 @@ namespace other {
   }
 
   AppState::Data::~Data() {
-    delete app_handle;
+    FreeApp(app_handle);
     app_handle = nullptr;
     layers = nullptr;
     scenes = nullptr;

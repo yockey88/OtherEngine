@@ -7,6 +7,7 @@
 
 #include "core/defines.hpp"
 #include "core/logger.hpp"
+#include "core/filesystem.hpp"
 
 #include "application/app_state.hpp"
 #include "event/event_queue.hpp"
@@ -25,24 +26,42 @@ namespace other {
   bool SceneManager::LoadScene(const Path& scenepath) {
     OE_DEBUG("Loading scene {}", scenepath);
 
-    UUID id = FNV(scenepath.string());
+    Path real_path = scenepath;
+    if (!Filesystem::FileExists(scenepath)) {
+      Ref<Directory> scene_dir = Filesystem::GetDirectory("scenes");
+      OE_ASSERT(scene_dir != nullptr, "Failed to get scene directory!");
+      OE_ASSERT(scene_dir->Exists(), "Scene directory does not exist!");
+
+      OE_DEBUG("Attempting to find scene : {}" , real_path);
+
+      Ref<FileHandle> scene = scene_dir->GetFileHandleByName(scenepath.string());
+      if (scene == nullptr) {
+        OE_ERROR("Failed to find scene : {}", scenepath.string());
+        return false;
+      }
+      OE_ASSERT(scene->Exists(), "Scene file handle does not exist!");
+      real_path = *scene;
+    }
+    OE_ASSERT(Filesystem::FileExists(real_path), "Scene file does not exist!");
+
+    UUID id = FNV(real_path.string());
     SceneSerializer serializer;
     {
-      auto loaded_scene = serializer.Deserialize(scenepath.string());
+      auto loaded_scene = serializer.Deserialize(real_path.string());
       if (loaded_scene.scene == nullptr) {
-        OE_ERROR("Failed to deserialize scene : {}", scenepath.string());
+        OE_ERROR("Failed to deserialize scene : {}", real_path.string());
         return false;
       }
 
       loaded_scenes[id] = SceneMetadata{
         .name = loaded_scene.name,
-        .path = scenepath,
+        .path = real_path,
         .scene_table = loaded_scene.scene_table,
         .scene = Ref<Scene>::Clone(loaded_scene.scene),
       };
     }
 
-    scene_paths.push_back(scenepath.string());
+    scene_paths.push_back(real_path.string());
 
     EventQueue::PushEvent<SceneLoad>({ id.Get() });
 

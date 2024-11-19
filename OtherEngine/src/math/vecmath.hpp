@@ -5,6 +5,7 @@
 #define OTHER_ENGINE_VECMATH_HPP
 
 #include <limits>
+#include <span>
 #include <sstream>
 #include <string_view>
 
@@ -15,7 +16,7 @@
 
 #include <reflection/echo_defines.hpp>
 
-#include "core/defines.hpp"
+#include "core/formatters.hpp"
 
 namespace other {
 
@@ -525,13 +526,20 @@ struct fmt::formatter<glm::vec<N, T, Q>>
 };
 
 template <>
+struct fmt::formatter<glm::vec4> : public fmt::formatter<std::string_view> {
+  template <typename FormatContext>
+  auto format(const glm::vec4& v, FormatContext& ctx) {
+    return fmt::formatter<std::string_view>::format(
+      fmt::format(std::string_view{ "({:.2f}, {:.2f}, {:.2f}, {:.2f})" }, v.x, v.y, v.z, v.w), ctx
+    );
+  }
+};
+
+/// TODO: make this better, sometimes columns are not aligned
+template <>
 struct fmt::formatter<glm::mat4> : public fmt::formatter<std::string_view> {
   auto format(const glm::mat4& mat, fmt::format_context& ctx) {
-    constexpr std::string_view mat_str =
-      R"(|{} {} {} {}|
-|{} {} {} {}|
-|{} {} {} {}|
-|{} {} {} {}|)";
+    constexpr std::string_view mat_str = "|{} {} {} {}|\n|{} {} {} {}|\n|{} {} {} {}|\n|{} {} {} {}|";
 
     std::string mat_fmt_str = fmt::format(
       fmt::runtime(mat_str), mat[0][0], mat[1][0], mat[2][0], mat[3][0],

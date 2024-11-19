@@ -188,7 +188,8 @@ namespace other {
     Ref<LanguageModule> lua_language_module = ScriptEngine::GetModule(LUA_MODULE);
     Ref<LanguageModule> cs_language_module = ScriptEngine::GetModule(CS_MODULE);
 
-    cs_language_module->UnloadScript("OtherEngine.CsCore");
+    lua_language_module->UnloadAll();
+    cs_language_module->UnloadAll();
     loaded_modules.clear();
   }
 
@@ -596,6 +597,7 @@ namespace other {
     std::string name = std::string{ full_name };
     std::optional<std::string> name_space = std::nullopt;
 
+    /// FIXME: this does not work if more than one namespace separator is present
     if (full_name.find("::") != std::string::npos) {
       auto colon = full_name.find_first_of(':');
       auto second_colon = full_name.find_last_of(':');

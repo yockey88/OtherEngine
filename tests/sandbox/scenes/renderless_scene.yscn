@@ -1,0 +1,22 @@
+[metadata]
+name = "Test Scene"
+entities = {
+  "entity1" 
+}
+
+[physics.2D]
+gravity = { 0 , 0 }
+
+[physics.3D]
+
+[entity1]
+UUID = 1
+components = {}
+
+[entity1.transform]
+position = { 0 , 0 , 0 }
+rotation = { 0 , 0 , 0 , 0 }
+scale = { 1 , 1 , 1 }
+
+[entity1.relationship]
+children = {}

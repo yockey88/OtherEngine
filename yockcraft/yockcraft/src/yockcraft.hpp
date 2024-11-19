@@ -9,15 +9,13 @@
 using namespace other;
 
 class YockCraft : public App {
-  public:
-    YockCraft(const CmdLine& cmd_line, const ConfigTable& config) 
+ public:
+  YockCraft(const CmdLine& cmd_line, const ConfigTable& config)
       : App(cmd_line, config) {}
-    virtual ~YockCraft() override {}
+  virtual ~YockCraft() override {}
 
-    virtual void OnAttach() override;
-    virtual void OnSceneLoad(const SceneMetadata* path) override;
+  virtual void OnAttach() override;
+  virtual void OnSceneLoad(const SceneMetadata* path) override;
 };
 
-OE_APPLICATION(YockCraft);
-
-#endif // !YOCKCRAFT_HPP
+#endif  // !YOCKCRAFT_HPP

@@ -27,6 +27,7 @@ namespace other {
       virtual Ref<ScriptModule> GetScriptModule(const UUID& id) override;
       virtual Ref<ScriptModule> LoadScriptModule(const ScriptMetadata& module_info) override;
       virtual void UnloadScript(const std::string& name) override;
+      virtual void UnloadAll() override;
 
       virtual std::string_view GetModuleName() const override;
       virtual std::string_view GetModuleVersion() const override;

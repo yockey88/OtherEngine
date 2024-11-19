@@ -7,31 +7,27 @@
 
 #include "core/defines.hpp"
 #include "core/time.hpp"
+#include "engine/engine_state_machine.hpp"
 
 #include "application/app.hpp"
 #include "event/core_events.hpp"
 #include "parsing/cmd_line_parser.hpp"
 
-#include "engine/engine_state_machine.hpp"
-
 namespace other {
 
-  /// implemented by client
-#ifndef OTHERENGINE_DLL
-  extern App* NewApp(const CmdLine& cmd_line, const ConfigTable& config);
-#else
-  OE_API App* NewApp(const CmdLine& cmd_line, const ConfigTable& config);
-#endif  // !OTHERENGINE_DLL
+  CLIENT_SIDE App* NewApp(const CmdLine& cmd_line, const ConfigTable& config);
+  CLIENT_SIDE Engine* LoadDriver(const CmdLine& cmd_line);
+
+  CLIENT_SIDE void FreeApp(App* app);
+  CLIENT_SIDE void UnloadDriver(Engine* driver);
 
   class Engine {
    public:
     Engine();
-    Engine(const CmdLine& cmd_line, Opt<std::string> main_thread_name = std::nullopt);
-    ~Engine();
+    Engine(const CmdLine& cmd_line, std::string main_thread_name = "OtherEngine--MainThread");
+    TEST_VIRTUAL ~Engine();
 
-    void Start();
-    void Step();
-    void Stop();
+    TEST_VIRTUAL void Run();
 
     bool IsRunning() const;
 
@@ -43,7 +39,12 @@ namespace other {
 
     float dt = 0.0f;
 
-   private:
+   protected:
+    TEST_VIRTUAL void Start();
+    TEST_VIRTUAL void Step();
+    TEST_VIRTUAL void Stop();
+    TEST_VIRTUAL Ref<EngineStateMachine> CreateStateMachine();
+
     time::DeltaTime delta;
     std::string config_path;
 
@@ -56,7 +57,6 @@ namespace other {
     ExitCode LoadConfig();
 
     bool HandleShutdownEvent(ShutdownEvent& event);
-
     void ProcessSingleArg(const std::string_view lflag, uint32_t min_args, std::function<bool(Arg&)> processor = nullptr);
   };
 

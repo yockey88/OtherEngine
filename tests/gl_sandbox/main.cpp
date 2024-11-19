@@ -3,6 +3,10 @@
  **/
 #include <iostream>
 
+#include <SDL_events.h>
+#include <SDL_video.h>
+#include <box2d/b2_world.h>
+#include <box2d/box2d.h>
 #include <glad/glad.h>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
@@ -10,11 +14,6 @@
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <imgui/backends/imgui_impl_sdl2.h>
 #include <imgui/imgui.h>
-
-#include <SDL_events.h>
-#include <SDL_video.h>
-#include <box2d/b2_world.h>
-#include <box2d/box2d.h>
 #include <rendering/gbuffer.hpp>
 
 #include "core/defines.hpp"
@@ -22,6 +21,7 @@
 #include "core/filesystem.hpp"
 #include "core/logger.hpp"
 #include "core/ref.hpp"
+#include "engine/engine.hpp"
 
 #include "event/event_queue.hpp"
 #include "input/io.hpp"
@@ -40,7 +40,6 @@
 #include "rendering/vertex.hpp"
 #include "rendering/window.hpp"
 
-#include "engine/engine.hpp"
 #include "gl_helpers.hpp"
 #include "sandbox_ui.hpp"
 #include "shader_embed.hpp"
@@ -118,13 +117,20 @@ using namespace other;
 
 void UpdateCamera(other::Ref<CameraBase>& camera);
 
+#ifdef _WIN32
+  #define WIN32_LEAN_AND_MEAN
+  #include <Windows.h>
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+  other::CmdLine cmd_line(__argc, __argv);
+#else
 int main(int argc, char* argv[]) {
+  other::CmdLine cmd_line(argc, argv);
+#endif
   int exit = 0;
   try {
     const other::Path glsandbox_dir = "C:/Yock/code/OtherEngine/tests/gl_sandbox";
     const other::Path config_path = glsandbox_dir / "gl_sandbox.other";
 
-    other::CmdLine cmd_line(argc, argv);
     cmd_line.SetFlag("--project", { config_path.string() });
 
     other::Engine mock_engine(cmd_line);

@@ -112,12 +112,13 @@ end
 
 local function ProcessConfigurations(project , external)
     filter "system:windows"
+      entrypoint "WinMainCRTStartup"
+      defines { "OE_WINDOWS" }
       if project.windows_configuration ~= nil then
           project.windows_configuration()
       else
           systemversion "latest"
-      end
-      defines { "OE_WINDOWS" }
+      end  
 
     filter { "system:windows", "configurations:Debug" }
       if project.windows_debug_configuration ~= nil then

@@ -3,6 +3,7 @@
  */
 #include "asset/asset.hpp"
 
+#include "core/logger.hpp"
 #include "core/rand.hpp"
 
 namespace other {

@@ -27,6 +27,10 @@ namespace other {
   }
   
   void PythonModule::UnloadScript(const std::string& name) {}
+      
+  void PythonModule::UnloadAll() {
+    
+  }
   
   std::string_view PythonModule::GetModuleName() const {
     return "Python"; 

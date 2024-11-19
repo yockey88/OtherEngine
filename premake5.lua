@@ -17,7 +17,7 @@ configuration.groups = {
   ["OtherEngine-CsCore"] = { "./OtherEngine-ScriptCore/cs" } ,
   ["DotOther"] = { "./DotOther" } ,
 
-  ["OtherEngine-Tools"] = { "./OtherEngine-Launcher" } ,
+  ["OtherEngine-Tools"] = {} ,
 
   ["Testing"] = {
     "./tests" ,
@@ -25,7 +25,7 @@ configuration.groups = {
   } ,
 
   -- ["Tools"] = { "./tools" } ,
-  ["Games"] = { 
+  ["Games"] = {
     "./yockcraft" ,
     "./cell_automaton" ,
   } ,
@@ -42,6 +42,10 @@ entt.include_dir = "%{wks.location}/externals/entt"
 local refl = {}
 refl.name = "refl"
 refl.include_dir = "%{wks.location}/externals/refl-cpp"
+
+local json = {}
+json.name = "json"
+json.include_dir = "%{wks.location}/externals/json/include"
 
 local glad = {}
 glad.name = "glad"
@@ -194,6 +198,7 @@ dotother.lib_name = "DotOther.Native"
 AddDependency(choc)
 AddDependency(entt)
 AddDependency(refl)
+AddDependency(json)
 AddDependency(glad)
 AddDependency(glm)
 AddDependency(gtest)

@@ -4,7 +4,6 @@
 #include "engine/app_states.hpp"
 
 #include "core/defines.hpp"
-#include "core/filesystem.hpp"
 #include "engine/editor_states.hpp"
 #include "engine/engine.hpp"
 

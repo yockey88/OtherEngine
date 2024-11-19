@@ -39,9 +39,7 @@ namespace other {
       cwd = cwd_from_cfg.value();
     }
 
-    if (!cwd.has_value()) {
-      std::filesystem::current_path(Filesystem::GetWorkingDirectory());
-    } else {
+    if (cwd.has_value()) {
       std::filesystem::current_path(cwd.value());
     }
 

@@ -806,3 +806,21 @@ TEST_F(ParserCombinatorTests, complicated_grammar) {
   EXPECT_EQ(value_data[2][0], "key_5");
   EXPECT_EQ(value_data[2][1], "1");
 }
+
+TEST_F(ParserCombinatorTests , maybe_parser) {
+  auto maybe_c = Maybe(Char('c'));
+
+  Opt<char> empty;
+  Opt<char> not_empty;
+
+  std::istringstream str1("d");
+  std::istringstream str2("c");
+
+  ASSERT_NO_THROW(empty = (*maybe_c)(str1));
+  ASSERT_EQ(char(str1.peek()), 'd');
+  ASSERT_FALSE(empty.has_value());
+
+  ASSERT_NO_THROW(not_empty = (*maybe_c)(str2));
+  ASSERT_TRUE(not_empty.has_value());
+  ASSERT_EQ(*not_empty, 'c');
+}

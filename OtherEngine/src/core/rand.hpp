@@ -13,14 +13,14 @@ namespace other {
   template <typename T>
   concept numeric = std::is_integral_v<T>;
   
-  template <numeric T>
+  template <typename T>
+    requires numeric<T>
   class RandomGenerator {
     public:
       RandomGenerator()
         : gen(rand()) {}
       RandomGenerator(T min , T max) 
         : gen(rand()) , dist(min , max) {}
-      ~RandomGenerator() {}
 
       T Next() { return dist(gen); }
 
