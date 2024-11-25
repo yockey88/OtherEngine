@@ -84,9 +84,9 @@ namespace other {
 
     if (!cs_attachments.empty()) {
       Ref<Directory> script_bin = Filesystem::GetDirectory("script-bin");
-      if (script_bin == nullptr) {
-        script_bin = Filesystem::GetDirectory("bin");
-      }
+      // if (script_bin == nullptr) {
+      //   script_bin = Filesystem::GetDirectory("bin");
+      // }
       OE_ASSERT(script_bin != nullptr, "Failed to retrieve script bin directory");
 
       Ref<FileHandle> cs_file = script_bin->OpenFile(cs_attachments[0]);
@@ -105,7 +105,11 @@ namespace other {
 
       Ref<Directory> lua_dir = Filesystem::GetDirectory("lua");
       if (lua_dir == nullptr) {
-        lua_dir = script_type == ScriptType::EDITOR_SCRIPT ? Filesystem::GetDirectory("editor") : Filesystem::GetDirectory("scripts");
+        OE_WARN("Failed to retrieve lua directory, defaulting to scripts directory");
+        lua_dir = script_type == ScriptType::EDITOR_SCRIPT ?
+          Filesystem::GetDirectory("editor") :
+          Filesystem::GetDirectory("scripts");
+
         OE_ASSERT(lua_dir != nullptr, "Failed to retrieve lua directory");
       }
 

@@ -9,6 +9,7 @@
 #include <gtest/gtest.h>
 
 #include "statistics/test_engine_records.hpp"
+#include "testing_core/errors.hpp"
 #include "testing_core/run_report.hpp"
 #include "testing_core/test.hpp"
 
@@ -30,8 +31,7 @@ namespace other {
     MockEngine* mock_engine = nullptr;
   };
 
-  class MockEngine : public ::testing::Environment,
-                     public Engine {
+  class MockEngine : public Engine {
    public:
     MockEngine(CmdLine cmd_line, std::string main_thread_name);
     virtual ~MockEngine() override;
@@ -40,10 +40,17 @@ namespace other {
 
     void RegisterMockApplication(const TestDescription& description);
 
-    void RecordError(ErrorLevel level, std::source_location loc = std::source_location::current());
-    void RecordWarning(std::source_location loc = std::source_location::current());
+    void RecordError(ErrorLevel level, const std::string_view msg, std::source_location loc);
+    void RecordWarning(const std::string_view msg, std::source_location loc);
+
+    void RecordError(const OtherTestEngineError& error);
+    void RecordWarning(const OtherTestEngineError& error);
 
     virtual void Run() override;
+
+    void InitializeTest();
+    void UpdateTest();
+    void RenderTest();
 
    protected:
     static MockEngine* instance;

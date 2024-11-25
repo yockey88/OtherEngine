@@ -1,12 +1,15 @@
 /**
  * \file ini_parser_tests.cpp
  **/
+#include <ranges>
+
 #include <gtest/gtest.h>
 
 #include "parsing/ini_parser.hpp"
 #include "parsing/parser_combinators.hpp"
 
 #include "oetest.hpp"
+
 
 using namespace other;
 

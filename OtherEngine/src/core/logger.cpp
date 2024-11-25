@@ -293,21 +293,4 @@ namespace other {
     Configure(config);
   }
 
-  void Logger::RecordLogInformation(const std::string_view msg, other::Logger::Level level, const std::source_location loc) {
-#ifdef OE_TESTING_ENVIRONMENT
-    // if (level == other::Logger::Level::TRACE) {
-    // } else if (level == other::Logger::Level::DEBUG) {
-    // } else if (level == other::Logger::Level::INFO) {
-    // } else
-
-    if (level == other::Logger::Level::WARN) {
-      other::MockEngine::TestEngine()->RecordWarning(loc);
-    } else if (level == other::Logger::Level::ERR) {
-      other::MockEngine::TestEngine()->RecordError(ErrorLevel::NON_FATAL, loc);
-    } else if (level == other::Logger::Level::CRITICAL) {
-      other::MockEngine::TestEngine()->RecordError(ErrorLevel::FATAL, loc);
-    }
-#endif  // OE_TESTING_ENVIRONMENT
-  }
-
 }  // namespace other

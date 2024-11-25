@@ -6,7 +6,7 @@
 
 #include "core/layer.hpp"
 
-#include "scene/environment.hpp"
+#include "scene/light_environment.hpp"
 
 #include "rendering/scene_renderer.hpp"
 

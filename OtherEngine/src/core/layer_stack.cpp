@@ -3,6 +3,8 @@
  */
 #include "core/layer_stack.hpp"
 
+#include <ranges>
+
 #include "core/logger.hpp"
 
 #include "event/app_events.hpp"

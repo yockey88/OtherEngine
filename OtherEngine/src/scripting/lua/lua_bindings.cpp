@@ -6,7 +6,6 @@
 #include <cstdint>
 
 #include <entt/entt.hpp>
-
 #include <reflection/object_proxy.hpp>
 #include <sol/optional_implementation.hpp>
 #include <sol/property.hpp>
@@ -22,6 +21,7 @@
 #include "scripting/lua/lua_math_bindings.hpp"
 #include "scripting/lua/lua_scene_bindings.hpp"
 #include "scripting/lua/lua_ui_bindings.hpp"
+
 
 namespace other {
   namespace lua_script_bindings {

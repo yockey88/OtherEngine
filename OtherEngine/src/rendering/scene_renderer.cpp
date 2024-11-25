@@ -44,7 +44,7 @@ namespace other {
     frame_data.viewpoint = camera;
   }
 
-  void SceneRenderer::SubmitEnvironment(const Ref<Environment>& environment) {
+  void SceneRenderer::SubmitEnvironment(const Ref<LightEnvironment>& environment) {
     if (frame_data.environment != nullptr) {
       /// only one environment per frame
       return;

@@ -188,19 +188,19 @@ TEST_F(SceneTreeTests, add_scene_high_res) {
 }
 
 void SceneTreeTests::SetUpTestSuite() {
-  ConfigTable test_config = ConfigTable{};
-  test_config.Add("log", "console-level", "trace", true);
-  test_config.Add("log", "file-level", "trace", true);
-  test_config.Add("log", "path", "logs/scene-tree-test.log", true);
+  // ConfigTable test_config = ConfigTable{};
+  // test_config.Add("log", "console-level", "trace", true);
+  // test_config.Add("log", "file-level", "trace", true);
+  // test_config.Add("log", "path", "logs/scene-tree-test.log", true);
 
-  Logger::Open(test_config);
-  Logger::Instance()->RegisterThread("Script Scene Integration Test Main Thread");
-  ASSERT_NO_FATAL_FAILURE(AppState::Initialize(cmdline, test_config));
+  // Logger::Open(test_config);
+  // Logger::Instance()->RegisterThread("Script Scene Integration Test Main Thread");
+  // ASSERT_NO_FATAL_FAILURE(AppState::Initialize(cmdline, test_config));
 }
 
 void SceneTreeTests::TearDownTestSuite() {
-  ASSERT_NO_FATAL_FAILURE(AppState::Shutdown());
-  CloseLog();
+  // ASSERT_NO_FATAL_FAILURE(AppState::Shutdown());
+  // CloseLog();
 }
 
 void SceneTreeTests::SetUp() {

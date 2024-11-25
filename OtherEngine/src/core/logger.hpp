@@ -73,10 +73,6 @@ namespace other {
 
     template <typename... Args>
     void Log(Level l, const std::string_view format, std::source_location src_pos, std::thread::id thread_id, Args&&... args) {
-      // #ifdef OE_TESTING_ENVIRONMENT
-      //       RecordLogInformation(fmt::format(fmt::runtime(format), std::forward<Args>(args)...), l, src_pos);
-      // #endif  // !OE_TESTING_ENVIRONMENT
-
       std::string user_msg = fmt::format(fmt::runtime(format), std::forward<Args>(args)...);
       user_target_logger->log(LevelFromLevel(l), user_msg);
 
@@ -170,8 +166,6 @@ namespace other {
 
     std::mutex thread_map_mutex;
     std::map<std::thread::id, std::string> thread_names;
-
-    void RecordLogInformation(const std::string_view msg, other::Logger::Level level, const std::source_location loc);
   };
 
 }  // namespace other

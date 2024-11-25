@@ -8,6 +8,7 @@
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <imgui/backends/imgui_impl_sdl2.h>
 #include <imgui/imgui_internal.h>
+#include <imguizmo/ImGuizmo.h>
 
 #include "core/config_keys.hpp"
 #include "core/defines.hpp"
@@ -244,7 +245,7 @@ namespace other {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame(win_handle);
     ImGui::NewFrame();
-
+    ImGuizmo::BeginFrame();
     ImGui::DockSpaceOverViewport(ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
   }
 
@@ -287,7 +288,6 @@ namespace other {
     OE_ASSERT(ui_context != nullptr, "UI context not initialized");
     OE_ASSERT(windowref != nullptr, "Window reference not initialized");
     OE_ASSERT(windowref->main_window != nullptr, "Main window not initialized");
-
     return ui_context;
   }
 

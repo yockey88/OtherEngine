@@ -31,10 +31,27 @@ namespace other {
 
     size_t num_elements = 0;
     bool selected;
-
-    auto operator<=>(const MeshKey& other) const;
   };
 
+}  // namespace other
+
+template <>
+struct std::hash<other::MeshKey> {
+  std::size_t operator()(const other::MeshKey& key) const {
+    return std::hash<uint64_t>{}(key.source_handle.Get()) ^
+      std::hash<uint32_t>{}(static_cast<uint32_t>(key.render_state)) ^
+      std::hash<uint32_t>{}(static_cast<uint32_t>(key.draw_mode));
+  }
+};
+
+template <>
+struct std::equal_to<other::MeshKey> {
+  bool operator()(const other::MeshKey& lhs, const other::MeshKey& rhs) const {
+    return lhs.source_handle.Get() == rhs.source_handle.Get() && lhs.render_state == rhs.render_state && lhs.draw_mode == rhs.draw_mode;
+  }
+};
+
+namespace other {
   struct PipelineSpec {
     DrawMode topology = DrawMode::TRIANGLES;
     bool back_face_culling = true;
@@ -68,7 +85,7 @@ namespace other {
     Buffer cpu_model_storage;
     Buffer cpu_material_storage;
   };
-  using FrameMeshes = std::map<MeshKey, MeshSubmissionList>;
+  using FrameMeshes = std::unordered_map<MeshKey, MeshSubmissionList>;
 
   class Pipeline : public RefCounted {
    public:

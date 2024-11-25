@@ -36,6 +36,8 @@ namespace other {
 
         auto szb = layers.size();
         if (sza != szb) {
+          /// in case a layer modified the stack (invalidating the iterator)
+          /// FIXME: want more stable addressing scheme to avoid this issue
           break;
         }
       }

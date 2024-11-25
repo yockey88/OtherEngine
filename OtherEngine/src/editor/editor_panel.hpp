@@ -12,32 +12,30 @@
 
 #include "scene/scene.hpp"
 
-
 namespace other {
 
   class Editor;
 
   class EditorPanel : public RefCounted {
    public:
-    EditorPanel(Editor& editor)
-        : editor(editor) {}
+    EditorPanel() {}
     virtual ~EditorPanel() {}
 
     virtual void OnAttach() {}
-    /// used for signaling events, temporary??
-    virtual bool OnGuiRender(bool& is_open) { return false; }
-    virtual void OnUpdate(float dt) {}
-    virtual void OnProjectChange(const Ref<Project>& project) {}
-    virtual void SetSceneContext(const Ref<Scene>& scene) {}
     virtual void OnDetach() {}
 
+    virtual bool OnGuiRender(bool& is_open) { return false; }
+
+    virtual void OnEarlyUpdate(float dt) {}
+    virtual void OnUpdate(float dt) {}
+    virtual void OnLateUpdate(float dt) {}
+
+    virtual void OnRender() {}
+    virtual void OnRenderUI() {}
+
+    virtual void OnProjectChange(const Ref<Project>& project) {}
+    virtual void SetSceneContext(const Ref<Scene>& scene) {}
     virtual void OnScriptReload() {}
-
-   protected:
-    Editor& GetEditor() const { return editor; }
-
-   private:
-    Editor& editor;
   };
 
 }  // namespace other

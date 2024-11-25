@@ -6,7 +6,7 @@
 [metadata]
 name = "Game Of Life"
 entities = {
-  "cube"
+  "texture"
 }
 
 [physics.2D]
@@ -14,26 +14,26 @@ gravity = { 0 , -9.8 }
 
 [physics.3D]
 
-[cube]
+[texture]
 UUID = 12461263173642597452
 components = {
   static-mesh
 }
 
-[cube.transform]
+[transform.transform]
 position = { 0 , 0 , 0 }
 rotation = { 0 , 0 , 0 , 0 }
 scale = { 1 , 1 , 1 }
 
-[cube.relationship]
+[transform.relationship]
 children = {}
 
-[cube.static-mesh]
+[transform.static-mesh]
 visible = true
 is-primitive = true
-primitive = 3
+primitive = 2
 material.color = { 1.0, 0.5, 0.31, 1 }
 material.shininess = 32
 
-[cube.script]
+[transform.script]
 *SandboxScripts = { "Other::TestScript2" }

@@ -26,11 +26,7 @@ local OtherEngine = {
     includedirs {
       "./platform",
     }
-    systemversion "latest"
     buildoptions {
-      "/EHsc" ,
-      "/Zc:preprocessor" ,
-      "/Zc:__cplusplus" ,
       "/Zm10",
     }
   end,

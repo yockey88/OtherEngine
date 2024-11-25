@@ -28,10 +28,10 @@ namespace other {
   struct ErrorMarker {
     size_t line;
     size_t column;
-    std::string_view file;
+    std::string file;
 
     ErrorMarker() = default;
-    ErrorMarker(size_t line, size_t column, std::string_view file)
+    ErrorMarker(size_t line, size_t column, const std::string_view file)
         : line(line), column(column), file(file) {}
   };
 
@@ -39,6 +39,8 @@ namespace other {
    public:
     ErrorDescription(ErrorLevel level, const std::string_view message, std::source_location loc)
         : marker(loc.line(), loc.column(), loc.file_name()), level(level), msg(message) {}
+    ErrorDescription(ErrorLevel level, const std::string_view message, ErrorMarker marker)
+        : marker(marker), level(level), msg(message) {}
 
     ErrorMarker marker;
     ErrorLevel level;
@@ -48,6 +50,9 @@ namespace other {
   struct OtherTestEngineError {
     OtherTestEngineError(ErrorLevel level, const std::string_view message, std::source_location loc = std::source_location::current())
         : error(level, message, loc) {}
+    OtherTestEngineError(ErrorLevel level, const std::string_view message, ErrorMarker marker)
+        : error(level, message, marker) {}
+
     size_t num = 1;
     ErrorDescription error;
     bool process_must_halt = false;

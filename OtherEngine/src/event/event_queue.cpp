@@ -5,9 +5,8 @@
 
 #include <ranges>
 
-#include <imgui/backends/imgui_impl_sdl2.h>
-
 #include <SDL.h>
+#include <imgui/backends/imgui_impl_sdl2.h>
 
 #include "core/config_keys.hpp"
 #include "core/defines.hpp"
@@ -112,13 +111,20 @@ namespace other {
       OE_ASSERT(event != nullptr, "Event is null");
       OE_ASSERT(event->ptr != nullptr, "Event ptr is null");
 
+      /// TODO: check flags for event type
+      // if (ShouldHandle(event->Type())) {
+      //   continue;
+      // }
+
+      SetEventFlag(event->Type());
       for (auto& [hash, dispatcher] : event_handlers) {
         OE_ASSERT(dispatcher.dispatcher != nullptr, "Dispatcher is null");
-        dispatcher.dispatcher->Dispatch(*event);
+        if (dispatcher.dispatcher->Dispatch(*event)) {
+          break;
+        }
       }
     }
-
-    Clear();
+    event_flags = 0;
   }
 
 }  // namespace other

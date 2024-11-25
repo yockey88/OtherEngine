@@ -3,17 +3,11 @@
  **/
 #include "ecs/systems/component_gui.hpp"
 
-#include <algorithm>
-
 #include <imgui/imgui.h>
 
 #include "application/app_state.hpp"
-#include "event/app_events.hpp"
-#include "event/event_queue.hpp"
 
 #include "ecs/components/camera.hpp"
-#include "ecs/components/relationship.hpp"
-#include "ecs/components/script.hpp"
 #include "ecs/components/transform.hpp"
 
 #include "rendering/camera_base.hpp"
@@ -21,7 +15,6 @@
 #include "rendering/model_factory.hpp"
 #include "rendering/orthographic_camera.hpp"
 #include "rendering/perspective_camera.hpp"
-#include "scripting/script_engine.hpp"
 
 namespace other {
 
@@ -63,8 +56,6 @@ namespace other {
 
       if (translation_manually_edited || rotation_manually_edited || scale_manually_edited) {
         component.CalcMatrix();
-        OE_DEBUG("Transform calculated : {}", component.model_transform);
-
         modified = true;
       }
     }
@@ -75,6 +66,15 @@ namespace other {
     ui::Underline();
 
     ui::ShiftCursorY(18.f);
+
+    if (modified) {
+      /// get active scene and update bounding boxes
+      auto* md = AppState::Scenes()->ActiveScene();
+      OE_ASSERT(md != nullptr, "No active scene found!");
+      OE_ASSERT(md->bvh != nullptr, "No bounding hierarchy for active scene!");
+
+      md->bvh->Update();
+    }
 
     return modified;
   }
@@ -515,8 +515,7 @@ namespace other {
       bool change = false;
       switch (mesh.primitive_selection) {
         case kTriangleIdx: {
-          auto& scale = ent->ReadComponent<Transform>().scale;
-          mesh.handle = ModelFactory::CreateTriangle({ scale.x / 2, scale.y / 2 });
+          mesh.handle = ModelFactory::CreateTriangle();
           if (!AppState::Assets()->IsValid(mesh.handle)) {
             OE_ERROR("Failed to Create Rect Static Mesh");
           } else {
@@ -525,8 +524,7 @@ namespace other {
         } break;
 
         case kRectIdx: {
-          auto& scale = ent->ReadComponent<Transform>().scale;
-          mesh.handle = ModelFactory::CreateRect({ scale.x / 2, scale.y / 2 });
+          mesh.handle = ModelFactory::CreateRect();
           if (!AppState::Assets()->IsValid(mesh.handle)) {
             OE_ERROR("Failed to Create Rect Static Mesh");
           } else {

@@ -6,15 +6,11 @@
 
 #include "core/config.hpp"
 #include "core/layer.hpp"
-
-#include "event/key_events.hpp"
-
-#include "ecs/components/script.hpp"
-
-#include "rendering/camera_base.hpp"
-
 #include "editor/panel_manager.hpp"
 #include "editor/saves.hpp"
+
+#include "event/key_events.hpp"
+#include "event/scene_events.hpp"
 
 namespace other {
 
@@ -36,28 +32,23 @@ namespace other {
     const ConfigTable& app_config;
     ConfigTable editor_config;
 
-    Opt<StateCapture> saved_scene;
+    AssetHandle editor_ray_mesh;
+    Opt<StateCapture> initial_state;
 
     /// TODO: find a better way to manage state than this
     bool playing = false;
     bool lost_window_focus = false;
-    bool camera_free = false;
-
-    Script editor_scripts;
 
     Scope<PanelManager> panel_manager = nullptr;
-    Ref<CameraBase> editor_camera = nullptr;
-
-    glm::vec2 current_viewport_size = { 0.f, 0.f };
     Ref<Framebuffer> viewport = nullptr;
-
-    /// TODO: move this somewhere else
-    void SaveActiveScene();
-    void LoadEditorScripts(const ConfigTable& editor_config);
 
     void LaunchSettingsWindow();
 
+    Ray CastRay(Ref<CameraBase>& camera, const glm::vec2& mouse_pos, const glm::vec2& viewport_size);
+
     bool HandleKeyPressed(KeyPressed& event);
+    bool HandleSceneActivate(SceneActivate& event);
+    bool HandleSceneUnload(SceneUnload& event);
   };
 
 }  // namespace other

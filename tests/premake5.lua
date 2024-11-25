@@ -105,6 +105,10 @@ local unit_tests = {
       "OE_TESTING_ENVIRONMENT"
     }
   end,
+  
+  windows_configuration = function()
+    entrypoint "mainCRTStartup"
+  end,
 
   components = {
     ["OtherEngine"] = "%{wks.location}/OtherEngine/src",

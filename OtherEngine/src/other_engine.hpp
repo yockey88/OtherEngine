@@ -73,10 +73,7 @@ namespace other {
 
     #else  // OE_WINDOWS
       #define MAIN_FUNCTION int main(int argc, char** argv)
-
-      #define MAIN_BODY                                 \
-        other::ExitCode exit = other::Main(argc, argv); \
-        return exit;
+      #define MAIN_BODY return other::Main(argc, argv);
     #endif  // OE_WINDOWS
 
     #define IMPLEMENT_CLIENT_LOADERS(project_name, driver)                                                   \

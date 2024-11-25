@@ -123,26 +123,29 @@ namespace other {
   }
 
   Ref<Directory> Filesystem::MountDirectory(const std::string_view name, const Path& path) {
+    OE_DEBUG("Mounting directory : {} at {}", name, path.string());
     if (!PathExists(path)) {
       /// TODO: decide if we want to create mounted directories
       // if (!CreateDir(path)) {
       //   OE_ERROR("Failed to create directory : {}", path.string());
       // }
+      OE_ERROR("Directory does not exist : {}", path.string());
       return nullptr;
     }
 
     UUID id = FNV(name);
     auto find_dir = sFileTree.mounted_dirs.find(id);
     if (find_dir != sFileTree.mounted_dirs.end()) {
+      OE_DEBUG("Directory already mounted : {}", path.string());
       return find_dir->second;
     }
 
     Ref<Directory> dir = Ref<Directory>::Create(path);
     dir->handle = id;
     sFileTree.mounted_dirs[id] = dir;
-    OE_ASSERT(dir != nullptr, "Failed to create directory : {}", path.string());
-    OE_DEBUG("Mounted directory : {} at {}", name, path.string());
+    OE_DEBUG(" > Mounted directory : {} at {}", name, path.string());
 
+    OE_ASSERT(dir != nullptr, "Failed to mount directory : {}", path.string());
     return dir;
   }
 
@@ -231,7 +234,11 @@ namespace other {
 
   Ref<Directory> Filesystem::GetDirectory(const std::string_view name) {
     UUID id = FNV(name);
-    return GetDirectory(id);
+    Ref<Directory> d = GetDirectory(id);
+    if (d == nullptr) {
+      OE_ERROR("Failed to find directory : {}", name);
+    }
+    return d;
   }
 
   Ref<Directory> Filesystem::GetDirectory(UUID id) {
@@ -240,6 +247,7 @@ namespace other {
       return find_dir->second;
     }
 
+    OE_ERROR("Failed to find directory with id : {}", id);
     return nullptr;
   }
 

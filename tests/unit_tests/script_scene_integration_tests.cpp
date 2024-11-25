@@ -4,7 +4,6 @@
 #include <cstdint>
 
 #include <entt/entity/fwd.hpp>
-
 #include <gtest.h>
 
 #include "core/filesystem.hpp"
@@ -22,6 +21,7 @@
 
 #include "mock_app.hpp"
 #include "oetest.hpp"
+
 
 using namespace std::string_literals;
 using namespace std::string_view_literals;
@@ -327,29 +327,29 @@ TEST_F(ScriptSceneIntegrationTests, scene_editing_simulating_tests) {
 }
 
 void ScriptSceneIntegrationTests::SetUpTestSuite() {
-  ConfigTable test_config = ConfigTable{};
-  test_config.Add("project", "working-directory", "./tests");
-  test_config.Add("project", "bin-dir", "C:/Yock/code/OtherEngine/bin/Debug");
-  test_config.Add("project", "script-bin-dir", "SandboxScripts/net8.0", true);
-  test_config.Add("log", "console-level", "debug", true);
-  test_config.Add("log", "file-level", "trace", true);
-  test_config.Add("log", "path", "logs/script-scene-integration-test.log", true);
-  test_config.Add("script-engine.C#", "modules", std::vector{ "SandboxScripts.dll"s }, true);
-  Logger::Open(test_config);
-  Logger::Instance()->RegisterThread("Script Scene Integration Test Main Thread");
+  // ConfigTable test_config = ConfigTable{};
+  // test_config.Add("project", "working-directory", "./tests");
+  // test_config.Add("project", "bin-dir", "C:/Yock/code/OtherEngine/bin/Debug");
+  // test_config.Add("project", "script-bin-dir", "SandboxScripts/net8.0", true);
+  // test_config.Add("log", "console-level", "debug", true);
+  // test_config.Add("log", "file-level", "trace", true);
+  // test_config.Add("log", "path", "logs/script-scene-integration-test.log", true);
+  // test_config.Add("script-engine.C#", "modules", std::vector{ "SandboxScripts.dll"s }, true);
+  // Logger::Open(test_config);
+  // Logger::Instance()->RegisterThread("Script Scene Integration Test Main Thread");
 
-  Filesystem::Initialize(cmdline, test_config);
-  
-  AppState::mode = EngineMode::RUNTIME;
-  AppState::Initialize(cmdline, test_config);
+  // Filesystem::Initialize(cmdline, test_config);
 
-  ScriptEngine::Initialize(test_config);  
+  // AppState::mode = EngineMode::RUNTIME;
+  // AppState::Initialize(cmdline, test_config);
+
+  // ScriptEngine::Initialize(test_config);
 }
 
 void ScriptSceneIntegrationTests::TearDownTestSuite() {
-  ASSERT_NO_FATAL_FAILURE(ScriptEngine::Shutdown());
-  ASSERT_NO_FATAL_FAILURE(AppState::Shutdown());
-  CloseLog();
+  // ASSERT_NO_FATAL_FAILURE(ScriptEngine::Shutdown());
+  // ASSERT_NO_FATAL_FAILURE(AppState::Shutdown());
+  // CloseLog();
 }
 
 void ScriptSceneIntegrationTests::SetUp() {
@@ -357,11 +357,11 @@ void ScriptSceneIntegrationTests::SetUp() {
   ASSERT_TRUE(CheckNumScripts(1, 0, 0));
   Ref<FileHandle> dll_handle = nullptr;
   {
-    Ref<Directory> dir = Filesystem::GetDirectory("script-bin"); 
+    Ref<Directory> dir = Filesystem::GetDirectory("script-bin");
     dll_handle = dir->GetFileHandleByName("SandboxScripts");
   }
   ASSERT_NE(dll_handle, nullptr);
-  
+
   ScriptEngine::GetModule(CS_MODULE)->LoadScriptModule({
     .name = "SandboxScripts",
     .handle = dll_handle,

@@ -72,10 +72,9 @@ namespace other {
       return;
     }
 
-    file_handles[category]->Open(std::ios_base::in | std::ios_base::out);
+    file_handles[category]->Open(std::ios_base::in | std::ios_base::out | std::ios::app);
     file_handles[category]->WriteJson(json_data[category]);
     file_handles[category]->Close();
-
     file_handles[category] = nullptr;
   }
 

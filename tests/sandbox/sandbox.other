@@ -48,25 +48,37 @@ ui = {
       (this might be the biggest argument for moving all configuration to lua, cause this would be nice but not worth the effort while also supporting three scripting language bindings unless it 
         was part of the scripting language bindings which leaves lua/python)
 
-    [OnAttach] :: {
-      script_engine = Script-Engine;
-      script_engine.Load(sandbox_ui) -> SandboxUI;
-    }
-
-    [function-name] (params, ...) -> (rets, ...) {
-      /// do some sort of configuration???
-    }
+    function := '[' <identifier> ']' '::' '{' <stmt-list> '}'
+    stmt_list := (<stmt> ';')+
+    stmt := <priority>? <action> <category> <identifier>? | <other-script> 
+    priority := 'low' | 'medium' | 'high' | 'urgent' | ...
+    action := 'load' | 'unload' | 'clear' | 'exit' | ...
+    category := 'scene' | 'script' | ...
+    identifier := [a-zA-Z]([a-zA-Z0-9_-]*)
+    other-script := (see other-script specification)
 
     ex:
 
-    /// ran on game start-up
-    [download-game-scripts] (endpoint, output_dir) -> bool {
-      /// fetch game scripts from endpoint
-      /// unpack into output_dir
-      /// return true or false
+    [query-server] (address, query) -> bool {
+      endpoint = IO::Connect(address);
+      if endpoint is nil then
+        return false
+      end
+
+      endpoint.send(query);
+      bytes[] = endpoint.read_all();
+      /// process bytes
+
+      return true;
     }
-      > would need some sort of internal api
-        (maybe write something in lua and have it run with the engine lua module loads???)
+    > would need some sort of internal api
+      (maybe write something in lua and have it run with the engine lua module loads???)
+
+    ex 2:
+
+    [load-default-scene] {
+      urgent load scene loading-screen;
+    }
 
     - bind config file to reflection system
     ex:

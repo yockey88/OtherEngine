@@ -3,6 +3,7 @@
  **/
 #include "mock_engine.hpp"
 
+#include <source_location>
 #include <stdexcept>
 
 #include <SDL.h>
@@ -42,20 +43,28 @@ namespace other {
     run_record.test_name = description.test_name;
   }
 
-  void MockEngine::RecordError(ErrorLevel level, std::source_location loc) {
+  void MockEngine::RecordError(ErrorLevel level, const std::string_view msg, std::source_location loc) {
     run_record.num_errors++;
-    records->Record(TestEngineRecords::ERROR_DESCRIPTION, OtherTestEngineError(level, "Error encountered", loc));
+    records->Record(TestEngineRecords::ERROR_DESCRIPTION, OtherTestEngineError(level, msg, loc));
   }
 
-  void MockEngine::RecordWarning(std::source_location loc) {
+  void MockEngine::RecordWarning(const std::string_view msg, std::source_location loc) {
     run_record.num_warnings++;
-    records->Record(TestEngineRecords::ERROR_DESCRIPTION, OtherTestEngineError(ErrorLevel::WARNING, "Warning encountered", loc));
+    records->Record(TestEngineRecords::ERROR_DESCRIPTION, OtherTestEngineError(ErrorLevel::WARNING, msg, loc));
+  }
+
+  void MockEngine::RecordError(const OtherTestEngineError& error) {
+    run_record.num_errors++;
+    records->Record(TestEngineRecords::ERROR_DESCRIPTION, error);
+  }
+
+  void MockEngine::RecordWarning(const OtherTestEngineError& error) {
+    run_record.num_warnings++;
+    records->Record(TestEngineRecords::ERROR_DESCRIPTION, error);
   }
 
   void MockEngine::Run() {
     Start();
-
-    records = NewScope<TestEngineRecords>();
 
     OE_INFO("Running");
     do {
@@ -65,50 +74,82 @@ namespace other {
         e.num = run_record.num_errors++;
 
         records->Record(TestEngineRecords::ERROR_DESCRIPTION, e);
-        state->HandleEvent(EngineStateEvent::ENGINE_FAILURE);
+        EngineEvent(EngineStateEvent::ENGINE_FAILURE);
+      } catch (std::logic_error& e) {
+        std::string str = fmtstr("Did you attempt to access the test engine before initializing it? {}", e.what());
+        OtherTestEngineError err(ErrorLevel::FATAL, str);
+        err.num = run_record.num_errors++;
+
+        records->Record(TestEngineRecords::ERROR_DESCRIPTION, err);
+        EngineEvent(EngineStateEvent::ENGINE_FAILURE);
       } catch (...) {
         OtherTestEngineError err(ErrorLevel::FATAL, "Unknown exception caught at top level");
         err.num = run_record.num_errors++;
 
         records->Record(TestEngineRecords::ERROR_DESCRIPTION, err);
-        state->HandleEvent(EngineStateEvent::ENGINE_FAILURE);
+        EngineEvent(EngineStateEvent::ENGINE_FAILURE);
       }
     } while (!exit_code.has_value());
-
-    records = nullptr;
 
     OE_ASSERT(exit_code.has_value(), "Driver did not set exit code");
     Stop();
   }
 
-  void MockEngine::Start() {
-    instance = this;
+  void MockEngine::InitializeTest() {
+    MockApp& app = AppState::AppHandle<MockApp>();
+    RegisterMockApplication(app.GetTestDescription());
+    EngineEvent(EngineStateEvent::TEST_START);
+  }
 
-    MockApp* app = dynamic_cast<MockApp*>(&AppState::AppHandle());
-    if (app == nullptr) {
-      throw std::logic_error("MockEngine can only be used with MockApp");
+  void MockEngine::UpdateTest() {
+  }
+
+  void MockEngine::RenderTest() {
+  }
+
+  namespace {
+
+    void RecordLog(const spdlog::details::log_msg& msg) {
+      std::string msg_str = fmtstr("{}", msg.payload);
+
+      ErrorMarker marker(msg.source.line, 0, "<unknown>");
+      if (!msg.source.empty()) {
+        marker = ErrorMarker(msg.source.line, 0, msg.source.filename);
+      }
+
+      if (msg.level == spdlog::level::warn) {
+        OtherTestEngineError err(ErrorLevel::WARNING, msg_str, marker);
+        MockEngine::TestEngine()->RecordWarning(err);
+      } else if (msg.level == spdlog::level::err) {
+        OtherTestEngineError err(ErrorLevel::NON_FATAL, msg_str, marker);
+        MockEngine::TestEngine()->RecordError(err);
+      } else if (msg.level == spdlog::level::critical) {
+        OtherTestEngineError err(ErrorLevel::FATAL, msg_str, marker);
+        MockEngine::TestEngine()->RecordError(err);
+      }
     }
 
-    RegisterMockApplication(app->GetTestDescription());
+    spdlog::sink_ptr CreateTestingSink() {
+      return std::make_shared<spdlog::sinks::callback_sink_mt>(&RecordLog);
+    }
+
+  }  // anonymous namespace
+
+  void MockEngine::Start() {
+    instance = this;
+    records = NewScope<TestEngineRecords>();
 
     Engine::Start();
 
-    LoggerTargetData testing_sink = {
-      .sink = {},
-      .sink_factory = []() -> spdlog::sink_ptr {
-        return std::make_shared<spdlog::sinks::callback_sink_mt>(
-          [&](const spdlog::details::log_msg& msg) mutable {
-            if (msg.level == spdlog::level::warn) {
-              instance->RecordWarning();
-            } else if (msg.level == spdlog::level::err) {
-              instance->RecordError(ErrorLevel::NON_FATAL);
-            } else if (msg.level == spdlog::level::critical) {
-              instance->RecordError(ErrorLevel::FATAL);
-            }
-          }
-        );
+    LoggerTargetData log_intercept = {
+      .sink = {
+        .sink_name = "log-intercept-sink",
+        .sink_pattern = "%v",
+        .level = spdlog::level::trace,
       },
+      .sink_factory = &CreateTestingSink,
     };
+    Logger::Instance()->RegisterTarget(log_intercept);
   }
 
   void MockEngine::Step() {
@@ -137,6 +178,7 @@ namespace other {
       run_record.result = RunResult::TEST_SUCCESS;
     }
     records->Record(TestEngineRecords::RUN_REPORT, run_record);
+    records = nullptr;
   }
 
   Ref<EngineStateMachine> MockEngine::CreateStateMachine() {

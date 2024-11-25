@@ -6,7 +6,6 @@
 #include <algorithm>
 
 #include <entt/entt.hpp>
-
 #include <lua/lua.h>
 #include <refl/refl.hpp>
 #include <reflection/object_proxy.hpp>
@@ -192,7 +191,9 @@ namespace other {
         "ContextHandle",
         []() -> int64_t {
           auto scene = ScriptEngine::GetSceneContext();
-          OE_ASSERT(scene != nullptr, "Scene context is null");
+          if (scene == nullptr) {
+            return 0;
+          }
 
           U64Wrapper handle(scene->handle.Get());
           return handle.lua_id;
@@ -200,7 +201,9 @@ namespace other {
         "EntityIds",
         []() -> std::vector<int64_t> {
           auto scene = ScriptEngine::GetSceneContext();
-          OE_ASSERT(scene != nullptr, "Scene context is null");
+          if (scene == nullptr) {
+            return {};
+          }
 
           std::vector<int64_t> entities;
           for (const auto& [id, entity] : scene->SceneEntities()) {
@@ -211,7 +214,9 @@ namespace other {
         "SceneEntities",
         []() -> std::vector<EntityProxy> {
           auto scene = ScriptEngine::GetSceneContext();
-          OE_ASSERT(scene != nullptr, "Scene context is null");
+          if (scene == nullptr) {
+            return {};
+          }
 
           std::vector<EntityProxy> entities;
           for (const auto& [id, entity] : scene->SceneEntities()) {

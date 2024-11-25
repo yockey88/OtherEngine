@@ -15,7 +15,6 @@
 #include <entt/entity/group.hpp>
 #include <entt/entt.hpp>
 #include <entt/meta/meta.hpp>
-
 #include <reflection/echo_defines.hpp>
 #include <reflection/reflected_object.hpp>
 

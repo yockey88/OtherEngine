@@ -3,7 +3,9 @@
  **/
 #include "engine/engine_states.hpp"
 
-#include "engine/editor_states.hpp"
+#include "core/logger.hpp"
+#include "editor/editor_sink.hpp"
+#include "editor/editor_states.hpp"
 #include "engine/engine.hpp"
 
 #include "application/app_state.hpp"
@@ -17,6 +19,10 @@
 #include "rendering/ui/ui.hpp"
 #include "scripting/script_engine.hpp"
 
+#ifdef OE_TESTING_ENVIRONMENT
+  #include "testing_core/test_engine_states.hpp"
+#endif  // OE_TESTING_ENVIRONMENT
+
 namespace other {
   namespace {
 
@@ -27,11 +33,10 @@ namespace other {
 
     bool HandleKeyPress(KeyPressed& event) {
       /// TODO: remove this, just for fast development iteration
-      HandleKeyEvent(event, Keyboard::Key::OE_ESCAPE, [&]() {
+      return HandleKeyEvent(event, Keyboard::Key::OE_ESCAPE, [&]() -> bool {
         EventQueue::PushEvent<ShutdownEvent>({ ExitCode::SUCCESS });
+        return true;
       });
-
-      return false;
     }
 
   }  // anonymous namespace
@@ -94,11 +99,11 @@ namespace other {
     /// TODO: implement actual engine launch logic,
     ///       - check if headless mode
     ///       - check configuration settings (server, client, editor, runtime, etc....)
-    if (engine->cmd_line.HasFlag("--headless")) {
-      AppState::mode = EngineMode::HEADLESS;
-    }
+    // if (engine->cmd_line.HasFlag("--headless")) {
+    //   AppState::mode = EngineMode::HEADLESS;
+    // }
 
-    AppState::Initialize(engine->cmd_line, engine->config);
+    AppState::Initialize(engine);
     Renderer::Initialize(engine->config);
     UI::Initialize(engine->config, Renderer::GetWindow());
     ScriptEngine::Initialize(engine->config);
@@ -123,6 +128,14 @@ namespace other {
 
     if (event == EngineStateEvent::APP_ATTACHED) {
       OE_DEBUG("Loading application");
+#ifdef OE_TESTING_ENVIRONMENT
+      AppState::mode = EngineMode::TESTING;
+
+      auto test_type = engine->config.GetVal<std::string>("TESTING", "TEST-TYPE");
+      if (test_type.has_value() && *test_type != "ENGINE-TEST") {
+        return NewRef<TestIdle>(engine);
+      }
+#endif  // OE_TESTING_ENVIRONMENT
 
       /// TODO: implement editor/runtime switch, option already processed, but automate launching with project manager
       bool in_editor = engine->cmd_line.HasFlag("--editor");
@@ -131,44 +144,44 @@ namespace other {
         OE_DEBUG("Loading Editor");
         AppState::mode = EngineMode::EDITOR;
         main_idle = NewRef<EditorIdle>(engine);
+
+        LoggerTargetData console_sink_data = {
+          .sink = {
+            .sink_name = "ConsoleSink",
+            .sink_pattern = "%v",
+            .level = spdlog::level::trace,
+          },
+          .sink_factory = []() -> spdlog::sink_ptr {
+            return std::make_shared<EditorSink>();
+          }
+        };
+        Logger::Instance()->RegisterTarget(console_sink_data);
       } else {
         OE_DEBUG("Loading Runtime");
         AppState::mode = EngineMode::RUNTIME;
         main_idle = NewRef<AppIdle>(engine);
       }
 
-#ifdef OE_TESTING_ENVIRONMENT
-      AppState::mode = EngineMode::TESTING;
-#endif  // OE_TESTING_ENVIRONMENT
-
+      AppState::AttachApplication();
       return main_idle;
-    }
+    }  // namespace other
 
     return nullptr;
   }
 
+  /// FIXME: dont go right to app attached
   void EngineIdle::OnAttach() {
-    /// TODO: do we go straight from engine launching to app idle???
-    engine->EngineEvent(EngineStateEvent::APP_ATTACHED);
-    // EventQueue::RegisterEventDispatcher<KeyPressed>(
-    //   "Other-Engine--AttachApplication",
-    //   {
-    //     [&](KeyPressed& event) {
-    //       HandleKeyEvent(event, Keyboard::Key::OE_F1, [&]() {
-    //         engine->EngineEvent(EngineStateEvent::APP_ATTACHED);
-    //       });
-    //       return false;
-    //     },
-    //   }
-    // );
+    /// TODO:
+    // register event to listen for attached application
   }
 
   void EngineIdle::OnStep() {
     ScriptEngine::UpdateAttachments(engine->dt);
+    engine->EngineEvent(EngineStateEvent::APP_ATTACHED);
   }
 
   void EngineIdle::OnDetach() {
-    EventQueue::UnregisterEventDispatcher("Other-Engine--AttachApplication");
+    // EventQueue::UnregisterEventDispatcher("Other-Engine--AttachApplication");
   }
 
   Ref<EngineState> EngineShutdown::HandleEvent(const EngineStateEvent event) {
@@ -176,8 +189,6 @@ namespace other {
       OE_ASSERT(AppState::exit_code.has_value(), "No exit code set for engine shutdown");
       engine->exit_code = AppState::exit_code.value();
       /// we never actually go back to engine idle, this is to avoid having a null state
-
-      OE_INFO("Engine Exit : {}", engine->exit_code.value());
     }
 
     return nullptr;

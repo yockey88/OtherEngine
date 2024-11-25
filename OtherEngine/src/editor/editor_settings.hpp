@@ -15,18 +15,20 @@ namespace other {
   struct EditorSettings {
     uint16_t thumbnail_size = 100;
 
+    std::string viewport_frame_name = "Geometry";
+
     static EditorSettings& Get();
   };
 
   class SettingsWindow : public UIWindow {
-    public:
-      SettingsWindow();
-      virtual ~SettingsWindow() override {}
+   public:
+    SettingsWindow();
+    virtual ~SettingsWindow() override {}
 
-    private:
-      void EditorSettings();
+   private:
+    void EditorSettings();
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_EDITOR_SETTINGS_HPP
+#endif  // !OTHER_ENGINE_EDITOR_SETTINGS_HPP

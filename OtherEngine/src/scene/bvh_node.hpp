@@ -10,32 +10,27 @@
 #include <cstdint>
 #include <ostream>
 #include <ranges>
-#include <stack>
 #include <string_view>
 #include <vector>
 
 #ifdef OE_TESTING_ENVIRONMENT
-#include <gtest/gtest.h>
+  #include <gtest/gtest.h>
 #endif
 
+#include <core/stable_vector.hpp>
 #include <glm/fwd.hpp>
 #include <glm/glm.hpp>
 #include <magic_enum/magic_enum.hpp>
 #include <spdlog/fmt/fmt.h>
 
-#include <core/stable_vector.hpp>
-
 #include "core/ref.hpp"
 #include "math/bounding_box.hpp"
-
-#include "asset/asset_manager.hpp"
+#include "math/interval.hpp"
 
 #include "ecs/components/transform.hpp"
 #include "ecs/entity.hpp"
 #include "scene/scene.hpp"
 
-#include "rendering/model_factory.hpp"
-#include "rendering/pipeline.hpp"
 #include "rendering/scene_renderer.hpp"
 
 namespace other {
@@ -179,24 +174,6 @@ namespace other {
 
 }  // namespace other
 
-// template <>
-// struct fmt::formatter<other::BvhChildIdx> : public fmt::formatter<std::string_view> {
-//  public:
-//   auto format(other::BvhChildIdx& idx, fmt::format_context& ctx) {
-//     std::string_view name = magic_enum::enum_name(idx);
-//     return fmt::formatter<std::string_view>::format(name, ctx);
-//   }
-// };
-
-// template <>
-// struct fmt::formatter<other::BvhPartitionAlgorithm> : public fmt::formatter<std::string_view> {
-//  public:
-//   auto format(other::BvhPartitionAlgorithm& algo, fmt::format_context& ctx) {
-//     std::string_view name = magic_enum::enum_name(algo);
-//     return fmt::formatter<std::string_view>::format(name, ctx);
-//   }
-// };
-
 namespace other {
 
   template <size_t N>
@@ -327,6 +304,77 @@ namespace other {
       InsertEntity(entity, position, loc);
     }
 
+    bool Trace(Ray ray, Interval& ray_interval, TraceResult& result) {
+      Interval current_interval = ray_interval;
+      if (!bbox.Hit(ray, current_interval)) {
+        ray_interval = current_interval;
+        return false;
+      }
+
+      /// copy ray interval to avoid modifying the original when testing against bvh
+      if (!IsLeaf()) {
+        if constexpr (N == 2) {
+          BvhNode<N>* left = children[LEFT];
+          BvhNode<N>* right = children[RIGHT];
+
+          Interval left_interval = current_interval;
+          bool left_hit = left != nullptr && left->Trace(ray, left_interval, result);
+          if (left_hit) {
+            ray_interval.min = left_interval.min;
+            return true;
+          }
+
+          Interval right_interval = Interval(current_interval.min, left_hit ? result.t : current_interval.max);
+          bool right_hit = right != nullptr && right->Trace(ray, right_interval, result);
+          if (right_hit) {
+            ray_interval.min = right_interval.min;
+            return true;
+          }
+
+          return false;
+
+          // if (left_hit && right_hit) {
+          //   if (left_interval.min < right_interval.min) {
+          //     ray_interval.min = left_interval.min;
+          //   } else {
+          //     ray_interval.min = right_interval.min;
+          //   }
+          // } else if (left_hit) {
+          //   ray_interval.min = left_interval.min;
+          // } else if (right_hit) {
+          //   ray_interval.min = right_interval.min;
+          // }
+
+          // return left_hit || right_hit;
+        } else if constexpr (N == 8) {
+          static_assert(false, "Tracing unimplemented for Octree");
+          return false;
+        }
+      } else {
+        OE_ASSERT(entities.size() == 1, "Leaf nodes should only contain a single entity!");
+        Entity* ent = entities[0];
+
+        glm::vec3 pos = ent->ReadComponent<Transform>().position;
+        glm::vec3 scale = ent->ReadComponent<Transform>().scale;
+        glm::vec3 dim = scale * 0.5f;
+        BBox bounding_box = BBox(pos - dim, pos + dim);
+
+        if (bounding_box.Hit(ray, current_interval)) {
+          ray_interval = current_interval;
+
+          result.hit_entity = ent;
+          result.t = ray_interval.min;
+          result.point = ray.At(result.t);
+
+          glm::vec3 normal = bounding_box.GetFaceNormal(result.point, ray.direction);
+          result.SetFaceNormal(ray, normal);
+          return true;
+        } else {
+          return false;
+        }
+      }
+    }
+
     void Update();
 
     void ExpandToInclude(const glm::vec3& point);
@@ -393,6 +441,7 @@ namespace other {
     static BvhNode<N>* RebuildTree(BvhNode<N>* space, std::vector<Entity*>& entities);
 
     friend class Bvh<N>;
+    friend void RenderEntityBoundsImpl(BvhNode<N>* node, const std::string_view pl_name, Ref<SceneRenderer>& renderer, bool outline);
 
 #ifdef OE_TESTING_ENVIRONMENT
     friend class OtherTest;
@@ -520,82 +569,6 @@ namespace other {
 
       default:
         OE_ASSERT(false, "Invalid location : {:>03b}", location);
-    }
-  }
-
-  template <size_t N>
-  void BvhNode<N>::RenderEntityBounds(const std::string_view pl_name, Ref<SceneRenderer>& renderer, bool outline) {
-    const static AssetHandle wireframe = ModelFactory::CreateBoxWireframe();
-    Ref<StaticModel> model = AssetManager::GetAsset<StaticModel>(wireframe);
-
-    Material mat(glm::vec4(0.f, 1.f, 0.f, 1.f), 16.f);
-
-    for (const auto& e : entities) {
-      if (e->visited) {
-        continue;
-      }
-
-      RenderSubmission s = {
-        .model = model,
-        .transform = e->GetComponent<Transform>().CalcMatrix(),
-        .material = mat,
-        .render_state = RenderState::FILL,
-        .draw_mode = DrawMode::LINES,
-      };
-      renderer->SubmitStaticModel(pl_name, s);
-
-      e->visited = true;
-    }
-
-    if (IsLeaf()) {
-      return;
-    }
-
-    for (const auto& c : children) {
-      if (c != nullptr) {
-        c->RenderEntityBounds(pl_name, renderer, outline);
-      }
-    }
-  }
-
-  template <size_t N>
-  void BvhNode<N>::RenderNodeBounds(const std::string_view pl_name, Ref<SceneRenderer>& renderer, size_t depth) {
-    constexpr glm::mat4 identity = glm::identity<glm::mat4>();
-    const static AssetHandle wireframe = ModelFactory::CreateBoxWireframe();
-    Ref<StaticModel> model = AssetManager::GetAsset<StaticModel>(wireframe);
-    Material mat(glm::vec4(1.f, 0.f, 0.f, 1.f), 16.f);
-
-    glm::mat4 model_mat = glm::translate(identity, bbox.Center());
-    model_mat = glm::scale(model_mat, bbox.extent);
-
-    RenderSubmission s = {
-      .model = model,
-      .transform = model_mat,
-      .material = mat,
-      .render_state = RenderState::FILL,
-      .draw_mode = DrawMode::LINES,
-    };
-
-    renderer->SubmitStaticModel(pl_name, s);
-
-    if constexpr (N == 8) {
-      if (IsLeaf() || depth == 0) {
-        return;
-      }
-
-      for (const auto& c : children) {
-        if (c != nullptr) {
-          c->RenderNodeBounds(pl_name, renderer, depth - 1);
-        }
-      }
-    } else if constexpr (N == 2) {
-      if (children[LEFT] != nullptr) {
-        children[LEFT]->RenderNodeBounds(pl_name, renderer, depth - 1);
-      }
-
-      if (children[RIGHT] != nullptr) {
-        children[RIGHT]->RenderNodeBounds(pl_name, renderer, depth - 1);
-      }
     }
   }
 

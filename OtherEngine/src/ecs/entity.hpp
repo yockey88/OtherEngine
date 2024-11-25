@@ -6,7 +6,6 @@
 
 #include <entt/entt.hpp>
 #include <glm/glm.hpp>
-
 #include <reflection/reflected_object.hpp>
 
 #include "core/logger.hpp"
@@ -165,6 +164,8 @@ namespace other {
 
     /// for marking as visited during tree traversals
     bool visited = false;
+    /// for editor stuff, maybe we should handle this differently??
+    bool actively_selected = false;
 
    private:
     friend class Scene;

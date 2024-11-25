@@ -12,23 +12,22 @@
 
 #include "math/vecmath.hpp"
 
+#include "asset/asset_manager.hpp"
+
 #include "scene/bvh.hpp"
+
+#include "rendering/model.hpp"
+#include "rendering/model_factory.hpp"
 
 namespace other {
 
   template <>
-  void BvhNode<8>::Update() {}
+  void BvhNode<8>::Update() {
+    /// octree is static space division for now, so no-op
+  }
 
   template <>
   void BvhNode<2>::Update() {
-    for (auto* child : children) {
-      if (child == nullptr) {
-        continue;
-      }
-
-      child->Update();
-    }
-
     if (IsLeaf()) {
       OE_ASSERT(entities.size() == 1, "Leaf node has invalid number of entites! {} [{} , {}]", entities.size(), tree_index, bbox);
 
@@ -38,6 +37,7 @@ namespace other {
       auto* entity = entities[0];
       auto& t = entity->ReadComponent<Transform>();
 
+      /// scale factor == diagonal length of bbox
       const float scale_factor = EpsilonQuotient(std::sqrt(3.f) - 1, 2);
       glm::vec3 half_scale = vec3_div(t.scale, 2.f);
       glm::vec3 e_min = vec3_sub(t.position, half_scale);
@@ -50,7 +50,7 @@ namespace other {
       global_position = bbox.Center();
 
       BvhChildIdx sibling = partition_index == LEFT ? RIGHT : LEFT;
-      /// sanity check/this node might be the space
+      /// sanity check/this node might be the root/space node
       if (parent == nullptr || parent->children[sibling] == nullptr) {
         return;
       }
@@ -58,22 +58,35 @@ namespace other {
       BBox parent_bbox = parent->bbox;
       BvhNode<2>* sibling_node = parent->children[sibling];
 
-      /// only continue if that sibling has both children
+      /// only continue if sibling has both children
       if (sibling_node == nullptr || sibling_node->IsLeaf() ||
           sibling_node->children[LEFT] == nullptr || sibling_node->children[RIGHT] == nullptr) {
         return;
       }
 
+      /// sanity check
+      OE_ASSERT(sibling_node->children[LEFT] != nullptr, "Invalid sibling node!");
+      OE_ASSERT(sibling_node->children[RIGHT] != nullptr, "Invalid sibling node!");
+
       /// test if this node and either of its siblings bounding boxes would be smaller, if so then we rebuild the tree
       BBox combined_sibling_box = BBox::Union(bbox, sibling_node->bbox);
-
       if (combined_sibling_box.SurfaceArea() > parent_bbox.SurfaceArea()) {
         built = false;
       }
     } else {
-      const bool has_both_children = children[LEFT] != nullptr && children[RIGHT] != nullptr;
+      for (auto* child : children) {
+        if (child == nullptr) {
+          continue;
+        }
+
+        child->Update();
+        /// short circuit, if any child is not built then we are not built
+        built = child->built && built;
+      }
+
       const bool has_left_child = children[LEFT] != nullptr;
       const bool has_right_child = children[RIGHT] != nullptr;
+      const bool has_both_children = has_left_child && has_right_child;
 
       /// else if its not a leaf and we dont contain our children
       if (has_both_children) {
@@ -120,6 +133,135 @@ namespace other {
     OE_ASSERT(false, "ExpandToInclude not implemented for BvhNode<2 , HLBVH>!");
   }
 
+  /**
+   * @note parent nodes have all entities contained by children so we only need to submit meshes for entities in root/space node
+   */
+
+  template <>
+  void BvhNode<2>::RenderEntityBounds(const std::string_view pl_name, Ref<SceneRenderer>& renderer, bool outline) {
+    const static AssetHandle wireframe = ModelFactory::CreateBoxWireframe();
+    Ref<StaticModel> model = AssetManager::GetAsset<StaticModel>(wireframe);
+
+    Material mat(glm::vec4(0.f, 1.f, 0.f, 1.f), 16.f);
+
+    for (Entity*& e : entities) {
+      if (!e->actively_selected) {
+        continue;
+      }
+
+      if (e->visited) {
+        continue;
+      }
+
+      RenderSubmission s = {
+        .model = model,
+        .transform = e->GetComponent<Transform>().model_transform,
+        .material = mat,
+        .render_state = RenderState::FILL,
+        .draw_mode = DrawMode::LINES,
+      };
+      renderer->SubmitStaticModel(pl_name, s);
+
+      e->visited = true;
+    }
+  }
+
+  template <>
+  void BvhNode<8>::RenderEntityBounds(const std::string_view pl_name, Ref<SceneRenderer>& renderer, bool outline) {
+    const static AssetHandle wireframe = ModelFactory::CreateBoxWireframe();
+    Ref<StaticModel> model = AssetManager::GetAsset<StaticModel>(wireframe);
+
+    Material mat(glm::vec4(0.f, 1.f, 0.f, 1.f), 16.f);
+
+    for (Entity*& e : entities) {
+      if (!e->actively_selected) {
+        continue;
+      }
+
+      if (e->visited) {
+        continue;
+      }
+
+      RenderSubmission s = {
+        .model = model,
+        .transform = e->GetComponent<Transform>().CalcMatrix(),
+        .material = mat,
+        .render_state = RenderState::FILL,
+        .draw_mode = DrawMode::LINES,
+      };
+      renderer->SubmitStaticModel(pl_name, s);
+
+      e->visited = true;
+    }
+
+    if (IsLeaf()) {
+      return;
+    }
+  }
+
+  template <>
+  void BvhNode<2>::RenderNodeBounds(const std::string_view pl_name, Ref<SceneRenderer>& renderer, size_t depth) {
+    constexpr glm::mat4 identity = glm::identity<glm::mat4>();
+    const static AssetHandle wireframe = ModelFactory::CreateBoxWireframe();
+    Ref<StaticModel> model = AssetManager::GetAsset<StaticModel>(wireframe);
+    Material mat(glm::vec4(1.f, 0.f, 0.f, 1.f), 16.f);
+
+    glm::mat4 model_mat = glm::translate(identity, bbox.Center());
+    model_mat = glm::scale(model_mat, bbox.extent);
+
+    RenderSubmission s = {
+      .model = model,
+      .transform = model_mat,
+      .material = mat,
+      .render_state = RenderState::FILL,
+      .draw_mode = DrawMode::LINES,
+    };
+
+    renderer->SubmitStaticModel(pl_name, s);
+
+    if (IsLeaf() || depth == 0) {
+      return;
+    }
+
+    if (children[LEFT] != nullptr) {
+      children[LEFT]->RenderNodeBounds(pl_name, renderer, depth - 1);
+    }
+
+    if (children[RIGHT] != nullptr) {
+      children[RIGHT]->RenderNodeBounds(pl_name, renderer, depth - 1);
+    }
+  }
+
+  template <>
+  void BvhNode<8>::RenderNodeBounds(const std::string_view pl_name, Ref<SceneRenderer>& renderer, size_t depth) {
+    constexpr glm::mat4 identity = glm::identity<glm::mat4>();
+    const static AssetHandle wireframe = ModelFactory::CreateBoxWireframe();
+    Ref<StaticModel> model = AssetManager::GetAsset<StaticModel>(wireframe);
+    Material mat(glm::vec4(1.f, 0.f, 0.f, 1.f), 16.f);
+
+    glm::mat4 model_mat = glm::translate(identity, bbox.Center());
+    model_mat = glm::scale(model_mat, bbox.extent);
+
+    RenderSubmission s = {
+      .model = model,
+      .transform = model_mat,
+      .material = mat,
+      .render_state = RenderState::FILL,
+      .draw_mode = DrawMode::LINES,
+    };
+
+    renderer->SubmitStaticModel(pl_name, s);
+    if (IsLeaf() || depth == 0) {
+      return;
+    }
+
+    for (const auto& c : children) {
+      if (c != nullptr) {
+        c->RenderNodeBounds(pl_name, renderer, depth - 1);
+      }
+    }
+  }
+
   template <>
   void BvhNode<8>::InsertEntity(Entity* entity, const glm::vec3& position, uint8_t location) {
     entities.push_back(entity);
@@ -138,6 +280,30 @@ namespace other {
   }
 
   template <>
+  void BvhNode<2>::InsertEntity(Entity* entity, const glm::vec3& position, uint8_t location) {
+    OE_ASSERT(entity != nullptr, "Entity is null!");
+    OE_ASSERT(tree != nullptr, "Tree is null!");
+    if (IsLeaf()) {
+      entities.push_back(entity);
+      if (parent == nullptr) {
+        return;
+      }
+    } else {
+      /// add to the child that contains the entity
+      for (auto& c : children) {
+        if (c == nullptr) {
+          continue;
+        }
+
+        if (c->bbox.Contains(position)) {
+          c->InsertEntity(entity, position, location);
+          return;
+        }
+      }
+    }
+  }
+
+  template <>
   bool BvhNode<8>::NeedsRebuild(BvhNode<8>* space, const std::vector<Entity*>& entities) {
     OE_ASSERT(false, "NeedsRebuild not implemented for BvhNode<8 , OCTREE>!");
     return false;
@@ -145,11 +311,7 @@ namespace other {
 
   template <>
   bool BvhNode<2>::NeedsRebuild(BvhNode<2>* space, const std::vector<Entity*>& entities) {
-    if (space->IsLeaf()) {
-      return false;
-    }
-
-    return false;
+    return space->built;
   }
 
   namespace {
@@ -335,7 +497,6 @@ namespace other {
   }
 
   /// TODO: refactor the building algorithm to use morton codes to optimize both the building and traversal of the tree
-
   template <>
   BvhNode<2>* BvhNode<2>::RebuildTree(BvhNode<2>* space, std::vector<Entity*>& entities) {
     OE_ASSERT(space != nullptr, "Space is null!");
@@ -406,14 +567,6 @@ namespace other {
 
     space->nodes->ForEach([](auto& node) mutable { node.built = true; });
     return space;
-  }
-
-  template <>
-  void BvhNode<2>::InsertEntity(Entity* entity, const glm::vec3& position, uint8_t location) {
-    OE_ASSERT(entity != nullptr, "Entity is null!");
-    OE_ASSERT(tree != nullptr, "Tree is null!");
-    entities.push_back(entity);
-    tree->entities.push_back(entity);
   }
 
 }  // namespace other

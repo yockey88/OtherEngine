@@ -5,75 +5,78 @@
 
 #include <imgui/imgui.h>
 
-#include "core/config.hpp"
-#include "core/config_keys.hpp"
 #include "core/logger.hpp"
+#include "editor/editor_images.hpp"
+#include "editor/editor_state.hpp"
+#include "environment/environment.hpp"
+#include "math/vecmath.hpp"
 
 #include "application/app_state.hpp"
+#include "event/event.hpp"
 #include "event/event_queue.hpp"
 #include "event/key_events.hpp"
 #include "input/mouse.hpp"
+
+#include "scene/bvh.hpp"
+#include "scene/scene_manager.hpp"
 
 #include "rendering/camera_base.hpp"
 #include "rendering/perspective_camera.hpp"
 #include "rendering/renderer.hpp"
 #include "rendering/ui/ui_helpers.hpp"
-#include "scripting/script_engine.hpp"
-
-#include "editor/editor.hpp"
-#include "editor/editor_images.hpp"
-#include "editor/editor_settings.hpp"
 
 namespace other {
+  namespace {
 
-  std::vector<float> fb_verts = {
-    1.f, 1.f, 1.f, 1.f,
-    -1.f, 1.f, 0.f, 1.f,
-    -1.f, -1.f, 0.f, 0.f,
-    1.f, -1.f, 1.f, 0.f
-  };
+    std::vector<float> fb_verts = {
+      1.f, 1.f, 1.f, 1.f,
+      -1.f, 1.f, 0.f, 1.f,
+      -1.f, -1.f, 0.f, 0.f,
+      1.f, -1.f, 1.f, 0.f
+    };
 
-  std::vector<uint32_t> fb_indices{ 0, 1, 3, 1, 2, 3 };
-  std::vector<uint32_t> fb_layout{ 2, 2 };
+    std::vector<uint32_t> fb_indices{ 0, 1, 3, 1, 2, 3 };
+    std::vector<uint32_t> fb_layout{ 2, 2 };
+
+  }  // namespace
 
   void EditorLayer::OnAttach() {
-    /// load editor icons and data
-    EditorImages::Initialize();
-    Renderer::GetWindow()->ForceResize({ 1920, 1080 });
-
-    editor_camera = NewRef<PerspectiveCamera>(Renderer::WindowSize());
-    editor_camera->SetPosition({ 0.f, 0.f, 3.f });
-    editor_camera->SetDirection({ 0.f, 0.f, -1.f });
-    DefaultUpdateCamera(editor_camera);
-
-    LoadEditorScripts(editor_config);
-
-    editor_scripts.ApiCall("NativeInitialize");
-    editor_scripts.ApiCall("OnInitialize");
-
-    editor_scripts.ApiCall("NativeStart");
-    editor_scripts.ApiCall("OnStart");
-
-    panel_manager = NewScope<PanelManager>();
-    panel_manager->Attach((Editor*)ParentApp(), AppState::ProjectContext(), editor_config);
-
-    current_viewport_size = Renderer::WindowSize();
-
     EventQueue::RegisterEventDispatcher<KeyPressed>(
       "EditorLayer--KeyPressed",
       { std::bind_front(&EditorLayer::HandleKeyPressed, this) }
     );
+    EventQueue::RegisterEventDispatcher<SceneActivate>(
+      "EditorLayer--SceneActivate",
+      { std::bind_front(&EditorLayer::HandleSceneActivate, this) }
+    );
+    EventQueue::RegisterEventDispatcher<SceneUnload>(
+      "EditorLayer--SceneUnload",
+      { std::bind_front(&EditorLayer::HandleSceneUnload, this) }
+    );
+
+    // load editor icons and data
+    EditorImages::Initialize();
+    Renderer::GetWindow()->ForceResize({ 1920, 1080 });
+
+    EditorState& editor = EditorState::Get();
+
+    auto win_size = Renderer::WindowSize();
+    editor.editor_camera = NewRef<PerspectiveCamera>(glm::ivec2{ win_size.x, win_size.y });
+    editor.editor_camera->SetPosition({ 0.f, 0.f, 3.f });
+    editor.editor_camera->locked = true;
+    DefaultUpdateCamera(editor.editor_camera);
+
+    panel_manager = NewScope<PanelManager>();
+    panel_manager->Attach(AppState::ProjectContext(), editor_config);
   }
 
   void EditorLayer::OnDetach() {
-    editor_scripts.ApiCall("OnStop");
-    editor_scripts.ApiCall("NativeStop");
-    editor_scripts.ApiCall("OnShutdown");
-    editor_scripts.ApiCall("NativeShutdown");
-    editor_scripts.ApiCall("OnBehaviorUnload");
     panel_manager->Detach();
-
     EditorImages::Shutdown();
+
+    EventQueue::UnregisterEventDispatcher("EditorLayer--KeyPressed");
+    EventQueue::UnregisterEventDispatcher("EditorLayer--SceneActivate");
+    EventQueue::UnregisterEventDispatcher("EditorLayer--SceneUnload");
   }
 
   void EditorLayer::OnEarlyUpdate(float dt) {
@@ -85,171 +88,290 @@ namespace other {
     }
 
     panel_manager->EarlyUpdate(dt);
-
-    editor_scripts.ApiCall("EarlyUpdate", dt);
-
-    AppState::Scenes()->EarlyUpdateScene(dt);
   }
 
   void EditorLayer::OnUpdate(float dt) {
     panel_manager->Update(dt);
-
-    /// after all early updates, update client and script
-    editor_scripts.ApiCall("Update", dt);
-
-    AppState::Scenes()->UpdateScene(dt);
   }
 
   void EditorLayer::OnLateUpdate(float dt) {
+    EditorState& editor = EditorState::Get();
     panel_manager->LateUpdate(dt);
+    if (editor.editor_camera == nullptr) {
+      return;
+    }
 
-    /// after all early updates, update client and script
-    editor_scripts.ApiCall("LateUpdate", dt);
-
-    AppState::Scenes()->LateUpdateScene(dt);
+    if (EditorState::scene_mode == SceneEditorMode::FREE_CAMERA) {
+      DefaultUpdateCamera(editor.editor_camera);
+    }
   }
 
   void EditorLayer::OnRender() {
-    Ref<SceneRenderer> renderer = AppState::Scenes()->GetRenderer();
-    if (camera_free) {
-      DefaultUpdateCamera(editor_camera);
+    EditorState& editor = EditorState::Get();
+    panel_manager->Render();
+
+    /// dont trace if no scene or not editing
+    if (!AppState::Scenes()->HasActiveScene() || EditorState::scene_mode == SceneEditorMode::PLAYING) {
+      return;
     }
-    AppState::Scenes()->GetRenderer()->SubmitCamera(editor_camera);
+
+    /// submit editor camera for main render,
+    AppState::Scenes()->GetRenderer()->SubmitCamera(editor.editor_camera);
+    SceneMetadata* scene = AppState::Scenes()->ActiveScene();
+
+    OE_ASSERT(scene != nullptr, "No active scene!");
+    OE_ASSERT(scene->scene != nullptr, "Scene is null!");
+
+    /// if mouse is not in viewport than dont trace anything
+    for (auto& [id, ent] : scene->scene->SceneEntities()) {
+      ent->actively_selected = false;
+    }
+
+    if (!editor.viewport_mouse_pos.has_value() || EditorState::scene_mode != SceneEditorMode::STOPPED) {
+      return;
+    }
+
+    Ray mouse_ray = CastRay(editor.editor_camera, *editor.viewport_mouse_pos, editor.current_viewport_size);
+    // OE_DEBUG("Ray : {}", mouse_ray);
+    Interval trace_interval = Interval(0.f, max_value<float>());
+
+    for (auto& [id, ent] : scene->scene->SceneEntities()) {
+      ent->actively_selected = false;
+      const Transform& transform = ent->ReadComponent<Transform>();
+      if (transform.bbox.Hit(mouse_ray, trace_interval)) {
+        ent->actively_selected = true;
+      }
+    }
+
+    // /// trace result and toggle all hit entities to be selected (should only be one)
+    // Opt<TraceResult> result = scene->bvh->Trace(mouse_ray, trace_interval);
+    // if (result.has_value()) {
+    //   OE_ASSERT(result->hit_entity != nullptr, "Hit entity is null!");
+    //   result->hit_entity->actively_selected = true;
+    // }
   }
 
   void EditorLayer::OnUIRender() {
-    if (ImGui::BeginMainMenuBar()) {
-      if (ImGui::BeginMenu("File")) {
-        if (ImGui::MenuItem("Reload")) {
-          // ReloadScripts();
-        }
+    using namespace std::string_view_literals;
 
-        if (ImGui::MenuItem("Settings")) {
-          LaunchSettingsWindow();
-        }
+    // clang-format off
+    ui::MainMenuBar([&]() {
+      ui::Menu(
+        "File",
+        ui::MenuItem{ "Reload"sv, [&]() {} },
+        ui::MenuItem{ "Settings"sv, [&]() { LaunchSettingsWindow(); } }
+      );
 
-        ImGui::EndMenu();
-      }
+      ui::Menu(
+        "Edit",
+        ui::MenuItem{ "Undo"sv, [&]() {} },
+        ui::MenuItem{ "Redo"sv, [&]() {} }
+      );
 
-      if (ImGui::BeginMenu("Edit")) {
-        ImGui::EndMenu();
-      }
+      ui::Menu(
+        "View",
+        ui::MenuItem{ "Scene"sv, [&]() {} },
+        ui::MenuItem{ "Game"sv, [&]() {} },
+        ui::MenuItem{ "Inspector"sv, [&]() {} },
+        ui::MenuItem{ "Terminal"sv, [&]() {} }
+      );
 
-      if (ImGui::BeginMenu("Assets")) {
-        ImGui::EndMenu();
-      }
-
-      if (ImGui::BeginMenu("Objects")) {
-        ImGui::EndMenu();
-      }
-
-      ImGui::EndMainMenuBar();
-    }
-
-#if 1
-    if (AppState::Scenes()->HasActiveScene() && ImGui::Begin("Viewport")) {
-      Ref<SceneRenderer> renderer = AppState::Scenes()->GetRenderer();
-      OE_ASSERT(renderer != nullptr, "No renderer found in scene");
-
-      auto& frames = renderer->GetRender();
-      viewport = nullptr;
-
-      if (auto itr = frames.find(FNV("Geometry")); itr != frames.end()) {
-        viewport = itr->second;
-      }
-
-      if (viewport == nullptr) {
-        ScopedColor red_text(ImGuiCol_Text, ui::theme::red);
-        ImGui::Text("No Viewport Generated");
-      } else {
-        ImVec2 curr_win_size = ImGui::GetContentRegionAvail();
-        current_viewport_size = { curr_win_size.x, curr_win_size.y };
-
-        float aspect_ratio = Renderer::GetWindow()->AspectRatio();
-        float ui_aspect_ratio = curr_win_size.x / curr_win_size.y;
-
-        glm::vec2 padding = { 0.f, 0.f };
-        glm::vec2 size = { curr_win_size.x, curr_win_size.y };
-        if (ui_aspect_ratio > aspect_ratio) {
-          size.x = curr_win_size.y * aspect_ratio;
-          padding = { (curr_win_size.x - size.x) * 0.5f, 0.f };
-        } else {
-          size.y = curr_win_size.x / aspect_ratio;
-          padding = { 0.f, (curr_win_size.y - size.y) * 0.5f };
-        }
-
-        uint32_t tex_id = viewport->texture;
-        ImVec2 img_size = { size.x, size.y };
-        ImGui::SetCursorPos({ padding.x, padding.y });
-        ImGui::Image((void*)(uintptr_t)tex_id, img_size, ImVec2(0, 1), ImVec2(1, 0));
-      }
-
-      ImGui::End();
-    }
-
-    if (ImGui::Begin("Inspector") /* && scene_manager->HasActiveScene() */) {
-      if (!playing && ImGui::Button("Play")) {
-        AppState::Scenes()->StartScene();
-        playing = true;
-      } else if (playing && ImGui::Button("Stop Scene")) {
-        AppState::Scenes()->StopScene();
-        playing = false;
-      }
-
-      ImGui::Text("Camera Position :: [%f , %f , %f]", editor_camera->Position().x, editor_camera->Position().y, editor_camera->Position().z);
-      ImGui::Text("Camera Direction :: [%f , %f , %f]", editor_camera->Direction().x, editor_camera->Direction().y, editor_camera->Direction().z);
-    }
-    ImGui::End();
-
-    editor_scripts.ApiCall("RenderUI");
+      // ui::Menu("Assets", [&]() {});
+      // ui::Menu("Objects", [&]() {});
+    });
+    // clang-format on
 
     panel_manager->RenderUI();
-#endif
-  }
 
-  void EditorLayer::SaveActiveScene() {
-    OE_ASSERT(AppState::Scenes()->ActiveScene() != nullptr, "Attempting to save null scene!");
+    /**
+     * save-initial-state : void -> void
+            // auto& scenes = AppState::Scenes();
+            // SceneMetadata* current_scene = scenes->ActiveScene();
+            // OE_ASSERT(current_scene != nullptr, "No active scene found");
+            // OE_ASSERT(current_scene->scene != nullptr, "No active scene found");
+            // initial_state = SaveStack::RecordState(current_scene->scene);
+     *
+     **/
 
-    auto& scenes = AppState::Scenes();
-    bool is_playing = scenes->IsPlaying();
+    EditorState& editor = EditorState::Get();
+    if (ImGui::Begin("Inspector")) {
+      switch (EditorState::scene_mode) {
+        case SceneEditorMode::STOPPED:
+          ui::Button("Play", [&]() {
+            // save-initial-state
+            AppState::Scenes()->StartScene();
+            EditorState::scene_mode = SceneEditorMode::PLAYING;
 
-    if (is_playing) {
-      scenes->StopScene();
+            /// lock editor camera to prevent movement while scene is simulating
+            editor.editor_camera->locked = true;
+          });
+
+          ui::Button("Simulate", [&]() {
+            // save-initial-state
+            AppState::Scenes()->StartScene();
+            EditorState::scene_mode = SceneEditorMode::SIMULATING;
+
+            /// unlock editor camera to move around simulated scene
+            editor.editor_camera->locked = false;
+          });
+          break;
+
+        case SceneEditorMode::FREE_CAMERA:
+          ImGui::Text("[Roaming] (Ctrl+C to reset, Ctrl+Shift+C to lock)");
+          break;
+
+        case SceneEditorMode::SIMULATING:
+        case SceneEditorMode::PLAYING:
+          ui::Button("Stop", [&]() {
+            AppState::Scenes()->StopScene();
+            EditorState::scene_mode = SceneEditorMode::STOPPED;
+
+            /// lock editor camera to prevent movement while scene is not simulating and camera is not free
+            editor.editor_camera->locked = true;
+
+            // auto& scenes = AppState::Scenes();
+            // SceneMetadata* current_scene = scenes->ActiveScene();
+            // OE_ASSERT(current_scene != nullptr, "No active scene found");
+            // OE_ASSERT(current_scene->scene != nullptr, "No active scene found");
+            // OE_ASSERT(initial_state.has_value(), "No initial state found");
+
+            // SaveStack::RestoreState(current_scene->scene, initial_state.value());
+            // initial_state = std::nullopt;
+
+            // current_scene->scene->EarlyUpdate(0.f);
+            // current_scene->scene->Update(0.f);
+            // current_scene->scene->LateUpdate(0.f);
+          });
+          break;
+
+        default: {
+          ScopedColor red_text(ImGuiCol_Text, ui::theme::red);
+          ImGui::Text("Corrupt Editor State");
+        } break;
+      }
     }
-
-    Path p = scenes->ActiveScene()->path;
-
-    scenes->SaveActiveScene();
-
-    // ParentApp()->UnloadScene();
-    // ParentApp()->LoadScene(p);
-
-    if (is_playing) {
-      scenes->StartScene();
-    }
-  }
-
-  void EditorLayer::LoadEditorScripts(const ConfigTable& editor_config) {
-    OE_DEBUG("Retrieving editor scripts");
-    editor_scripts = ScriptEngine::LoadScriptsFromTable(editor_config, kEditorSection);
+    ImGui::End();
   }
 
   void EditorLayer::LaunchSettingsWindow() {
-    Ref<UIWindow> settings_window = NewRef<SettingsWindow>();
+    // Ref<UIWindow> settings_window = NewRef<SettingsWindow>();
     // AppState::PushUIWindow(settings_window);
   }
 
-  bool EditorLayer::HandleKeyPressed(KeyPressed& event) {
-    HandleKeyEvent(event, Keyboard::Key::OE_C, [&]() {
-      camera_free = !camera_free;
-      if (camera_free) {
-        Mouse::LockCursor();
-      } else {
-        Mouse::FreeCursor();
-      }
-    });
+  Ray EditorLayer::CastRay(Ref<CameraBase>& camera, const glm::vec2& mouse_pos, const glm::vec2& viewport_size) {
+    glm::vec4 clip_pos = {
+      (2.f * mouse_pos.x) / viewport_size.x - 1.f,
+      (2.f * mouse_pos.y) / viewport_size.y - 1.f,
+      -1.f, 1.f
+    };
+    glm::mat4 camera_transform = glm::translate(glm::mat4(1.f), camera->Position());
 
-    return event.Key() != Keyboard::Key::OE_C;
+    glm::mat4 inverse_proj = glm::inverse(camera->ProjectionMatrix());
+    glm::mat4 inverse_camera_tansform = glm::inverse(camera_transform);
+    glm::vec4 ray_dir = inverse_camera_tansform * inverse_proj * clip_pos;
+
+    return Ray(camera->Position(), glm::normalize(glm::vec3(ray_dir)));
+  }
+
+  bool EditorLayer::HandleKeyPressed(KeyPressed& event) {
+    if (event.Key() == Keyboard::Key::OE_ESCAPE) {
+      if (EditorState::scene_mode == SceneEditorMode::PLAYING ||
+          EditorState::scene_mode == SceneEditorMode::SIMULATING) {
+        AppState::Scenes()->StopScene();
+        playing = false;
+        Mouse::FreeCursor();
+        EditorState::scene_mode = SceneEditorMode::STOPPED;
+
+        /// FIXME: theres a bug here in which cameras are being updated
+        ///         and when, need to update cameras with these rules:
+        ///       - 1 : if scene stopped, no update any camera, render editor camera
+        ///       - 2 : if scene playing, only update active scene camera-entity,
+        ///               and don't submit editor camera to renderer
+        ///       - 3 : if simulating, update editor camera, and only update scene cameras
+        ///               based on user-independent data (if they have something moving the camera based
+        ///               off user input, turn it off) then render through editor camera
+
+        // editor_camera->locked = !editor_camera->locked;
+        // editor_camera->locked ?
+        //   Mouse::FreeCursor() :
+        //   Mouse::LockCursor();
+
+        return true;
+      }
+
+      /// dont interrupt escape key if we're not playing
+      return false;
+    }
+
+    if (event.Key() == Keyboard::Key::OE_F1) {
+      Environment::Get().terminal_open = !Environment::Get().terminal_open;
+      return true;
+    }
+
+    if (event.Key() == Keyboard::Key::OE_RETURN) {
+      if (Environment::Get().terminal_open) {
+        Environment::ReadTerminalInput();
+        return true;
+      }
+    }
+
+    return HandleCtrlLayerKeyEvent(event, Keyboard::Key::OE_C, [&]() -> bool {
+      if (EditorState::scene_mode == SceneEditorMode::PLAYING ||
+          EditorState::scene_mode == SceneEditorMode::SIMULATING) {
+        return false;
+      }
+
+      EditorState& editor = EditorState::Get();
+
+      editor.editor_camera->locked = !editor.editor_camera->locked;
+      editor.editor_camera->locked ?
+        Mouse::FreeCursor() :
+        Mouse::LockCursor();
+
+      if (!editor.editor_camera->locked) {
+        EditorState::scene_mode = SceneEditorMode::FREE_CAMERA;
+
+        if (!Keyboard::LCtrlShiftLayer()) {
+          editor.stored_camera_position = editor.editor_camera->Position();
+          editor.stored_camera_direction = editor.editor_camera->Direction();
+        }
+      } else {
+        EditorState::scene_mode = SceneEditorMode::STOPPED;
+
+        if (!Keyboard::LCtrlShiftLayer()) {
+          editor.editor_camera->SetPosition(editor.stored_camera_position);
+          editor.editor_camera->SetDirection(editor.stored_camera_direction);
+          editor.editor_camera->CalculateMatrix();
+        }
+      }
+
+      return true;
+    });
+  }
+
+  bool EditorLayer::HandleSceneActivate(SceneActivate& event) {
+    OE_ASSERT(AppState::Scenes()->HasActiveScene(), "No active scene found");
+    OE_ASSERT(panel_manager != nullptr, "Panel manager is null");
+
+    SceneMetadata* current_scene = AppState::Scenes()->ActiveScene();
+    OE_ASSERT(current_scene != nullptr, "No active scene found");
+    OE_ASSERT(current_scene->scene != nullptr, "No active scene found");
+
+    AppState::AppEvent(EngineStateEvent::EDIT_SCENE);
+    panel_manager->OnSceneActivate(current_scene);
+
+    /// dont interrupt event
+    return false;
+  }
+
+  bool EditorLayer::HandleSceneUnload(SceneUnload& event) {
+    AppState::AppEvent(EngineStateEvent::SCENE_UNLOADED);
+
+    OE_ASSERT(panel_manager != nullptr, "Panel manager is null");
+    panel_manager->OnSceneDeactivate();
+
+    /// dont interrupt event
+    return false;
   }
 
 }  // namespace other

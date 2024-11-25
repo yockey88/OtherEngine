@@ -6,6 +6,7 @@
 
 #include <optional>
 #include <string>
+#include <string_view>
 
 #include "core/config.hpp"
 #include "core/defines.hpp"
@@ -62,9 +63,9 @@ namespace other {
     Path scenes_dir;
     Path scripts_dir;
     Path shaders_dir;
+    Path editor_dir = "";
 
     Opt<Path> script_bin_dir = std::nullopt;
-    Opt<Path> editor_dir = std::nullopt;
     Opt<std::string> primary_scene = std::nullopt;
 
     Path cs_project_file = "";
@@ -92,6 +93,7 @@ namespace other {
     ProjectMetadata metadata;
 
     void InitializeVirtualFolders();
+    void MountDirectory(const std::string_view name, const Path& path);
 
    public:
     static void QueueNewProject(const Path& path);

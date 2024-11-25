@@ -57,7 +57,6 @@ namespace other {
 
   void Engine::Start() {
     delta.Start();
-
     EventQueue::RegisterEventDispatcher<ShutdownEvent>(
       "Other-Engine--Shutdown",
       { std::bind_front(&Engine::HandleShutdownEvent, this) }
@@ -77,7 +76,7 @@ namespace other {
     dt = delta.Get();
     AppState::OnEngineTick(dt);
 
-    while (!event_queue.empty()) {
+    if (!event_queue.empty()) {
       state->HandleEvent(event_queue.front());
       event_queue.pop();
     }
@@ -91,8 +90,11 @@ namespace other {
   }
 
   void Engine::Stop() {
-    /// step once more to ensure all systems are shutdown
-    Step();
+    OE_ASSERT(state->IsFinished(), "Engine shutdown state corrupted");
+    OE_ASSERT(exit_code.has_value(), "Engine did not set exit code");
+    EventQueue::UnregisterEventDispatcher("Other-Engine--Shutdown");
+
+    OE_INFO("Engine Exit : {}", exit_code.value());
   }
 
   Ref<EngineStateMachine> Engine::CreateStateMachine() {

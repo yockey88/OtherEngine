@@ -61,15 +61,15 @@ TEST_F(ScriptEngineTests, dynamic_add_project_modules) {
 
   /// CsCore and no lua scripts
   ASSERT_TRUE(CheckNumScripts(0, 0, 0));
-  
-  Ref<FileHandle> core_handle = nullptr; 
+
+  Ref<FileHandle> core_handle = nullptr;
   Ref<FileHandle> dll_handle = nullptr;
   Ref<FileHandle> lua_handle = nullptr;
   {
     Ref<Directory> bin_dir = Filesystem::GetDirectory("bin");
     core_handle = bin_dir->GetFileHandleByName("OtherEngine-CsCore");
 
-    Ref<Directory> dir = Filesystem::GetDirectory("script-bin"); 
+    Ref<Directory> dir = Filesystem::GetDirectory("script-bin");
     dll_handle = dir->GetFileHandleByName("SandboxScripts");
 
     Ref<Directory> lua_dir = Filesystem::GetDirectory("scripts");
@@ -115,7 +115,7 @@ TEST_F(ScriptEngineTests, script_object) {
   ASSERT_NO_FATAL_FAILURE(ScriptEngine::LoadProjectModules());
   Ref<FileHandle> dll_handle = nullptr;
   {
-    Ref<Directory> dir = Filesystem::GetDirectory("script-bin"); 
+    Ref<Directory> dir = Filesystem::GetDirectory("script-bin");
     dll_handle = dir->GetFileHandleByName("SandboxScripts");
   }
   ASSERT_NE(dll_handle, nullptr);
@@ -135,14 +135,11 @@ TEST_F(ScriptEngineTests, script_object) {
 
   Ref<FileHandle> file_handle = nullptr;
   {
-    Ref<Directory> dir = Filesystem::GetDirectory("scripts"); 
+    Ref<Directory> dir = Filesystem::GetDirectory("scripts");
     file_handle = dir->GetFileHandleByName("engine_script1");
   }
 
-    ScriptEngine::GetModule(LUA_MODULE)->LoadScriptModule({
-    .name = "SandboxLua",
-    .handle = file_handle
-  });
+  ScriptEngine::GetModule(LUA_MODULE)->LoadScriptModule({ .name = "SandboxLua", .handle = file_handle });
   ASSERT_TRUE(CheckNumScripts(2, 1, 0));
 
   Ref<ScriptModule> lua_sandbox = ScriptEngine::GetModule(LUA_MODULE)->GetScriptModule("SandboxLua");
@@ -177,7 +174,7 @@ TEST_F(ScriptEngineTests, retrieve_core_objects) {
   ASSERT_NO_FATAL_FAILURE(ScriptEngine::LoadProjectModules());
   Ref<FileHandle> dll_handle = nullptr;
   {
-    Ref<Directory> dir = Filesystem::GetDirectory("script-bin"); 
+    Ref<Directory> dir = Filesystem::GetDirectory("script-bin");
     dll_handle = dir->GetFileHandleByName("SandboxScripts");
   }
   ASSERT_NE(dll_handle, nullptr);
@@ -268,26 +265,26 @@ TEST_F(ScriptEngineTests, get_object_method) {
 }
 
 void ScriptEngineTests::SetUpTestSuite() {
-  ConfigTable test_config;
-  test_config.Add("project", "working-directory", "./tests/");
-  test_config.Add("project", "bin-dir", "C:/Yock/code/OtherEngine/bin/Debug");
-  test_config.Add("project", "script-bin-dir", "SandboxScripts/net8.0", true);
-  test_config.Add("log", "console-level", "debug", true);
-  test_config.Add("log", "file-level", "trace", true);
-  test_config.Add("log", "path", "logs/script-engine-test.log", true);
-  test_config.Add("script-engine.C#", "modules", std::vector{ "SandboxScripts.dll"s }, true);
-  Logger::Open(test_config);
-  Logger::Instance()->RegisterThread("Script Engine Test Main Thread");
+  // ConfigTable test_config;
+  // test_config.Add("project", "working-directory", "./tests/");
+  // test_config.Add("project", "bin-dir", "C:/Yock/code/OtherEngine/bin/Debug");
+  // test_config.Add("project", "script-bin-dir", "SandboxScripts/net8.0", true);
+  // test_config.Add("log", "console-level", "debug", true);
+  // test_config.Add("log", "file-level", "trace", true);
+  // test_config.Add("log", "path", "logs/script-engine-test.log", true);
+  // test_config.Add("script-engine.C#", "modules", std::vector{ "SandboxScripts.dll"s }, true);
+  // Logger::Open(test_config);
+  // Logger::Instance()->RegisterThread("Script Engine Test Main Thread");
 
-  Filesystem::Initialize(cmdline, test_config);
-  AppState::mode = EngineMode::RUNTIME;
-  AppState::Initialize(cmdline, test_config);
+  // Filesystem::Initialize(cmdline, test_config);
+  // AppState::mode = EngineMode::RUNTIME;
+  // AppState::Initialize(cmdline, test_config);
 
-  ScriptEngine::Initialize(test_config);
+  // ScriptEngine::Initialize(test_config);
 }
 
 void ScriptEngineTests::TearDownTestSuite() {
-  ASSERT_NO_FATAL_FAILURE(ScriptEngine::Shutdown());
-  ASSERT_NO_FATAL_FAILURE(AppState::Shutdown());
-  ASSERT_NO_FATAL_FAILURE(CloseLog());
+  //   ASSERT_NO_FATAL_FAILURE(ScriptEngine::Shutdown());
+  //   ASSERT_NO_FATAL_FAILURE(AppState::Shutdown());
+  //   ASSERT_NO_FATAL_FAILURE(CloseLog());
 }

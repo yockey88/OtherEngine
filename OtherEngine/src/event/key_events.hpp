@@ -62,23 +62,34 @@ namespace other {
     (std::same_as<KE, KeyPressed> || std::same_as<KE, KeyReleased> || std::same_as<KE, KeyHeld>) &&
     requires(KE& e, Fn f) {
       f();
-      { f() } -> std::same_as<void>;
+      { f() } -> std::same_as<bool>;
     };
 
   template <typename KE, typename Fn>
     requires key_event_handler_t<KE, Fn>
-  static void HandleKeyEvent(KE& event, Keyboard::Key key, Fn fn) {
+  static bool HandleKeyEvent(KE& event, Keyboard::Key key, Fn fn) {
     if (event.key_code == key) {
-      fn();
+      return fn();
     }
+    return false;
   }
 
   template <typename KE, typename Fn>
     requires key_event_handler_t<KE, Fn>
-  static void HandleCtrlLayerKeyEvent(KE& event, Keyboard::Key key, Fn fn) {
+  static bool HandleCtrlLayerKeyEvent(KE& event, Keyboard::Key key, Fn fn) {
     if (event.key_code == key && Keyboard::LCtrlLayer()) {
-      fn();
+      return fn();
     }
+    return false;
+  }
+
+  template <typename KE, typename Fn>
+    requires key_event_handler_t<KE, Fn>
+  static bool HandleCtrlShiftLayerKeyEvent(KE& event, Keyboard::Key key, Fn fn) {
+    if (event.key_code == key && Keyboard::LCtrlShiftLayer()) {
+      return fn();
+    }
+    return false;
   }
 
 }  // namespace other

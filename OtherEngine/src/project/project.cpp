@@ -21,12 +21,14 @@ namespace other {
     metadata.name = config.GetVal<std::string>(kProjectSection, kNameValue, false).value_or("Unnamed Project");
     metadata.bin_dir = config.GetVal<std::string>(kProjectSection, kBinDirValue, false).value_or("bin/Debug/");
     metadata.primary_scene = config.GetVal<std::string>(kProjectSection, kPrimarySceneValue, false);
-    metadata.editor_dir = config.GetVal<std::string>(kEditorSection, kEditorDirValue, false);
+
+    std::string editor_dir = config.GetVal<std::string>(kEditorSection, kEditorDirValue, false).value_or(std::string{ kEditorDirName });
     std::string materials_dir = config.GetVal<std::string>(kProjectSection, kMaterialsDirValue, false).value_or(std::string{ kMaterialsDirName });
     std::string scenes_dir = config.GetVal<std::string>(kProjectSection, kScenesDirValue, false).value_or(std::string{ kScenesDirName });
     std::string scripts_dir = config.GetVal<std::string>(kProjectSection, kScriptsDirValue, false).value_or(std::string{ kScriptsDirName });
     std::string shaders_dir = config.GetVal<std::string>(kProjectSection, kShadersDirValue, false).value_or(std::string{ kShadersDirName });
 
+    metadata.editor_dir = metadata.project_directory / editor_dir;
     metadata.materials_dir = metadata.project_directory / materials_dir;
     metadata.scenes_dir = metadata.project_directory / scenes_dir;
     metadata.scripts_dir = metadata.project_directory / scripts_dir;
@@ -68,14 +70,6 @@ namespace other {
       }
     }
 
-    OE_DEBUG("Project Path : {}", metadata.file_path);
-    OE_DEBUG("Project Directory : {}", metadata.project_directory);
-    OE_DEBUG("Assets Directory : {}", metadata.assets_dir);
-    OE_DEBUG("Materials Directory : {}", metadata.materials_dir);
-    OE_DEBUG("Scenes Directory : {}", metadata.scenes_dir);
-    OE_DEBUG("Scripts Directory : {}", metadata.scripts_dir);
-    OE_DEBUG("Shaders Directory : {}", metadata.shaders_dir);
-
     InitializeVirtualFolders();
   }
 
@@ -114,54 +108,37 @@ namespace other {
   }
 
   void Project::InitializeVirtualFolders() {
-    Ref<Directory> bin_dir = Filesystem::MountDirectory("bin", metadata.project_directory / metadata.bin_dir);
-    OE_ASSERT(bin_dir != nullptr, "Failed to mount bin directory : {}", metadata.project_directory / metadata.bin_dir);
-    OE_ASSERT(bin_dir->Exists(), "Bin directory does not exist : {}", metadata.project_directory / metadata.bin_dir);
+    MountDirectory("bin", metadata.project_directory / metadata.bin_dir);
+    MountDirectory("assets", metadata.assets_dir);
 
-    Ref<Directory> assets_dir = Filesystem::MountDirectory("assets", metadata.assets_dir);
-    OE_ASSERT(assets_dir != nullptr, "Failed to mount assets directory : {}", metadata.assets_dir);
-    OE_ASSERT(assets_dir->Exists(), "Assets directory does not exist : {}", metadata.assets_dir);
-
-    if (metadata.script_bin_dir.has_value()) {
-      Ref<Directory> script_bin_dir = Filesystem::MountDirectory("script-bin", *bin_dir / *metadata.script_bin_dir);
-      OE_ASSERT(script_bin_dir != nullptr, "Failed to mount script bin directory : {}", *bin_dir / *metadata.script_bin_dir);
-      OE_ASSERT(script_bin_dir->Exists(), "Script bin directory does not exist : {}", *bin_dir / *metadata.script_bin_dir);
+    Ref<Directory> bin_dir = Filesystem::GetDirectory("bin");
+    if (bin_dir != nullptr && metadata.script_bin_dir.has_value()) {
+      MountDirectory("script-bin", *bin_dir / *metadata.script_bin_dir);
     } else {
-      Ref<Directory> script_bin_dir = Filesystem::MountDirectory("script-bin", *bin_dir);
-      OE_ASSERT(script_bin_dir != nullptr, "Failed to mount script bin directory : {}", Path(*bin_dir));
-      OE_ASSERT(script_bin_dir->Exists(), "Script bin directory does not exist : {}", Path(*bin_dir));
+      MountDirectory("script-bin", *bin_dir);
     }
 
-    Ref<Directory> project_dir = Filesystem::MountDirectory("project-root", metadata.project_directory);
-    OE_ASSERT(project_dir != nullptr, "Failed to mount project directory : {}", metadata.project_directory);
-    OE_ASSERT(project_dir->Exists(), "Project directory does not exist : {}", metadata.project_directory);
+    MountDirectory("project-root", metadata.project_directory);
 
     if (AppState::mode == EngineMode::EDITOR
 #ifdef OE_TESTING_ENVIRONMENT
         || AppState::mode == EngineMode::TESTING
 #endif  // OE_TESTING_ENVIRONMENT
     ) {
-      const Path editor_dir = metadata.project_directory / kEditorDirName;
-      Ref<Directory> editor_dir_handle = Filesystem::MountDirectory("editor", editor_dir);
-      OE_ASSERT(editor_dir_handle != nullptr, "Failed to mount editor directory: {}", editor_dir);
-      OE_ASSERT(editor_dir_handle->Exists(), "Editor directory does not exist : {}", editor_dir);
+      MountDirectory("editor", metadata.editor_dir);
     }
 
-    Ref<Directory> materials_dir_handle = Filesystem::MountDirectory("materials", metadata.materials_dir);
-    OE_ASSERT(materials_dir_handle != nullptr, "Failed to mount materials directory : {}", metadata.materials_dir);
-    OE_ASSERT(materials_dir_handle->Exists(), "Materials directory does not exist : {}", metadata.materials_dir);
+    MountDirectory("materials", metadata.materials_dir);
+    MountDirectory("scenes", metadata.scenes_dir);
+    MountDirectory("scripts", metadata.scripts_dir);
+    MountDirectory("shaders", metadata.shaders_dir);
+  }
 
-    Ref<Directory> scenes_dir_handle = Filesystem::MountDirectory("scenes", metadata.scenes_dir);
-    OE_ASSERT(scenes_dir_handle != nullptr, "Failed to mount scenes directory: {}", metadata.scenes_dir);
-    OE_ASSERT(scenes_dir_handle->Exists(), "Scenes directory does not exist : {}", metadata.scenes_dir);
-
-    Ref<Directory> scripts_dir_handle = Filesystem::MountDirectory("scripts", metadata.scripts_dir);
-    OE_ASSERT(scripts_dir_handle != nullptr, "Failed to mount scripts directory : {}", metadata.scripts_dir);
-    OE_ASSERT(scripts_dir_handle->Exists(), "Scripts directory does not exist : {}", metadata.scripts_dir);
-
-    Ref<Directory> shaders_dir_handle = Filesystem::MountDirectory("shaders", metadata.shaders_dir);
-    OE_ASSERT(shaders_dir_handle != nullptr, "Failed to mount shaders directory : {}", metadata.shaders_dir);
-    OE_ASSERT(shaders_dir_handle->Exists(), "Shaders directory does not exist : {}", metadata.shaders_dir);
+  void Project::MountDirectory(const std::string_view name, const Path& path) {
+    Ref<Directory> dir = Filesystem::MountDirectory(name, path);
+    if (dir == nullptr || !dir->Exists()) {
+      OE_ERROR("Failed to mount bin directory : {}", path);
+    }
   }
 
   void Project::QueueNewProject(const Path& path) {

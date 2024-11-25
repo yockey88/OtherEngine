@@ -3,39 +3,13 @@
 #]
 
 [metadata]
-name = "Test Scene"
+name = "test_scene"
 entities = {
   "cube" ,
   "sun" ,
-  "floor"
+  "floor" ,
+  "camera"
 }
-
-#[
-
-  cube = {
-    id = 12461263173642597452
-    <transform> = {
-      position = { 0 , 0 , 0 }
-      rotation = { 0 , 0 , 0 , 0 }
-      scale = { 1 , 1 , 1 }
-    }
-
-    <relationship> = {
-      children = {}
-    }
-
-    <static-mesh> = {
-      visible = true
-      is-primitive = true
-      primitive = 3
-    }
-
-    <script> = {
-      *SandboxScripts = { "Other::TestScript2" }
-    }
-  }
-
-#]
 
 
 [physics.2D]
@@ -106,33 +80,61 @@ primitive = 3
 material.color = { 0.1, 0.5, 0.31, 1 }
 material.shininess = 32
 
-# [camera]
-# UUID = 4220486183894562136
-# components = {
-#   camera
-# }
-# 
-# [camera.transform]
-# position = { 0 , 0 , 0 }
-# rotation = { 0 , 0 , 0 , 1 }
-# scale = { 1 , 1 , 1 }
-# 
-# [camera.relationship]
-# children = {}
-# 
-# [camera.camera]
-# type = perspective
-# position = { 0 , 0 , 0 }
-# direction = { 1 , 0 , 0 }
-# up = { 0 , 0 , 1 }
-# world-up = { 0 , 1 , 0 }
-# right = { 0 , 0 , 1 }
-# rotation = { 0 , 0 , 0 }
-# viewport = { 1920 , 1080 }
-# clip = { 0.1 , 10000 }
-# speed = 0.1
-# sensitivity = 0.2
-# fov = 75
-# zoom = 45
-# constrain-pitch = true
-# primary = true
+[camera]
+UUID = 4220486183894562136
+components = {
+  camera
+}
+
+[camera.transform]
+position = { 0 , 0 , 3 }
+rotation = { 0 , 0 , 0 , 1 }
+scale = { 1 , 1 , 1 }
+
+[camera.relationship]
+children = {}
+
+[camera.camera]
+type = perspective
+position = { 0 , 0 , 3 }
+direction = { 0 , 0 , -1 }
+up = { 0 , 0 , 1 }
+world-up = { 0 , 1 , 0 }
+right = { 0 , 0 , 1 }
+rotation = { 0 , 0 , 0 }
+viewport = { 1920 , 1080 } 
+clip = { 0.1 , 10000 }
+speed = 0.1
+sensitivity = 0.2
+fov = 75
+zoom = 45
+constrain-pitch = true
+primary = true
+
+
+#[
+
+  cube = {
+    id = 12461263173642597452
+    <transform> = {
+      position = { 0 , 0 , 0 }
+      rotation = { 0 , 0 , 0 , 0 }
+      scale = { 1 , 1 , 1 }
+    }
+
+    <relationship> = {
+      children = {}
+    }
+
+    <static-mesh> = {
+      visible = true
+      is-primitive = true
+      primitive = 3
+    }
+
+    <script> = {
+      *SandboxScripts = { "Other::TestScript2" }
+    }
+  }
+
+#]

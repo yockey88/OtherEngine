@@ -119,7 +119,7 @@ class Pipeline(Singleton):
     ]
 
     if verbose:
-      print(" > running {} with arguments {}".format(real_name, args))
+      print(" > [{} build] running {} with arguments {}".format(config, real_name, args))
 
     if oe_env.get_settings().edit is not None:
       print("  > editing project")

@@ -60,9 +60,7 @@ class OtherEnginePipelineEnvironment(Singleton):
     pipeline_config = self._process_config_table(table)
 
     if pipeline_config is None:
-      raise ValueError(
-        "NO pipeline configuration found for tool pipeline"
-      )
+      raise ValueError("NO pipeline configuration found for tool pipeline")
     
     self.pipeline_config = pipeline_config
     if parse_cmds:
@@ -111,13 +109,12 @@ class OtherEnginePipelineEnvironment(Singleton):
 
   def parse_args(self, parser):
     self.settings = parser.parse_args()
+    print(self.settings.config)
 
     if self.settings.config is not None:
-      self.setting.config = self.settings.config
+      self.project_config = self.settings.config[0]
 
-    self.project_config = utilities.normalize_config_str(
-                            self.project_config
-                          )
+    self.project_config = utilities.normalize_config_str(self.project_config)
     
   def help_was_printed(self):
     return self.help_printed

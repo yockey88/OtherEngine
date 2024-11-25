@@ -10,50 +10,30 @@
 
 namespace other {
 
-  CommandBlock CommandParser::ParseBlock(const std::string_view block) {
-    try {
-      std::string block_str = TrimBeginningAndEnd(std::string{ block });
-      std::istringstream stream(block_str);
-
-      Ref<Parser<std::string>> name_parser = MatchIdentifierAndStripParens();
-      Ref<Parser<void>> skip_chars = SkipSpaces() >> Skip(GroupMatcher("{::}"));
-      Ref<Parser<cmd_list_t>> parse_command_list = Many<cmd_list_t>(CollectInto(ParseUntil(";"), SplitStringOn(' ')));
-
-      Opt<std::string> name;
-      cmd_list_t cmds;
-
-      if (block_str.starts_with('[')) {
-        name = (*name_parser)(stream);
-
-        (*skip_chars)(stream);
-        (*skip_chars)(stream);
-        (*skip_chars)(stream);
-      }
-
-      cmds = (*parse_command_list)(stream);
-
-      if (stream.peek() == '}') {
-        (*skip_chars)(stream);
-      }
-
-      CommandBlock result = FinalizeCommandBlock({ name, cmds });
-
-      return result;
-    } catch (...) {
-      return { "", {} };
-    }
-  }
-
   CommandParser::CommandWithArg CommandParser::CreateCommand(const parsed_cmd_t& command) {
-    if (command.size() < 2) {
+    if (command.empty()) {
       OE_ERROR("INVALID command! : {}", fmt::join(command, " , "));
       Command cmd;
-      cmd.priority = DEFAULT_PRIORITY;
+      cmd.priority = DEFAULT_COMMAND_PRIORITY;
       cmd.category = EMPTY_COMMAND;
       cmd.command = NO_OP_COMMAND;
-      cmd.num_args = command.size() >= 3 ? 1 : 0;
-
+      cmd.num_args = 0;
       return { cmd, "" };
+    } else if (command.size() == 1) {
+      uint64_t hash = FNV(command[0]);
+      auto command_itr = std::ranges::find_if(CommandMap::kCommandType, [&](const CommandMap::TypePair& pair) -> bool { return pair.first == hash; });
+
+      if (command_itr == CommandMap::kCommandType.end()) {
+        OE_ERROR("Unknown Command : {}", command[0]);
+        return CommandWithArg{ {}, {} };
+      }
+
+      Command cmd;
+      cmd.priority = DEFAULT_COMMAND_PRIORITY;
+      cmd.category = CommandCategory::ENVIRONMENT_COMMAND;
+      cmd.command = command_itr->second;
+      cmd.num_args = 0;
+      return CommandWithArg{ cmd, "" };
     }
 
     uint64_t hash_1 = FNV(command[0]);
@@ -72,7 +52,7 @@ namespace other {
     }
 
     Command cmd;
-    cmd.priority = DEFAULT_PRIORITY;
+    cmd.priority = DEFAULT_COMMAND_PRIORITY;
     cmd.category = category->second;
     cmd.command = command_itr->second;
     cmd.num_args = command.size() >= 3 ? 1 : 0;
@@ -87,6 +67,25 @@ namespace other {
     }
 
     return result;
+  }
+
+  CommandBlock CommandParser::ParseCommand(const std::string_view message) {
+    auto parser = CollectInto(SkipSpaces() >> ParseUntil(";"), SplitStringOn(' '));
+    std::istringstream stream{ std::string{ message } };
+    parsed_cmd_t words = (*parser)(stream);
+
+    CommandWithArg result = CreateCommand(words);
+    CommandBlock block;
+    block.command_queue.push(result.first);
+
+    if (result.second != "") {
+      address_t arg_address = memory.Alloc(result.second);
+      Command argument;
+      argument.argument_address = arg_address;
+      block.command_queue.push(argument);
+    }
+
+    return block;
   }
 
   CommandBlock CommandParser::FinalizeCommandBlock(const parse_tree_t& ir) {
@@ -117,6 +116,39 @@ namespace other {
     }
 
     return res;
+  }
+
+  CommandBlock CommandParser::ParseBlock(const std::string_view block) {
+    try {
+      std::string block_str = TrimBeginningAndEnd(std::string{ block });
+      std::istringstream stream(block_str);
+
+      Ref<Parser<std::string>> name_parser = MatchIdentifierAndStripParens();
+      Ref<Parser<void>> skip_chars = SkipSpaces() >> Skip(GroupMatcher("{::}"));
+      Ref<Parser<cmd_list_t>> parse_command_list = Many<cmd_list_t>(CollectInto(ParseUntil(";"), SplitStringOn(' ')));
+
+      Opt<std::string> name;
+      cmd_list_t cmds;
+
+      if (block_str.starts_with('[')) {
+        name = (*name_parser)(stream);
+
+        (*skip_chars)(stream);
+        (*skip_chars)(stream);
+        (*skip_chars)(stream);
+      }
+
+      cmds = (*parse_command_list)(stream);
+
+      if (stream.peek() == '}') {
+        (*skip_chars)(stream);
+      }
+
+      return FinalizeCommandBlock({ name, cmds });
+
+    } catch (...) {
+      return { "", {} };
+    }
   }
 
 }  // namespace other

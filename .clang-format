@@ -58,7 +58,7 @@ IncludeCategories:
   - Regex:           '<([A-Za-z0-9\/-_])+>'
     Priority:        1
   # Headers in <> from specific external libraries.
-  - Regex:           '<((glm|spdlog|entt|glad|gtest|imgui|json|magic_enum|refl|nlohmann)\/ | SDL*)>'
+  - Regex:           '<((glm|spdlog|entt|glad|gtest|imgui(zmo)?|json|magic_enum|refl|nlohmann)\/ | SDL*)>'
     Priority:        2
   # Headers in <> with extension.
   - Regex:           '<([A-Za-z0-9\/-_])+\.h(pp|xx|h)?>'
@@ -67,7 +67,7 @@ IncludeCategories:
   - Regex:           '"((testing_core|fuzzing|statistics|benchmarking)\/)'
     Priority:        4
   # core headers
-  - Regex:           '"((testing_core|core|math|thread|engine|environment)\/)'
+  - Regex:           '"((testing_core|core|math|thread|engine|environment|editor)\/)'
     Priority:        5
   # application/asset/semi-core system headers
   - Regex:           '"((application|input|event|asset|parsing|project|plugin|layers)\/)'

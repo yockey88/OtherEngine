@@ -68,9 +68,7 @@ namespace other {
       OE_ASSERT(current_state != nullptr, "Invalid state");
       current_state->Attach();
     }
-    virtual ~StateMachine() {
-      OE_ASSERT(current_state == nullptr, "State machine not properly detached, end state not reached");
-    }
+    virtual ~StateMachine() {}
 
     void HandleEvent(const ET event) {
       OE_ASSERT(current_state != nullptr, "Invalid state");

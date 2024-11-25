@@ -49,6 +49,7 @@ namespace other {
       return false;
     }
 
+   private:
     void* event;
   };
 
@@ -80,14 +81,7 @@ namespace other {
    protected:
     virtual bool DispatchEvent(void* event) override {
       OE_ASSERT(event != nullptr, "Event is null");
-
-      E* e = Cast<E>(event);
-      if (e == nullptr) {
-        OE_WARN("Failed to cast event to {}", typeid(E).name());
-        return false;
-      }
-
-      EventHandler handler(e);
+      EventHandler handler(event);
       return handler.Handle<E>(*this);
     }
   };

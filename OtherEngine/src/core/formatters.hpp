@@ -56,7 +56,13 @@ template <typename E>
 struct fmt::formatter<E> : public fmt::formatter<std::string_view> {
   template <typename FormatContext>
   auto format(const E& e, FormatContext& ctx) {
-    return fmt::formatter<std::string_view>::format(fmt::format(std::string_view{ "{}" }, magic_enum::enum_name(e)), ctx);
+    using namespace std::string_view_literals;
+    using base_t = fmt::formatter<std::string_view>;
+    std::string_view name = magic_enum::enum_name(e);
+    if (name == "") {
+      return base_t::format("UNKNOWN enum"sv, ctx);
+    }
+    return base_t::format(other::fmtstr("{}", name), ctx);
   }
 };
 

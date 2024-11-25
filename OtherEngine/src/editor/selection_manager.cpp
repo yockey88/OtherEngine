@@ -6,15 +6,20 @@
 #include "ecs/entity.hpp"
 
 namespace other {
-      
+
   Entity* SelectionManager::entity_selection_context = nullptr;
 
   void SelectionManager::Select(Entity* entity) {
-    if (entity == nullptr) {
+    OE_ASSERT(entity != nullptr, "Attempting to select null entity");
+    if (entity_selection_context == entity) {
       return;
     }
 
-    entity_selection_context = entity; 
+    if (entity_selection_context != nullptr) {
+      entity_selection_context->actively_selected = false;
+    }
+    entity_selection_context = entity;
+    entity_selection_context->actively_selected = true;
   }
 
   bool SelectionManager::HasSelection() {
@@ -29,4 +34,4 @@ namespace other {
     return entity_selection_context;
   }
 
-} // namespace other
+}  // namespace other

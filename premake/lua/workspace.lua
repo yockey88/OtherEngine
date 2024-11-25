@@ -46,6 +46,7 @@ local function WorkspaceHeader(config)
   filter "action:vs*"
     linkoptions { "/ignore:4099" } 
     disablewarnings { "4068" }
+    
 end
 
 local function ProcessGroups(groups)

@@ -6,8 +6,9 @@
 #include <fstream>
 
 #include "core/defines.hpp"
-#include "core/logger.hpp"
 #include "core/filesystem.hpp"
+#include "core/logger.hpp"
+#include "editor/editor_state.hpp"
 
 #include "application/app_state.hpp"
 #include "event/event_queue.hpp"
@@ -15,6 +16,7 @@
 #include "input/mouse.hpp"
 
 #include "ecs/entity.hpp"
+#include "scene/bvh.hpp"
 #include "scene/scene_serializer.hpp"
 
 #include "rendering/camera_base.hpp"
@@ -22,6 +24,19 @@
 #include "scripting/script_engine.hpp"
 
 namespace other {
+
+  void SceneManager::Unload() {
+    if (HasActiveScene()) {
+      UnloadActive();
+    }
+
+    for (auto& [id, scene] : loaded_scenes) {
+      scene.scene->Shutdown();
+    }
+
+    loaded_scenes.clear();
+    scene_paths.clear();
+  }
 
   bool SceneManager::LoadScene(const Path& scenepath) {
     OE_DEBUG("Loading scene {}", scenepath);
@@ -32,7 +47,7 @@ namespace other {
       OE_ASSERT(scene_dir != nullptr, "Failed to get scene directory!");
       OE_ASSERT(scene_dir->Exists(), "Scene directory does not exist!");
 
-      OE_DEBUG("Attempting to find scene : {}" , real_path);
+      OE_DEBUG("Attempting to find scene : {}", real_path);
 
       Ref<FileHandle> scene = scene_dir->GetFileHandleByName(scenepath.string());
       if (scene == nullptr) {
@@ -44,7 +59,7 @@ namespace other {
     }
     OE_ASSERT(Filesystem::FileExists(real_path), "Scene file does not exist!");
 
-    UUID id = FNV(real_path.string());
+    UUID id = 0;
     SceneSerializer serializer;
     {
       auto loaded_scene = serializer.Deserialize(real_path.string());
@@ -53,43 +68,58 @@ namespace other {
         return false;
       }
 
-      loaded_scenes[id] = SceneMetadata{
+      id = FNV(loaded_scene.name);
+      auto& scene_md = loaded_scenes[id] = SceneMetadata{
         .name = loaded_scene.name,
         .path = real_path,
         .scene_table = loaded_scene.scene_table,
         .scene = Ref<Scene>::Clone(loaded_scene.scene),
+        .corrupted = false
       };
+
+      scene_md.scene->Initialize();
+      OE_DEBUG("Loaded scene : {} [{}]", loaded_scene.name, id);
     }
 
     scene_paths.push_back(real_path.string());
 
     EventQueue::PushEvent<SceneLoad>({ id.Get() });
-
     return true;
   }
 
-  void SceneManager::SetAsActive(const Path& path) {
-    OE_DEBUG("Attempting to set scene {} to active", path);
+  void SceneManager::SetAsActive(const std::string_view& name) {
+    OE_DEBUG("Attempting to set scene {} to active [{}]", name, FNV(name));
 
-    UUID id = FNV(path.string());
+    UUID id = FNV(name);
     auto find_scene = loaded_scenes.find(id);
     if (find_scene == loaded_scenes.end()) {
-      OE_ERROR("Scene : {} does not exist! Cant not set as active", path);
-      return;
+      auto itr = std::ranges::find_if(loaded_scenes, [&](const auto& pair) -> bool { return pair.second.name == std::string{ name }; });
+      if (itr == loaded_scenes.end()) {
+        OE_ERROR("Failed to find scene {}", name);
+        return;
+      } else {
+        id = itr->first;
+        OE_DEBUG("Setting {} as active scene", name);
+      }
     } else {
-      OE_DEBUG("Setting {} as active scene", path);
+      OE_DEBUG("Setting {} as active scene", name);
     }
 
     active_scene = &loaded_scenes[id];
+    OE_ASSERT(active_scene != nullptr, "Failed to set active scene!");
+    OE_ASSERT(active_scene->scene != nullptr, "Active scene has no scene!");
+
+    active_scene->bvh = NewRef<BvhTree>(glm::vec3{ 0.f, 0.f, 0.f });
+    active_scene->bvh->AddScene(active_scene->scene, glm::zero<glm::vec3>());
 
     ScriptEngine::SetSceneContext(active_scene->scene);
     Renderer::SetSceneContext(active_scene->scene);
-
-    active_scene->scene->Initialize();
     auto primary_cam = active_scene->scene->GetPrimaryCamera();
     if (primary_cam != nullptr) {
       DefaultUpdateCamera(primary_cam);
     }
+
+    EventQueue::PushEvent<SceneActivate>({ active_scene->scene->SceneHandle().Get() });
   }
 
   void SceneManager::StartScene() {
@@ -121,15 +151,40 @@ namespace other {
     return nullptr;
   }
 
-  Ref<SceneRenderer> SceneManager::GetRenderer() const {
+  void SceneManager::RemoveScene(UUID id) {
+    if (HasActiveScene() && active_scene->scene->SceneHandle() == id) {
+      UnloadActive();
+    }
+
+    if (auto scn = loaded_scenes.find(id); scn != loaded_scenes.end()) {
+      loaded_scenes[id].scene->Shutdown();
+      loaded_scenes.erase(scn);
+    }
+  }
+
+  void SceneManager::RemoveScene(const std::string_view name) {
+    if (HasActiveScene() && active_scene->name == name) {
+      UnloadActive();
+    }
+
+    for (auto& [id, scene] : loaded_scenes) {
+      if (scene.name == name) {
+        loaded_scenes[id].scene->Shutdown();
+        loaded_scenes.erase(id);
+        return;
+      }
+    }
+  }
+
+  Ref<SceneRenderer> SceneManager::GetRenderer() {
     if (scene_renderer == nullptr) {
       OE_DEBUG("No Scene Renderer set, using default renderer");
-      return Renderer::DefaultSceneRenderer();
+      scene_renderer = Renderer::DefaultSceneRenderer();
     }
     return scene_renderer;
   }
 
-  /// TODO: create state system so we don't have to reload the scene each time we stop it to reset
+  /// TODO: create state-capture system so we don't have to reload the scene each time we stop it to reset
   ///         it to how it was.
   ///       this should also be the same system to handle undoing changes and stuff like that
   void SceneManager::StopScene() {
@@ -138,7 +193,6 @@ namespace other {
     }
 
     OE_ASSERT(active_scene->scene != nullptr, "Active Scene has null scene reference!");
-
     if (!active_scene->scene->IsRunning()) {
       return;
     }
@@ -170,8 +224,15 @@ namespace other {
 #endif
   }
 
-  bool SceneManager::HasScene(const Path& path) {
-    return loaded_scenes.find(FNV(path.string())) != loaded_scenes.end();
+  bool SceneManager::HasScene(UUID id) {
+    return loaded_scenes.find(id) != loaded_scenes.end();
+  }
+
+  bool SceneManager::HasScene(const std::string_view name) {
+    return !(
+      loaded_scenes.find(FNV(name)) == loaded_scenes.end() ||
+      std::ranges::find_if(loaded_scenes, [&](const auto& pair) -> bool { return pair.second.name == name; }) == loaded_scenes.end()
+    );
   }
 
   bool SceneManager::HasActiveScene() const {
@@ -220,7 +281,7 @@ namespace other {
       StopScene();
     }
 
-    active_scene->scene->Shutdown();
+    active_scene->corrupted = false;
 
     ScriptEngine::SetSceneContext(nullptr);
     Renderer::SetSceneContext(nullptr);
@@ -306,6 +367,7 @@ namespace other {
     }
 
     active_scene->scene->LateUpdate(dt);
+    active_scene->bvh->Update();
   }
 
   bool SceneManager::RenderScene() {
@@ -315,30 +377,35 @@ namespace other {
 
     OE_ASSERT(scene_renderer != nullptr, "Scene Renderer is null!");
 
+    /// render scene
     active_scene->scene->Render(scene_renderer);
+
+    /// render debug information if in editor
+    if (AppState::mode == EngineMode::EDITOR && EditorState::scene_mode != SceneEditorMode::PLAYING) {
+      active_scene->bvh->RenderBounds("Geometry", scene_renderer);
+      active_scene->bvh->RenderEntityBounds("Geometry", scene_renderer);
+    }
+
+    /// finalize scene
     bool render_success = scene_renderer->EndScene();
 
-    //// debug rendering ?????
-    //  debug rendering
-    // scene_layer->bvh->RenderBounds("Debug", rendering_layer->renderer);
-    // scene_layer->bvh->RenderEntityBounds("Debug", rendering_layer->renderer);
-    // for (auto& [id, e] : scene->SceneEntities()) {
-    //   OE_ASSERT(e != nullptr, "Entity is null");
-    //   e->visited = false;
-    // }
-    ///
-
-    /// dont render to window if in editor, save that for the viewport
+    /// if in editor mode don't render to window, let editor handle that
     if (AppState::mode == EngineMode::EDITOR) {
       return render_success;
     }
 
-    /// TODO: customize which frame is considered the 'main' frame
+    /// TODO: re-evaluate where this logic should go, it doesn't seem like it should be the scene
+    ///       manager's responsibility to render to the window
     const auto& frames = scene_renderer->GetRender();
     auto itr = frames.find(FNV("Geometry"));
     if (render_success && itr != frames.end()) {
       const auto& vp = itr->second;
       Renderer::DrawFramebufferToWindow(vp);
+    } else {
+      if (!active_scene->corrupted) {
+        active_scene->corrupted = true;
+        OE_ERROR("Failed to render scene!");
+      }
     }
 
     return render_success;

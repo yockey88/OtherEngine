@@ -12,9 +12,8 @@
 #include <glm/detail/qualifier.hpp>
 #include <glm/geometric.hpp>
 #include <glm/glm.hpp>
-#include <spdlog/fmt/fmt.h>
-
 #include <reflection/echo_defines.hpp>
+#include <spdlog/fmt/fmt.h>
 
 #include "core/formatters.hpp"
 
@@ -88,6 +87,12 @@ namespace other {
     requires(T t) { std::numeric_limits<T>::infinity(); };
 
   template <typename T>
+  concept max_defined = requires(T t) { std::numeric_limits<T>::max(); };
+
+  template <typename T>
+  concept min_defined = requires(T t) { std::numeric_limits<T>::min(); };
+
+  template <typename T>
     requires epsilon_defined<T>
   constexpr T eps() {
     return std::numeric_limits<T>::epsilon();
@@ -97,6 +102,18 @@ namespace other {
     requires defined_infinity<T>
   constexpr T infinity() {
     return std::numeric_limits<T>::infinity();
+  }
+
+  template <typename T>
+    requires max_defined<T>
+  constexpr T max_value() {
+    return std::numeric_limits<T>::max();
+  }
+
+  template <typename T>
+    requires min_defined<T>
+  constexpr T min_value() {
+    return std::numeric_limits<T>::min();
   }
 
   template <typename T>
@@ -174,8 +191,20 @@ namespace other {
 
   template <typename T, typename U>
     requires multi_epsilon_comparable<T, U>
+  constexpr bool EpsilonLte(T lhs, U rhs) {
+    return EpsilonSubtract<T, U>(lhs, rhs) <= 0;
+  }
+
+  template <typename T, typename U>
+    requires multi_epsilon_comparable<T, U>
   constexpr bool EpsilonGt(T lhs, U rhs) {
     return EpsilonSubtract(lhs, rhs) > 0;
+  }
+
+  template <typename T, typename U>
+    requires multi_epsilon_comparable<T, U>
+  constexpr bool EpsilonGte(T lhs, U rhs) {
+    return EpsilonSubtract(lhs, rhs) >= 0;
   }
 
   template <glm::length_t N, typename T, glm::qualifier Q>

@@ -1,5 +1,3 @@
--- local other_ui = require("other.ui")
-
 local engine_stats = {}
       
 local function fps(dt)
@@ -116,7 +114,7 @@ local function render_entity(ent)
 end
 
 local function render_scene(scene_ctx)
-  ImGui.Begin("Scene")
+  ImGui.Begin("Scene-Lua")
 
   scene_handle_str = string.format("Scene Handle : [%d:%x]" , scene_ctx, scene_ctx)
   ImGui.Text(scene_handle_str)
@@ -161,35 +159,9 @@ SandboxUI = {
     -- render_stats(fps)
 
     scene_ctx = Scene.ContextHandle()
-    if (scene_ctx ~= nil) 
+    if (scene_ctx ~= nil or scene_ctx ~= 0) 
     then
       render_scene(scene_ctx)
     end
   end
 }
-
---- goal is to implement all of this in lua
---   ImGui::Text(" - Light Controls =====");
---   uint32_t i = 0;
---   edited = false;
---   reg.view<LightSource, Transform>().each([&](LightSource& light, Transform& transform) {
---     switch (light.type) {
---       case POINT_LIGHT_SRC:
---         edited = RenderPointLight(fmtstr("point light [{}]", i++), light.pointlight) && edited;
---         break;
---       case DIRECTION_LIGHT_SRC:
---         edited = RenderDirectionLight(fmtstr("direction light [{}]", i++), light.direction_light) && edited;
---         break;
---       default:
---         break;
---     }
---     ++i;
---   });
-
---   if (edited) {
---     scene->RebuildEnvironment();
---   }
-
---   ImGui::Separator();
--- }
--- ImGui::End();

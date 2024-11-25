@@ -29,18 +29,24 @@ namespace other {
 
   enum CommandPriority : uint8_t {
     IGNORE_COMMAND = 0x00,
-    DEFAULT_PRIORITY = 0x01,
-    LOW_PRIORITY = 0x02,
-    MEDIUM_PRIORITY = 0x03,
-    HIGH_PRIORITY = 0x04,
-    URGENT = 0x05,
+    DEFAULT_COMMAND_PRIORITY = 0x01,
+    LOW_COMMAND_PRIORITY = 0x02,
+    MEDIUM_COMMAND_PRIORITY = 0x03,
+    HIGH_COMMAND_PRIORITY = 0x04,
+    URGENT_COMMAND = 0x05,
+
+    NUM_COMMAND_PRIORITIES,
+    INVALID_COMMAND_PRIORITY = NUM_COMMAND_PRIORITIES,
   };
 
   enum CommandCategory : uint8_t {
     EMPTY_COMMAND = 0x00,
     PROJECT_COMMAND = 0x01,
     SCENE_COMMAND = 0x02,
-    INVALID_COMMAND
+    ENVIRONMENT_COMMAND = 0x03,
+
+    NUM_COMMAND_CATEGORIES,
+    INVALID_COMMAND_CATEGORY = NUM_COMMAND_CATEGORIES,
   };
 
   enum CommandType : uint8_t {
@@ -48,7 +54,13 @@ namespace other {
     CREATE_COMMAND = 0x01,
     DELETE_COMMAND = 0x02,
     LOAD_COMMAND = 0x03,
-    SAVE_COMMAND = 0x04,
+    UNLOAD_COMMAND = 0x04,
+    SAVE_COMMAND = 0x05,
+    CLEAR_COMMAND = 0x06,
+    EXIT_COMMAND /* = 0x0? */,
+
+    NUM_COMMAND_TYPES,
+    INVALID_COMMAND_TYPE = NUM_COMMAND_TYPES,
   };
 
 #pragma pack(push, 1)
@@ -58,8 +70,8 @@ namespace other {
         CommandPriority priority;
         CommandCategory category;
         CommandType command;
-        /// for number of args of stack, uint32 is to pad the struct size
         uint8_t num_args;
+        uint32_t padding;
       };
 
       address_t argument_address;
@@ -73,17 +85,17 @@ namespace other {
     using CategoryPair = std::pair<uint64_t, CommandCategory>;
     using TypePair = std::pair<uint64_t, CommandType>;
 
-    constexpr static size_t kNumPriorities = 6;
-    constexpr static size_t kNumCategories = 3;
-    constexpr static size_t kNumCommands = 5;
+    constexpr static size_t kNumPriorities = NUM_COMMAND_PRIORITIES;
+    constexpr static size_t kNumCategories = NUM_COMMAND_CATEGORIES;
+    constexpr static size_t kNumCommands = NUM_COMMAND_TYPES;
 
     constexpr static std::array<PriorityPair, kNumPriorities> kCommandPriority = {
       PriorityPair{ FNV("ignore"), IGNORE_COMMAND },
-      PriorityPair{ FNV("defaultp"), DEFAULT_PRIORITY },
-      PriorityPair{ FNV("lowp"), LOW_PRIORITY },
-      PriorityPair{ FNV("mediump"), MEDIUM_PRIORITY },
-      PriorityPair{ FNV("highp"), HIGH_PRIORITY },
-      PriorityPair{ FNV("urgentp"), URGENT },
+      PriorityPair{ FNV("defaultp"), DEFAULT_COMMAND_PRIORITY },
+      PriorityPair{ FNV("lowp"), LOW_COMMAND_PRIORITY },
+      PriorityPair{ FNV("mediump"), MEDIUM_COMMAND_PRIORITY },
+      PriorityPair{ FNV("highp"), HIGH_COMMAND_PRIORITY },
+      PriorityPair{ FNV("urgentp"), URGENT_COMMAND },
     };
 
     constexpr static std::array<CategoryPair, kNumCategories> kCommandCategory = {
@@ -94,9 +106,12 @@ namespace other {
 
     constexpr static std::array<TypePair, kNumCommands> kCommandType = {
       TypePair{ FNV("no-op"), NO_OP_COMMAND },
+      TypePair{ FNV("clear"), CLEAR_COMMAND },
+      TypePair{ FNV("exit"), EXIT_COMMAND },
       TypePair{ FNV("create"), CREATE_COMMAND },
       TypePair{ FNV("delete"), DELETE_COMMAND },
       TypePair{ FNV("load"), LOAD_COMMAND },
+      TypePair{ FNV("unload"), UNLOAD_COMMAND },
       TypePair{ FNV("save"), SAVE_COMMAND },
     };
   };

@@ -14,7 +14,6 @@
 #include "physics/phyics_engine.hpp"
 #include "physics/physics_defines.hpp"
 
-
 namespace other {
 
   void SceneSerializer::Serialize(const std::string_view scene_name, std::ostream& stream, const Ref<Scene>& scene) const {
@@ -58,17 +57,17 @@ namespace other {
     stream << "\n";
   }
 
-  DeserializedScene SceneSerializer::Deserialize(const std::string_view scn_path) const {
+  DeserializedScene SceneSerializer::Deserialize(const Path& scn_path) const {
     DeserializedScene scene_metadata;
     try {
-      IniFileParser parser{ scn_path.data() };
+      IniFileParser parser{ scn_path.string() };
       scene_metadata.scene_table = parser.Parse();
     } catch (IniException& err) {
       OE_WARN("Failed to parse scene file - {} : {}", scn_path, err.what());
       return {};
     }
 
-    scene_metadata.name = scene_metadata.scene_table.GetVal<std::string>(kMetadataSection, kNameValue, false).value_or(scn_path.data());
+    scene_metadata.name = scene_metadata.scene_table.GetVal<std::string>(kMetadataSection, kNameValue, false).value_or(scn_path.stem().string());
     scene_metadata.scene = NewRef<Scene>();
 
     std::string physics_section = std::string{ kPhysicsValue } + ".";

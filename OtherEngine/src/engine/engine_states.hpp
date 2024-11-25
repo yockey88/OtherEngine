@@ -29,6 +29,13 @@ namespace other {
     CORRUPT_SHADER_ERROR,
     ENGINE_FAILURE,
 
+#ifdef OE_TESTING_ENVIRONMENT
+    TEST_START,
+    TEST_END,
+    TEST_FAILURE,
+    TEST_SUCCESS,
+#endif  // OE_TESTING_ENVIRONMENT
+
     NUM_ENGINE_EVENTS,
     INVALID_ENGINE_EVENT = NUM_ENGINE_EVENTS,
   };
@@ -36,7 +43,7 @@ namespace other {
   enum class EngineStateTypes : uint64_t {
     IDLE = 0,
 
-    ENGINE_LAUNCHING,
+    ENGINE_LAUNCHING = bit(0),
     ENGINE_IDLE,
     ENGINE_SHUTDOWN,
 
@@ -47,6 +54,12 @@ namespace other {
     SCENE_IDLE,
 
     ERROR_STATE,
+
+#ifdef OE_TESTING_ENVIRONMENT
+    TEST_IDLE,
+    TEST_RUNNING,
+    TEST_COMPLETE,
+#endif  // OE_TESTING_ENVIRONMENT
 
     NUM_ENGINE_STATES,
     INVALID_ENGINE_STATE = NUM_ENGINE_STATES,

@@ -22,6 +22,17 @@ namespace other {
     }
   };
 
+  struct SceneActivate {
+    SCENE_EVENT();
+    EVENT_TYPE(SCENE_ACTIVATE);
+
+    uint64_t scene_id;
+
+    std::string ToString() const {
+      return "SceneActivateEvent";
+    }
+  };
+
   struct SceneStart {
     SCENE_EVENT();
     EVENT_TYPE(SCENE_START);
@@ -56,6 +67,7 @@ namespace other {
   };
 
   static_assert(Event<SceneLoad>, "SceneLoad does not meet the Event concept");
+  static_assert(Event<SceneActivate>, "SceneActivate does not meet the Event concept");
   static_assert(Event<SceneStart>, "SceneStart does not meet the Event concept");
   static_assert(Event<SceneStop>, "SceneStop does not meet the Event concept");
   static_assert(Event<SceneUnload>, "SceneUnload does not meet the Event concept");

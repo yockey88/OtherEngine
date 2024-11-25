@@ -10,36 +10,7 @@
 #include "rendering/rendering_defines.hpp"
 #include "rendering/vertex.hpp"
 
-struct MeshKeyComparison {
-  bool operator()(const other::MeshKey& lhs, const other::MeshKey& rhs) const {
-    if (lhs.source_handle.Get() != rhs.source_handle.Get()) {
-      return lhs.source_handle.Get() < rhs.source_handle.Get();
-    }
-
-    if (lhs.render_state != rhs.render_state) {
-      return lhs.render_state < rhs.render_state;
-    }
-
-    if (lhs.draw_mode != rhs.draw_mode) {
-      return lhs.draw_mode < rhs.draw_mode;
-    }
-
-    return lhs.selected && !rhs.selected;
-  }
-};
-constexpr inline MeshKeyComparison mesh_key_compare{};
-
 namespace other {
-
-  auto MeshKey::operator<=>(const MeshKey& other) const {
-    if (mesh_key_compare(*this, other)) {
-      return -1;
-    } else if (mesh_key_compare(other, *this)) {
-      return 1;
-    } else {
-      return 0;
-    }
-  }
 
   RenderSubmission::operator MeshKey() const {
     return {
@@ -80,10 +51,7 @@ namespace other {
     Ref<ModelSource> source = submission.model->GetModelSource();
     MeshKey key = submission;
 
-    auto itr = std::ranges::find_if(model_submissions, [&](const auto& pair) -> bool {
-      return mesh_key_compare(pair.first, key) == 0;
-    });
-
+    auto itr = model_submissions.find(key);
     if (itr == model_submissions.end()) {
       auto& verts = submission.model->GetModelSource()->RawVertices();
       auto& idxs = submission.model->GetModelSource()->Indices();

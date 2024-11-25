@@ -8,6 +8,7 @@
 #include "core/filesystem.hpp"
 #include "core/logger.hpp"
 #include "engine/engine.hpp"
+#include "environment/environment.hpp"
 
 #include "application/app.hpp"
 #include "event/event_queue.hpp"
@@ -21,14 +22,16 @@ namespace other {
 
   Ref<AppState::Data> AppState::data = nullptr;
 
-  void AppState::Initialize(const CmdLine& cmd_line, const ConfigTable& config) {
+  void AppState::Initialize(Engine* driver) {
     // OE_ASSERT(app_handle != nullptr, "Can not load null application");
 
-    data = NewRef<Data>(NewApp(cmd_line, config), Ref<Project>::Create(cmd_line, config));
-    data->cmd_line = cmd_line;
-    data->config = config;
+    data = NewRef<Data>(NewApp(driver->cmd_line, driver->config), Ref<Project>::Create(driver->cmd_line, driver->config));
+    data->cmd_line = driver->cmd_line;
+    data->config = driver->config;
+    data->driver = driver;
 
     data->app_handle->Load();
+    data->loading = true;
   }
 
   void AppState::Shutdown() {
@@ -42,6 +45,16 @@ namespace other {
 
     data->app_handle->Unload();
     data = nullptr;
+  }
+
+  bool AppState::IsLoading() {
+    OE_ASSERT(data != nullptr, "Can not access app data until app is loaded");
+    return data->loading;
+  }
+
+  void AppState::MarkLoaded() {
+    OE_ASSERT(data != nullptr, "Can not access app data until app is loaded");
+    data->loading = false;
   }
 
   CmdLine& AppState::GetProcessArguments() {
@@ -118,8 +131,8 @@ namespace other {
     return *data->app_handle;
   }
 
-  void AppState::AppEvent(const Ref<EngineStateEvent>& event) {
-    // state->DispatchEvent(event);
+  void AppState::AppEvent(EngineStateEvent event) {
+    data->driver->EngineEvent(event);
   }
 
   Ref<AppState::Data> AppState::GetData() {
@@ -151,7 +164,7 @@ namespace other {
       return;
     }
 
-    data->scenes->SetAsActive(*primary_scene);
+    data->scenes->SetAsActive(*proj_meta.primary_scene);
     OE_DEBUG("Primary Scene Loaded : {}", *proj_meta.primary_scene);
   }
 
@@ -159,6 +172,8 @@ namespace other {
     if (is_attached) {
       return;
     }
+
+    Environment::Initialize();
 
     ScriptEngine::LoadProjectModules();
     ScriptEngine::LoadAttachments("scene");
@@ -184,8 +199,13 @@ namespace other {
     data->scenes->UnloadActive();
     data->app_handle->Detach();
 
+    data->scenes->Unload();
+
     ScriptEngine::UnloadAttachments();
     ScriptEngine::UnloadProjectModules();
+
+    Environment::Shutdown();
+
     is_attached = false;
   }
 
@@ -196,6 +216,17 @@ namespace other {
     Filesystem::Poll();
     IO::Update();
     EventQueue::Poll();
+  }
+
+  void AppState::FlushUpdateLoop() {
+    if (Environment::Get().terminal_open) {
+      Environment::Get().terminal.Dispatch();
+    }
+
+    EventQueue::Poll();
+    RunEarlyUpdate();
+    RunUpdate();
+    RunLateUpdate();
   }
 
   void AppState::RunEarlyUpdate() {
@@ -230,20 +261,34 @@ namespace other {
     data->app_handle->OnRender();
     data->layers->InvokeControlledLoop(&Layer::Render);
     ScriptEngine::RenderAttachments();
-    if (!data->scenes->RenderScene()) {
+
+    bool render_success = data->scenes->RenderScene();
+    if (!render_success && AppState::mode == EngineMode::EDITOR
+#ifdef OE_TESTING_ENVIRONMENT
+        || AppState::mode == EngineMode::TESTING
+#endif  // !OE_TESTING_ENVIRONMENT
+    ) {
       /// render default view
+    } else if (!render_success) {
     }
 
     if (UI::Enabled()) {
       UI::BeginFrame();
+      ScriptEngine::RenderUIAttachments();
 
+      /// TODO: re-evaluate what exactly 'in-app' UI means.
+      ///         we need to distinguish between [the app's ui] and [the app's ui for the engine]
       data->app_handle->OnRenderUI();
       data->layers->InvokeControlledLoop(&Layer::UIRender);
+      /// may also want to changed these ui windows as well
       for (auto& [id, window] : data->ui_windows) {
         window->Render();
       }
 
-      ScriptEngine::RenderUIAttachments();
+      if (Environment::Get().terminal_open) {
+        Environment::RenderTerminal();
+      }
+
       UI::EndFrame();
     }
     Renderer::GetWindow()->SwapBuffers();
