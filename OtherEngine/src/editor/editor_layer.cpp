@@ -6,15 +6,13 @@
 #include <imgui/imgui.h>
 
 #include "core/logger.hpp"
-#include "editor/editor_images.hpp"
-#include "editor/editor_state.hpp"
 #include "environment/environment.hpp"
 #include "math/vecmath.hpp"
 
 #include "application/app_state.hpp"
-#include "event/event.hpp"
 #include "event/event_queue.hpp"
 #include "event/key_events.hpp"
+#include "event/mouse_events.hpp"
 #include "input/mouse.hpp"
 
 #include "scene/bvh.hpp"
@@ -24,6 +22,10 @@
 #include "rendering/perspective_camera.hpp"
 #include "rendering/renderer.hpp"
 #include "rendering/ui/ui_helpers.hpp"
+
+#include "editor/editor_images.hpp"
+#include "editor/editor_state.hpp"
+#include "editor/selection_manager.hpp"
 
 namespace other {
   namespace {
@@ -44,6 +46,10 @@ namespace other {
     EventQueue::RegisterEventDispatcher<KeyPressed>(
       "EditorLayer--KeyPressed",
       { std::bind_front(&EditorLayer::HandleKeyPressed, this) }
+    );
+    EventQueue::RegisterEventDispatcher<MouseButtonPressed>(
+      "EditorLayer--MousePressed",
+      { std::bind_front(&EditorLayer::HandleMousePressed, this) }
     );
     EventQueue::RegisterEventDispatcher<SceneActivate>(
       "EditorLayer--SceneActivate",
@@ -75,6 +81,7 @@ namespace other {
     EditorImages::Shutdown();
 
     EventQueue::UnregisterEventDispatcher("EditorLayer--KeyPressed");
+    EventQueue::UnregisterEventDispatcher("EditorLayer--MousePressed");
     EventQueue::UnregisterEventDispatcher("EditorLayer--SceneActivate");
     EventQueue::UnregisterEventDispatcher("EditorLayer--SceneUnload");
   }
@@ -101,7 +108,7 @@ namespace other {
       return;
     }
 
-    if (EditorState::scene_mode == SceneEditorMode::FREE_CAMERA) {
+    if (EditorState::scene_mode == SceneEditorMode::SIMULATING) {
       DefaultUpdateCamera(editor.editor_camera);
     }
   }
@@ -117,42 +124,41 @@ namespace other {
 
     /// submit editor camera for main render,
     AppState::Scenes()->GetRenderer()->SubmitCamera(editor.editor_camera);
-    SceneMetadata* scene = AppState::Scenes()->ActiveScene();
-
-    OE_ASSERT(scene != nullptr, "No active scene!");
-    OE_ASSERT(scene->scene != nullptr, "Scene is null!");
-
-    /// if mouse is not in viewport than dont trace anything
-    for (auto& [id, ent] : scene->scene->SceneEntities()) {
-      ent->actively_selected = false;
-    }
-
-    if (!editor.viewport_mouse_pos.has_value() || EditorState::scene_mode != SceneEditorMode::STOPPED) {
-      return;
-    }
-
-    Ray mouse_ray = CastRay(editor.editor_camera, *editor.viewport_mouse_pos, editor.current_viewport_size);
-    // OE_DEBUG("Ray : {}", mouse_ray);
-    Interval trace_interval = Interval(0.f, max_value<float>());
-
-    for (auto& [id, ent] : scene->scene->SceneEntities()) {
-      ent->actively_selected = false;
-      const Transform& transform = ent->ReadComponent<Transform>();
-      if (transform.bbox.Hit(mouse_ray, trace_interval)) {
-        ent->actively_selected = true;
-      }
-    }
-
-    // /// trace result and toggle all hit entities to be selected (should only be one)
-    // Opt<TraceResult> result = scene->bvh->Trace(mouse_ray, trace_interval);
-    // if (result.has_value()) {
-    //   OE_ASSERT(result->hit_entity != nullptr, "Hit entity is null!");
-    //   result->hit_entity->actively_selected = true;
-    // }
   }
 
   void EditorLayer::OnUIRender() {
     using namespace std::string_view_literals;
+
+    Ref<SceneRenderer> scene_renderer = AppState::Scenes()->GetRenderer();
+    OE_ASSERT(scene_renderer != nullptr, "No scene renderer found");
+
+    SceneMetadata* active_scene = AppState::Scenes()->ActiveScene();
+    OE_ASSERT(active_scene != nullptr, "No active scene found");
+    OE_ASSERT(active_scene->scene != nullptr, "No active scene found");
+
+    /// render scene as it is for runtime, this clears the pipelines
+    /// TODO: finalize scene and then draw editor information on top
+    // bool runtime_frame_success = scene_renderer->FinalizeScene();
+    // scene_renderer->ClearLightEnvironment();
+
+    /// render scene for editor
+    if (EditorState::scene_mode != SceneEditorMode::PLAYING) {
+      active_scene->scene->Render(scene_renderer);
+      scene_renderer->RenderGbuffer();
+
+      active_scene->bvh->RenderBounds("Geometry", scene_renderer);
+
+      if (SelectionManager::HasSelection()) {
+        Entity* selected = SelectionManager::ActiveSelection();
+        OE_ASSERT(selected != nullptr, "Selected entity is null!");
+
+        RenderSubmission sub = selected->WireframeSubmission();
+        OE_ASSERT(sub.model != nullptr, "Wireframe model is null!");
+        scene_renderer->SubmitStaticModel("Geometry", sub);
+      }
+    }
+
+    bool render_success = scene_renderer->FinalizeScene();
 
     // clang-format off
     ui::MainMenuBar([&]() {
@@ -195,6 +201,14 @@ namespace other {
 
     EditorState& editor = EditorState::Get();
     if (ImGui::Begin("Inspector")) {
+      if (!render_success) {
+        ScopedColor err_color(ImGuiCol_Text, ui::theme::red);
+        if (ImGui::BeginChild("[ ERROR ]", { 0, 0 }, false, ImGuiWindowFlags_NoScrollbar)) {
+          ImGui::Text("Failed to render scene");
+          ImGui::EndChild();
+        }
+      }
+
       switch (EditorState::scene_mode) {
         case SceneEditorMode::STOPPED:
           ui::Button("Play", [&]() {
@@ -216,9 +230,10 @@ namespace other {
           });
           break;
 
-        case SceneEditorMode::FREE_CAMERA:
-          ImGui::Text("[Roaming] (Ctrl+C to reset, Ctrl+Shift+C to lock)");
-          break;
+        case SceneEditorMode::FREE_CAMERA: {
+          ScopedColor green_text(ImGuiCol_Text, ui::theme::green);
+          ImGui::Text("[Roaming] (Ctrl+C to lock, Ctrl+Shift+C to reset)");
+        } break;
 
         case SceneEditorMode::SIMULATING:
         case SceneEditorMode::PLAYING:
@@ -258,16 +273,17 @@ namespace other {
     // AppState::PushUIWindow(settings_window);
   }
 
-  Ray EditorLayer::CastRay(Ref<CameraBase>& camera, const glm::vec2& mouse_pos, const glm::vec2& viewport_size) {
+  Ray EditorLayer::CastRay(Ref<CameraBase>& camera, const glm::vec2& mouse_pos) {
+    OE_ASSERT(camera != nullptr, "Camera is null!");
+
     glm::vec4 clip_pos = {
-      (2.f * mouse_pos.x) / viewport_size.x - 1.f,
-      (2.f * mouse_pos.y) / viewport_size.y - 1.f,
+      mouse_pos.x,
+      mouse_pos.y,
       -1.f, 1.f
     };
-    glm::mat4 camera_transform = glm::translate(glm::mat4(1.f), camera->Position());
 
     glm::mat4 inverse_proj = glm::inverse(camera->ProjectionMatrix());
-    glm::mat4 inverse_camera_tansform = glm::inverse(camera_transform);
+    glm::mat4 inverse_camera_tansform = glm::inverse(camera->ViewMatrix());
     glm::vec4 ray_dir = inverse_camera_tansform * inverse_proj * clip_pos;
 
     return Ray(camera->Position(), glm::normalize(glm::vec3(ray_dir)));
@@ -331,14 +347,14 @@ namespace other {
       if (!editor.editor_camera->locked) {
         EditorState::scene_mode = SceneEditorMode::FREE_CAMERA;
 
-        if (!Keyboard::LCtrlShiftLayer()) {
+        if (Keyboard::LCtrlShiftLayer()) {
           editor.stored_camera_position = editor.editor_camera->Position();
           editor.stored_camera_direction = editor.editor_camera->Direction();
         }
       } else {
         EditorState::scene_mode = SceneEditorMode::STOPPED;
 
-        if (!Keyboard::LCtrlShiftLayer()) {
+        if (Keyboard::LCtrlShiftLayer()) {
           editor.editor_camera->SetPosition(editor.stored_camera_position);
           editor.editor_camera->SetDirection(editor.stored_camera_direction);
           editor.editor_camera->CalculateMatrix();
@@ -347,6 +363,45 @@ namespace other {
 
       return true;
     });
+  }
+
+  bool EditorLayer::HandleMousePressed(MouseButtonPressed& event) {
+    if (!EditorState::Get().last_mouse_viewport_click.has_value()) {
+      return false;
+    }
+
+    EditorState& editor = EditorState::Get();
+    if (EditorState::scene_mode != SceneEditorMode::STOPPED ||
+        event.button != Mouse::Button::LEFT) {
+      return false;
+    }
+
+    SceneMetadata* scene = AppState::Scenes()->ActiveScene();
+    OE_ASSERT(scene != nullptr, "No active scene!");
+    OE_ASSERT(scene->scene != nullptr, "Scene is null!");
+    OE_ASSERT(scene->bvh != nullptr, "Scene BVH is null!");
+
+    glm::vec4 homogeneous_clip_pos = {
+      (2.f * editor.last_mouse_viewport_click->x) / editor.current_viewport_size.x - 1.f,
+      1.f - (2.f * editor.last_mouse_viewport_click->y) / editor.current_viewport_size.y,
+      -1.f, 1.f
+    };
+    glm::vec4 shift_pos = glm::vec4(glm::vec2(glm::inverse(editor.editor_camera->ProjectionMatrix()) * homogeneous_clip_pos), -1.f, 0.f);
+    glm::vec3 world_coords = glm::vec3(glm::normalize(glm::inverse(editor.editor_camera->ViewMatrix()) * shift_pos));
+
+    Ray initial_ray = Ray{
+      editor.editor_camera->Position(),
+      world_coords
+    };
+    Interval trace_interval = Interval(0.f, max_value<float>());
+    Opt<TraceResult> trace = scene->bvh->Trace(initial_ray, trace_interval);
+    if (!trace.has_value()) {
+      return false;
+    }
+
+    OE_ASSERT(trace->hit_entity != nullptr, "Hit entity is null!");
+    SelectionManager::Select(trace->hit_entity);
+    return false;
   }
 
   bool EditorLayer::HandleSceneActivate(SceneActivate& event) {

@@ -10,6 +10,7 @@
 #include "editor/saves.hpp"
 
 #include "event/key_events.hpp"
+#include "event/mouse_events.hpp"
 #include "event/scene_events.hpp"
 
 namespace other {
@@ -44,9 +45,10 @@ namespace other {
 
     void LaunchSettingsWindow();
 
-    Ray CastRay(Ref<CameraBase>& camera, const glm::vec2& mouse_pos, const glm::vec2& viewport_size);
+    Ray CastRay(Ref<CameraBase>& camera, const glm::vec2& mouse_pos);
 
     bool HandleKeyPressed(KeyPressed& event);
+    bool HandleMousePressed(MouseButtonPressed& event);
     bool HandleSceneActivate(SceneActivate& event);
     bool HandleSceneUnload(SceneUnload& event);
   };

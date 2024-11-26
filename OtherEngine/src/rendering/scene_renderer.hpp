@@ -66,6 +66,8 @@ namespace other {
     void SubmitCamera(const Ref<CameraBase>& camera);
     void SubmitEnvironment(const Ref<LightEnvironment>& environment);
 
+    void ClearLightEnvironment();
+
     void SubmitDirectionLight(const DirectionLight& light);
     void SubmitPointLight(const PointLight& light);
 
@@ -73,7 +75,14 @@ namespace other {
     void SubmitStaticModel(const std::string_view pl_name, Ref<StaticModel> model, const glm::mat4& transform, const Material& material);
     void SubmitStaticModel(const std::string_view pl_name, const RenderSubmission& submission);
 
-    bool EndScene();
+    void RenderGbuffer();
+
+    bool RenderAll();
+    /// feed-forward outputs into input frames
+
+    /// verify we have fed-forward all outputs
+    /// render to final framebuffer
+    bool FinalizeScene();
 
     void ClearPipelines();
 

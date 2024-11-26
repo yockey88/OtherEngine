@@ -8,7 +8,6 @@
 #include "core/defines.hpp"
 #include "core/filesystem.hpp"
 #include "core/logger.hpp"
-#include "editor/editor_state.hpp"
 
 #include "application/app_state.hpp"
 #include "event/event_queue.hpp"
@@ -22,6 +21,8 @@
 #include "rendering/camera_base.hpp"
 #include "rendering/renderer.hpp"
 #include "scripting/script_engine.hpp"
+
+#include "editor/editor_state.hpp"
 
 namespace other {
 
@@ -380,35 +381,15 @@ namespace other {
     /// render scene
     active_scene->scene->Render(scene_renderer);
 
-    /// render debug information if in editor
-    if (AppState::mode == EngineMode::EDITOR && EditorState::scene_mode != SceneEditorMode::PLAYING) {
-      active_scene->bvh->RenderBounds("Geometry", scene_renderer);
-      active_scene->bvh->RenderEntityBounds("Geometry", scene_renderer);
+    /// render gbuffer only with scene objects
+    ///   otherwise editor objects get included in lighting calculations
+    scene_renderer->RenderGbuffer();
+
+    /// let editor render more stuff on top
+    if (AppState::mode != EngineMode::EDITOR) {
+      return scene_renderer->FinalizeScene();
     }
-
-    /// finalize scene
-    bool render_success = scene_renderer->EndScene();
-
-    /// if in editor mode don't render to window, let editor handle that
-    if (AppState::mode == EngineMode::EDITOR) {
-      return render_success;
-    }
-
-    /// TODO: re-evaluate where this logic should go, it doesn't seem like it should be the scene
-    ///       manager's responsibility to render to the window
-    const auto& frames = scene_renderer->GetRender();
-    auto itr = frames.find(FNV("Geometry"));
-    if (render_success && itr != frames.end()) {
-      const auto& vp = itr->second;
-      Renderer::DrawFramebufferToWindow(vp);
-    } else {
-      if (!active_scene->corrupted) {
-        active_scene->corrupted = true;
-        OE_ERROR("Failed to render scene!");
-      }
-    }
-
-    return render_success;
+    return true;
   }
 
   void SceneManager::RenderSceneUI() {

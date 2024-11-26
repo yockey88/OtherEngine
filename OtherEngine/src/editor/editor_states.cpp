@@ -3,7 +3,6 @@
  **/
 #include "editor/editor_states.hpp"
 
-#include "editor/editor_layer.hpp"
 #include "engine/engine.hpp"
 #include "engine/engine_states.hpp"
 #include "environment/environment.hpp"
@@ -11,6 +10,8 @@
 #include "application/app_state.hpp"
 #include "event/event_queue.hpp"
 #include "event/scene_events.hpp"
+
+#include "editor/editor_layer.hpp"
 
 namespace other {
 
@@ -55,7 +56,10 @@ namespace other {
     }
 
     AppState::FlushUpdateLoop();
-    AppState::HandleRender();
+
+    if (!AppState::exit_code.has_value()) {
+      AppState::HandleRender();
+    }
   }
 
   void EditorIdle::OnDetach() {

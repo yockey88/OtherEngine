@@ -79,13 +79,8 @@ namespace other {
       static_assert(N == 8 || N == 2, "Invalid BVH size!");
 
       auto& space = GetSpace();
-      for (Entity*& e : space.entities) {
-        e->actively_selected = false;
-        e->visited = false;
-      }
 
       TraceResult result = {};
-
       if (space.Trace(ray, ray_interval, result)) {
         return result;
       }

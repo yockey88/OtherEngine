@@ -66,6 +66,20 @@ namespace other {
     ++sl.instance_count;
   }
 
+  void Pipeline::RenderGbuffer() {
+    material_storage->Clear();
+    model_storage->Clear();
+
+    gbuffer.Bind();
+    CHECKGL();
+
+    RenderAll();
+    CHECKGL();
+
+    gbuffer.Unbind();
+    CHECKGL();
+  }
+
   void Pipeline::Render() {
     /** Passes to implement
      * ----------------
@@ -91,15 +105,6 @@ namespace other {
      **/
     material_storage->Clear();
     model_storage->Clear();
-
-    gbuffer.Bind();
-    CHECKGL();
-
-    RenderAll();
-    CHECKGL();
-
-    gbuffer.Unbind();
-    CHECKGL();
 
     target->BindFrame();
     CHECKGL();

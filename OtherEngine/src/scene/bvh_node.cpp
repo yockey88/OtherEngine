@@ -139,28 +139,20 @@ namespace other {
 
   template <>
   void BvhNode<2>::RenderEntityBounds(const std::string_view pl_name, Ref<SceneRenderer>& renderer, bool outline) {
-    const static AssetHandle wireframe = ModelFactory::CreateBoxWireframe();
-    Ref<StaticModel> model = AssetManager::GetAsset<StaticModel>(wireframe);
-
-    Material mat(glm::vec4(0.f, 1.f, 0.f, 1.f), 16.f);
+    if (!IsLeaf()) {
+      for (auto* c : children) {
+        if (c != nullptr) {
+          c->RenderEntityBounds(pl_name, renderer, outline);
+        }
+      }
+      return;
+    }
 
     for (Entity*& e : entities) {
-      if (!e->actively_selected) {
-        continue;
-      }
-
       if (e->visited) {
         continue;
       }
-
-      RenderSubmission s = {
-        .model = model,
-        .transform = e->GetComponent<Transform>().model_transform,
-        .material = mat,
-        .render_state = RenderState::FILL,
-        .draw_mode = DrawMode::LINES,
-      };
-      renderer->SubmitStaticModel(pl_name, s);
+      renderer->SubmitStaticModel(pl_name, e->WireframeSubmission());
 
       e->visited = true;
     }
@@ -168,34 +160,22 @@ namespace other {
 
   template <>
   void BvhNode<8>::RenderEntityBounds(const std::string_view pl_name, Ref<SceneRenderer>& renderer, bool outline) {
-    const static AssetHandle wireframe = ModelFactory::CreateBoxWireframe();
-    Ref<StaticModel> model = AssetManager::GetAsset<StaticModel>(wireframe);
-
-    Material mat(glm::vec4(0.f, 1.f, 0.f, 1.f), 16.f);
+    if (!IsLeaf()) {
+      for (auto* c : children) {
+        if (c != nullptr) {
+          c->RenderEntityBounds(pl_name, renderer, outline);
+        }
+      }
+      return;
+    }
 
     for (Entity*& e : entities) {
-      if (!e->actively_selected) {
-        continue;
-      }
-
       if (e->visited) {
         continue;
       }
-
-      RenderSubmission s = {
-        .model = model,
-        .transform = e->GetComponent<Transform>().CalcMatrix(),
-        .material = mat,
-        .render_state = RenderState::FILL,
-        .draw_mode = DrawMode::LINES,
-      };
-      renderer->SubmitStaticModel(pl_name, s);
+      renderer->SubmitStaticModel(pl_name, e->WireframeSubmission());
 
       e->visited = true;
-    }
-
-    if (IsLeaf()) {
-      return;
     }
   }
 

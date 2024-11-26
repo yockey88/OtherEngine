@@ -38,6 +38,11 @@ namespace other {
     SDL_Window* window = SDL_GetMouseFocus();
     state.in_window = window != nullptr;
 
+    int x, y;
+    glm::ivec2 mouse_screen_pos;
+    SDL_GetGlobalMouseState(&x, &y);
+    mouse_screen_pos = { x, y };
+
     for (uint32_t b = 0; b < kButtonCount; ++b) {
       Button button = static_cast<Button>(b);
       ButtonState& button_state = buttons[button];
@@ -45,38 +50,33 @@ namespace other {
       button_state.previous_state = button_state.current_state;
 
       if (curr_state & SDL_BUTTON(b) && button_state.current_state == State::RELEASED) {
-        button_state.current_state = State::PRESSED;
+        button_state.current_state = State::BLOCKED;
         button_state.frames_held = 1;
 
-        EventQueue::PushEvent<MouseButtonPressed>({ button, button_state.frames_held });
+        EventQueue::PushEvent<MouseButtonPressed>({ button, mouse_screen_pos, button_state.frames_held });
         continue;
       }
 
-      if (curr_state & SDL_BUTTON(b) && (button_state.current_state == State::PRESSED || button_state.current_state == State::BLOCKED) && button_state.frames_held <= 22) {
+      if (curr_state & SDL_BUTTON(b) && button_state.current_state == State::BLOCKED && button_state.frames_held <= 22) {
         button_state.current_state = State::BLOCKED;
         ++button_state.frames_held;
-
-        EventQueue::PushEvent<MouseButtonPressed>({ button, button_state.frames_held });
         continue;
-      }
-
-      if ((curr_state & SDL_BUTTON(b)) && button_state.current_state == State::BLOCKED &&
-          button_state.frames_held > 22) {
+      } else if (curr_state & SDL_BUTTON(b) && button_state.current_state == State::BLOCKED) {
         button_state.current_state = State::HELD;
         ++button_state.frames_held;
 
-        EventQueue::PushEvent<MouseButtonHeld>({ button, button_state.frames_held });
+        EventQueue::PushEvent<MouseButtonHeld>({ button, mouse_screen_pos, button_state.frames_held });
         continue;
       }
 
       if (curr_state & SDL_BUTTON(b) && button_state.current_state == State::HELD) {
         ++button_state.frames_held;
 
-        EventQueue::PushEvent<MouseButtonHeld>({ button, button_state.frames_held });
+        EventQueue::PushEvent<MouseButtonHeld>({ button, mouse_screen_pos, button_state.frames_held });
         continue;
       }
 
-      if (!(curr_state & SDL_BUTTON(b)) && (button_state.current_state == State::BLOCKED || button_state.current_state == State::PRESSED || button_state.current_state == State::HELD)) {
+      if (!(curr_state & SDL_BUTTON(b)) && (button_state.current_state == State::BLOCKED || button_state.current_state == State::HELD)) {
         button_state.current_state = State::RELEASED;
         button_state.frames_held = 0;
 
@@ -170,11 +170,11 @@ namespace other {
   }
 
   bool Mouse::Pressed(Button button) {
-    return buttons[button].current_state == State::PRESSED;
+    return buttons[button].current_state == State::BLOCKED && buttons[button].frames_held == 1;
   }
 
   bool Mouse::Blocked(Button button) {
-    return buttons[button].current_state == State::BLOCKED;
+    return buttons[button].current_state == State::BLOCKED && buttons[button].frames_held > 1;
   }
 
   bool Mouse::Held(Button button) {

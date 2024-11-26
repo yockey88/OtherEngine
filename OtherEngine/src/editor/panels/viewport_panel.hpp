@@ -24,6 +24,8 @@ namespace other {
    private:
     Ref<Scene> active_scene;
 
+    glm::vec2 viewport_padding = { 0.f, 0.f };
+
     void RenderCreateEntity(Entity* parent = nullptr);
     bool RenderEntity(const UUID& id, Entity* entity);
   };

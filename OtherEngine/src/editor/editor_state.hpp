@@ -21,10 +21,10 @@ namespace other {
   struct EditorState {
     static inline SceneEditorMode scene_mode = SceneEditorMode::STOPPED;
 
+    Opt<glm::vec2> last_mouse_viewport_click = std::nullopt;
     glm::vec2 current_viewport_size = { 0.f, 0.f };
     glm::vec2 viewport_bounds[2] = { { 0.f, 0.f }, { 0.f, 0.f } };
 
-    Opt<glm::ivec2> viewport_mouse_pos = std::nullopt;
     Ref<CameraBase> editor_camera = nullptr;
     glm::vec3 stored_camera_position = { 0.f, 0.f, 0.f };
     glm::vec3 stored_camera_direction = { 0.f, 0.f, 0.f };

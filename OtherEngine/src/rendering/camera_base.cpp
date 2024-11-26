@@ -275,8 +275,11 @@ namespace other {
     if (Keyboard::Down(Keyboard::Key::OE_SPACE)) {
       camera->MoveUp();
     }
-    if (Keyboard::Down(Keyboard::Key::OE_LSHIFT)) {
-      camera->MoveDown();
+
+    if (!Keyboard::LCtrlLayer()) {
+      if (Keyboard::Down(Keyboard::Key::OE_LSHIFT)) {
+        camera->MoveDown();
+      }
     }
 
     auto win_size = Renderer::WindowSize();

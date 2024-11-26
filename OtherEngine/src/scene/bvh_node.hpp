@@ -331,19 +331,27 @@ namespace other {
             return true;
           }
 
-          return false;
+          for (Entity* e : entities) {
+            OE_ASSERT(e != nullptr, "Entity is null!");
+            if (!e->HasVisibleComponent()) {
+              continue;
+            }
 
-          // if (left_hit && right_hit) {
-          //   if (left_interval.min < right_interval.min) {
-          //     ray_interval.min = left_interval.min;
-          //   } else {
-          //     ray_interval.min = right_interval.min;
-          //   }
-          // } else if (left_hit) {
-          //   ray_interval.min = left_interval.min;
-          // } else if (right_hit) {
-          //   ray_interval.min = right_interval.min;
-          // }
+            const Transform& transform = e->ReadComponent<Transform>();
+            if (transform.bbox.Hit(ray, current_interval)) {
+              ray_interval = current_interval;
+
+              result.hit_entity = e;
+              result.t = ray_interval.min;
+              result.point = ray.At(result.t);
+
+              glm::vec3 normal = transform.bbox.GetFaceNormal(result.point, ray.direction);
+              result.SetFaceNormal(ray, normal);
+              return true;
+            }
+          }
+
+          return false;
 
           // return left_hit || right_hit;
         } else if constexpr (N == 8) {
@@ -353,25 +361,26 @@ namespace other {
       } else {
         OE_ASSERT(entities.size() == 1, "Leaf nodes should only contain a single entity!");
         Entity* ent = entities[0];
+        OE_ASSERT(ent != nullptr, "Entity is null!");
 
-        glm::vec3 pos = ent->ReadComponent<Transform>().position;
-        glm::vec3 scale = ent->ReadComponent<Transform>().scale;
-        glm::vec3 dim = scale * 0.5f;
-        BBox bounding_box = BBox(pos - dim, pos + dim);
+        if (!ent->HasVisibleComponent()) {
+          return false;
+        }
 
-        if (bounding_box.Hit(ray, current_interval)) {
+        const Transform& transform = ent->ReadComponent<Transform>();
+        if (transform.bbox.Hit(ray, current_interval)) {
           ray_interval = current_interval;
 
           result.hit_entity = ent;
           result.t = ray_interval.min;
           result.point = ray.At(result.t);
 
-          glm::vec3 normal = bounding_box.GetFaceNormal(result.point, ray.direction);
+          glm::vec3 normal = transform.bbox.GetFaceNormal(result.point, ray.direction);
           result.SetFaceNormal(ray, normal);
           return true;
-        } else {
-          return false;
         }
+
+        return false;
       }
     }
 

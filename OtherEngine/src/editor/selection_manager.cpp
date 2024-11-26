@@ -15,11 +15,7 @@ namespace other {
       return;
     }
 
-    if (entity_selection_context != nullptr) {
-      entity_selection_context->actively_selected = false;
-    }
     entity_selection_context = entity;
-    entity_selection_context->actively_selected = true;
   }
 
   bool SelectionManager::HasSelection() {

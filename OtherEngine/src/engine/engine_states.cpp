@@ -4,8 +4,6 @@
 #include "engine/engine_states.hpp"
 
 #include "core/logger.hpp"
-#include "editor/editor_sink.hpp"
-#include "editor/editor_states.hpp"
 #include "engine/engine.hpp"
 
 #include "application/app_state.hpp"
@@ -18,6 +16,10 @@
 #include "rendering/renderer.hpp"
 #include "rendering/ui/ui.hpp"
 #include "scripting/script_engine.hpp"
+
+#include "editor/editor_sink.hpp"
+#include "editor/editor_states.hpp"
+
 
 #ifdef OE_TESTING_ENVIRONMENT
   #include "testing_core/test_engine_states.hpp"

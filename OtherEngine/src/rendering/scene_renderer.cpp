@@ -71,6 +71,12 @@ namespace other {
     frame_data.environment = environment;
   }
 
+  void SceneRenderer::ClearLightEnvironment() {
+    glm::vec4 light_count{ 0, 0, 0, 0 };
+    light_uniforms->BindBase();
+    light_uniforms->SetUniform("num_lights", light_count);
+  }
+
   void SceneRenderer::SubmitModel(const std::string_view pl_name, Ref<Model> model, const glm::mat4& transform, const Material& material) {
     if (model == nullptr) {
       return;
@@ -105,7 +111,28 @@ namespace other {
     itr->second->SubmitStaticModel(submission);
   }
 
-  bool SceneRenderer::EndScene() {
+  void SceneRenderer::RenderGbuffer() {
+    if (!FrameComplete()) {
+      return;
+    }
+
+    PreRenderSettings();
+    for (auto& [id, pl] : pipelines) {
+      pl->RenderGbuffer();
+    }
+  }
+
+  bool SceneRenderer::RenderAll() {
+    if (!FrameComplete()) {
+      return false;
+    }
+
+    PreRenderSettings();
+    FlushDrawList();
+    return true;
+  }
+
+  bool SceneRenderer::FinalizeScene() {
     if (!FrameComplete()) {
       ResetFrame();
       return false;

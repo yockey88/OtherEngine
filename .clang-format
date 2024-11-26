@@ -67,7 +67,7 @@ IncludeCategories:
   - Regex:           '"((testing_core|fuzzing|statistics|benchmarking)\/)'
     Priority:        4
   # core headers
-  - Regex:           '"((testing_core|core|math|thread|engine|environment|editor)\/)'
+  - Regex:           '"((testing_core|core|math|thread|engine|environment)\/)'
     Priority:        5
   # application/asset/semi-core system headers
   - Regex:           '"((application|input|event|asset|parsing|project|plugin|layers)\/)'
@@ -78,6 +78,10 @@ IncludeCategories:
   # rendering/scripting/physics headers
   - Regex:           '"((rendering|scripting|physics)\/)'
     Priority:        8
+
+  # editor/library extensions
+  - Regex:           '"((editor)\/)'
+    Priority:        9
 ---
 Language: CSharp
 BreakBeforeBraces: Custom

@@ -101,6 +101,7 @@ namespace other {
     void SubmitStaticModel(Ref<StaticModel> model, const glm::mat4& transform, const Material& color);
     void SubmitStaticModel(const RenderSubmission& submission);
 
+    void RenderGbuffer();
     void Render();
     Ref<Framebuffer> GetOutput();
     GBuffer& GetGBuffer();

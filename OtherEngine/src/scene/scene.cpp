@@ -15,7 +15,6 @@
 #include <hosting/native_string.hpp>
 
 #include "core/rand.hpp"
-#include "editor/editor_state.hpp"
 
 #include "application/app_state.hpp"
 #include "asset/asset_manager.hpp"
@@ -34,9 +33,12 @@
 
 #include "rendering/camera_base.hpp"
 #include "rendering/model.hpp"
-#include "rendering/model_factory.hpp"
+#include "rendering/pipeline.hpp"
 #include "scripting/cs/cs_object.hpp"
 #include "scripting/script_engine.hpp"
+
+#include "editor/editor_state.hpp"
+#include "editor/selection_manager.hpp"
 
 namespace other {
 
@@ -135,6 +137,10 @@ namespace other {
       script.ApiCall("OnInitialize");
     });
 
+    registry.view<Transform>().each([](Transform& transform) {
+      transform.CalcMatrix();
+    });
+
     RefreshCameraTransforms();
 
     OnInit();
@@ -142,6 +148,11 @@ namespace other {
 
     BuildGroups();
     RebuildEnvironment();
+
+    /// update so all transforms are calculate and all cross depenedent components are updated accordingly
+    EarlyUpdate(0.f);
+    Update(0.f);
+    LateUpdate(0.f);
   }
 
   bool Scene::IsHandleValid(Entity* ent) const {
@@ -397,7 +408,7 @@ namespace other {
     });
 
     if (handle.Get() == 0) {
-      OE_WARN("No primary camera found in scene");
+      // OE_WARN("No primary camera found in scene");
       return nullptr;
     }
 
@@ -420,36 +431,6 @@ namespace other {
 
     /// TODO: fix hardcoded pipeline names
     RenderToPipeline("Geometry", renderer);
-    if (AppState::mode == EngineMode::EDITOR &&
-        (EditorState::scene_mode == SceneEditorMode::STOPPED || EditorState::scene_mode == SceneEditorMode::SIMULATING)) {
-      AssetHandle wire_frame = ModelFactory::CreateBoxWireframe();
-      if (!AppState::Assets()->IsValid(wire_frame)) {
-        return;
-      }
-
-      auto model = AssetManager::GetAsset<StaticModel>(wire_frame);
-      Material wireframe_mat({ 1.f, 0.f, 0.f, 1.f }, 16.f);
-      for (auto& [_, e] : entities) {
-        OE_ASSERT(e != nullptr, "Invalid entity found!");
-        if (AppState::mode == EngineMode::EDITOR) {
-          continue;
-        }
-        if (!e->actively_selected) {
-          continue;
-        }
-
-        const Transform& et = e->ReadComponent<Transform>();
-        RenderSubmission submission = {
-          .model = model,
-          .transform = et.model_transform,
-          .material = wireframe_mat,
-          .render_state = RenderState::FILL,
-          .draw_mode = DrawMode::LINES,
-        };
-
-        renderer->SubmitStaticModel("Geometry", submission);
-      }
-    }
 
     scene_object->Render();
   }
