@@ -8,7 +8,7 @@
 
 #include "core/ref_counted.hpp"
 
-#include "scene/environment.hpp"
+#include "scene/light_environment.hpp"
 
 #include "rendering/camera_base.hpp"
 #include "rendering/model.hpp"
@@ -64,7 +64,9 @@ namespace other {
     void SetViewportSize(const glm::ivec2& size);
 
     void SubmitCamera(const Ref<CameraBase>& camera);
-    void SubmitEnvironment(const Ref<Environment>& environment);
+    void SubmitEnvironment(const Ref<LightEnvironment>& environment);
+
+    void ClearLightEnvironment();
 
     void SubmitDirectionLight(const DirectionLight& light);
     void SubmitPointLight(const PointLight& light);
@@ -73,21 +75,20 @@ namespace other {
     void SubmitStaticModel(const std::string_view pl_name, Ref<StaticModel> model, const glm::mat4& transform, const Material& material);
     void SubmitStaticModel(const std::string_view pl_name, const RenderSubmission& submission);
 
-    bool EndScene();
+    void RenderGbuffer();
+
+    bool RenderAll();
+    /// feed-forward outputs into input frames
+
+    /// verify we have fed-forward all outputs
+    /// render to final framebuffer
+    bool FinalizeScene();
 
     void ClearPipelines();
 
     const std::map<UUID, Ref<Framebuffer>>& GetRender() const;
 
    private:
-    glm::ivec2 viewport_size;
-    SceneRenderSpec spec;
-
-    Ref<UniformBuffer> camera_uniforms = nullptr;
-    Ref<UniformBuffer> light_uniforms = nullptr;
-
-    uint32_t gbuffer = 0;
-
     enum GBufferTextureType {
       POSITION = 0,
       NORMALS,
@@ -96,14 +97,21 @@ namespace other {
 
       NUM_GBUFFER_TEXTURES,
     };
-    uint32_t gbuffer_textures[NUM_GBUFFER_TEXTURES] = {
-      0, 0, 0, 0
-    };
 
     struct FrameSubmissions {
       Ref<CameraBase> viewpoint = nullptr;
-      Ref<Environment> environment = nullptr;
+      Ref<LightEnvironment> environment = nullptr;
     } frame_data;
+
+    glm::ivec2 viewport_size;
+    SceneRenderSpec spec;
+
+    Ref<UniformBuffer> camera_uniforms = nullptr;
+    Ref<UniformBuffer> light_uniforms = nullptr;
+
+    uint32_t gbuffer = 0;
+
+    uint32_t gbuffer_textures[NUM_GBUFFER_TEXTURES] = { 0, 0, 0, 0 };
 
     /// here go the passes
     ///  - bloom compute ?

@@ -72,13 +72,12 @@ namespace other {
     }
 
     /// will be replaced during scene update
-    auto scale = glm::vec3(1.f);
     switch (mesh.primitive_id) {
       case kTriangleIdx: {
-        mesh.handle = ModelFactory::CreateTriangle({ scale.x / 2, scale.y / 2 });
+        mesh.handle = ModelFactory::CreateTriangle();
       } break;
       case kRectIdx: {
-        mesh.handle = ModelFactory::CreateRect({ scale.x / 2, scale.y / 2 });
+        mesh.handle = ModelFactory::CreateRect();
       } break;
 
       case kCubeIdx: {

@@ -3,6 +3,10 @@
  **/
 #include <iostream>
 
+#include <SDL_events.h>
+#include <SDL_video.h>
+#include <box2d/b2_world.h>
+#include <box2d/box2d.h>
 #include <glad/glad.h>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
@@ -10,11 +14,6 @@
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <imgui/backends/imgui_impl_sdl2.h>
 #include <imgui/imgui.h>
-
-#include <SDL_events.h>
-#include <SDL_video.h>
-#include <box2d/b2_world.h>
-#include <box2d/box2d.h>
 #include <rendering/gbuffer.hpp>
 
 #include "core/defines.hpp"
@@ -22,10 +21,13 @@
 #include "core/filesystem.hpp"
 #include "core/logger.hpp"
 #include "core/ref.hpp"
+#include "engine/engine.hpp"
 
+#include "application/app_state.hpp"
 #include "event/event_queue.hpp"
 #include "input/io.hpp"
 
+#include "physics/phyics_engine.hpp"
 #include "rendering/camera_base.hpp"
 #include "rendering/direction_light.hpp"
 #include "rendering/framebuffer.hpp"
@@ -39,8 +41,8 @@
 #include "rendering/uniform.hpp"
 #include "rendering/vertex.hpp"
 #include "rendering/window.hpp"
+#include "scripting/script_engine.hpp"
 
-#include "engine/engine.hpp"
 #include "gl_helpers.hpp"
 #include "sandbox_ui.hpp"
 #include "shader_embed.hpp"
@@ -118,18 +120,30 @@ using namespace other;
 
 void UpdateCamera(other::Ref<CameraBase>& camera);
 
+#ifdef _WIN32
+  #define WIN32_LEAN_AND_MEAN
+  #include <Windows.h>
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+  other::CmdLine cmd_line(__argc, __argv);
+#else
 int main(int argc, char* argv[]) {
+  other::CmdLine cmd_line(argc, argv);
+#endif
   int exit = 0;
   try {
     const other::Path glsandbox_dir = "C:/Yock/code/OtherEngine/tests/gl_sandbox";
     const other::Path config_path = glsandbox_dir / "gl_sandbox.other";
 
-    other::CmdLine cmd_line(argc, argv);
     cmd_line.SetFlag("--project", { config_path.string() });
 
-    other::Engine mock_engine(cmd_line);
-    other::Logger::Open(mock_engine.config);
-    other::Logger::Instance()->RegisterThread("Sandbox-Thread");
+    other::Engine mock_engine(cmd_line, "Sandbox--Thread");
+
+    AppState::Initialize(&mock_engine);
+    Renderer::Initialize(mock_engine.config);
+    UI::Initialize(mock_engine.config, Renderer::GetWindow());
+    ScriptEngine::Initialize(mock_engine.config);
+    PhysicsEngine::Initialize(mock_engine.config);
+    AppState::AttachApplication();
 
     OE_DEBUG("GL Sandbox Launched");
 
@@ -371,6 +385,32 @@ int main(int argc, char* argv[]) {
         RenderItem(gbuffer.textures[2], "Albedo", ImVec2((float)win_w / 2, (float)win_h / 2));
       }
       ImGui::End();
+  #if 0
+      if (ImGui::Begin("Test")) {
+        ImVec2 curr_win_size = ImGui::GetContentRegionAvail();
+        float aspect_ratio = Renderer::GetWindow()->AspectRatio();
+        float ui_aspect_ratio = curr_win_size.x / curr_win_size.y;
+
+        glm::vec2 padding = { 0.f, 0.f };
+        glm::vec2 size = { curr_win_size.x, curr_win_size.y };
+        if (ui_aspect_ratio > aspect_ratio) {
+          size.x = curr_win_size.y * aspect_ratio;
+          padding = { (curr_win_size.x - size.x) * 0.5f, 0.f };
+        } else {
+          size.y = curr_win_size.x / aspect_ratio;
+          padding = { 0.f, (curr_win_size.y - size.y) * 0.5f };
+        }
+
+        ImTextureID tex_id = (void*)(uintptr_t)gbuffer.textures[0];
+        ImVec2 img_size = { size.x, size.y };
+
+        ImVec2 cursor_pos = ImGui::GetCursorPos();
+        ImGui::SetCursorPos({ padding.x, padding.y });
+        ImGui::Image(tex_id, img_size, ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::SetCursorPos(cursor_pos);
+      }
+      ImGui::End();
+  #endif
       other::UI::EndFrame();
 #endif
 
@@ -379,8 +419,17 @@ int main(int argc, char* argv[]) {
 
     glDeleteProgram(shader1);
     glDeleteProgram(shader2);
-    // mock_engine.UnloadApp();
-    other::Logger::Shutdown();
+
+    AppState::DetachApplication();
+    /// clear event queue from any remaining events and flush one more event loop with no scene
+    ///   to ensure we are in a stable state before shutting down
+    // EventQueue::Poll();
+
+    PhysicsEngine::Shutdown();
+    ScriptEngine::Shutdown();
+    UI::Shutdown();
+    Renderer::Shutdown();
+    AppState::Shutdown();
   } catch (const other::IniException& e) {
     std::cout << "caught ini error : " << e.what() << "\n";
     exit = 1;

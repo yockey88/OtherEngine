@@ -6,9 +6,8 @@
 
 #include <map>
 
-#include <entt/entt.hpp>
-
 #include <core/dotother_defines.hpp>
+#include <entt/entt.hpp>
 #include <hosting/native_object.hpp>
 #include <reflection/echo_defines.hpp>
 #include <reflection/object_proxy.hpp>
@@ -25,7 +24,7 @@
 #include "ecs/components/relationship.hpp"
 #include "ecs/components/script.hpp"
 #include "ecs/components/transform.hpp"
-#include "scene/environment.hpp"
+#include "scene/light_environment.hpp"
 
 #include "physics/2D/physics_world_2d.hpp"
 #include "physics/3D/physics_world.hpp"
@@ -79,7 +78,7 @@ namespace other {
     Ref<PhysicsWorld2D> Get2DPhysicsWorld() const;
     Ref<PhysicsWorld> GetPhysicsWorld() const;
 
-    Ref<Environment> GetEnvironment() const;
+    Ref<LightEnvironment> GetEnvironment() const;
 
     const bool IsInitialized() const;
     const bool IsRunning() const;
@@ -117,7 +116,7 @@ namespace other {
     Ref<StaticModel> model = nullptr;
     Ref<ModelSource> model_source = nullptr;
 
-    Ref<Environment> environment = nullptr;
+    Ref<LightEnvironment> environment = nullptr;
 
     void RenderToPipeline(const std::string_view plname, Ref<SceneRenderer>& scene_renderer, bool do_debug = false);
 

@@ -8,8 +8,9 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
-
 #include <reflection/echo_defines.hpp>
+
+#include "math/bounding_box.hpp"
 
 #include "ecs/component.hpp"
 #include "ecs/component_serializer.hpp"
@@ -22,15 +23,25 @@ namespace other {
     glm::vec3 erotation = glm::vec3(0.f);
     glm::quat qrotation = glm::quat(0.f, 0.f, 0.f, 0.f);
     glm::mat4 model_transform = glm::identity<glm::mat4>();
+    BBox bbox = BBox::empty;
 
     Transform(const glm::vec3& position)
-        : Component(kTransformIndex), position(position) {}
+        : Component(kTransformIndex), position(position) {
+      bbox = BBox(position);
+    }
     Transform(float p)
-        : Component(kTransformIndex), position(glm::vec3(p)) {}
+        : Component(kTransformIndex), position(glm::vec3(p)) {
+      bbox = BBox(position);
+    }
     Transform(float x, float y, float z)
-        : Component(kTransformIndex), position(glm::vec3(x, y, z)) {}
+        : Component(kTransformIndex), position(glm::vec3(x, y, z)) {
+      bbox = BBox(position);
+    }
 
     [[maybe_unused]] const glm::mat4& CalcMatrix() {
+      glm::vec3 dim = scale * 0.5f;
+      bbox = BBox(position - dim, position + dim);
+
       qrotation = glm::quat(erotation);
       model_transform = glm::translate(glm::mat4(1.f), position) *
         glm::scale(glm::mat4(1.f), scale) *

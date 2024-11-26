@@ -4,9 +4,9 @@
 #ifndef OTHER_ENGINE_PANEL_MANAGER_HPP
 #define OTHER_ENGINE_PANEL_MANAGER_HPP
 
-#include "scene/scene_manager.hpp"
-
 #include "editor/editor_panel.hpp"
+
+#include "scene/scene_manager.hpp"
 
 namespace other {
 
@@ -17,23 +17,21 @@ namespace other {
 
   class PanelManager {
    public:
-    void Attach(Editor* editor, const Ref<Project>& context, const ConfigTable& editor_config);
+    void Attach(const Ref<Project>& context, const ConfigTable& editor_config);
 
     void AddPanel(const Ref<EditorPanel>& panel) {}
 
-    void EarlyUpdate(float dt) {}
+    void EarlyUpdate(float dt);
     void Update(float dt);
-    void LateUpdate(float dt) {}
+    void LateUpdate(float dt);
     /// placeholder because this matches a generic pattern and might be useful
     void Render();
     bool RenderUI();
 
     void Detach();
 
-    void OnSceneLoad(const SceneMetadata* scene_metadata);
-    void OnSceneUnload();
-
-    void OnScriptReload();
+    void OnSceneActivate(const SceneMetadata* scene_metadata);
+    void OnSceneDeactivate();
 
    private:
     Ref<Project> project_context = nullptr;

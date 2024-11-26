@@ -3,9 +3,21 @@
  **/
 #include "mock_app.hpp"
 
+#include "engine/engine.hpp"
+
 namespace other {
   App* NewApp(const CmdLine& cmd_line, const ConfigTable& config) {
     return new TestApp(cmd_line, config);
+  }
+
+  Engine* LoadDriver(const CmdLine& cmd_line) {
+    return new Engine(cmd_line);
+  }
+  void FreeApp(App* app) {
+    return delete app;
+  }
+  void UnloadDriver(Engine* driver) {
+    return delete driver;
   }
 }  // namespace other
 

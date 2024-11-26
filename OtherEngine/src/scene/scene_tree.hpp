@@ -5,7 +5,7 @@
 #define OTHER_ENGINE_SCENE_TREE_HPP
 
 #ifdef OE_TESTING_ENVIRONMENT
-#include <gtest/gtest.h>
+  #include <gtest/gtest.h>
 #endif  // !OE_TESTING_ENVIRONMENT
 
 #include "core/ref_counted.hpp"

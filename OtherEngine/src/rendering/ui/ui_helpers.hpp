@@ -136,6 +136,72 @@ namespace other {
     bool BeginTreeNode(const char* name, bool default_open);
     void EndTreeNode();
 
+    template <typename Fn>
+      requires requires(Fn&& fn) { fn(); }
+    void Button(const std::string_view label, Fn&& fn) {
+      if (ImGui::Button(label.data())) {
+        fn();
+      }
+    }
+
+    template <typename Fn>
+      requires requires(Fn&& fn) { fn(); }
+    void MainMenuBar(Fn&& fn) {
+      if (ImGui::BeginMainMenuBar()) {
+        fn();
+        ImGui::EndMainMenuBar();
+      }
+    }
+
+    template <typename Fn>
+      requires requires(Fn&& fn) { fn(); }
+    void MenuBar(Fn&& fn) {
+      if (ImGui::BeginMenuBar()) {
+        fn();
+        ImGui::EndMenuBar();
+      }
+    }
+
+    // template <typename Fn>
+    //   requires requires(Fn&& fn) { fn(); }
+    // void Menu(const std::string_view label, Fn&& fn) {
+    //   if (ImGui::BeginMenu(label.data())) {
+    //     fn();
+    //     ImGui::EndMenu();
+    //   }
+    // }
+
+    template <typename Fn>
+    struct MenuItem {
+      std::string_view first;
+      Fn second;
+    };
+
+    template <typename T, typename MI>
+    concept MenuItemFn = std::same_as<T, MenuItem<MI>>;
+
+    template <typename... MIs>
+    void Menu(const std::string_view label, const MenuItem<MIs>&... ifn) {
+      auto do_menu_item = [](const auto& item) {
+        if (ImGui::MenuItem(item.first.data())) {
+          item.second();
+        }
+      };
+
+      if (ImGui::BeginMenu(label.data())) {
+        (do_menu_item(ifn), ...);
+        ImGui::EndMenu();
+      }
+    }
+
+    // template <typename Fn>
+    //   requires requires(Fn&& fn) { fn(); }
+    // void MenuItem(const std::string_view label, Fn&& fn) {
+    //   if (ImGui::MenuItem(label.data())) {
+    //     fn();
+    //   }
+    // }
+
     bool ColoredButton(const char* label, const ImVec4& backgroundColor, ImVec2 buttonSize);
     bool ColoredButton(const char* label, const ImVec4& background, const ImVec4& foreground, ImVec2 size);
 

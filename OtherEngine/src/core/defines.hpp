@@ -6,7 +6,6 @@
 
 #include <cstdint>
 #include <filesystem>
-#include <iostream>
 #include <memory>
 #include <optional>
 #include <stack>
@@ -15,6 +14,10 @@
 #include <type_traits>
 #include <utility>
 
+#ifdef OE_TESTING_ENVIRONMENT
+  #include <gtest/gtest.h>
+#endif  // !OE_TESTING_ENVIRONMENT
+
 #include <glm/glm.hpp>
 #include <magic_enum/magic_enum.hpp>
 #include <spdlog/fmt/fmt.h>
@@ -22,9 +25,41 @@
 #define bit(x) (1ll << x)
 
 #ifdef OE_MODULE
-#define OE_CLIENT
+  #define OE_CLIENT
 #else
-#define OE_ENGINE
+  #define OE_ENGINE
+#endif
+
+#ifdef _WIN32
+  #ifdef OE_ENGINE
+    #define OE_API extern "C" __declspec(dllexport)
+  #else  // OE_ENGINE
+    #define OE_API extern "C" __declspec(dllimport)
+  #endif  // !OE_ENGINE
+#else
+  #ifdef OE_ENGINE
+    #define OE_API __attribute__((visibility("default")))
+  #else
+    #define OE_API
+  #endif  // !OE_ENGINE
+#endif    // _WIN32
+
+#ifdef OTHERENGINE_DLL
+  #define CLIENT_SIDE OE_API
+#else  /// OTHERENGINE_DLL
+  #ifdef OE_ENGINE
+    #define CLIENT_SIDE extern
+  #else  // OE_ENGINE
+    #define CLIENT_SIDE
+  #endif  // !OE_ENGINE
+#endif
+
+#ifdef OE_TESTING_ENVIRONMENT
+  #define TEST_VIRTUAL virtual
+  #define MOCK_ENGINE_FRIEND friend class MockEngine
+#else
+  #define TEST_VIRTUAL
+  #define MOCK_ENGINE_FRIEND
 #endif
 
 namespace other {
@@ -32,6 +67,12 @@ namespace other {
   enum class EngineMode {
     EDITOR,
     RUNTIME,
+    HEADLESS,
+  /// TODO: implement these
+  /// SERVER,
+#ifdef OE_TESTING_ENVIRONMENT
+    TESTING,
+#endif  // !OE_TESTING_ENVIRONMENT
 
     NUM_ENGINE_MODES,
     INVALID_ENGINE_MODE = NUM_ENGINE_MODES,
@@ -139,6 +180,14 @@ namespace other {
     }
   }
 
+  struct UUID;
+  /// these return entity, because we should only ever be using this function for scripting
+  ///   apis, their use elsewhere doesn't ever use UUIDs
+  template <>
+  constexpr ValueType GetValueType<UUID>() {
+    return ValueType::ENTITY;
+  }
+
   static constexpr size_t GetValueSize(ValueType type) {
     switch (type) {
       case BOOL:
@@ -234,69 +283,6 @@ namespace other {
     return hash;
   }
 
-  template <typename... Args>
-  static inline void println(const std::string_view format, Args&&... args) {
-    std::cout << fmt::format(fmt::runtime(format), std::forward<Args>(args)...) << std::endl;
-  }
-
-  template <>
-  inline void println(const std::string_view line) {
-    std::cout << line << std::endl;
-  }
-
-  template <typename... Args>
-  static inline auto fmtstr(const std::string_view format, Args&&... args) {
-    return fmt::format(fmt::runtime(format), std::forward<Args>(args)...);
-  }
-
-  template <>
-  inline auto fmtstr(const std::string_view line) {
-    return std::string{ line };
-  }
-
-  template <typename... Args>
-  static inline auto fmterr(const std::string_view format, Args&&... args) {
-    /// TODO: something else...
-    return fmtstr(format, std::forward<Args>(args)...);
-  }
-
-  template <typename T>
-  static inline auto fmtopt(const std::string_view format, const Opt<T>& opt) {
-    if (opt.has_value()) {
-      return fmtstr(format, opt.value());
-    } else {
-      return fmtstr("ERR");
-    }
-  }
-
-  template <typename T>
-  concept is_enum = std::is_enum_v<T>;
-
-  template <typename E>
-    requires is_enum<E>
-  constexpr std::underlying_type_t<E> ValOf(E e) {
-    /// solve really annoying LSP issue
-    return fmt::underlying(e);
-  }
-
-  template <typename T>
-  concept is_container = requires(T a) {
-    typename T::value_type;
-    typename T::iterator;
-    typename T::const_iterator;
-    typename T::size_type;
-
-    { a.begin() } -> std::same_as<typename T::iterator>;
-    { a.end() } -> std::same_as<typename T::iterator>;
-    { a.cbegin() } -> std::same_as<typename T::const_iterator>;
-    { a.cend() } -> std::same_as<typename T::const_iterator>;
-    { a.size() } -> std::same_as<typename T::size_type>;
-    { a.empty() } -> std::convertible_to<bool>;
-  };
-
-  template <typename T>
-  concept not_container = !is_container<T>;
-
 #ifdef OTHER_DEBUG_BUILD
 
   class StackTracer {
@@ -315,26 +301,5 @@ namespace other {
 #endif  // !OE_DEBUG_BUILD
 
 }  // namespace other
-
-template <>
-struct fmt::formatter<glm::vec4> : public fmt::formatter<std::string_view> {
-  template <typename FormatContext>
-  auto format(const glm::vec4& v, FormatContext& ctx) {
-    return fmt::formatter<std::string_view>::format(
-      fmt::format(std::string_view{ "({:.2f}, {:.2f}, {:.2f}, {:.2f})" }, v.x, v.y, v.z, v.w), ctx
-    );
-  }
-};
-
-template <typename E>
-  requires std::is_enum_v<E>
-struct fmt::formatter<E> : public fmt::formatter<std::string_view> {
-  template <typename FormatContext>
-  auto format(const E& e, FormatContext& ctx) {
-    return fmt::formatter<std::string_view>::format(
-      fmt::format(std::string_view{ "{}" }, magic_enum::enum_name(e)), ctx
-    );
-  }
-};
 
 #endif  // !OTHER_ENGINE_DEFINES_HPP

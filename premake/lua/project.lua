@@ -4,6 +4,10 @@ require("workspace")
 local function ProjectHeader(project_data)
   project (project_data.name)
     kind (project_data.kind)
+    if kind == "ConsoleApp" then
+      debuggertype "NativeWithManagedCore"
+    end
+
     language (project_data.language)
 
     if project_data.architecture ~= nil then
@@ -112,20 +116,19 @@ end
 
 local function ProcessConfigurations(project , external)
     filter "system:windows"
+      systemversion "latest"
+      entrypoint "WinMainCRTStartup"
+      defines { "OE_WINDOWS" }
       if project.windows_configuration ~= nil then
           project.windows_configuration()
-      else
-          systemversion "latest"
-      end
-      defines { "OE_WINDOWS" }
+      end  
 
     filter { "system:windows", "configurations:Debug" }
+      editandcontinue "Off"
+      flags { "NoRuntimeChecks" }
+      defines { "NOMINMAX" }
       if project.windows_debug_configuration ~= nil then
         project.windows_debug_configuration()
-      else
-        editandcontinue "Off"
-        flags { "NoRuntimeChecks" }
-        defines { "NOMINMAX" }
       end
 
     filter { "system:windows", "configurations:Release" }
@@ -134,20 +137,18 @@ local function ProcessConfigurations(project , external)
       end
 
     filter "system:linux"
+      defines { "OE_LINUX" }
       if project.linux_configuration ~= nil then
         project.linux_configuration()
       end
-      defines { "OE_LINUX" }
 
     filter "configurations:Debug"
+      runtime "Debug"
+      debugdir "."
+      optimize "Off"
+      symbols "On"
       if project.debug_configuration ~= nil then
         project.debug_configuration()
-      else
-        runtime "Debug"
-        debugdir "."
-        optimize "Off"
-        symbols "On"
-        -- conformancemode "On"
       end
 
       if not external and project.language == "C++" then
@@ -158,15 +159,14 @@ local function ProcessConfigurations(project , external)
       end
 
     filter "configurations:Release"
+      runtime "Release"
+      optimize "Full"
+      symbols "Off"
+      defines { "OE_RELEASE" }
       if project.release_configuration ~= nil then
         project.release_configuration()
-      else
-        runtime "Release"
-        optimize "Full"
-        symbols "Off"
-        -- conformancemode "On"
+
       end
-      defines { "OE_RELEASE" }
 
       if not external and project.language == "C++" then
         ProcessDependencies("Release")

@@ -1,37 +1,36 @@
 local OtherTestEngine = {
   name = "OtherTestEngine",
   path = "./OtherTestEngine",
-  kind = "ConsoleApp",
+  kind = "StaticLib",
   language = "C++",
   cppdialect = "C++latest",
-  
+
   files = function()
     files {
       "./src/**.cpp",
-      "./src/**.hpp",
-      "./tests/**.cpp" ,
-      "./tests/**.hpp" ,
+      "../OtherEngine/src/**.cpp",
+      "../OtherEngine/src/**.cpp"
     }
   end,
-  
+
   include_dirs = function()
     includedirs {
       "./src",
-      "./tests" ,
+      "../OtherEngine/src",
     }
     externalincludedirs{
-      "%{wks.location}/DotOther/NetCore",
       "%{wks.location}/externals/gtest/googlemock/include",
     }
   end,
-  
+
   defines = function()
     defines {
       "OE_MODULE" ,
-      "OE_TESTING_ENVIRONMENT"
+      "OE_TESTING_ENVIRONMENT",
+      "OTHER_DEBUG_BUILD",
     }
   end,
-  
+
   windows_configuration = function()
     files {
       "./platform/windows/**.hpp",
@@ -41,16 +40,14 @@ local OtherTestEngine = {
       "./platform",
     }
     systemversion "latest"
-    buildoptions { "/EHsc" , "/Zc:preprocessor" , "/Zc:__cplusplus" }
   end,
-  
+
   components = {
-    ["OtherEngine"] = "%{wks.location}/OtherEngine/src",
+    ["DotOther.Native"] = "%{wks.location}/DotOther",
     ["gtest"] = "%{wks.location}/externals/gtest/googletest/include",
+    [""] = "%{wks.location}/DotOther/NetCore",
   },
 
 }
-
-
 
 AddProject(OtherTestEngine)

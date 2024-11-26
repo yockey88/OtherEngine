@@ -170,7 +170,6 @@ namespace DotOther.Managed {
 
 		[UnmanagedCallersOnly]
 		private static unsafe void InvokeMethod(IntPtr handle, NString method_name, IntPtr parameters, ManagedType* param_types, int count) {
-			LogMessage($"InvokeMethod: {handle}", MessageLevel.Trace);
 			try {
 				var target = GCHandle.FromIntPtr(handle).Target;
 
@@ -192,7 +191,6 @@ namespace DotOther.Managed {
 					return;
 				}
 					
-				LogMessage($" > InvokeMethod({target_type.Name}.{method_name}): {minfo}", MessageLevel.Trace);
 				var marshalled_parameters = Interop.DotOtherMarshal.MarshalParameterArray(parameters, count, minfo);
 
 				minfo.Invoke(target, marshalled_parameters);

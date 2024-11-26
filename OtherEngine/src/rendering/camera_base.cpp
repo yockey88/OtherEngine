@@ -7,9 +7,6 @@
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/geometric.hpp>
 
-#include <SDL.h>
-#include <SDL_mouse.h>
-
 #include "input/keyboard.hpp"
 #include "input/mouse.hpp"
 
@@ -261,8 +258,7 @@ namespace other {
     return constrain_pitch;
   }
 
-  /// TODO: somehow take into account the fact that we want the center of the current viewport not just
-  ///         the entire window like this
+  /// TODO: remove this and replace it with an editor camera script
   void DefaultUpdateCamera(Ref<CameraBase>& camera) {
     if (Keyboard::Down(Keyboard::Key::OE_W)) {
       camera->MoveForward();
@@ -279,8 +275,11 @@ namespace other {
     if (Keyboard::Down(Keyboard::Key::OE_SPACE)) {
       camera->MoveUp();
     }
-    if (Keyboard::Down(Keyboard::Key::OE_LSHIFT)) {
-      camera->MoveDown();
+
+    if (!Keyboard::LCtrlLayer()) {
+      if (Keyboard::Down(Keyboard::Key::OE_LSHIFT)) {
+        camera->MoveDown();
+      }
     }
 
     auto win_size = Renderer::WindowSize();

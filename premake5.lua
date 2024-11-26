@@ -13,22 +13,22 @@ configuration.build_configurations = { "Debug", "Release" }
 configuration.platforms = { "Windows" }
 
 configuration.groups = {
-  ["OtherEngine"] = { "./OtherEngine" } ,
-  ["OtherEngine-CsCore"] = { "./OtherEngine-ScriptCore/cs" } ,
-  ["DotOther"] = { "./DotOther" } ,
+  ["OtherEngine"] = { "./OtherEngine" },
+  ["OtherEngine-CsCore"] = { "./OtherEngine-ScriptCore/cs" },
+  ["DotOther"] = { "./DotOther" },
 
-  ["OtherEngine-Tools"] = { "./OtherEngine-Launcher" } ,
+  ["OtherEngine-Tools"] = {},
 
   ["Testing"] = {
-    "./tests" ,
+    "./tests",
     "./OtherTestEngine"
-  } ,
+  },
 
   -- ["Tools"] = { "./tools" } ,
-  ["Games"] = { 
-    "./yockcraft" ,
-    "./cell_automaton" ,
-  } ,
+  ["Games"] = {
+    "./yockcraft",
+    "./cell_automaton",
+  },
 }
 
 local choc = {}
@@ -42,6 +42,10 @@ entt.include_dir = "%{wks.location}/externals/entt"
 local refl = {}
 refl.name = "refl"
 refl.include_dir = "%{wks.location}/externals/refl-cpp"
+
+local json = {}
+json.name = "json"
+json.include_dir = "%{wks.location}/externals/json/include"
 
 local glad = {}
 glad.name = "glad"
@@ -68,6 +72,13 @@ imgui.include_dir = "%{wks.location}/externals/imgui"
 imgui.lib_name = "imgui"
 imgui.lib_dir = "%{wks.location}/bin/Debug/imgui"
 
+local imguizmo = {}
+imguizmo.name = "imguizmo"
+imguizmo.path = "./externals/imguizmo"
+imguizmo.include_dir = "%{wks.location}/externals/imguizmo"
+imguizmo.lib_name = "imguizmo"
+imguizmo.lib_dir = "%{wks.location}/bin/Debug/imguizmo"
+
 local magic_enum = {}
 magic_enum.name = "magic_enum"
 magic_enum.include_dir = "%{wks.location}/externals/magic_enum"
@@ -85,7 +96,7 @@ sdl2.include_dir = "%{wks.location}/externals/sdl2/SDL2"
 sdl2.lib_dir = "%{wks.location}/externals/sdl2/lib/%{cfg.buildcfg}"
 sdl2.lib_name = "SDL2"
 sdl2.debug_lib_name = "SDL2d"
-sdl2.configurations = { "Debug" , "Release" }
+sdl2.configurations = { "Debug", "Release" }
 
 local spdlog = {}
 spdlog.name = "spdlog"
@@ -130,8 +141,8 @@ tracy.lib_name = "tracy"
 
 function query_terminal(command)
   local success, handle = pcall(io.popen, command)
-  if not success then 
-      return ""
+  if not success then
+    return ""
   end
 
   result = handle:read("*a")
@@ -142,14 +153,15 @@ end
 
 function get_python_path()
   local p = query_terminal('cmd.exe /c python -c "import sys; import os; print(os.path.dirname(sys.executable))"')
-  
+
   -- sanitize path before returning it
   p = string.gsub(p, "\\", "/") -- replace double backslash
   return p
 end
 
 function get_python_lib()
-  return query_terminal("cmd.exe /c python -c \"import sys; import os; import glob; path = os.path.dirname(sys.executable); libs = glob.glob(path + '/libs/python*'); print(os.path.splitext(os.path.basename(libs[-1]))[0]);\"")
+  return query_terminal(
+    "cmd.exe /c python -c \"import sys; import os; import glob; path = os.path.dirname(sys.executable); libs = glob.glob(path + '/libs/python*'); print(os.path.splitext(os.path.basename(libs[-1]))[0]);\"")
 end
 
 python_path = get_python_path()
@@ -194,10 +206,12 @@ dotother.lib_name = "DotOther.Native"
 AddDependency(choc)
 AddDependency(entt)
 AddDependency(refl)
+AddDependency(json)
 AddDependency(glad)
 AddDependency(glm)
 AddDependency(gtest)
 AddDependency(imgui)
+AddDependency(imguizmo)
 AddDependency(magic_enum)
 AddDependency(nativefiledialog)
 AddDependency(sdl2)

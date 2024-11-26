@@ -26,14 +26,15 @@ namespace other {
         : sflag(sflag), lflag(lflag), description(description), has_args(has_args), num_args(num_args) {}
   };
 
-  constexpr static size_t kNumArgs = 6;
+  constexpr static size_t kNumArgs = 7;
   constexpr static std::array<RawArg, kNumArgs> kRawArgs = {
     RawArg("-h", "--help", "Prints this help message", false),
     RawArg("-v", "--version", "Prints the version of the program", false),
     RawArg("-p", "--project", "Specifies the project file to use", true, 1),
     RawArg("-cd", "--cwd", "Sets the current working directory", true, 1),
     RawArg("-e", "--editor", "Specifies the editor is to be opened and not the project", false),
-    RawArg("-oe", "--other-environment", "Opens dynamic other engine environment terminal", false)
+    RawArg("-oe", "--other-environment", "Opens dynamic other engine environment terminal", false),
+    RawArg("-t", "--testing", "If linked against OtherTestEngine library then toggles on internal test features, else it does nothing", false),
   };
 
   struct Arg {
@@ -60,6 +61,11 @@ namespace other {
     Opt<Arg> GetArg(const std::string_view flag) const;
 
     std::vector<std::pair<uint64_t, Arg>> GetArgs() const;
+
+    struct RawCommandLine {
+      int argc;
+      char** argv;
+    } raw_cmd_line;
 
    private:
     std::string program_name;

@@ -84,9 +84,9 @@ namespace other {
 
     if (!cs_attachments.empty()) {
       Ref<Directory> script_bin = Filesystem::GetDirectory("script-bin");
-      if (script_bin == nullptr) {
-        script_bin = Filesystem::GetDirectory("bin");
-      }
+      // if (script_bin == nullptr) {
+      //   script_bin = Filesystem::GetDirectory("bin");
+      // }
       OE_ASSERT(script_bin != nullptr, "Failed to retrieve script bin directory");
 
       Ref<FileHandle> cs_file = script_bin->OpenFile(cs_attachments[0]);
@@ -105,7 +105,11 @@ namespace other {
 
       Ref<Directory> lua_dir = Filesystem::GetDirectory("lua");
       if (lua_dir == nullptr) {
-        lua_dir = script_type == ScriptType::EDITOR_SCRIPT ? Filesystem::GetDirectory("editor") : Filesystem::GetDirectory("scripts");
+        OE_WARN("Failed to retrieve lua directory, defaulting to scripts directory");
+        lua_dir = script_type == ScriptType::EDITOR_SCRIPT ?
+          Filesystem::GetDirectory("editor") :
+          Filesystem::GetDirectory("scripts");
+
         OE_ASSERT(lua_dir != nullptr, "Failed to retrieve lua directory");
       }
 
@@ -188,7 +192,8 @@ namespace other {
     Ref<LanguageModule> lua_language_module = ScriptEngine::GetModule(LUA_MODULE);
     Ref<LanguageModule> cs_language_module = ScriptEngine::GetModule(CS_MODULE);
 
-    cs_language_module->UnloadScript("OtherEngine.CsCore");
+    lua_language_module->UnloadAll();
+    cs_language_module->UnloadAll();
     loaded_modules.clear();
   }
 
@@ -596,6 +601,7 @@ namespace other {
     std::string name = std::string{ full_name };
     std::optional<std::string> name_space = std::nullopt;
 
+    /// FIXME: this does not work if more than one namespace separator is present
     if (full_name.find("::") != std::string::npos) {
       auto colon = full_name.find_first_of(':');
       auto second_colon = full_name.find_last_of(':');

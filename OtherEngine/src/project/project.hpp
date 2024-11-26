@@ -6,12 +6,11 @@
 
 #include <optional>
 #include <string>
+#include <string_view>
 
 #include "core/config.hpp"
 #include "core/defines.hpp"
 #include "core/directory.hpp"
-#include "core/directory_watcher.hpp"
-#include "core/file_watcher.hpp"
 #include "core/ref.hpp"
 #include "core/ref_counted.hpp"
 
@@ -57,12 +56,16 @@ namespace other {
     Path main_project_file = "";
     Path project_directory = "";
     Path file_path = "";
+
     Path bin_dir = "";
     Path assets_dir = "";
+    Path materials_dir;
+    Path scenes_dir;
+    Path scripts_dir;
+    Path shaders_dir;
+    Path editor_dir = "";
 
     Opt<Path> script_bin_dir = std::nullopt;
-    Opt<Path> lua_directory = std::nullopt;
-
     Opt<std::string> primary_scene = std::nullopt;
 
     Path cs_project_file = "";
@@ -90,6 +93,7 @@ namespace other {
     ProjectMetadata metadata;
 
     void InitializeVirtualFolders();
+    void MountDirectory(const std::string_view name, const Path& path);
 
    public:
     static void QueueNewProject(const Path& path);

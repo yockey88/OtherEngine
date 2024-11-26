@@ -14,6 +14,12 @@
 #include <spdlog/spdlog.h>
 
 #include "core/config.hpp"
+#include "core/defines.hpp"
+#include "core/formatters.hpp"
+
+#ifdef OE_TESTING_ENVIRONMENT
+  #include "testing_core/errors.hpp"
+#endif  // !OE_TESTING_ENVIRONMENT
 
 namespace other {
 
@@ -28,9 +34,7 @@ namespace other {
   };
 
   struct LoggerTargetData {
-    std::string target_name;
-    spdlog::level::level_enum level;
-    std::string log_format;
+    Sink sink;
     SinkFn sink_factory = nullptr;
   };
 
@@ -69,12 +73,6 @@ namespace other {
 
     template <typename... Args>
     void Log(Level l, const std::string_view format, std::source_location src_pos, std::thread::id thread_id, Args&&... args) {
-#ifdef OTHER_RELEASE_BUILD
-      /// during release build we only log info or higher
-      if (l < Level::INFO) {
-        return;
-      }
-#endif
       std::string user_msg = fmt::format(fmt::runtime(format), std::forward<Args>(args)...);
       user_target_logger->log(LevelFromLevel(l), user_msg);
 
@@ -89,8 +87,7 @@ namespace other {
       std::string src_str = fmt::format(std::string_view{ "[{} - {}:{}]" }, file, line, col);
 
       std::string thread_name = "";
-      auto it = thread_names.find(thread_id);
-
+      const auto it = thread_names.find(thread_id);
       if (it == thread_names.end()) {
         logger->error("Logging from unregistered thread");
         thread_name = "Unknown";
@@ -157,6 +154,7 @@ namespace other {
       kConsoleFmt.data(), kFileFmt.data()
     };
 
+    std::mutex log_data_mutex;
     std::vector<std::string> user_target_strings = {};
     std::vector<uint64_t> user_sink_hashes = {};
     std::vector<spdlog::sink_ptr> user_sinks = {};
@@ -188,7 +186,7 @@ struct fmt::formatter<std::stacktrace> : fmt::formatter<std::string_view> {
   }
 };
 
-#define VA_ARGS(...) , ##__VA_ARGS__
+#define VA_ARGS(...) __VA_OPT__(, ) __VA_ARGS__
 
 #define LOG_ARGS(level, fmt) other::Logger::Level::level, fmt, std::source_location::current(), std::this_thread::get_id()
 #define LOG_INSTANCE() other::Logger::Instance()
@@ -198,22 +196,47 @@ struct fmt::formatter<std::stacktrace> : fmt::formatter<std::string_view> {
     LOG_INSTANCE()->Log(LOG_ARGS(level, fmt) VA_ARGS(__VA_ARGS__)); \
   } while (false)
 
+#ifdef _WIN32
+  #define OE_BREAK() __debugbreak()
+#else
+  #define OE_BREAK() __builtin_trap()
+#endif
+
+#ifdef OTHER_DEBUG_BUILD
+  #define ABORT()                                                           \
+    OE_ERROR(" STACK TRACE -------------\n{}", std::stacktrace::current()); \
+    OE_BREAK();
+#else
+  #define ABORT() std::abort()
+#endif  // !OE_DEBUG_BUILD
+
 #define OE_TRACE(fmt, ...) OE_LOG(TRACE, fmt, __VA_ARGS__)
 #define OE_DEBUG(fmt, ...) OE_LOG(DEBUG, fmt, __VA_ARGS__)
 #define OE_INFO(fmt, ...) OE_LOG(INFO, fmt, __VA_ARGS__)
 #define OE_WARN(fmt, ...) OE_LOG(WARN, fmt, __VA_ARGS__)
 #define OE_ERROR(fmt, ...) OE_LOG(ERR, fmt, __VA_ARGS__)
 #define OE_CRITICAL(fmt, ...) OE_LOG(CRITICAL, fmt, __VA_ARGS__)
-#define OE_ASSERT(x, fmt, ...)                                                \
-  do {                                                                        \
-    if ((x)) {                                                                \
-    } else {                                                                  \
-      std::cerr << "Assertion failed : " << #x << std::endl;                  \
-      OE_CRITICAL(fmt, __VA_ARGS__);                                          \
-      OE_ERROR(" STACK TRACE -------------\n{}", std::stacktrace::current()); \
-      std::abort();                                                           \
-    }                                                                         \
-  } while (false)
+
+#ifndef OE_TESTING_ENVIRONMENT
+  #define OE_ASSERT(x, fmt, ...)       \
+    do {                               \
+      if ((x)) {                       \
+      } else {                         \
+        OE_CRITICAL(fmt, __VA_ARGS__); \
+        ABORT();                       \
+      }                                \
+    } while (false)
+#else  // OE_TESTING_ENVIRONMENT
+
+  #define OE_ASSERT(x, fmt, ...)                                                                              \
+    do {                                                                                                      \
+      if ((x)) {                                                                                              \
+      } else {                                                                                                \
+        OE_CRITICAL(fmt, __VA_ARGS__);                                                                        \
+        throw other::OtherTestEngineError(other::ErrorLevel::FATAL, other::fmtstr(fmt VA_ARGS(__VA_ARGS__))); \
+      }                                                                                                       \
+    } while (false)
+#endif  // !OE_TESTING_ENVIRONMENT
 
 #define OE_REGISTER_THREAD(name)          \
   do {                                    \

@@ -3,167 +3,186 @@
  **/
 #include "mock_engine.hpp"
 
+#include <source_location>
 #include <stdexcept>
 
+#include <SDL.h>
+#include <gtest.h>
 #include <imgui/backends/imgui_impl_sdl2.h>
+#include <spdlog/common.h>
+#include <spdlog/sinks/callback_sink.h>
 
-#include "core/errors.hpp"
+#include "testing_core/errors.hpp"
+
 #include "core/logger.hpp"
 
 #include "application/app_state.hpp"
 #include "event/event_queue.hpp"
-#include "input/io.hpp"
-#include "parsing/ini_parser.hpp"
-
-#include "physics/phyics_engine.hpp"
-#include "rendering/renderer.hpp"
-#include "rendering/ui/ui.hpp"
-#include "scripting/script_engine.hpp"
 
 namespace other {
 
   MockEngine* MockEngine::instance = nullptr;
 
-  MockEngine::MockEngine(CmdLine cmd_line, const Path& configpath)
-      : command_line(cmd_line) {
-    other::IniFileParser parser(configpath.string());
-    try {
-      config = parser.Parse();
-    } catch (other::IniException& e) {
-      throw std::runtime_error(fmtstr("INI Parsing failure {}", e.what()));
-    }
-
+  MockEngine::MockEngine(CmdLine cmd_line, std::string main_thread_name)
+      : Engine(cmd_line, main_thread_name) {
     instance = this;
   }
 
-  MockEngine::~MockEngine() {}
+  MockEngine::~MockEngine() {
+    instance = nullptr;
+  }
 
   MockEngine* MockEngine::TestEngine() {
     if (instance == nullptr) {
       throw std::logic_error("Cannot call MockEngine::TestEngine until after test has been loaded!");
     }
-    /// registered on gtest entry
     return instance;
   }
 
-  void MockEngine::SetUp() {
-    engine_stub = NewScope<Engine>(command_line);
-
-    other::Logger::Open(config);
-    other::Logger::Instance()->RegisterThread("Main Other Engine Test Engine Thread");
-    OE_TRACE("Logger initialized for unit test");
-
-    AppState::Initialize(command_line, config);
+  void MockEngine::RegisterMockApplication(const TestDescription& description) {
+    run_record.test_name = description.test_name;
   }
 
-  void MockEngine::TearDown() {
-    OE_TRACE("Shutting down logger for unit test");
-    other::Logger::Shutdown();
+  void MockEngine::RecordError(ErrorLevel level, const std::string_view msg, std::source_location loc) {
+    run_record.num_errors++;
+    records->Record(TestEngineRecords::ERROR_DESCRIPTION, OtherTestEngineError(level, msg, loc));
   }
 
-  Ref<SceneRenderer> MockEngine::GetDefaultSceneRenderer(const uint32_t max_entities) {
-    if (default_renderer != nullptr) {
-      return default_renderer;
-    }
-
-    uint32_t model_binding_pnt = 1;
-    std::vector<Uniform> model_unis = {
-      { "models", other::ValueType::MAT4, max_entities },
-    };
-
-    uint32_t material_binding_pnt = 2;
-    std::vector<Uniform> material_unis = {
-      { "materials", other::ValueType::USER_TYPE, max_entities, sizeof(other::Material) },
-    };
-
-    other::Layout default_layout = {
-      { other::ValueType::VEC3, "position" },
-      { other::ValueType::VEC3, "normal" },
-      { other::ValueType::VEC3, "tangent" },
-      { other::ValueType::VEC3, "binormal" },
-      { other::ValueType::VEC2, "uvs" }
-    };
-
-    const other::Path engine_dir = other::Filesystem::GetEngineCoreDir() / "OtherEngine";
-    const other::Path shader_dir = engine_dir / "assets" / "shaders";
-    other::Path shader_path = shader_dir / "pure_geometry.oshader";
-    other::RenderPassSpec geom_pass_spec = {
-      .name = "StressTestRenderPass",
-      .tag_col = { 0.f, 0.f, 1.f, 1.f },
-      .uniforms = {},
-      .shader = other::BuildShader(shader_path),
-    };
-    other::Ref<other::RenderPass> test_pass = other::NewRef<other::RenderPass>(geom_pass_spec);
-
-    SceneRenderSpec render_spec{
-      .pipelines = {
-        {
-          .framebuffer_spec = {
-            .depth_func = other::LESS_EQUAL,
-            .clear_color = { 0.1f, 0.1f, 0.1f, 1.f },
-            .size = other::Renderer::WindowSize(),
-          },
-          .vertex_layout = default_layout,
-          .model_uniforms = model_unis,
-          .model_binding_point = model_binding_pnt,
-          .material_uniforms = material_unis,
-          .material_binding_point = material_binding_pnt,
-          .debug_name = "Geometry",
-        },
-      },
-      .passes = {
-        test_pass,
-      },
-      .pipeline_to_pass_map = {
-        { FNV("Geometry"), { FNV(test_pass->Name()) } },
-      },
-    };
-    default_renderer = NewRef<SceneRenderer>(render_spec);
-
-    return default_renderer;
+  void MockEngine::RecordWarning(const std::string_view msg, std::source_location loc) {
+    run_record.num_warnings++;
+    records->Record(TestEngineRecords::ERROR_DESCRIPTION, OtherTestEngineError(ErrorLevel::WARNING, msg, loc));
   }
 
-  void MockEngine::InitializeEngineSubSystems() {
-    IO::Initialize();
-    EventQueue::Initialize(config);
-
-    Renderer::Initialize(config);
-    CHECKGL();
-
-    UI::Initialize(config, Renderer::GetWindow());
-    ScriptEngine::Initialize(config);
-
-    PhysicsEngine::Initialize(config);
+  void MockEngine::RecordError(const OtherTestEngineError& error) {
+    run_record.num_errors++;
+    records->Record(TestEngineRecords::ERROR_DESCRIPTION, error);
   }
 
-  void MockEngine::ShutdownEngineSubSystems() {
-    PhysicsEngine::Shutdown();
-
-    ScriptEngine::Shutdown();
-
-    UI::Shutdown();
-    Renderer::Shutdown();
-    EventQueue::Shutdown();
-    IO::Shutdown();
-
-    OE_INFO("Shutdown complete");
+  void MockEngine::RecordWarning(const OtherTestEngineError& error) {
+    run_record.num_warnings++;
+    records->Record(TestEngineRecords::ERROR_DESCRIPTION, error);
   }
 
-  void EngineTest::EmptyEventLoop() const {
-    other::IO::Update();
-    SDL_Event e;
-    while (SDL_PollEvent(&e)) {
-      switch (e.type) {
-        default:
-          break;
+  void MockEngine::Run() {
+    Start();
+
+    OE_INFO("Running");
+    do {
+      try {
+        Step();
+      } catch (OtherTestEngineError& e) {
+        e.num = run_record.num_errors++;
+
+        records->Record(TestEngineRecords::ERROR_DESCRIPTION, e);
+        EngineEvent(EngineStateEvent::ENGINE_FAILURE);
+      } catch (std::logic_error& e) {
+        std::string str = fmtstr("Did you attempt to access the test engine before initializing it? {}", e.what());
+        OtherTestEngineError err(ErrorLevel::FATAL, str);
+        err.num = run_record.num_errors++;
+
+        records->Record(TestEngineRecords::ERROR_DESCRIPTION, err);
+        EngineEvent(EngineStateEvent::ENGINE_FAILURE);
+      } catch (...) {
+        OtherTestEngineError err(ErrorLevel::FATAL, "Unknown exception caught at top level");
+        err.num = run_record.num_errors++;
+
+        records->Record(TestEngineRecords::ERROR_DESCRIPTION, err);
+        EngineEvent(EngineStateEvent::ENGINE_FAILURE);
       }
-      ImGui_ImplSDL2_ProcessEvent(&e);
-    }
-    other::EventQueue::Clear();
+    } while (!exit_code.has_value());
+
+    OE_ASSERT(exit_code.has_value(), "Driver did not set exit code");
+    Stop();
   }
 
-  App* NewApp(const CmdLine& cmd_line, const ConfigTable& config) {
-    return new MockApp(cmd_line, config);
+  void MockEngine::InitializeTest() {
+    MockApp& app = AppState::AppHandle<MockApp>();
+    RegisterMockApplication(app.GetTestDescription());
+    EngineEvent(EngineStateEvent::TEST_START);
+  }
+
+  void MockEngine::UpdateTest() {
+  }
+
+  void MockEngine::RenderTest() {
+  }
+
+  namespace {
+
+    void RecordLog(const spdlog::details::log_msg& msg) {
+      std::string msg_str = fmtstr("{}", msg.payload);
+
+      ErrorMarker marker(msg.source.line, 0, "<unknown>");
+      if (!msg.source.empty()) {
+        marker = ErrorMarker(msg.source.line, 0, msg.source.filename);
+      }
+
+      if (msg.level == spdlog::level::warn) {
+        OtherTestEngineError err(ErrorLevel::WARNING, msg_str, marker);
+        MockEngine::TestEngine()->RecordWarning(err);
+      } else if (msg.level == spdlog::level::err) {
+        OtherTestEngineError err(ErrorLevel::NON_FATAL, msg_str, marker);
+        MockEngine::TestEngine()->RecordError(err);
+      } else if (msg.level == spdlog::level::critical) {
+        OtherTestEngineError err(ErrorLevel::FATAL, msg_str, marker);
+        MockEngine::TestEngine()->RecordError(err);
+      }
+    }
+
+    spdlog::sink_ptr CreateTestingSink() {
+      return std::make_shared<spdlog::sinks::callback_sink_mt>(&RecordLog);
+    }
+
+  }  // anonymous namespace
+
+  void MockEngine::Start() {
+    instance = this;
+    records = NewScope<TestEngineRecords>();
+
+    Engine::Start();
+
+    LoggerTargetData log_intercept = {
+      .sink = {
+        .sink_name = "log-intercept-sink",
+        .sink_pattern = "%v",
+        .level = spdlog::level::trace,
+      },
+      .sink_factory = &CreateTestingSink,
+    };
+    Logger::Instance()->RegisterTarget(log_intercept);
+  }
+
+  void MockEngine::Step() {
+    dt = delta.Get();
+    AppState::OnEngineTick(dt);
+
+    while (!event_queue.empty()) {
+      state->HandleEvent(event_queue.front());
+      event_queue.pop();
+    }
+
+    if (state->IsFinished()) {
+      OE_ASSERT(AppState::exit_code.has_value(), "No exit code set for engine shutdown");
+      exit_code = AppState::exit_code.value();
+    } else {
+      state->Step();
+    }
+  }
+
+  void MockEngine::Stop() {
+    Engine::Stop();
+
+    if (run_record.num_errors > 0) {
+      run_record.result = RunResult::TEST_FAILURE;
+    } else {
+      run_record.result = RunResult::TEST_SUCCESS;
+    }
+    records->Record(TestEngineRecords::RUN_REPORT, run_record);
+    records = nullptr;
+  }
+
+  Ref<EngineStateMachine> MockEngine::CreateStateMachine() {
+    return NewRef<MockEngineStateMachine>(this);
   }
 
 }  // namespace other

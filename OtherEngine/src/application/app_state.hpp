@@ -6,6 +6,7 @@
 
 #include "core/defines.hpp"
 #include "core/layer_stack.hpp"
+#include "engine/engine_states.hpp"
 
 #include "asset/asset_handler.hpp"
 #include "project/project.hpp"
@@ -15,16 +16,19 @@
 #include "rendering/ui/ui_window.hpp"
 #include "rendering/ui/ui_window_map.hpp"
 
-#include "engine/engine_state_machine.hpp"
-
 namespace other {
 
   class App;
+  template <typename T>
+  concept AppType = std::derived_from<T, App>;
 
   class AppState {
    public:
-    static void Initialize(const CmdLine& cmd_line, const ConfigTable& config);
+    static void Initialize(Engine* driver);
     static void Shutdown();
+
+    static bool IsLoading();
+    static void MarkLoaded();
 
     static CmdLine& GetProcessArguments();
     static ConfigTable& GetLoadedConfig();
@@ -45,14 +49,29 @@ namespace other {
 
     static App& AppHandle();
 
-    static void AppEvent(const Ref<EngineStateEvent>& event);
+    /**
+     * @note AVOID using this if possible, only use this if you're certain you have to and even then
+     *        you should re-evaluate your choices
+     */
+    template <typename T>
+      requires AppType<T>
+    static T& AppHandle() {
+      OE_ASSERT(data != nullptr, "Can not access app data until app is loaded");
+      OE_ASSERT(data->app_handle != nullptr, "Can not access app handle until app is loaded");
+      T* app = dynamic_cast<T*>(data->app_handle);
+      OE_ASSERT(app != nullptr, "App handle is not of type {}", typeid(T).name());
+      return *app;
+    }
+
+    static void AppEvent(EngineStateEvent event);
 
     inline static EngineMode mode = EngineMode::EDITOR;
     inline static Opt<ExitCode> exit_code = std::nullopt;
     inline static bool is_attached = false;
 
     struct Data : public RefCounted {
-      App* app_handle;  /// do not delete
+      App* app_handle = nullptr;  /// do not delete
+      Engine* driver = nullptr;   /// do not delete
       CmdLine cmd_line;
       ConfigTable config;
 
@@ -65,6 +84,8 @@ namespace other {
       UIWindowMap ui_windows;
 
       float frame_delta = 0.0f;
+
+      bool loading = true;
 
       Data(App* app_handle, Ref<Project> proj);
       ~Data();
@@ -79,13 +100,18 @@ namespace other {
 
     static void AttachApplication();
     static void DetachApplication();
+
+    static void FlushUpdateLoop();
+
     static void RunEarlyUpdate();
     static void RunUpdate();
     static void RunLateUpdate();
+
     static void HandleRender();
 
    private:
     friend class Engine;
+    MOCK_ENGINE_FRIEND;
     static void OnEngineTick(float dt);
 
     static Ref<Data> data;

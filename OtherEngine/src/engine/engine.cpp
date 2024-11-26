@@ -20,22 +20,18 @@ namespace other {
 
   Engine::Engine() {}
 
-  Engine::Engine(const CmdLine& cmdline, Opt<std::string> main_thread_name)
+  Engine::Engine(const CmdLine& cmdline, std::string main_thread_name)
       : cmd_line(cmdline) {
     exit_code = LoadConfig();
 
     Logger::Open(config);
-    if (main_thread_name.has_value()) {
-      Logger::Instance()->RegisterThread(main_thread_name.value());
-    } else {
-      Logger::Instance()->RegisterThread("Other-Engine-Main-Thread");
-    }
+    Logger::Instance()->RegisterThread(main_thread_name);
 
     Filesystem::Initialize(cmdline, config);
     IO::Initialize();
     EventQueue::Initialize(config);
 
-    state = NewRef<EngineStateMachine>(this);
+    state = CreateStateMachine();
     OE_ASSERT(state != nullptr, "Failed to create Engine State Machine");
 
     exit_code = std::nullopt;
@@ -48,51 +44,23 @@ namespace other {
     Logger::Shutdown();
   }
 
+  void Engine::Run() {
+    Start();
+    OE_INFO("Running");
+    do {
+      Step();
+    } while (!exit_code.has_value());
+
+    OE_ASSERT(exit_code.has_value(), "Driver did not set exit code");
+    Stop();
+  }
+
   void Engine::Start() {
     delta.Start();
-
     EventQueue::RegisterEventDispatcher<ShutdownEvent>(
       "Other-Engine--Shutdown",
       { std::bind_front(&Engine::HandleShutdownEvent, this) }
     );
-  }
-
-  void Engine::Step() {
-    try {
-      dt = delta.Get();
-      AppState::OnEngineTick(dt);
-
-      /// copy this over in case any states push events
-      // std::queue<EngineStateEvent> eq = event_queue;
-      while (!event_queue.empty()) {
-        state->HandleEvent(event_queue.front());
-        event_queue.pop();
-      }
-
-      if (state->IsFinished()) {
-        OE_ASSERT(AppState::exit_code.has_value(), "No exit code set for engine shutdown");
-        exit_code = AppState::exit_code.value();
-      } else {
-        state->Step();
-      }
-    } catch (const IniException& e) {
-      println("caught ini error : {}", e.what());
-      state->HandleEvent(EngineStateEvent::CORRUPT_CONFIG_ERROR);
-    } catch (const ShaderException& e) {
-      println("caught shader error : {}", e.what());
-      state->HandleEvent(EngineStateEvent::CORRUPT_SHADER_ERROR);
-    } catch (const std::exception& e) {
-      println("caught std error : {}", e.what());
-      state->HandleEvent(EngineStateEvent::ENGINE_FAILURE);
-    } catch (...) {
-      println("Unknown exception caught at top level : MAJOR ERROR");
-      state->HandleEvent(EngineStateEvent::ENGINE_FAILURE);
-    }
-  }
-
-  void Engine::Stop() {
-    /// step once more to ensure all systems are shutdown
-    Step();
   }
 
   bool Engine::IsRunning() const {
@@ -102,6 +70,35 @@ namespace other {
   void Engine::EngineEvent(EngineStateEvent event) {
     OE_DEBUG("Engine Event : {}", event);
     event_queue.push(event);
+  }
+
+  void Engine::Step() {
+    dt = delta.Get();
+    AppState::OnEngineTick(dt);
+
+    if (!event_queue.empty()) {
+      state->HandleEvent(event_queue.front());
+      event_queue.pop();
+    }
+
+    if (state->IsFinished()) {
+      OE_ASSERT(AppState::exit_code.has_value(), "No exit code set for engine shutdown");
+      exit_code = AppState::exit_code.value();
+    } else {
+      state->Step();
+    }
+  }
+
+  void Engine::Stop() {
+    OE_ASSERT(state->IsFinished(), "Engine shutdown state corrupted");
+    OE_ASSERT(exit_code.has_value(), "Engine did not set exit code");
+    EventQueue::UnregisterEventDispatcher("Other-Engine--Shutdown");
+
+    OE_INFO("Engine Exit : {}", exit_code.value());
+  }
+
+  Ref<EngineStateMachine> Engine::CreateStateMachine() {
+    return NewRef<EngineStateMachine>(this);
   }
 
   Opt<Path> Engine::FindConfigFile() {
@@ -150,16 +147,18 @@ namespace other {
     }
 
     if (ini_file.has_value()) {
-      println("Using configuration : {}", ini_file.value());
       return ini_file;
     }
 
+    println("FAILED to find configuration file for project in current directory!");
+    println(" > defaulting to core configuration");
+
     /// if no .other file in current directory, use launcher file
     Path engine_core = Filesystem::GetEngineCoreDir();
-    ini_file = engine_core / "OtherEngine-Launcher" / "launcher.other";
+    ini_file = engine_core / "OtherEngine" / "editor.other";
     if (!Filesystem::PathExists(ini_file.value())) {
       /// this means that engine core dir was not set correctly during build/install process
-      println("Other Engine Launcher configuration file not found [CORRUPT INSTALLATION]");
+      println("Other Engine default configuration file not found [CORRUPT INSTALLATION]");
       return std::nullopt;
     }
 
@@ -184,13 +183,15 @@ namespace other {
   // }
 
   ExitCode Engine::LoadConfig() {
+    println("Loading OtherEngine configuration");
     auto ini_file = FindConfigFile();
     if (!ini_file.has_value()) {
+      println("Failed to find configuration file");
       return ExitCode::NO_CONFIG_FILE;
     }
 
+    println(" > Using configuration : {}", config_path);
     config_path = ini_file.value().string();
-    println("Using configuration : {}", config_path);
 
     try {
       IniFileParser parser{ config_path };
@@ -202,7 +203,7 @@ namespace other {
 
     std::string config_table_str = config.TableString();
 #ifdef OTHER_DEBUG_BUILD
-    println(config_table_str);
+    println("project table :\n{}", config_table_str);
 #endif  // OE_DEBUG_BUILD
 
     return ExitCode::NO_EXIT;

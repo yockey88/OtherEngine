@@ -3,6 +3,7 @@ from argparse import ArgumentParser
 
 from .actions import EditAction
 from .actions import BuildAction
+from .actions import RunTestHarnessAction
 from .actions import RunAction
 from .actions import RunDotnetAction
 from .actions import TestAction
@@ -134,6 +135,13 @@ engine_cmds: list[Command] = [
         "-r", "--run",
         "runs the project specified by 'project' if it exists followed by the command line arguments",
         action=RunAction(), nargs='*', metavar="project"
+    ),
+
+    # run project with test harness
+    Command(
+        "-rt", "--run-test-harness",
+        "runs the project specified by 'project' if it exists followed by the test harness",
+        action=RunTestHarnessAction(), nargs='*', metavar="project"
     ),
 
     Command(

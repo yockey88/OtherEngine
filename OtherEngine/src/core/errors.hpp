@@ -4,13 +4,12 @@
 #ifndef OTHER_ENGINE_ERRORS_HPP
 #define OTHER_ENGINE_ERRORS_HPP
 
-#include <array>
 #include <source_location>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 
-#include "core/defines.hpp"
+#include "core/formatters.hpp"
 
 namespace other {
 

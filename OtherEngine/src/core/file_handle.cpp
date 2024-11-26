@@ -3,7 +3,9 @@
  **/
 #include "core/file_handle.hpp"
 
+#include <cerrno>
 #include <cstddef>
+#include <cstring>
 #include <filesystem>
 
 #include "core/filesystem.hpp"
@@ -15,7 +17,7 @@
 
 namespace other {
 
-  FileHandle::FileHandle(UUID hash, const Path& path, Opt<std::ios_base::openmode> mode) {
+  FileHandle::FileHandle(UUID hash, const Path& path, Opt<std::ios_base::openmode> m) {
     project_relative_path = path;
     handle = hash;
 
@@ -33,22 +35,28 @@ namespace other {
       });
     }
 
-    if (mode.has_value()) {
-      Open(*mode);
-      if (IsOpen()) {
-        OE_DEBUG("File Opened : {} ({})", project_relative_path.string(), handle);
-        // this->mode = *mode;
-        try {
-          watcher = NewRef<FileWatcher>(handle, AbsolutePath());
-        } catch (std::exception& e) {
-          OE_ERROR("Failed to create file watcher : {}", e.what());
-          handle = 0;
-          asset_type = std::nullopt;
-        }
+    if (!Filesystem::FileExists(AbsolutePath())) {
+      if (m.has_value() && (*m & std::ios_base::out)) {
+        std::ofstream file(AbsolutePath());
+        file.close();
       } else {
         OE_ERROR("Failed to open file : {}", project_relative_path.string());
+        return;
       }
     }
+    OE_ASSERT(Filesystem::FileExists(AbsolutePath()), "Failed to create file : {}", project_relative_path.string());
+
+    try {
+      watcher = NewRef<FileWatcher>(handle, AbsolutePath());
+    } catch (std::exception& e) {
+      OE_ERROR("Failed to create file watcher : {}", e.what());
+    }
+
+    if (!m.has_value()) {
+      return;
+    }
+
+    Open(*m);
   }
 
   FileHandle::~FileHandle() {
@@ -59,11 +67,6 @@ namespace other {
   }
 
   void FileHandle::Open(std::ios_base::openmode new_mode) {
-    if (!Exists()) {
-      OE_ERROR("File does not exist : {}", project_relative_path.string());
-      return;
-    }
-
     if (IsOpen()) {
       Close();
     }
@@ -72,8 +75,9 @@ namespace other {
     mode = new_mode;
 
     if (!IsOpen()) {
-      OE_ERROR("Failed to open file : {}", project_relative_path.string());
-      return;
+      OE_ERROR("Failed to open file : {} [{}]", project_relative_path.string(), std::strerror(errno));
+    } else {
+      OE_DEBUG("Opened file : {}", project_relative_path.string());
     }
   }
 
@@ -133,10 +137,6 @@ namespace other {
   }
 
   const Path FileHandle::AbsolutePath() const {
-    if (handle.Get() == 0) {
-      return Path();
-    }
-
     return std::filesystem::absolute(project_relative_path);
   }
 
@@ -146,6 +146,30 @@ namespace other {
     }
 
     return project_relative_path;
+  }
+
+  std::fstream& FileHandle::RawFileStream() {
+    return file;
+  }
+
+  void FileHandle::WriteJson(const nlohmann::json& data) {
+    if (Extension() != ".json") {
+      OE_ERROR("File {} is not a json file", project_relative_path.string());
+      return;
+    }
+
+    {
+      std::ofstream write_file(AbsolutePath());
+      if (!write_file.is_open()) {
+        OE_ERROR("Failed to write to file : {} [{}]", project_relative_path.string(), std::strerror(errno));
+        return;
+      }
+
+      write_file << data.dump(2);
+      if (write_file.fail()) {
+        OE_ERROR("Failed to write to file : {} [{}]", project_relative_path.string(), std::strerror(errno));
+      }
+    }
   }
 
   std::string FileHandle::ReadString() {

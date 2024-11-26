@@ -12,63 +12,60 @@
 #include <spdlog/fmt/bundled/format.h>
 
 #include "core/defines.hpp"
+#include "math/interval.hpp"
 #include "math/ray.hpp"
-#include "math/vecmath.hpp"
 
 namespace other {
 
   constexpr inline static size_t kNumCubeCorners = 8;
 
   struct BBox {
+    enum Face {
+      LEFT = 0,
+      RIGHT,
+      BOTTOM,
+      TOP,
+      BACK,
+      FRONT
+    };
+
     glm::vec3 min{ 0.f, 0.f, 0.f };
     glm::vec3 max{ 0.f, 0.f, 0.f };
     glm::vec3 extent{ 0.f, 0.f, 0.f };
 
     std::array<glm::vec3, kNumCubeCorners> corners = {};
 
-    BBox(const glm::vec3& min, const glm::vec3& max)
-        : min(min), max(max), extent(vec3_sub(max, min)) {
-      CalculateCorners();
-    }
-    BBox(const glm::vec3& point)
-        : BBox(point, point) {}
-    BBox()
-        : BBox(glm::vec3{ 0.f }) {}
+    BBox() {}
+    BBox(const glm::vec3& point);
+    BBox(Interval x, Interval y, Interval z);
+    BBox(const glm::vec3& min, const glm::vec3& max);
+    BBox(const BBox& a, const BBox& b);
 
     bool Contains(const glm::vec3& point) const;
     bool OnBoundary(const glm::vec3& point) const;
 
-    Intersection Intersect(const Ray& ray) const;
+    bool Hit(const Ray& ray, Interval& trace_interval) const;
+    glm::vec3 GetFaceNormal(const glm::vec3& point, const glm::vec3& ray_dir) const;
 
     void ExpandToInclude(const glm::vec3& point);
     void ExpandToFill(const BBox& other);
 
     glm::vec3 Center() const;
-    bool Intersects(/* ray , near , far */) const { return false; }
 
     float MaxDimension() const;
     float SurfaceArea() const;
 
     const std::array<glm::vec3, 8>& Corners() const;
 
-    static BBox Union(const BBox& a, const BBox& b) {
-      BBox result;
-      result.min = {
-        glm::min(a.min.x, b.min.x),
-        glm::min(a.min.y, b.min.y),
-        glm::min(a.min.z, b.min.z)
-      };
-      result.max = {
-        glm::max(a.max.x, b.max.x),
-        glm::max(a.max.y, b.max.y),
-        glm::max(a.max.z, b.max.z)
-      };
-      result.extent = vec3_sub(result.max, result.min);
-      return result;
-    }
+    static BBox Union(const BBox& a, const BBox& b);
+
+    static const BBox empty;
+    static const BBox universe;
 
    private:
     void CalculateCorners();
+
+    Interval AxisInterval(uint32_t axis) const;
   };
 
 }  // namespace other

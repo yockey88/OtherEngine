@@ -11,8 +11,8 @@ namespace other {
   class Engine;
 
   struct AppIdle : public EngineState {
-    AppIdle(Engine* engine)
-        : EngineState(engine, EngineStateTypes::APP_IDLE) {}
+    AppIdle(Engine* engine, EngineStateTypes type = EngineStateTypes::APP_IDLE)
+        : EngineState(engine, type) {}
     virtual ~AppIdle() override {}
     virtual Ref<EngineState> HandleEvent(const EngineStateEvent event) override;
 

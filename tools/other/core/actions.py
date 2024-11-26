@@ -16,9 +16,9 @@ class BuildAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string):
         setattr(namespace, self.dest, values)
 
-class EditProjectAction(argparse.Action):
+class RunTestHarnessAction(argparse.Action):
     def __init__(self, **kwargs):
-        super().__init__("-e", "--edit", nargs=1, **kwargs)
+        super().__init__("-rt", "--run-test-harness", nargs='*', **kwargs)
 
     def __call__(self, parser, namespace, values, option_string):
         setattr(namespace, self.dest, values)

@@ -8,7 +8,6 @@
 #include <type_traits>
 
 #include "core/errors.hpp"
-#include "core/logger.hpp"
 #include "core/ref_counted.hpp"
 
 namespace other {

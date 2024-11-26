@@ -44,7 +44,7 @@ namespace other {
     frame_data.viewpoint = camera;
   }
 
-  void SceneRenderer::SubmitEnvironment(const Ref<Environment>& environment) {
+  void SceneRenderer::SubmitEnvironment(const Ref<LightEnvironment>& environment) {
     if (frame_data.environment != nullptr) {
       /// only one environment per frame
       return;
@@ -69,6 +69,12 @@ namespace other {
       light_uniforms->SetUniform("direction_lights", l, i);
     }
     frame_data.environment = environment;
+  }
+
+  void SceneRenderer::ClearLightEnvironment() {
+    glm::vec4 light_count{ 0, 0, 0, 0 };
+    light_uniforms->BindBase();
+    light_uniforms->SetUniform("num_lights", light_count);
   }
 
   void SceneRenderer::SubmitModel(const std::string_view pl_name, Ref<Model> model, const glm::mat4& transform, const Material& material) {
@@ -105,7 +111,28 @@ namespace other {
     itr->second->SubmitStaticModel(submission);
   }
 
-  bool SceneRenderer::EndScene() {
+  void SceneRenderer::RenderGbuffer() {
+    if (!FrameComplete()) {
+      return;
+    }
+
+    PreRenderSettings();
+    for (auto& [id, pl] : pipelines) {
+      pl->RenderGbuffer();
+    }
+  }
+
+  bool SceneRenderer::RenderAll() {
+    if (!FrameComplete()) {
+      return false;
+    }
+
+    PreRenderSettings();
+    FlushDrawList();
+    return true;
+  }
+
+  bool SceneRenderer::FinalizeScene() {
     if (!FrameComplete()) {
       ResetFrame();
       return false;

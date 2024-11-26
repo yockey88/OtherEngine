@@ -1,5 +1,8 @@
 [project]
 name = "GLSandbox"
+working-directory = "C:/Yock/code/OtherEngine/tests/gl_sandbox"
+bin-dir = "C:/Yock/code/OtherEngine/bin/Debug"
+script-bin-dir = "SandboxScripts/net8.0"
 author = "Y"
 version = 0.0.1
 

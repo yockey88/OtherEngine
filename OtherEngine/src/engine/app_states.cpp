@@ -4,8 +4,7 @@
 #include "engine/app_states.hpp"
 
 #include "core/defines.hpp"
-#include "core/filesystem.hpp"
-#include "engine/editor_states.hpp"
+#include "editor/editor_states.hpp"
 #include "engine/engine.hpp"
 
 #include "application/app_state.hpp"
@@ -35,6 +34,7 @@ namespace other {
 
     if (event == EngineStateEvent::ENGINE_SHUTDOWN) {
       OE_ASSERT(AppState::exit_code.has_value(), "No exit code set for engine shutdown");
+      AppState::DetachApplication();
       return NewRef<EngineShutdown>(engine);
     }
 
@@ -42,13 +42,17 @@ namespace other {
   }
 
   void AppIdle::OnAttach() {
-    AppState::AttachApplication();
   }
 
   void AppIdle::OnStep() {
-    OE_ASSERT(AppState::HasPrimaryScene(), "Can not load runtime AppIdle state without a default scene");
-    AppState::LoadPrimaryScene();
-    engine->EngineEvent(EngineStateEvent::SCENE_LOADED);
+    if (AppState::IsLoading()) {
+      AppState::MarkLoaded();
+      OE_ASSERT(AppState::HasPrimaryScene(), "Can not load runtime AppIdle state without a default scene");
+      AppState::LoadPrimaryScene();
+      engine->EngineEvent(EngineStateEvent::SCENE_LOADED);
+    }
+
+    /// what should happen here??
   }
 
   void AppIdle::OnDetach() {
@@ -84,9 +88,7 @@ namespace other {
   }
 
   void SceneRunning::OnStep() {
-    AppState::RunEarlyUpdate();
-    AppState::RunUpdate();
-    AppState::RunLateUpdate();
+    AppState::FlushUpdateLoop();
     AppState::HandleRender();
   }
 

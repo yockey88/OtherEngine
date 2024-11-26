@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <numeric>
 #include <span>
+#include <type_traits>
 
 #include <glm/gtc/type_ptr.hpp>
 
@@ -36,12 +37,18 @@ namespace other {
     size_t ElementSize(size_t index) const;
 
     template <typename T>
-    T& Read(uint64_t offset = 0) {
+    T Read(uint64_t offset = 0) {
       OE_ASSERT(offset + sizeof(T) <= capacity, "Attempting to read buffer as incorrectly sized type");
       return *reinterpret_cast<T*>(data + offset);
     }
 
+    template <>
+    std::string Read(size_t offset) {
+      return std::string{ reinterpret_cast<const char*>(data), Size() };
+    }
+
     template <typename T>
+      requires std::is_trivially_copyable_v<T>
     const T& Read(uint64_t offset = 0) const {
       OE_ASSERT(offset + sizeof(T) <= capacity, "Attempting to read buffer as incorrectly sized type");
       return *reinterpret_cast<T*>(data + offset);
@@ -49,6 +56,12 @@ namespace other {
 
     const uint8_t* ReadBytes(uint64_t offset = 0) const;
     void Write(const void* data, uint64_t size, uint64_t offset = 0);
+
+    template <typename T>
+      requires std::is_trivially_copyable_v<T>
+    void Write(T&& value) {
+      Write(value);
+    }
 
     template <typename T>
       requires std::is_trivially_copyable_v<T>
@@ -117,7 +130,8 @@ namespace other {
       }
 
       if (start_index + num_elts > container.size()) {
-        OE_ERROR("Attempting to read from invalid memory when writing to buffer! expected min {} > {} real size", start_index + num_elts, container.size());
+        OE_ERROR("Attempting to read from invalid memory when writing to buffer! expected min {} > {} real size", 
+                  start_index + num_elts, container.size());
         return;
       }
 
@@ -141,6 +155,13 @@ namespace other {
 
     template <typename T>
       requires std::is_trivially_copyable_v<T>
+    T* As() {
+      OE_ASSERT(sizeof(T) <= capacity, "Attempting to retrieve data is incorrectly sized type");
+      return reinterpret_cast<T*>(&data[0]);
+    }
+
+    template <typename T>
+      requires std::is_trivially_copyable_v<T>
     const T* As() const {
       OE_ASSERT(sizeof(T) <= capacity, "Attempting to retrieve data is incorrectly sized type");
       return reinterpret_cast<T*>(&data[0]);
@@ -152,8 +173,10 @@ namespace other {
 
       size_t offset = std::accumulate(element_sizes.begin(), element_sizes.begin() + idx, 0);
 
-      OE_ASSERT(offset <= capacity, "Attempting to retrieve data with incorrectly sized type! sizeof({}) == {} > {}", typeid(T).name(), sizeof(T), capacity);
-      OE_ASSERT(sizeof(T) == element_sizes[idx], "Attempting to access buffer with invalidly sized type {}! expected size {} != {} stored size", typeid(T).name(), sizeof(T), element_sizes[idx]);
+      OE_ASSERT(offset <= capacity, "Attempting to retrieve data with incorrectly sized type! sizeof({}) == {} > {}",
+                                    typeid(T).name(), sizeof(T), capacity);
+      OE_ASSERT(sizeof(T) == element_sizes[idx], "Attempting to access buffer with invalidly sized type {}! expected size {} != {} stored size", 
+                                                  typeid(T).name(), sizeof(T), element_sizes[idx]);
       return offset;
     }
 

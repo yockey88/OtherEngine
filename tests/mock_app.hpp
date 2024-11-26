@@ -15,6 +15,9 @@ class TestApp : public other::App {
 
 namespace other {
   App* NewApp(const CmdLine& cmd_line, const ConfigTable& config);
+  Engine* LoadDriver(const CmdLine& cmd_line);
+  void FreeApp(App* app);
+  void UnloadDriver(Engine* driver);
 }  // namespace other
 
 void CheckGlError(int line);

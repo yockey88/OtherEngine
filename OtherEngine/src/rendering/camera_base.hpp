@@ -7,11 +7,11 @@
 #include <string>
 
 #include <glm/glm.hpp>
-
 #include <reflection/echo_defines.hpp>
 
 #include "core/ref.hpp"
 #include "core/ref_counted.hpp"
+
 
 namespace other {
 
@@ -105,6 +105,8 @@ namespace other {
     void RotateAround(const glm::vec3& v, float degrees) {}
 
     virtual std::string GetCameraTypeString() const = 0;
+
+    bool locked = false;
 
    protected:
     friend bool DrawCamera(Entity* ent);

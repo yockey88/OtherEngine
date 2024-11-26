@@ -6,13 +6,13 @@
 #include "core/config_keys.hpp"
 #include "core/logger.hpp"
 
+#include "ecs/components/transform.hpp"
 #include "ecs/entity.hpp"
 #include "scene/scene.hpp"
 
 #include "rendering/orthographic_camera.hpp"
 #include "rendering/perspective_camera.hpp"
 #include "rendering/renderer.hpp"
-
 
 namespace other {
 
@@ -35,6 +35,7 @@ namespace other {
     SerializeValue(stream, "zoom", camera.camera->Zoom());
     SerializeValue(stream, "constrain-pitch", camera.camera->ConstrainPitch());
     SerializeValue(stream, "is-primary", camera.is_primary);
+    SerializeValue(stream, "pinned", camera.pinned_to_entity_position);
     stream << "\n";
   }
 
@@ -86,11 +87,15 @@ namespace other {
 
     auto cpitch_value = scene_table.GetVal<bool>(key_value, kConstrainPitchValue, false);
     auto primary_value = scene_table.GetVal<bool>(key_value, kPrimaryValue, false);
+    bool pinned = scene_table.GetVal<bool>(key_value, kPinnedValue, false).value_or(true);
 
-    if (pos_value.size() > 0) {
+    auto& transform = entity->ReadComponent<Transform>();
+    if (!pinned && pos_value.size() > 0) {
       glm::vec3 position = glm::vec3(0.0f, 0.0f, 3.0f);
       DeserializeVec3(pos_value, position);
       camera.camera->SetPosition(position);
+    } else {
+      camera.camera->SetPosition(transform.position);
     }
 
     if (dir_value.size() > 0) {

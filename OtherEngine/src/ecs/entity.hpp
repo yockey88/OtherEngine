@@ -6,7 +6,6 @@
 
 #include <entt/entt.hpp>
 #include <glm/glm.hpp>
-
 #include <reflection/reflected_object.hpp>
 
 #include "core/logger.hpp"
@@ -39,15 +38,14 @@ namespace other {
 
     ~Entity() {}
 
-    const Ref<Scene> GetContext() const { return context; }
+    const Ref<Scene> GetContext() const;
+    const entt::entity& Handle() const;
 
-    const entt::entity& Handle() const { return handle; }
+    const UUID& GetUUID() const;
+    const std::string Name() const;
 
-    const UUID& GetUUID() const { return uuid; }
-    const std::string Name() const { return GetComponent<Tag>().name; }
-
-    operator bool() const { return handle != entt::null; }
-    operator entt::entity() const { return handle; }
+    operator bool() const;
+    operator entt::entity() const;
 
     template <ComponentType... T>
     inline bool HasComponent() const {
@@ -150,18 +148,22 @@ namespace other {
       registry.patch<T>(handle, [&](auto& comp) { comp = component; });
     }
 
-    inline entt::entity GetEntity() const { return handle; }
+    entt::entity GetEntity() const;
 
-    inline bool IsNull() const { return handle == entt::null; }
-    inline bool IsNotNull() const { return !IsNull(); }
+    bool IsNull() const;
+    bool IsNotNull() const;
 
-    inline bool IsValid() const { return registry.valid(handle); }
-    inline bool IsOrphan() const { return registry.orphan(handle); }
+    bool IsValid() const;
+    bool IsOrphan() const;
 
-    inline void SetContext(Ref<Scene>& scene) { context = scene; }
+    void SetContext(Ref<Scene>& scene);
 
-    inline bool operator==(const Entity& other) const { return handle == other.handle; }
-    inline bool operator!=(const Entity& other) const { return handle != other.handle; }
+    bool operator==(const Entity& other) const;
+    bool operator!=(const Entity& other) const;
+
+    bool HasVisibleComponent() const;
+
+    RenderSubmission WireframeSubmission() const;
 
     /// for marking as visited during tree traversals
     bool visited = false;

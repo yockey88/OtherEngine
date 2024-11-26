@@ -17,56 +17,57 @@ namespace other {
     EMPTY_EVNT = 0,
 
     // window events
-    WINDOW_CLOSE = bit(1),
-    WINDOW_MINIMIZE = bit(2),
-    WINDOW_RESIZE = bit(3),
+    WINDOW_CLOSE,
+    WINDOW_MINIMIZE,
+    WINDOW_RESIZE,
     /// \todo these events are not implemented yet
-    WINDOW_FOCUS = bit(4),
-    WINDOW_LOST_FOCUS = bit(5),
-    WINDOW_MOVED = bit(6),
+    WINDOW_FOCUS,
+    WINDOW_LOST_FOCUS,
+    WINDOW_MOVED,
 
-    UI_WINDOW_CLOSE = bit(7),
+    UI_WINDOW_CLOSE,
 
     // application events
-    APP_TICK = bit(8),
-    APP_UPDATE = bit(9),
-    APP_RENDER = bit(10),
-    APP_LAYER = bit(11),
-    SCRIPT_RELOAD = bit(12),
-    PROJECT_DIR_UPDATE = bit(13),
+    APP_TICK,
+    APP_UPDATE,
+    APP_RENDER,
+    APP_LAYER,
+    SCRIPT_RELOAD,
+    PROJECT_DIR_UPDATE,
 
     // input events
-    KEY_PRESSED = bit(14),
-    KEY_RELEASED = bit(15),
-    KEY_TYPED = bit(16),
-    KEY_HELD = bit(17),
-    MOUSE_BUTTON_PRESSED = bit(18),
-    MOUSE_BUTTON_RELEASED = bit(19),
-    MOUSE_BUTTON_HELD = bit(20),
-    MOUSE_MOVD = bit(21),
-    MOUSE_SCROLLED = bit(22),
+    KEY_PRESSED,
+    KEY_RELEASED,
+    KEY_TYPED,
+    KEY_HELD,
+    MOUSE_BUTTON_PRESSED,
+    MOUSE_BUTTON_RELEASED,
+    MOUSE_BUTTON_HELD,
+    MOUSE_MOVD,
+    MOUSE_SCROLLED,
 
     // scene events
-    SCENE_LOAD = bit(23),
-    SCENE_START = bit(24),
-    SCENE_STOP = bit(25),
-    SCENE_UNLOAD = bit(26),
+    SCENE_LOAD,
+    SCENE_ACTIVATE,
+    SCENE_START,
+    SCENE_STOP,
+    SCENE_UNLOAD,
 
     // editor events
-    EDITOR_SCENE_PLAY = bit(27),
-    EDITOR_SCENE_PAUSE = bit(28),
-    EDITOR_SCENE_STOP = bit(29),
+    EDITOR_SCENE_PLAY,
+    EDITOR_SCENE_PAUSE,
+    EDITOR_SCENE_STOP,
 
     // core events
-    SHUTDOWN = bit(30),
-    ENGINE_LAYER = bit(31),
+    SHUTDOWN,
+    ENGINE_LAYER,
 
     // filesystem events
-    CREATE_DIR = bit(32),
-    DELETE_DIR = bit(33),
-    CREATE_FILE = bit(34),
-    DELETE_FILE = bit(35),
-    MODIFY_FILE = bit(36),
+    CREATE_DIR,
+    DELETE_DIR,
+    CREATE_FILE,
+    DELETE_FILE,
+    MODIFY_FILE,
   };
 
   enum EventCategory : uint64_t {

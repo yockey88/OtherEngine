@@ -6,10 +6,9 @@
 
 #include <string>
 
+#include "core/defines.hpp"
 #include "core/ref_counted.hpp"
 #include "core/uuid.hpp"
-
-#include "scene/scene_manager.hpp"
 
 namespace other {
 

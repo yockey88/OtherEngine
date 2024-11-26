@@ -3,8 +3,6 @@
  */
 #include "core/layer.hpp"
 
-#include "application/app.hpp"
-
 namespace other {
 
   void Layer::Attach() {

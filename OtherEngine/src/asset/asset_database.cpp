@@ -31,7 +31,7 @@ namespace other {
     }
 
     auto& md = ProcessAsset(metadata);
-    OE_DEBUG("Registered asset [{}] : {} ({})", md.type, md.handle, md.path.string());
+    OE_DEBUG("Registered asset [{}] : {} ({})", md.type, md.handle, md.path.string() == "" ? "memory" : md.path.string());
   }
 
   void AssetDatabase::UnregisterAsset(const AssetMetadata& metadata) {

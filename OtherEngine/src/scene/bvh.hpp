@@ -10,23 +10,23 @@
 #include <ostream>
 #include <string_view>
 
-#include "ecs/entity.hpp"
-
 #ifdef OE_TESTING_ENVIRONMENT
-#include <gtest/gtest.h>
+  #include <gtest/gtest.h>
 #endif
 
+#include <core/stable_vector.hpp>
 #include <glm/fwd.hpp>
 #include <glm/glm.hpp>
 #include <spdlog/fmt/fmt.h>
-
-#include <core/stable_vector.hpp>
 
 #include "core/ref.hpp"
 #include "core/ref_counted.hpp"
 #include "math/math.hpp"
 #include "math/ray.hpp"
 
+#include "ecs/components/camera.hpp"
+#include "ecs/components/transform.hpp"
+#include "ecs/entity.hpp"
 #include "scene/bvh_node.hpp"
 
 using dotother::StableVector;
@@ -70,11 +70,31 @@ namespace other {
       Initialize(glm::zero<glm::vec3>());
     }
 
-    ~Bvh() { nodes.Clear(); }
+    ~Bvh() {
+      nodes.Clear();
+    }
 
-    const size_t Depth() const { return GetSpace().GetMaxDepth(); }
+    /// TODO: put this on the gpu
+    Opt<TraceResult> Trace(Ray ray, Interval ray_interval) {
+      static_assert(N == 8 || N == 2, "Invalid BVH size!");
 
-    const size_t NumNodes() const { return nodes.Size(); }
+      auto& space = GetSpace();
+
+      TraceResult result = {};
+      if (space.Trace(ray, ray_interval, result)) {
+        return result;
+      }
+
+      return std::nullopt;
+    }
+
+    const size_t Depth() const {
+      return GetSpace().GetMaxDepth();
+    }
+
+    const size_t NumNodes() const {
+      return nodes.Size();
+    }
 
     BvhNode<N>& GetSpace() {
       OE_ASSERT(space != nullptr, "Space is null!");
@@ -123,7 +143,9 @@ namespace other {
       return GetSpace().FindFurthestNode(location);
     }
 
-    void PrintNodes(std::ostream& os, bool print_children = false) const { PrintNode(os, GetSpace(), print_children); }
+    void PrintNodes(std::ostream& os, bool print_children = false) const {
+      PrintNode(os, GetSpace(), print_children);
+    }
 
     void PrintNode(std::ostream& os, const BvhNode<N>& node, bool print_children = false) const {
       node.Serialize(os, print_children);
@@ -133,13 +155,10 @@ namespace other {
       GetSpace().ExpandToInclude(point);
     }
 
-    Intersection Intersect(const Ray& ray) const {
+    TraceResult Intersect(const Ray& ray) const {
       return GetSpace().Intersect(ray);
     }
 
-    /**
-     * @param position - the global position of the origin of the scene
-     **/
     void AddScene(Ref<Scene>& scene, const glm::vec3& position) {
       OE_ASSERT(scene != nullptr, "Scene is null!");
 
@@ -155,12 +174,8 @@ namespace other {
     void Rebuild() {
       OE_ASSERT(N != 8, "Rebuild not implemented for octrees!");
       space = GetSpace().RebuildTree(space, space->entities);
-      // PrintNodes(std::cout, true);
     }
 
-    /**
-     * @param global_pos - the global position of the entity
-     **/
     void AddEntity(Entity* entity, const glm::vec3& global_pos) {
       OE_ASSERT(entity != nullptr, "Attempting to add null entity to octree");
 
@@ -173,11 +188,19 @@ namespace other {
     }
 
     void RenderEntityBounds(const std::string_view pl_name, Ref<SceneRenderer>& renderer, bool outline = true) {
-      GetSpace().RenderEntityBounds(pl_name, renderer, outline);
+      auto& space = GetSpace();
+      space.RenderEntityBounds(pl_name, renderer, outline);
+      for (auto& e : space.entities) {
+        e->visited = false;
+      }
     }
 
     void RenderBounds(const std::string_view pl_name, Ref<SceneRenderer>& renderer, Opt<size_t> depth = std::nullopt) {
-      GetSpace().RenderNodeBounds(pl_name, renderer, depth.value_or(Depth() - 1));
+      auto& space = GetSpace();
+      space.RenderNodeBounds(pl_name, renderer, depth.value_or(Depth() - 1));
+      for (auto& e : space.entities) {
+        e->visited = false;
+      }
     }
 
     void Update() {
@@ -185,13 +208,22 @@ namespace other {
         return;
       }
 
-      if (GetSpace().IsLeaf()) {
+      auto& space = GetSpace();
+      if (space.IsLeaf()) {
         return;
       }
 
-      GetSpace().Update();
-      if (N == 2 && !GetSpace().built) {
-        OE_DEBUG("Rebuilding BVH");
+      space.Update();
+
+      for (Entity*& e : space.entities) {
+        auto& transform = e->ReadComponent<Transform>();
+        if (!space.bbox.Contains(transform.position)) {
+          space.built = false;
+          break;
+        }
+      }
+
+      if (!space.built) {
         Rebuild();
       }
     }

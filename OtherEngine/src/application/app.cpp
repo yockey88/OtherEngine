@@ -27,60 +27,9 @@ namespace other {
     OnLoad();
   }
 
-  void App::Run() {
-    Attach();
-
-    time::DeltaTime delta_time;
-    delta_time.Start();
-    // do {
-    //   time::DeltaTime::Update();
-    //   float dt = time::DeltaTime::Get();
-
-    //   DoEarlyUpdate(dt);
-    //   DoUpdate(dt);
-    //   DoLateUpdate(dt);
-
-    //   DoRender();
-    //   DoRenderUI();
-
-    //   EventQueue::Poll();
-    // } while (!exit_code.has_value());
-
-    Detach();
-
-    OE_DEBUG("Application successfully detached");
-  }
-
   void App::Unload() {
     OnUnload();
   }
-
-  // void App::ReloadScripts() {
-  //   bool scene_playing = false;
-  //   Opt<Path> active_path = std::nullopt;
-  //   if (scene_manager->ActiveScene() != nullptr) {
-  //     scene_playing = scene_manager->IsPlaying();
-  //     active_path = scene_manager->ActiveScene()->path;
-  //     UnloadScene();
-  //   }
-
-  //   scene_manager->ClearScenes();
-  //   ScriptEngine::ReloadAllScripts();
-
-  //   OnScriptReload();
-
-  //   if (active_path.has_value()) {
-  //     LoadScene(active_path.value());
-  //   }
-
-  //   if (scene_playing) {
-  //     scene_manager->StartScene();
-  //   }
-
-  //   for (auto& l : *layer_stack) {
-  //     l->ReloadScripts();
-  //   }
-  // }
 
   Ref<AssetHandler> App::CreateAssetHandler() {
     return NewRef<RuntimeAssetHandler>();

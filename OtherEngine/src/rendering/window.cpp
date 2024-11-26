@@ -7,6 +7,7 @@
 #include <SDL_video.h>
 
 #include "core/config_keys.hpp"
+#include "math/vecmath.hpp"  // for fmt::format<glm::vec4>
 
 namespace other {
 

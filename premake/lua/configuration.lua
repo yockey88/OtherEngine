@@ -107,10 +107,10 @@ end
 local function ProcessWorkspaceConfig(config)
   filter "action:vs*"
     if config.vs_filters ~= nil then
-        config.vs_filters()
+      config.vs_filters()
     else
-        linkoptions { "/ignore:4099" , "/ignore:4098" , "/ignore:4006" }
-        disablewarnings { "68" }
+      linkoptions { "/ignore:4099" , "/ignore:4098" , "/ignore:4006" }
+      disablewarnings { "68" }
     end
 
   ProcessConfigurations(config)

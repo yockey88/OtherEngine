@@ -4,14 +4,14 @@
 #include <pybind11/pybind11.h>
 
 #include "core/defines.hpp"
+#include "editor/editor_asset_handler.hpp"
 
 #include "event/key_events.hpp"
 #include "event/window_events.hpp"
 #include "parsing/cmd_line_parser.hpp"
 
-#include "scene/environment.hpp"
+#include "scene/light_environment.hpp"
 
-#include "editor/editor_asset_handler.hpp"
 #include "other_engine.hpp"
 
 using namespace other;
@@ -144,22 +144,6 @@ namespace {
   void EnvironmentApp::OnAttach() {
     println(" > EnvironmentApp::OnAttach");
   }
-
-  // void EnvironmentApp::OnEvent(Event* event) {
-  //   EventHandler handler(event);
-  //   handler.Handle<WindowClosed>([](WindowClosed& e) -> bool {
-  //     PyEnv::exit_code = ExitCode::SUCCESS;
-  //     return true;
-  //   });
-
-  //   handler.Handle<KeyPressed>([](KeyPressed& e) -> bool {
-  //     if (e.Key() == Keyboard::Key::OE_ESCAPE) {
-  //       PyEnv::exit_code = ExitCode::SUCCESS;
-  //       return true;
-  //     }
-  //     return false;
-  //   });
-  // }
 
   void EnvironmentApp::Update(float dt) {
     println(" > EnvironmentApp::Update({})", dt);

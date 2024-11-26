@@ -9,6 +9,8 @@
 
 namespace other {
 
+  Opt<AssetHandle> ModelFactory::line_handle = std::nullopt;
+
   Opt<AssetHandle> ModelFactory::triangle_handle = std::nullopt;
   Opt<AssetHandle> ModelFactory::rect_handle = std::nullopt;
 
@@ -20,7 +22,35 @@ namespace other {
 
   Opt<std::vector<Vertex>> ModelFactory::box_vertices = std::nullopt;
 
-  AssetHandle ModelFactory::CreateTriangle(const glm::vec2& half_extents) {
+  AssetHandle ModelFactory::CreateLine(const glm::vec3& start, const glm::vec3& end) {
+    if (line_handle.has_value()) {
+      return *line_handle;
+    }
+
+    /// this is undoubtedly incorrect
+
+    std::vector<Vertex> vertices = {};
+    vertices.resize(2);
+
+    vertices[0].position = start;
+    vertices[1].position = end;
+
+    vertices[0].normal = vec3_sub(end, start);
+    vertices[1].normal = vec3_sub(start, end);
+
+    std::vector<Index> indices;
+    indices.resize(1);
+    /// 3rd index is irrelevant
+    indices[0] = { 0, 1, 0 };
+
+    AssetHandle source_handle = AssetManager::CreateMemOnly<ModelSource>(vertices, indices, glm::mat4(1.f));
+    Ref<ModelSource> source = AssetManager::GetAsset<ModelSource>(source_handle);
+    AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>(source);
+
+    return handle;
+  }
+
+  AssetHandle ModelFactory::CreateTriangle() {
     if (triangle_handle.has_value()) {
       return triangle_handle.value();
     }
@@ -28,17 +58,17 @@ namespace other {
     std::vector<Vertex> vertices{};
     vertices.resize(3);
 
-    vertices[0].position = {-half_extents.x, -half_extents.y, 0.f};
-    vertices[1].position = {+half_extents.x, -half_extents.y, 0.f};
-    vertices[2].position = {0.f, half_extents.y, 0.f};
+    vertices[0].position = { -0.5f, -0.5f, 0.f };
+    vertices[1].position = { 0.5f, -0.5f, 0.f };
+    vertices[2].position = { 0.0f, 0.5f, 0.f };
 
-    vertices[0].normal = {-1.f, -1.f, 0.f};
-    vertices[1].normal = {1.f, -1.f, 0.f};
-    vertices[2].normal = {0.f, 1.f, 0.f};
+    vertices[0].normal = { -1.f, -1.f, 0.f };
+    vertices[1].normal = { 1.f, -1.f, 0.f };
+    vertices[2].normal = { 0.f, 1.f, 0.f };
 
     std::vector<Index> indices;
     indices.resize(1);
-    indices[0] = {0, 1, 2};
+    indices[0] = { 0, 1, 2 };
 
     AssetHandle source_handle = AssetManager::CreateMemOnly<ModelSource>(vertices, indices, glm::mat4(1.f));
     Ref<ModelSource> source = AssetManager::GetAsset<ModelSource>(source_handle);
@@ -49,7 +79,7 @@ namespace other {
     return handle;
   }
 
-  AssetHandle ModelFactory::CreateRect(const glm::vec2& half_extents) {
+  AssetHandle ModelFactory::CreateRect() {
     if (rect_handle.has_value()) {
       return rect_handle.value();
     }
@@ -57,21 +87,21 @@ namespace other {
     std::vector<Vertex> vertices{};
     vertices.resize(6);
 
-    vertices[0].position = {+half_extents.x, +half_extents.y, 0.f};
-    vertices[1].position = {+half_extents.x, -half_extents.y, 0.f};
-    vertices[2].position = {-half_extents.x, -half_extents.y, 0.f};
-    vertices[3].position = {-half_extents.x, +half_extents.y, 0.f};
+    vertices[0].position = { 0.5f, 0.5f, 0.f };
+    vertices[1].position = { 0.5f, -0.5f, 0.f };
+    vertices[2].position = { -0.5f, -0.5f, 0.f };
+    vertices[3].position = { -0.5f, 0.5f, 0.f };
 
-    vertices[0].normal = {1.f, 1.f, 0.f};
-    vertices[1].normal = {1.f, -1.f, 0.f};
-    vertices[2].normal = {-1.f, -1.f, 0.f};
-    vertices[3].normal = {-1.f, 1.f, 0.f};
+    vertices[0].normal = { 1.f, 1.f, 0.f };
+    vertices[1].normal = { 1.f, -1.f, 0.f };
+    vertices[2].normal = { -1.f, -1.f, 0.f };
+    vertices[3].normal = { -1.f, 1.f, 0.f };
 
     std::vector<Index> indices;
     indices.resize(2);
 
-    indices[0] = {0, 1, 3};
-    indices[1] = {1, 2, 3};
+    indices[0] = { 0, 1, 3 };
+    indices[1] = { 1, 2, 3 };
 
     AssetHandle source_handle = AssetManager::CreateMemOnly<ModelSource>(vertices, indices, glm::mat4(1.f));
     Ref<ModelSource> source = AssetManager::GetAsset<ModelSource>(source_handle);
@@ -92,28 +122,28 @@ namespace other {
     std::vector<Index> indices;
     indices.resize(12);
     /// front face
-    indices[0] = {0, 1, 2};  /// upper = <+,+,+> => <-,+,+> => <-,-,+>
-    indices[1] = {2, 3, 0};  /// lower = <-,-,+> => <+,-,+> => <+,+,+>
+    indices[0] = { 0, 1, 2 };  /// upper = <+,+,+> => <-,+,+> => <-,-,+>
+    indices[1] = { 2, 3, 0 };  /// lower = <-,-,+> => <+,-,+> => <+,+,+>
 
     /// left face
-    indices[2] = {1, 5, 6};  /// upper = <-,+,+> => <-,+,-> => <-,-,->
-    indices[3] = {6, 2, 1};  /// lower = <-,-,-> => <-,-,+> => <-,+,+>
+    indices[2] = { 1, 5, 6 };  /// upper = <-,+,+> => <-,+,-> => <-,-,->
+    indices[3] = { 6, 2, 1 };  /// lower = <-,-,-> => <-,-,+> => <-,+,+>
 
     /// back face
-    indices[4] = {5, 4, 7};  ///  upper = <-,+,-> => <+,+,-> => <+,-,->
-    indices[5] = {7, 6, 5};  ///  lower = <+,-,-> => <-,-,-> => <-,+,->
+    indices[4] = { 5, 4, 7 };  ///  upper = <-,+,-> => <+,+,-> => <+,-,->
+    indices[5] = { 7, 6, 5 };  ///  lower = <+,-,-> => <-,-,-> => <-,+,->
 
     /// right face
-    indices[6] = {4, 0, 3};  /// upper = <+,+,-> => <+,+,+> => <+,-,+>
-    indices[7] = {3, 7, 4};  /// lower = <+,-,+> => <+,-,-> => <+,+,->
+    indices[6] = { 4, 0, 3 };  /// upper = <+,+,-> => <+,+,+> => <+,-,+>
+    indices[7] = { 3, 7, 4 };  /// lower = <+,-,+> => <+,-,-> => <+,+,->
 
     /// top face
-    indices[8] = {4, 5, 1};  /// back = <+,+,-> => <-,+,-> => <-,+,+>
-    indices[9] = {1, 0, 4};  /// front = <-,+,+> => <+,+,+> => <+,+,->
+    indices[8] = { 4, 5, 1 };  /// back = <+,+,-> => <-,+,-> => <-,+,+>
+    indices[9] = { 1, 0, 4 };  /// front = <-,+,+> => <+,+,+> => <+,+,->
 
     /// bottom face
-    indices[10] = {3, 2, 6};  /// front = <+,-,+> => <-,-,+> => <-,-,->
-    indices[11] = {6, 7, 3};  /// back = <-,-,-> => <+,-,-> => <+,-,+>
+    indices[10] = { 3, 2, 6 };  /// front = <+,-,+> => <-,-,+> => <-,-,->
+    indices[11] = { 6, 7, 3 };  /// back = <-,-,-> => <+,-,-> => <+,-,+>
 
     AssetHandle mesh_source_handle = AssetManager::CreateMemOnly<ModelSource>(vertices, indices, glm::mat4(1.f));
     Ref<ModelSource> mesh_source = AssetManager::GetAsset<ModelSource>(mesh_source_handle);
@@ -201,29 +231,29 @@ namespace other {
     std::vector<Vertex> vertices;
     vertices.resize(8);
 
-    /* (+,+,+) */ vertices[0].position = {1.f / 2.0f, 1.f / 2.0f, 1.f / 2.0f};
-    /* (+,+,+) */ vertices[0].normal = {1.0f, 1.0f, 1.0f};
+    /* (+,+,+) */ vertices[0].position = { 1.f / 2.0f, 1.f / 2.0f, 1.f / 2.0f };
+    /* (+,+,+) */ vertices[0].normal = { 1.0f, 1.0f, 1.0f };
 
-    /* (-,+,+) */ vertices[1].position = {-1.f / 2.0f, 1.f / 2.0f, 1.f / 2.0f};
-    /* (-,+,+) */ vertices[1].normal = {-1.0f, 1.0f, 1.0f};
+    /* (-,+,+) */ vertices[1].position = { -1.f / 2.0f, 1.f / 2.0f, 1.f / 2.0f };
+    /* (-,+,+) */ vertices[1].normal = { -1.0f, 1.0f, 1.0f };
 
-    /* (-,-,+) */ vertices[2].position = {-1.f / 2.0f, -1.f / 2.0f, 1.f / 2.0f};
-    /* (-,-,+) */ vertices[2].normal = {-1.0f, -1.0f, 1.0f};
+    /* (-,-,+) */ vertices[2].position = { -1.f / 2.0f, -1.f / 2.0f, 1.f / 2.0f };
+    /* (-,-,+) */ vertices[2].normal = { -1.0f, -1.0f, 1.0f };
 
-    /* (+,-,+) */ vertices[3].position = {1.f / 2.0f, -1.f / 2.0f, 1.f / 2.0f};
-    /* (+,-,+) */ vertices[3].normal = {1.0f, -1.0f, 1.0f};
+    /* (+,-,+) */ vertices[3].position = { 1.f / 2.0f, -1.f / 2.0f, 1.f / 2.0f };
+    /* (+,-,+) */ vertices[3].normal = { 1.0f, -1.0f, 1.0f };
 
-    /* (+,+,-) */ vertices[4].position = {1.f / 2.0f, 1.f / 2.0f, -1.f / 2.0f};
-    /* (+,+,-) */ vertices[4].normal = {1.0f, 1.0f, -1.0f};
+    /* (+,+,-) */ vertices[4].position = { 1.f / 2.0f, 1.f / 2.0f, -1.f / 2.0f };
+    /* (+,+,-) */ vertices[4].normal = { 1.0f, 1.0f, -1.0f };
 
-    /* (-,+,-) */ vertices[5].position = {-1.f / 2.0f, 1.f / 2.0f, -1.f / 2.0f};
-    /* (-,+,-) */ vertices[5].normal = {-1.0f, 1.0f, -1.0f};
+    /* (-,+,-) */ vertices[5].position = { -1.f / 2.0f, 1.f / 2.0f, -1.f / 2.0f };
+    /* (-,+,-) */ vertices[5].normal = { -1.0f, 1.0f, -1.0f };
 
-    /* (-,-,-) */ vertices[6].position = {-1.f / 2.0f, -1.f / 2.0f, -1.f / 2.0f};
-    /* (-,-,-) */ vertices[6].normal = {-1.0f, -1.0f, -1.0f};
+    /* (-,-,-) */ vertices[6].position = { -1.f / 2.0f, -1.f / 2.0f, -1.f / 2.0f };
+    /* (-,-,-) */ vertices[6].normal = { -1.0f, -1.0f, -1.0f };
 
-    /* (+,-,-) */ vertices[7].position = {1.f / 2.0f, -1.f / 2.0f, -1.f / 2.0f};
-    /* (+,-,-) */ vertices[7].normal = {1.0f, -1.0f, -1.0f};
+    /* (+,-,-) */ vertices[7].position = { 1.f / 2.0f, -1.f / 2.0f, -1.f / 2.0f };
+    /* (+,-,-) */ vertices[7].normal = { 1.0f, -1.0f, -1.0f };
 
     box_vertices = vertices;
     return vertices;

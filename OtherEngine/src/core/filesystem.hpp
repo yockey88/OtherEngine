@@ -37,7 +37,7 @@ namespace other {
     static Ref<FileHandle> RegisterFile(const Path& path);
 
     static Ref<Directory> OpenDirectory(const Path& path);
-    static Ref<FileHandle> OpenFile(const Path& path, std::ios_base::openmode mode = std::ios_base::in);
+    static Ref<FileHandle> OpenFile(const Path& path, std::ios_base::openmode mode = std::ios_base::in | std::ios_base::out);
 
     static Ref<Directory> GetDirectory(const std::string_view name);
     static Ref<Directory> GetDirectory(UUID id);

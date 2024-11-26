@@ -7,6 +7,9 @@ version = 0.0.1
 primary-scene = game_of_life
 scenes = { "game_of_life" }
 
+[debug]
+editor = true
+
 [editor]
 test-editor = true
 
@@ -16,6 +19,6 @@ height = 720
 title = "Cellular Automata"
 
 [log]
-console-level = "info"
+console-level = "debug"
 file-level = "trace"
 path = "./logs/cell_automaton.log"

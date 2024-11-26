@@ -8,11 +8,12 @@
 
 #include "core/filesystem.hpp"
 
+#include "application/app_state.hpp"
+
+#include "rendering/geometry_pass.hpp"
 #include "rendering/rendering_defines.hpp"
 #include "rendering/scene_renderer.hpp"
 #include "rendering/shader.hpp"
-
-#include "geometry_pass.hpp"
 
 namespace other {
 

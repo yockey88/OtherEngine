@@ -11,7 +11,6 @@
 
 #include "serialization/serializer.hpp"
 
-
 namespace other {
 
   struct DeserializedScene {
@@ -26,7 +25,7 @@ namespace other {
     ~SceneSerializer() {}
 
     void Serialize(const std::string_view scene_name, std::ostream& stream, const Ref<Scene>& scene) const;
-    DeserializedScene Deserialize(const std::string_view scn_path) const;
+    DeserializedScene Deserialize(const Path& scn_path) const;
 
    private:
   };

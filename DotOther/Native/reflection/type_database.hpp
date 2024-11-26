@@ -43,7 +43,9 @@ namespace dotother {
             if (tmd.name == std::string{ td.name.c_str() }) {
               return true;
             }
+            return false;
           });
+
           if (itr != type_data.end()) {
             return *itr;
           }

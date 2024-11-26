@@ -7,11 +7,11 @@
 
 #include <entt/entity/entity.hpp>
 #include <glm/ext/matrix_transform.hpp>
+#include <glm/fwd.hpp>
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/euler_angles.hpp>
-
 #include <hosting/native_string.hpp>
 
 #include "core/rand.hpp"
@@ -33,8 +33,12 @@
 
 #include "rendering/camera_base.hpp"
 #include "rendering/model.hpp"
+#include "rendering/pipeline.hpp"
 #include "scripting/cs/cs_object.hpp"
 #include "scripting/script_engine.hpp"
+
+#include "editor/editor_state.hpp"
+#include "editor/selection_manager.hpp"
 
 namespace other {
 
@@ -71,7 +75,7 @@ namespace other {
     registry.on_destroy<Mesh>().connect<&Scene::GeometryChanged>(this);
     registry.on_destroy<StaticMesh>().connect<&Scene::GeometryChanged>(this);
 
-    environment = NewRef<Environment>();
+    environment = NewRef<LightEnvironment>();
 
     handle = Random::GenerateUUID();
     scene_handle = handle.Get();
@@ -133,6 +137,10 @@ namespace other {
       script.ApiCall("OnInitialize");
     });
 
+    registry.view<Transform>().each([](Transform& transform) {
+      transform.CalcMatrix();
+    });
+
     RefreshCameraTransforms();
 
     OnInit();
@@ -140,6 +148,11 @@ namespace other {
 
     BuildGroups();
     RebuildEnvironment();
+
+    /// update so all transforms are calculate and all cross depenedent components are updated accordingly
+    EarlyUpdate(0.f);
+    Update(0.f);
+    LateUpdate(0.f);
   }
 
   bool Scene::IsHandleValid(Entity* ent) const {
@@ -311,6 +324,20 @@ namespace other {
     /// update transforms after other updates, dont overwrite physics changes
     registry.view<Transform>(entt::exclude<RigidBody2D, Collider2D, RigidBody, Collider>).each([](Transform& transform) {
       transform.CalcMatrix();
+
+      /// update quaternion
+      transform.qrotation = glm::quat(transform.erotation);
+      glm::quat conj = glm::conjugate(transform.qrotation);
+
+      glm::vec3 dim = transform.scale * 0.5f;
+      glm::vec4 min = glm::vec4(transform.position - dim, 1.f);
+      glm::vec4 max = glm::vec4(transform.position - dim, 1.f);
+
+      glm::vec3 rotated_min = glm::vec3(transform.qrotation * min * conj);
+      glm::vec3 rotated_max = glm::vec3(transform.qrotation * max * conj);
+
+      BBox bounding_box = BBox(rotated_min, rotated_max);
+      transform.bbox = bounding_box;
     });
 
     /// scripts updated last to give most accurate view of updated state
@@ -345,13 +372,12 @@ namespace other {
     }
 
     registry.view<Camera, Transform>().each([](Camera& camera, Transform& transform) {
+      OE_ASSERT(camera.camera != nullptr, "Camera is null");  /// should never happen
       if (camera.pinned_to_entity_position) {
         camera.camera->SetPosition(transform.position);
-        camera.camera->SetOrientation(transform.erotation);
-        camera.camera->CalculateMatrix();
-      } else {
-        camera.camera->CalculateMatrix();
       }
+
+      DefaultUpdateCamera(camera.camera);
     });
 
     registry.view<Script>().each([&dt](Script& script) {
@@ -382,6 +408,7 @@ namespace other {
     });
 
     if (handle.Get() == 0) {
+      // OE_WARN("No primary camera found in scene");
       return nullptr;
     }
 
@@ -402,11 +429,8 @@ namespace other {
     // }
     renderer->SubmitEnvironment(environment);
 
+    /// TODO: fix hardcoded pipeline names
     RenderToPipeline("Geometry", renderer);
-    if (AppState::mode == EngineMode::EDITOR) {
-      /// TODO: flesh this out
-      // RenderToPipeline("Debug", renderer, true);
-    }
 
     scene_object->Render();
   }
@@ -432,7 +456,7 @@ namespace other {
     return physics_world;
   }
 
-  Ref<Environment> Scene::GetEnvironment() const {
+  Ref<LightEnvironment> Scene::GetEnvironment() const {
     return environment;
   }
 
@@ -496,6 +520,7 @@ namespace other {
       return nullptr;
     }
 
+    OE_ASSERT(ent->second != nullptr, "Entity with id [{}] is null", id);
     return ent->second;
   }
 
@@ -698,10 +723,6 @@ namespace other {
       auto model = AssetManager::GetAsset<StaticModel>(mesh.handle);
       renderer->SubmitStaticModel(plname, model, transform.model_transform, mesh.material);
     });
-
-    if (AppState::mode == EngineMode::RUNTIME) {
-      return;
-    }
 
     // AssetHandle cube_handle = ModelFactory::CreateBox();
 

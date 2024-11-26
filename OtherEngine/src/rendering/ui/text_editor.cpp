@@ -58,20 +58,6 @@ namespace other {
     zep->editor->RefreshRequired();
   }
 
-  // void TextEditor::OnEvent(Event* event) {
-  //   if (zep == nullptr) {
-  //     return;
-  //   }
-
-  //   EventHandler handler(event);
-  //   handler.Handle<KeyPressed>([this](KeyPressed& key_event) -> bool {
-  //     if (has_focus && key_event.Key() == Keyboard::Key::OE_ESCAPE) {
-  //       return true;
-  //     }
-  //     return false;
-  //   });
-  // }
-
   void TextEditor::OnRender() {
     if (!file_exists) {
       ImGui::Text(

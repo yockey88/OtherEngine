@@ -56,21 +56,16 @@ namespace other {
     glm::vec2 offset;
   };
 
-  struct MouseButton {
-    MouseButton(Mouse::Button button)
-        : button(button) {}
-
-    Mouse::Button button;
-
-    inline Mouse::Button Button() const { return button; }
-
-    EVENT_CATEGORY(MOUSE_BUTTON_EVENT | MOUSE_EVNT | INPUT_EVENT);
-  };
-
-#define MOUSE_BUTTON_EVENT()                                     \
-  EVENT_CATEGORY(MOUSE_BUTTON_EVENT | MOUSE_EVNT | INPUT_EVENT); \
-  inline Mouse::Button Button() const { return button; }         \
-  Mouse::Button button;
+#define MOUSE_BUTTON_EVENT()                                        \
+  EVENT_CATEGORY(MOUSE_BUTTON_EVENT | MOUSE_EVNT | INPUT_EVENT);    \
+  inline Mouse::Button Button() const { return button; }            \
+  inline bool HasPosition() const { return mouse_pos.has_value(); } \
+  inline glm::ivec2 Position() const {                              \
+    OE_ASSERT(HasPosition(), "Mouse position not set!");            \
+    return mouse_pos.value();                                       \
+  }                                                                 \
+  Mouse::Button button;                                             \
+  Opt<glm::ivec2> mouse_pos;
 
   struct MouseButtonPressed {
     MOUSE_BUTTON_EVENT();

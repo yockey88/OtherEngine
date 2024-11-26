@@ -84,8 +84,23 @@ namespace other {
   constexpr static std::string_view kAssetsDirValue = "ASSETS-DIR";
   constexpr static uint64_t kAssetsDirValueHash = FNV(kAssetsDirValue);
 
+  constexpr static std::string_view kMaterialsDirValue = "MATERIALS-DIR";
+  constexpr static uint64_t kMaterialsDirValueHash = FNV(kMaterialsDirValue);
+
+  constexpr static std::string_view kScenesDirValue = "SCENES-DIR";
+  constexpr static uint64_t kScenesDirValueHash = FNV(kScenesDirValue);
+
+  constexpr static std::string_view kScriptsDirValue = "SCRIPTS-DIR";
+  constexpr static uint64_t kScriptsDirValueHash = FNV(kScriptsDirValue);
+
+  constexpr static std::string_view kShadersDirValue = "SHADERS-DIR";
+  constexpr static uint64_t kShadersDirValueHash = FNV(kShadersDirValue);
+
   constexpr static std::string_view kPrimarySceneValue = "PRIMARY-SCENE";
   constexpr static uint64_t kPrimarySceneHash = FNV(kPrimarySceneValue);
+
+  constexpr static std::string_view kEditorDirValue = "EDITOR-DIR";
+  constexpr static uint64_t kEditorDirHash = FNV(kEditorDirValue);
 
   constexpr static std::string_view kHeightValue = "HEIGHT";
   constexpr static uint64_t kHeightValueHash = FNV(kHeightValue);
@@ -299,6 +314,9 @@ namespace other {
 
   constexpr static std::string_view kPrimaryValue = "PRIMARY";
   constexpr static uint64_t kPrimaryValueHash = FNV(kPrimaryValue);
+
+  constexpr static std::string_view kPinnedValue = "PINNED";
+  constexpr static uint64_t kPinnedValueHash = FNV(kPinnedValue);
 
   constexpr static std::string_view kPhysicsValue = "PHYSICS";
   constexpr static uint64_t kPhysicsValueHash = FNV(kPhysicsValue);

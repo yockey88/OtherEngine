@@ -36,9 +36,14 @@ namespace other {
   void* Value::AsRawMemory() const {
     return static_cast<void*>(const_cast<uint8_t*>(value.ReadBytes()));
   }
+
+  bool Value::Empty() const {
+    return Type() == ValueType::EMPTY_TYPE;
+  }
       
   void Value::Clear() {
     value.Release();
+    type = ValueType::EMPTY_TYPE;
   }
 
   ValueType Value::Type() const {

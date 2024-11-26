@@ -10,12 +10,12 @@
 #include "core/defines.hpp"
 #include "core/ref.hpp"
 #include "core/uuid.hpp"
+#include "editor/saves.hpp"
 
+#include "scene/bvh.hpp"
 #include "scene/scene.hpp"
 
 #include "rendering/scene_renderer.hpp"
-
-#include "editor/saves.hpp"
 
 namespace other {
 
@@ -24,6 +24,8 @@ namespace other {
     Path path;
     ConfigTable scene_table;
     Ref<Scene> scene = nullptr;
+    Ref<BvhTree> bvh = nullptr;
+    bool corrupted = false;
   };
 
   class SceneManager {
@@ -31,8 +33,10 @@ namespace other {
     SceneManager() {}
     ~SceneManager() {}
 
+    void Unload();
+
     bool LoadScene(const Path& scenepath);
-    void SetAsActive(const Path& name);
+    void SetAsActive(const std::string_view& name);
 
     void StartScene();
     void StopScene();
@@ -40,9 +44,14 @@ namespace other {
     bool IsPlaying() const;
 
     Ref<Scene> GetScene(UUID id) const;
-    Ref<SceneRenderer> GetRenderer() const;
 
-    bool HasScene(const Path& path);
+    void RemoveScene(UUID id);
+    void RemoveScene(const std::string_view name);
+
+    Ref<SceneRenderer> GetRenderer();
+
+    bool HasScene(UUID id);
+    bool HasScene(const std::string_view name);
     bool HasActiveScene() const;
 
     SceneMetadata* ActiveScene() const;

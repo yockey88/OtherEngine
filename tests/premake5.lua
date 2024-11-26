@@ -27,10 +27,6 @@ local sandbox = {
     defines { "OE_MODULE" }
   end,
 
-  windows_configuration = function()
-    entrypoint "WinMainCRTStartup"
-  end,
-
   components = {
     ["OtherEngine"] = "%{wks.location}/OtherEngine/src"
   }
@@ -44,7 +40,7 @@ local gl_sandbox = {
   kind = "ConsoleApp",
   language = "C++",
   cppdialect = "C++latest",
-  
+
   files = function()
     files {
       "./gl_sandbox/**.cpp",
@@ -54,24 +50,24 @@ local gl_sandbox = {
       "./mock_app.cpp"
     }
   end,
-  
+
   include_dirs = function()
     includedirs {
       "./gl_sandbox",
       "." ,
     }
     externalincludedirs {
-      "%{wks.location}/DotOther/NetCore", 
+      "%{wks.location}/DotOther/NetCore",
       "%{wks.location}/externals/gtest/googlemock/include"
     }
   end,
-  
+
   defines = function()
     defines {
       "OE_MODULE" ,
     }
   end,
-  
+
   components = {
     ["OtherEngine"] = "%{wks.location}/OtherEngine/src"
   }
@@ -85,20 +81,20 @@ local unit_tests = {
   kind = "ConsoleApp",
   language = "C++",
   cppdialect = "C++latest",
-  
+
   files = function()
     files {
       "./unit_tests/**.cpp" ,
       "./mock_app.cpp" ,
     }
   end,
-  
+
   include_dirs = function()
     includedirs {
       "." ,
     }
     externalincludedirs {
-      "%{wks.location}/DotOther/NetCore", 
+      "%{wks.location}/DotOther/NetCore",
       "%{wks.location}/externals/gtest/googlemock/include"
     }
   end,
@@ -110,10 +106,54 @@ local unit_tests = {
     }
   end,
   
+  windows_configuration = function()
+    entrypoint "mainCRTStartup"
+  end,
+
   components = {
     ["OtherEngine"] = "%{wks.location}/OtherEngine/src",
+    ["OtherTestEngine"] = "%{wks.location}/OtherTestEngine/src",
     ["gtest"] = "%{wks.location}/externals/gtest/googletest/include",
   }
 }
 
 AddProject(unit_tests)
+
+local default_sim_testing_table = {
+  path = "./simulation_tests",
+  kind = "ConsoleApp",
+  language = "C++",
+  cppdialect = "C++latest",
+
+  include_dirs = function()
+    includedirs {
+      "."
+    }
+    externalincludedirs {
+      "%{wks.location}/OtherEngine/src",
+      "%{wks.location}/DotOther/NetCore",
+      "%{wks.location}/externals/gtest/googlemock/include"
+    }
+  end,
+
+  defines = function()
+    defines {
+      "OE_MODULE",
+      "OE_TESTING_ENVIRONMENT"
+    }
+  end,
+
+  components = {
+    ["OtherTestEngine"] = "%{wks.location}/OtherTestEngine/src",
+    ["gtest"] = "%{wks.location}/externals/gtest/googletest/include",
+  }
+}
+
+local fuzzer_test = default_sim_testing_table
+fuzzer_test.name = "fuzzer_test"
+fuzzer_test.files = function()
+  files {
+    "./simulation_tests/fuzzing/fuzzing.cpp"
+  }
+end
+AddProject(fuzzer_test)

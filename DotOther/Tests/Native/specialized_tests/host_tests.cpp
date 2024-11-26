@@ -134,7 +134,15 @@ TEST_F(HostTests, load_asm_and_call_functions) {
   ASSERT_NO_THROW(host->UnloadAssemblyContext(asm_ctx));
 }
 
+#ifdef DOTOTHER_WINDOWS
+  #define WIN32_LEAN_AND_MEAN
+  #include <Windows.h>
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+  ::testing::InitGoogleTest();
+  return RUN_ALL_TESTS();
+#else
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
+#endif
   return RUN_ALL_TESTS();
 }

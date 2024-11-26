@@ -312,6 +312,29 @@ namespace other {
     }
   }
 
+  void CsModule::UnloadAll() {
+    for (auto& [_,m] : loaded_modules) {
+      m->Shutdown();
+    }
+    loaded_modules.clear();
+
+    dotother::GarbageCollector::Collect(-1, dotother::GCMode::DEFAULT, true, false);
+
+    for (auto& [_, ctx_id] : assembly_contexts.assembly_ids) {
+      auto itr2 = assembly_contexts.contexts.find(ctx_id);
+      if (itr2 == assembly_contexts.contexts.end()) {
+        continue; 
+      }
+
+      auto& [__,ctx] = *itr2;
+      host->UnloadAssemblyContext(ctx);
+      dotother::GarbageCollector::Collect(ctx_id, dotother::GCMode::DEFAULT, true, false);
+    } 
+
+    assembly_contexts.assembly_ids.clear();
+    assembly_contexts.contexts.clear();
+  }
+
   UUID CsModule::IdFromName(const std::string_view name) const {
     // std::string case_insensitive_name;
     // std::transform(name.begin() , name.end() , std::back_inserter(case_insensitive_name) , ::toupper);

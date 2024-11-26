@@ -8,7 +8,6 @@
 
 #include "unit_tests/oetest.hpp"
 
-
 using other::Value;
 using other::ValueType;
 
@@ -51,4 +50,13 @@ TEST_F(ValueTests, array_test1) {
   for (uint32_t i = 0; i < 10; ++i) {
     EXPECT_EQ(value.At<size_t>(i), arr[i]) << "Failed on .At<> test on step " << i;
   }
+}
+
+TEST_F(ValueTests, string_test1) {
+  std::string str = "Hello, World!";
+  ASSERT_NO_FATAL_FAILURE(value.Set<std::string>(str));
+
+  ASSERT_EQ(value.Size(), str.length());
+  ASSERT_EQ(value.Type(), ValueType::STRING);
+  EXPECT_EQ(value.Get<std::string>(), str);
 }

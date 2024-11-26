@@ -60,50 +60,66 @@ namespace other {
     return file_handles.find(handle) != file_handles.end();
   }
 
-  Ref<FileHandle> Directory::OpenFile(const Path& path, std::ios_base::openmode mode) {
+  Ref<Directory> Directory::AddFolder(const std::string_view name) {
     if (!Exists()) {
-      OE_ERROR("Failed to open file, directory does not exist : {}", proj_relative_path.string());
+      OE_ERROR("Failed to add folder, directory does not exist : {}", proj_relative_path.string());
+      return nullptr;
+    }
+
+    Path new_dir = proj_relative_path / name;
+    UUID hash = FNV(new_dir.string());
+    if (Contains(hash)) {
+      return children[hash];
+    }
+
+    if (!std::filesystem::exists(new_dir)) {
+      std::filesystem::create_directory(new_dir);
+    }
+
+    Ref<Directory> dir = children[hash] = NewRef<Directory>(this, new_dir);
+    return dir;
+  }
+
+  Ref<FileHandle> Directory::GetFile(const Path& path) {
+    if (!Exists()) {
+      OE_ERROR("Failed to get file, directory does not exist : {}", proj_relative_path.string());
       return nullptr;
     }
 
     if (!Contains(path)) {
-      OE_ERROR("Failed to open file, file not found : {} ({})", path.string(), proj_relative_path / path);
-      return nullptr;
+      Path file_path = AbsolutePath() / path;
+      { std::ofstream file(file_path); }
+      if (!Contains(path)) {
+        OE_ERROR("Failed to get file, file not found : {}", path.string());
+        return nullptr;
+      }
     }
 
     std::vector<Path> files =
       GetFiles() |
       std::views::filter([&path](const auto& f) { return std::filesystem::absolute(f) == std::filesystem::absolute(path); }) |
       std::ranges::to<std::vector<Path>>();
-    OE_ASSERT(files.size() == 1, "Failed to open file, multiple files with the same name : {}", path.string());
-    OE_ASSERT(files[0] == path, "Failed to open file, file not found : {}", path.string());
+    OE_ASSERT(files.size() == 1, "Failed to get file, multiple files with the same name : {}", path.string());
+    OE_ASSERT(files[0] == path, "Failed to get file, file not found : {}", path.string());
 
     UUID hash = FNV(path.filename().string());
-    OE_DEBUG("Opening file : {} ({})", path.filename().string(), hash);
+    OE_DEBUG("Getting file : {} ({})", path.filename().string(), hash);
     if (Contains(hash)) {
-      auto& file = file_handles[hash];
-      if (file->IsOpen()) {
-        file->Close();
-      }
-      file->Open(mode);
-
-      OE_DEBUG("File Opened : {} ({})", path.string(), hash);
       return file_handles[hash];
     }
 
     OE_DEBUG("File Handle Created : {} ({})", path.string(), hash);
-    OE_DEBUG("File Opened : {} ({})", path.string(), hash);
 
     Path real_path = proj_relative_path / path;
-    auto handle = Ref<FileHandle>::Create(hash, real_path, mode);
+    auto handle = Ref<FileHandle>::Create(hash, real_path);
     handle->handle = hash;
     file_handles[hash] = handle;
-    OE_ASSERT(Contains(handle->handle), "Failed to open file : {}", path.string());
+    OE_ASSERT(Contains(handle->handle), "Failed to get file : {}", path.string());
 
     return Ref<FileHandle>::Clone(file_handles[hash]);
   }
 
-  Ref<FileHandle> Directory::OpenFile(UUID handle, std::ios_base::openmode mode) {
+  Ref<FileHandle> Directory::GetFile(UUID handle) {
     if (!Exists()) {
       return nullptr;
     }
@@ -112,6 +128,31 @@ namespace other {
     }
 
     return file_handles[handle];
+  }
+
+  Ref<FileHandle> Directory::OpenFile(const Path& path, std::ios_base::openmode mode) {
+    if (!Exists()) {
+      OE_ERROR("Failed to open file, directory does not exist : {}", proj_relative_path.string());
+      return nullptr;
+    }
+
+    Ref<FileHandle> file = GetFile(path);
+    if (file != nullptr) {
+      file->Open(mode);
+    }
+    return file;
+  }
+
+  Ref<FileHandle> Directory::OpenFile(UUID handle, std::ios_base::openmode mode) {
+    if (!Exists()) {
+      return nullptr;
+    }
+
+    Ref<FileHandle> file = GetFile(handle);
+    if (file != nullptr) {
+      file->Open(mode);
+    }
+    return file;
   }
 
   Ref<FileHandle> Directory::GetFileHandleByName(const std::string_view name) {

@@ -4,20 +4,20 @@ local OtherEngine = {
   kind = "StaticLib",
   language = "C++",
   cppdialect = "C++latest",
-  
+
   files = function()
     files {
       "./src/**.cpp",
       "./src/**.hpp",
     }
   end,
-  
+
   include_dirs = function()
     includedirs {
       "./src",
     }
   end,
-  
+
   windows_configuration = function()
     files {
       "./platform/windows/**.hpp",
@@ -26,21 +26,13 @@ local OtherEngine = {
     includedirs {
       "./platform",
     }
-    systemversion "latest"
-    buildoptions { 
-      "/EHsc" , 
-      "/Zc:preprocessor" , 
-      "/Zc:__cplusplus" ,
+    buildoptions {
       "/Zm10",
     }
   end,
 
   debug_configuration = function()
-    externalincludedirs{
-      "%{wks.location}/externals/gtest/googletest/include",
-    }
     defines {
-      "OE_TESTING_ENVIRONMENT",
       "OTHER_DEBUG_BUILD"
     }
   end ,

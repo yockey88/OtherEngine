@@ -22,12 +22,6 @@ local yockcraft = {
     }
   end,
 
-  links = function()
-    libdirs {
-      "./engine/%{cfg.buildcfg}" ,
-    }
-  end,
-
   defines = function()
     defines {
       "OE_MODULE"
@@ -39,14 +33,9 @@ local yockcraft = {
       "./platform",
     }
     systemversion "latest"
-    buildoptions { 
-      "/EHsc" , 
-      "/Zc:preprocessor" , 
-      "/Zc:__cplusplus"
-    }
-    defines {
-      "DOTOTHER_WINDOWS" ,
-    }
+    -- defines {
+    --   "DOTOTHER_WINDOWS" ,
+    -- }
   end,
 
   components = {

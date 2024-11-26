@@ -2,6 +2,7 @@
 Language: Cpp
 BasedOnStyle: Google
 Cpp11BracedListStyle: false
+IndentPPDirectives: BeforeHash
 
 IndentWidth: 2
 IndentRequires: true
@@ -57,26 +58,30 @@ IncludeCategories:
   - Regex:           '<([A-Za-z0-9\/-_])+>'
     Priority:        1
   # Headers in <> from specific external libraries.
-  - Regex:           '<(glm|spdlog|entt|glad|gtest|imgui|json|magic_enum|refl)\/'
-    Priority:        2
-  - Regex:           '<(SDL)+>'
+  - Regex:           '<((glm|spdlog|entt|glad|gtest|imgui(zmo)?|json|magic_enum|refl|nlohmann)\/ | SDL*)>'
     Priority:        2
   # Headers in <> with extension.
   - Regex:           '<([A-Za-z0-9\/-_])+\.h(pp|xx|h)?>'
     Priority:        3
-
-  # core headers
-  - Regex:           '"((core|math|thread|engine)\/)'
+  # test harness headers
+  - Regex:           '"((testing_core|fuzzing|statistics|benchmarking)\/)'
     Priority:        4
+  # core headers
+  - Regex:           '"((testing_core|core|math|thread|engine|environment)\/)'
+    Priority:        5
   # application/asset/semi-core system headers
   - Regex:           '"((application|input|event|asset|parsing|project|plugin|layers)\/)'
-    Priority:        5
+    Priority:        6
   # scene/ecs headers
   - Regex:           '"((scene|ecs)\/)'
-    Priority:        6
+    Priority:        7
   # rendering/scripting/physics headers
   - Regex:           '"((rendering|scripting|physics)\/)'
     Priority:        8
+
+  # editor/library extensions
+  - Regex:           '"((editor)\/)'
+    Priority:        9
 ---
 Language: CSharp
 BreakBeforeBraces: Custom

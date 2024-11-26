@@ -51,17 +51,17 @@ TEST_F(ReflectionTests, Test1) {
 
 using namespace std::string_literals;
 void ReflectionTests::SetUpTestSuite() {
-  ConfigTable test_config;
-  test_config.Add("log", "console-level", "debug", true);
-  test_config.Add("log", "file-level", "trace", true);
-  test_config.Add("log", "path", "logs/reflection-test.log", true);
-  Logger::Open(test_config);
-  Logger::Instance()->RegisterThread("Script Engine Test Main Thread");
+  // ConfigTable test_config;
+  // test_config.Add("log", "console-level", "debug", true);
+  // test_config.Add("log", "file-level", "trace", true);
+  // test_config.Add("log", "path", "logs/reflection-test.log", true);
+  // Logger::Open(test_config);
+  // Logger::Instance()->RegisterThread("Script Engine Test Main Thread");
 
-  AppState::Initialize(cmdline, test_config);
+  // AppState::Initialize(cmdline, test_config);
 }
 
 void ReflectionTests::TearDownTestSuite() {
-  ASSERT_NO_FATAL_FAILURE(AppState::Shutdown());
-  ASSERT_NO_FATAL_FAILURE(CloseLog());
+  // ASSERT_NO_FATAL_FAILURE(AppState::Shutdown());
+  // ASSERT_NO_FATAL_FAILURE(CloseLog());
 }

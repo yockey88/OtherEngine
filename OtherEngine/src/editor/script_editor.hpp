@@ -66,9 +66,7 @@ namespace other {
   class ScriptEditor : public UIWindow {
    public:
     ScriptEditor(Opt<std::string> window_name = std::nullopt);
-    virtual ~ScriptEditor() override {
-      OE_DEBUG("Some reason destroying Script Editor window");
-    }
+    virtual ~ScriptEditor() override {}
 
     void AddEditor(AssetHandle obj_tag, const Path& script_path);
 
