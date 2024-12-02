@@ -1,5 +1,0 @@
-namespace CellAuto {
-
-  class RuleSet {};
-
-}

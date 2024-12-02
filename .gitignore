@@ -17,6 +17,10 @@ tools/other.egg-info/
 ## Project tools
 tool_dev/
 
+## games
+cell_automaton/
+yockcraft/
+
 ## idk how to stop these folders from being created
 DotOther/Managed/bin
 DotOther/Managed/obj
@@ -31,7 +35,7 @@ cell_automaton/cell_automaton_modules/obj
 ## C# stuff
 packages/
 
-# contains local path, no online sharing
+## scripts
 tools/runtestbed.py
 
 # configuration files
