@@ -8,7 +8,6 @@ entities = {
   "cube" ,
   "sun" ,
   "floor",
-  "entity",
   "camera"
 }
 

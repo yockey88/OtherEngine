@@ -3,6 +3,8 @@
  **/
 #include "rendering/ui/ui_window_map.hpp"
 
+#include "core/logger.hpp"
+
 namespace other {
 
   Ref<UIWindow>& UIWindowMap::operator[](UUID id) {

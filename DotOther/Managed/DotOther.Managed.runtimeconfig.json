@@ -1,0 +1,10 @@
+{
+  "runtimeOptions": {
+    "tfm": "net8.0",
+    "framework": {
+      "name": "Microsoft.NETCore.App",
+      "rollForward": "LatestPatch",
+      "version": "8.0.0"
+    }
+  }
+}

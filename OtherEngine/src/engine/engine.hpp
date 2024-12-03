@@ -52,8 +52,6 @@ namespace other {
     Ref<EngineStateMachine> state = nullptr;
 
     Opt<Path> FindConfigFile();
-    /// TODO: implement this when we add more exit codes
-    // ExitCode ProcessExitCode(ExitCode code);
     ExitCode LoadConfig();
 
     bool HandleShutdownEvent(ShutdownEvent& event);

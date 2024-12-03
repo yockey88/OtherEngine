@@ -167,21 +167,6 @@ namespace other {
     return ini_file;
   }
 
-  /// FIXME: switch missing cases!!! default triggered in most cases
-  // ExitCode Engine::ProcessExitCode(ExitCode code) {
-  //   switch (code) {
-  //     case ExitCode::FAILURE:
-  //       OE_CRITICAL("Application RUN failure");
-  //       return code;
-
-  //     case ExitCode::SUCCESS:
-  //       return code;
-
-  //     default:
-  //       return ExitCode::FAILURE;
-  //   }
-  // }
-
   ExitCode Engine::LoadConfig() {
     println("Loading OtherEngine configuration");
     auto ini_file = FindConfigFile();

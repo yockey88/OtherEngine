@@ -129,36 +129,40 @@ namespace other {
   void EditorLayer::OnUIRender() {
     using namespace std::string_view_literals;
 
-    Ref<SceneRenderer> scene_renderer = AppState::Scenes()->GetRenderer();
-    OE_ASSERT(scene_renderer != nullptr, "No scene renderer found");
+    bool scene_active = AppState::Scenes()->HasActiveScene();
+    bool render_success = scene_active;
+    if (scene_active) {
+      Ref<SceneRenderer> scene_renderer = AppState::Scenes()->GetRenderer();
+      OE_ASSERT(scene_renderer != nullptr, "No scene renderer found");
 
-    SceneMetadata* active_scene = AppState::Scenes()->ActiveScene();
-    OE_ASSERT(active_scene != nullptr, "No active scene found");
-    OE_ASSERT(active_scene->scene != nullptr, "No active scene found");
+      SceneMetadata* active_scene = AppState::Scenes()->ActiveScene();
+      OE_ASSERT(active_scene != nullptr, "No active scene found");
+      OE_ASSERT(active_scene->scene != nullptr, "No active scene found");
 
-    /// render scene as it is for runtime, this clears the pipelines
-    /// TODO: finalize scene and then draw editor information on top
-    // bool runtime_frame_success = scene_renderer->FinalizeScene();
-    // scene_renderer->ClearLightEnvironment();
+      /// render scene as it is for runtime, this clears the pipelines
+      /// TODO: finalize scene and then draw editor information on top
+      // bool runtime_frame_success = scene_renderer->FinalizeScene();
+      // scene_renderer->ClearLightEnvironment();
 
-    /// render scene for editor
-    if (EditorState::scene_mode != SceneEditorMode::PLAYING) {
-      active_scene->scene->Render(scene_renderer);
-      scene_renderer->RenderGbuffer();
+      /// render scene for editor
+      if (EditorState::scene_mode != SceneEditorMode::PLAYING) {
+        active_scene->scene->Render(scene_renderer);
+        scene_renderer->RenderGbuffer();
 
-      active_scene->bvh->RenderBounds("Geometry", scene_renderer);
+        active_scene->bvh->RenderBounds("Geometry", scene_renderer);
 
-      if (SelectionManager::HasSelection()) {
-        Entity* selected = SelectionManager::ActiveSelection();
-        OE_ASSERT(selected != nullptr, "Selected entity is null!");
+        if (SelectionManager::HasSelection()) {
+          Entity* selected = SelectionManager::ActiveSelection();
+          OE_ASSERT(selected != nullptr, "Selected entity is null!");
 
-        RenderSubmission sub = selected->WireframeSubmission();
-        OE_ASSERT(sub.model != nullptr, "Wireframe model is null!");
-        scene_renderer->SubmitStaticModel("Geometry", sub);
+          RenderSubmission sub = selected->WireframeSubmission();
+          OE_ASSERT(sub.model != nullptr, "Wireframe model is null!");
+          scene_renderer->SubmitStaticModel("Geometry", sub);
+        }
       }
-    }
 
-    bool render_success = scene_renderer->FinalizeScene();
+      render_success = scene_renderer->FinalizeScene();
+    }
 
     // clang-format off
     ui::MainMenuBar([&]() {
@@ -200,7 +204,7 @@ namespace other {
      **/
 
     EditorState& editor = EditorState::Get();
-    if (ImGui::Begin("Inspector")) {
+    if (scene_active && ImGui::Begin("Inspector")) {
       if (!render_success) {
         ScopedColor err_color(ImGuiCol_Text, ui::theme::red);
         if (ImGui::BeginChild("[ ERROR ]", { 0, 0 }, false, ImGuiWindowFlags_NoScrollbar)) {
@@ -264,8 +268,12 @@ namespace other {
           ImGui::Text("Corrupt Editor State");
         } break;
       }
+    } else {
     }
-    ImGui::End();
+
+    if (scene_active) {
+      ImGui::End();
+    }
   }
 
   void EditorLayer::LaunchSettingsWindow() {
