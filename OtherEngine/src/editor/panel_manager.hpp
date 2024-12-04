@@ -4,9 +4,9 @@
 #ifndef OTHER_ENGINE_PANEL_MANAGER_HPP
 #define OTHER_ENGINE_PANEL_MANAGER_HPP
 
-#include "editor/editor_panel.hpp"
-
 #include "scene/scene_manager.hpp"
+
+#include "editor/editor_panel.hpp"
 
 namespace other {
 
@@ -19,7 +19,9 @@ namespace other {
    public:
     void Attach(const Ref<Project>& context, const ConfigTable& editor_config);
 
-    void AddPanel(const Ref<EditorPanel>& panel) {}
+    UUID AddPanel(const std::string& name, const Ref<EditorPanel>& panel);
+    void RemovePanel(const std::string& name);
+    void RemovePanel(const UUID& panel_id);
 
     void EarlyUpdate(float dt);
     void Update(float dt);

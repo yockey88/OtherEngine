@@ -61,6 +61,16 @@ namespace other {
     return asset_registry[handle];
   }
 
+  std::set<AssetHandle> AssetDatabase::GetAllOfType(AssetType type) {
+    std::set<AssetHandle> result;
+    for (auto& [id, md] : asset_registry) {
+      if (md.type == type) {
+        result.insert(id);
+      }
+    }
+    return result;
+  }
+
   AssetMetadata& AssetDatabase::ProcessAsset(const AssetMetadata& metadata) {
     {
       auto itr = asset_registry.find(metadata.handle);
@@ -88,10 +98,6 @@ namespace other {
      *        - for lua these are the same file
      *        - for c# the behavior is the compiled assembly (.dll) and the scriptfile asset is the source file (.cs)
      **/
-
-    /// if it is a a C# script file we want to point it to path-no-ext + .dll so the asset points
-    ///   to the compiled assembly
-    /// for a script we return the script file asset
     if (metadata.type == AssetType::SCRIPTFILE && p.extension() == ".cs") {
       p.replace_extension(".dll");
 
@@ -126,9 +132,13 @@ namespace other {
   }
 
   void AssetDatabase::AddAsset(const AssetMetadata& metadata) {
+    if (asset_registry.find(metadata.handle) != asset_registry.end()) {
+      OE_WARN("Asset already registered : {}", metadata.handle);
+      return;
+    }
+
     OE_ASSERT(metadata.handle != 0, "Invalid asset metadata");
     OE_ASSERT(metadata.type != AssetType::BLANK_ASSET, "Invalid asset metadata");
-    OE_ASSERT(asset_registry.find(metadata.handle) == asset_registry.end(), "Asset already registered");
     asset_registry[metadata.handle] = metadata;
   }
 

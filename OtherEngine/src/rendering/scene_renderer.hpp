@@ -35,6 +35,10 @@ namespace other {
     SceneRenderer(SceneRenderSpec spec = SceneRenderSpec());
     virtual ~SceneRenderer() override;
 
+    void AddPipeline(PipelineSpec& spec);
+
+    const std::map<UUID, Ref<Pipeline>>& GetPipelines() const;
+
     template <typename T>
     void SetUniform(const std::string_view pass, const std::string_view block, const std::string_view name, const T& val, uint32_t index = 0) {
       if (auto itr = passes.find(FNV(pass)); itr != passes.end()) {

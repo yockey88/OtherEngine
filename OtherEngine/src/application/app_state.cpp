@@ -187,7 +187,7 @@ namespace other {
     EventQueue::Poll();
 
     // then create application objects
-    data->assets = data->app_handle->CreateAssetHandler();
+    data->assets = data->app_handle->CreateAssetHandler(mode);
     data->scenes->LoadRenderer(data->app_handle->CreateSceneRenderer());
     is_attached = true;
   }

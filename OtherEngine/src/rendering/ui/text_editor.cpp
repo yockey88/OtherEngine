@@ -15,25 +15,6 @@
 
 namespace other {
 
-  void TextEditor::CreateEditor() {
-    OE_INFO("Creating text editor for file: {}", file_path);
-    zep = NewScope<ZepWrapper>(root, pixel_scale, callback);
-
-    auto& display = zep->editor->GetDisplay();
-    auto font = ImGui::GetIO().Fonts->Fonts[0];
-    auto pixel_height = font->FontSize;
-
-    display.SetFont(Zep::ZepTextType::UI, std::make_shared<Zep::ZepFont_ImGui>(display, font, (uint32_t)pixel_height));
-    display.SetFont(Zep::ZepTextType::Text, std::make_shared<Zep::ZepFont_ImGui>(display, font, (uint32_t)pixel_height));
-    display.SetFont(Zep::ZepTextType::Heading1, std::make_shared<Zep::ZepFont_ImGui>(display, font, (uint32_t)pixel_height * 1.5));
-    display.SetFont(Zep::ZepTextType::Heading2, std::make_shared<Zep::ZepFont_ImGui>(display, font, (uint32_t)pixel_height * 1.25));
-    display.SetFont(Zep::ZepTextType::Heading3, std::make_shared<Zep::ZepFont_ImGui>(display, font, (uint32_t)pixel_height * 1.125));
-
-    buffer = zep->editor->InitWithFile(file_path);
-
-    OE_INFO("Text editor created for file: {}", file_path);
-  }
-
   void TextEditor::OnAttach() {
     if (!Filesystem::FileExists(file_path)) {
       OE_WARN("File does not exist: {}", file_path);
@@ -60,10 +41,7 @@ namespace other {
 
   void TextEditor::OnRender() {
     if (!file_exists) {
-      ImGui::Text(
-        "File does not exist: %s. Create file?",
-        (root + "/" + file).c_str()
-      );
+      ImGui::Text("File does not exist: %s. Create file?", (root + "/" + file).c_str());
       if (ImGui::Button("Yes")) {
         std::ofstream file(file_path);
         file.close();
@@ -78,7 +56,7 @@ namespace other {
       return;
     }
 
-    if (!ImGui::Begin("Text Editor")) {
+    if (!ImGui::Begin("Editor##Text")) {
       ImGui::End();
       return;
     }
@@ -125,6 +103,29 @@ namespace other {
     this->file = file;
     file_path = root + "/" + file;
     zep->editor->InitWithFile(file_path);
+  }
+
+  std::string TextEditor::GetFilePath() const {
+    return file_path;
+  }
+
+  void TextEditor::CreateEditor() {
+    OE_INFO("Creating text editor for file: {}", file_path);
+    zep = NewScope<ZepWrapper>(root, pixel_scale, callback);
+
+    auto& display = zep->editor->GetDisplay();
+    auto font = ImGui::GetIO().Fonts->Fonts[0];
+    auto pixel_height = font->FontSize;
+
+    display.SetFont(Zep::ZepTextType::UI, std::make_shared<Zep::ZepFont_ImGui>(display, font, (uint32_t)pixel_height));
+    display.SetFont(Zep::ZepTextType::Text, std::make_shared<Zep::ZepFont_ImGui>(display, font, (uint32_t)pixel_height));
+    display.SetFont(Zep::ZepTextType::Heading1, std::make_shared<Zep::ZepFont_ImGui>(display, font, (uint32_t)pixel_height * 1.5));
+    display.SetFont(Zep::ZepTextType::Heading2, std::make_shared<Zep::ZepFont_ImGui>(display, font, (uint32_t)pixel_height * 1.25));
+    display.SetFont(Zep::ZepTextType::Heading3, std::make_shared<Zep::ZepFont_ImGui>(display, font, (uint32_t)pixel_height * 1.125));
+
+    buffer = zep->editor->InitWithFile(file_path);
+
+    OE_INFO("Text editor created for file: {}", file_path);
   }
 
   void TextEditor::HandleMessage(Zep::MessagePtr message) {

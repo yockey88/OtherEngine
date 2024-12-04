@@ -5,9 +5,10 @@
 #define OTHER_ENGINE_VIEWPORT_PANEL_HPP
 
 #include "core/ref.hpp"
-#include "editor/editor_panel.hpp"
 
 #include "scene/scene.hpp"
+
+#include "editor/editor_panel.hpp"
 
 namespace other {
 
@@ -26,8 +27,7 @@ namespace other {
 
     glm::vec2 viewport_padding = { 0.f, 0.f };
 
-    void RenderCreateEntity(Entity* parent = nullptr);
-    bool RenderEntity(const UUID& id, Entity* entity);
+    void RenderViewport(const Ref<Framebuffer>& viewport);
   };
 
 }  // namespace other

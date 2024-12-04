@@ -214,13 +214,7 @@ namespace other {
   }
 
   AssetSet EditorAssetHandler::GetAllOfType(AssetType type) {
-    AssetSet result;
-    for (auto& asset : assets) {
-      if (asset.second->GetAssetType() == type) {
-        result.insert(asset.first);
-      }
-    }
-    return result;
+    return AssetDatabase::GetAllOfType(type);
   }
 
   AssetMap& EditorAssetHandler::GetAll() {

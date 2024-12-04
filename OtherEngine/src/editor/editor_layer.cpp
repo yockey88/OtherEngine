@@ -25,6 +25,10 @@
 
 #include "editor/editor_images.hpp"
 #include "editor/editor_state.hpp"
+#include "editor/panels/file_editor.hpp"
+#include "editor/panels/pipeline_creator.hpp"
+#include "editor/panels/renderpass_creator.hpp"
+#include "editor/panels/shader_creator.hpp"
 #include "editor/selection_manager.hpp"
 
 namespace other {
@@ -108,7 +112,8 @@ namespace other {
       return;
     }
 
-    if (EditorState::scene_mode == SceneEditorMode::SIMULATING) {
+    if (EditorState::scene_mode == SceneEditorMode::SIMULATING ||
+        EditorState::scene_mode == SceneEditorMode::FREE_CAMERA) {
       DefaultUpdateCamera(editor.editor_camera);
     }
   }
@@ -164,6 +169,8 @@ namespace other {
       render_success = scene_renderer->FinalizeScene();
     }
 
+    EditorState& editor = EditorState::Get();
+
     // clang-format off
     ui::MainMenuBar([&]() {
       ui::Menu(
@@ -186,6 +193,14 @@ namespace other {
         ui::MenuItem{ "Terminal"sv, [&]() {} }
       );
 
+      ui::Menu(
+        "Tools",
+        ui::MenuItem{ "Pipeline Creator"sv, [&]() { editor.panel_creator_id = panel_manager->AddPanel("Pipeline-Creator", NewRef<PipelineCreator>()); } },
+        ui::MenuItem{ "File Editor"sv, [&]() { editor.panel_creator_id = panel_manager->AddPanel("Shader-Creator", NewRef<FileEditor>()); } },
+        ui::MenuItem{ "Renderpass Creator"sv, [&]() { editor.panel_creator_id = panel_manager->AddPanel("Renderpass-Creator", NewRef<RenderpassCreator>()); } },
+        ui::MenuItem{ "Shader Creator"sv, [&]() { editor.panel_creator_id = panel_manager->AddPanel("Shader-Creator", NewRef<ShaderCreator>()); } }
+      );
+
       // ui::Menu("Assets", [&]() {});
       // ui::Menu("Objects", [&]() {});
     });
@@ -203,14 +218,14 @@ namespace other {
      *
      **/
 
-    EditorState& editor = EditorState::Get();
-    if (scene_active && ImGui::Begin("Inspector")) {
-      if (!render_success) {
+    if (ImGui::Begin("Inspector")) {
+      if (scene_active && !render_success) {
         ScopedColor err_color(ImGuiCol_Text, ui::theme::red);
         if (ImGui::BeginChild("[ ERROR ]", { 0, 0 }, false, ImGuiWindowFlags_NoScrollbar)) {
           ImGui::Text("Failed to render scene");
           ImGui::EndChild();
         }
+      } else if (!scene_active) {
       }
 
       switch (EditorState::scene_mode) {
@@ -268,12 +283,8 @@ namespace other {
           ImGui::Text("Corrupt Editor State");
         } break;
       }
-    } else {
     }
-
-    if (scene_active) {
-      ImGui::End();
-    }
+    ImGui::End();
   }
 
   void EditorLayer::LaunchSettingsWindow() {

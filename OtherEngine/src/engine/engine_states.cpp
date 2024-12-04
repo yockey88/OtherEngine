@@ -20,7 +20,6 @@
 #include "editor/editor_sink.hpp"
 #include "editor/editor_states.hpp"
 
-
 #ifdef OE_TESTING_ENVIRONMENT
   #include "testing_core/test_engine_states.hpp"
 #endif  // OE_TESTING_ENVIRONMENT
@@ -91,10 +90,10 @@ namespace other {
       "Other-Engine--WindowClosed",
       { &HandleWindowClosed }
     );
-    EventQueue::RegisterEventDispatcher<KeyPressed>(
-      "Other-Engine--KeyPressed",
-      { &HandleKeyPress }
-    );
+    // EventQueue::RegisterEventDispatcher<KeyPressed>(
+    //   "Other-Engine--KeyPressed",
+    //   { &HandleKeyPress }
+    // );
   }
 
   void EngineLaunching::OnStep() {

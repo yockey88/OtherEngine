@@ -7,7 +7,6 @@
 #include <string>
 
 #include <glm/gtc/type_ptr.hpp>
-
 #include <rendering/point_light.hpp>
 
 #include "core/buffer.hpp"
@@ -26,6 +25,11 @@ namespace other {
     STD430,
   };
 
+  enum InOutType {
+    INPUT,
+    OUTPUT,
+  };
+
   struct Uniform {
     std::string name = "";
     ValueType type;
@@ -38,6 +42,20 @@ namespace other {
     uint32_t binding_point;
     std::string name;
     std::map<UUID, Uniform> uniforms;
+  };
+
+  struct InOutVar {
+    InOutType in_out;
+
+    std::string name;
+    ValueType type;
+  };
+
+  struct InOutBlock {
+    InOutType in_out;
+
+    std::string name;
+    std::map<UUID, InOutVar> vars;
   };
 
   class UniformBuffer : public RefCounted {

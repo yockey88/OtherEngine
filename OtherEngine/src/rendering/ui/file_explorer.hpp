@@ -4,8 +4,8 @@
 #ifndef OTHER_ENGINE_FILE_EXPLORER_HPP
 #define OTHER_ENGINE_FILE_EXPLORER_HPP
 
-#include <string>
 #include <optional>
+#include <string>
 
 #include <nfd/nfd.h>
 
@@ -16,8 +16,8 @@ namespace other {
   /// TODO: redo all of this, it works for now but Im not sure I like it/will be useful
 
   enum class FileExplorerType {
-    OPEN_FILE ,
-    OPEN_FOLDER ,
+    OPEN_FILE,
+    OPEN_FOLDER,
     SAVE_FILE
   };
 
@@ -27,12 +27,11 @@ namespace other {
     std::function<void()> open_folder;
     std::function<void()> save_file;
 
-    FileExplorerFunction(
-      FileExplorerType type , 
-      std::function<void()> open_file , 
-      std::function<void()> open_folder ,
-      std::function<void()> save_file
-    ) : type(type) , open_file(open_file) , open_folder(open_folder) {}
+    // clang-format off
+    FileExplorerFunction(FileExplorerType type, std::function<void()> open_file,
+                         std::function<void()> open_folder, std::function<void()> save_file) 
+        : type(type), open_file(open_file), open_folder(open_folder) {}
+    // clang-format on
 
     void operator()() {
       switch (type) {
@@ -43,7 +42,7 @@ namespace other {
       }
     }
   };
- 
+
   class FileExplorer : public UIWindow {
     FileExplorerFunction function;
     std::string path;
@@ -51,17 +50,17 @@ namespace other {
     nfdchar_t* out_path = nullptr;
     nfdresult_t result;
 
-    public:
-      FileExplorer(
-        const std::string& title , const std::string& path = "." , 
-        FileExplorerType type = FileExplorerType::OPEN_FILE
-      );
-      virtual ~FileExplorer() {}
+   public:
+    FileExplorer(
+      const std::string& title, const std::string& path = ".",
+      FileExplorerType type = FileExplorerType::OPEN_FILE
+    );
+    virtual ~FileExplorer() {}
 
-      virtual void OnAttach() override;
-      std::string GetPath() const { return path; }
+    virtual void OnAttach() override;
+    std::string GetPath() const { return path; }
   };
 
-} // namespace enginey
+}  // namespace other
 
-#endif // !OTHER_ENGINE_FILE_EXPLORER_HPP
+#endif  // !OTHER_ENGINE_FILE_EXPLORER_HPP

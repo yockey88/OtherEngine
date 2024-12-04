@@ -9,6 +9,7 @@
 #include "core/defines.hpp"
 #include "core/filesystem.hpp"
 #include "core/logger.hpp"
+#include "core/ref.hpp"
 #include "engine/engine_state_machine.hpp"
 
 #include "application/app_state.hpp"
@@ -42,6 +43,10 @@ namespace other {
     EventQueue::Shutdown();
     IO::Shutdown();
     Logger::Shutdown();
+
+    if (detail::NumberOfLivingReferences() > 0) {
+      println("Engine shutdown with {} living references", detail::NumberOfLivingReferences());
+    }
   }
 
   void Engine::Run() {

@@ -5,11 +5,13 @@
 
 #include "core/defines.hpp"
 #include "core/errors.hpp"
+#include "core/formatters.hpp"
 
 #include "parsing/parsing_defines.hpp"
 #include "parsing/shader_ast_node.hpp"
 
 #include "rendering/rendering_defines.hpp"
+#include "rendering/uniform.hpp"
 
 namespace other {
 
@@ -19,36 +21,7 @@ namespace other {
     std::vector<Ref<AstNode>>* correct_nodes = nullptr;
     std::string* output_src = nullptr;
 
-    bool other_shader = false;
-    switch (ast.type) {
-      case VERTEX_SHADER:
-        correct_nodes = &ast.vertex_nodes;
-        output_src = &result.vert_source;
-        break;
-      case FRAGMENT_SHADER:
-        correct_nodes = &ast.fragment_nodes;
-        output_src = &result.frag_source;
-        break;
-      case GEOMETRY_SHADER:
-        if (result.geom_source.has_value()) {
-          correct_nodes = &ast.geometry_nodes;
-          output_src = &result.geom_source.value();
-        }
-        break;
-      case OTHER_SHADER:
-        other_shader = true;
-        break;
-      default:
-        break;
-    }
-
-    if (!other_shader) {
-      if (correct_nodes == nullptr || output_src == nullptr) {
-        throw ShaderException("GLSL Transpiler state corrupted, transpiling invalid shader!", INVALID_SHADER_CTX, 0, 0);
-      }
-
-      *output_src = TranspileTo(*correct_nodes);
-    } else {
+    if (ast.type == OTHER_SHADER) {
       context = VERTEX_SHADER;
       result.vert_source = TranspileTo(ast.vertex_nodes);
 
@@ -59,12 +32,42 @@ namespace other {
         context = GEOMETRY_SHADER;
         result.geom_source = TranspileTo(ast.geometry_nodes);
       }
+    } else {
+      switch (ast.type) {
+        case VERTEX_SHADER:
+          correct_nodes = &ast.vertex_nodes;
+          output_src = &result.vert_source;
+          break;
+        case FRAGMENT_SHADER:
+          correct_nodes = &ast.fragment_nodes;
+          output_src = &result.frag_source;
+          break;
+        case GEOMETRY_SHADER:
+          if (result.geom_source.has_value()) {
+            correct_nodes = &ast.geometry_nodes;
+            output_src = &result.geom_source.value();
+          }
+          break;
+        default:
+          break;
+      }
+
+      if (correct_nodes == nullptr || output_src == nullptr) {
+        throw ShaderException("GLSL Transpiler state corrupted, transpiling invalid shader!", INVALID_SHADER_CTX, 0, 0);
+      }
+
+      *output_src = TranspileTo(*correct_nodes);
     }
 
     if (!mesh_layout.has_value()) {
       throw Error(SHADER_TRANSPILATION, "Failed to set mesh layout parsing shader!");
     }
     result.layout = mesh_layout.value();
+
+    OE_DEBUG("Transpiled Shader: {} (uniforms : {})", result.name, result.uniforms.size());
+    for (auto& uni : result.uniforms) {
+      OE_DEBUG("Uniform: {} , {}", uni.second.name, uni.second.type);
+    }
 
     return result;
   }
@@ -130,11 +133,15 @@ namespace other {
         .type = ValueTypeFromString(stmt.type.value),
       };
 
-      if (!flags.push_uniforms.empty()) {
-        uniform_stack.push(uni);
-      } else {
-        result.uniforms[FNV(uni.name)] = uni;
-      }
+      uniform_stack.push(uni);
+      return;
+    } else if (!flags.push_in_out.empty()) {
+      InOutVar var{
+        .name = stmt.name.value,
+        .type = ValueTypeFromString(stmt.type.value),
+      };
+
+      in_out_var_stack.push(var);
       return;
     }
 
@@ -271,8 +278,21 @@ namespace other {
   }
 
   void ShaderGlslTranspiler::Visit(LayoutVarDecl& stmt) {
-    token_stack.push(stmt.type.value_or(Token({}, INVALID_TOKEN, "")));
-    token_stack.push(stmt.name.value_or(Token({}, INVALID_TOKEN, "")));
+    OE_ASSERT(stmt.type.has_value(), "LayoutVarDecl must have a type!");
+    OE_ASSERT(stmt.name.has_value(), "LayoutVarDecl must have a name!");
+
+    InOutVar var{
+      .name = stmt.name.value().value,
+      .type = ValueTypeFromString(stmt.type.value().value),
+    };
+
+    if (stmt.in_out.value == "in") {
+      var.in_out = INPUT;
+    } else if (stmt.in_out.value == "out") {
+      var.in_out = OUTPUT;
+    }
+
+    result.inouts[FNV(var.name)] = var;
   }
 
   void ShaderGlslTranspiler::Visit(ShaderStorageStmt& stmt) {
@@ -280,27 +300,57 @@ namespace other {
       throw Error(SHADER_TRANSPILATION, "Shader storage stack is corrupt parsing shader uniforms!");
     }
 
-    flags.push_uniforms.push(true);
     stmt.body->Accept(*this);
-    flags.push_uniforms.pop();
 
     ShaderStorage& storage = shader_storage_stack.top();
     while (!uniform_stack.empty()) {
       auto uni = uniform_stack.top();
       uniform_stack.pop();
-
       storage.uniforms[FNV(uni.name)] = uni;
     }
   }
 
   void ShaderGlslTranspiler::Visit(InOutBlockStmt& stmt) {
+    flags.push_in_out.push(true);
     stmt.body->Accept(*this);
+    flags.push_in_out.pop();
+
+    if (in_out_var_stack.empty()) {
+      throw Error(SHADER_TRANSPILATION, "In out var stack is empty parsing shader uniforms!");
+    }
+
+    InOutBlock block{
+      .name = stmt.name.value,
+    };
+
+    if (stmt.in_out.value == "in") {
+      block.in_out = INPUT;
+    } else if (stmt.in_out.value == "out") {
+      block.in_out = OUTPUT;
+    }
+
+    while (!in_out_var_stack.empty()) {
+      InOutVar var = in_out_var_stack.top();
+      in_out_var_stack.pop();
+
+      var.in_out = block.in_out;
+      block.vars[FNV(var.name)] = var;
+    }
   }
 
   void ShaderGlslTranspiler::Visit(UniformDecl& stmt) {
     flags.is_uniform.push(true);
     stmt.var_decl->Accept(*this);
     flags.is_uniform.pop();
+
+    if (uniform_stack.size() != 1) {
+      throw Error(SHADER_TRANSPILATION, "Uniform stack is corrupt parsing shader uniforms!");
+    }
+
+    Uniform uni = uniform_stack.top();
+    uniform_stack.pop();
+
+    result.uniforms[FNV(uni.name)] = uni;
   }
 
   void ShaderGlslTranspiler::Visit(ShaderDecl& stmt) {

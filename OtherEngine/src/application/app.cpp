@@ -16,6 +16,8 @@
 #include "rendering/renderer.hpp"
 #include "scripting/script_defines.hpp"
 
+#include "editor/editor_asset_handler.hpp"
+
 namespace other {
 
   App::App(const CmdLine& cmdline, const ConfigTable& config)
@@ -31,8 +33,12 @@ namespace other {
     OnUnload();
   }
 
-  Ref<AssetHandler> App::CreateAssetHandler() {
-    return NewRef<RuntimeAssetHandler>();
+  Ref<AssetHandler> App::CreateAssetHandler(EngineMode mode) {
+    if (mode == EngineMode::EDITOR) {
+      return NewRef<EditorAssetHandler>();
+    } else {
+      return NewRef<RuntimeAssetHandler>();
+    }
   }
 
   Ref<SceneRenderer> App::CreateSceneRenderer() {

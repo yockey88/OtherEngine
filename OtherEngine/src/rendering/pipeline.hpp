@@ -67,7 +67,7 @@ namespace other {
     std::vector<Uniform> material_uniforms{};
     uint32_t material_binding_point = 0;
 
-    std::string debug_name;
+    std::string pipeline_name;
   };
 
   struct RenderSubmission {
@@ -91,6 +91,9 @@ namespace other {
    public:
     Pipeline(PipelineSpec& spec);
     virtual ~Pipeline() override {}
+
+    std::string Name() const;
+    const FramebufferSpec& TargetSpec() const;
 
     void SetViewportSize(const glm::ivec2& size);
 

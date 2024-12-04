@@ -8,6 +8,7 @@
 #include "core/layer_stack.hpp"
 #include "engine/engine_states.hpp"
 
+#include "asset/asset_defines.hpp"
 #include "asset/asset_handler.hpp"
 #include "project/project.hpp"
 
@@ -35,6 +36,19 @@ namespace other {
 
     static Ref<Project> ProjectContext();
     static Ref<AssetHandler> Assets();
+
+    template <typename T>
+      requires std::derived_from<T, AssetHandle>
+    static Ref<T> AssetsAs() {
+      if constexpr (std::is_same_v<T, EditorAssetHandler>) {
+        OE_ASSERT(mode == EngineMode::EDITOR, "Can not access editor asset handler in runtime mode");
+        return Ref<AssetHandler>::Cast<T>(Assets());
+      } else if constexpr (std::is_same_v<T, RuntimeAssetHandler>) {
+        OE_ASSERT(mode != EngineMode::EDITOR, "Can only access runtime asset handler in runtime mode");
+        return Ref<AssetHandler>::Cast<T>(Assets());
+      }
+      OE_ASSERT(false, "Invalid asset handler type");
+    }
 
     static Scope<LayerStack>& Layers();
     static Scope<SceneManager>& Scenes();

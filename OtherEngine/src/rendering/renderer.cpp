@@ -110,6 +110,8 @@ namespace other {
   }
 
   Ref<SceneRenderer> Renderer::DefaultSceneRenderer() {
+    OE_INFO("Using default scene renderer");
+
     Layout default_layout = {
       { ValueType::VEC3, "position" },
       { ValueType::VEC3, "normal" },
@@ -151,7 +153,7 @@ namespace other {
           .model_binding_point = model_binding_pnt,
           .material_uniforms = material_unis,
           .material_binding_point = material_binding_pnt,
-          .debug_name = "Geometry",
+          .pipeline_name = "Geometry",
         },
       },
       .passes = { geom_pass },

@@ -10,14 +10,22 @@ namespace other {
 
   class AssetDatabase {
    public:
-    static void RegisterAsset(const AssetMetadata& metadata);
-    static void UnregisterAsset(const AssetMetadata& metadata);
-    static void UnregisterAsset(const AssetHandle metadata);
     static bool Contains(AssetHandle handle);
-
-    static AssetMetadata& Get(AssetHandle handle);
+    static void RegisterAsset(const AssetMetadata& metadata);
 
    private:
+    friend class AssetHandler;
+    friend class EditorAssetHandler;
+    friend class RuntimeAssetHandler;
+    friend class AssetManager;
+    friend class FileHandle;
+
+    static void UnregisterAsset(const AssetMetadata& metadata);
+    static void UnregisterAsset(const AssetHandle metadata);
+
+    static AssetMetadata& Get(AssetHandle handle);
+    static std::set<AssetHandle> GetAllOfType(AssetType type);
+
     static AssetMetadata& ProcessAsset(const AssetMetadata& metadata);
     static void AddAsset(const AssetMetadata& metadata);
   };

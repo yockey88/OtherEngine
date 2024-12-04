@@ -16,8 +16,10 @@
 
 namespace other {
 
-  struct Directory : public RefCounted {
+  class Directory : public RefCounted {
+   public:
     UUID handle;
+
     Ref<Directory> parent_dir;
 
     std::set<AssetHandle> assets;
@@ -32,12 +34,15 @@ namespace other {
 
     operator Path() const;
 
+    std::string Name() const;
+
     void Poll();
     bool Exists() const;
     bool Contains(const Path& path) const;
     bool Contains(UUID handle) const;
 
     Ref<Directory> AddFolder(const std::string_view name);
+    Ref<FileHandle> AddFile(const std::string_view path);
 
     Ref<FileHandle> GetFile(const Path& path);
     Ref<FileHandle> GetFile(UUID handle);
@@ -45,7 +50,8 @@ namespace other {
     Ref<FileHandle> OpenFile(UUID handle, std::ios_base::openmode mode = std::ios_base::in | std::ios_base::out | std::ios_base::app);
     Ref<FileHandle> GetFileHandleByName(const std::string_view name);
 
-    std::vector<Path> GetFiles(Opt<std::string> ext = std::nullopt) const;
+    std::vector<Path> GetFilePaths(Opt<std::string> ext = std::nullopt) const;
+    std::vector<Ref<FileHandle>> GetFiles(Opt<std::string> ext = std::nullopt) const;
 
     const Path AbsolutePath() const;
     const Path ProjectRelativePath() const;
@@ -53,8 +59,6 @@ namespace other {
    private:
     Ref<DirectoryWatcher> watcher = nullptr;
     Path proj_relative_path;
-
-    std::vector<Path> paths;
 
     void Initialize();
     void CollectChildren();

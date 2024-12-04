@@ -470,8 +470,8 @@ namespace other {
     Ref<Directory> script_dir = Filesystem::GetDirectory("scripts");
     OE_ASSERT(script_dir != nullptr, "Failed to load scripts directory");
 
-    std::vector<Path> editor_scripts = editor_dir->GetFiles();
-    std::vector<Path> script_scripts = script_dir->GetFiles();
+    std::vector<Path> editor_scripts = editor_dir->GetFilePaths();
+    std::vector<Path> script_scripts = script_dir->GetFilePaths();
 
     for (const auto& script : editor_scripts) {
       Ref<FileHandle> file = Filesystem::GetFile(script);

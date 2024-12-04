@@ -16,13 +16,13 @@ namespace other {
     void RegisterReference(void* instance);
     void RemoveReference(void* instance);
     bool IsValidRef(void* instance);
+    size_t NumberOfLivingReferences();
 
   }  // namespace detail
 
   template <typename T, typename U>
   concept RefCastable = std::convertible_to<T, U> || std::derived_from<T, U> || std::derived_from<U, T>;
 
-  // requires std::is_base_of_v<RefCounted , T>
   template <typename T>
   class Ref {
    public:

@@ -23,7 +23,7 @@ namespace other {
     App(const CmdLine& cmdline, const ConfigTable& config);
     virtual ~App();
 
-    virtual Ref<AssetHandler> CreateAssetHandler();
+    virtual Ref<AssetHandler> CreateAssetHandler(EngineMode mode);
     virtual Ref<SceneRenderer> CreateSceneRenderer();
 
     void Load();

@@ -5,14 +5,16 @@
 
 #include <array>
 
+#include "core/uuid.hpp"
+
+#include "event/event_handler.hpp"
+
 #include "editor/panels/entity_properties.hpp"
 #include "editor/panels/log_panel.hpp"
 #include "editor/panels/project_panel.hpp"
 #include "editor/panels/scene_panel.hpp"
 #include "editor/panels/viewport_panel.hpp"
 #include "editor/selection_manager.hpp"
-
-#include "event/event_handler.hpp"
 
 namespace other {
 
@@ -66,6 +68,37 @@ namespace other {
     OE_DEBUG("Panel Manager attached");
   }
 
+  UUID PanelManager::AddPanel(const std::string& name, const Ref<EditorPanel>& panel) {
+    UUID id = FNV(name);
+    if (auto itr = active_panels.find(id); itr != active_panels.end()) {
+      itr->second.panel_open = true;
+      return id;
+    }
+
+    auto& p = active_panels[id] = Panel{ true, panel };
+    p.panel->OnProjectChange(project_context);
+    p.panel->OnAttach();
+
+    return id;
+  }
+
+  void PanelManager::RemovePanel(const std::string& name) {
+    UUID id = FNV(name);
+    RemovePanel(id);
+  }
+
+  void PanelManager::RemovePanel(const UUID& panel_id) {
+    auto itr = active_panels.find(panel_id);
+    OE_ASSERT(itr != active_panels.end(), "Attempting to remove non-existent panel!");
+
+    auto& panel = itr->second;
+    panel.panel_open = false;
+    panel.panel->OnDetach();
+    panel.panel = nullptr;
+
+    active_panels.erase(itr);
+  }
+
   void PanelManager::EarlyUpdate(float dt) {
     for (auto& [id, panel] : active_panels) {
       if (panel.panel == nullptr) {
@@ -106,6 +139,8 @@ namespace other {
   }
 
   bool PanelManager::RenderUI() {
+    std::queue<UUID> closed_panels;
+
     bool panel_signal = false;
     for (auto& [id, panel] : active_panels) {
       if (panel.panel == nullptr) {
@@ -117,6 +152,15 @@ namespace other {
       if (id == kPropertiesPanelId && SelectionManager::HasSelection() && !panel.panel_open) {
         SelectionManager::ClearSelection();
       }
+
+      if (!panel.panel_open) {
+        closed_panels.push(id);
+      }
+    }
+
+    while (!closed_panels.empty()) {
+      RemovePanel(closed_panels.front());
+      closed_panels.pop();
     }
 
     return panel_signal;

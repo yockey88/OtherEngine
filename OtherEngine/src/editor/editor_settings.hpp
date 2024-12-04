@@ -15,8 +15,6 @@ namespace other {
   struct EditorSettings {
     uint16_t thumbnail_size = 100;
 
-    std::string viewport_frame_name = "Geometry";
-
     static EditorSettings& Get();
   };
 

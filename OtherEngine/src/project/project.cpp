@@ -137,7 +137,7 @@ namespace other {
   void Project::MountDirectory(const std::string_view name, const Path& path) {
     Ref<Directory> dir = Filesystem::MountDirectory(name, path);
     if (dir == nullptr || !dir->Exists()) {
-      OE_ERROR("Failed to mount bin directory : {}", path);
+      OE_ERROR("Failed to mount project directory {} : {}", name, path);
     }
   }
 

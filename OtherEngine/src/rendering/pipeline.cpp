@@ -27,6 +27,14 @@ namespace other {
     material_storage = NewRef<UniformBuffer>("MaterialData", spec.material_uniforms, spec.material_binding_point, SHADER_STORAGE);
   }
 
+  std::string Pipeline::Name() const {
+    return spec.pipeline_name;
+  }
+
+  const FramebufferSpec& Pipeline::TargetSpec() const {
+    return spec.framebuffer_spec;
+  }
+
   void Pipeline::SetViewportSize(const glm::ivec2& size) {
     target->Resize(size);
   }

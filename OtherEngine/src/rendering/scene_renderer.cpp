@@ -8,6 +8,7 @@
 #include "core/defines.hpp"
 #include "core/logger.hpp"
 
+#include "rendering/pipeline.hpp"
 #include "rendering/uniform.hpp"
 
 namespace other {
@@ -18,6 +19,24 @@ namespace other {
   }
 
   SceneRenderer::~SceneRenderer() {
+  }
+
+  void SceneRenderer::AddPipeline(PipelineSpec& spec) {
+    if (spec.pipeline_name.empty()) {
+      OE_ERROR("Pipeline name is empty!");
+      return;
+    }
+
+    if (pipelines.find(FNV(spec.pipeline_name)) != pipelines.end()) {
+      OE_ERROR("Pipeline {} already exists!", spec.pipeline_name);
+      return;
+    }
+
+    pipelines[FNV(spec.pipeline_name)] = NewRef<Pipeline>(spec);
+  }
+
+  const std::map<UUID, Ref<Pipeline>>& SceneRenderer::GetPipelines() const {
+    return pipelines;
   }
 
   void SceneRenderer::SetViewportSize(const glm::ivec2& size) {
@@ -162,7 +181,7 @@ namespace other {
 
     /// pipelines
     for (auto& pl : spec.pipelines) {
-      pipelines[FNV(pl.debug_name)] = NewRef<Pipeline>(pl);
+      pipelines[FNV(pl.pipeline_name)] = NewRef<Pipeline>(pl);
     }
 
     for (auto& [pipeline_id, pass_list] : spec.pipeline_to_pass_map) {

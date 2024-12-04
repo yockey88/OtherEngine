@@ -9,19 +9,19 @@ namespace other {
   class Entity;
 
   class SelectionManager {
-    public:
-      static void Select(Entity* entity);
+   public:
+    static void Select(Entity* entity);
 
-      static bool HasSelection();
+    static bool HasSelection();
 
-      static void ClearSelection();
+    static void ClearSelection();
 
-      static Entity* ActiveSelection();
+    static Entity* ActiveSelection();
 
-    private:
-      static Entity* entity_selection_context;
+   private:
+    static Entity* entity_selection_context;
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_SELECTION_MANAGER_HPP
+#endif  // !OTHER_ENGINE_SELECTION_MANAGER_HPP

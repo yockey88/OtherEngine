@@ -11,7 +11,6 @@
 
 #include "parsing/shader_compiler.hpp"
 
-
 namespace other {
 
   const bool Shader::IsValid() const {
@@ -43,6 +42,14 @@ namespace other {
 
   uint32_t Shader::ID() const {
     return renderer_id;
+  }
+
+  std::string Shader::Name() const {
+    return ir.name;
+  }
+
+  const ShaderIr& Shader::GetIr() const {
+    return ir;
   }
 
   void Shader::Bind() const {
@@ -204,6 +211,7 @@ namespace other {
   }
 
   Ref<Shader> BuildShader(const Path& path) {
+    OE_INFO("Attempting to build shader : {}", path.string());
     std::string src = Filesystem::ReadFile(path);
     if (src.empty()) {
       OE_ERROR("Failed to read shader file {}", path);
@@ -213,6 +221,7 @@ namespace other {
     ShaderIr ir = ShaderCompiler::Compile(src);
     ir.name = path.filename().string();
 
+    OE_INFO(" > Built shader : {}", ir.name);
     return NewRef<Shader>(ir);
   }
 

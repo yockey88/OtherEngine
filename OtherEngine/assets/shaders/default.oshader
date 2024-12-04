@@ -20,7 +20,6 @@ vertex [mesh : default] {
     foe_position = world_pos.xyz;
     foe_normal = normal_model * voe_normal;
     foe_texcoords = voe_uvs;
-
   };
 
 }
