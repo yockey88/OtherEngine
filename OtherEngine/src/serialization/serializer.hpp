@@ -13,7 +13,7 @@
 
 #include "core/uuid.hpp"
 
-#include "asset/asset_types.hpp"
+#include "asset/asset_defines.hpp"
 
 namespace other {
 

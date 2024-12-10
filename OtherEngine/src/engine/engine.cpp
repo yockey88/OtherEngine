@@ -89,6 +89,8 @@ namespace other {
     if (state->IsFinished()) {
       OE_ASSERT(AppState::exit_code.has_value(), "No exit code set for engine shutdown");
       exit_code = AppState::exit_code.value();
+    } else if (state->IsError()) {
+      /// TODO: handle error state
     } else {
       state->Step();
     }

@@ -6,15 +6,16 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 
-#include "asset/asset_metadata.hpp"
-#include "input/keyboard.hpp"
 #include "application/app_state.hpp"
+#include "asset/asset_registry.hpp"
+#include "input/keyboard.hpp"
 
 #include "rendering/ui/ui_colors.hpp"
 #include "rendering/ui/ui_helpers.hpp"
 
-#include "editor/editor_settings.hpp"
 #include "editor/editor_asset_handler.hpp"
+#include "editor/editor_settings.hpp"
+
 
 namespace other {
 
@@ -52,7 +53,7 @@ namespace other {
 
   //   if (type == Type::DIRECTORY) {
   //     draw_shadow(top_l , bot_r , false);
-      
+
   //     auto* draw_list = ImGui::GetWindowDrawList();
   //     draw_list->AddRectFilled(top_l , bot_r , ui::theme::no_color , 6.f);
   //   } else if (ImGui::ItemHoverable(ImRect(top_l , bot_r), ImGui::GetID(&handle) , ImDrawFlags_RoundCornersBottom)) {
@@ -120,7 +121,7 @@ namespace other {
   //       }
   //       ImGui::PopTextWrapPos();
   //       ImGui::ResumeLayout();
-        
+
   //       ImGui::Spring();
   //       ImGui::EndHorizontal();
   //     }
@@ -132,7 +133,7 @@ namespace other {
   //         const AssetMetadata& metadata = AppState::Assets().As<EditorAssetHandler>()->GetMetadata(handle);
   //         using namespace std::string_view_literals;
   //         ImGui::Text("%s" , fmt::format("{}"sv , metadata.type).c_str());
-  //         // std::string asset_type = 
+  //         // std::string asset_type =
   //       }
   //       ImGui::EndHorizontal();
 
@@ -147,7 +148,7 @@ namespace other {
   //       StartRenaming();
   //     }
   //   }
-    
+
   //   ImGui::PopStyleVar();
   //   ImGui::EndGroup();
 
@@ -166,7 +167,7 @@ namespace other {
   //   }
 
   //   UpdateDrop(result);
-    
+
   //   bool start_dragging = false;
   //   if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
   //     start_dragging = true;
@@ -215,7 +216,7 @@ namespace other {
 
   //   dragging = start_dragging;
 
-  //   return result; 
+  //   return result;
   // }
 
   // void ContentBrowserItem::OnRenderEnd() {
@@ -241,9 +242,9 @@ namespace other {
 
   // void ContentBrowserItem::OnContextMenuOpen(CBActionResult& result) {
   // }
-      
+
   // void ContentBrowserItem::SetDisplayName() {
-  //   const auto& editor_settings = EditorSettings::Get(); 
+  //   const auto& editor_settings = EditorSettings::Get();
 
   //   int32_t max_chars = 0.001525875f * (editor_settings.thumbnail_size * editor_settings.thumbnail_size);
 
@@ -260,7 +261,7 @@ namespace other {
   // }
 
   // bool CBDirectory::Move(const Path& path) {
-  //   return false; 
+  //   return false;
   // }
 
   // void CBDirectory::OnRenamed(const std::string& name) {
@@ -279,29 +280,29 @@ namespace other {
 
   // void CBDirectory::UpdateDirectoryPath(Ref<Directory> directory , const Path& new_parent , const Path& new_name) {
   // }
-  
-  // CBItem::CBItem(const AssetMetadata& metadata , const Ref<Texture2D>& texture) 
+
+  // CBItem::CBItem(const AssetMetadata& metadata , const Ref<Texture2D>& texture)
   //     : ContentBrowserItem(Type::FILE , metadata.handle, metadata.path.filename().string() , texture) ,
-  //       asset_metadata(metadata) {
+  //       asset_registry(metadata) {
   // }
 
   // void CBItem::Delete() {
   // }
 
   // bool CBItem::Move(const Path& path) {
-  //   return false; 
+  //   return false;
   // }
 
   // void CBItem::OnRenamed(const std::string& name) {
   // }
-      
+
   // std::string CBItem::OverrideDisplayName(const std::string& new_name) {
-  //   if (asset_metadata.type == SOURCE_FILE) {
+  //   if (asset_registry.type == SOURCE_FILE) {
   //     return new_name;
   //   }
   //   return new_name.substr(0 , new_name.find_first_of('.'));
   // }
-    
+
   // size_t CBItemList::size() {
   //   return items.size();
   // }
@@ -309,9 +310,9 @@ namespace other {
   // void CBItemList::clear() {
   //   items.clear();
   // }
-  
+
   // void CBItemList::erase(AssetHandle handle) {
-  //   size_t idx = find(handle); 
+  //   size_t idx = find(handle);
 
   //   if (idx == invalid_idx) {
   //     return;
@@ -334,9 +335,9 @@ namespace other {
 
   //   return invalid_idx;
   // }
-    
+
   // void CBItemList::push_back(const Ref<ContentBrowserItem>& item) {
   //   items.push_back(item);
   // }
 
-} // namespace other
+}  // namespace other

@@ -42,6 +42,72 @@ ui = {
   *sandbox_ui = { "SandboxUI" }
 }
 
+@pipeline [main-pipeline] = {
+  MainPipeline
+  topology = TRIANGLES
+  back-face-culling = true
+  depth-test = true
+  line-width = 1
+  framebuffer-spec = {
+    MainFramebuffer
+    depth-function = LESS
+    clear-color = {1,1,1,1}
+    size = {1920,1080}
+    depth-buffer = true
+    color-buffer = true
+    stencil-buffer = false
+  }
+  vertex-layout = {
+    vec3:position,
+    vec3:normal,
+    vec3:tangent,
+    vec3:binormal,
+    vec2:uvs
+  }
+  model-binding-point = 0
+  model-uniforms = {
+    mat4:models:100
+  }
+  material-binding-point = 0
+  material-uniforms = {
+    user-type:materials:100
+  }
+}
+
+@pipeline [debug-pipeline] {
+  topology = TRIANGLES
+  back-face-culling = true
+  depth-test = true
+  line-width = 1
+  framebuffer-spec = {
+    DebugWireframe
+    depth-function = LESS
+    clear-color = {1,1,1,1}
+    size = {1920,1080}
+    depth-buffer = true
+    color-buffer = true
+    stencil-buffer = false
+  }
+  vertex-layout = {
+    vec3:position,
+    vec3:normal,
+    vec3:tangent,
+    vec3:binormal,
+    vec2:uvs
+  }
+  model-binding-point = 0
+  model-uniforms = {
+    mat4:models:100
+  }
+  material-binding-point = 0
+  material-uniforms = {
+    user-type:materials:100
+  }
+}
+
+![load-renderer] {
+}
+
 #[
   syntax ideas:
     - small amounts of scripting? 

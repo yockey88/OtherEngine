@@ -156,6 +156,13 @@ namespace other {
       return Ref<T>(new T(std::forward<Args>(args)...));
     }
 
+    template <typename U>
+      requires RefCastable<T, U>
+    static Ref<U> DirectReference(Ref<T> ptr) {
+      /// call private constructor to avoid incrementing the reference count
+      return Ref<U>(reinterpret_cast<U*>(ptr.object), false);
+    }
+
     bool operator==(const Ref<T>& other) const {
       return object == other.object;
     }
@@ -170,6 +177,11 @@ namespace other {
 
    private:
     mutable T* object;
+
+    /// for direct referncing in cases where we don't want to increment the reference count
+    Ref(T* p, bool) {
+      object = p;
+    }
 
     void IncRef() const {
       if (object != nullptr) {

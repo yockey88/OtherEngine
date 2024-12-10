@@ -117,8 +117,13 @@ namespace dotother {
       return;
     }
 
+    if (handle == 0 || object == nullptr) {
+      util::print(DO_STR("Invalid object registration!"sv), MessageLevel::ERR);
+      return;
+    }
+
     if (auto itr = registered_objects.find(handle); itr != registered_objects.end()) {
-      util::print(DO_STR("Object {:#8x} already registered!"sv), MessageLevel::ERR, handle);
+      util::print(DO_STR("Object {:#8x} already registered!"sv), MessageLevel::WARNING, handle);
       return;
     }
 

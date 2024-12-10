@@ -21,7 +21,7 @@ namespace other {
   }
 
   Pipeline::Pipeline(PipelineSpec& s)
-      : spec(s), gbuffer(s.framebuffer_spec.size) {
+      : spec(s), gbuffer(NewScope<GBuffer>(s.framebuffer_spec.size)) {
     target = Ref<Framebuffer>::Create(spec.framebuffer_spec);
     model_storage = NewRef<UniformBuffer>("ModelData", spec.model_uniforms, spec.model_binding_point, SHADER_STORAGE);
     material_storage = NewRef<UniformBuffer>("MaterialData", spec.material_uniforms, spec.material_binding_point, SHADER_STORAGE);
@@ -65,9 +65,9 @@ namespace other {
       auto& idxs = submission.model->GetModelSource()->Indices();
 
       itr = InsertMeshKey(key, verts, idxs);
-      OE_ASSERT(itr != model_submissions.end(), "Failed to insert mesh key");
     }
 
+    OE_ASSERT(itr != model_submissions.end(), "Failed to insert mesh key");
     auto& [mk, sl] = *itr;
     sl.cpu_model_storage.BufferData(submission.transform);
     sl.cpu_material_storage.BufferData(submission.material);
@@ -75,16 +75,20 @@ namespace other {
   }
 
   void Pipeline::RenderGbuffer() {
+    OE_ASSERT(gbuffer != nullptr, "GBuffer is null!");
+    OE_ASSERT(model_storage != nullptr, "Model storage is null!");
+    OE_ASSERT(material_storage != nullptr, "Material storage is null!");
+
     material_storage->Clear();
     model_storage->Clear();
 
-    gbuffer.Bind();
+    gbuffer->Bind();
     CHECKGL();
 
     RenderAll();
     CHECKGL();
 
-    gbuffer.Unbind();
+    gbuffer->Unbind();
     CHECKGL();
   }
 
@@ -133,7 +137,8 @@ namespace other {
   }
 
   GBuffer& Pipeline::GetGBuffer() {
-    return gbuffer;
+    OE_ASSERT(gbuffer != nullptr, "GBuffer is null!");
+    return *gbuffer;
   }
 
   void Pipeline::Clear() {

@@ -109,6 +109,60 @@ namespace other {
     }
   }
 
+  void ConfigTable::AddFramebufferSpec(const std::string_view key, const std::string_view value) {
+    uint64_t key_hash = FNV(key);
+    if (unparsed_framebuffer_specs.find(key_hash) != unparsed_framebuffer_specs.end()) {
+      OE_WARN("Duplicate ramebuffer spec! {} already exists", key);
+      return;
+    }
+    unparsed_framebuffer_specs[key_hash] = value;
+  }
+
+  void ConfigTable::AddVertexLayout(const std::string_view key, const std::string_view value) {
+    uint64_t key_hash = FNV(key);
+    if (unparsed_vertex_layouts.find(key_hash) != unparsed_vertex_layouts.end()) {
+      OE_WARN("Duplicate vertex layout! {} already exists", key);
+      return;
+    }
+    unparsed_vertex_layouts[key_hash] = value;
+  }
+
+  void ConfigTable::AddUniform(const std::string_view key, const std::string_view value) {
+    uint64_t key_hash = FNV(key);
+    if (unparsed_uniforms.find(key_hash) != unparsed_uniforms.end()) {
+      OE_WARN("Duplicate uniform! {} already exists", key);
+      return;
+    }
+    unparsed_uniforms[key_hash] = value;
+  }
+
+  void ConfigTable::AddRenderPass(const std::string_view key, const std::string_view value) {
+    uint64_t key_hash = FNV(key);
+    if (unparsed_render_passes.find(key_hash) != unparsed_render_passes.end()) {
+      OE_WARN("Duplicate render pass! {} already exists", key);
+      return;
+    }
+    unparsed_render_passes[key_hash] = value;
+  }
+
+  void ConfigTable::AddPipeline(const std::string_view key, const std::string_view value) {
+    uint64_t key_hash = FNV(key);
+    if (unparsed_pipelines.find(key_hash) != unparsed_pipelines.end()) {
+      OE_WARN("Duplicate pipeline! {} already exists", key);
+      return;
+    }
+    unparsed_pipelines[key_hash] = value;
+  }
+
+  void ConfigTable::AddScriptSection(const std::string_view key, const UnparsedScriptSection& value) {
+    uint64_t key_hash = FNV(key);
+    if (unparsed_script_sections.find(key_hash) != unparsed_script_sections.end()) {
+      OE_WARN("Duplicate script section! {} already exists", key);
+      return;
+    }
+    unparsed_script_sections[key_hash] = value;
+  }
+
   const std::map<uint64_t, std::vector<std::string>> ConfigTable::Get(const std::string_view section) const {
     std::string sec = section.data();
     std::transform(sec.begin(), sec.end(), sec.begin(), ::toupper);

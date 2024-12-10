@@ -13,6 +13,7 @@
 #include "core/defines.hpp"
 #include "core/ref.hpp"
 #include "core/ref_counted.hpp"
+#include "core/writer_reader.hpp"
 
 #include "rendering/shader.hpp"
 #include "rendering/uniform.hpp"
@@ -209,6 +210,53 @@ namespace other {
     UniformProcessorMap<glm::mat2> mat2_processors;
     UniformProcessorMap<glm::mat3> mat3_processors;
     UniformProcessorMap<glm::mat4> mat4_processors;
+  };
+
+  template <>
+  struct Writer<RenderPassSpec> {
+    std::ostream& operator()(std::ostream& os, const RenderPassSpec& spec) {
+      BeginWriteList(os) << "\n    ";
+      Writer<std::string>{}(os, spec.name) << "\n    ";
+      WriteKeyValue(os, "tag-color", spec.tag_col) << "    ";
+
+      os << "uniforms = ";
+      BeginWriteList(os) << "\n      ";
+      for (uint32_t i = 0; i < spec.uniforms.size(); i++) {
+        WriteListItem(os, spec.uniforms[i], i == spec.uniforms.size() - 1);
+        if (i != spec.uniforms.size() - 1) {
+          os << ",\n      ";
+        } else {
+          os << "\n    ";
+        }
+      }
+      EndWriteList(os) << "\n    ";
+
+      if (spec.shader != nullptr) {
+        WriteKeyValue(os, "shader", spec.shader->handle.Get());
+      } else {
+        WriteKeyValue(os, "shader", 0);
+      }
+      EndWriteList(os) << "\n";
+
+      return os;
+    }
+  };
+
+  template <>
+  struct Reader<RenderPassSpec> {
+    RenderPassSpec operator()(std::istream& stream) {
+      BeginReadList(stream);
+      std::string name_val = Reader<std::string>{}(stream);
+      auto [tag_col, tag_col_val] = ReadKeyValue<glm::vec4>(stream, Reader<glm::vec4>{});
+      auto [uniforms, uniforms_val] = ReadKeyValue<std::vector<Uniform>>(stream, Reader<std::vector<Uniform>>{});
+      EndReadList(stream);
+
+      return RenderPassSpec{
+        .name = name_val,
+        .tag_col = tag_col_val,
+        .uniforms = uniforms_val,
+      };
+    }
   };
 
 }  // namespace other

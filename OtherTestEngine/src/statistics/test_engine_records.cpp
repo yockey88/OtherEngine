@@ -59,7 +59,7 @@ namespace other {
 
     try {
       file_handles[category]->Open(std::ios_base::in);
-      json_data[category] = nlohmann::json::parse(file_handles[category]->Read<std::string>());
+      json_data[category] = nlohmann::json::parse(file_handles[category]->ReadString());
       file_handles[category]->Close();
     } catch (nlohmann::json::parse_error& e) {
     } catch (...) {

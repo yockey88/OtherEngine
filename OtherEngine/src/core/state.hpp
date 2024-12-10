@@ -92,6 +92,10 @@ namespace other {
       return current_state == nullptr;
     }
 
+    bool IsError() {
+      return false;
+    }
+
     Ref<ST> CurrentState() {
       OE_ASSERT(current_state != nullptr, "Invalid state");
       return current_state;

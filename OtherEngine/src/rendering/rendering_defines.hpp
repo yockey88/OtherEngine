@@ -11,6 +11,7 @@
 #include <glm/glm.hpp>
 
 #include "core/logger.hpp"
+#include "core/writer_reader.hpp"
 
 namespace other {
 
@@ -106,12 +107,14 @@ namespace other {
   struct FramebufferSpec {
     DepthFunction depth_func = DepthFunction::LESS;
 
-    glm::vec4 clear_color = {0.f, 0.f, 0.f, 1.f};
-    glm::ivec2 size = {800.f, 600.f};
+    glm::vec4 clear_color = { 0.f, 0.f, 0.f, 1.f };
+    glm::ivec2 size = { 800.f, 600.f };
 
     bool depth = true;
     bool color = true;
     bool stencil = true;
+
+    std::string framebuffer_name = "Framebuffer";
   };
 
   struct MeshAttr {
@@ -165,6 +168,104 @@ namespace other {
       err = glGetError();
     }
   }
+
+  template <>
+  struct Writer<DepthFunction> {
+    std::ostream& operator()(std::ostream& os, DepthFunction func) {
+      switch (func) {
+        case DepthFunction::NEVER: os << "NEVER"; break;
+        case DepthFunction::LESS: os << "LESS"; break;
+        case DepthFunction::EQUAL: os << "EQUAL"; break;
+        case DepthFunction::LESS_EQUAL: os << "LESS_EQUAL"; break;
+        case DepthFunction::GREATER: os << "GREATER"; break;
+        case DepthFunction::NOT_EQUAL: os << "NOT_EQUAL"; break;
+        case DepthFunction::GREATER_EQUAL: os << "GREATER_EQUAL"; break;
+        case DepthFunction::ALWAYS: os << "ALWAYS"; break;
+        default: break;
+      }
+      return os;
+    }
+  };
+
+  template <>
+  struct Reader<DepthFunction> {
+    DepthFunction operator()(std::istream& stream) {
+      std::string func_str = Reader<std::string>{}(stream);
+      if (func_str == "NEVER") {
+        return DepthFunction::NEVER;
+      }
+      if (func_str == "LESS") {
+        return DepthFunction::LESS;
+      }
+      if (func_str == "EQUAL") {
+        return DepthFunction::EQUAL;
+      }
+      if (func_str == "LESS_EQUAL") {
+        return DepthFunction::LESS_EQUAL;
+      }
+      if (func_str == "GREATER") {
+        return DepthFunction::GREATER;
+      }
+      if (func_str == "NOT_EQUAL") {
+        return DepthFunction::NOT_EQUAL;
+      }
+      if (func_str == "GREATER_EQUAL") {
+        return DepthFunction::GREATER_EQUAL;
+      }
+      if (func_str == "ALWAYS") {
+        return DepthFunction::ALWAYS;
+      }
+      OE_ERROR("Invalid DepthFunction value");
+      return DepthFunction::LESS;
+    }
+  };
+
+  template <>
+  struct Writer<DrawMode> {
+    std::ostream& operator()(std::ostream& os, DrawMode mode) {
+      switch (mode) {
+        case DrawMode::POINTS: os << "POINTS"; break;
+        case DrawMode::LINES: os << "LINES"; break;
+        case DrawMode::LINE_STRIP: os << "LINE_STRIP"; break;
+        case DrawMode::LINE_LOOP: os << "LINE_LOOP"; break;
+        case DrawMode::TRIANGLES: os << "TRIANGLES"; break;
+        case DrawMode::TRIANGLE_STRIP: os << "TRIANGLE_STRIP"; break;
+        case DrawMode::TRIANGLE_FAN: os << "TRIANGLE_FAN"; break;
+        default: break;
+      }
+      return os;
+    }
+  };
+
+  template <>
+  struct Reader<DrawMode> {
+    DrawMode operator()(std::istream& stream) {
+      std::string mode_str = Reader<std::string>{}(stream);
+      if (mode_str == "POINTS") {
+        return DrawMode::POINTS;
+      }
+      if (mode_str == "LINES") {
+        return DrawMode::LINES;
+      }
+      if (mode_str == "LINE_STRIP" || mode_str == "LINE-STRIP") {
+        return DrawMode::LINE_STRIP;
+      }
+      if (mode_str == "LINE_LOOP" || mode_str == "LINE-LOOP") {
+        return DrawMode::LINE_LOOP;
+      }
+      if (mode_str == "TRIANGLES") {
+        return DrawMode::TRIANGLES;
+      }
+      if (mode_str == "TRIANGLE_STRIP" || mode_str == "TRIANGLE-STRIP") {
+        return DrawMode::TRIANGLE_STRIP;
+      }
+      if (mode_str == "TRIANGLE_FAN" || mode_str == "TRIANGLE-FAN") {
+        return DrawMode::TRIANGLE_FAN;
+      }
+      OE_ERROR("Invalid DrawMode value");
+      return DrawMode::TRIANGLES;
+    }
+  };
 
 }  // namespace other
 

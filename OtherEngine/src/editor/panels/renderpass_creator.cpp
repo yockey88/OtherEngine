@@ -57,14 +57,16 @@ namespace other {
       ImGui::Text("Uniforms");
       ImGui::Separator();
       for (auto& [id, uni] : uniforms) {
-        ImGui::Text("Uniform: %s [<type>]", uni.name.c_str());
+        std::string type_str = fmtstr("{}", uni.type);
+        ImGui::Text("Uniform: %s [%s]", uni.name.c_str(), type_str.c_str());
       }
 
       ImGui::Text("Inputs");
       ImGui::Separator();
       for (auto& [id, in] : spec.shader->GetIr().inouts) {
         if (in.in_out == InOutType::INPUT) {
-          ImGui::Text("Input: %s [<type>]", in.name.c_str());
+          std::string type_str = fmtstr("{}", in.type);
+          ImGui::Text("Input: %s [%s]", in.name.c_str(), type_str.c_str());
         }
       }
 
@@ -72,7 +74,8 @@ namespace other {
       ImGui::Separator();
       for (auto& [id, out] : spec.shader->GetIr().inouts) {
         if (out.in_out == InOutType::OUTPUT) {
-          ImGui::Text("Output: %s [<type>]", out.name.c_str());
+          std::string type_str = fmtstr("{}", out.type);
+          ImGui::Text("Output: %s [%s]", out.name.c_str(), type_str.c_str());
         }
       }
     }

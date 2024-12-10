@@ -6,6 +6,8 @@
 #include "core/logger.hpp"
 #include "core/rand.hpp"
 
+#include "asset/asset_database.hpp"
+
 namespace other {
 
   Asset::Asset() {

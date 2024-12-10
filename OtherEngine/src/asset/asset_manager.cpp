@@ -4,14 +4,14 @@
 #include "asset/asset_manager.hpp"
 
 #include "asset/asset_database.hpp"
-#include "asset/asset_extensions.hpp"
+#include "asset/asset_defines.hpp"
 
 namespace other {
 
-  Opt<AssetType> AssetManager::AssetTypeFromExtension(const std::string_view extension) {
+  AssetType AssetManager::AssetTypeFromExtension(const std::string_view extension) {
     auto it = asset_extensions.find(FNV(extension));
     if (it == asset_extensions.end()) {
-      return std::nullopt;
+      return AssetType::GENERIC_FILE;
     }
     return it->second;
   }

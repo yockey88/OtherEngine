@@ -7,7 +7,7 @@
 #include <reflection/echo_defines.hpp>
 #include <reflection/reflected_object.hpp>
 
-#include "asset/asset_types.hpp"
+#include "asset/asset_defines.hpp"
 
 #include "ecs/component.hpp"
 #include "ecs/component_serializer.hpp"

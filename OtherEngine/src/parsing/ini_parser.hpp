@@ -56,6 +56,8 @@ namespace other {
     ConfigTable table;
     bool in_string = false;
 
+    void MainParseLoop();
+
     void Reset();
 
     void Trim(std::string& str);
@@ -70,6 +72,8 @@ namespace other {
 
     void ParseSection(const std::string& line);
     void ParseScriptSection(const std::string& line);
+    void ParseObjectSection(const std::string& type, const std::string& line);
+
     void ParseKeyValue(const std::string& line, bool allow_key_modifications);
     void ParseKey(const std::string& key, bool allow_key_modifications);
     void ParseValue(const std::string& value, bool allow_key_modifications);
@@ -81,6 +85,9 @@ namespace other {
     void HandleSection();
     void HandleKey(bool allow_key_modifications);
 
+    void HandleObject();
+    void HandleScript();
+
     bool AtEnd() const;
     char Peek() const;
     char Previous() const;
@@ -89,14 +96,14 @@ namespace other {
     void Consume();
     void ConsumeWhitespace();
     bool AdvanceUntil(char c);
-    bool AdvanceUntil(const std::span<const char>& chars);
+    bool AdvanceUntil(const std::vector<char>& chars);
     bool ConsumeUntil(char c);
-    bool ConsumeUntil(const std::span<const char>& chars);
+    bool ConsumeUntil(const std::vector<char>& chars);
 
     bool Check(char c);
-    bool Check(const std::span<const char>& chars);
+    bool Check(const std::vector<char>& chars);
     bool Match(char c);
-    bool Match(const std::span<const char>& chars);
+    bool Match(const std::vector<char>& chars);
   };
 
 }  // namespace other

@@ -6,33 +6,94 @@
 
 #include <map>
 
-#include "asset/asset_metadata.hpp"
-#include "asset/asset_types.hpp"
+#include <spdlog/fmt/fmt.h>
+
+#include "asset/asset.hpp"
+#include "asset/asset_defines.hpp"
 
 namespace other {
 
-  using AssetDataMap = std::map<AssetHandle, AssetMetadata>;
+  class FileHandle;
+
+  struct AssetMetadata {
+    AssetHandle handle = 0;
+
+    UUID file_handle = 0;
+    AssetType type = AssetType::BLANK_ASSET;
+
+    Ref<Asset> asset = nullptr;
+
+    Path path = "";
+    bool loaded = false;
+    bool memory_asset = false;
+
+    bool IsValid() const;
+    bool Loaded() const;
+    bool Unloaded() const;
+  };
+
+  struct AssetKey {
+    UUID file_handle = 0;
+    AssetType type = AssetType::BLANK_ASSET;
+  };
+
+}  // namespace other
+
+template <>
+struct fmt::formatter<other::AssetKey> : fmt::formatter<std::string_view> {
+  auto format(const other::AssetKey& key, fmt::format_context& ctx) {
+    return fmt::formatter<std::string_view>::format(fmtstr("AssetKey({} : {})", key.file_handle, key.type), ctx);
+  }
+};
+
+template <>
+struct fmt::formatter<other::AssetMetadata> : fmt::formatter<std::string_view> {
+  auto format(const other::AssetMetadata& meta, fmt::format_context& ctx) {
+    // clang-format off
+    return fmt::formatter<std::string_view>::format(fmtstr("AssetMetadata({} : {} : {} : [loaded = {} && memory = {}])", 
+                                                    meta.file_handle, meta.type, meta.path, meta.loaded, meta.memory_asset), ctx);
+    // clang-format on
+  }
+};
+
+template <>
+struct std::hash<other::AssetKey> {
+  std::size_t operator()(const other::AssetKey& key) const {
+    return std::hash<uint64_t>{}(key.file_handle.Get()) ^
+      std::hash<uint32_t>{}(static_cast<uint32_t>(key.type));
+  }
+};
+
+template <>
+struct std::equal_to<other::AssetKey> {
+  bool operator()(const other::AssetKey& lhs, const other::AssetKey& rhs) const {
+    return lhs.file_handle == rhs.file_handle && lhs.type == rhs.type;
+  }
+};
+
+namespace other {
 
   class AssetRegistry {
    public:
-    AssetMetadata& operator[](AssetHandle handle);
-    const AssetMetadata& operator[](AssetHandle handle) const;
-    AssetMetadata& At(AssetHandle handle);
-    const AssetMetadata& At(AssetHandle handle) const;
+    AssetRegistry() {}
+    ~AssetRegistry() {}
 
-    size_t Size() const;
+    void AddAsset(const FileHandle* file);
+    void AddMemoryAsset(const AssetMetadata& metadata);
+
     bool Contains(AssetHandle handle) const;
-    bool Empty() const;
-    void Clear();
+    bool HasKey(const AssetKey& key) const;
 
-    AssetDataMap::iterator find(AssetHandle handle);
-    AssetDataMap::iterator begin();
-    AssetDataMap::iterator end();
-    AssetDataMap::const_iterator cbegin() const;
-    AssetDataMap::const_iterator cend() const;
+    AssetMetadata& GetMetadata(AssetHandle handle);
+    AssetMetadata& GetMetadata(const AssetKey& key);
+
+    void RemoveAsset(AssetHandle handle);
+    void RemoveAsset(const AssetKey& key);
+
+    const std::unordered_map<AssetKey, AssetMetadata>& ReadAllAssets() const;
 
    private:
-    AssetDataMap assets;
+    std::unordered_map<AssetKey, AssetMetadata> assets;
 
     friend class AssetDatabase;
   };

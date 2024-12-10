@@ -24,20 +24,19 @@
 namespace other {
 
   CORE_SYSTEM(OnConstructEntity) {
-    Entity e(context, entt);
-    auto& tag = e.AddComponent<Tag>();
+    auto& tag = context.emplace<Tag>(entt);
     tag.id = 0;
     tag.name = "[ Blank Entity ]";
     tag.handle = entt;
 
-    auto& transform = e.AddComponent<Transform>();
+    auto& transform = context.emplace<Transform>(entt);
     transform.position = { 0.f, 0.f, 0.f };
     transform.erotation = { 0.f, 0.f, 0.f };
     transform.scale = { 1.f, 1.f, 1.f };
 
-    /* auto& relationship = */ e.AddComponent<Relationship>();
+    /* auto& relationship = */ context.emplace<Relationship>(entt);
 
-    /* auto& serialization_data = */ e.AddComponent<SerializationData>();
+    /* auto& serialization_data = */ context.emplace<SerializationData>(entt);
   }
 
   CORE_SYSTEM(OnDestroyEntity) {

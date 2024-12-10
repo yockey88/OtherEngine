@@ -12,9 +12,9 @@ namespace other {
   class AssetManager {
    public:
     template <asset_t A, typename... Args>
-    static AssetHandle CreateMemOnly(Args&&... args) {
+    static AssetHandle CreateMemOnly(const std::string_view name, Args&&... args) {
       Ref<Asset> asset = Ref<A>::Create(std::forward<Args>(args)...);
-      AppState::Assets()->AddMemOnly(asset);
+      AppState::Assets()->AddMemOnly(name, asset);
       return asset->handle;
     }
 
@@ -24,7 +24,19 @@ namespace other {
       return Ref<Asset>::Cast<A>(asset);
     }
 
-    static Opt<AssetType> AssetTypeFromExtension(const std::string_view extension);
+    template <asset_t A>
+    static Ref<A> GetAsset(UUID file_handle, AssetType type) {
+      Ref<Asset> asset = AppState::Assets()->GetAsset(file_handle, type);
+      return Ref<Asset>::Cast<A>(asset);
+    }
+
+    template <asset_t A>
+    static Ref<A> GetAsset(const AssetKey& key) {
+      Ref<Asset> asset = AppState::Assets()->GetAsset(key);
+      return Ref<Asset>::Cast<A>(asset);
+    }
+
+    static AssetType AssetTypeFromExtension(const std::string_view extension);
     static bool AssetValid(AssetHandle handle);
   };
 

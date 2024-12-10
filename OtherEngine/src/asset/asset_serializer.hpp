@@ -7,10 +7,9 @@
 #include "core/ref.hpp"
 
 #include "asset/asset.hpp"
-#include "asset/asset_metadata.hpp"
+#include "asset/asset_registry.hpp"
 
 #include "serialization/serializer.hpp"
-
 
 namespace other {
 
@@ -18,15 +17,9 @@ namespace other {
    public:
     virtual ~AssetSerializer() {}
 
-    virtual void Serialize(const Ref<Asset>& asset) = 0;
-    virtual void Serialize(const AssetMetadata& metadata, const Ref<Asset>& asset) = 0;
-    virtual bool Load(const AssetMetadata& metadata, Ref<Asset>& asset) = 0;
-  };
-
-  class TextureSerializer : public AssetSerializer {
-   public:
-    void Serialize(const AssetMetadata& metadata, const Ref<Asset>& asset) override {}
-    bool Load(const AssetMetadata& metadata, Ref<Asset>& asset) override { return false; }
+    void Serialize(Ref<Asset>& asset);
+    virtual void Serialize(const AssetMetadata& metadata) = 0;
+    virtual bool Load(AssetMetadata& metadata) = 0;
   };
 
 }  // namespace other

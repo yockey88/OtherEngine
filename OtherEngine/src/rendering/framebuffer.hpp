@@ -9,50 +9,100 @@
 #include <glm/glm.hpp>
 
 #include "core/ref_counted.hpp"
+#include "core/writer_reader.hpp"
 
 #include "rendering/rendering_defines.hpp"
 
 namespace other {
 
   class Framebuffer : public RefCounted {
-    public:
-      Framebuffer(const FramebufferSpec& spec);
-      ~Framebuffer();
+   public:
+    Framebuffer(const FramebufferSpec& spec);
+    ~Framebuffer();
 
-      bool Valid() const;
+    bool Valid() const;
 
-      void Resize(const glm::vec2& size);
+    void Resize(const glm::vec2& size);
 
-      void BindFrame();
-      void UnbindFrame();
+    void BindFrame();
+    void UnbindFrame();
 
-      void Draw() const;
-      
-      uint32_t depth_attachment = 0;
-      uint32_t color_attachment = 0;
+    void Draw() const;
 
-      uint32_t texture = 0;
+    uint32_t depth_attachment = 0;
+    uint32_t color_attachment = 0;
 
-    private:
-      uint32_t fbo = 0;
-      uint32_t rbo = 0;
-      uint32_t framebuffer = 0;
+    uint32_t texture = 0;
 
-      uint32_t intermediate_fbo = 0;
+   private:
+    friend struct Writer<Framebuffer>;
 
-      bool fb_complete = false;
+    uint32_t fbo = 0;
+    uint32_t rbo = 0;
+    uint32_t framebuffer = 0;
 
-      uint32_t clear_flags = 0;
+    uint32_t intermediate_fbo = 0;
 
-      FramebufferSpec spec = {};
+    bool fb_complete = false;
 
-      void CreateFramebuffer();
-      void DestroyFramebuffer();
+    uint32_t clear_flags = 0;
 
-      void CreateWithOldTextures();
-      void DestroyKeepTextures();
+    FramebufferSpec spec = {};
+
+    void CreateFramebuffer();
+    void DestroyFramebuffer();
+
+    void CreateWithOldTextures();
+    void DestroyKeepTextures();
   };
 
-} // namespace other
+  template <>
+  struct Writer<FramebufferSpec> {
+    std::ostream& operator()(std::ostream& os, const FramebufferSpec& spec) {
+      BeginWriteList(os) << "\n    ";
+      Writer<std::string>{}(os, spec.framebuffer_name) << "\n    ";
+      WriteKeyValue(os, "depth-function", spec.depth_func) << "    ";
+      WriteKeyValue(os, "clear-color", spec.clear_color) << "    ";
+      WriteKeyValue(os, "size", spec.size) << "    ";
+      WriteKeyValue(os, "depth-buffer", spec.depth) << "    ";
+      WriteKeyValue(os, "color-buffer", spec.color) << "    ";
+      WriteKeyValue(os, "stencil-buffer", spec.stencil) << "  ";
+      EndWriteList(os) << "\n";
+      return os;
+    }
+  };
 
-#endif // !OTHER_ENGINE_FRAMEBUFFER_HPP
+  template <>
+  struct Reader<FramebufferSpec> {
+    FramebufferSpec operator()(std::istream& stream) {
+      FramebufferSpec spec;
+      BeginReadList(stream);
+
+      spec.framebuffer_name = Reader<std::string>{}(stream);
+
+      auto [dfk, depth_func] = ReadKeyValue(stream, Reader<DepthFunction>{});
+      spec.depth_func = depth_func;
+
+      auto [cck, clear_color] = ReadKeyValue(stream, Reader<glm::vec4>{});
+      spec.clear_color = clear_color;
+
+      auto [szk, size] = ReadKeyValue(stream, Reader<glm::ivec2>{});
+      spec.size = size;
+
+      auto [dbk, depth] = ReadKeyValue(stream, Reader<bool>{});
+      spec.depth = depth;
+
+      auto [cbk, color] = ReadKeyValue(stream, Reader<bool>{});
+      spec.color = color;
+
+      auto [sbk, stencil] = ReadKeyValue(stream, Reader<bool>{});
+      spec.stencil = stencil;
+
+      EndReadList(stream);
+      return spec;
+    }
+  };
+
+}  // namespace other
+
+#endif  // !OTHER_ENGINE_FRAMEBUFFER_HPP

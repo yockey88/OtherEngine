@@ -22,19 +22,11 @@
 
 namespace other {
 
-  class Scene;
-
   class Entity : public dotother::NObject {
    public:
     ECHO_REFLECT();
-    /// this is allow us to modify components using our api instead of entt's
-    ///   and also allows us to create really easy temporary entities in places
-    /// NOTE: this will mean the scene context pointer internall is null
-    Entity(entt::registry& registry, entt::entity handle)
-        : dotother::NObject(0), registry(registry), handle(handle) {}
-
-    /// this is for loading entities from file in SceneManager
-    Entity(Ref<Scene>& ctx, UUID uuid, const std::string& name);
+    Entity(entt::registry& registry, entt::entity handle);
+    Entity(entt::registry& registry, UUID uuid, const std::string& name);
 
     ~Entity() {}
 
@@ -48,25 +40,40 @@ namespace other {
     operator entt::entity() const;
 
     template <ComponentType... T>
-    inline bool HasComponent() const {
-      return registry.try_get<T...>(handle) != nullptr;
+    bool HasComponent() const {
+      if (sizeof...(T) == 0) {
+        return false;
+      }
+
+      return registry.all_of<T...>(handle);
+    }
+
+    template <ComponentType... T>
+    bool HasAnyComponent() const {
+      if (sizeof...(T) == 0) {
+        return false;
+      }
+      return registry.any_of<T...>(handle);
     }
 
     bool CheckForComponentByName(const std::string_view name);
 
     template <ComponentType T>
-    inline T& GetComponent() {
+    T& GetComponent() {
+      OE_ASSERT(HasComponent<T>(), "Entity does not have component!");
       return registry.get<T>(handle);
     }
 
     template <ComponentType T>
-    inline const T& ReadComponent() const {
+    const T& ReadComponent() const {
+      OE_ASSERT(HasComponent<T>(), "Entity does not have component!");
       return registry.get<const T>(handle);
     }
 
     template <ComponentType T>
-    inline T GetComponent() const {
-      return registry.get<T>(handle);
+    T GetCopy() const {
+      OE_ASSERT(HasComponent<T>(), "Entity does not have component!");
+      return T{ registry.get<T>(handle) };
     }
 
     void RegisterComponent(Component& c) {
@@ -76,7 +83,7 @@ namespace other {
     }
 
     template <ComponentType T, typename... Args>
-    inline T& AddComponent(Args&&... args) {
+    T& AddComponent(Args&&... args) {
       if (HasComponent<T>()) {
         OE_WARN("Component already exists on entity {}", Name());
         return GetComponent<T>();
@@ -156,8 +163,6 @@ namespace other {
     bool IsValid() const;
     bool IsOrphan() const;
 
-    void SetContext(Ref<Scene>& scene);
-
     bool operator==(const Entity& other) const;
     bool operator!=(const Entity& other) const;
 
@@ -171,16 +176,11 @@ namespace other {
    private:
     friend class Scene;
 
-    Ref<Scene> context;
-
     entt::registry& registry;
     entt::entity handle = entt::null;
 
     UUID uuid = 0;
     std::string name = "Entity";
-
-    /// this is for the scene to call internally if wants
-    Entity(Scene* ctx, UUID uuid, const std::string& name);
   };
 
 }  // namespace other

@@ -7,8 +7,8 @@
 
 #include "core/filesystem.hpp"
 #include "core/logger.hpp"
-#include "core/rand.hpp"
 
+#include "asset/asset_database.hpp"
 #include "parsing/shader_compiler.hpp"
 
 namespace other {
@@ -210,19 +210,41 @@ namespace other {
     return location;
   }
 
+  /// HACK: this should move to a ShaderSerializer class
   Ref<Shader> BuildShader(const Path& path) {
     OE_INFO("Attempting to build shader : {}", path.string());
-    std::string src = Filesystem::ReadFile(path);
-    if (src.empty()) {
-      OE_ERROR("Failed to read shader file {}", path);
-      return nullptr;
+    std::string src = "";
+    AssetKey key;
+    {
+      Ref<FileHandle> shaderfile = Filesystem::GetFile(path);
+      if (shaderfile == nullptr) {
+        OE_ERROR("Failed to get shader file : {}", path.string());
+        return nullptr;
+      }
+
+      shaderfile->Open(std::ios::in);
+      src = shaderfile->ReadString();
+      if (src.empty()) {
+        OE_ERROR("Failed to read shader file {}", path);
+        return nullptr;
+      }
+      shaderfile->Close();
+
+      key = {
+        .file_handle = shaderfile->handle,
+        .type = shaderfile->GetAssetType(),
+      };
     }
 
     ShaderIr ir = ShaderCompiler::Compile(src);
     ir.name = path.filename().string();
 
     OE_INFO(" > Built shader : {}", ir.name);
-    return NewRef<Shader>(ir);
+    Ref<Asset> shader = NewRef<Shader>(ir);
+    AssetDatabase::RegisterAssetHandle(key, shader->handle);
+    AssetDatabase::RegisterLoadedAsset(shader.Raw());
+
+    return Ref<Asset>::Cast<Shader>(shader);
   }
 
 }  // namespace other

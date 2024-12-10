@@ -10,10 +10,11 @@
 
 #include "core/defines.hpp"
 #include "core/errors.hpp"
-#include "core/logger.hpp"
+#include "core/writer_reader.hpp"
 
 #include "parsing/asset_pipeline_compiler.hpp"
-// #include "parsing/parser.hpp"
+
+#include "rendering/pipeline.hpp"
 
 namespace other {
 
@@ -46,40 +47,52 @@ namespace other {
     stream = std::istringstream(contents);
 
     do {
-      switch (Peek()) {
-        case '[':
-          HandleSection();
-          break;
-
-        case '#':
-          HandleComment();
-          break;
-
-        case '*':
-          ++index;
-          if (AtEnd()) {
-            throw IniException("'*' found at <eof>", IniError::INVALID_KEY, current_line);
-          }
-          HandleKey(false);
-          break;
-
-        /// nothing on whitespace
-        case '\n':
-        case ' ':
-          break;
-
-        default:
-          HandleKey(true);
-          break;
-      }
-
-      ++index;
-      current_line.clear();
+      MainParseLoop();
     } while (index < contents.size());
 
     ConfigTable res = table;
     Reset();
     return res;
+  }
+
+  void IniFileParser::MainParseLoop() {
+    switch (Peek()) {
+      case '@':
+        HandleObject();
+        break;
+
+      case '[':
+        HandleSection();
+        break;
+
+      case '#':
+        HandleComment();
+        break;
+
+      case '*':
+        ++index;
+        if (AtEnd()) {
+          throw IniException("'*' found at <eof>", IniError::INVALID_KEY, current_line);
+        }
+        HandleKey(false);
+        break;
+
+      case '!':
+        HandleScript();
+        break;
+
+      /// nothing on whitespace
+      case '\n':
+      case ' ':
+        break;
+
+      default:
+        HandleKey(true);
+        break;
+    }
+
+    ++index;
+    current_line.clear();
   }
 
   void IniFileParser::Reset() {
@@ -173,56 +186,117 @@ namespace other {
   }
 
   void IniFileParser::ParseScriptSection(const std::string& line) {
-    if (!current_section.has_value()) {
-      throw IniException(fmtstr("Unexpected scriptable section header, previous section unclosed : {}", *current_section), IniError::UNCLOSED_SECTION);
+    std::string name = line;
+    Trim(name);
+    if (name.empty()) {
+      throw IniException(fmtstr("Invalid scriptable section header : {}", name), IniError::INVALID_SECTION);
     }
 
-    std::string l = line;
-    Trim(l);
-    if (l.size() <= 2 || !l.starts_with('[') || !l.ends_with("]")) {
-      throw IniException(fmtstr("Invalid scriptable section header : {}", l), IniError::INVALID_SECTION);
+    std::string ret_type_str = "void";
+    std::string params = "";
+
+    ConsumeUntil({ '{', '=', ':', '(' });
+
+    if (Check('=')) {
+      ConsumeUntil('{');
+    } else if (Check(':')) {
+      Consume();
+      AdvanceUntil(':');
+      ret_type_str = current_line;
+      Trim(ret_type_str);
+
+      current_line = "";
+
+      if (!Check(':')) {
+        throw IniException(fmtstr("Expected ':' after return type in scriptable section header : {}", name), IniError::INVALID_SECTION);
+      }
+      ConsumeUntil('{');
+    } else if (Check('(')) {
+      Consume();
+      AdvanceUntil(')');
+      params = current_line;
+      Trim(params);
+
+      current_line = "";
+      if (!Check(')')) {
+        throw IniException(fmtstr("Unclosed parameter list in scriptable section header : {}", name), IniError::INVALID_SECTION);
+      }
+
+      ConsumeUntil('{');
     }
 
-    std::string section = StripParens(l);
-    Trim(section);
-
-    std::for_each(section.begin(), section.end(), ::toupper);
-    /// save scriptable section to table in a way it can be easily invoked later
-
-    // table.Add(section);
-    current_section = section;
-
-    ConsumeUntil('{');
     if (!Check('{')) {
-      throw IniException(fmtstr("Invalid section header : {}", *current_section), IniError::INVALID_SECTION);
+      throw IniException(fmtstr("Expected '{' before function body in scriptable section : {}", name), IniError::INVALID_SECTION);
     }
-    Consume();
 
-    ConsumeUntil('\n');
-    if (!Check('\n')) {
-      throw IniException(fmtstr("Invalid section header : {}", *current_section), IniError::INVALID_SECTION);
+    std::stack<char> brace_stack;
+    brace_stack.push('{');
+    while (!brace_stack.empty()) {
+      AdvanceUntil({ '{', '}' });
+      if (Match('{')) {
+        brace_stack.push('{');
+      } else if (Match('}')) {
+        brace_stack.pop();
+      }
     }
-    Consume();
 
-    current_line.clear();
-    /// advance until here cause we want to capture the entire body of the section
-    AdvanceUntil('}');
-    if (!Check('}')) {
-      throw IniException(fmtstr("Failed to match closing brace : {}", line), IniError::UNCLOSED_SCRIPTABLE_SECTION);
+    std::string body = current_line;
+    Trim(body);
+    current_line = "";
+
+    ConfigTable::UnparsedScriptSection scriptable{
+      .type = StringToValueType(ret_type_str),
+      .source = body,
+    };
+    table.AddScriptSection(name, scriptable);
+  }
+
+  void IniFileParser::ParseObjectSection(const std::string& type, const std::string& line) {
+    std::string t = type;
+    Trim(t);
+    if (t.empty()) {
+      throw IniException(fmtstr("Invalid object section header : {}", line), IniError::INVALID_SECTION);
     }
-    Consume();
 
-    /// parse dsl script and store executable structure in table
+    std::string object_name = line;
+    Trim(object_name);
 
-    AssetPipelineCompiler compiler;
-    auto pipeline = compiler.CompileSource(current_line);
-    /// table.AddScriptableSection(section, pipeline);
+    ConsumeUntil({ '{', '=' });
+    if (Check('=')) {
+      ConsumeUntil('{');
+    }
+    if (!Match('{')) {
+      throw IniException(fmtstr("Invalid object section header : {}", line), IniError::INVALID_SECTION);
+    }
 
-    /// clear current line
-    current_line.clear();
+    std::stack<char> brace_stack;
+    brace_stack.push('{');
+    while (!brace_stack.empty()) {
+      AdvanceUntil({ '{', '}' });
+      if (Match('{')) {
+        brace_stack.push('{');
+      } else if (Match('}')) {
+        brace_stack.pop();
+      }
+    }
 
-    /// we can clear this here because we've compiled the body of the section
-    current_section = std::nullopt;
+    std::string body = current_line;
+    Trim(body);
+    current_line = "";
+
+    if (t == "pipeline") {
+      table.AddPipeline(object_name, current_line);
+    } else if (t == "renderpass") {
+      table.AddRenderPass(object_name, current_line);
+    } else if (t == "framebuffer") {
+      table.AddFramebufferSpec(object_name, current_line);
+    } else if (t == "vertex-layout") {
+      table.AddVertexLayout(object_name, current_line);
+    } else if (t == "uniform") {
+      table.AddUniform(object_name, current_line);
+    } else {
+      throw IniException(fmtstr("Invalid object section header : {}", t), IniError::INVALID_SECTION);
+    }
   }
 
   void IniFileParser::ParseKeyValue(const std::string& line, bool allow_key_modifications) {
@@ -381,27 +455,7 @@ namespace other {
     if (!Check(']')) {
       throw IniException(fmtstr("Invalid section header : {}", current_line), IniError::INVALID_SECTION);
     }
-
-    // if (!Check('\n')) {
-    //   throw IniException("Scriptable sections unimplemented", IniError::INVALID_SCRIPTABLE_SECTION);
-    //   // else {
-    //   //   // /// match '::' for scriptable sections
-    //   //   // ConsumeUntil(':');
-    //   //   // if (!Check(':')) {
-    //   //   //   throw IniException("Invalid section header", IniError::FILE_PARSE_ERROR);
-    //   //   // }
-    //   //   // Consume();
-    //   //   // if (!Check(':')) {
-    //   //   //   throw IniException("Invalid section header", IniError::FILE_PARSE_ERROR);
-    //   //   // }
-    //   //   // Consume();
-
-    //   //   // ParseScriptSection(current_line);
-    //   // }
-    // }
-
     ParseSection(current_line);
-
     ConsumeWhitespace();
   }
 
@@ -439,6 +493,57 @@ namespace other {
       AdvanceUntil('\n');
     }
     ParseKeyValue(current_line, allow_key_modifications);
+  }
+
+  void IniFileParser::HandleObject() {
+    if (!Check('@')) {
+      throw IniException(fmtstr("Invalid object section header : {}", current_line), IniError::INVALID_SECTION);
+    }
+    Consume();
+
+    AdvanceUntil(' ');
+    if (Check('[')) {
+      throw IniException(fmtstr("Invalid object section header : {}", current_line), IniError::INVALID_SECTION);
+    }
+    Consume();
+
+    std::string type = current_line;
+    Trim(type);
+
+    current_line = "";
+
+    AdvanceUntil(']');
+    if (!Check(']')) {
+      throw IniException(fmtstr("Invalid object section header : {}", current_line), IniError::INVALID_SECTION);
+    }
+    Consume();
+
+    ParseObjectSection(type, current_line);
+  }
+
+  void IniFileParser::HandleScript() {
+    if (!Check('!')) {
+      throw IniException(fmtstr("Invalid scriptable section header : {}", current_line), IniError::INVALID_SECTION);
+    }
+    Consume();
+
+    ConsumeUntil('[');
+    if (!Check('[')) {
+      throw IniException(fmtstr("Invalid scriptable section header : {}", current_line), IniError::INVALID_SECTION);
+    }
+    Consume();
+
+    AdvanceUntil(']');
+    if (!Check(']')) {
+      throw IniException(fmtstr("Invalid scriptable section header : {}", current_line), IniError::INVALID_SECTION);
+    }
+    Consume();
+
+    std::string func_name = current_line;
+    Trim(func_name);
+    current_line.clear();
+
+    ParseScriptSection(func_name);
   }
 
   bool IniFileParser::AtEnd() const {
@@ -485,7 +590,7 @@ namespace other {
     return Check(c);
   }
 
-  bool IniFileParser::AdvanceUntil(const std::span<const char>& chars) {
+  bool IniFileParser::AdvanceUntil(const std::vector<char>& chars) {
     while (!AtEnd() && !Check(chars)) {
       current_line += Advance();
     }
@@ -499,7 +604,7 @@ namespace other {
     return Check(c);
   }
 
-  bool IniFileParser::ConsumeUntil(const std::span<const char>& chars) {
+  bool IniFileParser::ConsumeUntil(const std::vector<char>& chars) {
     while (!AtEnd() && !Check(chars)) {
       current_line += Advance();
     }
@@ -510,7 +615,7 @@ namespace other {
     return Peek() == c;
   }
 
-  bool IniFileParser::Check(const std::span<const char>& chars) {
+  bool IniFileParser::Check(const std::vector<char>& chars) {
     for (const auto& c : chars) {
       if (Check(c)) {
         return true;
@@ -527,7 +632,7 @@ namespace other {
     return match;
   }
 
-  bool IniFileParser::Match(const std::span<const char>& chars) {
+  bool IniFileParser::Match(const std::vector<char>& chars) {
     for (const auto& c : chars) {
       if (Match(c)) {
         return true;

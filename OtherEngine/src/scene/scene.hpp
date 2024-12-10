@@ -44,6 +44,8 @@ namespace other {
     Scene();
     virtual ~Scene() override;
 
+    const std::string& Name() const;
+
     UUID SceneHandle() const;
 
     template <typename Fn>
@@ -144,6 +146,7 @@ namespace other {
    private:
     friend class Entity;
     friend class SceneSerializer;
+    friend class SceneManager;
 
     bool initialized = false;
     bool running = false;
@@ -153,6 +156,8 @@ namespace other {
     bool scene_geometry_changed = true;
 
     entt::registry registry;
+
+    std::string scene_name = "[ Empty Scene ]";
     UUID scene_handle;
     ScriptRef<CsObject> scene_object = nullptr;
 

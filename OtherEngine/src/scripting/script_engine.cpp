@@ -478,7 +478,7 @@ namespace other {
       OE_ASSERT(file != nullptr, "Failed to load script file, file handle was null : {}", script.string());
       OE_ASSERT(file->Exists(), "Failed to load script file, file does not exist : {}", script.string());
 
-      if (file->GetAssetType() == AssetType::SCRIPTFILE) {
+      if (file->GetAssetType() == AssetType::DYNAMIC_LIBRARY) {
         LoadScriptFile(ScriptType::EDITOR_SCRIPT, file);
       }
     }
@@ -488,7 +488,7 @@ namespace other {
       OE_ASSERT(file != nullptr, "Failed to load script file, file handle was null : {}", script.string());
       OE_ASSERT(file->Exists(), "Failed to load script file, file does not exist : {}", script.string());
 
-      if (file->GetAssetType() == AssetType::SCRIPTFILE) {
+      if (file->GetAssetType() == AssetType::DYNAMIC_LIBRARY) {
         LoadScriptFile(ScriptType::SCENE_SCRIPT, file);
       }
     }
@@ -497,7 +497,7 @@ namespace other {
   void ScriptEngine::LoadScriptFile(ScriptType type, const Ref<FileHandle>& path) {
     OE_ASSERT(path != nullptr, "Failed to load script file, file handle was null");
     OE_ASSERT(path->Exists(), "Failed to load script file, path does not exist : {}", path->AbsolutePath());
-    OE_ASSERT(path->GetAssetType() == AssetType::SCRIPTFILE, "Failed to load script file, file is not a script file : {}", path->AbsolutePath());
+    OE_ASSERT(path->GetAssetType() == AssetType::SCRIPT || path->GetAssetType() == AssetType::DYNAMIC_LIBRARY, "Failed to load script file, file is not a script file : {}", path->AbsolutePath());
 
     if (AppState::mode == EngineMode::RUNTIME && type == ScriptType::EDITOR_SCRIPT) {
       return;

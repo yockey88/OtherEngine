@@ -12,7 +12,7 @@
 #include "core/file_handle.hpp"
 #include "core/ref.hpp"
 
-#include "asset/asset_types.hpp"
+#include "asset/asset_defines.hpp"
 
 namespace other {
 
@@ -60,8 +60,8 @@ namespace other {
     Ref<DirectoryWatcher> watcher = nullptr;
     Path proj_relative_path;
 
-    void Initialize();
-    void CollectChildren();
+    void Initialize(bool create_dir_handles);
+    void CollectChildren(bool create_dir_handles);
   };
 
 }  // namespace other

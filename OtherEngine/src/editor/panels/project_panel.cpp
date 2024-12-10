@@ -13,14 +13,16 @@
 
 #include "core/filesystem.hpp"
 #include "core/logger.hpp"
-#include "editor/script_editor.hpp"
-#include "editor/script_window.hpp"
 
 #include "input/mouse.hpp"
 #include "project/project.hpp"
 
 #include "rendering/ui/confirmation_window.hpp"
 #include "rendering/ui/ui_helpers.hpp"
+
+#include "editor/script_editor.hpp"
+#include "editor/script_window.hpp"
+
 
 namespace other {
 
@@ -495,7 +497,7 @@ namespace other {
   //     case SCENE: {
   //       GetEditor().LoadScene(asset_md.path);
   //     } break;
-  //     case SCRIPTFILE: {
+  //     case DYNAMIC_LIBRARY: {
   //       auto script_editor_itr = ui_windows.find(FNV("Script Editor"));
   //       if (script_editor_itr != ui_windows.end()) {
   //         Ref<ScriptEditor> editor = Ref<UIWindow>::Cast<ScriptEditor>(script_editor_itr->second);

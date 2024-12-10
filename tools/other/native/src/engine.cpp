@@ -4,13 +4,14 @@
 #include <pybind11/pybind11.h>
 
 #include "core/defines.hpp"
-#include "editor/editor_asset_handler.hpp"
 
 #include "event/key_events.hpp"
 #include "event/window_events.hpp"
 #include "parsing/cmd_line_parser.hpp"
 
 #include "scene/light_environment.hpp"
+
+#include "editor/editor_asset_handler.hpp"
 
 #include "other_engine.hpp"
 
@@ -44,8 +45,6 @@ namespace {
     /// will only ever be called if editor is active because otherwise the scripts
     ///   wont be reloaded
     // virtual void OnScriptReload() override;
-
-    virtual Ref<AssetHandler> CreateAssetHandler() override;
   };
 
 }  // anonymous namespace
@@ -155,10 +154,6 @@ namespace {
 
   void EnvironmentApp::OnDetach() {
     println(" > EnvironmentApp::OnDetach");
-  }
-
-  Ref<AssetHandler> EnvironmentApp::CreateAssetHandler() {
-    return NewRef<EditorAssetHandler>();
   }
 
   Opt<Path> PyEnv::env_cfg_path = std::nullopt;

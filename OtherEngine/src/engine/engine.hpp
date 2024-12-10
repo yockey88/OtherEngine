@@ -25,9 +25,9 @@ namespace other {
    public:
     Engine();
     Engine(const CmdLine& cmd_line, std::string main_thread_name = "OtherEngine--MainThread");
-    TEST_VIRTUAL ~Engine();
+    virtual ~Engine();
 
-    TEST_VIRTUAL void Run();
+    virtual void Run();
 
     bool IsRunning() const;
 
@@ -40,10 +40,10 @@ namespace other {
     float dt = 0.0f;
 
    protected:
-    TEST_VIRTUAL void Start();
-    TEST_VIRTUAL void Step();
-    TEST_VIRTUAL void Stop();
-    TEST_VIRTUAL Ref<EngineStateMachine> CreateStateMachine();
+    virtual void Start();
+    virtual void Step();
+    virtual void Stop();
+    virtual Ref<EngineStateMachine> CreateStateMachine();
 
     time::DeltaTime delta;
     std::string config_path;

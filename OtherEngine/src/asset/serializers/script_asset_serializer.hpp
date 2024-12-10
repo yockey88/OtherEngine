@@ -7,7 +7,7 @@
 #include "core/ref.hpp"
 
 #include "asset/asset.hpp"
-#include "asset/asset_metadata.hpp"
+#include "asset/asset_registry.hpp"
 #include "asset/asset_serializer.hpp"
 
 namespace other {
@@ -16,9 +16,8 @@ namespace other {
    public:
     virtual ~ScriptFileAssetSerializer() {}
 
-    virtual void Serialize(const Ref<Asset>& asset);
-    virtual void Serialize(const AssetMetadata& metadata, const Ref<Asset>& asset);
-    virtual bool Load(const AssetMetadata& metadata, Ref<Asset>& asset);
+    virtual void Serialize(const AssetMetadata& metadata) override;
+    virtual bool Load(AssetMetadata& metadata) override;
   };
 
 }  // namespace other

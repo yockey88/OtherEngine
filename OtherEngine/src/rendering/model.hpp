@@ -10,7 +10,7 @@
 #include "math/bounding_box.hpp"
 
 #include "asset/asset.hpp"
-#include "asset/asset_types.hpp"
+#include "asset/asset_defines.hpp"
 
 #include "rendering/rendering_defines.hpp"
 #include "rendering/vertex.hpp"

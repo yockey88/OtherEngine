@@ -5,15 +5,16 @@
 #define OTHER_ENGINE_CONTENT_BROWSER_ITEM_HPP
 
 #include <algorithm>
+#include <cstdint>
 #include <limits>
 #include <string>
-#include <cstdint>
 
 #include "core/defines.hpp"
-#include "core/ref_counted.hpp"
 #include "core/directory.hpp"
-#include "asset/asset_types.hpp"
-#include "asset/asset_metadata.hpp"
+#include "core/ref_counted.hpp"
+
+#include "asset/asset_defines.hpp"
+#include "asset/asset_registry.hpp"
 
 #include "rendering/texture.hpp"
 
@@ -22,32 +23,32 @@
 namespace other {
 
   enum class CBAction : uint16_t {
-    IDENTITY = 0 , 
-    REFRESH = bit(0) , 
-    CLEAR_SELECTED = bit(1) ,
-    SELECTED = bit(2) ,
-    DESELECTED = bit(3) , 
-    HOVERED = bit(4) ,
-    RENAMED = bit(5) ,
+    IDENTITY = 0,
+    REFRESH = bit(0),
+    CLEAR_SELECTED = bit(1),
+    SELECTED = bit(2),
+    DESELECTED = bit(3),
+    HOVERED = bit(4),
+    RENAMED = bit(5),
     CONFIRM_DELETE = bit(6),
-    SELECT_TO_HERE = bit(7), 
-    MOVED = bit(8) ,
-    OPEN_NATIVE = bit(9), 
+    SELECT_TO_HERE = bit(7),
+    MOVED = bit(8),
+    OPEN_NATIVE = bit(9),
     OPEN_EXTERNAL = bit(10),
-    RELOAD = bit(11), 
+    RELOAD = bit(11),
     COPY = bit(12),
     // DUPLICATE = bit(13),
-    // START_RENAMING = bit(14), 
+    // START_RENAMING = bit(14),
     // ACTIVATED = bit(15),
 
-    NUM_CB_ACTIONS , 
+    NUM_CB_ACTIONS,
     INVALID_CB_ACTION = NUM_CB_ACTIONS
   };
 
   struct CBActionResult {
     uint16_t field = 0;
 
-    void Set(CBAction action , bool value) {
+    void Set(CBAction action, bool value) {
       if (value) {
         field |= ValOf(action);
       } else {
@@ -65,11 +66,11 @@ namespace other {
   //     enum class Type {
   //       DIRECTORY , FILE ,
 
-  //       NUM_ITEM_TYPES , 
+  //       NUM_ITEM_TYPES ,
   //       INVALID_ITEM_TYPE = NUM_ITEM_TYPES ,
   //     };
 
-  //     ContentBrowserItem(Type type , AssetHandle handle , const std::string& name , const Ref<Texture>& icon) 
+  //     ContentBrowserItem(Type type , AssetHandle handle , const std::string& name , const Ref<Texture>& icon)
   //         : type(type) , handle(handle) , filename(name) , icon(icon) {
   //       std::ranges::fill(rename_buffer , 0);
   //     }
@@ -129,9 +130,9 @@ namespace other {
   //     AssetHandle handle;
   //     std::string filename;
   //     std::string display_name;
-      
+
   //     Ref<Texture> icon = nullptr;
-      
+
   //     bool renaming = false;
   //     bool dragging = false;
   //     bool selected = false;
@@ -177,7 +178,7 @@ namespace other {
   //     virtual void OnRenamed(const std::string& name) override;
   //     virtual std::string OverrideDisplayName(const std::string& new_name) override;
 
-  //     AssetMetadata asset_metadata;
+  //     AssetMetadata asset_registry;
   // };
 
   // struct CBItemList {
@@ -201,6 +202,6 @@ namespace other {
   //     std::vector<Ref<ContentBrowserItem>> items;
   // };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_CONTENT_BROWSER_ITEM_HPP
+#endif  // !OTHER_ENGINE_CONTENT_BROWSER_ITEM_HPP

@@ -33,11 +33,9 @@
 
 #include "rendering/camera_base.hpp"
 #include "rendering/model.hpp"
-#include "rendering/pipeline.hpp"
 #include "scripting/cs/cs_object.hpp"
 #include "scripting/script_engine.hpp"
 
-#include "editor/editor_state.hpp"
 #include "editor/selection_manager.hpp"
 
 namespace other {
@@ -76,8 +74,6 @@ namespace other {
     registry.on_destroy<StaticMesh>().connect<&Scene::GeometryChanged>(this);
 
     environment = NewRef<LightEnvironment>();
-
-    handle = Random::GenerateUUID();
     scene_handle = handle.Get();
   }
 
@@ -115,6 +111,10 @@ namespace other {
     for (auto& [id, entity] : entities) {
       delete entity;
     }
+  }
+
+  const std::string& Scene::Name() const {
+    return scene_name;
   }
 
   UUID Scene::SceneHandle() const {
@@ -543,7 +543,7 @@ namespace other {
   }
 
   Entity* Scene::CreateEntity(const std::string& name, UUID id) {
-    Entity* ent = new Entity(this, id, name);
+    Entity* ent = new Entity(registry, id, name);
     for (const auto& [eid, e] : entities) {
       if (eid == id && e->Name() == ent->Name()) {
         OE_WARN("Entity[{} : {}] already exists in scene", id, e->Name());
@@ -551,12 +551,11 @@ namespace other {
       }
     }
 
+    OE_ASSERT(ent != nullptr, "Failed to create entity [{}]", id);
+    OE_ASSERT(ent->HasComponent<Tag>(), "Entity does not have tag component");
+
     root_entities[id] = ent;
     entities[id] = ent;
-
-    auto& tag = ent->GetComponent<Tag>();
-    tag.id = id;
-    tag.name = name;
 
     return ent;
   }

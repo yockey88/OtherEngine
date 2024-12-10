@@ -5,6 +5,7 @@
 
 #include <winscard.h>
 
+#include "core/filesystem.hpp"
 #include "core/logger.hpp"
 #include "environment/command.hpp"
 #include "environment/environment.hpp"
@@ -98,16 +99,24 @@ namespace other {
         std::string scene_name = memory.GetString(address);
         OE_TRACE(" > loading scene : {}", scene_name);
 
-        if (AppState::Scenes()->HasScene(scene_name)) {
-          AppState::Scenes()->SetAsActive(scene_name);
-          return ExitCode::SUCCESS;
-        }
+        Ref<Directory> scene_dir = Filesystem::GetDirectory("scenes");
+        OE_ASSERT(scene_dir != nullptr, "Failed to get scene directory!");
 
-        if (!AppState::Scenes()->LoadScene(scene_name)) {
-          OE_ERROR("Failed to load scene {}", scene_name);
+        Ref<FileHandle> scene_file = scene_dir->GetFileHandleByName(scene_name);
+        if (scene_file == nullptr) {
+          OE_ERROR("Failed to find scene : {}", scene_name);
+          return ExitCode::FAILURE;
+        } else if (!scene_file->Exists()) {
+          OE_ERROR("Scene file does not exist : {}", scene_name);
           return ExitCode::FAILURE;
         }
 
+        Ref<Scene> scene = AppState::Assets()->GetAsset(scene_file->handle, AssetType::SCENE);
+        if (scene == nullptr) {
+          return ExitCode::FAILURE;
+        }
+
+        AppState::Scenes()->Activate(scene);
         OE_TRACE(" > loaded scene : {}", scene_name);
         return ExitCode::SUCCESS;
       } break;

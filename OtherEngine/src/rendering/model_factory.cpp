@@ -43,11 +43,10 @@ namespace other {
     /// 3rd index is irrelevant
     indices[0] = { 0, 1, 0 };
 
-    AssetHandle source_handle = AssetManager::CreateMemOnly<ModelSource>(vertices, indices, glm::mat4(1.f));
+    AssetHandle source_handle = AssetManager::CreateMemOnly<ModelSource>("LineModel-Source", vertices, indices, glm::mat4(1.f));
     Ref<ModelSource> source = AssetManager::GetAsset<ModelSource>(source_handle);
-    AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>(source);
-
-    return handle;
+    line_handle = AssetManager::CreateMemOnly<StaticModel>("LineModel", source);
+    return *line_handle;
   }
 
   AssetHandle ModelFactory::CreateTriangle() {
@@ -70,10 +69,10 @@ namespace other {
     indices.resize(1);
     indices[0] = { 0, 1, 2 };
 
-    AssetHandle source_handle = AssetManager::CreateMemOnly<ModelSource>(vertices, indices, glm::mat4(1.f));
+    AssetHandle source_handle = AssetManager::CreateMemOnly<ModelSource>("TriangleModel-Source", vertices, indices, glm::mat4(1.f));
     Ref<ModelSource> source = AssetManager::GetAsset<ModelSource>(source_handle);
 
-    AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>(source);
+    AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>("TriangleModel", source);
     triangle_handle = handle;
 
     return handle;
@@ -103,9 +102,9 @@ namespace other {
     indices[0] = { 0, 1, 3 };
     indices[1] = { 1, 2, 3 };
 
-    AssetHandle source_handle = AssetManager::CreateMemOnly<ModelSource>(vertices, indices, glm::mat4(1.f));
+    AssetHandle source_handle = AssetManager::CreateMemOnly<ModelSource>("RectModel-Source", vertices, indices, glm::mat4(1.f));
     Ref<ModelSource> source = AssetManager::GetAsset<ModelSource>(source_handle);
-    AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>(source);
+    AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>("RectModel", source);
 
     OE_DEBUG("Created rect mesh : [{}]", handle);
     rect_handle = handle;
@@ -145,9 +144,12 @@ namespace other {
     indices[10] = { 3, 2, 6 };  /// front = <+,-,+> => <-,-,+> => <-,-,->
     indices[11] = { 6, 7, 3 };  /// back = <-,-,-> => <+,-,-> => <+,-,+>
 
-    AssetHandle mesh_source_handle = AssetManager::CreateMemOnly<ModelSource>(vertices, indices, glm::mat4(1.f));
+    OE_DEBUG("Creating box model");
+    AssetHandle mesh_source_handle = AssetManager::CreateMemOnly<ModelSource>("BoxModel-Source", vertices, indices, glm::mat4(1.f));
+
+    OE_DEBUG("Created box mesh source [{}]", mesh_source_handle);
     Ref<ModelSource> mesh_source = AssetManager::GetAsset<ModelSource>(mesh_source_handle);
-    AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>(mesh_source);
+    AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>("BoxModel", mesh_source);
 
     OE_DEBUG("Created cube mesh [{}]", handle);
     box_handle = handle;
@@ -206,9 +208,9 @@ namespace other {
       4, 7  // (back-right)
     };
 
-    AssetHandle mesh_source_handle = AssetManager::CreateMemOnly<ModelSource>(vertices, indices, glm::mat4(1.f));
+    AssetHandle mesh_source_handle = AssetManager::CreateMemOnly<ModelSource>("BoxWireframeModel-Source", vertices, indices, glm::mat4(1.f));
     Ref<ModelSource> mesh_source = AssetManager::GetAsset<ModelSource>(mesh_source_handle);
-    AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>(mesh_source);
+    AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>("BoxWireframeModel", mesh_source);
 
     OE_DEBUG("Created cube wireframe mesh [{}]", handle);
     box_wireframe_handle = handle;

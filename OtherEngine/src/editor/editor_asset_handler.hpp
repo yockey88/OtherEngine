@@ -7,9 +7,9 @@
 #include "core/ref.hpp"
 
 #include "asset/asset.hpp"
+#include "asset/asset_defines.hpp"
 #include "asset/asset_handler.hpp"
 #include "asset/asset_registry.hpp"
-#include "asset/asset_types.hpp"
 
 namespace other {
 
@@ -18,19 +18,12 @@ namespace other {
     EditorAssetHandler() {}
     virtual ~EditorAssetHandler() override {}
 
-    const AssetMetadata& GetMetadata(AssetHandle handle);
-    const AssetMetadata& GetMetadata(const Path& path);
-    AssetMetadata& GetMutableMetadata(AssetHandle handle);
-
-    AssetHandle ImportAsset(const Path& path);
-    AssetHandle GetAssetHandleFromFilePath(const Path& filepath);
-
-    AssetType GetAssetTypeFromExtension(const std::string& extension);
-    AssetType GetAssetTypeFromPath(const Path& path);
-
     virtual AssetType GetAssetType(AssetHandle handle) override;
     virtual Ref<Asset> GetAsset(AssetHandle handle) override;
-    virtual void AddMemOnly(Ref<Asset>& asset) override;
+    virtual Ref<Asset> GetAsset(UUID file_handle, AssetType type) override;
+    virtual Ref<Asset> GetAsset(const AssetKey& key) override;
+
+    virtual void AddMemOnly(const std::string_view virtual_filename, Ref<Asset>& asset) override;
     virtual bool ReloadData(AssetHandle handle) override;
 
     virtual bool IsHandleValid(AssetHandle handle) override;
@@ -41,13 +34,7 @@ namespace other {
 
     virtual void Remove(AssetHandle handle) override;
 
-    virtual AssetSet GetAllOfType(AssetType type) override;
-    virtual AssetMap& GetAll() override;
-
-   private:
-    Ref<Asset> FindAsset(AssetHandle handle);
-
-    void LoadAsset(AssetHandle handle);
+    virtual std::set<AssetHandle> GetAllOfType(AssetType type) override;
   };
 
 }  // namespace other

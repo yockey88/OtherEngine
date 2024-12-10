@@ -9,6 +9,9 @@
 #include "core/config_keys.hpp"
 #include "core/directory.hpp"
 #include "core/logger.hpp"
+#include "core/memory_file.hpp"
+
+#include "parsing/parser_combinators.hpp"
 
 namespace other {
   namespace {
@@ -42,17 +45,22 @@ namespace other {
     if (cwd.has_value()) {
       std::filesystem::current_path(cwd.value());
     }
+  }
 
-    /// this may or may not equal project-root
-    sFileTree.dir = Ref<Directory>::Create(Filesystem::GetWorkingDirectory());
+  Ref<Directory> Filesystem::MountProjectRoot(const std::string_view name, const Path& path) {
+    OE_ASSERT(sFileTree.dir == nullptr, "Project root already mounted");
+    sFileTree.dir = sFileTree.mounted_dirs[FNV(name)] = NewRef<Directory>(path);
     OE_ASSERT(sFileTree.dir != nullptr, "Failed to create project directory");
     OE_ASSERT(sFileTree.dir->Exists(), "Project directory does not exist : {}", std::filesystem::current_path().string());
 
     OE_DEBUG("Filesystem initialized with working directory : [{}]", sFileTree.dir->AbsolutePath());
+    return sFileTree.dir;
   }
 
   void Filesystem::Poll() {
-    OE_ASSERT(sFileTree.dir != nullptr, "Filesystem not initialized");
+    if (sFileTree.dir == nullptr) {
+      return;
+    }
     /// poll for changes in the virtual file tree
 
     for (auto& [id, dir] : sFileTree.mounted_dirs) {
@@ -157,7 +165,7 @@ namespace other {
       return find_file->second;
     }
 
-    Ref<FileHandle> file = Ref<FileHandle>::Create(hash, path);
+    Ref<FileHandle> file = NewRef<FileHandle>(path);
     if (file == nullptr) {
       OE_ERROR("Failed to open file : {}", path.string());
       return nullptr;
@@ -169,6 +177,16 @@ namespace other {
     }
 
     sFileTree.registered_files[hash] = file;
+    return file;
+  }
+
+  Ref<FileHandle> Filesystem::CreateMemoryFile(const std::string_view drive, const std::string_view virtual_filename, const std::string_view ext) {
+    Ref<FileHandle> file = NewRef<MemoryFile>(virtual_filename, ext);
+    if (file == nullptr) {
+      OE_ERROR("Failed to create memory file : {}", virtual_filename);
+      return nullptr;
+    }
+
     return file;
   }
 
@@ -210,7 +228,7 @@ namespace other {
       return file;
     }
 
-    Ref<FileHandle> file = Ref<FileHandle>::Create(hash, path, mode);
+    Ref<FileHandle> file = NewRef<FileHandle>(path, mode);
     if (file == nullptr) {
       OE_ERROR("Failed to open file : {}", path.string());
       return nullptr;
@@ -266,7 +284,7 @@ namespace other {
       return find_file->second;
     }
 
-    Ref<FileHandle> file = Ref<FileHandle>::Create(hash, path);
+    Ref<FileHandle> file = NewRef<FileHandle>(path);
     if (file == nullptr) {
       OE_ERROR("Failed to open file : {}", path.string());
       return nullptr;

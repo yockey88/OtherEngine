@@ -8,17 +8,17 @@
 
 namespace other {
 
-  class EntitySerializer {
-    public:
-      EntitySerializer() {}
-      ~EntitySerializer() {}
+  class EntitySerializer : public Serializer {
+   public:
+    EntitySerializer() {}
+    ~EntitySerializer() {}
 
-      void Serialize(std::ostream& stream , Entity* entity , const Ref<Scene>& ctx) const;
-      UUID Deserialize(Ref<Scene>& ctx , const std::string& name , const ConfigTable& scene_table) const;
+    void Serialize(std::ostream& stream, Entity* entity, const Ref<Scene>& ctx) const;
+    UUID Deserialize(Ref<Scene>& ctx, const std::string& name, const ConfigTable& scene_table) const;
 
-    private:
+   private:
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_ENTITY_SERIALIZER_HPP
+#endif  // !OTHER_ENGINE_ENTITY_SERIALIZER_HPP

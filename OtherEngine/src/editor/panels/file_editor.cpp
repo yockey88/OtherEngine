@@ -43,13 +43,15 @@ namespace other {
   }
 
   bool FileEditor::OnGuiRender(bool& is_open) {
-    if (!ImGui::Begin("Shader Editor", &is_open, ImGuiWindowFlags_MenuBar)) {
+    // clang-format off
+    if (!ImGui::Begin("Shader Editor", &is_open, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking | 
+                                                 ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
+      // clang-format on
       ImGui::End();
       return false;
     }
 
-    ui::MenuBar([&]() {
-    });
+    ui::MenuBar([&]() {});
 
     RenderDirectory(shader_directory);
 

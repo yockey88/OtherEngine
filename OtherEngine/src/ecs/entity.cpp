@@ -17,31 +17,20 @@
 #include "rendering/model.hpp"
 #include "rendering/model_factory.hpp"
 
-
 namespace other {
 
-  Entity::Entity(Ref<Scene>& ctx, UUID uuid, const std::string& name)
-      : dotother::NObject(uuid.Get()), registry(ctx->registry), uuid(uuid), name(name) {
-    context = ctx;
-    handle = context->registry.create();
-
-    auto& tag = GetComponent<Tag>();
-    tag.id = uuid;
-    tag.name = name;
+  Entity::Entity(entt::registry& registry, entt::entity handle)
+      : dotother::NObject(registry.get<Tag>(handle).id.Get()),
+        registry(registry), handle(handle) {
   }
 
-  Entity::Entity(Scene* ctx, UUID uuid, const std::string& name)
-      : dotother::NObject(uuid.Get()), registry(ctx->registry), uuid(uuid), name(name) {
-    context = Ref<Scene>(ctx);
+  Entity::Entity(entt::registry& registry, UUID uuid, const std::string& name)
+      : dotother::NObject(uuid.Get()), registry(registry), uuid(uuid), name(name) {
     handle = registry.create();
 
     auto& tag = GetComponent<Tag>();
     tag.id = uuid;
     tag.name = name;
-  }
-
-  const Ref<Scene> Entity::GetContext() const {
-    return context;
   }
 
   const entt::entity& Entity::Handle() const {
@@ -53,7 +42,7 @@ namespace other {
   }
 
   const std::string Entity::Name() const {
-    return GetComponent<Tag>().name;
+    return ReadComponent<Tag>().name;
   }
 
   Entity::operator bool() const {
@@ -103,10 +92,6 @@ namespace other {
     return registry.orphan(handle);
   }
 
-  void Entity::SetContext(Ref<Scene>& scene) {
-    context = scene;
-  }
-
   bool Entity::operator==(const Entity& other) const {
     return handle == other.handle;
   }
@@ -128,7 +113,7 @@ namespace other {
 
     RenderSubmission submission = {
       .model = model,
-      .transform = glm::scale(GetComponent<Transform>().model_transform, glm::vec3(1.01f)),
+      .transform = glm::scale(ReadComponent<Transform>().model_transform, glm::vec3(1.01f)),
       .material = mat,
       .render_state = RenderState::FILL,
       .draw_mode = DrawMode::LINES,

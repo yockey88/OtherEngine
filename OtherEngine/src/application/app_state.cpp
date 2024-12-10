@@ -159,12 +159,18 @@ namespace other {
     Ref<FileHandle> primary_scene = scene_dir->GetFileHandleByName(*proj_meta.primary_scene);
     OE_ASSERT(primary_scene != nullptr, "Failed to get primary scene file handle");
 
-    if (!data->scenes->LoadScene(*primary_scene)) {
+    if (!primary_scene->Exists()) {
+      OE_ERROR("Primary scene does not exist : {}", *proj_meta.primary_scene);
+      return;
+    }
+
+    OE_INFO("Primary scene : {}", *proj_meta.primary_scene);
+    if (!data->scenes->LoadScene(primary_scene)) {
       OE_ERROR("Failed to load primary scene : {}", *proj_meta.primary_scene);
       return;
     }
 
-    data->scenes->SetAsActive(*proj_meta.primary_scene);
+    data->scenes->SetAsActive(primary_scene);
     OE_DEBUG("Primary Scene Loaded : {}", *proj_meta.primary_scene);
   }
 

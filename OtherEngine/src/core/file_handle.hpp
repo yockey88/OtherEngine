@@ -15,7 +15,7 @@
 #include "core/uuid.hpp"
 #include "core/writer_reader.hpp"
 
-#include "asset/asset_types.hpp"
+#include "asset/asset_defines.hpp"
 
 #include "writer_reader.hpp"
 
@@ -25,28 +25,28 @@ namespace other {
    public:
     constexpr static std::ios_base::openmode kDefaultOpenMode = std::ios_base::in | std::ios_base::out | std::ios_base::app;
 
-    FileHandle(UUID hash, const Path& path, Opt<std::ios_base::openmode> mode = std::nullopt);
-    virtual ~FileHandle();
+    FileHandle(const Path& path, Opt<std::ios_base::openmode> mode = std::nullopt);
+    virtual ~FileHandle() override;
 
-    void Open(std::ios_base::openmode mode = kDefaultOpenMode);
-    void Close();
+    virtual void Open(std::ios_base::openmode mode = kDefaultOpenMode);
+    virtual void Close();
 
-    bool Exists() const;
-    bool IsOpen() const;
-    bool IsAsset() const;
+    virtual bool Exists() const;
+    virtual bool IsOpen() const;
 
     operator Path() const;
 
     AssetType GetAssetType() const;
 
-    void Poll();
+    virtual void Poll();
 
-    const std::string Extension() const;
-    const std::string FileName() const;
-    const Path AbsolutePath() const;
-    const Path ProjectRelativePath() const;
+    virtual std::string Extension() const;
+    virtual std::string FileName() const;
+    virtual Path AbsolutePath() const;
+    virtual Path ProjectRelativePath() const;
 
-    std::fstream& RawFileStream();
+    virtual std::istream& GetReadStream();
+    virtual std::ostream& GetWriteStream();
 
     template <typename T>
       requires Writable<T>
@@ -56,7 +56,7 @@ namespace other {
         return;
       }
 
-      Writer<T>{}(file, data);
+      Writer<T>{}(GetWriteStream(), data);
     }
 
     void WriteJson(const nlohmann::json& data);
@@ -64,20 +64,23 @@ namespace other {
     template <typename T>
       requires Readable<T>
     T Read() {
-      return Reader<T>{}(file);
+      return Reader<T>{}(GetReadStream());
     }
 
-    std::string ReadString();
-    std::vector<char> ReadChars();
+    virtual std::string ReadString();
+    virtual std::vector<char> ReadChars();
 
     UUID handle = 0;
+
+   protected:
+    FileHandle() = default;
 
    private:
     std::fstream file;
     std::ios_base::openmode mode = std::ios_base::in | std::ios_base::out;
 
     Path project_relative_path;
-    Opt<AssetType> asset_type = std::nullopt;
+    AssetType asset_type = AssetType::GENERIC_FILE;
     Ref<FileWatcher> watcher = nullptr;
   };
 

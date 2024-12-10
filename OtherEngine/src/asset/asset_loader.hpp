@@ -7,7 +7,7 @@
 #include "core/ref.hpp"
 
 #include "asset/asset.hpp"
-#include "asset/asset_metadata.hpp"
+#include "asset/asset_registry.hpp"
 #include "asset/asset_serializer.hpp"
 
 namespace other {
@@ -15,11 +15,8 @@ namespace other {
   class AssetLoader {
    public:
     static void Serialize(const Ref<Asset>& asset);
-    static void Serialize(const AssetMetadata& metadata, const Ref<Asset>& asset);
-    static Ref<Asset> Load(const AssetMetadata& metadata);
-
-   private:
-    static std::unordered_map<AssetType, Scope<AssetSerializer>> asset_loaders;
+    static void Serialize(const AssetMetadata& metadata);
+    static Ref<Asset> Load(AssetMetadata& metadata);
   };
 
 }  // namespace other

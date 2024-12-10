@@ -4,18 +4,19 @@
 #ifndef OTHER_ENGINE_UNIFORM_HPP
 #define OTHER_ENGINE_UNIFORM_HPP
 
+#include <ranges>
 #include <string>
 
 #include <glm/gtc/type_ptr.hpp>
 #include <rendering/point_light.hpp>
 
 #include "core/buffer.hpp"
+#include "core/defines.hpp"
 #include "core/ref_counted.hpp"
 #include "core/uuid.hpp"
+#include "core/writer_reader.hpp"
 #include "math/vecmath.hpp"
 
-#include "rendering/direction_light.hpp"
-#include "rendering/point_light.hpp"
 #include "rendering/rendering_defines.hpp"
 
 namespace other {
@@ -123,6 +124,42 @@ namespace other {
     uint32_t CalculateOffset(const UniformData& uniform, uint32_t index);
     std::tuple<UniformData, bool, uint32_t> TryFind(const std::string_view name, uint32_t index);
     std::pair<UUID, UniformData> GetUniform(const std::string_view name);
+  };
+
+  template <>
+  struct Writer<Uniform> {
+    std::ostream& operator()(std::ostream& os, const Uniform& data) {
+      std::string type_str = fmtstr("{}", data.type) |
+        std::views::transform([](char c) { return std::tolower(c); }) |
+        std::ranges::to<std::string>();
+      os << type_str << ":" << data.name;
+      if (data.arr_length > 1) {
+        os << ":" << data.arr_length;
+      }
+      return os;
+    }
+  };
+
+  template <>
+  struct Reader<Uniform> {
+    Uniform operator()(std::istream& is) {
+      ValueType type = Reader<ValueType>{}(is);
+      std::string name = Reader<std::string>{}(is);
+
+      uint32_t arr_length = 1;
+      ClearWhitespace(is);
+      if (is.peek() == ':') {
+        is.ignore();
+        arr_length = Reader<uint32_t>{}(is);
+      }
+
+      return Uniform{
+        .name = name,
+        .type = type,
+        .arr_length = arr_length,
+        .size = GetValueSize(type),
+      };
+    }
   };
 
 }  // namespace other

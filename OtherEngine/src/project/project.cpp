@@ -108,6 +108,13 @@ namespace other {
   }
 
   void Project::InitializeVirtualFolders() {
+    {
+      Ref<Directory> dir = Filesystem::MountProjectRoot("project-root", metadata.project_directory);
+      if (dir == nullptr || !dir->Exists()) {
+        OE_ERROR("Failed to mount project directory : {}", metadata.project_directory);
+      }
+    }
+
     MountDirectory("bin", metadata.project_directory / metadata.bin_dir);
     MountDirectory("assets", metadata.assets_dir);
 
@@ -117,8 +124,6 @@ namespace other {
     } else {
       MountDirectory("script-bin", *bin_dir);
     }
-
-    MountDirectory("project-root", metadata.project_directory);
 
     if (AppState::mode == EngineMode::EDITOR
 #ifdef OE_TESTING_ENVIRONMENT

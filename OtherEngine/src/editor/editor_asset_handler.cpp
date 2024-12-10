@@ -3,102 +3,12 @@
  */
 #include "editor/editor_asset_handler.hpp"
 
-#include "core/filesystem.hpp"
 #include "core/logger.hpp"
-#include "core/rand.hpp"
 
 #include "asset/asset_database.hpp"
-#include "asset/asset_extensions.hpp"
-#include "asset/asset_loader.hpp"
-#include "asset/asset_types.hpp"
+#include "asset/asset_defines.hpp"
 
 namespace other {
-
-  static AssetMetadata null_metadata;
-
-  const AssetMetadata& EditorAssetHandler::GetMetadata(AssetHandle handle) {
-    if (AssetDatabase::Contains(handle)) {
-      return AssetDatabase::Get(handle);
-    } else {
-      return null_metadata;
-    }
-  }
-
-  const AssetMetadata& EditorAssetHandler::GetMetadata(const Path& path) {
-    Ref<FileHandle> file = Filesystem::GetFile(path);
-    if (file == nullptr) {
-      return null_metadata;
-    }
-
-    AssetHandle handle = file->handle;
-    /// if it exists, is and asset and is in the database
-    if (!file->Exists() || !file->IsAsset() || !AssetDatabase::Contains(handle)) {
-      return null_metadata;
-    }
-
-    return AssetDatabase::Get(handle);
-  }
-
-  AssetMetadata& EditorAssetHandler::GetMutableMetadata(AssetHandle handle) {
-    if (AssetDatabase::Contains(handle)) {
-      return AssetDatabase::Get(handle);
-    } else {
-      return null_metadata;
-    }
-  }
-
-  AssetHandle EditorAssetHandler::ImportAsset(const Path& path) {
-    Ref<FileHandle> file = Filesystem::GetFile(path);
-    if (file == nullptr || !file->Exists() || !file->IsAsset()) {
-      return 0;
-    }
-
-    AssetHandle handle = file->handle;
-    if (AssetDatabase::Contains(handle)) {
-      return handle;
-    }
-
-    AssetType type = GetAssetTypeFromPath(path);
-    if (type == AssetType::INVALID_ASSET) {
-      return 0;
-    }
-
-    AssetDatabase::RegisterAsset({
-      .handle = handle,
-      .type = type,
-      .path = path,
-      .loaded = false,
-    });
-    OE_ASSERT(AssetDatabase::Contains(handle), "Failed to register asset : {}", handle);
-
-    return handle;
-  }
-
-  AssetHandle EditorAssetHandler::GetAssetHandleFromFilePath(const Path& filepath) {
-    Ref<FileHandle> file = Filesystem::GetFile(filepath);
-    if (file == nullptr || !file->Exists() || !file->IsAsset()) {
-      return 0;
-    }
-
-    if (AssetDatabase::Contains(file->handle)) {
-      return file->handle;
-    }
-
-    return 0;
-  }
-
-  AssetType EditorAssetHandler::GetAssetTypeFromExtension(const std::string& extension) {
-    auto itr = asset_extensions.find(FNV(extension));
-    if (itr == asset_extensions.end()) {
-      return AssetType::INVALID_ASSET;
-    }
-
-    return itr->second;
-  }
-
-  AssetType EditorAssetHandler::GetAssetTypeFromPath(const Path& path) {
-    return GetAssetTypeFromExtension(path.extension().string());
-  }
 
   AssetType EditorAssetHandler::GetAssetType(AssetHandle handle) {
     if (IsHandleValid(handle)) {
@@ -108,47 +18,58 @@ namespace other {
   }
 
   Ref<Asset> EditorAssetHandler::GetAsset(AssetHandle handle) {
-    Ref<Asset> asset = nullptr;
+    if (handle == 0) {
+      OE_ERROR("Invalid asset handle : {}", handle);
+      return nullptr;
+    }
 
-    if (IsMemOnly(handle)) {
-      asset = memory_assets[handle];
-    } else {
-      auto& metadata = GetMutableMetadata(handle);
-      if (!metadata.IsValid()) {
-        // OE_ERROR("Asset [{}] not valid!" , handle);
+    if (!IsHandleValid(handle)) {
+      OE_ERROR("Asset handle not valid : {}", handle);
+      return nullptr;
+    }
+
+    AssetMetadata& metadata = GetMutableMetadata(handle);
+
+    if (metadata.memory_asset) {
+      OE_ASSERT(metadata.asset != nullptr, "Memory asset not found : {}", handle);
+      return metadata.asset;
+    }
+
+    if (metadata.Unloaded()) {
+      TryLoadAsset(metadata);
+      if (!metadata.Loaded()) {
+        OE_ERROR("Failed to load asset : {}", handle);
         return nullptr;
       }
-
-      Ref<Asset> asset = nullptr;
-      if (!metadata.loaded) {
-        asset = AssetLoader::Load(metadata);
-        metadata.loaded = asset != nullptr;
-        LoadAsset(handle);
-        // loaded_assets[handle] = asset;
-      } else {
-        OE_ASSERT(false, "Asset loading not implemented yet");
-        /// asset = loaded_assets[handle];
-      }
     }
-
-    return asset;
+    OE_ASSERT(metadata.Loaded(), "Asset not loaded : {}", handle);
+    return metadata.asset;
   }
 
-  void EditorAssetHandler::AddMemOnly(Ref<Asset>& asset) {
-    if (asset == nullptr) {
-      OE_ERROR("Attempting to add null memory-only asset!");
-      return;
+  Ref<Asset> EditorAssetHandler::GetAsset(const AssetKey& key) {
+    OE_ASSERT(AssetDatabase::HasKey(key), "Asset not found : {}", key.file_handle);
+
+    AssetMetadata& metadata = AssetDatabase::Get(key);
+    if (metadata.handle == 0) {
+      TryLoadAsset(metadata);
     }
 
-    AssetDatabase::RegisterAsset({
-      .handle = asset->handle,
-      .type = asset->GetAssetType(),
-      .path = Path(""),
-      .loaded = true,
-      .memory_asset = true,
-    });
-    OE_ASSERT(AssetDatabase::Contains(asset->handle), "Failed to register memory-only asset : {}", asset->handle);
-    memory_assets[asset->handle] = asset;
+    return GetAsset(metadata.handle);
+  }
+
+  Ref<Asset> EditorAssetHandler::GetAsset(UUID file_handle, AssetType type) {
+    AssetKey key = {
+      .file_handle = file_handle,
+      .type = type,
+    };
+    return GetAsset(key);
+  }
+
+  void EditorAssetHandler::AddMemOnly(const std::string_view virtual_filename, Ref<Asset>& asset) {
+    OE_ASSERT(asset != nullptr, "Attempting to add null asset");
+
+    OE_DEBUG("Adding memory asset : {} [{}]", virtual_filename, asset->handle);
+    AssetDatabase::RegisterMemoryAsset(asset, virtual_filename);
   }
 
   bool EditorAssetHandler::ReloadData(AssetHandle handle) {
@@ -162,7 +83,10 @@ namespace other {
   }
 
   bool EditorAssetHandler::IsMemOnly(AssetHandle handle) {
-    return memory_assets.find(handle) != memory_assets.end();
+    if (IsHandleValid(handle)) {
+      return GetMetadata(handle).memory_asset;
+    }
+    return false;
   }
 
   // bool EditorAssetHandler::IsAssetReadOnly(AssetHandle handle) {
@@ -201,60 +125,22 @@ namespace other {
   }
 
   bool EditorAssetHandler::IsLoaded(AssetHandle handle) {
-    if (IsHandleValid(handle)) {
-      return assets[handle]->CheckFlag(AssetFlag::ASSET_LOADED);
+    if (IsHandleValid(handle) && AssetDatabase::Contains(handle)) {
+      Ref<Asset> asset = GetMetadata(handle).asset;
+      OE_ASSERT(asset != nullptr, "Asset not found : {}", handle);
+      return asset->CheckFlag(AssetFlag::ASSET_LOADED);
     }
     return false;
   }
 
   void EditorAssetHandler::Remove(AssetHandle handle) {
     if (IsHandleValid(handle)) {
-      assets.erase(assets.find(handle));
+      AssetDatabase::UnregisterAsset(handle);
     }
   }
 
-  AssetSet EditorAssetHandler::GetAllOfType(AssetType type) {
+  std::set<AssetHandle> EditorAssetHandler::GetAllOfType(AssetType type) {
     return AssetDatabase::GetAllOfType(type);
-  }
-
-  AssetMap& EditorAssetHandler::GetAll() {
-    return assets;
-  }
-
-  Ref<Asset> EditorAssetHandler::FindAsset(AssetHandle handle) {
-    Ref<Asset> asset = nullptr;
-
-    if (IsMemOnly(handle)) {
-      asset = memory_assets[handle];
-      return asset;
-    }
-
-    auto& metadata = GetMetadata(handle);
-    if (!metadata.IsValid()) {
-      OE_ERROR("Asset not found: {0}", handle);
-      return nullptr;
-    }
-
-    if (!metadata.loaded) {
-      LoadAsset(handle);
-    }
-
-    asset = assets[handle];
-
-    return asset;
-  }
-
-  void EditorAssetHandler::LoadAsset(AssetHandle handle) {
-    // auto& metadata = GetMutableMetadata(handle);
-    // if (metadata.IsValid()) {
-    //   metadata.loaded = AssetLoader::Load(metadata, assets[handle]);
-    //   if (!metadata.loaded) {
-    //     OE_ERROR("Failed to load asset: {0}", handle);
-    //   } else {
-    //     assets[handle]->SetFlag(AssetFlag::ASSET_LOADED);
-    //   }
-    // }
-    OE_ASSERT(false, "Asset loading not implemented yet");
   }
 
 }  // namespace other

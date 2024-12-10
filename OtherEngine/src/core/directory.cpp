@@ -12,22 +12,22 @@
 namespace other {
 
   Directory::Directory() {
-    handle = Random::GenerateUUID();
+    Initialize(false);
   }
 
   Directory::Directory(const Path& path)
       : proj_relative_path(path) {
-    Initialize();
+    Initialize(true);
   }
 
   Directory::Directory(Directory* parent, const Path& path)
       : parent_dir(parent), proj_relative_path(path) {
-    Initialize();
+    Initialize(false);
   }
 
   Directory::Directory(const Ref<Directory>& parent, const Path& path)
       : parent_dir(parent), proj_relative_path(path) {
-    Initialize();
+    Initialize(false);
   }
 
   void Directory::Poll() {
@@ -57,7 +57,27 @@ namespace other {
   }
 
   bool Directory::Contains(const Path& path) const {
-    return !(GetFilePaths() | std::views::filter([&path](const auto& f) { return f.filename() == path.filename(); })).empty();
+    if (!Exists()) {
+      return false;
+    }
+
+    /// TODO: check if path is a directory or file
+    // if (std::filesystem::is_directory(path)) {
+    //   return ContainsDirectory(path);
+    // } else {
+    //   return ContainsFile(path);
+    // }
+
+    Path abs_path = std::filesystem::absolute(path);
+    if (!std::filesystem::exists(abs_path)) {
+      return false;
+    }
+
+    // clang-format off
+    return (GetFilePaths() | 
+      std::views::filter([&abs_path](const auto& f) { return std::filesystem::absolute(f) == abs_path; }) | 
+      std::ranges::to<std::vector<Path>>()).size() > 0;
+    // clang-format on
   }
 
   bool Directory::Contains(UUID handle) const {
@@ -104,7 +124,7 @@ namespace other {
     }
     OE_ASSERT(std::filesystem::exists(new_file), "Failed to create file : {}", new_file.string());
 
-    Ref<FileHandle> file = file_handles[hash] = NewRef<FileHandle>(hash, new_file);
+    Ref<FileHandle> file = file_handles[hash] = NewRef<FileHandle>(new_file);
     return file;
   }
 
@@ -114,20 +134,31 @@ namespace other {
       return nullptr;
     }
 
-    if (!Contains(path)) {
-      Path file_path = AbsolutePath() / path;
-      { std::ofstream file(file_path); }
-      if (!Contains(path)) {
-        OE_ERROR("Failed to get file, file not found : {}", path.string());
-        return nullptr;
+    {
+      Path test_path = proj_relative_path / path;
+      UUID id = FNV(test_path.string());
+      if (Contains(id)) {
+        return file_handles[id];
       }
+    }
+
+    if (!Contains(path)) {
+      /// TODO: decide when we want to create the file or fail (check open mode maybe?)
+      OE_ERROR("Failed to get file, file not found : {}", path.string());
+      return nullptr;
     }
 
     std::vector<Path> files =
       GetFilePaths() |
-      std::views::filter([&path](const auto& f) { return std::filesystem::absolute(f) == std::filesystem::absolute(path); }) |
+      std::views::filter([&path](const auto& f) { return f.filename() == path.filename(); }) |
       std::ranges::to<std::vector<Path>>();
-    OE_ASSERT(files.size() == 1, "Failed to get file, multiple files with the same name : {}", path.string());
+
+    if (files.size() > 1) {
+      OE_ERROR("Failed to get file, multiple files with the same name : {}", path.string());
+      return nullptr;
+    }
+
+    OE_ASSERT(!files.empty(), "Failed to get file, file not found : {}", path.string());
     OE_ASSERT(files[0] == path, "Failed to get file, file not found : {}", path.string());
 
     UUID hash = FNV(path.filename().string());
@@ -139,7 +170,7 @@ namespace other {
     OE_DEBUG("File Handle Created : {} ({})", path.string(), hash);
 
     Path real_path = proj_relative_path / path;
-    auto handle = Ref<FileHandle>::Create(hash, real_path);
+    auto handle = NewRef<FileHandle>(real_path);
     handle->handle = hash;
     file_handles[hash] = handle;
     OE_ASSERT(Contains(handle->handle), "Failed to get file : {}", path.string());
@@ -266,7 +297,12 @@ namespace other {
     return proj_relative_path;
   }
 
-  void Directory::Initialize() {
+  void Directory::Initialize(bool create_dir_handles) {
+    handle = FNV(proj_relative_path.string());
+    if (proj_relative_path.empty()) {
+      return;
+    }
+
     auto name = proj_relative_path.stem().filename();
 
     handle = FNV(proj_relative_path.string());
@@ -278,22 +314,22 @@ namespace other {
 
     watcher = NewRef<DirectoryWatcher>(handle, proj_relative_path);
 
-    CollectChildren();
+    CollectChildren(create_dir_handles);
   }
 
-  void Directory::CollectChildren() {
+  void Directory::CollectChildren(bool create_dir_handles) {
     if (!Exists()) {
       return;
     }
 
     OE_TRACE("Collecting Children : {}", proj_relative_path);
     for (auto& entry : std::filesystem::directory_iterator(proj_relative_path)) {
-      if (entry.is_directory()) {
+      if (entry.is_directory() && create_dir_handles) {
         Path p = entry.path();
         children[FNV(p.string())] = NewRef<Directory>(this, entry.path());
       } else if (entry.is_regular_file()) {
         Path p = entry.path();
-        file_handles[FNV(p.string())] = NewRef<FileHandle>(FNV(p.string()), entry.path());
+        file_handles[FNV(p.string())] = NewRef<FileHandle>(entry.path());
       }
     }
   }

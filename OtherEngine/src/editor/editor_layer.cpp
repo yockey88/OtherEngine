@@ -123,7 +123,8 @@ namespace other {
     panel_manager->Render();
 
     /// dont trace if no scene or not editing
-    if (!AppState::Scenes()->HasActiveScene() || EditorState::scene_mode == SceneEditorMode::PLAYING) {
+    if (!AppState::Scenes()->HasActiveScene() ||
+        EditorState::scene_mode == SceneEditorMode::PLAYING) {
       return;
     }
 

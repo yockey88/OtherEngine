@@ -70,9 +70,8 @@ namespace other {
       }
       EntityProxy(Entity* entity)
           : id(entity->GetUUID().Get()), name(entity->Name()) {
-        if (entity->GetContext() != nullptr) {
-          proxy = NewScope<Proxy>(entity);
-        }
+        OE_ASSERT(entity != nullptr, "Entity is null");
+        proxy = NewScope<Proxy>(entity);
       }
       EntityProxy& operator=(const EntityProxy& other) {
         id = other.id;

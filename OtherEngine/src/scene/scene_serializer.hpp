@@ -7,27 +7,29 @@
 #include "core/config.hpp"
 #include "core/ref.hpp"
 
-#include "scene/scene.hpp"
+#include "asset/asset_serializer.hpp"
 
-#include "serialization/serializer.hpp"
+#include "scene/scene.hpp"
 
 namespace other {
 
   struct DeserializedScene {
     Ref<Scene> scene = nullptr;
+    Path path;
     ConfigTable scene_table;
     std::string name = "[ Empty Scene ]";
   };
 
-  class SceneSerializer : public Serializer {
+  class SceneSerializer : public AssetSerializer {
    public:
     SceneSerializer() {}
-    ~SceneSerializer() {}
+    virtual ~SceneSerializer() override {}
 
-    void Serialize(const std::string_view scene_name, std::ostream& stream, const Ref<Scene>& scene) const;
-    DeserializedScene Deserialize(const Path& scn_path) const;
+    virtual void Serialize(const AssetMetadata& metadata) override;
+    virtual bool Load(AssetMetadata& metadata) override;
 
    private:
+    void Serialize(const std::string_view scene_name, std::ostream& stream, const Ref<Scene>& scene) const;
   };
 
 }  // namespace other

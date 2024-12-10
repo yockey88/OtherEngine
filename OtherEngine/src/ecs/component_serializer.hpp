@@ -9,7 +9,6 @@
 
 #include "serialization/serializer.hpp"
 
-
 namespace other {
 
   class Entity;
@@ -24,7 +23,6 @@ namespace other {
 
    protected:
     std::string GetComponentSectionKey(const std::string& name, const std::string& section_key) const;
-
     void SerializeComponentSection(std::ostream& stream, Entity* owner, const std::string_view tag) const;
   };
 

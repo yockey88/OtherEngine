@@ -60,6 +60,7 @@ namespace other {
   }
 
   UUID EntitySerializer::Deserialize(Ref<Scene>& ctx, const std::string& name, const ConfigTable& scene_table) const {
+    OE_ASSERT(ctx != nullptr, "Attempting to deserialize entity with null scene reference");
     auto entity_data = scene_table.Get(name);
 
     Entity* entity = ctx->CreateEntity(name);

@@ -1004,6 +1004,50 @@ namespace other {
     return NewRef<MaybeParser<T>>(parser);
   }
 
+  // template <typename T>
+  // struct BodyParser : Parser<T> {
+  //   char list_start, list_end;
+  //   Ref<Parser<T>> parser = nullptr;
+
+  //   BodyParser(char list_start, char list_end, const Ref<Parser<T>>& parser)
+  //       : list_start(list_start), list_end(list_end), parser(parser) {}
+
+  //   T operator()(std::istream& stream) const override {
+  //     try {
+  //       while (!stream.eof() && std::isspace(stream.peek())) {
+  //         stream.get();
+  //       }
+
+  //       char c = stream.peek();  // '{'
+  //       if (c != list_start) {
+  //         stream.setstate(std::ios::failbit);
+  //         return T{};
+  //       }
+  //       stream.ignore();  // consume '{'
+
+  //       T val = (*parser)(stream);
+  //       if (stream.fail()) {
+  //         return T{};
+  //       }
+
+  //       while (!stream.eof() && std::isspace(stream.peek())) {
+  //         stream.get();
+  //       }
+
+  //       c = stream.peek();  // '}'
+  //       if (c != '}') {
+  //         stream.setstate(std::ios::failbit);
+  //         return T{};
+  //       }
+  //       stream.ignore();  // consume '}'
+
+  //       return val;
+  //     } catch (...) {
+  //       return T{};
+  //     }
+  //   }
+  // };
+
 }  // namespace other
 
 #endif  // !OTHER_ENGINE_PARSER_HPP
