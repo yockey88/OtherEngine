@@ -199,6 +199,8 @@ namespace other {
   }
 
   void AppState::DetachApplication() {
+    /// write out any changes to project file
+
     data->layers->InvokeControlledLoop(&Layer::Detach);
     data->layers->Clear();
 

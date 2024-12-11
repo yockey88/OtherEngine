@@ -131,6 +131,7 @@ namespace other {
   std::set<AssetHandle> AssetDatabase::GetAllOfType(AssetType type) {
     std::set<AssetHandle> result;
     for (auto& [key, md] : asset_registry.ReadAllAssets()) {
+      OE_ASSERT(md.handle != 0, "Invalid asset handle");
       if (md.type == type) {
         result.insert(md.handle);
       }

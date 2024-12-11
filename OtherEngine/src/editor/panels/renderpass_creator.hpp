@@ -16,6 +16,7 @@ namespace other {
     virtual ~RenderpassCreator() override {}
 
     virtual void OnAttach() override;
+    virtual void OnDetach() override;
 
     virtual bool OnGuiRender(bool& is_open) override;
 
@@ -23,6 +24,8 @@ namespace other {
     RenderPassSpec spec;
 
     std::array<char, 64> pass_name;
+
+    std::map<UUID, Ref<FileHandle>> other_shader_files;
   };
 
 }  // namespace other

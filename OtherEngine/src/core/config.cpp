@@ -188,6 +188,26 @@ namespace other {
     return {};
   }
 
+  const std::map<uint64_t, std::string>& ConfigTable::GetFramebufferSpecs() const {
+    return unparsed_framebuffer_specs;
+  }
+
+  const std::map<uint64_t, std::string>& ConfigTable::GetVertexLayouts() const {
+    return unparsed_vertex_layouts;
+  }
+
+  const std::map<uint64_t, std::string>& ConfigTable::GetUniforms() const {
+    return unparsed_uniforms;
+  }
+
+  const std::map<uint64_t, std::string>& ConfigTable::GetRenderPasses() const {
+    return unparsed_render_passes;
+  }
+
+  const std::map<uint64_t, std::string>& ConfigTable::GetPipelines() const {
+    return unparsed_pipelines;
+  }
+
   const std::vector<std::string> ConfigTable::Get(const std::string_view section, const std::string_view key, bool case_sensitive_key) const {
     std::string sec = section.data();
     std::transform(sec.begin(), sec.end(), sec.begin(), toupper);

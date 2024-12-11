@@ -98,7 +98,6 @@ namespace other {
       UIWindowMap ui_windows;
 
       float frame_delta = 0.0f;
-
       bool loading = true;
 
       Data(App* app_handle, Ref<Project> proj);

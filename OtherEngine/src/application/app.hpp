@@ -37,6 +37,12 @@ namespace other {
     void OnRenderUI();
     void Detach();
 
+    struct RenderData {
+      std::vector<FramebufferSpec> framebuffer_specs;
+      std::vector<RenderPassSpec> render_passes;
+      std::vector<PipelineSpec> pipelines;
+    } render_specs;
+
    protected:
     virtual void OnLoad() {}
     virtual void OnAttach() {}

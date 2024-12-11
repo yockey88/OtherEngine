@@ -6,13 +6,13 @@
 #include <string_view>
 
 #include "core/logger.hpp"
-#include "core/time.hpp"
 
 #include "application/app_state.hpp"
-#include "asset/runtime_asset_handler.hpp"
 #include "event/event_queue.hpp"
 #include "parsing/cmd_line_parser.hpp"
 
+#include "rendering/framebuffer.hpp"
+#include "rendering/render_pass.hpp"
 #include "rendering/renderer.hpp"
 #include "scripting/script_defines.hpp"
 
@@ -43,6 +43,30 @@ namespace other {
   }
 
   Ref<SceneRenderer> App::CreateSceneRenderer() {
+    auto framebuffer_specs = config.GetFramebufferSpecs();
+    auto render_passes = config.GetRenderPasses();
+    auto pipelines = config.GetPipelines();
+
+    std::stringstream ss;
+    for (const auto& [_, spec] : framebuffer_specs) {
+      ss = std::stringstream(spec);
+      FramebufferSpec fb = Reader<FramebufferSpec>{}(ss);
+      OE_DEBUG("Loaded framebuffer spec: {}", fb.framebuffer_name);
+      render_specs.framebuffer_specs.push_back(fb);
+    }
+
+    std::vector<RenderPassSpec> passes;
+    for (const auto& [_, pass] : render_passes) {
+      ss = std::stringstream(pass);
+      render_specs.render_passes.push_back(Reader<RenderPassSpec>{}(ss));
+    }
+
+    std::vector<PipelineSpec> pipes;
+    for (const auto& [_, pipe] : pipelines) {
+      ss = std::stringstream(pipe);
+      render_specs.pipelines.push_back(Reader<PipelineSpec>{}(ss));
+    }
+
     return Renderer::DefaultSceneRenderer();
   }
 

@@ -35,8 +35,42 @@ namespace other {
     pipelines[FNV(spec.pipeline_name)] = NewRef<Pipeline>(spec);
   }
 
+  void SceneRenderer::AddRenderPass(RenderPassSpec& spec) {
+    if (spec.name.empty()) {
+      OE_ERROR("Render pass name is empty!");
+      return;
+    }
+
+    if (passes.find(FNV(spec.name)) != passes.end()) {
+      OE_ERROR("Render pass {} already exists!", spec.name);
+      return;
+    }
+
+    passes[FNV(spec.name)] = NewRef<RenderPass>(spec);
+  }
+
   const std::map<UUID, Ref<Pipeline>>& SceneRenderer::GetPipelines() const {
     return pipelines;
+  }
+
+  const std::map<UUID, Ref<RenderPass>>& SceneRenderer::GetRenderPasses() const {
+    return passes;
+  }
+
+  void SceneRenderer::AttachPassToPipeline(UUID pipeline, UUID pass) {
+    auto pl_itr = pipelines.find(pipeline);
+    if (pl_itr == pipelines.end()) {
+      OE_ERROR("Pipeline {} not found!", pipeline);
+      return;
+    }
+
+    auto pass_itr = passes.find(pass);
+    if (pass_itr == passes.end()) {
+      OE_ERROR("Render pass {} not found!", pass);
+      return;
+    }
+
+    pl_itr->second->SubmitRenderPass(pass_itr->second);
   }
 
   void SceneRenderer::SetViewportSize(const glm::ivec2& size) {

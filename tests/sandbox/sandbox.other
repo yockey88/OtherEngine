@@ -42,116 +42,14 @@ ui = {
   *sandbox_ui = { "SandboxUI" }
 }
 
-@pipeline [main-pipeline] = {
-  MainPipeline
-  topology = TRIANGLES
-  back-face-culling = true
-  depth-test = true
-  line-width = 1
-  framebuffer-spec = {
-    MainFramebuffer
-    depth-function = LESS
-    clear-color = {1,1,1,1}
-    size = {1920,1080}
-    depth-buffer = true
-    color-buffer = true
-    stencil-buffer = false
+@framebuffer [final-frame] = {
+  FinalFrame
+  depth-function = LESS
+  clear-color = {
+    1, 1, 1, 1
   }
-  vertex-layout = {
-    vec3:position,
-    vec3:normal,
-    vec3:tangent,
-    vec3:binormal,
-    vec2:uvs
-  }
-  model-binding-point = 0
-  model-uniforms = {
-    mat4:models:100
-  }
-  material-binding-point = 0
-  material-uniforms = {
-    user-type:materials:100
-  }
+  size = {1920,1080}
+  depth-buffer = true
+  color-buffer = true
+  stencil-buffer = false
 }
-
-@pipeline [debug-pipeline] {
-  topology = TRIANGLES
-  back-face-culling = true
-  depth-test = true
-  line-width = 1
-  framebuffer-spec = {
-    DebugWireframe
-    depth-function = LESS
-    clear-color = {1,1,1,1}
-    size = {1920,1080}
-    depth-buffer = true
-    color-buffer = true
-    stencil-buffer = false
-  }
-  vertex-layout = {
-    vec3:position,
-    vec3:normal,
-    vec3:tangent,
-    vec3:binormal,
-    vec2:uvs
-  }
-  model-binding-point = 0
-  model-uniforms = {
-    mat4:models:100
-  }
-  material-binding-point = 0
-  material-uniforms = {
-    user-type:materials:100
-  }
-}
-
-![load-renderer] {
-}
-
-#[
-  syntax ideas:
-    - small amounts of scripting? 
-      (this might be the biggest argument for moving all configuration to lua, cause this would be nice but not worth the effort while also supporting three scripting language bindings unless it 
-        was part of the scripting language bindings which leaves lua/python)
-
-    function := '[' <identifier> ']' '::' '{' <stmt-list> '}'
-    stmt_list := (<stmt> ';')+
-    stmt := <priority>? <action> <category> <identifier>? | <other-script> 
-    priority := 'low' | 'medium' | 'high' | 'urgent' | ...
-    action := 'load' | 'unload' | 'clear' | 'exit' | ...
-    category := 'scene' | 'script' | ...
-    identifier := [a-zA-Z]([a-zA-Z0-9_-]*)
-    other-script := (see other-script specification)
-
-    ex:
-
-    [query-server] (address, query) -> bool {
-      endpoint = IO::Connect(address);
-      if endpoint is nil then
-        return false
-      end
-
-      endpoint.send(query);
-      bytes[] = endpoint.read_all();
-      /// process bytes
-
-      return true;
-    }
-    > would need some sort of internal api
-      (maybe write something in lua and have it run with the engine lua module loads???)
-
-    ex 2:
-
-    [load-default-scene] {
-      urgent load scene loading-screen;
-    }
-
-    - bind config file to reflection system
-    ex:
-
-    <transform> {
-      position = {}
-      ...
-    }
-      > parsing function could directly pull this from file and write it directly to the struct
-#]

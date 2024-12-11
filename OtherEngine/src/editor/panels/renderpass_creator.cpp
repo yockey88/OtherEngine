@@ -5,15 +5,27 @@
 
 #include <imgui/imgui.h>
 
+#include "core/filesystem.hpp"
+
 #include "application/app_state.hpp"
-#include "asset/asset_manager.hpp"
 
 #include "rendering/ui/ui_helpers.hpp"
 
 namespace other {
 
   void RenderpassCreator::OnAttach() {
+    Ref<Directory> project_dir = Filesystem::GetDirectory("project-root");
     pass_name.fill('\0');
+
+    auto other_files = project_dir->GetFiles(".oshader");
+    for (auto& file : other_files) {
+      OE_ASSERT(file != nullptr, "Failed to load other shader file");
+      other_shader_files[file->handle.Get()] = file;
+    }
+  }
+
+  void RenderpassCreator::OnDetach() {
+    other_shader_files.clear();
   }
 
   bool RenderpassCreator::OnGuiRender(bool& is_open) {
@@ -23,27 +35,64 @@ namespace other {
     }
 
     ui::Button("Finalize Renderpass", [&]() {
+      spec.name = pass_name.data();
+      if (spec.name.empty()) {
+        OE_ERROR("Renderpass name is empty!");
+        return;
+      }
+
+      if (spec.shader == nullptr) {
+        OE_ERROR("No shader selected for renderpass");
+        return;
+      }
+
+      AppState::Scenes()->GetRenderer()->AddRenderPass(spec);
     });
 
     ImGui::Text("Renderpass Specification");
 
+    // App& app = AppState::AppHandle();
+    // for (auto& fb : app.render_specs.framebuffer_specs) {
+    //   if (fb.framebuffer_name.empty()) {
+    //     ImGui::Text("Nameless Framebuffer");
+    //   } else {
+    //     ImGui::Text("Framebuffer: %s", fb.framebuffer_name.c_str());
+    //   }
+
+    //   ImGui::ColorEdit4("clear color", glm::value_ptr(fb.clear_color));
+    //   ImGui::DragInt2("size", glm::value_ptr(fb.size));
+
+    //   ui::Checkbox("clear depth buffer", &fb.depth);
+    //   ui::Checkbox("clear stencil buffer", &fb.stencil);
+    //   ui::Checkbox("clear color buffer", &fb.color);
+    // }
+    // for (auto& pass : render_data.render_passes) {
+    //   ImGui::Text("Renderpass: %s", pass.name.c_str());
+    // }
+    // for (auto& pipe : render_data.pipelines) {
+    //   ImGui::Text("Pipeline: %s", pipe.pipeline_name.c_str());
+    // }
+
+    ImGui::Separator();
+
     if (ImGui::InputText("Renderpass Name", pass_name.data(), pass_name.size())) {}
     ImGui::Separator();
 
-    std::set<AssetHandle> shaders = AppState::Assets()->GetAllOfType(AssetType::SHADER);
-    ImGui::Text("Shaders");
-    ImGui::Separator();
-
-    for (auto& shader : shaders) {
-      Ref<Shader> s = AssetManager::GetAsset<Shader>(shader);
-      OE_ASSERT(s != nullptr, "Failed to get shader from asset manager");
-
-      if (ImGui::Button(s->Name().c_str())) {
-        if (spec.shader == s) {
-          spec.shader = nullptr;
-        } else {
-          spec.shader = s;
+    if (spec.shader == nullptr) {
+      ImGui::Text("Shaders");
+      for (auto& [id, file] : other_shader_files) {
+        ImGui::PushID(id.Get());
+        if (ui::Selectable(file->FileName().c_str())) {
+          Ref<Shader> shader = BuildShader(file->AbsolutePath());
+          if (shader != nullptr) {
+            spec.shader = shader;
+            ImGui::PopID();
+            break;
+          } else {
+            OE_ERROR("Failed to build shader from file: {}", file->FileName());
+          }
         }
+        ImGui::PopID();
       }
     }
 

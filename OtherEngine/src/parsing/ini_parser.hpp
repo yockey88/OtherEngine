@@ -71,8 +71,7 @@ namespace other {
     void PopKey();
 
     void ParseSection(const std::string& line);
-    void ParseScriptSection(const std::string& line);
-    void ParseObjectSection(const std::string& type, const std::string& line);
+    void ParseObjectSection(const std::string& type);
 
     void ParseKeyValue(const std::string& line, bool allow_key_modifications);
     void ParseKey(const std::string& key, bool allow_key_modifications);
@@ -82,11 +81,13 @@ namespace other {
     std::string GetFullKey() const;
 
     void HandleComment();
+
+    void HandleIdentifier();
     void HandleSection();
     void HandleKey(bool allow_key_modifications);
 
     void HandleObject();
-    void HandleScript();
+    void HandleScript(const std::string& callable);
 
     bool AtEnd() const;
     char Peek() const;
@@ -104,6 +105,12 @@ namespace other {
     bool Check(const std::vector<char>& chars);
     bool Match(char c);
     bool Match(const std::vector<char>& chars);
+
+    template <typename Fn>
+      requires requires(Fn f) {
+        { f(std::declval<char>()) } -> std::convertible_to<bool>;
+      }
+    bool AdvanceUntil(Fn&& f);
   };
 
 }  // namespace other

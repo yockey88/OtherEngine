@@ -26,10 +26,13 @@
 #include "editor/editor_images.hpp"
 #include "editor/editor_state.hpp"
 #include "editor/panels/file_editor.hpp"
+#include "editor/panels/framebuffer_editor.hpp"
 #include "editor/panels/pipeline_creator.hpp"
 #include "editor/panels/renderpass_creator.hpp"
+#include "editor/panels/scene_renderer_settings.hpp"
 #include "editor/panels/shader_creator.hpp"
 #include "editor/selection_manager.hpp"
+
 
 namespace other {
   namespace {
@@ -199,7 +202,13 @@ namespace other {
         ui::MenuItem{ "Pipeline Creator"sv, [&]() { editor.panel_creator_id = panel_manager->AddPanel("Pipeline-Creator", NewRef<PipelineCreator>()); } },
         ui::MenuItem{ "File Editor"sv, [&]() { editor.panel_creator_id = panel_manager->AddPanel("Shader-Creator", NewRef<FileEditor>()); } },
         ui::MenuItem{ "Renderpass Creator"sv, [&]() { editor.panel_creator_id = panel_manager->AddPanel("Renderpass-Creator", NewRef<RenderpassCreator>()); } },
-        ui::MenuItem{ "Shader Creator"sv, [&]() { editor.panel_creator_id = panel_manager->AddPanel("Shader-Creator", NewRef<ShaderCreator>()); } }
+        ui::MenuItem{ "Shader Creator"sv, [&]() { editor.panel_creator_id = panel_manager->AddPanel("Shader-Creator", NewRef<ShaderCreator>()); } },
+        ui::MenuItem{ "Framebuffer Creator"sv , [&]() { editor.panel_creator_id = panel_manager->AddPanel("Framebuffer-Creator", NewRef<FramebufferEditor>()); } }
+      );
+
+      ui::Menu(
+        "Rendering",
+        ui::MenuItem{ "Scene Renderer Settings"sv, [&]() { editor.panel_creator_id = panel_manager->AddPanel("Scene-Renderer-Settings", NewRef<SceneRendererSettings>()); } }
       );
 
       // ui::Menu("Assets", [&]() {});
