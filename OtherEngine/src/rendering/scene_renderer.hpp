@@ -38,8 +38,8 @@ namespace other {
     void AddPipeline(PipelineSpec& spec);
     void AddRenderPass(RenderPassSpec& spec);
 
-    const std::map<UUID, Ref<Pipeline>>& GetPipelines() const;
-    const std::map<UUID, Ref<RenderPass>>& GetRenderPasses() const;
+    std::map<UUID, Ref<Pipeline>>& GetPipelines();
+    std::map<UUID, Ref<RenderPass>>& GetRenderPasses();
 
     void AttachPassToPipeline(UUID pipeline, UUID pass);
 

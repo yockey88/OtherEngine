@@ -96,6 +96,8 @@ namespace other {
     std::string Name() const;
     const FramebufferSpec& TargetSpec() const;
 
+    const std::vector<Ref<RenderPass>>& GetRenderPasses() const;
+
     void SetViewportSize(const glm::ivec2& size);
 
     void SubmitRenderPass(const Ref<RenderPass>& render_pass);

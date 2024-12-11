@@ -49,11 +49,11 @@ namespace other {
     passes[FNV(spec.name)] = NewRef<RenderPass>(spec);
   }
 
-  const std::map<UUID, Ref<Pipeline>>& SceneRenderer::GetPipelines() const {
+  std::map<UUID, Ref<Pipeline>>& SceneRenderer::GetPipelines() {
     return pipelines;
   }
 
-  const std::map<UUID, Ref<RenderPass>>& SceneRenderer::GetRenderPasses() const {
+  std::map<UUID, Ref<RenderPass>>& SceneRenderer::GetRenderPasses() {
     return passes;
   }
 

@@ -35,6 +35,10 @@ namespace other {
     return spec.framebuffer_spec;
   }
 
+  const std::vector<Ref<RenderPass>>& Pipeline::GetRenderPasses() const {
+    return passes;
+  }
+
   void Pipeline::SetViewportSize(const glm::ivec2& size) {
     target->Resize(size);
   }
