@@ -42,6 +42,9 @@ ui = {
   *sandbox_ui = { "SandboxUI" }
 }
 
+#[
+
+for later:
 @framebuffer [final-frame] = {
   FinalFrame
   depth-function = LESS
@@ -53,3 +56,8 @@ ui = {
   color-buffer = true
   stencil-buffer = false
 }
+
+@pipeline [main-pipeline] = {
+  ...
+}
+#]

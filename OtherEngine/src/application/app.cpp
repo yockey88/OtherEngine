@@ -67,7 +67,7 @@ namespace other {
       render_specs.pipelines.push_back(Reader<PipelineSpec>{}(ss));
     }
 
-    return Renderer::DefaultSceneRenderer();
+    return Renderer::ConstructSceneRenderer(&render_specs);
   }
 
   void App::Attach() {

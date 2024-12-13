@@ -428,9 +428,40 @@ namespace other {
     //   renderer->SubmitEnvironment(environment);
     // }
     renderer->SubmitEnvironment(environment);
+    dynamic_mesh_group.each([&renderer](const Mesh& mesh, const Transform& transform) {
+      if (!AppState::Assets()->IsValid(mesh.handle)) {
+        return;
+      }
 
-    /// TODO: fix hardcoded pipeline names
-    RenderToPipeline("Geometry", renderer);
+      auto model = AssetManager::GetAsset<Model>(mesh.handle);
+      renderer->SubmitModel(model, transform.model_transform, mesh.material);
+    });
+
+    static_mesh_group.each([&renderer](const StaticMesh& mesh, const Transform& transform) {
+      if (!AppState::Assets()->IsValid(mesh.handle)) {
+        return;
+      }
+
+      auto model = AssetManager::GetAsset<StaticModel>(mesh.handle);
+      renderer->SubmitStaticModel(model, transform.model_transform, mesh.material);
+    });
+
+    // AssetHandle cube_handle = ModelFactory::CreateBox();
+
+    // light_group.each([&renderer, cube_handle, plname](const LightSource& light, const Transform& transform) {
+    //   if (light.type == DIRECTION_LIGHT_SRC) {
+    //     return;
+    //   }
+
+    //   if (!AppState::Assets()->IsValid(cube_handle)) {
+    //     return;
+    //   }
+
+    //   Material light_material = Material(light.pointlight.color, 32.f);
+
+    //   auto model = AssetManager::GetAsset<StaticModel>(cube_handle);
+    //   renderer->SubmitStaticModel(plname, model, transform.model_transform, light_material);
+    // });
 
     scene_object->Render();
   }
@@ -702,43 +733,6 @@ namespace other {
           break;
       }
     });
-  }
-
-  void Scene::RenderToPipeline(const std::string_view plname, Ref<SceneRenderer>& renderer, bool do_debug) {
-    dynamic_mesh_group.each([&renderer, plname](const Mesh& mesh, const Transform& transform) {
-      if (!AppState::Assets()->IsValid(mesh.handle)) {
-        return;
-      }
-
-      auto model = AssetManager::GetAsset<Model>(mesh.handle);
-      renderer->SubmitModel(plname, model, transform.model_transform, mesh.material);
-    });
-
-    static_mesh_group.each([&renderer, plname](const StaticMesh& mesh, const Transform& transform) {
-      if (!AppState::Assets()->IsValid(mesh.handle)) {
-        return;
-      }
-
-      auto model = AssetManager::GetAsset<StaticModel>(mesh.handle);
-      renderer->SubmitStaticModel(plname, model, transform.model_transform, mesh.material);
-    });
-
-    // AssetHandle cube_handle = ModelFactory::CreateBox();
-
-    // light_group.each([&renderer, cube_handle, plname](const LightSource& light, const Transform& transform) {
-    //   if (light.type == DIRECTION_LIGHT_SRC) {
-    //     return;
-    //   }
-
-    //   if (!AppState::Assets()->IsValid(cube_handle)) {
-    //     return;
-    //   }
-
-    //   Material light_material = Material(light.pointlight.color, 32.f);
-
-    //   auto model = AssetManager::GetAsset<StaticModel>(cube_handle);
-    //   renderer->SubmitStaticModel(plname, model, transform.model_transform, light_material);
-    // });
   }
 
   void Scene::OnAddRigidBody2D(entt::registry& context, entt::entity entt) {

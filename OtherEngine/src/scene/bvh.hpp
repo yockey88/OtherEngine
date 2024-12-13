@@ -195,9 +195,9 @@ namespace other {
       }
     }
 
-    void RenderBounds(const std::string_view pl_name, Ref<SceneRenderer>& renderer, Opt<size_t> depth = std::nullopt) {
+    void RenderBounds(Ref<SceneRenderer>& renderer, Opt<size_t> depth = std::nullopt) {
       auto& space = GetSpace();
-      space.RenderNodeBounds(pl_name, renderer, depth.value_or(Depth() - 1));
+      space.RenderNodeBounds(renderer, depth.value_or(Depth() - 1));
       for (auto& e : space.entities) {
         e->visited = false;
       }

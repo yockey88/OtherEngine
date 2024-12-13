@@ -33,7 +33,6 @@
 #include "editor/panels/shader_creator.hpp"
 #include "editor/selection_manager.hpp"
 
-
 namespace other {
   namespace {
 
@@ -132,7 +131,8 @@ namespace other {
     }
 
     /// submit editor camera for main render,
-    AppState::Scenes()->GetRenderer()->SubmitCamera(editor.editor_camera);
+    Ref<CameraBase> editor_camera = editor.editor_camera;
+    AppState::Scenes()->GetRenderer()->SubmitCamera(editor_camera);
   }
 
   void EditorLayer::OnUIRender() {
@@ -155,10 +155,7 @@ namespace other {
 
       /// render scene for editor
       if (EditorState::scene_mode != SceneEditorMode::PLAYING) {
-        active_scene->scene->Render(scene_renderer);
-        scene_renderer->RenderGbuffer();
-
-        active_scene->bvh->RenderBounds("Geometry", scene_renderer);
+        // active_scene->bvh->RenderBounds(scene_renderer);
 
         if (SelectionManager::HasSelection()) {
           Entity* selected = SelectionManager::ActiveSelection();
@@ -166,7 +163,7 @@ namespace other {
 
           RenderSubmission sub = selected->WireframeSubmission();
           OE_ASSERT(sub.model != nullptr, "Wireframe model is null!");
-          scene_renderer->SubmitStaticModel("Geometry", sub);
+          scene_renderer->SubmitStaticModel(sub);
         }
       }
 

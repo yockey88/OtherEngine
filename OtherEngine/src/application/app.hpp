@@ -37,10 +37,11 @@ namespace other {
     void OnRenderUI();
     void Detach();
 
-    struct RenderData {
+    struct RenderSpec {
       std::vector<FramebufferSpec> framebuffer_specs;
       std::vector<RenderPassSpec> render_passes;
       std::vector<PipelineSpec> pipelines;
+      std::map<UUID, std::vector<UUID>> pipeline_to_pass_map;
     } render_specs;
 
    protected:

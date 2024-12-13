@@ -441,6 +441,7 @@ namespace other {
       stream << "layout (location = 0) out vec4 g_position;\n";
       stream << "layout (location = 1) out vec4 g_normal;\n";
       stream << "layout (location = 2) out vec4 g_albedo;\n";
+      stream << "layout (location = 3) out vec4 g_depth;\n";
       stream << "#define MAX_LIGHTS 100\n";
       stream << "layout (std430 , binding = 3) readonly buffer Lights {\n";
       /// num direction lights is num_lights.x

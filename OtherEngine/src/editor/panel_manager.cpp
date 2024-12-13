@@ -18,12 +18,6 @@
 
 namespace other {
 
-  constexpr static UUID kProjectPanelId = FNV("ProjectPanel");
-  constexpr static UUID kScenePanelId = FNV("ScenePanel");
-  constexpr static UUID kPropertiesPanelId = FNV("PropertiesPanel");
-  constexpr static UUID kConsolePanelId = FNV("ConsolePanel");
-  constexpr static UUID kViewportPanelId = FNV("ViewportPanel");
-
   constexpr static uint32_t kNumDefaultPanels = 5;
 
   using PanelBuilder = Ref<EditorPanel> (*)();
@@ -31,23 +25,23 @@ namespace other {
 
   constexpr static std::array<PanelBuilderPair, kNumDefaultPanels> kPanelBuilderMap{
     PanelBuilderPair{
-      kProjectPanelId,
+      Panel::kProjectPanelId,
       []() -> Ref<EditorPanel> { return NewRef<ProjectPanel>(); },
     },
     PanelBuilderPair{
-      kScenePanelId,
+      Panel::kScenePanelId,
       []() -> Ref<EditorPanel> { return NewRef<ScenePanel>(); },
     },
     PanelBuilderPair{
-      kPropertiesPanelId,
+      Panel::kPropertiesPanelId,
       []() -> Ref<EditorPanel> { return NewRef<EntityProperties>(); },
     },
     PanelBuilderPair{
-      kConsolePanelId,
+      Panel::kConsolePanelId,
       []() -> Ref<EditorPanel> { return NewRef<LogPanel>(); },
     },
     PanelBuilderPair{
-      kViewportPanelId,
+      Panel::kViewportPanelId,
       []() -> Ref<EditorPanel> { return NewRef<ViewportPanel>(); },
     },
   };
@@ -66,6 +60,12 @@ namespace other {
     }
 
     OE_DEBUG("Panel Manager attached");
+  }
+
+  void PanelManager::OpenPanel(const UUID& panel_id) {
+    if (auto itr = active_panels.find(panel_id); itr != active_panels.end()) {
+      itr->second.panel_open = true;
+    }
   }
 
   UUID PanelManager::AddPanel(const std::string& name, const Ref<EditorPanel>& panel) {
@@ -107,8 +107,6 @@ namespace other {
 
       panel.panel->OnEarlyUpdate(dt);
     }
-
-    active_panels[kPropertiesPanelId].panel_open = SelectionManager::HasSelection();
   }
 
   void PanelManager::Update(float dt) {
@@ -119,8 +117,6 @@ namespace other {
 
       panel.panel->OnUpdate(dt);
     }
-
-    active_panels[kPropertiesPanelId].panel_open = SelectionManager::HasSelection();
   }
 
   void PanelManager::LateUpdate(float dt) {
@@ -131,8 +127,6 @@ namespace other {
 
       panel.panel->OnLateUpdate(dt);
     }
-
-    active_panels[kPropertiesPanelId].panel_open = SelectionManager::HasSelection();
   }
 
   void PanelManager::Render() {
@@ -149,8 +143,10 @@ namespace other {
 
       panel_signal = panel.panel->OnGuiRender(panel.panel_open) || panel_signal;
 
-      if (id == kPropertiesPanelId && SelectionManager::HasSelection() && !panel.panel_open) {
-        SelectionManager::ClearSelection();
+      /// dont remove these panels
+      if (id == Panel::kProjectPanelId || id == Panel::kScenePanelId || id == Panel::kPropertiesPanelId ||
+          id == Panel::kConsolePanelId || id == Panel::kViewportPanelId) {
+        continue;
       }
 
       if (!panel.panel_open) {

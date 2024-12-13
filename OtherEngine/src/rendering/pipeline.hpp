@@ -60,13 +60,6 @@ namespace other {
     float line_width = 1.f;
 
     FramebufferSpec framebuffer_spec{};
-    Layout vertex_layout;
-
-    std::vector<Uniform> model_uniforms{};
-    uint32_t model_binding_point = 0;
-
-    std::vector<Uniform> material_uniforms{};
-    uint32_t material_binding_point = 0;
 
     std::string pipeline_name;
   };
@@ -90,7 +83,7 @@ namespace other {
 
   class Pipeline : public RefCounted {
    public:
-    Pipeline(PipelineSpec& spec);
+    Pipeline(PipelineSpec& spec, FrameMeshes& submission_lists, Ref<GBuffer>& gbuffer, Ref<UniformBuffer>& model_storage, Ref<UniformBuffer>& material_storage);
     virtual ~Pipeline() override {}
 
     std::string Name() const;
@@ -107,7 +100,6 @@ namespace other {
     void SubmitStaticModel(Ref<StaticModel> model, const glm::mat4& transform, const Material& color);
     void SubmitStaticModel(const RenderSubmission& submission);
 
-    void RenderGbuffer();
     void Render();
     Ref<Framebuffer> GetOutput();
     GBuffer& GetGBuffer();
@@ -117,11 +109,11 @@ namespace other {
    private:
     uint32_t vao_id = 0;
     PipelineSpec spec{};
-    Scope<GBuffer> gbuffer = nullptr;
+    FrameMeshes& model_submissions;
 
+    Ref<GBuffer> gbuffer = nullptr;
     Ref<UniformBuffer> model_storage = nullptr;
     Ref<UniformBuffer> material_storage = nullptr;
-    FrameMeshes model_submissions;
 
     Ref<Framebuffer> target = nullptr;
     std::vector<Ref<RenderPass>> passes{};
@@ -144,11 +136,11 @@ namespace other {
       WriteKeyValue(os, "depth-test", spec.depth_test) << "    ";
       WriteKeyValue(os, "line-width", spec.line_width) << "    ";
       WriteKeyValue(os, "framebuffer-spec", spec.framebuffer_spec) << "    ";
-      WriteKeyValue(os, "vertex-layout", spec.vertex_layout) << "    ";
-      WriteKeyValue(os, "model-binding-point", spec.model_binding_point) << "    ";
-      WriteKeyValue(os, "model-uniforms", spec.model_uniforms) << "    ";
-      WriteKeyValue(os, "material-binding-point", spec.material_binding_point) << "    ";
-      WriteKeyValue(os, "material-uniforms", spec.material_uniforms) << "  ";
+      // WriteKeyValue(os, "vertex-layout", spec.vertex_layout) << "    ";
+      // WriteKeyValue(os, "model-binding-point", spec.model_binding_point) << "    ";
+      // WriteKeyValue(os, "model-uniforms", spec.model_uniforms) << "    ";
+      // WriteKeyValue(os, "material-binding-point", spec.material_binding_point) << "    ";
+      // WriteKeyValue(os, "material-uniforms", spec.material_uniforms) << "  ";
       EndWriteList(os) << "\n";
       return os;
     }
@@ -176,20 +168,20 @@ namespace other {
       auto [fbk, framebuffer_spec] = ReadKeyValue(stream, Reader<FramebufferSpec>{});
       spec.framebuffer_spec = framebuffer_spec;
 
-      auto [vlk, vertex_layout] = ReadKeyValue(stream, Reader<Layout>{});
-      spec.vertex_layout = vertex_layout;
+      // auto [vlk, vertex_layout] = ReadKeyValue(stream, Reader<Layout>{});
+      // spec.vertex_layout = vertex_layout;
 
-      auto [mbpk, model_binding_point] = ReadKeyValue(stream, Reader<uint32_t>{});
-      spec.model_binding_point = model_binding_point;
+      // auto [mbpk, model_binding_point] = ReadKeyValue(stream, Reader<uint32_t>{});
+      // spec.model_binding_point = model_binding_point;
 
-      auto [muk, model_uniforms] = ReadKeyValue(stream, Reader<std::vector<Uniform>>{});
-      spec.model_uniforms = model_uniforms;
+      // auto [muk, model_uniforms] = ReadKeyValue(stream, Reader<std::vector<Uniform>>{});
+      // spec.model_uniforms = model_uniforms;
 
-      auto [mbpk2, material_binding_point] = ReadKeyValue(stream, Reader<uint32_t>{});
-      spec.material_binding_point = material_binding_point;
+      // auto [mbpk2, material_binding_point] = ReadKeyValue(stream, Reader<uint32_t>{});
+      // spec.material_binding_point = material_binding_point;
 
-      auto [muk2, material_uniforms] = ReadKeyValue(stream, Reader<std::vector<Uniform>>{});
-      spec.material_uniforms = material_uniforms;
+      // auto [muk2, material_uniforms] = ReadKeyValue(stream, Reader<std::vector<Uniform>>{});
+      // spec.material_uniforms = material_uniforms;
       EndReadList(stream);
       return spec;
     }

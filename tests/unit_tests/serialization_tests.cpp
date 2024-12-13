@@ -620,11 +620,6 @@ TEST_F(SerializationTests, pipeline_spec) {
         .color = true,
         .stencil = false,
       },
-      .vertex_layout = {},
-      .model_uniforms = {},
-      .model_binding_point = 0,
-      .material_uniforms = {},
-      .material_binding_point = 0,
       .pipeline_name = "Pipeline",
     };
 
@@ -643,18 +638,6 @@ TEST_F(SerializationTests, pipeline_spec) {
     color-buffer = true
     stencil-buffer = false
   }
-
-    vertex-layout = {
-      }
-
-    model-binding-point = 0
-    model-uniforms = {
-      }
-
-    material-binding-point = 0
-    material-uniforms = {
-      }
-
   }
 )";
 
@@ -677,21 +660,6 @@ TEST_F(SerializationTests, pipeline_spec) {
         .color = true,
         .stencil = false,
       },
-      .vertex_layout = {
-        { ValueType::VEC3, "position" },
-        { ValueType::VEC3, "normal" },
-        { ValueType::VEC3, "tangent" },
-        { ValueType::VEC3, "binormal" },
-        { ValueType::VEC2, "uvs" },
-      },
-      .model_uniforms = {
-        { "models", ValueType::MAT4, 100 },
-      },
-      .model_binding_point = 1,
-      .material_uniforms = {
-        { "materials", ValueType::USER_TYPE, 100, sizeof(other::Material) },
-      },
-      .material_binding_point = 2,
       .pipeline_name = "Pipeline",
     };
 
@@ -709,24 +677,6 @@ TEST_F(SerializationTests, pipeline_spec) {
     depth-buffer = true
     color-buffer = true
     stencil-buffer = false
-  }
-
-    vertex-layout = {
-      vec3:position,
-      vec3:normal,
-      vec3:tangent,
-      vec3:binormal,
-      vec2:uvs
-  }
-
-    model-binding-point = 1
-    model-uniforms = {
-      mat4:models:100
-  }
-
-    material-binding-point = 2
-    material-uniforms = {
-      user_type:materials:100
   }
 
   }
@@ -753,21 +703,6 @@ TEST_F(SerializationTests, pipeline_spec) {
           color-buffer = true
           stencil-buffer = false
         }
-        vertex-layout = {
-          vec3:position,
-          vec3:normal,
-          vec3:tangent,
-          vec3:binormal,
-          vec2:uvs
-        }
-        model-binding-point = 0
-        model-uniforms = {
-          mat4:models:100
-        }
-        material-binding-point = 0
-        material-uniforms = {
-          user-type:materials:100
-        }
       }
     )";
 
@@ -786,31 +721,5 @@ TEST_F(SerializationTests, pipeline_spec) {
     EXPECT_EQ(spec.framebuffer_spec.depth, true);
     EXPECT_EQ(spec.framebuffer_spec.color, true);
     EXPECT_EQ(spec.framebuffer_spec.stencil, false);
-
-    ASSERT_EQ(spec.vertex_layout.Elements().size(), 5u);
-    EXPECT_EQ(spec.vertex_layout.Elements()[0].type, ValueType::VEC3);
-    EXPECT_EQ(spec.vertex_layout.Elements()[0].name, "position");
-    EXPECT_EQ(spec.vertex_layout.Elements()[1].type, ValueType::VEC3);
-    EXPECT_EQ(spec.vertex_layout.Elements()[1].name, "normal");
-    EXPECT_EQ(spec.vertex_layout.Elements()[2].type, ValueType::VEC3);
-    EXPECT_EQ(spec.vertex_layout.Elements()[2].name, "tangent");
-    EXPECT_EQ(spec.vertex_layout.Elements()[3].type, ValueType::VEC3);
-    EXPECT_EQ(spec.vertex_layout.Elements()[3].name, "binormal");
-    EXPECT_EQ(spec.vertex_layout.Elements()[4].type, ValueType::VEC2);
-    EXPECT_EQ(spec.vertex_layout.Elements()[4].name, "uvs");
-
-    EXPECT_EQ(spec.model_binding_point, 0);
-    ASSERT_EQ(spec.model_uniforms.size(), 1u);
-    EXPECT_EQ(spec.model_uniforms[0].name, "models");
-    EXPECT_EQ(spec.model_uniforms[0].type, ValueType::MAT4);
-    EXPECT_EQ(spec.model_uniforms[0].arr_length, 100);
-    EXPECT_EQ(spec.model_uniforms[0].size, 64);
-
-    EXPECT_EQ(spec.material_binding_point, 0);
-    ASSERT_EQ(spec.material_uniforms.size(), 1u);
-    EXPECT_EQ(spec.material_uniforms[0].name, "materials");
-    EXPECT_EQ(spec.material_uniforms[0].type, ValueType::USER_TYPE);
-    EXPECT_EQ(spec.material_uniforms[0].arr_length, 100);
-    EXPECT_EQ(spec.material_uniforms[0].size, 0);
   }
 }

@@ -390,8 +390,8 @@ namespace other {
 
     void Subdivide(size_t depth);
 
-    void RenderEntityBounds(const std::string_view pl_name, Ref<SceneRenderer>& renderer, bool outline);
-    void RenderNodeBounds(const std::string_view pl_name, Ref<SceneRenderer>& renderer, size_t depth);
+    void RenderEntityBounds(Ref<SceneRenderer>& renderer, bool outline);
+    void RenderNodeBounds(Ref<SceneRenderer>& renderer, size_t depth);
 
     int64_t tree_index = -1;
 

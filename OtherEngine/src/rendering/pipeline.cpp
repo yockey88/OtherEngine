@@ -20,11 +20,12 @@ namespace other {
     };
   }
 
-  Pipeline::Pipeline(PipelineSpec& s)
-      : spec(s), gbuffer(NewScope<GBuffer>(s.framebuffer_spec.size)) {
+  Pipeline::Pipeline(PipelineSpec& s, FrameMeshes& submission_lists, Ref<GBuffer>& gbuffer, Ref<UniformBuffer>& model_storage, Ref<UniformBuffer>& material_storage)
+      : spec(s), model_submissions(submission_lists) {
     target = Ref<Framebuffer>::Create(spec.framebuffer_spec);
-    model_storage = NewRef<UniformBuffer>("ModelData", spec.model_uniforms, spec.model_binding_point, SHADER_STORAGE);
-    material_storage = NewRef<UniformBuffer>("MaterialData", spec.material_uniforms, spec.material_binding_point, SHADER_STORAGE);
+    this->gbuffer = gbuffer;
+    this->model_storage = model_storage;
+    this->material_storage = material_storage;
   }
 
   std::string Pipeline::Name() const {
@@ -78,47 +79,7 @@ namespace other {
     ++sl.instance_count;
   }
 
-  void Pipeline::RenderGbuffer() {
-    OE_ASSERT(gbuffer != nullptr, "GBuffer is null!");
-    OE_ASSERT(model_storage != nullptr, "Model storage is null!");
-    OE_ASSERT(material_storage != nullptr, "Material storage is null!");
-
-    material_storage->Clear();
-    model_storage->Clear();
-
-    gbuffer->Bind();
-    CHECKGL();
-
-    RenderAll();
-    CHECKGL();
-
-    gbuffer->Unbind();
-    CHECKGL();
-  }
-
   void Pipeline::Render() {
-    /** Passes to implement
-     * ----------------
-     * shadow mapping (expensive) :
-     *  direct light map pass (from viewpoint of primary direct light source)
-     *  spot shadow map pass (from each pointlight ???)
-     *
-     * pre depth pass
-     * hzb compute
-     * pre integration
-     * light culling
-     * skybox pass
-     * GTAO compute
-     * GTAO denoise compute
-     * AO Composite
-     * pre convolution compute
-     * jump flood
-     * ssr compute
-     * ssr composite
-     * edge detection
-     * bloom compute
-     * composite pass
-     **/
     material_storage->Clear();
     model_storage->Clear();
 

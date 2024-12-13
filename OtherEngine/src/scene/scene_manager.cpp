@@ -425,10 +425,6 @@ namespace other {
     /// render scene
     active_scene->scene->Render(scene_renderer);
 
-    /// render gbuffer only with scene objects
-    ///   otherwise editor objects get included in lighting calculations
-    scene_renderer->RenderGbuffer();
-
     /// let editor render more stuff on top
     if (AppState::mode != EngineMode::EDITOR) {
       return scene_renderer->FinalizeScene();

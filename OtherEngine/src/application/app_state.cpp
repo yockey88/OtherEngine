@@ -264,7 +264,7 @@ namespace other {
 
   void AppState::HandleRender() {
     Renderer::GetWindow()->Clear();
-    data->scenes->GetRenderer()->ClearPipelines();
+    data->scenes->GetRenderer()->Clear();
 
     data->app_handle->OnRender();
     data->layers->InvokeControlledLoop(&Layer::Render);

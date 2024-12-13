@@ -46,7 +46,7 @@ namespace other {
         return;
       }
 
-      AppState::Scenes()->GetRenderer()->AddRenderPass(spec);
+      // AppState::Scenes()->GetRenderer()->AddRenderPass(spec);
     });
 
     ImGui::Text("Renderpass Specification");

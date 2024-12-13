@@ -28,30 +28,12 @@ namespace other {
     }
 
     ui::Button("Finalize Pipeline", [&]() {
-      spec.vertex_layout = {
-        { ValueType::VEC3, "position" },
-        { ValueType::VEC3, "normal" },
-        { ValueType::VEC3, "tangent" },
-        { ValueType::VEC3, "binormal" },
-        { ValueType::VEC2, "uvs" }
-      };
-
-      spec.model_binding_point = 1;
-      spec.model_uniforms = {
-        { "models", ValueType::MAT4, 100 },
-      };
-
-      spec.material_binding_point = 2;
-      spec.material_uniforms = {
-        { "materials", ValueType::USER_TYPE, 100, sizeof(Material) },
-      };
-
       spec.pipeline_name = std::string{ pipeline_name.data() };
 
       Ref<SceneRenderer> renderer = AppState::Scenes()->GetRenderer();
       OE_ASSERT(renderer != nullptr, "No scene renderer found");
 
-      renderer->AddPipeline(spec);
+      // renderer->AddPipeline(spec);
 
       is_open = false;
     });

@@ -8,7 +8,7 @@
 
 namespace other {
 
-  void DecomposeTransformMatrix(const glm::mat4& matrix, glm::vec3& translation, glm::quat& rotation, glm::vec3& scale);
+  bool DecomposeTransformMatrix(const glm::mat4& matrix, glm::vec3& translation, glm::quat& rotation, glm::vec3& scale);
 
 }  // namespace other
 

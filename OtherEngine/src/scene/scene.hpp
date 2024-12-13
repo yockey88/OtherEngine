@@ -120,8 +120,6 @@ namespace other {
 
     Ref<LightEnvironment> environment = nullptr;
 
-    void RenderToPipeline(const std::string_view plname, Ref<SceneRenderer>& scene_renderer, bool do_debug = false);
-
     void OnAddRigidBody2D(entt::registry& context, entt::entity ent);
     void OnAddCollider2D(entt::registry& context, entt::entity ent);
 

@@ -113,7 +113,7 @@ namespace other {
 
     RenderSubmission submission = {
       .model = model,
-      .transform = glm::scale(ReadComponent<Transform>().model_transform, glm::vec3(1.01f)),
+      .transform = glm::scale(ReadComponent<Transform>().model_transform, glm::vec3(1.03f)),
       .material = mat,
       .render_state = RenderState::FILL,
       .draw_mode = DrawMode::LINES,

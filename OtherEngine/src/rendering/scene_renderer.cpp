@@ -6,8 +6,10 @@
 #include <glad/glad.h>
 
 #include "core/defines.hpp"
+#include "core/filesystem.hpp"
 #include "core/logger.hpp"
 
+#include "rendering/geometry_pass.hpp"
 #include "rendering/pipeline.hpp"
 #include "rendering/uniform.hpp"
 
@@ -21,65 +23,10 @@ namespace other {
   SceneRenderer::~SceneRenderer() {
   }
 
-  void SceneRenderer::AddPipeline(PipelineSpec& spec) {
-    if (spec.pipeline_name.empty()) {
-      OE_ERROR("Pipeline name is empty!");
-      return;
-    }
-
-    if (pipelines.find(FNV(spec.pipeline_name)) != pipelines.end()) {
-      OE_ERROR("Pipeline {} already exists!", spec.pipeline_name);
-      return;
-    }
-
-    pipelines[FNV(spec.pipeline_name)] = NewRef<Pipeline>(spec);
-  }
-
-  void SceneRenderer::AddRenderPass(RenderPassSpec& spec) {
-    if (spec.name.empty()) {
-      OE_ERROR("Render pass name is empty!");
-      return;
-    }
-
-    if (passes.find(FNV(spec.name)) != passes.end()) {
-      OE_ERROR("Render pass {} already exists!", spec.name);
-      return;
-    }
-
-    passes[FNV(spec.name)] = NewRef<RenderPass>(spec);
-  }
-
-  std::map<UUID, Ref<Pipeline>>& SceneRenderer::GetPipelines() {
-    return pipelines;
-  }
-
-  std::map<UUID, Ref<RenderPass>>& SceneRenderer::GetRenderPasses() {
-    return passes;
-  }
-
-  void SceneRenderer::AttachPassToPipeline(UUID pipeline, UUID pass) {
-    auto pl_itr = pipelines.find(pipeline);
-    if (pl_itr == pipelines.end()) {
-      OE_ERROR("Pipeline {} not found!", pipeline);
-      return;
-    }
-
-    auto pass_itr = passes.find(pass);
-    if (pass_itr == passes.end()) {
-      OE_ERROR("Render pass {} not found!", pass);
-      return;
-    }
-
-    pl_itr->second->SubmitRenderPass(pass_itr->second);
-  }
-
   void SceneRenderer::SetViewportSize(const glm::ivec2& size) {
-    for (auto& [_, pl] : pipelines) {
-      pl->SetViewportSize(size);
-    }
   }
 
-  void SceneRenderer::SubmitCamera(const Ref<CameraBase>& camera) {
+  void SceneRenderer::SubmitCamera(Ref<CameraBase>& camera) {
     if (frame_data.viewpoint != nullptr) {
       /// only one viewpoint per frame
       return;
@@ -97,7 +44,7 @@ namespace other {
     frame_data.viewpoint = camera;
   }
 
-  void SceneRenderer::SubmitEnvironment(const Ref<LightEnvironment>& environment) {
+  void SceneRenderer::SubmitEnvironment(Ref<LightEnvironment>& environment) {
     if (frame_data.environment != nullptr) {
       /// only one environment per frame
       return;
@@ -130,49 +77,89 @@ namespace other {
     light_uniforms->SetUniform("num_lights", light_count);
   }
 
-  void SceneRenderer::SubmitModel(const std::string_view pl_name, Ref<Model> model, const glm::mat4& transform, const Material& material) {
-    if (model == nullptr) {
-      return;
-    }
-  }
-
-  void SceneRenderer::SubmitStaticModel(const std::string_view pl_name, Ref<StaticModel> model, const glm::mat4& transform, const Material& material) {
+  void SceneRenderer::SubmitModel(Ref<Model> model, const glm::mat4& transform, const Material& material, DrawMode topology) {
     if (model == nullptr) {
       return;
     }
 
-    auto itr = pipelines.find(FNV(pl_name));
-    if (itr == pipelines.end()) {
-      OE_ERROR("Submitting model to unknown pipeline {}!", pl_name);
+    SubmitStaticModel({
+      .model = model,
+      .transform = transform,
+      .material = material,
+      .draw_mode = topology,
+    });
+
+    // for (auto& [id, pl] : pipelines) {
+    //   pl->SubmitModel(model, transform, material);
+    // }
+  }
+
+  void SceneRenderer::SubmitStaticModel(Ref<StaticModel> model, const glm::mat4& transform, const Material& material, DrawMode topology) {
+    if (model == nullptr) {
       return;
     }
 
-    itr->second->SubmitStaticModel(model, transform, material);
+    SubmitStaticModel({
+      .model = model,
+      .transform = transform,
+      .material = material,
+      .draw_mode = topology,
+    });
+
+    // for (auto& [id, pl] : pipelines) {
+    //   pl->SubmitStaticModel(model, transform, material);
+    // }
   }
 
-  void SceneRenderer::SubmitStaticModel(const std::string_view pl_name, const RenderSubmission& submission) {
+  void SceneRenderer::SubmitStaticModel(const RenderSubmission& submission) {
     if (submission.model == nullptr) {
       return;
     }
+    Ref<ModelSource> source = submission.model->GetModelSource();
+    MeshKey key = submission;
 
-    auto itr = pipelines.find(FNV(pl_name));
-    if (itr == pipelines.end()) {
-      OE_ERROR("Submitting model to unknown pipeline {}!", pl_name);
-      return;
+    auto itr = model_submissions.find(key);
+    if (itr == model_submissions.end()) {
+      auto& verts = submission.model->GetModelSource()->RawVertices();
+      auto& idxs = submission.model->GetModelSource()->Indices();
+
+      itr = InsertMeshKey(key, verts, idxs);
     }
 
-    itr->second->SubmitStaticModel(submission);
+    OE_ASSERT(itr != model_submissions.end(), "Failed to insert mesh key");
+    auto& [mk, sl] = *itr;
+    sl.cpu_model_storage.BufferData(submission.transform);
+    sl.cpu_material_storage.BufferData(submission.material);
+    ++sl.instance_count;
+
+    // for (auto& [id, pl] : pipelines) {
+    //   pl->SubmitStaticModel(submission);
+    // }
   }
 
   void SceneRenderer::RenderGbuffer() {
+    OE_ASSERT(gbuffer != nullptr, "GBuffer is null!");
+    OE_ASSERT(model_storage != nullptr, "Model storage is null!");
+    OE_ASSERT(material_storage != nullptr, "Material storage is null!");
     if (!FrameComplete()) {
       return;
     }
 
     PreRenderSettings();
-    for (auto& [id, pl] : pipelines) {
-      pl->RenderGbuffer();
+
+    material_storage->Clear();
+    model_storage->Clear();
+
+    gbuffer->Bind();
+    CHECKGL();
+
+    for (auto& [mk, sl] : model_submissions) {
+      RenderMeshList(mk, sl.instance_count, sl.cpu_model_storage, sl.cpu_material_storage);
     }
+    CHECKGL();
+
+    gbuffer->Unbind();
+    CHECKGL();
   }
 
   bool SceneRenderer::RenderAll() {
@@ -181,60 +168,53 @@ namespace other {
     }
 
     PreRenderSettings();
-    FlushDrawList();
+    RenderGbuffer();
+    Render();
     return true;
   }
 
   bool SceneRenderer::FinalizeScene() {
-    if (!FrameComplete()) {
-      ResetFrame();
+    if (!RenderAll()) {
       return false;
     }
-
-    PreRenderSettings();
-    FlushDrawList();
     ResetFrame();
     return true;
   }
 
-  void SceneRenderer::ClearPipelines() {
-    for (auto& [id, pl] : pipelines) {
-      pl->Clear();
+  void SceneRenderer::Clear() {
+    /// dont clear the mesh key for a tiny optimization on future submissions
+    for (auto& [mk, sl] : model_submissions) {
+      sl.cpu_model_storage.ZeroMem();
+      sl.cpu_material_storage.ZeroMem();
+      sl.instance_count = 0;
     }
+    model_submissions.clear();
   }
 
-  const std::map<UUID, Ref<Framebuffer>>& SceneRenderer::GetRender() const {
-    return image_ir;
+  const Ref<Framebuffer>& SceneRenderer::GetRender() const {
+    return framebuffers.final_frame;
   }
 
   void SceneRenderer::Initialize() {
-    /// already made render passes
-    for (auto& rp : spec.passes) {
-      passes[FNV(rp->Name())] = Ref<RenderPass>::Clone(rp);
-    }
+    Path engine_core_dir = Filesystem::GetEngineCoreDir();
+    Path geometry_shader_path = engine_core_dir / "OtherEngine" / "assets" / "shaders" / "default.oshader";
 
-    /// pipelines
-    for (auto& pl : spec.pipelines) {
-      pipelines[FNV(pl.pipeline_name)] = NewRef<Pipeline>(pl);
-    }
+    Ref<Directory> shader_dir = Filesystem::GetDirectory("shaders");
+    Ref<FileHandle> depth_shader_file = shader_dir->GetFile("depth_shader.oshader");
+    OE_ASSERT(depth_shader_file != nullptr, "Failed to get shader file : {}", "depth_shader.oshader");
 
-    for (auto& [pipeline_id, pass_list] : spec.pipeline_to_pass_map) {
-      auto itr = pipelines.find(pipeline_id);
-      if (itr == pipelines.end()) {
-        continue;
-      }
-      auto [_, pipeline] = *itr;
+    Ref<Shader> depth_shader = BuildShader(depth_shader_file->AbsolutePath());
+    RenderPassSpec depth_spec = {
+      .name = "depth-pass",
+      .tag_col = { 1.f, 0.f, 0.f, 1.f },
+      .shader = depth_shader,
+    };
 
-      for (auto& pass_id : pass_list) {
-        auto pass_itr = passes.find(pass_id);
-        if (pass_itr == passes.end()) {
-          continue;
-        }
-        auto [__, pass] = *pass_itr;
+    std::vector<Uniform> geometry_unis = {};
+    Ref<Shader> geometry_shader = BuildShader(geometry_shader_path);
 
-        pipeline->SubmitRenderPass(pass);
-      }
-    }
+    render_passes.depth_pass = NewRef<RenderPass>(depth_spec);
+    render_passes.geometry_pass = NewRef<GeometryPass>(geometry_unis, geometry_shader);
 
     uint32_t camera_binding_pnt = spec.camera_binding_pnt;
     std::vector<Uniform> cam_unis = spec.cam_unis.size() > 0 ?
@@ -254,17 +234,75 @@ namespace other {
         { "direction_lights", ValueType::USER_TYPE, 100, sizeof(DirectionLight) },
       };
 
+    spec.vertex_layout = {
+      { ValueType::VEC3, "position" },
+      { ValueType::VEC3, "normal" },
+      { ValueType::VEC3, "tangent" },
+      { ValueType::VEC3, "binormal" },
+      { ValueType::VEC2, "uvs" }
+    };
+
+    spec.model_binding_point = 1;
+    spec.model_uniforms = {
+      { "models", ValueType::MAT4, 100 },
+    };
+    spec.material_binding_point = 2;
+    spec.material_uniforms = {
+      { "materials", ValueType::USER_TYPE, 100, sizeof(Material) },
+    };
+
+    gbuffer = NewRef<GBuffer>(glm::ivec2{ 1920, 1080 });
     camera_uniforms = NewRef<UniformBuffer>("Camera", cam_unis, camera_binding_pnt);
+    model_storage = NewRef<UniformBuffer>("ModelData", spec.model_uniforms, spec.model_binding_point, SHADER_STORAGE);
+    material_storage = NewRef<UniformBuffer>("MaterialData", spec.material_uniforms, spec.material_binding_point, SHADER_STORAGE);
     light_uniforms = NewRef<UniformBuffer>("Lights", light_unis, light_binding_pnt, SHADER_STORAGE);
+
     OE_ASSERT(camera_uniforms != nullptr, "Failed to create camera uniforms");
     OE_ASSERT(light_uniforms != nullptr, "Failed to create light uniforms");
 
     camera_uniforms->BindBase();
+    model_storage->BindBase();
+    material_storage->BindBase();
     light_uniforms->BindBase();
+
+    FramebufferSpec shadow_map_spec = {
+      .depth_func = LESS,
+      .clear_color = { 0.f, 0.5f, 0.4f, 1.f },
+      .size = { 1920, 1080 },
+      .depth = true,
+      .color = false,
+      .stencil = false,
+    };
+    framebuffers.shadow_map = NewRef<Framebuffer>(shadow_map_spec);
+
+    FramebufferSpec depth_tex_spec = {
+      .depth_func = LESS,
+      .clear_color = { 0.f, 0.f, 0.f, 1.f },
+      .size = { 1920, 1080 },
+    };
+    framebuffers.depth_texture = NewRef<Framebuffer>(depth_tex_spec);
+
+    FramebufferSpec final_frame_spec = {
+      .depth_func = LESS_EQUAL,
+      .clear_color = { 0.1f, 0.1f, 0.1f, 1.f },
+      .size = { 1920, 1080 },
+    };
+    framebuffers.final_frame = NewRef<Framebuffer>(final_frame_spec);
   }
 
   void SceneRenderer::Shutdown() {
-    pipelines.clear();
+    gbuffer = nullptr;
+
+    framebuffers.shadow_map = nullptr;
+    framebuffers.depth_texture = nullptr;
+    framebuffers.final_frame = nullptr;
+
+    model_submissions.clear();
+
+    camera_uniforms = nullptr;
+    light_uniforms = nullptr;
+    model_storage = nullptr;
+    material_storage = nullptr;
   }
 
   void SceneRenderer::PreRenderSettings() {
@@ -272,11 +310,96 @@ namespace other {
     ///       but not below
   }
 
-  void SceneRenderer::FlushDrawList() {
-    for (auto& [id, pl] : pipelines) {
-      pl->Render();
-      image_ir[id] = pl->GetOutput();
+  void SceneRenderer::Render() {
+    material_storage->Clear();
+    model_storage->Clear();
+
+    /** Passes to implement
+     * ----------------
+     * shadow mapping (expensive) :
+     *  shadow map pass
+     *  spot shadow map pass
+     *
+     * pre depth pass
+     * hzb compute
+     * pre integration
+     * light culling
+     * skybox pass
+     * geometry pass
+     *
+     * if GTAO passes:
+     *  GTAO compute
+     *  GTAO denoise compute
+     *  AO Composite
+     *
+     * pre convolution compute
+     *
+     * if jump flood:
+     *  jump flood
+     *
+     * if SSR pases:
+     *  ssr compute
+     *  ssr composite
+     *
+     * if edge detection passes:
+     *  edge detection
+     *
+     * bloom compute
+     * composite pass
+     **/
+
+    framebuffers.shadow_map->BindFrame();
+    PerformPass(render_passes.shadow_map_pass);
+    framebuffers.shadow_map->UnbindFrame();
+
+    framebuffers.depth_texture->BindFrame();
+    PerformPass(render_passes.depth_pass);
+    framebuffers.depth_texture->UnbindFrame();
+    CHECKGL();
+
+    framebuffers.final_frame->BindFrame();
+    PerformPass(render_passes.geometry_pass);
+    framebuffers.final_frame->UnbindFrame();
+    CHECKGL();
+  }
+
+  void SceneRenderer::PerformDepthPass() {
+  }
+
+  void SceneRenderer::PerformPass(Ref<RenderPass>& pass) {
+    OE_ASSERT(pass != nullptr, "Render pass is null!");
+    CHECKGL();
+
+    pass->Bind();
+    pass->SetInput("goe_position", 0);
+    pass->SetInput("goe_normal", 1);
+    pass->SetInput("goe_albedo", 2);
+
+    CHECKGL();
+    for (auto& [mk, sl] : model_submissions) {
+      RenderMeshList(mk, sl.instance_count, sl.cpu_model_storage, sl.cpu_material_storage);
     }
+
+    CHECKGL();
+
+    pass->Unbind();
+    CHECKGL();
+  }
+
+  void SceneRenderer::RenderMeshList(const MeshKey& mesh_key, uint32_t instance_count, const Buffer& model_buffer, const Buffer& material_buffer) {
+    model_storage->BindBase();
+    CHECKGL();
+    model_storage->LoadFromBuffer(model_buffer);
+    CHECKGL();
+
+    material_storage->BindBase();
+    material_storage->LoadFromBuffer(material_buffer);
+
+    mesh_key.vao->Bind();
+
+    glPolygonMode(GL_FRONT_AND_BACK, mesh_key.render_state);
+    glDrawElementsInstancedBaseVertexBaseInstance(mesh_key.draw_mode, mesh_key.num_elements, GL_UNSIGNED_INT, (void*)0, instance_count, 0, 0);
+    CHECKGL();
   }
 
   bool SceneRenderer::FrameComplete() const {
@@ -287,6 +410,26 @@ namespace other {
   void SceneRenderer::ResetFrame() {
     frame_data.viewpoint = nullptr;
     frame_data.environment = nullptr;
+  }
+
+  FrameMeshes::iterator SceneRenderer::InsertMeshKey(MeshKey& key, const std::vector<float>& vertices, const std::vector<Index>& indices) {
+    std::vector<uint32_t> idxs{};
+    for (const auto& i : indices) {
+      idxs.push_back(i.v1);
+      idxs.push_back(i.v2);
+      idxs.push_back(i.v3);
+    }
+
+    key.vao = NewRef<VertexArray>(vertices, idxs);
+    key.num_elements = key.vao->NumElements();
+
+    MeshSubmissionList msl{
+      .instance_count = 0,
+      .cpu_model_storage = Buffer(),  /// pre-allocate here?
+      .cpu_material_storage = Buffer(),
+    };
+
+    return model_submissions.insert({ key, std::move(msl) }).first;
   }
 
 }  // namespace other

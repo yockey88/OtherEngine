@@ -13,19 +13,38 @@
 #include "math/matrix_math.hpp"
 
 #include "application/app_state.hpp"
+#include "event/event_queue.hpp"
 
 #include "rendering/pipeline.hpp"
 #include "rendering/renderer.hpp"
 #include "rendering/ui/ui_helpers.hpp"
 
-#include "editor/editor_settings.hpp"
 #include "editor/editor_state.hpp"
 #include "editor/selection_manager.hpp"
 
 namespace other {
 
-  void ViewportPanel::OnRender() {
+  void ViewportPanel::OnAttach() {
+    // EditorState& editor = EditorState::Get();
+    // editor.editor_camera = NewRef<CameraBase>();
+    // editor.editor_camera->SetProjectionType(CameraBase::ProjectionType::PERSPECTIVE);
+    // editor.editor_camera->SetPosition({ 0.f, 0.f, 5.f });
+    // editor.editor_camera->SetDirection({ 0.f, 0.f, -1.f });
+    // editor.editor_camera->SetUp({ 0.f, 1.f, 0.f });
+    // editor.editor_camera->SetFov(45.f);
+    // editor.editor_camera->SetNear(0.1f);
+    // editor.editor_camera->SetFar(1000.f);
+
+    EditorState& editor = EditorState::Get();
+    editor.guizmo_mode = ImGuizmo::MODE::LOCAL;
+
+    EventQueue::RegisterEventDispatcher<KeyPressed>(
+      "ViewportPanel--KeyPressed",
+      { std::bind_front(&ViewportPanel::HandleKeyPressed, this) }
+    );
   }
+
+  void ViewportPanel::OnRender() {}
 
   bool ViewportPanel::OnGuiRender(bool& is_open) {
     if (!is_open) {
@@ -39,14 +58,16 @@ namespace other {
       return false;
     }
 
+    window_hovered = ImGui::IsWindowHovered();
+
     EditorState& editor = EditorState::Get();
 
     // clang-format off
-    bool open_framebuffer_menu = false;
+    open_framebuffer_menu = false;
     ui::MenuBar([&]() {
       ui::Menu(
         "Options",
-        ui::MenuItem{ "Change Final Framebuffer", [&]() { open_framebuffer_menu = true; } }
+        ui::MenuItem{ "Framebuffer Options", [&]() { open_framebuffer_menu = true; } }
       );
 
       ui::Menu(
@@ -64,62 +85,70 @@ namespace other {
     });
     // clang-format on
 
-    if (open_framebuffer_menu) {
-      ImGui::OpenPopup("Rendered Framebuffers");
-    }
-    if (ImGui::BeginPopupModal("Rendered Framebuffers")) {
-      Ref<SceneRenderer> renderer = AppState::Scenes()->GetRenderer();
-      OE_ASSERT(renderer != nullptr, "No renderer found in scene");
+    Ref<SceneRenderer> renderer = AppState::Scenes()->GetRenderer();
+    OE_ASSERT(renderer != nullptr, "No renderer found in scene");
 
-      auto& pipelines = renderer->GetPipelines();
-      for (const auto& [id, pipeline] : pipelines) {
-        /// TODO: render little preview of framebuffer
-        if (ui::BeginTreeNode(pipeline->Name().c_str(), false)) {
-          ImGui::PushID(id.Get());
-          ImGui::Text("Clear Color: %f, %f, %f, %f", pipeline->TargetSpec().clear_color.r, pipeline->TargetSpec().clear_color.g, pipeline->TargetSpec().clear_color.b, pipeline->TargetSpec().clear_color.a);
-          ImGui::Text("Output Size: %d x %d", pipeline->TargetSpec().size.x, pipeline->TargetSpec().size.y);
+    RenderFramebufferList(renderer);
 
-          ui::Button("Set Active", [&]() {
-            editor.current_viewport_name = id;
-            ImGui::CloseCurrentPopup();
-          });
-
-          ImGui::PopID();
-          ui::EndTreeNode();
-        }
-      }
-
-      ImGui::EndPopup();
-    }
+    viewport = renderer->GetRender();
 
     if (AppState::Scenes()->HasActiveScene()) {
-      EditorState& editor = EditorState::Get();
-
-      Ref<SceneRenderer> renderer = AppState::Scenes()->GetRenderer();
-      OE_ASSERT(renderer != nullptr, "No renderer found in scene");
-
-      /// FIXME: frame is hardcodede
-      auto& frames = renderer->GetRender();
-      Ref<Framebuffer> viewport = nullptr;
-      auto itr = frames.find(editor.current_viewport_name);
-      if (itr == frames.end()) {
-        // default to geometry frame
-        itr = frames.find(FNV("Geometry"));
+      if (viewport == nullptr) {
+        ScopedColor red_text(ImGuiCol_Text, ui::theme::red);
+        ImGui::Text("Failed to find viewport frame, settings may be corrupt");
+      } else {
+        RenderViewport(viewport);
       }
-      viewport = itr->second;
-
-      RenderViewport(viewport);
     }
 
     ImGui::End();
     return true;
   }
 
-  void ViewportPanel::OnProjectChange(const Ref<Project>& project) {
-  }
+  void ViewportPanel::OnProjectChange(const Ref<Project>& project) {}
 
   void ViewportPanel::SetSceneContext(const Ref<Scene>& scene) {
     active_scene = scene;
+  }
+
+  void ViewportPanel::RenderFramebufferList(Ref<SceneRenderer>& renderer) {
+    OE_ASSERT(renderer != nullptr, "No renderer found in scene");
+    if (open_framebuffer_menu) {
+      ImGui::OpenPopup("Rendered Framebuffers");
+    }
+
+    if (ImGui::BeginPopupModal("Rendered Framebuffers")) {
+      ui::Button("Close", []() { ImGui::CloseCurrentPopup(); });
+
+      EditorState& editor = EditorState::Get();
+      auto& pipelines = renderer->framebuffers;
+      // for (auto& [id, pipeline] : pipelines) {
+      //   /// TODO: render little preview of framebuffer
+      //   if (ui::BeginTreeNode(pipeline->Name().c_str(), false)) {
+      //     ImGui::PushID(id.Get());
+      //     ImGui::Text("Clear Color: %f, %f, %f, %f", pipeline->TargetSpec().clear_color.r, pipeline->TargetSpec().clear_color.g, pipeline->TargetSpec().clear_color.b, pipeline->TargetSpec().clear_color.a);
+      //     ImGui::Text("Output Size: %d x %d", pipeline->TargetSpec().size.x, pipeline->TargetSpec().size.y);
+
+      //     ImVec2 size = {
+      //       pipeline->TargetSpec().size.x * 0.25f,
+      //       pipeline->TargetSpec().size.y * 0.25f
+      //     };
+
+      //     void* texture_id = (void*)(uintptr_t)pipeline->GetOutput()->texture;
+      //     ImGui::Image(texture_id, size, { 0, 1 }, { 1, 0 }, { 1, 1, 1, 1 }, { 0, 0, 1, 1 });
+
+      //     ui::Button("Set Active", [&]() {
+      //       editor.current_viewport_name = id;
+      //       ImGui::CloseCurrentPopup();
+      //     });
+
+      //     ImGui::PopID();
+      //     ui::EndTreeNode();
+      //   }
+      // }
+
+      ImGui::EndPopup();
+    }
   }
 
   void ViewportPanel::RenderViewport(const Ref<Framebuffer>& viewport) {
@@ -131,7 +160,10 @@ namespace other {
     ui::MenuBar([&]() {
       ui::Menu(
         "Tools",
-        ui::MenuItem("Translate", [&]() { editor.guizmo_op = ImGuizmo::OPERATION::TRANSLATE; }),
+        ui::MenuItem(
+          "Translate",
+          [&]() { editor.guizmo_op = ImGuizmo::OPERATION::TRANSLATE; }
+        ),
         ui::MenuItem("Rotate", [&]() { editor.guizmo_op = ImGuizmo::OPERATION::ROTATE; }),
         ui::MenuItem("Scale", [&]() { editor.guizmo_op = ImGuizmo::OPERATION::SCALE; })
       );
@@ -139,7 +171,10 @@ namespace other {
       ui::Menu(
         "Modes",
         ui::MenuItem("Local", [&]() { editor.guizmo_mode = ImGuizmo::MODE::LOCAL; }),
-        ui::MenuItem("World", [&]() { /* editor.guizmo_mode = ImGuizmo::MODE::WORLD; */ })
+        ui::MenuItem(
+          "World",
+          [&]() { /* editor.guizmo_mode = ImGuizmo::MODE::WORLD; */ }
+        )
       );
     });
 
@@ -211,51 +246,47 @@ namespace other {
     OE_ASSERT(selected != nullptr, "Active Selection is null!");
 
     Transform& transform = selected->GetComponent<Transform>();
-
-    ImGuizmo::SetOrthographic(false);
-    ImGuizmo::SetDrawlist();
-
-    ImVec2 window_pos = ImGui::GetWindowPos();
-    ImGuizmo::SetRect(window_pos.x, window_pos.y, window_size.x, window_size.y);
+    transform.CalcMatrix();
 
     /// have to copy here so that we don't effect the originals
     glm::mat4 view = editor.editor_camera->ViewMatrix();
     glm::mat4 projection = editor.editor_camera->ProjectionMatrix();
     glm::mat4 model = transform.model_transform;
 
-    // clang-format off
-    if (ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(projection), editor.guizmo_op, editor.guizmo_mode,
-        glm::value_ptr(model), nullptr, nullptr)) {
-      // clang-format on
-
+    ImVec2 window_pos = ImGui::GetWindowPos();
+    ImGuizmo::SetOrthographic(false);
+    ImGuizmo::SetDrawlist();
+    ImGuizmo::SetRect(window_pos.x, window_pos.y, window_size.x, window_size.y);
+    if (ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(projection), editor.guizmo_op, editor.guizmo_mode, glm::value_ptr(model)) &&
+        ImGuizmo::IsUsing()) {
       glm::vec3 translation;
       glm::quat rotation;
       glm::vec3 scale;
       DecomposeTransformMatrix(model, translation, rotation, scale);
 
       switch (editor.guizmo_op) {
-        case ImGuizmo::TRANSLATE_X:
-        case ImGuizmo::TRANSLATE_Y:
-        case ImGuizmo::TRANSLATE_Z:
+        // case ImGuizmo::TRANSLATE_X:
+        // case ImGuizmo::TRANSLATE_Y:
+        // case ImGuizmo::TRANSLATE_Z:
         case ImGuizmo::TRANSLATE:
           transform.position = translation;
           break;
 
-        case ImGuizmo::ROTATE_X:
-        case ImGuizmo::ROTATE_Y:
-        case ImGuizmo::ROTATE_Z:
+        // case ImGuizmo::ROTATE_X:
+        // case ImGuizmo::ROTATE_Y:
+        // case ImGuizmo::ROTATE_Z:
         case ImGuizmo::ROTATE:
           transform.qrotation = rotation;
           transform.erotation = glm::eulerAngles(rotation);
           break;
 
-        case ImGuizmo::SCALE_X:
-        case ImGuizmo::SCALE_Y:
-        case ImGuizmo::SCALE_Z:
-        case ImGuizmo::SCALE_XU:
-        case ImGuizmo::SCALE_YU:
-        case ImGuizmo::SCALE_ZU:
-        case ImGuizmo::SCALEU:
+        // case ImGuizmo::SCALE_X:
+        // case ImGuizmo::SCALE_Y:
+        // case ImGuizmo::SCALE_Z:
+        // case ImGuizmo::SCALE_XU:
+        // case ImGuizmo::SCALE_YU:
+        // case ImGuizmo::SCALE_ZU:
+        // case ImGuizmo::SCALEU:
         case ImGuizmo::SCALE:
           transform.scale = scale;
           break;
@@ -265,10 +296,37 @@ namespace other {
         case ImGuizmo::ROTATE_SCREEN:
           /// no-op
           break;
+
+        default:
+          break;
       }
 
       transform.CalcMatrix();
     }
+  }
+
+  bool ViewportPanel::HandleKeyPressed(KeyPressed& event) {
+    EditorState& editor = EditorState::Get();
+    if (!window_hovered && editor.scene_mode == SceneEditorMode::STOPPED) {
+      return false;
+    }
+
+    if (event.Key() == Keyboard::Key::OE_W) {
+      editor.guizmo_op = ImGuizmo::OPERATION::TRANSLATE;
+      return true;
+    }
+
+    if (event.Key() == Keyboard::Key::OE_E) {
+      editor.guizmo_op = ImGuizmo::OPERATION::ROTATE;
+      return true;
+    }
+
+    if (event.Key() == Keyboard::Key::OE_R) {
+      editor.guizmo_op = ImGuizmo::OPERATION::SCALE;
+      return true;
+    }
+
+    return false;
   }
 
 }  // namespace other
