@@ -17,65 +17,15 @@
 
 namespace other {
 
-  struct Bone {
-    glm::mat4 sub_mesh_inverse = glm::mat4(1.f);
-    glm::mat4 inverse_bind_pose = glm::mat4(1.f);
-    uint32_t sub_mesh_idx = 0;
-    uint32_t bone_idx = 0;
-  };
-
-  /// bone serializer?
-
-  struct BoneInfl {
-    uint32_t bone_info_indices[4] = { 0, 0, 0, 0 };
-    float weights[4] = { 0.f, 0.f, 0.f, 0.f };
-
-    /// void AddBoneData(uint32_t idx , float weight) {}
-    /// void NormalizeWeights() {}
-  };
-
-  static constexpr int32_t num_attributes = 5;
-
-  struct Index {
-    uint32_t v1, v2, v3;
-  };
-
-  class SubMesh {
-   public:
-    uint32_t base_vertex = 0;
-    uint32_t base_idx = 0;
-    uint32_t mat_idx = 0;
-    uint32_t idx_cnt = 0;
-    uint32_t vert_cnt = 0;
-
-    glm::mat4 transform{ 0.f };
-    glm::mat4 local_transform{ 0.f };
-    BBox bounds{};
-
-    UUID sub_mesh_id;
-    std::string model_name;
-
-    bool rigged = false;
-  };
-
-  struct MeshNode {
-    uint32_t parent = 0xFFFFFFFF;
-    std::vector<uint32_t> children;
-    std::vector<uint32_t> sub_meshes;
-
-    std::string name;
-    glm::mat4 local_transform;
-
-    inline bool Root() const {
-      return parent == 0xFFFFFFFF;
-    }
-  };
+  class Model;
 
   class ModelSource : public Asset {
    public:
     OE_ASSET(MODEL_SOURCE);
 
     ModelSource() {}
+    ModelSource(std::vector<float>& vertices, std::vector<uint32_t>& indices, Layout& layout);
+    ModelSource(std::vector<float>& vertices, std::vector<Index>& indices, Layout& layout);
     ModelSource(std::vector<Vertex>& vertices, std::vector<Index>& indices, const glm::mat4& transform);
     ModelSource(std::vector<Vertex>& vertices, std::vector<Index>& indices, std::vector<SubMesh>& submeshes);
 
@@ -83,6 +33,8 @@ namespace other {
 
     std::vector<SubMesh>& SubMeshes();
     const std::vector<SubMesh>& SubMeshes() const;
+
+    static Ref<Model> CreateModel(Ref<ModelSource>& source, const std::vector<uint32_t>& sub_meshes = {});
 
     void DumpVertexBuffer();
 
@@ -102,6 +54,12 @@ namespace other {
     const Layout& GetLayout() const;
 
    private:
+    friend class Model;
+    friend class StaticModel;
+    friend class ModelFactory;
+
+    size_t models_produced = 0;
+
     std::vector<SubMesh> submeshes;
 
     Ref<VertexBuffer> vertex_buffer;
@@ -137,25 +95,20 @@ namespace other {
 
     explicit Model(Ref<ModelSource>& mesh_source);
     Model(Ref<ModelSource>& mesh_src, const std::vector<uint32_t>& sub_meshes);
+    Model(const std::vector<float>& vertices, const std::vector<uint32_t>& indices, const std::vector<uint32_t>& submeshes);
     Model(const Ref<Model>& other);
     virtual ~Model() {}
 
-    Ref<VertexArray> GetMesh() const;
-
     const std::vector<uint32_t>& SubMeshes() const;
-
     void SetSubMeshes(const std::vector<uint32_t>& sub_meshes);
+    Ref<ModelSource> GetModelSource() const;
 
     void RebuildMesh();
 
-    Ref<ModelSource> GetModelSource();
-    Ref<ModelSource> GetModelSource() const;
-
-    void SetModelAsset(Ref<ModelSource> model_src);
+    Ref<VertexArray> model_vao = nullptr;
 
    private:
     Ref<ModelSource> model_source;
-    Ref<VertexArray> model_vao = nullptr;
     std::vector<uint32_t> sub_meshes;
 
     // Ref<MaterialTable> material_table;
@@ -173,19 +126,15 @@ namespace other {
     Ref<VertexArray> GetMesh() const;
 
     const std::vector<uint32_t>& SubMeshes() const;
-
     void SetSubMeshes(const std::vector<uint32_t>& sub_meshes);
+    Ref<ModelSource> GetModelSource() const;
 
     void RebuildMesh();
 
-    Ref<ModelSource> GetModelSource();
-    Ref<ModelSource> GetModelSource() const;
-
-    void SetModelAsset(Ref<ModelSource>& mesh_src);
+    Ref<VertexArray> model_vao = nullptr;
 
    private:
     Ref<ModelSource> model_source;
-    Ref<VertexArray> model_vao = nullptr;
     std::vector<uint32_t> sub_meshes;
 
     /// Ref<MaterialTable> material_table;

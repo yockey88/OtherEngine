@@ -37,6 +37,7 @@ namespace other {
     static void UnregisterAsset(const AssetHandle metadata);
 
     static std::set<AssetHandle> GetAllOfType(AssetType type);
+    static std::set<AssetKey> GetAllKeysOfType(AssetType type);
   };
 
 }  // namespace other

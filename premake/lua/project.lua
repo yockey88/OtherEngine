@@ -4,7 +4,7 @@ require("workspace")
 local function ProjectHeader(project_data)
   project (project_data.name)
     kind (project_data.kind)
-    if kind == "ConsoleApp" then
+    if project_data.kind == "ConsoleApp" then
       debuggertype "NativeWithManagedCore"
     end
 
@@ -58,10 +58,12 @@ local function ProcessWindowsFilters()
   filter { "configurations:Release" }
     postbuildcommands {
       '{COPY} "%{wks.location}externals/sdl2/lib/Release/SDL2.dll" "%{cfg.targetdir}"',
+      '{COPY} "%{wks.location}externals/assimp/lib/Release/assimp-vc143-mt.dll" "%{cfg.targetdir}"',
     }
   filter { "configurations:Debug" }
     postbuildcommands {
       '{COPY} "%{wks.location}externals/sdl2/lib/Debug/SDL2d.dll" "%{cfg.targetdir}"',
+      '{COPY} "%{wks.location}externals/assimp/lib/Debug/assimp-vc143-mtd.dll" "%{cfg.targetdir}"',
     }
 end
 
@@ -115,9 +117,16 @@ function ProcessProjectComponents(project)
 end
 
 local function ProcessConfigurations(project , external)
+    project.cross_platform_main = project.cross_platform_main or false  
+
     filter "system:windows"
-      systemversion "latest"
-      entrypoint "WinMainCRTStartup"
+      systemversion "latest"  
+      if project.kind == "ConsoleApp" and project.cross_platform_main then
+        entrypoint "mainCRTStartup"
+      elseif project.kind == "ConsoleApp" then
+        entrypoint "WinMainCRTStartup"
+      end
+
       defines { "OE_WINDOWS" }
       if project.windows_configuration ~= nil then
           project.windows_configuration()
@@ -267,6 +276,11 @@ end
 
 function AddModule(project)
   _AddProjectOrModule(project , ProcessModuleComponents)
+end
+
+function AddConsoleProject(project)
+  project.cross_platform_main = true
+  _AddProjectOrModule(project , ProcessProjectComponents)
 end
 
 function AddProject(project)

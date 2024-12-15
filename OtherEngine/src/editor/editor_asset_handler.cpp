@@ -18,13 +18,7 @@ namespace other {
   }
 
   Ref<Asset> EditorAssetHandler::GetAsset(AssetHandle handle) {
-    if (handle == 0) {
-      OE_ERROR("Invalid asset handle : {}", handle);
-      return nullptr;
-    }
-
     if (!IsHandleValid(handle)) {
-      OE_ERROR("Asset handle not valid : {}", handle);
       return nullptr;
     }
 
@@ -50,6 +44,12 @@ namespace other {
     OE_ASSERT(AssetDatabase::HasKey(key), "Asset not found : {}", key.file_handle);
 
     AssetMetadata& metadata = AssetDatabase::Get(key);
+    if (metadata.memory_asset) {
+      OE_ASSERT(metadata.asset != nullptr, "Memory asset not found : {}", key.file_handle);
+      OE_ASSERT(metadata.handle != 0, "Memory asset handle is 0 : {}", key.file_handle);
+      return metadata.asset;
+    }
+
     if (metadata.handle == 0) {
       TryLoadAsset(metadata);
     }
@@ -79,6 +79,10 @@ namespace other {
   }
 
   bool EditorAssetHandler::IsHandleValid(AssetHandle handle) {
+    if (handle == 0) {
+      return false;
+    }
+
     return AssetDatabase::Contains(handle);
   }
 
@@ -141,6 +145,10 @@ namespace other {
 
   std::set<AssetHandle> EditorAssetHandler::GetAllOfType(AssetType type) {
     return AssetDatabase::GetAllOfType(type);
+  }
+
+  std::set<AssetKey> EditorAssetHandler::GetAllKeysOfType(AssetType type) {
+    return AssetDatabase::GetAllKeysOfType(type);
   }
 
 }  // namespace other

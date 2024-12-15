@@ -9,7 +9,6 @@
 
 #include <glm/fwd.hpp>
 #include <glm/glm.hpp>
-
 #include <reflection/echo_defines.hpp>
 
 #include "core/buffer.hpp"
@@ -111,6 +110,8 @@ namespace other {
     bool IsArray() const;
     size_t Size() const;
     size_t NumElements() const;
+
+    static uint32_t NumElements(ValueType type);
 
     template <typename T>
     /// because setters are limited to this we limit the types that can be unwrapped as well

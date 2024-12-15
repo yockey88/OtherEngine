@@ -10,6 +10,7 @@ fragment {
 
   out vec4 FragColor;
 
+  /// TODO: make these uniforms
   float near = 0.1;
   float far = 100.0;
 

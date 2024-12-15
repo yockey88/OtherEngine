@@ -13,8 +13,11 @@ namespace other {
   Material LightSource::debug_light_mat = Material({ 1.f, 1.f, 1.f, 1.f }, 32.f);
 
   void LightSourceSerializer::Serialize(std::ostream& stream, Entity* entity, const Ref<Scene>& scene) const {
-    auto& light_source = entity->GetComponent<LightSource>();
+    if (!entity->HasComponent<LightSource>()) {
+      return;
+    }
 
+    auto& light_source = entity->GetComponent<LightSource>();
     SerializeComponentSection(stream, entity, "light-source");
     stream << "\n";
   }
@@ -35,6 +38,17 @@ namespace other {
           .direction = direction.value_or(glm::vec4{ 0.f, -1.f, 0.f, 1.f }),
           .color = color,
         };
+
+        auto& transform = entity->GetComponent<Transform>();
+        transform.erotation = glm::vec3(light.direction_light.direction);
+        transform.position = -glm::normalize(glm::vec3(light.direction_light.direction)) * 10.f;
+        light.direction_light.position = glm::vec4(transform.position, 1.0);
+
+        float near_plane = 0.1f, far_plane = 100.f;
+        // glm::vec3 light_target = transform.position + glm::vec3(light.direction_light.direction);
+        glm::mat4 light_projection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+        glm::mat4 light_view = glm::lookAt(transform.position, glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f));
+        light.direction_light.light_space_matrix = light_projection * light_view;
       } break;
       case POINT_LIGHT_SRC: {
         auto position = scene_table.GetVal<glm::vec4>(key_value, kPositionValue, false);
@@ -50,7 +64,9 @@ namespace other {
           .linear = linear,
           .quadratic = quadratic,
         };
-        light.pointlight.position = glm::vec4(entity->ReadComponent<Transform>().position, 1.f);
+
+        auto& transform = entity->GetComponent<Transform>();
+        transform.position = glm::vec3(light.pointlight.position);
       } break;
       default:
         return;

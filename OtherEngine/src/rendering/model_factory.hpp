@@ -12,6 +12,8 @@ namespace other {
 
   class ModelFactory {
    public:
+    static AssetHandle CreateFramebufferMesh();
+
     static AssetHandle CreateLine(const glm::vec3& start, const glm::vec3& end);
 
     static AssetHandle CreateTriangle();
@@ -24,6 +26,8 @@ namespace other {
     static AssetHandle CreateCapsule(float radius = 0.25f, float height = 1.f);
 
    private:
+    static Opt<AssetHandle> framebuffer_mesh_handle;
+
     static Opt<AssetHandle> line_handle;
 
     static Opt<AssetHandle> triangle_handle;

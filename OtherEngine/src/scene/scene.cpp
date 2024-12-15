@@ -311,16 +311,6 @@ namespace other {
 
     /// TODO: rigid body 3d here
 
-    /// update environment
-    registry.view<LightSource, Transform>().each([](LightSource& light, Transform& transform) {
-      if (light.type == POINT_LIGHT_SRC) {
-        /// sync pointlight transforms to pointlight data
-        transform.position = light.pointlight.position;
-        transform.scale = glm::vec3(0.2f);
-      } else {
-      }
-    });
-
     /// update transforms after other updates, dont overwrite physics changes
     registry.view<Transform>(entt::exclude<RigidBody2D, Collider2D, RigidBody, Collider>).each([](Transform& transform) {
       transform.CalcMatrix();
@@ -361,6 +351,40 @@ namespace other {
 
   void Scene::LateUpdate(float dt) {
     OE_ASSERT(initialized, "Updating scene without initialization");
+
+    /// update environment even if scene is not running
+    registry.view<LightSource, Transform>().each([&](LightSource& light, Transform& transform) {
+      environment->direction_light = std::nullopt;
+      environment->point_lights.clear();
+
+      glm::mat4 eye = glm::mat4(1.f);
+      if (light.type == DIRECTION_LIGHT_SRC) {
+        /// sync direction light transforms to light data
+        transform.erotation = glm::vec3(light.direction_light.direction);
+        transform.position = -glm::normalize(glm::vec3(light.direction_light.direction)) * 10.f;
+        light.direction_light.position = glm::vec4(transform.position, 1.0);
+
+        float near_plane = 0.1f, far_plane = 100.f;
+        // glm::vec3 light_target = transform.position + glm::vec3(light.direction_light.direction);
+        glm::mat4 light_projection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+        glm::mat4 light_view = glm::lookAt(transform.position, glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f));
+        light.direction_light.light_space_matrix = light_projection * light_view;
+
+      } else if (light.type == POINT_LIGHT_SRC) {
+        /// sync pointlight transforms to pointlight data
+        transform.position = light.pointlight.position;
+        transform.scale = glm::vec3(0.2f);
+
+        // light.pointlight.light_space_matrix = glm::translate(eye, light.pointlight.position);
+      }
+
+      if (light.type == DIRECTION_LIGHT_SRC && !environment->direction_light.has_value()) {
+        environment->direction_light = light.direction_light;
+      } else if (light.type == POINT_LIGHT_SRC) {
+        environment->point_lights.push_back(light.pointlight);
+      }
+    });
+
     if (!running) {
       return;
     }
@@ -719,15 +743,17 @@ namespace other {
 
   void Scene::RebuildEnvironment() {
     /// rebuild environment on light source change
+    environment->direction_light = std::nullopt;
     environment->point_lights.clear();
-    environment->direction_lights.clear();
     registry.view<LightSource, Transform>().each([this](LightSource& light, Transform& transform) {
       switch (light.type) {
         case POINT_LIGHT_SRC:
           environment->point_lights.push_back(light.pointlight);
           break;
         case DIRECTION_LIGHT_SRC:
-          environment->direction_lights.push_back(light.direction_light);
+          if (!environment->direction_light.has_value()) {
+            environment->direction_light = light.direction_light;
+          }
           break;
         default:
           break;

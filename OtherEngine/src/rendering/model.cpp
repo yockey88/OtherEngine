@@ -5,11 +5,52 @@
 
 #include <glad/glad.h>
 
-#include "core/rand.hpp"
+#include "asset/asset_defines.hpp"
+#include "asset/asset_manager.hpp"
 
 #include "rendering/rendering_defines.hpp"
 
 namespace other {
+
+  ModelSource::ModelSource(std::vector<float>& vertices, std::vector<uint32_t>& indices, Layout& topology) {
+    fvertices.swap(vertices);
+    layout = topology;
+    raw_layout = layout.GetRawLayout();
+    raw_indices.swap(indices);
+
+    vertex_buffer = NewRef<VertexBuffer>(fvertices.data(), fvertices.size() * sizeof(float));
+    if (indices.size() > 0) {
+      index_buffer = NewRef<VertexBuffer>(indices.data(), 3 * indices.size() * sizeof(uint32_t), STATIC_DRAW, ELEMENT_ARRAY_BUFFER);
+    }
+
+    OE_ASSERT(vertex_buffer != nullptr, "null vertex buffer after model creation!");
+  }
+
+  ModelSource::ModelSource(std::vector<float>& vertices, std::vector<Index>& idxs, Layout& layout) {
+    SubMesh submesh;
+    submesh.base_vertex = 0;
+    submesh.base_idx = 0;
+    submesh.idx_cnt = static_cast<uint32_t>(idxs.size());
+    submesh.transform = glm::mat4(1.f);
+    submeshes.push_back(submesh);
+
+    fvertices.swap(vertices);
+    raw_layout = layout.GetRawLayout();
+    this->layout = layout;
+
+    for (auto& idx : idxs) {
+      raw_indices.push_back(idx.v1);
+      raw_indices.push_back(idx.v2);
+      raw_indices.push_back(idx.v3);
+    }
+
+    indices.swap(idxs);
+
+    vertex_buffer = NewRef<VertexBuffer>(fvertices.data(), fvertices.size() * sizeof(float));
+    if (indices.size() > 0) {
+      index_buffer = NewRef<VertexBuffer>(indices.data(), 3 * indices.size() * sizeof(uint32_t), STATIC_DRAW, ELEMENT_ARRAY_BUFFER);
+    }
+  }
 
   ModelSource::ModelSource(std::vector<Vertex>& verts, std::vector<Index>& idxs, const glm::mat4& transform) {
     SubMesh submesh;
@@ -70,6 +111,13 @@ namespace other {
 
   const std::vector<SubMesh>& ModelSource::SubMeshes() const {
     return submeshes;
+  }
+
+  Ref<Model> ModelSource::CreateModel(Ref<ModelSource>& source, const std::vector<uint32_t>& sub_meshes) {
+    const AssetMetadata& meta = AppState::Assets()->GetMetadata(source->handle);
+    AssetHandle handle = AssetManager::CreateMemOnly<Model>(fmtstr("{}.{}", meta.path, source->models_produced), source);
+    ++source->models_produced;
+    return AssetManager::GetAsset<Model>(handle);
   }
 
   void ModelSource::DumpVertexBuffer() {
@@ -188,12 +236,8 @@ namespace other {
   Model::Model(const Ref<Model>& other) {
     handle = other->handle;
     model_source = Ref<ModelSource>::Clone(other->model_source);
-    SetSubMeshes({});
-    RebuildMesh();
-  }
-
-  Ref<VertexArray> Model::GetMesh() const {
-    return Ref<VertexArray>::Clone(model_vao);
+    sub_meshes = other->sub_meshes;
+    model_vao = other->model_vao;
   }
 
   const std::vector<uint32_t>& Model::SubMeshes() const {
@@ -204,39 +248,55 @@ namespace other {
     if (!sms.empty()) {
       sub_meshes = sms;
     } else {
-      const auto& src_submeshes = model_source->SubMeshes();
-      sub_meshes.resize(src_submeshes.size());
-      for (uint32_t i = 0; i < sub_meshes.size(); ++i) {
-        sub_meshes[i] = i;
-      }
+      sub_meshes = {};
     }
   }
 
   void Model::RebuildMesh() {
-    auto& raw_vertices = model_source->RawVertices();
+    OE_ASSERT(model_source != nullptr, "Model has null source!");
+    if (model_vao != nullptr) {
+      return;
+    }
+
+    auto& src_verts = model_source->RawVertices();
     auto& idxs = model_source->Indices();
 
     std::vector<uint32_t> raw_indices{};
-    for (const auto& i : idxs) {
-      raw_indices.push_back(i.v1);
-      raw_indices.push_back(i.v2);
-      raw_indices.push_back(i.v3);
+    std::vector<float> raw_vertices{};
+
+    if (!sub_meshes.empty()) {
+      const std::vector<SubMesh>& src_submeshes = model_source->SubMeshes();
+
+      for (const uint32_t sm_idx : sub_meshes) {
+        const SubMesh& sm = src_submeshes[sm_idx];
+
+        for (uint32_t i = sm.base_vertex; i < sm.base_vertex + sm.vert_cnt; ++i) {
+          raw_vertices.push_back(src_verts[i]);
+        }
+        for (uint32_t i = sm.base_idx; i < sm.base_idx + sm.idx_cnt; ++i) {
+          raw_indices.push_back(idxs[i].v1);
+          raw_indices.push_back(idxs[i].v2);
+          raw_indices.push_back(idxs[i].v3);
+        }
+      }
+    } else {
+      for (const auto& v : src_verts) {
+        raw_vertices.push_back(v);
+      }
+      for (const auto& i : idxs) {
+        raw_indices.push_back(i.v1);
+        raw_indices.push_back(i.v2);
+        raw_indices.push_back(i.v3);
+      }
     }
 
     model_vao = NewRef<VertexArray>(raw_vertices, raw_indices);
     OE_ASSERT(model_vao != nullptr, "null model vao after model creation!");
   }
 
-  Ref<ModelSource> Model::GetModelSource() {
-    return Ref<ModelSource>::Clone(model_source);
-  }
-
   Ref<ModelSource> Model::GetModelSource() const {
+    OE_ASSERT(model_source != nullptr, "Model has null source!");
     return Ref<ModelSource>::Clone(model_source);
-  }
-
-  void Model::SetModelAsset(Ref<ModelSource> mesh_src) {
-    /// idk
   }
 
   StaticModel::StaticModel(Ref<ModelSource>& model_source) {
@@ -260,12 +320,8 @@ namespace other {
   StaticModel::StaticModel(const Ref<StaticModel>& other) {
     handle = other->handle;
     model_source = Ref<ModelSource>::Clone(other->model_source);
-    SetSubMeshes({});
-    RebuildMesh();
-  }
-
-  Ref<VertexArray> StaticModel::GetMesh() const {
-    return Ref<VertexArray>::Clone(model_vao);
+    sub_meshes = other->sub_meshes;
+    model_vao = other->model_vao;
   }
 
   const std::vector<uint32_t>& StaticModel::SubMeshes() const {
@@ -276,34 +332,56 @@ namespace other {
     if (!sms.empty()) {
       sub_meshes = sms;
     } else {
-      const auto& src_submeshes = model_source->SubMeshes();
-      OE_DEBUG("Submeshes for model source = {}", model_source->SubMeshes().size());
-      for (uint32_t i = 0; i < src_submeshes.size(); ++i) {
-        sub_meshes.push_back(i);
-      }
+      sub_meshes = {};
     }
-
-    OE_DEBUG("Model {} has {} submeshes", handle, sub_meshes.size());
   }
 
   void StaticModel::RebuildMesh() {
-    auto& raw_vertices = model_source->RawVertices();
-    auto& raw_indices = model_source->RawIndices();
+    OE_ASSERT(model_source != nullptr, "Static Model has null source!");
+    if (model_vao != nullptr) {
+      return;
+    }
 
-    model_vao = NewRef<VertexArray>(raw_vertices, raw_indices);
+    const std::vector<float>& src_vertices = model_source->RawVertices();
+    const std::vector<Index>& src_indices = model_source->Indices();
+    const std::vector<uint32_t>& src_raw_indices = model_source->RawIndices();
+    const std::vector<uint32_t>& src_layout = model_source->RawLayout();
+
+    std::vector<float> raw_vertices{};
+    std::vector<uint32_t> raw_indices{};
+
+    if (!sub_meshes.empty()) {
+      const std::vector<SubMesh>& src_submeshes = model_source->SubMeshes();
+
+      for (const uint32_t sm_idx : sub_meshes) {
+        const SubMesh& sm = src_submeshes[sm_idx];
+
+        for (uint32_t i = sm.base_vertex; i < sm.base_vertex + sm.vert_cnt; ++i) {
+          raw_vertices.push_back(src_vertices[i]);
+        }
+
+        for (uint32_t i = sm.base_idx; i < sm.base_idx + sm.idx_cnt; ++i) {
+          raw_indices.push_back(src_indices[i].v1);
+          raw_indices.push_back(src_indices[i].v2);
+          raw_indices.push_back(src_indices[i].v3);
+        }
+      }
+    } else {
+      raw_vertices = src_vertices;
+      for (const auto& i : src_indices) {
+        raw_indices.push_back(i.v1);
+        raw_indices.push_back(i.v2);
+        raw_indices.push_back(i.v3);
+      }
+    }
+
+    model_vao = NewRef<VertexArray>(src_vertices, src_raw_indices, src_layout);
     OE_ASSERT(model_vao != nullptr, "null model vao after model creation!");
   }
 
-  Ref<ModelSource> StaticModel::GetModelSource() {
-    OE_ASSERT(model_source != nullptr, "Static Model has null source!");
-    return model_source;
-  }
-
   Ref<ModelSource> StaticModel::GetModelSource() const {
-    return nullptr;
-  }
-
-  void StaticModel::SetModelAsset(Ref<ModelSource>& mesh_src) {
+    OE_ASSERT(model_source != nullptr, "Static Model has null source!");
+    return Ref<ModelSource>::Clone(model_source);
   }
 
 }  // namespace other

@@ -17,6 +17,8 @@
 
 namespace other {
 
+  struct PipelineRenderPassRegistration;
+
   struct SceneRenderSpec {
     uint32_t camera_binding_pnt = 0;
     std::vector<Uniform> cam_unis = {};
@@ -35,24 +37,29 @@ namespace other {
     std::vector<PipelineSpec> pipelines;
     std::vector<Ref<RenderPass>> passes;
 
-    std::map<UUID, std::vector<UUID>> pipeline_to_pass_map;
+    std::map<UUID, std::vector<UUID>> pipeline_custom_passes;
+    std::map<UUID, PipelineRenderPassRegistration> pipeline_passes;
   };
 
   class SceneRenderer : public RefCounted {
    public:
-    SceneRenderer(SceneRenderSpec spec = SceneRenderSpec());
+    SceneRenderer(SceneRenderSpec spec);
     virtual ~SceneRenderer() override;
+
+    const std::map<UUID, Ref<Pipeline>>& GetPipelines() const;
 
     template <typename T>
     void SetLightUniform(const std::string_view name, const T& val, uint32_t index = 0) {
-      light_uniforms->BindBase();
-      light_uniforms->SetUniform(name, val, index);
+      OE_ASSERT(frame_data.light_uniforms != nullptr, "Light uniforms are null");
+      frame_data.light_uniforms->BindBase();
+      frame_data.light_uniforms->SetUniform(name, val, index);
     }
 
     template <typename T>
     void SetCameraUniform(const std::string_view name, const T& val, uint32_t index = 0) {
-      camera_uniforms->BindBase();
-      camera_uniforms->SetUniform(name, val, index);
+      OE_ASSERT(frame_data.camera_uniforms != nullptr, "Camera uniforms are null");
+      frame_data.camera_uniforms->BindBase();
+      frame_data.camera_uniforms->SetUniform(name, val, index);
     }
 
     void SetViewportSize(const glm::ivec2& size);
@@ -65,97 +72,81 @@ namespace other {
     void SubmitDirectionLight(const DirectionLight& light);
     void SubmitPointLight(const PointLight& light);
 
-    void SubmitModel(Ref<Model> model, const glm::mat4& transform, const Material& material, DrawMode topology = DrawMode::TRIANGLES);
-    void SubmitStaticModel(Ref<StaticModel> model, const glm::mat4& transform, const Material& material, DrawMode topology = DrawMode::TRIANGLES);
-    void SubmitStaticModel(const RenderSubmission& submission);
+    void SubmitModel(const Ref<Model>& model, const glm::mat4& transform, const Material& material, DrawMode topology = DrawMode::TRIANGLES);
+    void SubmitModel(const RenderSubmission& submission);
 
-    void RenderGbuffer();
-    bool RenderAll();
-    bool FinalizeScene();
+    void SubmitStaticModel(const Ref<StaticModel>& model, const glm::mat4& transform, const Material& material, DrawMode topology = DrawMode::TRIANGLES);
+    void SubmitStaticModel(const RenderStaticSubmission& submission);
+
+    void SubmitModel(const std::vector<std::string>& pls, const Ref<Model>& model, const glm::mat4& transform, const Material& material, DrawMode topology = DrawMode::TRIANGLES);
+    void SubmitModel(const std::vector<std::string>& pls, const RenderSubmission& submission);
+
+    void SubmitStaticModel(const std::vector<std::string>& pls, const Ref<StaticModel>& model, const glm::mat4& transform, const Material& material, DrawMode topology = DrawMode::TRIANGLES);
+    void SubmitStaticModel(const std::vector<std::string>& pls, const RenderStaticSubmission& submission);
+
+    bool Render();
 
     void Clear();
 
-    const Ref<Framebuffer>& GetRender() const;
+    Ref<Framebuffer> GetRender(UUID pipeline_id) const;
 
-    struct Framebuffers {
-      Ref<Framebuffer> shadow_map = nullptr;
-      Ref<Framebuffer> depth_texture = nullptr;
-      Ref<Framebuffer> final_frame = nullptr;
-    } framebuffers;
+    enum RenderPassIndex {
+      SHADOW_MAP = 0,
+      DEPTH_PASS,
+      GEOMETRY_PASS,
 
-   private:
-    enum GBufferTextureType {
-      POSITION = 0,
-      NORMALS,
-      ALBEDO,
-      SPECULAR,
-
-      NUM_GBUFFER_TEXTURES,
+      NUM_RENDER_PASSES,
     };
 
+    enum FramebufferIndex {
+      SHADOW_MAP_FB = 0,
+      DEPTH_TEXTURE_FB,
+      FINAL_FRAME_FB,
+
+      NUM_FRAMEBUFFERS,
+    };
+
+   private:
     struct FrameSubmissions {
       Ref<CameraBase> viewpoint = nullptr;
       Ref<LightEnvironment> environment = nullptr;
+
+      Ref<UniformBuffer> camera_uniforms = nullptr;
+      Ref<UniformBuffer> light_uniforms = nullptr;
+
+      ~FrameSubmissions();
     } frame_data;
 
-    struct Passes {
-      Ref<RenderPass> shadow_map_pass = nullptr;
-      Ref<RenderPass> depth_pass = nullptr;
-      Ref<RenderPass> geometry_pass = nullptr;
-    } render_passes;
+    Ref<Framebuffer> framebuffers[NUM_FRAMEBUFFERS] = {
+      nullptr,
+      nullptr,
+      nullptr,
+    };
+
+    Ref<RenderPass> render_passes[NUM_RENDER_PASSES] = {
+      nullptr,
+      nullptr,
+      nullptr,
+    };
+
+    std::map<UUID, Ref<RenderPass>> custom_passes;
+    std::map<UUID, Ref<Pipeline>> pipelines;
+    std::map<UUID, Ref<Framebuffer>> image_ir;
 
     glm::ivec2 viewport_size;
     SceneRenderSpec spec;
-
-    Ref<GBuffer> gbuffer = nullptr;
-    FrameMeshes model_submissions;
-
-    Ref<UniformBuffer> camera_uniforms = nullptr;
-    Ref<UniformBuffer> light_uniforms = nullptr;
-    Ref<UniformBuffer> model_storage = nullptr;
-    Ref<UniformBuffer> material_storage = nullptr;
-
-    /// here go the passes
-    ///  - bloom compute ?
-    ///  - directional shadow pass
-    ///  - non-directional-shadow mapping pass
-    ///  - pre-depth
-    ///  - geometry
-    ///  - selected geometry
-    ///  - geometry 2 ?
-    ///  - animated geometry
-    ///  - light-culling
-    ///  - hierarchical z buffer
-    ///  - ssr compute
-    ///  - pre-integration
-    ///  - pre-convolutional compute
-    ///  - edge detection
-    ///  - composite
-    ///  - DOF
-    ///  - wireframe
-    ///  -  > read back image >
-    ///  - temp fbs for reuse
-    ///  - jump flood ??
-    ///  - outline compositing
-    ///  - grid
-    ///  - collider
-    ///  - skybox
 
     void Initialize();
     void Shutdown();
 
     void PreRenderSettings();
-    void Render();
-
-    void PerformDepthPass();
-
-    void PerformPass(Ref<RenderPass>& pass);
-    void RenderMeshList(const MeshKey& mesh_key, uint32_t instance_count, const Buffer& model_buffer, const Buffer& material_buffer);
 
     bool FrameComplete() const;
     void ResetFrame();
+  };
 
-    FrameMeshes::iterator InsertMeshKey(MeshKey& key, const std::vector<float>& vertices, const std::vector<Index>& indices);
+  struct PipelineRenderPassRegistration {
+    std::vector<SceneRenderer::RenderPassIndex> passes;
   };
 
 }  // namespace other

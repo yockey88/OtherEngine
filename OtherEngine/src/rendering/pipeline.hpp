@@ -26,11 +26,9 @@ namespace other {
 
   struct MeshKey {
     AssetHandle source_handle;
-    Ref<VertexArray> vao = nullptr;
     RenderState render_state = RenderState::FILL;
     DrawMode draw_mode = DrawMode::TRIANGLES;
 
-    size_t num_elements = 0;
     bool selected;
   };
 
@@ -54,7 +52,6 @@ struct std::equal_to<other::MeshKey> {
 
 namespace other {
   struct PipelineSpec {
-    DrawMode topology = DrawMode::TRIANGLES;
     bool back_face_culling = true;
     bool depth_test = true;
     float line_width = 1.f;
@@ -62,6 +59,16 @@ namespace other {
     FramebufferSpec framebuffer_spec{};
 
     std::string pipeline_name;
+  };
+
+  struct RenderStaticSubmission {
+    Ref<StaticModel> model = nullptr;
+    glm::mat4 transform = glm::mat4(1.f);
+    Material material{};
+    RenderState render_state = RenderState::FILL;
+    DrawMode draw_mode = DrawMode::TRIANGLES;
+
+    operator MeshKey() const;
   };
 
   struct RenderSubmission {
@@ -75,7 +82,13 @@ namespace other {
   };
 
   struct MeshSubmissionList {
+    Ref<VertexArray> vao = nullptr;
+    size_t num_elements = 0;
+
     uint32_t instance_count = 0;
+    uint32_t base_vertex = 0;
+    uint32_t base_instance = 0;
+
     Buffer cpu_model_storage;
     Buffer cpu_material_storage;
   };
@@ -83,7 +96,7 @@ namespace other {
 
   class Pipeline : public RefCounted {
    public:
-    Pipeline(PipelineSpec& spec, FrameMeshes& submission_lists, Ref<GBuffer>& gbuffer, Ref<UniformBuffer>& model_storage, Ref<UniformBuffer>& material_storage);
+    Pipeline(PipelineSpec& spec);
     virtual ~Pipeline() override {}
 
     std::string Name() const;
@@ -96,12 +109,14 @@ namespace other {
     void SubmitRenderPass(const Ref<RenderPass>& render_pass);
 
     /// FIXME: material system needs overhaul
-    void SubmitModel(Ref<Model> model, const glm::mat4& transform, const Material& color);
-    void SubmitStaticModel(Ref<StaticModel> model, const glm::mat4& transform, const Material& color);
-    void SubmitStaticModel(const RenderSubmission& submission);
+    void SubmitModel(const Ref<Model>& model, const glm::mat4& transform, const Material& color, DrawMode topology = DrawMode::TRIANGLES);
+    void SubmitModel(const RenderSubmission& submission);
 
-    void Render();
-    Ref<Framebuffer> GetOutput();
+    void SubmitStaticModel(const Ref<StaticModel>& model, const glm::mat4& transform, const Material& color, DrawMode topology = DrawMode::TRIANGLES);
+    void SubmitStaticModel(const RenderStaticSubmission& submission);
+
+    void Render(bool render_gbuffer = false);
+    Ref<Framebuffer> GetOutput() const;
     GBuffer& GetGBuffer();
 
     void Clear();
@@ -109,7 +124,7 @@ namespace other {
    private:
     uint32_t vao_id = 0;
     PipelineSpec spec{};
-    FrameMeshes& model_submissions;
+    FrameMeshes model_submissions;
 
     Ref<GBuffer> gbuffer = nullptr;
     Ref<UniformBuffer> model_storage = nullptr;
@@ -120,10 +135,11 @@ namespace other {
 
     void PerformPass(Ref<RenderPass>& pass);
 
-    FrameMeshes::iterator InsertMeshKey(MeshKey& key, const std::vector<float>& vertices, const std::vector<Index>& indices);
+    FrameMeshes::iterator InsertMeshKey(MeshKey& key, const Ref<Model>& indices);
+    FrameMeshes::iterator InsertStaticMeshKey(MeshKey& key, const Ref<StaticModel>& model);
 
     void RenderAll();
-    void RenderMeshes(const MeshKey& mesh_key, uint32_t instance_count, const Buffer& model_buffer, const Buffer& material_buffer);
+    void RenderMeshes(const MeshKey& mesh_key, MeshSubmissionList& msl);
   };
 
   template <>
@@ -131,16 +147,10 @@ namespace other {
     std::ostream& operator()(std::ostream& os, const PipelineSpec& spec) {
       BeginWriteList(os) << "\n    ";
       Writer<std::string>{}(os, spec.pipeline_name) << "\n    ";
-      WriteKeyValue(os, "topology", spec.topology) << "    ";
       WriteKeyValue(os, "back-face-culling", spec.back_face_culling) << "    ";
       WriteKeyValue(os, "depth-test", spec.depth_test) << "    ";
       WriteKeyValue(os, "line-width", spec.line_width) << "    ";
       WriteKeyValue(os, "framebuffer-spec", spec.framebuffer_spec) << "    ";
-      // WriteKeyValue(os, "vertex-layout", spec.vertex_layout) << "    ";
-      // WriteKeyValue(os, "model-binding-point", spec.model_binding_point) << "    ";
-      // WriteKeyValue(os, "model-uniforms", spec.model_uniforms) << "    ";
-      // WriteKeyValue(os, "material-binding-point", spec.material_binding_point) << "    ";
-      // WriteKeyValue(os, "material-uniforms", spec.material_uniforms) << "  ";
       EndWriteList(os) << "\n";
       return os;
     }
@@ -153,9 +163,6 @@ namespace other {
       BeginReadList(stream);
       spec.pipeline_name = Reader<std::string>{}(stream);
 
-      auto [tk, topology] = ReadKeyValue(stream, Reader<DrawMode>{});
-      spec.topology = topology;
-
       auto [bfck, back_face_culling] = ReadKeyValue(stream, Reader<bool>{});
       spec.back_face_culling = back_face_culling;
 
@@ -167,21 +174,6 @@ namespace other {
 
       auto [fbk, framebuffer_spec] = ReadKeyValue(stream, Reader<FramebufferSpec>{});
       spec.framebuffer_spec = framebuffer_spec;
-
-      // auto [vlk, vertex_layout] = ReadKeyValue(stream, Reader<Layout>{});
-      // spec.vertex_layout = vertex_layout;
-
-      // auto [mbpk, model_binding_point] = ReadKeyValue(stream, Reader<uint32_t>{});
-      // spec.model_binding_point = model_binding_point;
-
-      // auto [muk, model_uniforms] = ReadKeyValue(stream, Reader<std::vector<Uniform>>{});
-      // spec.model_uniforms = model_uniforms;
-
-      // auto [mbpk2, material_binding_point] = ReadKeyValue(stream, Reader<uint32_t>{});
-      // spec.material_binding_point = material_binding_point;
-
-      // auto [muk2, material_uniforms] = ReadKeyValue(stream, Reader<std::vector<Uniform>>{});
-      // spec.material_uniforms = material_uniforms;
       EndReadList(stream);
       return spec;
     }

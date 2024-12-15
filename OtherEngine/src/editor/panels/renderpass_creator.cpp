@@ -83,14 +83,14 @@ namespace other {
       for (auto& [id, file] : other_shader_files) {
         ImGui::PushID(id.Get());
         if (ui::Selectable(file->FileName().c_str())) {
-          Ref<Shader> shader = BuildShader(file->AbsolutePath());
-          if (shader != nullptr) {
-            spec.shader = shader;
-            ImGui::PopID();
-            break;
-          } else {
-            OE_ERROR("Failed to build shader from file: {}", file->FileName());
-          }
+          // Ref<Shader> shader = BuildShader(file->AbsolutePath());
+          // if (shader != nullptr) {
+          //   spec.shader = shader;
+          //   ImGui::PopID();
+          //   break;
+          // } else {
+          //   OE_ERROR("Failed to build shader from file: {}", file->FileName());
+          // }
         }
         ImGui::PopID();
       }

@@ -375,10 +375,7 @@ namespace other {
       stream << "  vec4 color;\n";
       stream << "  float shininess;\n";
       stream << "};\n\n";
-    }
 
-    /// lights only necessary in fragment
-    if (context == FRAGMENT_SHADER) {
       stream << "struct PointLight {\n";
       stream << "  vec4 position;\n";
       stream << "  vec4 color;\n";
@@ -386,11 +383,14 @@ namespace other {
       stream << "  float constant;\n";
       stream << "  float linear;\n";
       stream << "  float quadratic;\n";
+      stream << "  mat4 light_space_matrix;\n";
       stream << "};\n\n";
 
       stream << "struct DirectionLight {\n";
       stream << "  vec4 direction;\n";
       stream << "  vec4 color;\n";
+      stream << "  vec4 position;\n";
+      stream << "  mat4 light_space_matrix;\n";
       stream << "};\n\n";
     }
 
@@ -433,28 +433,39 @@ namespace other {
       stream << "layout (std430 , binding = 2) readonly buffer MaterialData {\n";
       stream << "  Material materials[MAX_MATERIALS];\n";
       stream << "};\n\n";
+
+      stream << "#define MAX_LIGHTS 100\n";
+      stream << "layout (std430 , binding = 3) readonly buffer Lights {\n";
+      stream << "  vec4 num_lights;\n";
+      stream << "  DirectionLight direction_light;\n";
+      stream << "  PointLight point_lights[MAX_LIGHTS];\n";
+      stream << "};\n\n";
+
       stream << "out int instanceid;\n";
       stream << "out Material material;\n\n";
+      stream << "out vec4 light_space_position;\n";
     } else if (context == FRAGMENT_SHADER) {
       /// hack, these should not be here
       /// FIXME: rewrite transpiler
       stream << "layout (location = 0) out vec4 g_position;\n";
       stream << "layout (location = 1) out vec4 g_normal;\n";
       stream << "layout (location = 2) out vec4 g_albedo;\n";
-      stream << "layout (location = 3) out vec4 g_depth;\n";
+
       stream << "#define MAX_LIGHTS 100\n";
       stream << "layout (std430 , binding = 3) readonly buffer Lights {\n";
-      /// num direction lights is num_lights.x
-      /// num point lights is num_lights.y
-      /// num_lights.z and .w are padding
       stream << "  vec4 num_lights;\n";
+      stream << "  DirectionLight direction_light;\n";
       stream << "  PointLight point_lights[MAX_LIGHTS];\n";
-      stream << "  DirectionLight direction_lights[MAX_LIGHTS];\n";
       stream << "};\n\n";
+
       stream << "uniform sampler2D goe_position;\n";
       stream << "uniform sampler2D goe_normal;\n";
       stream << "uniform sampler2D goe_albedo;\n";
+      stream << "uniform sampler2D goe_specular;\n";
+      stream << "uniform sampler2D goe_shadow_map;\n";
+      stream << "uniform sampler2D goe_depth;\n";
       stream << "in Material material;\n\n";
+      stream << "in vec4 light_space_position;\n";
     }
 
     for (auto& n : nodes) {

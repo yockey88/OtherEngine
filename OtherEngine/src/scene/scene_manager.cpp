@@ -9,16 +9,17 @@
 #include "application/app_state.hpp"
 #include "asset/asset_database.hpp"
 #include "asset/asset_manager.hpp"
+#include "asset/serializers/scene_serializer.hpp"
 #include "event/event_queue.hpp"
 #include "event/scene_events.hpp"
 #include "input/mouse.hpp"
 
 #include "scene/bvh.hpp"
-#include "scene/scene_serializer.hpp"
 
 #include "rendering/camera_base.hpp"
 #include "rendering/renderer.hpp"
 #include "scripting/script_engine.hpp"
+
 
 namespace other {
 
@@ -427,7 +428,7 @@ namespace other {
 
     /// let editor render more stuff on top
     if (AppState::mode != EngineMode::EDITOR) {
-      return scene_renderer->FinalizeScene();
+      return scene_renderer->Render();
     }
     return true;
   }

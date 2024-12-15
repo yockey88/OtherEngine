@@ -11,13 +11,15 @@
 #include "core/ref.hpp"
 #include "core/uuid.hpp"
 
+#include "asset/serializers/scene_serializer.hpp"
+
 #include "scene/bvh.hpp"
 #include "scene/scene.hpp"
-#include "scene/scene_serializer.hpp"
 
 #include "rendering/scene_renderer.hpp"
 
 #include "editor/saves.hpp"
+
 
 namespace other {
 

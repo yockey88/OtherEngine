@@ -45,6 +45,9 @@ namespace other {
     if (cwd.has_value()) {
       std::filesystem::current_path(cwd.value());
     }
+
+    MountDirectory("working-directory", std::filesystem::current_path());
+    MountDirectory("core-shaders", GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders");
   }
 
   Ref<Directory> Filesystem::MountProjectRoot(const std::string_view name, const Path& path) {
@@ -268,7 +271,7 @@ namespace other {
   Ref<FileHandle> Filesystem::GetFile(const Path& path) {
     for (auto& [id, dir] : sFileTree.mounted_dirs) {
       if (dir->Contains(path)) {
-        OE_DEBUG("Found path in mounted directory : {} [ full path = {} ]", path.string(), (*dir) / path);
+        OE_TRACE("Found path in mounted directory : {} [ full path = {} ]", path.string(), (*dir) / path);
         return dir->OpenFile(path);
       }
     }

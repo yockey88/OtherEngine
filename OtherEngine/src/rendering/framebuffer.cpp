@@ -4,6 +4,7 @@
 #include "rendering/framebuffer.hpp"
 
 #include <glad/glad.h>
+#include <minwindef.h>
 
 #include "core/logger.hpp"
 
@@ -98,19 +99,17 @@ namespace other {
     glGenFramebuffers(1, &fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
-    clear_flags |= GL_COLOR_BUFFER_BIT;
-
     if (spec.depth) {
       glGenTextures(1, &depth_attachment);
       glBindTexture(GL_TEXTURE_2D, depth_attachment);
 
       CHECKGL();
 
-      glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, spec.size.x, spec.size.y, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, nullptr);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, spec.size.x, spec.size.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
       CHECKGL();
 
@@ -121,6 +120,8 @@ namespace other {
 
       if (!spec.color && !spec.stencil) {
         glDrawBuffer(GL_NONE);
+        glReadBuffer(GL_NONE);
+        return;
       }
     }
 
@@ -131,13 +132,15 @@ namespace other {
       glBindTexture(GL_TEXTURE_2D, color_attachment);
 
       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, spec.size.x, spec.size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
       glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
       glBindTexture(GL_TEXTURE_2D, 0);
       glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, color_attachment, 0);
+
+      clear_flags |= GL_COLOR_BUFFER_BIT;
     }
 
     CHECKGL();

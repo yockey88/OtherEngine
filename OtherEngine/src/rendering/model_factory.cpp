@@ -9,6 +9,8 @@
 
 namespace other {
 
+  Opt<AssetHandle> ModelFactory::framebuffer_mesh_handle = std::nullopt;
+
   Opt<AssetHandle> ModelFactory::line_handle = std::nullopt;
 
   Opt<AssetHandle> ModelFactory::triangle_handle = std::nullopt;
@@ -21,6 +23,36 @@ namespace other {
   Opt<AssetHandle> ModelFactory::capsule_handle = std::nullopt;
 
   Opt<std::vector<Vertex>> ModelFactory::box_vertices = std::nullopt;
+
+  AssetHandle ModelFactory::CreateFramebufferMesh() {
+    if (framebuffer_mesh_handle.has_value()) {
+      return *framebuffer_mesh_handle;
+    }
+
+    // clang-format off
+    std::vector<float> fb_verts = {
+       1.f,  1.f, 1.f, 1.f,
+      -1.f,  1.f, 0.f, 1.f,
+      -1.f, -1.f, 0.f, 0.f,
+       1.f, -1.f, 1.f, 0.f,
+    };
+    // clang-format on
+
+    std::vector<uint32_t> idxs = {
+      // 0, 1, 3,
+      // 1, 2, 3
+    };
+
+    Layout layout = {
+      { VEC3, "voe_position" },
+      { VEC2, "voe_uvs" }
+    };
+
+    AssetHandle handle = AssetManager::CreateMemOnly<ModelSource>("FramebufferMesh-Source", fb_verts, idxs, layout);
+    Ref<ModelSource> source = AssetManager::GetAsset<ModelSource>(handle);
+    framebuffer_mesh_handle = AssetManager::CreateMemOnly<StaticModel>("FramebufferMesh", source);
+    return *framebuffer_mesh_handle;
+  }
 
   AssetHandle ModelFactory::CreateLine(const glm::vec3& start, const glm::vec3& end) {
     if (line_handle.has_value()) {

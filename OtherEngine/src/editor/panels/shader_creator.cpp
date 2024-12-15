@@ -98,7 +98,7 @@ namespace other {
       }
 
       if (!already_set && other_shader_selection.has_value()) {
-        shader = BuildShader(other_shader_selection.value()->AbsolutePath());
+        // shader = BuildShader(other_shader_selection.value()->AbsolutePath());
       }
     }
 

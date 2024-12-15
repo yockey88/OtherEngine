@@ -5,7 +5,9 @@
 
 #include "core/logger.hpp"
 
-#include "scene/scene_serializer.hpp"
+#include "asset/serializers/model_serializer.hpp"
+#include "asset/serializers/scene_serializer.hpp"
+#include "asset/serializers/shader_serializer.hpp"
 
 namespace other {
   namespace {
@@ -19,9 +21,11 @@ namespace other {
       []() -> Scope<AssetSerializer> { OE_ASSERT(false, "Asset is loaded in memory!"); return nullptr; },
       []() -> Scope<AssetSerializer> { return NewScope<SceneSerializer>(); },  // AssetType::SCENE
       // []() -> Scope<AssetSerializer> { return nullptr; },  // AssetType::PREFAB
-      []() -> Scope<AssetSerializer> { return nullptr; },  // AssetType::MODEL_SOURCE
-      []() -> Scope<AssetSerializer> { return nullptr; },  // AssetType::MODEL
-      []() -> Scope<AssetSerializer> { return nullptr; },  // AssetType::SHADER
+      // /// FIXME: decide whether we only ever use model serializer or if we should
+      //            actually have a model source serializer seperate from a model serializer
+      []() -> Scope<AssetSerializer> { return NewScope<ModelSerializer>(); },   // AssetType::MODEL_SOURCE
+      []() -> Scope<AssetSerializer> { return NewScope<ModelSerializer>(); },   // AssetType::MODEL
+      []() -> Scope<AssetSerializer> { return NewScope<ShaderSerializer>(); },  // AssetType::SHADER
       // []() -> Scope<AssetSerializer> { return nullptr; },  // AssetType::MATERIAL
       []() -> Scope<AssetSerializer> { return nullptr; },  // AssetType::TEXTURE
       // []() -> Scope<AssetSerializer> { return nullptr; },  // AssetType::ENVMAP
@@ -58,7 +62,13 @@ namespace other {
     Scope<AssetSerializer> loader = asset_loaders[metadata.type]();
     OE_ASSERT(loader != nullptr, "Failed to create asset loader for type : {}", metadata.type);
 
+    OE_DEBUG("Loading [{}] asset : {}", metadata.type, metadata.path);
     if (loader->Load(metadata)) {
+      OE_ASSERT(metadata.asset != nullptr, "Asset loader failed to load asset : {}", metadata.handle);
+      metadata.handle = metadata.asset->handle;
+      metadata.loaded = true;
+
+      OE_INFO("Loaded [{}] asset : {} [{}]", metadata.type, metadata.path, metadata.handle);
       return metadata.asset;
     }
 

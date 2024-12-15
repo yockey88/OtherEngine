@@ -104,14 +104,14 @@ namespace other {
     return HasComponent<StaticMesh>() || HasComponent<Mesh>();
   }
 
-  RenderSubmission Entity::WireframeSubmission() const {
+  RenderStaticSubmission Entity::WireframeSubmission() const {
     AssetHandle wireframe = ModelFactory::CreateBoxWireframe();
     Ref<StaticModel> model = AssetManager::GetAsset<StaticModel>(wireframe);
     OE_ASSERT(model != nullptr, "Failed to get wireframe model");
 
     Material mat(glm::vec4(235.f / 255.f, 132.f / 255.f, 9.f / 255.f, 1.f), 1.f);
 
-    RenderSubmission submission = {
+    RenderStaticSubmission submission = {
       .model = model,
       .transform = glm::scale(ReadComponent<Transform>().model_transform, glm::vec3(1.03f)),
       .material = mat,

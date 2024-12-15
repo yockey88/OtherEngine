@@ -8,7 +8,8 @@ entities = {
   "cube" ,
   "sun" ,
   "floor",
-  "camera"
+  "camera",
+  "backpack",
 }
 
 
@@ -55,8 +56,8 @@ rotation = { 0 , 0 , 0 , 0 }
 scale = { 0.2 , 0.2 , 0.2 }
 
 [sun.light-source]
-type = 1
-direction = { 0 , -1.0 , 0 , 1.0 }
+type = 0
+direction = { 2.0 , -4.0 , 1.0 , 1.0 }
 color = { 0.22 , 0.22 , 0.11 , 1.0 }
 
 [floor]
@@ -68,7 +69,7 @@ components = {
 [floor.transform]
 position = { 0 , -2 , 0 }
 rotation = { 0 , 0 , 0 , 1 }
-scale = { 10 , 1 , 10 }
+scale = { 10 , 0.05 , 10 }
 
 [floor.relationship]
 children = {}
@@ -112,6 +113,14 @@ constrain-pitch = true
 primary = true
 pinned = true
 
+[backpack]
+UUID = 4299032860123401593
+components = {
+  mesh
+}
+
+[mesh]
+visible = true
 
 #[
 

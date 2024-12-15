@@ -47,7 +47,7 @@ namespace other {
     };
 
     if (HasKey(key)) {
-      OE_WARN("[{}] asset already registered : {}\n > [{}]", file->GetAssetType(), file->AbsolutePath(), key);
+      OE_TRACE("[{}] asset already registered : {}\n > [{}]", file->GetAssetType(), file->AbsolutePath(), key);
       return;
     }
 

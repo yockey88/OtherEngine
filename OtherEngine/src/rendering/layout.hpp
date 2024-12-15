@@ -37,6 +37,7 @@ namespace other {
 
     uint32_t Stride() const;
     const std::vector<VertexBufferElement> Elements() const;
+    std::vector<uint32_t> GetRawLayout() const;
     uint32_t Count() const;
 
     [[nodiscard]] std::vector<VertexBufferElement>::iterator begin();

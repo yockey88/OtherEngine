@@ -35,6 +35,7 @@ namespace other {
     virtual void Remove(AssetHandle handle) override;
 
     virtual std::set<AssetHandle> GetAllOfType(AssetType type) override;
+    virtual std::set<AssetKey> GetAllKeysOfType(AssetType type) override;
   };
 
 }  // namespace other

@@ -90,9 +90,15 @@ def get_arg_value(args, name, default):
     return args[name] if name in args else default
 
 def fnv(arg):
-    return subprocess.call(
-        ["cmd.exe", "/c", ".\\bin\\Debug\\fnv\\fnv.exe", arg]
-    )
+    if arg is None or len(arg) == 0:
+        print(" > no argument provided to fnv")
+        return 1
+    
+    if len(arg) > 1:
+        print(" > too many arguments provided to fnv")
+        return 1
+    
+    return subprocess.call([ "cmd.exe", "/c", ".\\bin\\Debug\\fnv\\fnv.exe", arg[0] ], cwd=os.getcwd())
 
 ## TODO: fix this function we don't want to be tied to the solution file
 def list_projects():

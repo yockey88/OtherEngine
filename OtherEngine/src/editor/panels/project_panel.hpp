@@ -12,13 +12,14 @@
 
 #include "core/defines.hpp"
 #include "core/directory.hpp"
-#include "editor/content_browser_item.hpp"
-#include "editor/editor_panel.hpp"
 
 #include "project/project.hpp"
 
 #include "rendering/ui/ui_window_map.hpp"
 #include "scripting/script_module.hpp"
+
+#include "editor/content_browser_item.hpp"
+#include "editor/editor_panel.hpp"
 
 namespace other {
 
@@ -53,10 +54,9 @@ namespace other {
     };
 
     struct ProjectDirectories {
-      // Ref<CBDirectory> root;
-      // Ref<CBDirectory> assets;
-      // Ref<CBDirectory> source;
-      // std::map<UUID , Ref<CBDirectory>> asset_folders;
+      Ref<CBDirectory> root;
+      Ref<CBDirectory> source;
+      std::map<UUID, Ref<CBDirectory>> asset_folders;
     } project_folders;
 
     Ref<Project> active_proj;
@@ -67,12 +67,11 @@ namespace other {
       std::vector<std::string> directory_names{};
     } current_asset_path;
 
-    // CBItemList current_items;
+    CBItemList current_items;
 
     UIWindowMap ui_windows;
 
-    Opt<Ref<Directory>> selection = std::nullopt;
-    // Opt<Ref<CBDirectory>> selection_item = std::nullopt;
+    Ref<CBDirectory> selection_item = nullptr;
     Opt<std::string> selection_tag = std::nullopt;
 
     /// Render functions
@@ -80,7 +79,7 @@ namespace other {
     void RenderBottomBar(float height) const;
 
     bool TreeNode(const std::string& id, const std::string& label, ImGuiTreeNodeFlags flags = 0, const Ref<Texture2D>& icon = nullptr);
-    // void RenderDirectoryTree(const Ref<CBDirectory>& dir);
+    void RenderDirectoryTree(const Ref<CBDirectory>& dir);
 
     void RenderScriptObjectContextMenu(const ScriptObjectTag& tag);
     void ScriptObjectDragDropSource(UUID dir_tag, const ScriptObjectTag& tag);
@@ -88,15 +87,15 @@ namespace other {
     std::string GetContextMenuTagFromSelection() const;
     void RenderContextMenu();
 
-    bool IsDirSelected(const Ref<Directory>& p) const;
-    bool IsDescendantSelected(const Ref<Directory>& dir) const;
-    // void SetSelectionContext(const Ref<CBDirectory>& dir);
-    // void ActivateAsset(const Ref<CBItem>& asset);
+    bool IsDirSelected(const Ref<CBDirectory>& p) const;
+    bool IsDescendantSelected(const Ref<CBDirectory>& dir) const;
+    void SetSelectionContext(const Ref<CBDirectory>& dir);
+    void ActivateAsset(const Ref<CBItem>& asset);
 
     void ValidateAndRenderSelectionCtx();
-    // void RenderItems();
+    void RenderItems();
 
-    // CBItemList LoadItems(const Ref<CBDirectory>& dir);
+    CBItemList LoadItems(const Ref<CBDirectory>& dir);
   };
 
 }  // namespace other

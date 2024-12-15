@@ -27,6 +27,8 @@ namespace other {
   struct EditorState {
     static inline SceneEditorMode scene_mode = SceneEditorMode::STOPPED;
 
+    bool trace_mouse_click = false;
+
     Opt<glm::vec2> last_mouse_viewport_click = std::nullopt;
     glm::vec2 current_viewport_size = { 0.f, 0.f };
     glm::vec2 viewport_bounds[2] = { { 0.f, 0.f }, { 0.f, 0.f } };

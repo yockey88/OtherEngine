@@ -90,8 +90,7 @@ namespace other {
 
     RenderFramebufferList(renderer);
 
-    viewport = renderer->GetRender();
-
+    viewport = renderer->GetRender(editor.current_viewport_name);
     if (AppState::Scenes()->HasActiveScene()) {
       if (viewport == nullptr) {
         ScopedColor red_text(ImGuiCol_Text, ui::theme::red);
@@ -121,31 +120,36 @@ namespace other {
       ui::Button("Close", []() { ImGui::CloseCurrentPopup(); });
 
       EditorState& editor = EditorState::Get();
-      auto& pipelines = renderer->framebuffers;
-      // for (auto& [id, pipeline] : pipelines) {
-      //   /// TODO: render little preview of framebuffer
-      //   if (ui::BeginTreeNode(pipeline->Name().c_str(), false)) {
-      //     ImGui::PushID(id.Get());
-      //     ImGui::Text("Clear Color: %f, %f, %f, %f", pipeline->TargetSpec().clear_color.r, pipeline->TargetSpec().clear_color.g, pipeline->TargetSpec().clear_color.b, pipeline->TargetSpec().clear_color.a);
-      //     ImGui::Text("Output Size: %d x %d", pipeline->TargetSpec().size.x, pipeline->TargetSpec().size.y);
+      auto& pipelines = renderer->GetPipelines();
+      for (auto& [id, pipeline] : pipelines) {
+        OE_ASSERT(pipeline != nullptr, "Pipeline is null!");
+        if (pipeline->TargetSpec().depth && !(pipeline->TargetSpec().color || pipeline->TargetSpec().stencil)) {
+          continue;
+        }
 
-      //     ImVec2 size = {
-      //       pipeline->TargetSpec().size.x * 0.25f,
-      //       pipeline->TargetSpec().size.y * 0.25f
-      //     };
+        /// TODO: render little preview of framebuffer
+        if (ui::BeginTreeNode(pipeline->Name().c_str(), false)) {
+          ImGui::PushID(id.Get());
+          ImGui::Text("Clear Color: %f, %f, %f, %f", pipeline->TargetSpec().clear_color.r, pipeline->TargetSpec().clear_color.g, pipeline->TargetSpec().clear_color.b, pipeline->TargetSpec().clear_color.a);
+          ImGui::Text("Output Size: %d x %d", pipeline->TargetSpec().size.x, pipeline->TargetSpec().size.y);
 
-      //     void* texture_id = (void*)(uintptr_t)pipeline->GetOutput()->texture;
-      //     ImGui::Image(texture_id, size, { 0, 1 }, { 1, 0 }, { 1, 1, 1, 1 }, { 0, 0, 1, 1 });
+          ImVec2 size = {
+            pipeline->TargetSpec().size.x * 0.25f,
+            pipeline->TargetSpec().size.y * 0.25f
+          };
 
-      //     ui::Button("Set Active", [&]() {
-      //       editor.current_viewport_name = id;
-      //       ImGui::CloseCurrentPopup();
-      //     });
+          void* texture_id = (void*)(uintptr_t)pipeline->GetOutput()->texture;
+          ImGui::Image(texture_id, size, { 0, 1 }, { 1, 0 }, { 1, 1, 1, 1 }, { 0, 0, 1, 1 });
 
-      //     ImGui::PopID();
-      //     ui::EndTreeNode();
-      //   }
-      // }
+          ui::Button("Set Active", [&]() {
+            editor.current_viewport_name = id;
+            ImGui::CloseCurrentPopup();
+          });
+
+          ImGui::PopID();
+          ui::EndTreeNode();
+        }
+      }
 
       ImGui::EndPopup();
     }
@@ -199,6 +203,12 @@ namespace other {
     };
 
     if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+      if (!ImGui::IsWindowHovered()) {
+        editor.trace_mouse_click = false;
+      } else {
+        editor.trace_mouse_click = true;
+      }
+
       ImVec2 mouse_click = ImGui::GetMousePos();
       editor.last_mouse_viewport_click = {
         mouse_click.x - min_bound.x,
@@ -210,6 +220,8 @@ namespace other {
       editor.last_mouse_viewport_click = std::nullopt;
     }
 
+    ImVec2 framebuffer_size;
+    ImVec2 img_size;
     if (viewport == nullptr) {
       ScopedColor red_text(ImGuiCol_Text, ui::theme::red);
       ImGui::Text("Failed to find viewport frame, settings may be corrupt");
@@ -230,20 +242,24 @@ namespace other {
       }
 
       ImTextureID tex_id = (void*)(uintptr_t)viewport->texture;
-      ImVec2 img_size = { size.x, size.y };
+      img_size = { size.x, size.y };
 
       ImGui::SetCursorPos({ viewport_padding.x, viewport_padding.y });
       ImGui::Image(tex_id, img_size, ImVec2(0, 1), ImVec2(1, 0));
       ImGui::SetCursorPos(cursor_pos);
+      framebuffer_size = { size.x, size.y };
     }
 
     /// only render gixmos if simulating or editing
-    if (EditorState::scene_mode == SceneEditorMode::PLAYING ||
-        !SelectionManager::HasSelection()) {
+    if (EditorState::scene_mode == SceneEditorMode::PLAYING || !SelectionManager::HasSelection()) {
       return;
     }
     Entity* selected = SelectionManager::ActiveSelection();
     OE_ASSERT(selected != nullptr, "Active Selection is null!");
+
+    if (selected->HasComponent<LightSource>() && editor.guizmo_op == ImGuizmo::OPERATION::SCALE) {
+      return;
+    }
 
     Transform& transform = selected->GetComponent<Transform>();
     transform.CalcMatrix();
@@ -254,9 +270,15 @@ namespace other {
     glm::mat4 model = transform.model_transform;
 
     ImVec2 window_pos = ImGui::GetWindowPos();
+    ImVec2 real_pos = {
+      window_pos.x - viewport_padding.x,
+      window_pos.y - viewport_padding.y
+    };
+
     ImGuizmo::SetOrthographic(false);
     ImGuizmo::SetDrawlist();
-    ImGuizmo::SetRect(window_pos.x, window_pos.y, window_size.x, window_size.y);
+    ImGuizmo::SetRect(real_pos.x, real_pos.y, framebuffer_size.x, framebuffer_size.y);
+
     if (ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(projection), editor.guizmo_op, editor.guizmo_mode, glm::value_ptr(model)) &&
         ImGuizmo::IsUsing()) {
       glm::vec3 translation;

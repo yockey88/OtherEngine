@@ -394,7 +394,7 @@ namespace other {
 
     Ref<AstStmt> else_stmt = nullptr;
     if (Match({ ELSE_KW })) {
-      else_stmt = ParseDecl();
+      else_stmt = ParseBlock();
     }
 
     return NewRef<IfStmt>(expr, then_stmt, else_stmt);

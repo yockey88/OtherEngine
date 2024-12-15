@@ -16,4 +16,4 @@ local fnv = {
   } ,
 }
 
-AddProject(fnv)
+AddConsoleProject(fnv)

@@ -35,6 +35,8 @@ namespace other {
   struct AssetKey {
     UUID file_handle = 0;
     AssetType type = AssetType::BLANK_ASSET;
+
+    constexpr auto operator<=>(const AssetKey&) const = default;
   };
 
 }  // namespace other

@@ -37,12 +37,12 @@ attachments = {
   ui = { "sandbox_ui.lua" }
 }
 
+
+#[
 [attachments]
 ui = { 
   *sandbox_ui = { "SandboxUI" }
 }
-
-#[
 
 for later:
 @framebuffer [final-frame] = {

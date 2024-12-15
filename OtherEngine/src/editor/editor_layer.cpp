@@ -15,6 +15,7 @@
 #include "event/mouse_events.hpp"
 #include "input/mouse.hpp"
 
+#include "ecs/components/light_source.hpp"
 #include "scene/bvh.hpp"
 #include "scene/scene_manager.hpp"
 
@@ -150,7 +151,7 @@ namespace other {
 
       /// render scene as it is for runtime, this clears the pipelines
       /// TODO: finalize scene and then draw editor information on top
-      // bool runtime_frame_success = scene_renderer->FinalizeScene();
+      // bool runtime_frame_success = scene_renderer->Render();
       // scene_renderer->ClearLightEnvironment();
 
       /// render scene for editor
@@ -161,13 +162,13 @@ namespace other {
           Entity* selected = SelectionManager::ActiveSelection();
           OE_ASSERT(selected != nullptr, "Selected entity is null!");
 
-          RenderSubmission sub = selected->WireframeSubmission();
-          OE_ASSERT(sub.model != nullptr, "Wireframe model is null!");
-          scene_renderer->SubmitStaticModel(sub);
+          // RenderSubmission sub = selected->WireframeSubmission();
+          // OE_ASSERT(sub.model != nullptr, "Wireframe model is null!");
+          // scene_renderer->SubmitStaticModel(sub);
         }
       }
 
-      render_success = scene_renderer->FinalizeScene();
+      render_success = scene_renderer->Render();
     }
 
     EditorState& editor = EditorState::Get();
@@ -402,6 +403,10 @@ namespace other {
       return false;
     }
 
+    if (!editor.trace_mouse_click) {
+      return false;
+    }
+
     SceneMetadata* scene = AppState::Scenes()->ActiveScene();
     OE_ASSERT(scene != nullptr, "No active scene!");
     OE_ASSERT(scene->scene != nullptr, "Scene is null!");
@@ -426,6 +431,13 @@ namespace other {
     }
 
     OE_ASSERT(trace->hit_entity != nullptr, "Hit entity is null!");
+    if (trace->hit_entity->HasComponent<LightSource>()) {
+      const LightSource& light = trace->hit_entity->ReadComponent<LightSource>();
+      if (light.type == LightSourceType::DIRECTION_LIGHT_SRC) {
+        editor.guizmo_op = ImGuizmo::OPERATION::ROTATE;
+      }
+    }
+
     SelectionManager::Select(trace->hit_entity);
     return false;
   }

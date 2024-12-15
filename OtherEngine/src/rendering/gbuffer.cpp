@@ -10,6 +10,8 @@
 #include "core/filesystem.hpp"
 #include "core/logger.hpp"
 
+#include "asset/asset_manager.hpp"
+
 #include "rendering/shader.hpp"
 
 namespace other {
@@ -67,7 +69,13 @@ namespace other {
     Path shader_dir = Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders";
     Path gbuffer_path = shader_dir / "gbuffer.oshader";
 
-    shader = BuildShader(gbuffer_path);
+    Ref<FileHandle> gbuffer_file = Filesystem::GetFile(gbuffer_path);
+    OE_ASSERT(gbuffer_file != nullptr, "Failed to get gbuffer file : {}", gbuffer_path);
+
+    Ref<Shader> gbuffer_shader = AssetManager::GetAsset<Shader>(gbuffer_file->handle, gbuffer_file->GetAssetType());
+    OE_ASSERT(gbuffer_shader != nullptr, "Failed to get gbuffer shader : {}", gbuffer_path);
+
+    shader = gbuffer_shader;
     OE_ASSERT(shader != nullptr, "Failed to build gbuffer shader");
   }
 

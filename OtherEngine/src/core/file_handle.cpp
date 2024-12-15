@@ -60,7 +60,7 @@ namespace other {
     if (!IsOpen()) {
       OE_ERROR("Failed to open file : {} [{}]", project_relative_path.string(), std::strerror(errno));
     } else {
-      OE_DEBUG("Opened file : {}", project_relative_path.string());
+      OE_TRACE("Opened file : {}", project_relative_path.string());
     }
   }
 

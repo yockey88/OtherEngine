@@ -168,7 +168,7 @@ namespace other {
 
     bool HasVisibleComponent() const;
 
-    RenderSubmission WireframeSubmission() const;
+    RenderStaticSubmission WireframeSubmission() const;
 
     /// for marking as visited during tree traversals
     bool visited = false;

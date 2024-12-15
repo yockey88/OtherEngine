@@ -43,10 +43,6 @@ namespace other {
     if (ImGui::InputText("Pipeline Name", pipeline_name.data(), pipeline_name.size())) {}
 
     ImGui::Separator();
-    if (ui::PropertyDropdown("Draw Mode", draw_modes, draw_mode_count, selected_draw_mode)) {
-      spec.topology = static_cast<DrawMode>(selected_draw_mode);
-    }
-    ImGui::Separator();
     if (ui::Checkbox("Back Face Culling", &spec.back_face_culling)) {}
     ImGui::Separator();
     if (ui::Checkbox("Depth Test", &spec.depth_test)) {}

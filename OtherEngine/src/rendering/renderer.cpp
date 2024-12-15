@@ -6,11 +6,8 @@
 #include <glad/glad.h>
 #include <imgui/imgui.h>
 
-#include "core/filesystem.hpp"
-
 #include "application/app_state.hpp"
 
-#include "rendering/geometry_pass.hpp"
 #include "rendering/rendering_defines.hpp"
 #include "rendering/scene_renderer.hpp"
 #include "rendering/shader.hpp"
@@ -35,24 +32,24 @@ namespace other {
     window = std::move(win_res.Unwrap());
 
     /// TODO: configure window shader and mesh using config
-    const Path win_shader_path = Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders" / "fbshader.oshader";
-    window_shader = BuildShader(win_shader_path);
+    // const Path win_shader_path = Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders" / "fbshader.oshader";
+    // window_shader = BuildShader(win_shader_path);
 
-    std::vector<float> fb_verts = {
-      1.f, 1.f, 1.f, 1.f,
-      -1.f, 1.f, 0.f, 1.f,
-      -1.f, -1.f, 0.f, 0.f,
-      1.f, -1.f, 1.f, 0.f
-    };
+    // std::vector<float> fb_verts = {
+    //   1.f, 1.f, 1.f, 1.f,
+    //   -1.f, 1.f, 0.f, 1.f,
+    //   -1.f, -1.f, 0.f, 0.f,
+    //   1.f, -1.f, 1.f, 0.f
+    // };
 
-    std::vector<uint32_t> fb_indices = {
-      0, 1, 3,
-      1, 2, 3
-    };
-    std::vector<uint32_t> fb_layout = {
-      2, 2
-    };
-    window_mesh = NewRef<VertexArray>(fb_verts, fb_indices, fb_layout);
+    // std::vector<uint32_t> fb_indices = {
+    //   0, 1, 3,
+    //   1, 2, 3
+    // };
+    // std::vector<uint32_t> fb_layout = {
+    //   2, 2
+    // };
+    // window_mesh = NewRef<VertexArray>(fb_verts, fb_indices, fb_layout);
 
     CHECKGL();
   }
@@ -143,31 +140,22 @@ namespace other {
       { "materials", ValueType::USER_TYPE, 100, sizeof(Material) },
     };
 
-    Path engine_core_dir = Filesystem::GetEngineCoreDir();
-    Path assets_dir = engine_core_dir / "OtherEngine" / "assets";
-    Path shader_dir = assets_dir / "shaders";
-    Path default_path = shader_dir / "default.oshader";
-
-    std::vector<Uniform> geometry_unis = {};
-    Ref<Shader> geometry_shader = BuildShader(default_path);
-    Ref<RenderPass> geom_pass = NewRef<GeometryPass>(geometry_unis, geometry_shader);
-
     SceneRenderSpec spec{
-      // .model_uniforms = model_unis,
-      // .material_uniforms = material_unis,
-      // .vertex_layout = default_layout,
-      // .pipelines = {
-      //   {
-      //     .topology = DrawMode::TRIANGLES,
-      //     .framebuffer_spec = {
-      //       .depth_func = LESS_EQUAL,
-      //       .clear_color = { 0.1f, 0.1f, 0.1f, 1.f },
-      //       .size = { 1920, 1080 },
-      //     },
-      //     .pipeline_name = "Geometry",
-      //   },
-      // },
+      .model_uniforms = model_unis,
+      .material_uniforms = material_unis,
+      .vertex_layout = default_layout,
+      .pipelines = {
+        {
+          .framebuffer_spec = {
+            .depth_func = LESS_EQUAL,
+            .clear_color = { 0.1f, 0.1f, 0.1f, 1.f },
+            .size = { 1920, 1080 },
+          },
+          .pipeline_name = "Geometry",
+        },
+      },
     };
+    spec.pipeline_passes[FNV("Geometry")].passes.push_back(SceneRenderer::GEOMETRY_PASS);
 
     return spec;
   }

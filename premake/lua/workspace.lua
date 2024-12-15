@@ -31,7 +31,22 @@ local function WorkspaceHeader(config)
   else
     staticruntime "On"
   end
+end
 
+local function ProcessGroups(groups)
+  for key , value in pairs(groups) do
+    print("[ Group ] : " .. key)
+    group (key)
+    for _, dir in pairs(value) do
+      include (dir)
+    end
+    group ""
+    print("")
+  end
+end
+
+local function ProcessWorkspaceFilters(config)
+  print("[ Processing filters ]")
   filter "system:windows"
     flags { "MultiProcessorCompile" }
     defines {
@@ -46,19 +61,10 @@ local function WorkspaceHeader(config)
   filter "action:vs*"
     linkoptions { "/ignore:4099" } 
     disablewarnings { "4068" }
-    
-end
 
-local function ProcessGroups(groups)
-  for key , value in pairs(groups) do
-    print("[ Group ] : " .. key)
-    group (key)
-    for _, dir in pairs(value) do
-      include (dir)
-    end
-    group ""
-    print("")
-  end
+    filter { "system:windows", "configurations:Debug-AS" }	
+    sanitize { "Address" }
+    flags { "NoRuntimeChecks", "NoIncrementalLink" }
 end
 
 local function SetTargets(config)
@@ -114,6 +120,7 @@ function CppWorkspace(config)
     end
     print("=====================================\n")
 
+    ProcessWorkspaceFilters(config)
     SetTargets(config)
 
     print("===> Processing source code <===")

@@ -13,8 +13,6 @@ local sandbox = {
     files {
       "./sandbox/**.cpp",
       "./sandbox/**.hpp",
-      "./sandbox_ui.cpp" ,
-      "./sandbox_ui.hpp"
     }
   end,
 
@@ -81,6 +79,7 @@ local unit_tests = {
   kind = "ConsoleApp",
   language = "C++",
   cppdialect = "C++latest",
+  cross_platform_main = true,
 
   files = function()
     files {
@@ -104,10 +103,6 @@ local unit_tests = {
       "OE_MODULE" ,
       "OE_TESTING_ENVIRONMENT"
     }
-  end,
-  
-  windows_configuration = function()
-    entrypoint "mainCRTStartup"
   end,
 
   components = {

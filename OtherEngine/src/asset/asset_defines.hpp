@@ -98,28 +98,28 @@ namespace other {
   namespace util {
 
     static AssetType AssetTypeFromString(std::string_view asset_str) {
-      if (asset_str == "GENERIC-FILE") return AssetType::GENERIC_FILE;
-      if (asset_str == "MEMORY-ONLY") return AssetType::MEMORY_ONLY;
-      if (asset_str == "SCENE") return AssetType::SCENE;
-      // if (asset_str == "PREFAB") return AssetType::PREFAB;
-      if (asset_str == "MODEL-SOURCE") return AssetType::MODEL_SOURCE;
-      if (asset_str == "MODEL") return AssetType::MODEL;
-      if (asset_str == "SHADER") return AssetType::SHADER;
-      // if (asset_str == "MATERIAL") return AssetType::MATERIAL;
-      if (asset_str == "TEXTURE") return AssetType::TEXTURE;
-      // if (asset_str == "ENV-MAP") return AssetType::ENVMAP;
-      // if (asset_str == "AUDIO") return AssetType::AUDIO;
-      // if (asset_str == "SOUND-CONFIG") return AssetType::SOUNDCONFIG;
-      // if (asset_str == "SPATIALIZATION-CONFIG") return AssetType::SPATIALIZATIONCONFIG;
-      // if (asset_str == "FONT") return AssetType::FONT;
-      if (asset_str == "SCRIPT") return AssetType::SCRIPT;
-      if (asset_str == "DYNAMIC_LIBRARY") return AssetType::DYNAMIC_LIBRARY;
-      // if (asset_str == "MESH-COLLIDER") return AssetType::MESHCOLLIDER;
-      // if (asset_str == "SOUND-GRAPH-SOUND") return AssetType::SOUNDGRAPHSOUND;
-      // if (asset_str == "SKELETON") return AssetType::SKELETON;
-      // if (asset_str == "ANIMATION") return AssetType::ANIMATION;
-      // if (asset_str == "ANIMATION-GRAPH") return AssetType::ANIMATIONGRAPH;
-      if (asset_str == "SOURCEFILE") return AssetType::SOURCEFILE;
+      AssetType::GENERIC_FILE;
+      AssetType::MEMORY_ONLY;
+      AssetType::SCENE;
+      //   AssetType::PREFAB;
+      AssetType::MODEL_SOURCE;
+      AssetType::MODEL;
+      AssetType::SHADER;
+      //   AssetType::MATERIAL;
+      AssetType::TEXTURE;
+      //   AssetType::ENVMAP;
+      //   AssetType::AUDIO;
+      //   AssetType::SOUNDCONFIG;
+      //   AssetType::SPATIALIZATIONCONFIG;
+      //   AssetType::FONT;
+      AssetType::SCRIPT;
+      AssetType::DYNAMIC_LIBRARY;
+      //   AssetType::MESHCOLLIDER;
+      //   AssetType::SOUNDGRAPHSOUND;
+      //   AssetType::SKELETON;
+      //   AssetType::ANIMATION;
+      //   AssetType::ANIMATIONGRAPH;
+      AssetType::SOURCEFILE;
       return AssetType::INVALID_ASSET;
     }
 
@@ -132,10 +132,10 @@ namespace other {
     /// prefabs
 
     /// mesh/animations
-    { FNV(".fbx"), AssetType::MODEL },
-    { FNV(".gltf"), AssetType::MODEL },
-    { FNV(".glb"), AssetType::MODEL },
-    { FNV(".obj"), AssetType::MODEL },
+    { FNV(".fbx"), AssetType::MODEL_SOURCE },
+    // { FNV(".gltf"), AssetType::MODEL },
+    // { FNV(".glb"), AssetType::MODEL },
+    { FNV(".obj"), AssetType::MODEL_SOURCE },
 
     /// shaders
     { FNV(".glsl"), AssetType::SHADER },
@@ -176,8 +176,8 @@ namespace other {
     switch (type) {
       case AssetType::SCENE:
         return { ".yscn" };
-      case AssetType::MODEL:
-        return { ".fbx", ".gltf", ".glb", ".obj" };
+      case AssetType::MODEL_SOURCE:
+        return { ".fbx", ".obj" };  // ".gltf", ".glb",
       case AssetType::SHADER:
         return { ".glsl", ".vert", ".frag", ".geom", ".oshader" };
       case AssetType::TEXTURE:
@@ -191,6 +191,46 @@ namespace other {
       default:
         return {};
     }
+  }
+
+  static constexpr std::array kVirtualDrives = {
+    "files://",   /// AssetType::GENERIC_FILE;
+    "vfiles://",  /// AssetType::MEMORY_ONLY;
+    "scenes://",  // AssetType::SCENE;
+    // "prefabs://", //   AssetType::PREFAB;
+    "model-sources://",  /// AssetType::MODEL_SOURCE;
+    "models://",         /// AssetType::MODEL;
+    "shaders://",        /// AssetType::SHADER;
+    // "materials://", ///   AssetType::MATERIAL;
+    "textures://",  /// AssetType::TEXTURE;
+    // "",  /// //   AssetType::ENVMAP;
+    // "",  /// //   AssetType::AUDIO;
+    // "",  /// //   AssetType::SOUNDCONFIG;
+    // "",  /// //   AssetType::SPATIALIZATIONCONFIG;
+    // "",  /// //   AssetType::FONT;
+    "scripts://",   /// AssetType::SCRIPT;
+    "dyn-libs://",  /// AssetType::DYNAMIC_LIBRARY;
+    // "",  /// //   AssetType::MESHCOLLIDER;
+    // "",  /// //   AssetType::SOUNDGRAPHSOUND;
+    // "",  /// //   AssetType::SKELETON;
+    // "",  /// //   AssetType::ANIMATION;
+    // "",  /// //   AssetType::ANIMATIONGRAPH;
+    "sourcefiles://",  /// AssetType::SOURCEFILE;
+  };
+
+  static std::string_view VirtualDriveFromAssetType(AssetType type) {
+    if (type >= AssetType::NUM_ASSET_TYPES) {
+      return "";
+    }
+    return kVirtualDrives[type];
+  }
+
+  static std::string_view VirtualDriveFromExtension(std::string_view ext) {
+    auto itr = asset_extensions.find(FNV(ext));
+    if (itr == asset_extensions.end()) {
+      return "";
+    }
+    return VirtualDriveFromAssetType(itr->second);
   }
 
 }  // namespace other

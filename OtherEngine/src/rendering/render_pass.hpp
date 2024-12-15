@@ -193,12 +193,13 @@ namespace other {
       }
     }
 
-   private:
+   protected:
     std::map<UUID, Uniform> uniforms;
     std::map<UUID, Ref<UniformBuffer>> uniform_blocks;
 
     RenderPassSpec spec;
 
+   private:
     template <typename T>
     using UniformProcessorMap = std::unordered_map<UUID, UniformProcessor<T>>;
 

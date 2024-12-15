@@ -21,8 +21,6 @@
 #include "rendering/ui/ui_helpers.hpp"
 
 #include "editor/script_editor.hpp"
-#include "editor/script_window.hpp"
-
 
 namespace other {
 
@@ -30,24 +28,19 @@ namespace other {
     OE_ASSERT(active_proj != nullptr, "Project Panel Project context is nullptr");
     OE_DEBUG("Attaching Project Panel");
 
-    // ui_windows[FNV("Script Editor")] = Ref<ScriptEditor>::Create();
-    // selection = NewRef<Directory>(active_proj->GetMetadata().project_directory);
+    Ref<Directory> selection = Filesystem::GetDirectory("project-root");
+    if (selection == nullptr) {
+      OE_ERROR("Failed to get project root directory");
+      return;
+    }
+    project_folders.root = NewRef<CBDirectory>(selection);
 
-    // selection_item = NewRef<CBDirectory>(selection.value());
-    // selection_item.value()->Select();
-
-    // project_folders.root = selection_item.value();
-    // project_folders.assets = NewRef<CBDirectory>(NewRef<Directory>(selection.value()->path / "assets"));
-    // project_folders.source = NewRef<CBDirectory>(NewRef<Directory>(selection.value()->path / "src"));
-
-    // for (auto& entry : std::filesystem::directory_iterator(project_folders.assets->directory->path)) {
-    //   if (!entry.is_directory()) {
-    //     return;
-    //   }
-
-    //   Ref<Directory> child_dir = NewRef<Directory>(entry.path());
-    //   project_folders.asset_folders[child_dir->handle] = NewRef<CBDirectory>(child_dir);
+    // Ref<Directory> source_dir = Filesystem::GetDirectory("src");
+    // if (source_dir == nullptr) {
+    //   OE_ERROR("Failed to get source directory");
+    //   return;
     // }
+    // project_folders.source = NewRef<CBDirectory>(NewRef<Directory>(selection->ABsolut / "src"));
   }
 
   bool ProjectPanel::OnGuiRender(bool& is_open) {
@@ -76,6 +69,7 @@ namespace other {
         ScopedStyle spacing(ImGuiStyleVar_ItemSpacing, ImVec2(0.f, 0.f));
         ScopedColorStack item_bg(ImGuiCol_Header, IM_COL32_DISABLE, ImGuiCol_HeaderActive, IM_COL32_DISABLE);
 
+        RenderDirectoryTree(project_folders.root);
         // RenderDirectoryTree(project_folders.assets);
         // RenderDirectoryTree(project_folders.source);
       }
@@ -108,22 +102,6 @@ namespace other {
               if (ImGui::MenuItem("Material")) {}
 
               if (ImGui::BeginMenu("Script")) {
-                bool editor_script = false;
-                bool create_script = false;
-                if (ImGui::MenuItem("Scene Script")) {
-                  create_script = true;
-                }
-                if (ImGui::MenuItem("Editor Script")) {
-                  editor_script = false;
-                  create_script = true;
-                }
-
-                if (create_script) {
-                  // OE_DEBUG("Pushing ScriptWindow");
-                  // auto create_win = NewRef<ScriptWindow>(editor_script);
-                  // GetEditor().PushUIWindow(create_win);
-                }
-
                 ImGui::EndMenu();
               }
 
@@ -151,7 +129,7 @@ namespace other {
 
             ScopedStyle border(ImGuiStyleVar_FrameBorderSize, 0.0f);
             ScopedStyle padding(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
-            // RenderItems();
+            RenderItems();
           }
 
           ImGui::PopStyleColor(2);
@@ -208,9 +186,9 @@ namespace other {
     ImGui::BeginChild("##project_directory_contents_top_bar", ImVec2(0.f, height));
     ImGui::BeginHorizontal("##project_directory_contents_top_bar");
     {
-      if (selection.has_value()) {
+      if (selection_item != nullptr) {
         /// construct navigation string
-        ImGui::Text("%s", selection.value()->ProjectRelativePath().filename().string().c_str());
+        ImGui::Text("%s", selection_item->directory->ProjectRelativePath().filename().string().c_str());
       } else {
         ImGui::Text("No Directory Selected");
       }
@@ -242,114 +220,92 @@ namespace other {
     return ui::TreeNodeWithIcon(icon, window->GetID(id.c_str()), flags, label.c_str(), nullptr);
   }
 
-  // void ProjectPanel::RenderDirectoryTree(const Ref<CBDirectory>& dir) {
-  //   ImGui::PushID(dir->directory->path.string().c_str());
-  //   auto non_absolute = dir->directory->path.stem();
-  //   auto files = Filesystem::GetSubDirs(dir->directory->path);
+  void ProjectPanel::RenderDirectoryTree(const Ref<CBDirectory>& directory) {
+    OE_ASSERT(directory != nullptr, "Directory is nullptr");
+    OE_ASSERT(directory->directory != nullptr, "Directory is nullptr");
 
-  //   std::string id_str = non_absolute.string();
-  //   ImGuiID node_id = ImGui::GetID(id_str.c_str());
-  //   bool prev_state = ImGui::TreeNodeBehaviorIsOpen(node_id);
+    ImGui::PushID(directory->directory->AbsolutePath().string().c_str());
+    auto non_absolute = directory->directory->AbsolutePath().stem();
+    auto files = Filesystem::GetSubDirs(directory->directory->AbsolutePath());
 
-  //   auto* window = ImGui::GetCurrentWindow();
-  //   window->DC.CurrLineSize.y = 20.f;
-  //   window->DC.CurrLineTextBaseOffset = 3.0f;
+    std::string id_str = non_absolute.string();
+    ImGuiID node_id = ImGui::GetID(id_str.c_str());
+    bool prev_state = ImGui::TreeNodeBehaviorIsOpen(node_id);
 
-  //   const ImRect item_rect = {
-  //     window->WorkRect.Min.x ,
-  //     window->DC.CursorPos.y ,
-  //     window->WorkRect.Min.y ,
-  //     window->DC.CursorPos.y + window->DC.CurrLineSize.y
-  //   };
+    auto* window = ImGui::GetCurrentWindow();
+    window->DC.CurrLineSize.y = 20.f;
+    window->DC.CurrLineTextBaseOffset = 3.0f;
 
-  //   const bool item_clicked = [&item_rect , &node_id]() -> bool {
-  //     if (ImGui::ItemHoverable(item_rect , node_id , 0)) {
-  //       return ImGui::IsMouseDown(ImGuiMouseButton_Left) ||
-  //              ImGui::IsMouseReleased(ImGuiMouseButton_Left);
-  //     }
-  //     return false;
-  //   } ();
+    const ImRect item_rect = {
+      window->WorkRect.Min.x,
+      window->DC.CursorPos.y,
+      window->WorkRect.Min.y,
+      window->DC.CursorPos.y + window->DC.CurrLineSize.y
+    };
 
-  //   const bool window_focused = ImGui::IsWindowFocused();
+    const bool item_clicked = [&item_rect, &node_id]() -> bool {
+      if (ImGui::ItemHoverable(item_rect, node_id, 0)) {
+        return ImGui::IsMouseDown(ImGuiMouseButton_Left) ||
+          ImGui::IsMouseReleased(ImGuiMouseButton_Left);
+      }
+      return false;
+    }();
 
-  //   auto fill_w_color = [&](const ImColor& color) {
-  //     const ImU32 bg_color = ImGui::ColorConvertFloat4ToU32(color);
-  //     ImGui::GetWindowDrawList()->AddRectFilled(item_rect.Min , item_rect.Max , bg_color);
-  //   };
+    const bool window_focused = ImGui::IsWindowFocused();
 
-  //   auto check_if_descendant_selected = [&](const Path& dir , auto is_any_descendant_selected) -> bool {
-  //     if (!selection.has_value()) {
-  //       return false;
-  //     }
+    auto fill_w_color = [&](const ImColor& color) {
+      const ImU32 bg_color = ImGui::ColorConvertFloat4ToU32(color);
+      ImGui::GetWindowDrawList()->AddRectFilled(item_rect.Min, item_rect.Max, bg_color);
+    };
 
-  //     if (dir == selection.value()->path) {
-  //       return true;
-  //     }
+    const bool any_descendant_selected = IsDescendantSelected(selection_item);
+    const bool is_active_dir = IsDirSelected(directory);
 
-  //     auto items = Filesystem::GetSubPaths(dir);
-  //     if (!items.empty()) {
-  //       for (const auto& d : items) {
-  //         if (!Filesystem::IsDirectory(d)) {
-  //           continue;
-  //         }
+    ImGuiTreeNodeFlags flags = (is_active_dir ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_SpanFullWidth;
+    if (directory->children.size() == 0) {
+      flags |= ImGuiTreeNodeFlags_Leaf;
+    }
 
-  //         if (is_any_descendant_selected(d , is_any_descendant_selected)) {
-  //           return true;
-  //         }
-  //       }
-  //     }
+    if (item_clicked) {
+      SetSelectionContext(directory);
+    }
 
-  //     return false;
-  //   };
+    if (is_active_dir || item_clicked) {
+      if (window_focused) {
+        fill_w_color(ui::theme::selection);
+      } else {
+        const ImColor col = ui::theme::ColorWithMultiplier(ui::theme::selection, 0.8f);
+        fill_w_color(ui::theme::ColorWithMultipliedSaturation(col, 0.7f));
+      }
 
-  //   const bool any_descendant_selected = check_if_descendant_selected(dir->directory->path , check_if_descendant_selected);
-  //   const bool is_active_dir = IsDirSelected(dir->directory);
+      ImGui::PushStyleColor(ImGuiCol_Text, ui::theme::background_dark);
+    } else if (any_descendant_selected) {
+      fill_w_color(ui::theme::selection_muted);
+    }
 
-  //   ImGuiTreeNodeFlags flags = (is_active_dir ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_SpanFullWidth;
-  //   if (dir->directory->children.size() == 0) {
-  //     flags |= ImGuiTreeNodeFlags_Leaf;
-  //   }
+    bool open = ImGui::TreeNodeEx(non_absolute.string().c_str(), flags);
+    // bool open = TreeNode(id_str, non_absolute.string(), flags, EditorImages::folder_icon);
 
-  //   if (item_clicked) {
-  //     SetSelectionContext(dir);
-  //   }
+    if (is_active_dir || item_clicked) {
+      ImGui::PopStyleColor();
+    }
 
-  //   if (is_active_dir || item_clicked) {
-  //     if (window_focused) {
-  //       fill_w_color(ui::theme::selection);
-  //     } else {
-  //       const ImColor col = ui::theme::ColorWithMultiplier(ui::theme::selection , 0.8f);
-  //       fill_w_color(ui::theme::ColorWithMultipliedSaturation(col , 0.7f));
-  //     }
+    ui::ShiftCursorY(3.0f);
 
-  //     ImGui::PushStyleColor(ImGuiCol_Text , ui::theme::background_dark);
-  //   } else if (any_descendant_selected) {
-  //     fill_w_color(ui::theme::selection_muted);
-  //   }
+    // create context menu
 
-  //   bool open = ImGui::TreeNodeEx(non_absolute.string().c_str() , flags);
-  //   // bool open = TreeNode(id_str , non_absolute.string() , flags , EditorImages::folder_icon);
+    if (open) {
+      for (auto& child : directory->children) {
+        RenderDirectoryTree(child);
+      }
 
-  //   if (is_active_dir || item_clicked) {
-  //     ImGui::PopStyleColor();
-  //   }
+      ImGui::TreePop();
+    } else if (prev_state) {
+      /// not open on this frame but was open last frame
+    }
 
-  //   ui::ShiftCursorY(3.0f);
-
-  //   // create context menu
-
-  //   if (open) {
-  //     for (auto& [hash , child] : dir->directory->children) {
-  //       RenderDirectoryTree(project_folders.asset_folders[hash]);
-  //     }
-
-  //     ImGui::TreePop();
-  //   } else if (prev_state) {
-  //     /// not open on this frame but was open last frame
-  //   }
-
-  //   ImGui::PopID();
-  // }
+    ImGui::PopID();
+  }
 
   template <typename T>
   concept id_t = requires(T t) {
@@ -391,12 +347,12 @@ namespace other {
   }
 
   std::string ProjectPanel::GetContextMenuTagFromSelection() const {
-    if (!selection.has_value()) {
+    if (selection_item == nullptr) {
       return "";
     }
 
     auto itr = std::ranges::find_if(tags, [&](const auto& tag_pair) -> bool {
-      std::string tag = selection.value()->ProjectRelativePath().stem().string();
+      std::string tag = selection_item->directory->ProjectRelativePath().stem().string();
       return tag_pair.first.Get() == FNV(tag);
     });
 
@@ -453,20 +409,31 @@ namespace other {
     });
   }
 
-  bool ProjectPanel::IsDirSelected(const Ref<Directory>& dir) const {
-    return selection.has_value() && dir->ProjectRelativePath() == selection.value()->ProjectRelativePath();
-  }
-
-  bool ProjectPanel::IsDescendantSelected(const Ref<Directory>& dir) const {
-    if (!selection.has_value()) {
+  bool ProjectPanel::IsDirSelected(const Ref<CBDirectory>& dir) const {
+    if (selection_item == nullptr) {
       return false;
     }
 
-    if (dir->ProjectRelativePath() == selection.value()->ProjectRelativePath()) {
-      return true;
+    OE_ASSERT(dir != nullptr, "Directory is nullptr");
+    if (!dir->IsSelected()) {
+      return false;
+    }
+    OE_ASSERT(selection_item->directory != nullptr, "Selection item is nullptr");
+    OE_ASSERT(dir->directory != nullptr, "Directory is nullptr");
+    OE_ASSERT(selection_item->directory->AbsolutePath() == dir->directory->AbsolutePath(), "Selection item and directory are not the same");
+    return true;
+  }
+
+  bool ProjectPanel::IsDescendantSelected(const Ref<CBDirectory>& dir) const {
+    if (selection_item == nullptr) {
+      return false;
     }
 
-    for (const auto& [id, child] : dir->children) {
+    for (const Ref<CBDirectory>& child : dir->children) {
+      if (IsDirSelected(child)) {
+        return true;
+      }
+
       if (IsDescendantSelected(child)) {
         return true;
       }
@@ -475,107 +442,102 @@ namespace other {
     return false;
   }
 
-  // void ProjectPanel::SetSelectionContext(const Ref<CBDirectory>& dir) {
-  //   if (dir->IsSelected()) {
-  //     return;
-  //   }
+  void ProjectPanel::SetSelectionContext(const Ref<CBDirectory>& dir) {
+    OE_ASSERT(dir != nullptr, "Directory is nullptr");
+    if (IsDirSelected(dir)) {
+      selection_item->Deselect();
+      selection_item = nullptr;
+      return;
+    }
 
-  //   if (selection_item.has_value()) {
-  //     selection_item.value()->Deselect();
-  //   }
+    if (selection_item != nullptr) {
+      selection_item->Deselect();
+    }
 
-  //   selection_item = dir;
-  //   selection = dir->directory;
-  //   current_items = LoadItems(selection_item.value());
+    selection_item = dir;
+    current_items = LoadItems(selection_item);
+    selection_item->Select();
+  }
 
-  //   selection_item.value()->Select();
-  // }
+  void ProjectPanel::ActivateAsset(const Ref<CBItem>& asset) {
+    Ref<FileHandle> handle = Filesystem::GetFile(asset->asset_data->AbsolutePath());
+    if (handle == nullptr) {
+      OE_ERROR("Failed to get file handle for {}", asset->asset_data->AbsolutePath());
+      return;
+    }
 
-  // void ProjectPanel::ActivateAsset(const Ref<CBItem>& asset) {
-  //   const AssetMetadata& asset_md = AppState::Assets().As<EditorAssetHandler>()->GetMetadata(asset->GetHandle());
-  //   switch (asset_md.type) {
-  //     case SCENE: {
-  //       GetEditor().LoadScene(asset_md.path);
-  //     } break;
-  //     case DYNAMIC_LIBRARY: {
-  //       auto script_editor_itr = ui_windows.find(FNV("Script Editor"));
-  //       if (script_editor_itr != ui_windows.end()) {
-  //         Ref<ScriptEditor> editor = Ref<UIWindow>::Cast<ScriptEditor>(script_editor_itr->second);
-  //         editor->AddEditor(asset_md.handle , asset_md.path);
-  //       } else {
-  //         OE_ERROR("Failed to create script editor for {}" , asset_md.path);
-  //       }
+    switch (handle->GetAssetType()) {
+      case SCENE: {
+      } break;
+      // case DYNAMIC_LIBRARY: {
+      // } break;
+      default:
+        OE_DEBUG("Implement asset activation {}", handle->GetAssetType());
+        break;
+    }
+  }
 
-  //       ImGui::CloseCurrentPopup();
-  //     } break;
-  //     default:
-  //       OE_DEBUG("Implement asset activation {}" , asset_md.type);
-  //     break;
-  //   }
-  // }
+  void ProjectPanel::RenderItems() {
+    for (auto& itm : current_items) {
+      bool set_selection_ctx = false;
+      bool asset_activated = false;
 
-  // void ProjectPanel::RenderItems() {
-  //   for (auto& itm : current_items) {
-  //     bool set_selection_ctx = false;
-  //     bool asset_activated = false;
+      itm->OnRenderBegin();
 
-  //     itm->OnRenderBegin();
+      CBActionResult result = itm->Render();
 
-  //     CBActionResult result = itm->Render();
+      // if (result.Has(CBAction::ACTIVATED)) {
+      //   asset_activated = true;
+      // }
 
-  //     if (result.Has(CBAction::ACTIVATED)) {
-  //       asset_activated = true;
-  //     }
+      if (result.Has(CBAction::SELECTED)) {
+        set_selection_ctx = true;
+      }
 
-  //     if (result.Has(CBAction::SELECTED)) {
-  //       set_selection_ctx = true;
-  //     }
+      if (result.Has(CBAction::DESELECTED)) {
+      }
 
-  //     if (result.Has(CBAction::DESELECTED)) {
-  //     }
+      // if (result.Has(CBAction::START_RENAMING)) {}
 
-  //     if (result.Has(CBAction::START_RENAMING)) {}
+      if (result.Has(CBAction::RELOAD)) {}
 
-  //     if (result.Has(CBAction::RELOAD)) {}
+      if (result.Has(CBAction::OPEN_NATIVE)) {}
 
-  //     if (result.Has(CBAction::OPEN_NATIVE)) {}
+      if (result.Has(CBAction::OPEN_EXTERNAL)) {}
 
-  //     if (result.Has(CBAction::OPEN_EXTERNAL)) {}
+      if (result.Has(CBAction::HOVERED)) {}
 
-  //     if (result.Has(CBAction::HOVERED)) {}
+      if (result.Has(CBAction::RENAMED)) {}
 
-  //     if (result.Has(CBAction::RENAMED)) {}
+      itm->OnRenderEnd();
 
-  //     itm->OnRenderEnd();
+      if (set_selection_ctx && itm->GetType() == ContentBrowserItem::Type::DIRECTORY) {
+        SetSelectionContext(itm.As<CBDirectory>());
+        return;
+      } else if (asset_activated) {
+        ActivateAsset(itm.As<CBItem>());
+      }
+    }
+  }
 
-  //     if (set_selection_ctx && itm->GetType() == ContentBrowserItem::Type::DIRECTORY) {
-  //       SetSelectionContext(itm.As<CBDirectory>());
-  //       return;
-  //     } else if (asset_activated) {
-  //       ActivateAsset(itm.As<CBItem>());
-  //     }
-  //   }
-  // }
+  CBItemList ProjectPanel::LoadItems(const Ref<CBDirectory>& dir) {
+    CBItemList items;
 
-  // CBItemList ProjectPanel::LoadItems(const Ref<CBDirectory>& dir) {
-  //   CBItemList items;
+    for (auto& [id, child] : dir->directory->children) {
+      items.push_back(NewRef<CBDirectory>(child));
+    }
 
-  //   for (auto& [id , child] : dir->directory->children) {
-  //     items.push_back(NewRef<CBDirectory>(child));
-  //   }
+    for (Path& path : dir->directory->GetFilePaths()) {
+      Ref<FileHandle> file = Filesystem::GetFile(dir->directory->AbsolutePath() / path);
+      if (file == nullptr) {
+        continue;
+      }
 
-  //   for (auto& handle : dir->directory->assets) {
-  //     const AssetMetadata& asset_md = AppState::Assets().As<EditorAssetHandler>()->GetMetadata(handle);
-  //     if (asset_md.path.empty()) {
-  //       items.push_back(NewRef<CBItem>(asset_md , EditorImages::default_file_icon));
-  //       continue;
-  //     }
+      Ref<Texture2D> icon = EditorImages::GetIconFromExtension(path.extension().string());
+      items.push_back(NewRef<CBItem>(file, icon));
+    }
 
-  //     Ref<Texture2D> icon = EditorImages::GetIconFromExtension(asset_md.path.extension().string());
-  //     items.push_back(NewRef<CBItem>(asset_md , icon));
-  //   }
-
-  //   return items;
-  // }
+    return items;
+  }
 
 }  // namespace other

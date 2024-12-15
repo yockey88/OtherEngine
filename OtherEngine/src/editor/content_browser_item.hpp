@@ -31,15 +31,15 @@ namespace other {
     HOVERED = bit(4),
     RENAMED = bit(5),
     CONFIRM_DELETE = bit(6),
-    SELECT_TO_HERE = bit(7),
+    DRAGGING = bit(7),
     MOVED = bit(8),
     OPEN_NATIVE = bit(9),
     OPEN_EXTERNAL = bit(10),
     RELOAD = bit(11),
     COPY = bit(12),
-    // DUPLICATE = bit(13),
-    // START_RENAMING = bit(14),
-    // ACTIVATED = bit(15),
+    DUPLICATE = bit(13),
+    START_RENAMING = bit(14),
+    ACTIVATED = bit(15),
 
     NUM_CB_ACTIONS,
     INVALID_CB_ACTION = NUM_CB_ACTIONS
@@ -61,146 +61,120 @@ namespace other {
     }
   };
 
-  // class ContentBrowserItem : public RefCounted {
-  //   public:
-  //     enum class Type {
-  //       DIRECTORY , FILE ,
+  class ContentBrowserItem : public RefCounted {
+   public:
+    enum class Type {
+      DIRECTORY,
+      FILE,
 
-  //       NUM_ITEM_TYPES ,
-  //       INVALID_ITEM_TYPE = NUM_ITEM_TYPES ,
-  //     };
+      NUM_ITEM_TYPES,
+      INVALID_ITEM_TYPE = NUM_ITEM_TYPES,
+    };
 
-  //     ContentBrowserItem(Type type , AssetHandle handle , const std::string& name , const Ref<Texture>& icon)
-  //         : type(type) , handle(handle) , filename(name) , icon(icon) {
-  //       std::ranges::fill(rename_buffer , 0);
-  //     }
-  //     virtual ~ContentBrowserItem() {}
+    ContentBrowserItem(Type type, UUID file_handle, const std::string& name, const Ref<Texture>& icon)
+        : type(type), file_handle(file_handle), filename(name), icon(icon) {
+      std::ranges::fill(rename_buffer, 0);
+    }
+    virtual ~ContentBrowserItem() {}
 
-  //     void OnRenderBegin();
-  //     CBActionResult Render();
-  //     void OnRenderEnd();
+    void OnRenderBegin();
+    CBActionResult Render();
+    void OnRenderEnd();
 
-  //     virtual void Delete() {}
-  //     virtual bool Move(const Path& new_path) { return false; }
+    virtual void Delete() {}
+    virtual bool Move(const Path& new_path);
 
-  //     Type GetType() const;
-  //     AssetHandle GetHandle() const;
-  //     const std::string& GetFilename() const;
-  //     const Ref<Texture>& GetIcon() const;
+    Type GetType() const;
+    UUID GetHandle() const;
+    const std::string& GetFilename() const;
+    const Ref<Texture>& GetIcon() const;
 
-  //     bool IsSelected() const {
-  //       return selected;
-  //     }
+    bool IsSelected() const;
+    void Select();
+    void Deselect();
+    void Rename(const std::string& name);
+    void StartRenaming();
 
-  //     void Select() {
-  //       selected = true;
-  //     }
+   protected:
+    virtual void OnRenamed(const std::string& new_name);
+    virtual void RenderCustomContextItems() {}
+    virtual void UpdateDrop(CBActionResult& result) {}
 
-  //     void Deselect() {
-  //       selected = false;
-  //       dragging = false;
-  //     }
+    virtual std::string OverrideDisplayName(const std::string& new_name);
 
-  //     void Rename(const std::string& name) {
-  //       OnRenamed(name);
-  //     }
+   private:
+    Type type;
+    UUID file_handle;
+    std::string filename;
+    std::string display_name;
 
-  //     void StartRenaming() {
-  //       if (renaming) {
-  //         return;
-  //       }
+    Ref<Texture> icon = nullptr;
 
-  //       std::ranges::fill(rename_buffer , 0);
-  //       for (size_t i = 0; i < filename.length(); ++i) {
-  //         rename_buffer[i] = filename[i];
-  //       }
+    bool renaming = false;
+    bool dragging = false;
+    bool selected = false;
+    bool just_selected = false;
 
-  //       renaming = true;
-  //     }
+    constexpr static size_t kMaxBufferSize = 256;
+    std::array<char, kMaxBufferSize> rename_buffer;
 
-  //   protected:
-  //     virtual void OnRenamed(const std::string& new_name) { filename = new_name; }
-  //     virtual void RenderCustomContextItems() {}
-  //     virtual void UpdateDrop(CBActionResult& result) {}
+    void OnContextMenuOpen(CBActionResult& result);
+    void SetDisplayName();
+  };
 
-  //     virtual std::string OverrideDisplayName(const std::string& new_name) { return new_name; };
+  class CBDirectory : public ContentBrowserItem {
+   public:
+    CBDirectory(const Ref<Directory>& directory);
+    virtual ~CBDirectory() override {}
 
-  //   private:
-  //     Type type;
-  //     AssetHandle handle;
-  //     std::string filename;
-  //     std::string display_name;
+    Ref<Directory> directory = nullptr;
+    std::vector<Ref<CBDirectory>> children;
 
-  //     Ref<Texture> icon = nullptr;
+    virtual void Delete() override;
+    virtual bool Move(const Path& path) override;
 
-  //     bool renaming = false;
-  //     bool dragging = false;
-  //     bool selected = false;
-  //     bool just_selected = false;
+   private:
+    virtual void OnRenamed(const std::string& name) override;
+    virtual void UpdateDrop(CBActionResult& result) override;
 
-  //     constexpr static size_t kMaxBufferSize = 256;
-  //     std::array<char , kMaxBufferSize> rename_buffer;
+    void UpdateDirectoryPath(Ref<Directory> directory, const Path& new_parent, const Path& new_name);
+  };
 
-  //     void OnContextMenuOpen(CBActionResult& result);
-  //     void SetDisplayName();
-  // };
+  class CBItem : public ContentBrowserItem {
+   public:
+    CBItem(const Ref<FileHandle>& asset_data, const Ref<Texture2D>& icon);
+    virtual ~CBItem() override {}
 
-  // class CBDirectory : public ContentBrowserItem {
-  //   public:
-  //     CBDirectory(const Ref<Directory>& directory)
-  //       : ContentBrowserItem(Type::DIRECTORY , directory->handle, directory->path.filename().string() , EditorImages::folder_icon) ,
-  //         directory(directory) {}
-  //     virtual ~CBDirectory() override {}
+    Ref<FileHandle> asset_data = nullptr;
 
-  //     Ref<Directory> directory = nullptr;
+    virtual void Delete() override;
+    virtual bool Move(const Path& path) override;
 
-  //     virtual void Delete() override;
-  //     virtual bool Move(const Path& path) override;
+   private:
+    virtual void OnRenamed(const std::string& name) override;
+    virtual std::string OverrideDisplayName(const std::string& new_name) override;
+  };
 
-  //   private:
-  //     virtual void OnRenamed(const std::string& name) override;
-  //     virtual void UpdateDrop(CBActionResult& result) override;
+  struct CBItemList {
+    static constexpr size_t invalid_idx = std::numeric_limits<size_t>::max();
 
-  //     void UpdateDirectoryPath(Ref<Directory> directory , const Path& new_parent , const Path& new_name);
-  // };
+    std::vector<Ref<ContentBrowserItem>>::iterator begin() { return items.begin(); };
+    std::vector<Ref<ContentBrowserItem>>::iterator end() { return items.end(); };
+    std::vector<Ref<ContentBrowserItem>>::const_iterator begin() const { return items.begin(); };
+    std::vector<Ref<ContentBrowserItem>>::const_iterator end() const { return items.end(); };
 
-  // class CBItem : public ContentBrowserItem {
-  //   public:
-  //     CBItem(const AssetMetadata& asset_data , const Ref<Texture2D>& icon);
-  //     virtual ~CBItem() override {}
+    Ref<ContentBrowserItem>& operator[](size_t idx) { return items[idx]; }
+    const Ref<ContentBrowserItem>& operator[](size_t idx) const { return items[idx]; }
 
-  //     Ref<Directory> directory = nullptr;
+    size_t size();
+    void clear();
+    void erase(AssetHandle handle);
+    size_t find(AssetHandle handle);
+    void push_back(const Ref<ContentBrowserItem>& item);
 
-  //     virtual void Delete() override;
-  //     virtual bool Move(const Path& path) override;
-
-  //   private:
-  //     virtual void OnRenamed(const std::string& name) override;
-  //     virtual std::string OverrideDisplayName(const std::string& new_name) override;
-
-  //     AssetMetadata asset_registry;
-  // };
-
-  // struct CBItemList {
-  //   static constexpr size_t invalid_idx = std::numeric_limits<size_t>::max();
-
-  //   std::vector<Ref<ContentBrowserItem>>::iterator begin() { return items.begin(); };
-  //   std::vector<Ref<ContentBrowserItem>>::iterator end() { return items.end(); };
-  //   std::vector<Ref<ContentBrowserItem>>::const_iterator begin() const { return items.begin(); };
-  //   std::vector<Ref<ContentBrowserItem>>::const_iterator end() const { return items.end(); };
-
-  //   Ref<ContentBrowserItem>& operator[](size_t idx) { return items[idx]; }
-  //   const Ref<ContentBrowserItem>& operator[](size_t idx) const { return items[idx]; }
-
-  //   size_t size();
-  //   void clear();
-  //   void erase(AssetHandle handle);
-  //   size_t find(AssetHandle handle);
-  //   void push_back(const Ref<ContentBrowserItem>& item);
-
-  //   private:
-  //     std::vector<Ref<ContentBrowserItem>> items;
-  // };
+   private:
+    std::vector<Ref<ContentBrowserItem>> items;
+  };
 
 }  // namespace other
 

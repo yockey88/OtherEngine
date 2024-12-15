@@ -52,6 +52,7 @@ namespace other {
     virtual void Remove(AssetHandle handle) = 0;
 
     virtual std::set<AssetHandle> GetAllOfType(AssetType type) = 0;
+    virtual std::set<AssetKey> GetAllKeysOfType(AssetType type) = 0;
 
    protected:
     void TryLoadAsset(AssetMetadata& metadata);

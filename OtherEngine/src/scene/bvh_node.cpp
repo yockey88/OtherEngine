@@ -189,7 +189,7 @@ namespace other {
     glm::mat4 model_mat = glm::translate(identity, bbox.Center());
     model_mat = glm::scale(model_mat, bbox.extent);
 
-    RenderSubmission s = {
+    RenderStaticSubmission s = {
       .model = model,
       .transform = model_mat,
       .material = mat,
@@ -222,7 +222,7 @@ namespace other {
     glm::mat4 model_mat = glm::translate(identity, bbox.Center());
     model_mat = glm::scale(model_mat, bbox.extent);
 
-    RenderSubmission s = {
+    RenderStaticSubmission s = {
       .model = model,
       .transform = model_mat,
       .material = mat,

@@ -608,7 +608,6 @@ TEST_F(SerializationTests, pipeline_spec) {
   {
     std::stringstream ss;
     other::PipelineSpec spec{
-      .topology = other::DrawMode::TRIANGLES,
       .back_face_culling = true,
       .depth_test = true,
       .line_width = 1.f,
@@ -625,7 +624,6 @@ TEST_F(SerializationTests, pipeline_spec) {
 
     std::string expected_str = R"({
     Pipeline
-    topology = TRIANGLES
     back-face-culling = true
     depth-test = true
     line-width = 1
@@ -648,7 +646,6 @@ TEST_F(SerializationTests, pipeline_spec) {
   {
     std::stringstream ss;
     other::PipelineSpec spec{
-      .topology = other::DrawMode::TRIANGLES,
       .back_face_culling = true,
       .depth_test = true,
       .line_width = 1.f,
@@ -665,7 +662,6 @@ TEST_F(SerializationTests, pipeline_spec) {
 
     std::string expected_str = R"({
     Pipeline
-    topology = TRIANGLES
     back-face-culling = true
     depth-test = true
     line-width = 1
@@ -690,7 +686,6 @@ TEST_F(SerializationTests, pipeline_spec) {
     std::string data = R"(
       {
         Pipeline
-        topology = TRIANGLES
         back-face-culling = true
         depth-test = true
         line-width = 1
@@ -710,7 +705,6 @@ TEST_F(SerializationTests, pipeline_spec) {
     other::PipelineSpec spec;
     ASSERT_NO_FATAL_FAILURE(spec = Reader<other::PipelineSpec>{}(ss));
     EXPECT_EQ(spec.pipeline_name, "Pipeline");
-    EXPECT_EQ(spec.topology, other::DrawMode::TRIANGLES);
     EXPECT_EQ(spec.back_face_culling, true);
     EXPECT_EQ(spec.depth_test, true);
     EXPECT_EQ(spec.line_width, 1.f);

@@ -22,8 +22,6 @@ namespace other {
 
     Ref<Directory> parent_dir;
 
-    std::set<AssetHandle> assets;
-
     std::map<UUID, Ref<FileHandle>> file_handles;
     std::map<UUID, Ref<Directory>> children;
 

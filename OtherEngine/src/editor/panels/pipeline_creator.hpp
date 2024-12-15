@@ -27,12 +27,6 @@ namespace other {
 
     std::array<char, 64> pipeline_name{};
 
-    const char* draw_modes[7] = { "Points", "Lines", "Line Strip", "Line Loop", "Triangles", "Triangle Strip", "Triangle Fan" };
-    uint32_t draw_mode_count = 7;
-    /// this works for this one because the GL_ draw mode enums start at 0 and are contiguous
-    ///  other GL_ draw mode enums don't start at 0/may not be contiguous
-    uint32_t selected_draw_mode = DrawMode::TRIANGLES;
-
     enum DepthFunctionIndices {
       NEVER = 0,
       LESS,
