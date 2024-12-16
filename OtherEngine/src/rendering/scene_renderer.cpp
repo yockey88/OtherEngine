@@ -77,13 +77,22 @@ namespace other {
     frame_data.environment = environment;
   }
 
+  void SceneRenderer::SubmitMaterialTable(Ref<MaterialTable>& table) {
+    if (frame_data.material_table != nullptr) {
+      /// only one material table per frame
+      return;
+    }
+    OE_ASSERT(table != nullptr, "Material table is null");
+    frame_data.material_table = table;
+  }
+
   void SceneRenderer::ClearLightEnvironment() {
     glm::vec4 light_count{ 0, 0, 0, 0 };
     frame_data.light_uniforms->BindBase();
     frame_data.light_uniforms->SetUniform("num_lights", light_count);
   }
 
-  void SceneRenderer::SubmitModel(const Ref<Model>& model, const glm::mat4& transform, const Material& material, DrawMode topology) {
+  void SceneRenderer::SubmitModel(const Ref<Model>& model, const glm::mat4& transform, const std::vector<Material>& materials, DrawMode topology) {
     if (model == nullptr) {
       return;
     }
@@ -91,7 +100,7 @@ namespace other {
     SubmitModel({
       .model = model,
       .transform = transform,
-      .material = material,
+      .materials = materials,
       .draw_mode = topology,
     });
   }
@@ -127,14 +136,14 @@ namespace other {
     }
   }
 
-  void SceneRenderer::SubmitModel(const std::vector<std::string>& pls, const Ref<Model>& model, const glm::mat4& transform, const Material& material, DrawMode topology) {
+  void SceneRenderer::SubmitModel(const std::vector<std::string>& pls, const Ref<Model>& model, const glm::mat4& transform, const std::vector<Material>& materials, DrawMode topology) {
     for (auto& pl : pls) {
       auto itr = pipelines.find(FNV(pl));
       if (itr == pipelines.end()) {
         continue;
       }
 
-      itr->second->SubmitModel(model, transform, material, topology);
+      itr->second->SubmitModel(model, transform, materials, topology);
     }
   }
 
@@ -148,7 +157,7 @@ namespace other {
       SubmitStaticModel(pls, {
                                .model = model,
                                .transform = transform,
-                               .material = material,
+                               //  .material = material,
                                .draw_mode = topology,
                              });
     }
@@ -220,6 +229,19 @@ namespace other {
     Ref<Pipeline>& shadow_map_pl = pipelines[FNV("ShadowMap")];
     Ref<Pipeline>& depth_pl = pipelines[FNV("Depth")];
 
+    /// gbuffer takes 0-3, shadow map and depth are 4,5 so we start at 6
+    frame_data.material_table->Bind(6);
+    for (auto& pass : render_passes) {
+      if (pass == nullptr) {
+        continue;
+      }
+      pass->Bind();
+      pass->SetInput("albedo_textures", 0);
+      pass->SetInput("normal_textures", 1);
+      pass->SetInput("roughness_textures", 2);
+      pass->Unbind();
+    }
+
     glCullFace(GL_FRONT);
     shadow_map_pl->Render(false);
     glCullFace(GL_BACK);
@@ -237,6 +259,8 @@ namespace other {
 
     pipelines[FNV("Geometry")]->Render(true);
     image_ir[FNV("Geometry")] = pipelines[FNV("Geometry")]->GetOutput();
+
+    frame_data.material_table->Unbind();
 
     ResetFrame();
     return true;
@@ -393,8 +417,8 @@ namespace other {
   }
 
   bool SceneRenderer::FrameComplete() const {
-    return frame_data.viewpoint != nullptr &&
-      frame_data.environment != nullptr;
+    bool viewpoint_and_env = frame_data.viewpoint != nullptr && frame_data.environment != nullptr;
+    return viewpoint_and_env && frame_data.material_table != nullptr;
   }
 
   void SceneRenderer::ResetFrame() {

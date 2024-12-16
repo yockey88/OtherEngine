@@ -133,7 +133,7 @@ namespace other {
     ComponentType<C> &&
     requires(C comp) {
       comp.handle;  /// asset handle
-      comp.material;
+      // comp.material;
     };
 
   template <typename C>
@@ -142,7 +142,7 @@ namespace other {
     (RenderableComp<C> ||
      requires(C comp) {
        comp.handle;  /// asset handle
-       comp.material;
+                     //  comp.material;
      });
 
   template <ComponentType RC, ComponentType TC = NullComponent, ComponentType EC = NullComponent>

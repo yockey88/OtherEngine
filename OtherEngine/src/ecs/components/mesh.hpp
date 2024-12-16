@@ -18,8 +18,7 @@ namespace other {
 
   struct Mesh : public Component {
     AssetHandle handle;
-    Material material;
-    // Ref<MaterialTable> mat_table = nullptr;
+    std::vector<Material> materials;
     std::vector<UUID> bone_entity_ids;
     bool visible = true;
 
@@ -37,8 +36,6 @@ namespace other {
   struct StaticMesh : public Component {
     AssetHandle handle;
     Material material;
-
-    // Ref<MaterialTable> mat_table = nullptr;
     bool visible = true;
 
     bool is_primitive = false;
@@ -63,7 +60,7 @@ namespace other {
 ECHO_TYPE(
   type(other::Mesh),
   field(handle),
-  field(material),
+  field(materials),
   field(bone_entity_ids),
   field(visible)
 );

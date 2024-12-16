@@ -99,6 +99,11 @@ namespace other {
     asset->SetFlag(AssetFlag::ASSET_LOADED, true);
   }
 
+  void AssetDatabase::UnregisterAsset(const AssetKey& key) {
+    OE_ASSERT(HasKey(key), "Asset key not found : {}", key.file_handle);
+    asset_registry.RemoveAsset(key);
+  }
+
   void AssetDatabase::UnregisterAsset(const AssetMetadata& metadata) {
     OE_ASSERT(metadata.handle != 0, "Invalid asset metadata");
     UnregisterAsset(metadata.handle);
@@ -144,7 +149,17 @@ namespace other {
 
   std::set<AssetKey> AssetDatabase::GetAllKeysOfType(AssetType type) {
     std::set<AssetKey> result;
+    for (auto itr = asset_registry.ReadAllAssets().begin(); itr != asset_registry.ReadAllAssets().end(); ++itr) {
+      if (itr->second.type == type) {
+        result.insert(itr->first);
+      }
+    }
+
     for (auto& [key, md] : asset_registry.ReadAllAssets()) {
+      if (!HasKey(key)) {
+        continue;
+      }
+
       if (key.type == type) {
         result.insert(key);
       }

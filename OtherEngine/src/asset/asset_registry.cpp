@@ -125,6 +125,8 @@ namespace other {
       OE_WARN("Asset not found : {}", key.file_handle);
       return;
     }
+
+    OE_DEBUG("Removing asset : {}", key);
     assets.erase(itr);
   }
 

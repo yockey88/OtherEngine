@@ -32,6 +32,7 @@
 #include "ecs/systems/core_systems.hpp"
 
 #include "rendering/camera_base.hpp"
+#include "rendering/material.hpp"
 #include "rendering/model.hpp"
 #include "scripting/cs/cs_object.hpp"
 #include "scripting/script_engine.hpp"
@@ -385,6 +386,93 @@ namespace other {
       }
     });
 
+    /// update material tables if they have changed
+    std::set<UUID> model_sources;
+    registry.view<Mesh>().each([&model_sources](Mesh& mesh) {
+      if (!AppState::Assets()->IsValid(mesh.handle)) {
+        return;
+      }
+
+      auto model = AssetManager::GetAsset<Model>(mesh.handle);
+      if (model == nullptr) {
+        return;
+      }
+
+      model_sources.insert(model->GetModelSource()->handle.Get());
+    });
+    registry.view<StaticMesh>().each([&model_sources](StaticMesh& mesh) {
+      if (!AppState::Assets()->IsValid(mesh.handle)) {
+        return;
+      }
+
+      auto model = AssetManager::GetAsset<StaticModel>(mesh.handle);
+      if (model == nullptr) {
+        return;
+      }
+
+      model_sources.insert(model->GetModelSource()->handle.Get());
+    });
+
+    uint32_t layers = std::numeric_limits<uint32_t>::min();
+    for (UUID model_src : model_sources) {
+      Ref<ModelSource> src = AssetManager::GetAsset<ModelSource>(model_src);
+      if (src == nullptr) {
+        continue;
+      }
+
+      layers = layers > src->SubMeshes().size() ?
+        layers :
+        src->SubMeshes().size();
+    }
+    if (layers != std::numeric_limits<uint32_t>::min()) {
+      material_table->Recreate(1, layers, glm::vec2{ 1920.f, 1080.f });
+      registry.view<Mesh>().each([&](Mesh& mesh) {
+        if (!AppState::Assets()->IsValid(mesh.handle)) {
+          return;
+        }
+
+        auto model = AssetManager::GetAsset<Model>(mesh.handle);
+        if (model == nullptr) {
+          return;
+        }
+
+        Ref<MaterialTable> src_mat_table = model->GetModelSource()->GetMaterialTable();
+        OE_ASSERT(src_mat_table != nullptr, "Model has no material table");
+
+        std::vector<uint32_t> submeshes = model->SubMeshes();
+        for (uint32_t sm_idx : submeshes) {
+          if (sm_idx >= model->GetModelSource()->SubMeshes().size()) {
+            continue;
+          }
+          SubMesh& submesh = model->GetModelSource()->SubMeshes()[sm_idx];
+          Material& mat = submesh.material;
+
+          material_table->SetTexture(MaterialTable::ALBEDO, sm_idx, src_mat_table->GetTexturePixels(MaterialTable::ALBEDO, mat.albedo_tex_idx));
+          material_table->SetTexture(MaterialTable::NORMAL, sm_idx, src_mat_table->GetTexturePixels(MaterialTable::NORMAL, mat.normal_tex_idx));
+          material_table->SetTexture(MaterialTable::ROUGHNESS, sm_idx, src_mat_table->GetTexturePixels(MaterialTable::ROUGHNESS, mat.roughness_tex_idx));
+        }
+      });
+      registry.view<StaticMesh>().each([&](StaticMesh& mesh) {
+        if (!AppState::Assets()->IsValid(mesh.handle)) {
+          return;
+        }
+
+        Ref<MaterialTable> src_mat_table = model->GetModelSource()->GetMaterialTable();
+        OE_ASSERT(src_mat_table != nullptr, "Model has no material table");
+
+        std::vector<SubMesh> submeshes = model->GetModelSource()->SubMeshes();
+        for (uint32_t i = 0; i < submeshes.size(); ++i) {
+          SubMesh& sm = submeshes[i];
+          Material& mat = sm.material;
+
+          material_table->SetTexture(MaterialTable::ALBEDO, i, src_mat_table->GetTexturePixels(MaterialTable::ALBEDO, mat.albedo_tex_idx));
+          material_table->SetTexture(MaterialTable::NORMAL, i, src_mat_table->GetTexturePixels(MaterialTable::NORMAL, mat.normal_tex_idx));
+          material_table->SetTexture(MaterialTable::ROUGHNESS, i, src_mat_table->GetTexturePixels(MaterialTable::ROUGHNESS, mat.roughness_tex_idx));
+        }
+      });
+    }
+    OE_ASSERT(layers != std::numeric_limits<uint32_t>::min(), "No models in scene");
+
     if (!running) {
       return;
     }
@@ -452,13 +540,14 @@ namespace other {
     //   renderer->SubmitEnvironment(environment);
     // }
     renderer->SubmitEnvironment(environment);
+    renderer->SubmitMaterialTable(material_table);
     dynamic_mesh_group.each([&renderer](const Mesh& mesh, const Transform& transform) {
       if (!AppState::Assets()->IsValid(mesh.handle)) {
         return;
       }
 
       auto model = AssetManager::GetAsset<Model>(mesh.handle);
-      renderer->SubmitModel(model, transform.model_transform, mesh.material);
+      renderer->SubmitModel(model, transform.model_transform, mesh.materials);
     });
 
     static_mesh_group.each([&renderer](const StaticMesh& mesh, const Transform& transform) {
@@ -513,6 +602,10 @@ namespace other {
 
   Ref<LightEnvironment> Scene::GetEnvironment() const {
     return environment;
+  }
+
+  Ref<MaterialTable> Scene::GetMaterialTable() const {
+    return material_table;
   }
 
   const bool Scene::IsInitialized() const {

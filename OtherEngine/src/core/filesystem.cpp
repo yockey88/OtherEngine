@@ -52,7 +52,8 @@ namespace other {
 
   Ref<Directory> Filesystem::MountProjectRoot(const std::string_view name, const Path& path) {
     OE_ASSERT(sFileTree.dir == nullptr, "Project root already mounted");
-    sFileTree.dir = sFileTree.mounted_dirs[FNV(name)] = NewRef<Directory>(path);
+    uint64_t hash = FNV(name);
+    sFileTree.dir = sFileTree.mounted_dirs[hash] = NewRef<Directory>(path, hash);
     OE_ASSERT(sFileTree.dir != nullptr, "Failed to create project directory");
     OE_ASSERT(sFileTree.dir->Exists(), "Project directory does not exist : {}", std::filesystem::current_path().string());
 
@@ -66,14 +67,16 @@ namespace other {
     }
     /// poll for changes in the virtual file tree
 
-    for (auto& [id, dir] : sFileTree.mounted_dirs) {
-      OE_ASSERT(dir != nullptr, "Mounted directory is null");
-      dir->Poll();
-    }
+    sFileTree.dir->Poll();
 
     for (auto& [id, file] : sFileTree.registered_files) {
       OE_ASSERT(file != nullptr, "Registered file is null");
       file->Poll();
+    }
+
+    for (auto& [id, dir] : sFileTree.mounted_dirs) {
+      OE_ASSERT(dir != nullptr, "Mounted directory is null");
+      dir->Poll();
     }
   }
 
@@ -121,16 +124,58 @@ namespace other {
     }
   }
 
-  bool Filesystem::AttemptDelete(const Path& path) {
+  bool Filesystem::RemoveFile(UUID handle) {
     try {
-      return std::filesystem::remove(path);
+      bool success = sFileTree.dir->RemoveFile(handle);
+      if (success) {
+        OE_DEBUG("Removed file : {}", handle);
+      }
+
+      for (auto& [id, dir] : sFileTree.mounted_dirs) {
+        if (dir->RemoveFile(handle)) {
+          success = true;
+          OE_DEBUG("Removed file : {}", handle);
+        }
+      }
+
+      auto find_file = sFileTree.registered_files.find(handle);
+      if (find_file != sFileTree.registered_files.end()) {
+        auto& file = find_file->second;
+        if (file->Exists()) {
+          success = file->Remove();
+        }
+
+        if (!success && file->Exists()) {
+          success = file->Remove();
+        }
+        sFileTree.registered_files.erase(find_file);
+      }
+
+      if (success) {
+        OE_DEBUG("Removed file : {}", handle);
+      }
+
+      return success;
     } catch (std::filesystem::filesystem_error& e) {
-      OE_ERROR("Filesystem error : {}", e.what());
+      OE_ERROR("Failed to delete file : {}", e.what());
       return false;
     } catch (...) {
       OE_ERROR("Unknown Filesystem error");
       return false;
     }
+  }
+
+  bool Filesystem::RemoveDirectory(UUID handle) {
+    // try {
+    //   return std::filesystem::remove_all(path);
+    // } catch (std::filesystem::filesystem_error& e) {
+    //   OE_ERROR("Filesystem error : {}", e.what());
+    //   return false;
+    // } catch (...) {
+    //   OE_ERROR("Unknown Filesystem error");
+    //   return false;
+    // }
+    return false;
   }
 
   Ref<Directory> Filesystem::MountDirectory(const std::string_view name, const Path& path) {
@@ -147,8 +192,7 @@ namespace other {
       return find_dir->second;
     }
 
-    Ref<Directory> dir = NewRef<Directory>(path);
-    dir->handle = id;
+    Ref<Directory> dir = NewRef<Directory>(path, id);
     sFileTree.mounted_dirs[id] = dir;
     OE_DEBUG(" > Mounted directory : {} at {}", name, path.string());
 
@@ -200,7 +244,8 @@ namespace other {
       }
     }
 
-    Ref<Directory> dir = Ref<Directory>::Create(path);
+    uint64_t hash = FNV(path.stem().string());
+    Ref<Directory> dir = NewRef<Directory>(path, hash);
     if (dir == nullptr) {
       OE_ERROR("Failed to open directory : {}", path.string());
       return nullptr;

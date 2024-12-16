@@ -109,12 +109,12 @@ namespace other {
     Ref<StaticModel> model = AssetManager::GetAsset<StaticModel>(wireframe);
     OE_ASSERT(model != nullptr, "Failed to get wireframe model");
 
-    Material mat(glm::vec4(235.f / 255.f, 132.f / 255.f, 9.f / 255.f, 1.f), 1.f);
+    // Material mat(glm::vec4(235.f / 255.f, 132.f / 255.f, 9.f / 255.f, 1.f), 1.f);
 
     RenderStaticSubmission submission = {
       .model = model,
       .transform = glm::scale(ReadComponent<Transform>().model_transform, glm::vec3(1.03f)),
-      .material = mat,
+      // .material = mat,
       .render_state = RenderState::FILL,
       .draw_mode = DrawMode::LINES,
     };

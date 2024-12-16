@@ -5,12 +5,14 @@
 #include <vector>
 
 #include "core/defines.hpp"
+#include "core/ref.hpp"
 #include "core/ref_counted.hpp"
 #include "core/uuid.hpp"
 #include "math/bounding_box.hpp"
 #include "math/vecmath.hpp"
 
 #include "rendering/layout.hpp"
+#include "rendering/material.hpp"
 #include "rendering/rendering_defines.hpp"
 
 namespace other {
@@ -75,6 +77,7 @@ namespace other {
     glm::mat4 transform{ 0.f };
     glm::mat4 local_transform{ 0.f };
     BBox bounds{};
+    Material material{};
 
     UUID sub_mesh_id;
     std::string model_name;
@@ -99,6 +102,7 @@ namespace other {
    public:
     VertexBuffer(BufferType type, size_t capacity);
     VertexBuffer(const void* data, uint32_t size, BufferUsage usage = STATIC_DRAW, BufferType type = ARRAY_BUFFER);
+    // VertexBuffer(const Ref<VertexBuffer>& other);
     ~VertexBuffer();
 
     size_t Size() const;
@@ -122,11 +126,8 @@ namespace other {
   class VertexArray : public RefCounted {
    public:
     VertexArray();
-    VertexArray(
-      const std::vector<float>& vertices,
-      const std::vector<uint32_t>& indices = {},
-      const std::vector<uint32_t>& layout = {}
-    );
+    VertexArray(const std::vector<float>& vertices, const std::vector<uint32_t>& indices = {}, const std::vector<uint32_t>& layout = {});
+    VertexArray(const Ref<VertexArray>& other);
 
     ~VertexArray();
 
@@ -148,8 +149,8 @@ namespace other {
     std::vector<uint32_t> indices;
     std::vector<uint32_t> layout;
 
-    Scope<VertexBuffer> vertex_buffer = nullptr;
-    Scope<VertexBuffer> index_buffer = nullptr;
+    Ref<VertexBuffer> vertex_buffer = nullptr;
+    Ref<VertexBuffer> index_buffer = nullptr;
 
     void SetLayout();
   };

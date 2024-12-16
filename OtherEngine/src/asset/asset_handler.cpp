@@ -38,6 +38,14 @@ namespace other {
     return AssetDatabase::Get(handle);
   }
 
+  const AssetMetadata& AssetHandler::GetMetadata(const AssetKey& key) {
+    if (AssetDatabase::HasKey(key)) {
+      return AssetDatabase::Get(key);
+    } else {
+      return null_metadata;
+    }
+  }
+
   AssetMetadata& AssetHandler::GetMutableMetadata(AssetHandle handle) {
     if (AssetDatabase::Contains(handle)) {
       return AssetDatabase::Get(handle);

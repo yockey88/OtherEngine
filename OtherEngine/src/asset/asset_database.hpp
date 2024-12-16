@@ -33,6 +33,7 @@ namespace other {
     friend class AssetManager;
     friend class FileHandle;
 
+    static void UnregisterAsset(const AssetKey& key);
     static void UnregisterAsset(const AssetMetadata& metadata);
     static void UnregisterAsset(const AssetHandle metadata);
 

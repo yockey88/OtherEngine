@@ -22,6 +22,7 @@ namespace other {
 
     const AssetMetadata& GetMetadata(AssetHandle handle);
     const AssetMetadata& GetMetadata(const Path& path);
+    const AssetMetadata& GetMetadata(const AssetKey& key);
     AssetMetadata& GetMutableMetadata(AssetHandle handle);
 
     AssetHandle ImportAsset(const Path& path);
@@ -49,6 +50,7 @@ namespace other {
     // asset file is missing
     virtual bool IsMissing(AssetHandle handle) = 0;
 
+    virtual void Remove(AssetKey key) = 0;
     virtual void Remove(AssetHandle handle) = 0;
 
     virtual std::set<AssetHandle> GetAllOfType(AssetType type) = 0;

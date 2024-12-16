@@ -137,6 +137,12 @@ namespace other {
     return false;
   }
 
+  void EditorAssetHandler::Remove(AssetKey key) {
+    if (AssetDatabase::HasKey(key)) {
+      AssetDatabase::UnregisterAsset(key);
+    }
+  }
+
   void EditorAssetHandler::Remove(AssetHandle handle) {
     if (IsHandleValid(handle)) {
       AssetDatabase::UnregisterAsset(handle);

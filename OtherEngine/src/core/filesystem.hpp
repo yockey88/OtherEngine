@@ -31,7 +31,8 @@ namespace other {
     static bool PathExists(const Path& path);
     static bool IsDirectory(const Path& path);
     static bool CreateDir(const Path& path);
-    static bool AttemptDelete(const Path& path);
+    static bool RemoveFile(UUID handle);
+    static bool RemoveDirectory(UUID handle);
 
     static Ref<Directory> MountProjectRoot(const std::string_view name, const Path& path);
     static Ref<Directory> MountDirectory(const std::string_view name, const Path& path);

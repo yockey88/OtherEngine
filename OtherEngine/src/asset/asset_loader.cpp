@@ -8,6 +8,7 @@
 #include "asset/serializers/model_serializer.hpp"
 #include "asset/serializers/scene_serializer.hpp"
 #include "asset/serializers/shader_serializer.hpp"
+#include "asset/serializers/texture_serializer.hpp"
 
 namespace other {
   namespace {
@@ -27,7 +28,7 @@ namespace other {
       []() -> Scope<AssetSerializer> { return NewScope<ModelSerializer>(); },   // AssetType::MODEL
       []() -> Scope<AssetSerializer> { return NewScope<ShaderSerializer>(); },  // AssetType::SHADER
       // []() -> Scope<AssetSerializer> { return nullptr; },  // AssetType::MATERIAL
-      []() -> Scope<AssetSerializer> { return nullptr; },  // AssetType::TEXTURE
+      []() -> Scope<AssetSerializer> { return NewScope<TextureSerializer>(); },  // AssetType::TEXTURE
       // []() -> Scope<AssetSerializer> { return nullptr; },  // AssetType::ENVMAP
       // []() -> Scope<AssetSerializer> { return nullptr; },  // AssetType::AUDIO
       // []() -> Scope<AssetSerializer> { return nullptr; },  // AssetType::SOUNDCONFIG

@@ -4,12 +4,17 @@
 #include "asset/serializers/model_serializer.hpp"
 
 #include <assimp/Importer.hpp>
+#include <assimp/material.h>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
+#include "core/filesystem.hpp"
 #include "core/logger.hpp"
 
+#include "asset/asset_manager.hpp"
+
 #include "rendering/model.hpp"
+#include "rendering/texture.hpp"
 
 namespace other {
 
@@ -19,12 +24,26 @@ namespace other {
     OE_DEBUG("Attempting to load model : {}", metadata.path);
     Assimp::Importer importer;
 
+    /// others
+    // aiProcess_RemoveRedundantMaterials |  // remove redundant materials
+    // aiProcess_FindDegenerates |           // remove degenerated polygons from the import
+    // aiProcess_FindInvalidData |           // detect invalid model data, such as invalid normal vectors
+    // aiProcess_TransformUVCoords |         // preprocess UV transformations (scaling, translation ...)
+    // aiProcess_FindInstances |             // search for instanced meshes and remove them by references to one master
+    // aiProcess_SplitByBoneCount |          // split meshes with too many bones. Necessary for our (limited) hardware skinning shader
+
     uint32_t flags =
-      aiProcess_GenSmoothNormals |
-      aiProcess_FlipUVs |
-      aiProcess_CalcTangentSpace |
+      aiProcess_CalcTangentSpace |  // Create binormals/tangents just in case
+      aiProcess_Triangulate |       // Make sure we're triangles
+      aiProcess_SortByPType |       // Split meshes by primitive type
+      aiProcess_GenNormals |        // Make sure we have legit normals
+      aiProcess_GenUVCoords |       // Convert UVs if required
+                                    //		aiProcess_OptimizeGraph |
+      aiProcess_OptimizeMeshes |    // Batch draws where possible
       aiProcess_JoinIdenticalVertices |
-      aiProcess_SortByPType;
+      aiProcess_LimitBoneWeights |       // If more than N (=4) bone weights, discard least influencing bones and renormalise sum to 1
+      aiProcess_ValidateDataStructure |  // Validation
+      aiProcess_GlobalScale;             // e.g. convert cm to m for fbx import (and other formats where cm is native)
     const aiScene* scene = importer.ReadFile(metadata.path.string(), flags);
     if (scene == nullptr) {
       OE_ERROR("Failed to load model : {}", metadata.path);
@@ -36,6 +55,7 @@ namespace other {
       return false;
     }
 
+    // Ref<MaterialTable> mat_table = NewRef<MaterialTable>(1, models.size(), glm::vec2{ 1920.f, 1080.f });
     if (!ProcessScene(scene, metadata.path.string())) {
       OE_ERROR("Failed to process model scene : {}", metadata.path);
       return false;
@@ -45,18 +65,27 @@ namespace other {
     std::vector<Vertex> source_vertices;
     std::vector<Index> source_indices;
 
+    glm::vec3 max_bounds = glm::vec3(-infinity<float>());
+    glm::vec3 min_bounds = glm::vec3(infinity<float>());
+
     uint32_t idx_offset = 0;
     uint32_t vert_offset = 0;
-    for (ModelData& model : models) {
-      OE_DEBUG(" > loaded model : {}", model.name);
+
+    for (uint32_t i = 0; i < models.size(); ++i) {
+      ModelData& model = models[i];
+      OE_TRACE(" > loaded model : {}", model.name);
       SubMesh& submesh = submeshes.emplace_back();
 
       submesh.base_vertex = vert_offset;
       submesh.base_idx = idx_offset;
       submesh.model_name = model.name;
+      submesh.material = model.material;
 
       for (Vertex& v : model.vertices) {
         source_vertices.push_back(v);
+
+        max_bounds = glm::max(max_bounds, v.position);
+        min_bounds = glm::min(min_bounds, v.position);
       }
 
       for (Index& idx : model.triangles) {
@@ -65,7 +94,15 @@ namespace other {
       submesh.idx_cnt = source_indices.size();
     }
 
-    metadata.asset = NewRef<ModelSource>(source_vertices, source_indices, submeshes);
+    // BBox mesh_bounds = { min_bounds, max_bounds };
+    /// scale mesh to scene size
+
+    /// normalize mesh scale to not be so big
+
+    Ref<ModelSource> source = NewRef<ModelSource>(source_vertices, source_indices, submeshes);
+    source->SetMaterialTable(material_table);
+
+    metadata.asset = source;
     return true;
   }
 
@@ -77,6 +114,20 @@ namespace other {
     if (!ProcessNode(scene->mRootNode, scene)) {
       OE_ERROR("Failed to process root node : {}", path);
       return false;
+    }
+
+    if (!BuildMaterialTable(scene)) {
+      OE_ERROR("Failed to build material table");
+      return false;
+    }
+
+    /// nodes are processed, now process materials using stored models
+    for (ModelData& model : models) {
+      model.material = {
+        .albedo_tex_idx = model.mat_idx,
+        .normal_tex_idx = model.mat_idx,
+        .roughness_tex_idx = model.mat_idx,
+      };
     }
 
     return true;
@@ -168,11 +219,158 @@ namespace other {
       .vertices = vertices,
       .triangles = indices,
       .vert_cnt = mesh->mNumVertices,
+      .mat_idx = mesh->mMaterialIndex,
     });
 
-    // process material
-    // if (mesh->mMaterialIndex >= 0) {
-    // }
+    return true;
+  }
+
+  bool ModelSerializer::BuildMaterialTable(const aiScene* scene) {
+    OE_ASSERT(scene != nullptr, "Attempting to build a material table without a scene");
+
+    uint32_t mip_levels = 1;
+    material_table = NewRef<MaterialTable>(mip_levels, scene->mNumMaterials, glm::vec2{ 1920.f, 1080.f });
+
+    for (uint32_t i = 0; i < scene->mNumMaterials; ++i) {
+      aiMaterial* material = scene->mMaterials[i];
+      if (material == nullptr) {
+        OE_ERROR("Failed to get material : {}", i);
+        return false;
+      }
+
+      aiString mat_name;
+      material->Get(AI_MATKEY_NAME, mat_name);
+
+      OE_DEBUG("  {0} (Index = {1})", mat_name.data, i);
+      aiString tex_path;
+      uint32_t textureCount = material->GetTextureCount(aiTextureType_DIFFUSE);
+      OE_DEBUG("    TextureCount = {0}", textureCount);
+
+      Opt<glm::vec3> albedo_col = std::nullopt;
+      Opt<float> emission = std::nullopt;
+
+      aiColor3D col;
+      aiColor3D emissive;
+      if (material->Get(AI_MATKEY_COLOR_DIFFUSE, col) == AI_SUCCESS) {
+        albedo_col = { col.r, col.g, col.b };
+      }
+
+      if (material->Get(AI_MATKEY_COLOR_EMISSIVE, emissive) == AI_SUCCESS) {
+        emission = emissive.r;
+      }
+
+      float roughness;
+      float metalness;
+      if (material->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness) != aiReturn_SUCCESS) {
+        roughness = 0.5f;  // Default value
+      }
+
+      if (material->Get(AI_MATKEY_REFLECTIVITY, metalness) != aiReturn_SUCCESS) {
+        metalness = 0.0f;
+      }
+
+      OE_DEBUG("    COLOR = {0}, {1}, {2}", col.r, col.g, col.b);
+      OE_DEBUG("    ROUGHNESS = {0}", roughness);
+      OE_DEBUG("    METALNESS = {0}", metalness);
+      bool has_albedo_map = material->GetTexture(aiTextureType_DIFFUSE, 0, &tex_path) == AI_SUCCESS;
+      bool fallback = !has_albedo_map;
+
+      if (has_albedo_map) {
+        if (const aiTexture* tex = scene->GetEmbeddedTexture(tex_path.C_Str())) {
+          uint8_t* data = reinterpret_cast<uint8_t*>(tex->pcData);
+          material_table->SetTexture(MaterialTable::ALBEDO, i, data);
+        }
+        /// if texture not embedded, attempt loading from file if it exists
+        else if (Path full_path = std::filesystem::absolute(Path{ tex_path.C_Str() }); Filesystem::FileExists(full_path)) {
+          Ref<FileHandle> file = Filesystem::GetFile(full_path);
+          if (file != nullptr) {
+            std::vector<uint8_t> data = file->ReadBytes();
+            if (data.empty()) {
+              OE_ERROR("Failed to get texture  from file : {}", full_path);
+              fallback = !albedo_col.has_value();
+            } else {
+              material_table->SetTexture(MaterialTable::ALBEDO, i, data.data());
+            }
+          } else {
+            OE_ERROR("Failed to get file handle : {}", full_path);
+            fallback = !albedo_col.has_value();
+          }
+        }
+        /// file does not exist, fallback to color
+        else {
+          OE_DEBUG("    Could not load texture : {0}", tex_path.C_Str());
+          fallback = !albedo_col.has_value();
+        }
+      }
+
+      if (fallback) {
+        material_table->SetTexture(MaterialTable::ALBEDO, i, glm::vec3{ 1.f, 1.f, 1.f });
+      } else if (albedo_col.has_value()) {
+        material_table->SetTexture(MaterialTable::ALBEDO, i, albedo_col.value());
+      }
+
+      // Normal maps
+      bool has_normal_map = material->GetTexture(aiTextureType_NORMALS, 0, &tex_path) == AI_SUCCESS;
+      fallback = !has_normal_map;
+      if (has_normal_map) {
+        if (const aiTexture* texture = scene->GetEmbeddedTexture(tex_path.C_Str())) {
+          uint8_t* data = reinterpret_cast<uint8_t*>(texture->pcData);
+          material_table->SetTexture(MaterialTable::NORMAL, i, data);
+        } else if (Path full_path = std::filesystem::absolute(Path{ tex_path.C_Str() }); Filesystem::FileExists(full_path)) {
+          Ref<FileHandle> file = Filesystem::GetFile(full_path);
+          if (file != nullptr) {
+            std::vector<uint8_t> data = file->ReadBytes();
+            if (data.empty()) {
+              OE_ERROR("Failed to get texture  from file : {}", full_path);
+              fallback = true;
+            } else {
+              material_table->SetTexture(MaterialTable::NORMAL, i, data.data());
+            }
+          } else {
+            OE_ERROR("Failed to get file handle : {}", full_path);
+            fallback = true;
+          }
+        } else {
+          OE_DEBUG("    Could not load texture : {0}", tex_path.C_Str());
+          fallback = true;
+        }
+      }
+
+      if (fallback) {
+        material_table->SetTexture(MaterialTable::NORMAL, i, glm::vec3{ 1.f, 1.f, 1.f });
+      }
+
+      // Roughness map
+      bool has_roughness_map = material->GetTexture(aiTextureType_SHININESS, 0, &tex_path) == AI_SUCCESS;
+      fallback = !has_roughness_map;
+      if (has_roughness_map) {
+        if (const aiTexture* texture = scene->GetEmbeddedTexture(tex_path.C_Str())) {
+          uint8_t* data = reinterpret_cast<uint8_t*>(texture->pcData);
+          material_table->SetTexture(MaterialTable::ROUGHNESS, i, data);
+        } else if (Path full_path = std::filesystem::absolute(Path{ tex_path.C_Str() }); Filesystem::FileExists(full_path)) {
+          Ref<FileHandle> file = Filesystem::GetFile(full_path);
+          if (file != nullptr) {
+            std::vector<uint8_t> data = file->ReadBytes();
+            if (data.empty()) {
+              OE_ERROR("Failed to get texture  from file : {}", full_path);
+              fallback = true;
+            } else {
+              material_table->SetTexture(MaterialTable::ROUGHNESS, i, data.data());
+            }
+          } else {
+            OE_ERROR("Failed to get file handle : {}", full_path);
+            fallback = true;
+          }
+        } else {
+          OE_DEBUG("    Could not load texture : {0}", tex_path.C_Str());
+          fallback = true;
+        }
+      }
+
+      if (fallback) {
+        material_table->SetTexture(MaterialTable::ROUGHNESS, i, glm::vec3{ 1.f, 1.f, 1.f });
+      }
+    }
 
     return true;
   }

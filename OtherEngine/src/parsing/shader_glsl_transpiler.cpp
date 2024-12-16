@@ -365,6 +365,7 @@ namespace other {
     }
   }
 
+  /// FIXME: this is bad, bad bad bad
   std::string ShaderGlslTranspiler::TranspileTo(std::vector<Ref<AstNode>>& nodes) {
     std::stringstream stream;
     stream << "#version 460 core\n\n";
@@ -372,8 +373,9 @@ namespace other {
     /// define this in both vertex and fragment
     if (context == VERTEX_SHADER || context == FRAGMENT_SHADER) {
       stream << "struct Material {\n";
-      stream << "  vec4 color;\n";
-      stream << "  float shininess;\n";
+      stream << "  int diffuse_tex_idx;\n";
+      stream << "  int normal_tex_idx;\n";
+      stream << "  int roughness_tex_idx;\n";
       stream << "};\n\n";
 
       stream << "struct PointLight {\n";
@@ -441,9 +443,19 @@ namespace other {
       stream << "  PointLight point_lights[MAX_LIGHTS];\n";
       stream << "};\n\n";
 
+      stream << "uniform sampler2DArray albedo_textures;\n";
+      stream << "uniform sampler2DArray normal_textures;\n";
+      stream << "uniform sampler2DArray roughness_textures;\n";
+
       stream << "out int instanceid;\n";
-      stream << "out Material material;\n\n";
-      stream << "out vec4 light_space_position;\n";
+      stream << "out Material foe_material;\n\n";
+      stream << "out vec4 foe_light_space_position;\n";
+      stream << "out vec3 foe_viewpoint;\n";
+      stream << "out vec3 foe_position;\n";
+      stream << "out vec3 foe_normal;\n";
+      stream << "out vec3 foe_tangent;\n";
+      stream << "out vec3 foe_bitangent;\n";
+      stream << "out vec2 foe_uvs;\n";
     } else if (context == FRAGMENT_SHADER) {
       /// hack, these should not be here
       /// FIXME: rewrite transpiler
@@ -464,8 +476,21 @@ namespace other {
       stream << "uniform sampler2D goe_specular;\n";
       stream << "uniform sampler2D goe_shadow_map;\n";
       stream << "uniform sampler2D goe_depth;\n";
-      stream << "in Material material;\n\n";
-      stream << "in vec4 light_space_position;\n";
+
+      stream << "uniform sampler2DArray albedo_textures;\n";
+      stream << "uniform sampler2DArray normal_textures;\n";
+      stream << "uniform sampler2DArray specular_textures;\n";
+      stream << "uniform sampler2DArray height_textures;\n";
+
+      stream << "flat in int instanceid;\n";
+      stream << "in Material foe_material;\n\n";
+      stream << "in vec4 foe_light_space_position;\n";
+      stream << "in vec3 foe_viewpoint;\n";
+      stream << "in vec3 foe_position;\n";
+      stream << "in vec3 foe_normal;\n";
+      stream << "in vec3 foe_tangent;\n";
+      stream << "in vec3 foe_bitangent;\n";
+      stream << "in vec2 foe_uvs;\n";
     }
 
     for (auto& n : nodes) {

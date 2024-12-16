@@ -32,6 +32,11 @@ namespace other {
     GBuffer(const glm::ivec2& size);
     virtual ~GBuffer() override;
 
+    template <typename T>
+    void SetInput(const std::string_view name, const T& value) {
+      shader->SetUniform(name, value);
+    }
+
     bool Valid() const;
 
     void Bind() const;

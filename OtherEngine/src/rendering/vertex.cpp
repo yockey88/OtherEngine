@@ -66,18 +66,25 @@ namespace other {
     glGenVertexArrays(1, &renderer_id);
     Bind();
 
-    vertex_buffer = NewScope<VertexBuffer>(vertices.data(), vertices.size() * sizeof(float));
+    vertex_buffer = NewRef<VertexBuffer>(vertices.data(), vertices.size() * sizeof(float));
 
     if (indices.size() != 0) {
-      index_buffer = NewScope<VertexBuffer>(
-        indices.data(), indices.size() * sizeof(uint32_t),
-        STATIC_DRAW, ELEMENT_ARRAY_BUFFER
-      );
+      index_buffer = NewRef<VertexBuffer>(indices.data(), indices.size() * sizeof(uint32_t), STATIC_DRAW, ELEMENT_ARRAY_BUFFER);
     }
 
     SetLayout();
 
     Unbind();
+  }
+
+  VertexArray::VertexArray(const Ref<VertexArray>& other) {
+    renderer_id = other->renderer_id;
+    vertex_count = other->vertex_count;
+    vertices = other->vertices;
+    indices = other->indices;
+    layout = other->layout;
+    vertex_buffer = other->vertex_buffer;
+    index_buffer = other->index_buffer;
   }
 
   VertexArray::~VertexArray() {

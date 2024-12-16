@@ -3,6 +3,7 @@
  **/
 #include "engine/engine_states.hpp"
 
+#include "core/filesystem.hpp"
 #include "core/logger.hpp"
 #include "engine/engine.hpp"
 
@@ -32,13 +33,33 @@ namespace other {
       return false;
     }
 
-    bool HandleKeyPress(KeyPressed& event) {
-      /// TODO: remove this, just for fast development iteration
-      return HandleKeyEvent(event, Keyboard::Key::OE_ESCAPE, [&]() -> bool {
-        EventQueue::PushEvent<ShutdownEvent>({ ExitCode::SUCCESS });
-        return true;
-      });
+    bool HandleDeleteFile(DeleteFileEvent& event) {
+      OE_DEBUG("Deleting file : {}", event.handle);
+      if (!Filesystem::RemoveFile(event.handle)) {
+        OE_ERROR("Failed to delete file : {}", event.handle);
+        return false;
+      }
+      return true;
     }
+
+    bool HandleCreateFile(CreateFileEvent& event) {
+      Ref<Directory> dir = Filesystem::GetDirectory(event.handle);
+      if (dir == nullptr) {
+        OE_ERROR("Failed to get directory to handle file creation : {}", event.handle);
+        return false;
+      }
+
+      dir->Update();
+      return true;
+    }
+
+    // bool HandleKeyPress(KeyPressed& event) {
+    //   /// TODO: remove this, just for fast development iteration
+    //   return HandleKeyEvent(event, Keyboard::Key::OE_ESCAPE, [&]() -> bool {
+    //     EventQueue::PushEvent<ShutdownEvent>({ ExitCode::SUCCESS });
+    //     return true;
+    //   });
+    // }
 
   }  // anonymous namespace
 
@@ -90,10 +111,6 @@ namespace other {
       "Other-Engine--WindowClosed",
       { &HandleWindowClosed }
     );
-    // EventQueue::RegisterEventDispatcher<KeyPressed>(
-    //   "Other-Engine--KeyPressed",
-    //   { &HandleKeyPress }
-    // );
   }
 
   void EngineLaunching::OnStep() {
@@ -172,6 +189,15 @@ namespace other {
 
   /// FIXME: dont go right to app attached
   void EngineIdle::OnAttach() {
+    EventQueue::RegisterEventDispatcher<CreateFileEvent>(
+      "Other-Engine--CreateFile",
+      { &HandleCreateFile }
+    );
+
+    EventQueue::RegisterEventDispatcher<DeleteFileEvent>(
+      "Other-Engine--DeleteFile",
+      { &HandleDeleteFile }
+    );
     /// TODO:
     // register event to listen for attached application
   }
@@ -201,7 +227,8 @@ namespace other {
 
     /// remove all event dispatchers
     /// TODO: remove user event dispatchers
-    EventQueue::UnregisterEventDispatcher("Other-Engine--KeyPressed");
+    EventQueue::UnregisterEventDispatcher("Other-Engine--DeleteFile");
+    EventQueue::UnregisterEventDispatcher("Other-Engine--CreateFile");
     EventQueue::UnregisterEventDispatcher("Other-Engine--Shutdown");
     EventQueue::UnregisterEventDispatcher("Other-Engine--WindowClosed");
   }

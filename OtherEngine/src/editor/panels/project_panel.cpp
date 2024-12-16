@@ -315,20 +315,20 @@ namespace other {
   void ProjectPanel::RenderScriptObjectContextMenu(const ScriptObjectTag& tag) {
     if (ImGui::BeginPopupContextWindow((tag.name + "-context-menu").c_str())) {
       if (ImGui::BeginMenu("Options")) {
-        if (ImGui::MenuItem(("Delete " + tag.name).c_str())) {
-          Ref<UIWindow> confirmation_window = Ref<ConfirmationWindow>::Create(
-            /* window name and warning msg */
-            "Confirm File Deletion", fmtstr("This action is destructive and irreversible!\n Are you sure you want to delete {}", tag.path),
-            /* action on confirmation */
-            [object = tag]() {
-              if (!Filesystem::AttemptDelete(object.path)) {
-                OE_ERROR("Failed to delete script {} : {}", object.name, object.path);
-              }
-            }
-          );
-          // GetEditor().PushUIWindow(confirmation_window);
-          ImGui::CloseCurrentPopup();
-        }
+        // if (ImGui::MenuItem(("Delete " + tag.name).c_str())) {
+        //   Ref<UIWindow> confirmation_window = Ref<ConfirmationWindow>::Create(
+        //     /* window name and warning msg */
+        //     "Confirm File Deletion", fmtstr("This action is destructive and irreversible!\n Are you sure you want to delete {}", tag.path),
+        //     /* action on confirmation */
+        //     [object = tag]() {
+        //       if (!Filesystem::RemoveFile(object.path)) {
+        //         OE_ERROR("Failed to delete script {} : {}", object.name, object.path);
+        //       }
+        //     }
+        //   );
+        //   // GetEditor().PushUIWindow(confirmation_window);
+        //   ImGui::CloseCurrentPopup();
+        // }
         ImGui::EndMenu();
       }
 

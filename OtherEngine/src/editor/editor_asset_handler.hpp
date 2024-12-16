@@ -32,6 +32,7 @@ namespace other {
     virtual bool IsValid(AssetHandle handle) override;
     virtual bool IsMissing(AssetHandle handle) override;
 
+    virtual void Remove(AssetKey key) override;
     virtual void Remove(AssetHandle handle) override;
 
     virtual std::set<AssetHandle> GetAllOfType(AssetType type) override;

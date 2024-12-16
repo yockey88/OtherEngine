@@ -615,17 +615,17 @@ namespace other {
     return GetListVal<double>(section, key, *this, case_sensitive_key);
   }
 
-  template <>
-  const Opt<Material> ConfigTable::GetVal(const std::string_view section, const std::string_view key, bool case_sensitive_key) const {
-    auto color = GetVal<glm::vec4>(section, std::string{ key } + ".COLOR", case_sensitive_key);
-    auto shininess = GetVal<float>(section, std::string{ key } + ".SHININESS", case_sensitive_key);
+  // template <>
+  // const Opt<Material> ConfigTable::GetVal(const std::string_view section, const std::string_view key, bool case_sensitive_key) const {
+  //   auto color = GetVal<glm::vec4>(section, std::string{ key } + ".COLOR", case_sensitive_key);
+  //   auto shininess = GetVal<float>(section, std::string{ key } + ".SHININESS", case_sensitive_key);
 
-    if (!color.has_value() && !shininess.has_value()) {
-      return std::nullopt;
-    }
+  //   if (!color.has_value() && !shininess.has_value()) {
+  //     return std::nullopt;
+  //   }
 
-    return Material(color.value_or(glm::vec4(1.f)), shininess.value_or(32.f));
-  }
+  //   return Material(color.value_or(glm::vec4(1.f)), shininess.value_or(32.f));
+  // }
 
   std::string ConfigTable::TableString() {
     std::stringstream ss;

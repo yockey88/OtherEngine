@@ -30,7 +30,7 @@ namespace other {
 
     Entity* hit_entity = nullptr;
 
-    // Ref<Material> mat;
+    // Material mat;
     // float u;
     // float v;
 

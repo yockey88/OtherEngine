@@ -11,6 +11,7 @@
 #include "scene/light_environment.hpp"
 
 #include "rendering/camera_base.hpp"
+#include "rendering/material_table.hpp"
 #include "rendering/model.hpp"
 #include "rendering/pipeline.hpp"
 #include "rendering/render_pass.hpp"
@@ -66,19 +67,20 @@ namespace other {
 
     void SubmitCamera(Ref<CameraBase>& camera);
     void SubmitEnvironment(Ref<LightEnvironment>& environment);
+    void SubmitMaterialTable(Ref<MaterialTable>& table);
 
     void ClearLightEnvironment();
 
     void SubmitDirectionLight(const DirectionLight& light);
     void SubmitPointLight(const PointLight& light);
 
-    void SubmitModel(const Ref<Model>& model, const glm::mat4& transform, const Material& material, DrawMode topology = DrawMode::TRIANGLES);
+    void SubmitModel(const Ref<Model>& model, const glm::mat4& transform, const std::vector<Material>& materials, DrawMode topology = DrawMode::TRIANGLES);
     void SubmitModel(const RenderSubmission& submission);
 
     void SubmitStaticModel(const Ref<StaticModel>& model, const glm::mat4& transform, const Material& material, DrawMode topology = DrawMode::TRIANGLES);
     void SubmitStaticModel(const RenderStaticSubmission& submission);
 
-    void SubmitModel(const std::vector<std::string>& pls, const Ref<Model>& model, const glm::mat4& transform, const Material& material, DrawMode topology = DrawMode::TRIANGLES);
+    void SubmitModel(const std::vector<std::string>& pls, const Ref<Model>& model, const glm::mat4& transform, const std::vector<Material>& materials, DrawMode topology = DrawMode::TRIANGLES);
     void SubmitModel(const std::vector<std::string>& pls, const RenderSubmission& submission);
 
     void SubmitStaticModel(const std::vector<std::string>& pls, const Ref<StaticModel>& model, const glm::mat4& transform, const Material& material, DrawMode topology = DrawMode::TRIANGLES);
@@ -110,6 +112,7 @@ namespace other {
     struct FrameSubmissions {
       Ref<CameraBase> viewpoint = nullptr;
       Ref<LightEnvironment> environment = nullptr;
+      Ref<MaterialTable> material_table = nullptr;
 
       Ref<UniformBuffer> camera_uniforms = nullptr;
       Ref<UniformBuffer> light_uniforms = nullptr;

@@ -499,18 +499,17 @@ namespace other {
     std::set<AssetKey> model_sources = AppState::Assets()->GetAllKeysOfType(AssetType::MODEL_SOURCE);
     if (ui::BeginTreeNode("Model Sources", false)) {
       for (const AssetKey& model : model_sources) {
-        Ref<ModelSource> m = AssetManager::GetAsset<ModelSource>(model);
-        if (m == nullptr) {
-          ScopedColor red_text(ImGuiCol_Text, ui::theme::red);
-          ImGui::Text("Model Source invalid file : [%lld]", model.file_handle.Get());
-          continue;
-        }
-
-        AssetMetadata meta = AppState::Assets()->GetMetadata(m->handle);
+        AssetMetadata meta = AppState::Assets()->GetMetadata(model);
         if (ImGui::Selectable(meta.path.filename().string().c_str(), mesh.handle == meta.handle)) {
-          Ref<Model> model = ModelSource::CreateModel(m);
-          mesh.handle = model->handle;
-          change = true;
+          Ref<ModelSource> source = AssetManager::GetAsset<ModelSource>(model);
+          if (source == nullptr) {
+            OE_ERROR("Failed to retrieve Model Source [{}] from asset handler", model.file_handle);
+          } else {
+            Ref<Model> m = ModelSource::CreateModel(source, {});
+            // mesh.material = source->material;
+            mesh.handle = m->handle;
+            change = true;
+          }
         }
       }
 

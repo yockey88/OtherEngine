@@ -76,6 +76,30 @@ namespace other {
     return file.is_open();
   }
 
+  bool FileHandle::Remove() {
+    if (!Exists()) {
+      return true;
+    }
+
+    if (IsOpen()) {
+      Close();
+    }
+
+    AssetKey key = { .file_handle = handle, .type = asset_type };
+    AppState::Assets()->Remove(key);
+
+    try {
+      std::filesystem::remove(AbsolutePath());
+      return !Exists();
+    } catch (std::filesystem::filesystem_error& e) {
+      OE_ERROR("Failed to remove file : {} [{}]", project_relative_path.string(), e.what());
+      return false;
+    } catch (...) {
+      OE_ERROR("Failed to remove file : {} [{}]", project_relative_path.string(), std::strerror(errno));
+      return false;
+    }
+  }
+
   FileHandle::operator Path() const {
     return AbsolutePath();
   }
@@ -191,6 +215,34 @@ namespace other {
     file.read(buffer.data(), size);
 
     return buffer;
+  }
+
+  std::vector<uint8_t> FileHandle::ReadBytes() {
+    if (!Exists()) {
+      OE_ERROR("Failed to read file : {}", project_relative_path.string());
+      return {};
+    }
+
+    Close();
+    Open(std::ios_base::in | std::ios_base::binary);
+
+    if (!IsOpen()) {
+      OE_ERROR("Failed to read file : {}", project_relative_path.string());
+      return {};
+    }
+
+    file.seekg(0, std::ios::end);
+    size_t size = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    if (size == 0) {
+      return {};
+    }
+
+    std::vector<uint8_t> buffer{};
+    buffer.resize(size);
+
+    file.read(reinterpret_cast<char*>(buffer.data()), size);
   }
 
 }  // namespace other

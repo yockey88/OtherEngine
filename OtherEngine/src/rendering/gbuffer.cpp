@@ -90,12 +90,16 @@ namespace other {
   }
 
   void GBuffer::Bind() const {
+    CHECKGL();
     glEnable(GL_DEPTH_TEST);
+    CHECKGL();
     glDepthFunc(GL_LESS);
+    CHECKGL();
 
     glBindFramebuffer(GL_FRAMEBUFFER, gbuffer_id);
     glClearColor(0.f, 0.f, 0.f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    CHECKGL();
 
     shader->Bind();
   }

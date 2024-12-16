@@ -16,6 +16,8 @@
 
 namespace other {
 
+  struct CreateFileEvent;
+
   class Directory : public RefCounted {
    public:
     UUID handle;
@@ -26,21 +28,24 @@ namespace other {
     std::map<UUID, Ref<Directory>> children;
 
     Directory();
-    Directory(const Path& path);
-    Directory(Directory* parent, const Path& path);
-    Directory(const Ref<Directory>& parent, const Path& path);
+    Directory(const Path& path, UUID hash);
+    Directory(Directory* parent, const Path& path, UUID hash);
+    Directory(const Ref<Directory>& parent, const Path& path, UUID hash);
 
     operator Path() const;
 
     std::string Name() const;
 
     void Poll();
+    void Update();
     bool Exists() const;
     bool Contains(const Path& path) const;
     bool Contains(UUID handle) const;
 
     Ref<Directory> AddFolder(const std::string_view name);
     Ref<FileHandle> AddFile(const std::string_view path);
+    bool RemoveFile(UUID handle);
+    bool RemoveChildDirectory(UUID handle);
 
     Ref<FileHandle> GetFile(const Path& path);
     Ref<FileHandle> GetFile(UUID handle);

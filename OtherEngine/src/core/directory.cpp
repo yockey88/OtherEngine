@@ -9,24 +9,26 @@
 #include "core/logger.hpp"
 #include "core/rand.hpp"
 
+#include "event/core_events.hpp"
+
 namespace other {
 
-  Directory::Directory() {
+  Directory::Directory() : handle(0) {
     Initialize(false);
   }
 
-  Directory::Directory(const Path& path)
-      : proj_relative_path(path) {
+  Directory::Directory(const Path& path, UUID hash)
+      : handle(hash), proj_relative_path(path) {
     Initialize(true);
   }
 
-  Directory::Directory(Directory* parent, const Path& path)
-      : parent_dir(parent), proj_relative_path(path) {
+  Directory::Directory(Directory* parent, const Path& path, UUID hash)
+      : handle(hash), parent_dir(parent), proj_relative_path(path) {
     Initialize(false);
   }
 
-  Directory::Directory(const Ref<Directory>& parent, const Path& path)
-      : parent_dir(parent), proj_relative_path(path) {
+  Directory::Directory(const Ref<Directory>& parent, const Path& path, UUID hash)
+      : handle(hash), parent_dir(parent), proj_relative_path(path) {
     Initialize(false);
   }
 
@@ -42,6 +44,10 @@ namespace other {
     for (auto& [id, dir] : children) {
       dir->Poll();
     }
+  }
+
+  void Directory::Update() {
+    CollectChildren(false);
   }
 
   Directory::operator Path() const {
@@ -91,7 +97,7 @@ namespace other {
     }
 
     Path new_dir = proj_relative_path / name;
-    UUID hash = FNV(new_dir.string());
+    UUID hash = FNV(name);
     if (Contains(hash)) {
       return children[hash];
     }
@@ -100,7 +106,7 @@ namespace other {
       std::filesystem::create_directory(new_dir);
     }
 
-    Ref<Directory> dir = children[hash] = NewRef<Directory>(this, new_dir);
+    Ref<Directory> dir = children[hash] = NewRef<Directory>(this, new_dir, hash);
     return dir;
   }
 
@@ -128,6 +134,31 @@ namespace other {
     return file;
   }
 
+  bool Directory::RemoveFile(UUID handle) {
+    auto itr = file_handles.find(handle);
+    if (itr != file_handles.end()) {
+      file_handles.erase(itr);
+      return true;
+    }
+
+    for (auto& [id, dir] : children) {
+      if (dir->RemoveFile(handle)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  bool Directory::RemoveChildDirectory(UUID handle) {
+    auto itr = children.find(handle);
+    if (itr != children.end()) {
+      children.erase(itr);
+      return true;
+    }
+    return false;
+  }
+
   Ref<FileHandle> Directory::GetFile(const Path& path) {
     if (!Exists()) {
       OE_ERROR("Failed to get file, directory does not exist : {}", proj_relative_path.string());
@@ -136,7 +167,7 @@ namespace other {
 
     {
       Path test_path = proj_relative_path / path;
-      UUID id = FNV(test_path.string());
+      UUID id = FNV(test_path.filename().string());
       if (Contains(id)) {
         return file_handles[id];
       }
@@ -298,14 +329,12 @@ namespace other {
   }
 
   void Directory::Initialize(bool create_dir_handles) {
-    handle = FNV(proj_relative_path.string());
     if (proj_relative_path.empty()) {
       return;
     }
 
     auto name = proj_relative_path.stem().filename();
 
-    handle = FNV(proj_relative_path.string());
     if (!std::filesystem::exists(proj_relative_path)) {
       OE_WARN("Directory does not exist : {}", proj_relative_path);
       proj_relative_path = Path();
@@ -313,7 +342,6 @@ namespace other {
     }
 
     watcher = NewRef<DirectoryWatcher>(handle, proj_relative_path);
-
     CollectChildren(create_dir_handles);
   }
 
@@ -324,12 +352,20 @@ namespace other {
 
     OE_TRACE("Collecting Children : {}", proj_relative_path);
     for (auto& entry : std::filesystem::directory_iterator(proj_relative_path)) {
+      Path p = entry.path();
+
       if (entry.is_directory() && create_dir_handles) {
-        Path p = entry.path();
-        children[FNV(p.string())] = NewRef<Directory>(this, entry.path());
+        uint64_t hash = FNV(p.stem().string());
+        if (auto itr = children.find(hash); itr != children.end()) {
+          continue;
+        }
+        children[hash] = NewRef<Directory>(this, entry.path(), hash);
       } else if (entry.is_regular_file()) {
-        Path p = entry.path();
-        file_handles[FNV(p.string())] = NewRef<FileHandle>(entry.path());
+        uint64_t hash = FNV(p.filename().string());
+        if (auto itr = file_handles.find(hash); itr != file_handles.end()) {
+          continue;
+        }
+        file_handles[hash] = NewRef<FileHandle>(entry.path());
       }
     }
   }

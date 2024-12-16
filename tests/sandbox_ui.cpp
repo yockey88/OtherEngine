@@ -14,24 +14,24 @@ void RenderItem(uint32_t id, const std::string& title, ImVec2 size) {
 }
 
 bool RenderMaterial(const std::string& title, other::Material& mat) {
-  ImGui::PushID(("##" + title).c_str());
-  ImGui::Text("%s", title.c_str());
+  // ImGui::PushID(("##" + title).c_str());
+  // ImGui::Text("%s", title.c_str());
 
-  bool edited = false;
+  // bool edited = false;
 
-  glm::vec3 temp_color = mat.color;
-  edited = (other::ui::widgets::DrawVec3Control("color", temp_color, edited, 0.f, 100.f, other::ui::VectorAxis::ZERO,
-                                                { 0.f, 0.f, 0.f }, { 1.f, 1.f, 1.f }, 0.1f) &&
-            edited);
-  other::ui::BeginProperty("shininess");
-  edited = other::ui::DragFloat("##shininess", &mat.shininess, 0.5f, 0.f, 256.f) && edited;
-  other::ui::EndProperty();
+  // glm::vec3 temp_color = mat.color;
+  // edited = (other::ui::widgets::DrawVec3Control("color", temp_color, edited, 0.f, 100.f, other::ui::VectorAxis::ZERO,
+  //                                               { 0.f, 0.f, 0.f }, { 1.f, 1.f, 1.f }, 0.1f) &&
+  //           edited);
+  // other::ui::BeginProperty("shininess");
+  // edited = other::ui::DragFloat("##shininess", &mat.shininess, 0.5f, 0.f, 256.f) && edited;
+  // other::ui::EndProperty();
 
-  mat.color = glm::vec4(temp_color, 1.f);
+  // mat.color = glm::vec4(temp_color, 1.f);
 
-  ImGui::PopID();
+  // ImGui::PopID();
 
-  return edited;
+  return false;
 }
 
 bool RenderPointLight(const std::string& title, other::PointLight& pl) {

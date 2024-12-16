@@ -61,13 +61,13 @@ namespace other {
   CORE_SYSTEM(OnAddModel) {
     Entity ent(context, entt);
     auto& mesh = ent.GetComponent<Mesh>();
-    mesh.material = Material({ 0.5f, 0.6f, 0.7f, 1.f }, 16.f);
+    // mesh.material = Material({ 0.5f, 0.6f, 0.7f, 1.f }, 16.f);
   }
 
   CORE_SYSTEM(OnAddStaticModel) {
     Entity ent(context, entt);
     auto& mesh = ent.GetComponent<StaticMesh>();
-    mesh.material = Material({ 0.5f, 0.6f, 0.7f, 1.f }, 16.f);
+    // mesh.material = Material({ 0.5f, 0.6f, 0.7f, 1.f }, 16.f);
   }
 
   void Initialize2DRigidBody(Ref<PhysicsWorld2D>& world, RigidBody2D& body, const Tag& tag, const Transform& transform) {

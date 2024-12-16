@@ -6,11 +6,14 @@
 #include <glad/glad.h>
 #include <imgui/imgui.h>
 
+#include "core/filesystem.hpp"
+
 #include "application/app_state.hpp"
 
 #include "rendering/rendering_defines.hpp"
 #include "rendering/scene_renderer.hpp"
 #include "rendering/shader.hpp"
+
 
 namespace other {
 
@@ -32,24 +35,24 @@ namespace other {
     window = std::move(win_res.Unwrap());
 
     /// TODO: configure window shader and mesh using config
-    // const Path win_shader_path = Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders" / "fbshader.oshader";
-    // window_shader = BuildShader(win_shader_path);
+    const Path win_shader_path = Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders" / "fbshader.oshader";
+    window_shader = BuildShader(win_shader_path);
 
-    // std::vector<float> fb_verts = {
-    //   1.f, 1.f, 1.f, 1.f,
-    //   -1.f, 1.f, 0.f, 1.f,
-    //   -1.f, -1.f, 0.f, 0.f,
-    //   1.f, -1.f, 1.f, 0.f
-    // };
+    std::vector<float> fb_verts = {
+      1.f, 1.f, 1.f, 1.f,
+      -1.f, 1.f, 0.f, 1.f,
+      -1.f, -1.f, 0.f, 0.f,
+      1.f, -1.f, 1.f, 0.f
+    };
 
-    // std::vector<uint32_t> fb_indices = {
-    //   0, 1, 3,
-    //   1, 2, 3
-    // };
-    // std::vector<uint32_t> fb_layout = {
-    //   2, 2
-    // };
-    // window_mesh = NewRef<VertexArray>(fb_verts, fb_indices, fb_layout);
+    std::vector<uint32_t> fb_indices = {
+      0, 1, 3,
+      1, 2, 3
+    };
+    std::vector<uint32_t> fb_layout = {
+      2, 2
+    };
+    window_mesh = NewRef<VertexArray>(fb_verts, fb_indices, fb_layout);
 
     CHECKGL();
   }

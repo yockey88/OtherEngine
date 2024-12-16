@@ -758,6 +758,7 @@ namespace other {
       case MAT3_KW:
       case MAT4_KW:
       case SAMPLER2D_KW:
+      case SAMPLER2D_ARRAY_KW:
         return Advance();
       default:
         if (Peek().value == "DirectionLight" || Peek().value == "PointLight") {
@@ -819,6 +820,7 @@ namespace other {
                    MAT3_KW,
                    MAT4_KW,
                    SAMPLER2D_KW,
+                   SAMPLER2D_ARRAY_KW,
                  },
                  advance);
   }

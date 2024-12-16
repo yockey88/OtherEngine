@@ -311,26 +311,30 @@ namespace other {
         return false;
       }
 
-      /// copy ray interval to avoid modifying the original when testing against bvh
+      /// copy ray interval to avoid modifying the original when testing against bvh,
+      /// FIXME: at a lot of positions the ray does not select the closest entity ?????
       if (!IsLeaf()) {
         if constexpr (N == 2) {
-          BvhNode<N>* left = children[LEFT];
-          BvhNode<N>* right = children[RIGHT];
+          float dist_to_left = children[LEFT] == nullptr ? infinity<float>() : glm::length(children[LEFT]->bbox.Center() - ray.origin);
+          float dist_to_right = children[RIGHT] == nullptr ? infinity<float>() : glm::length(children[RIGHT]->bbox.Center() - ray.origin);
 
-          Interval left_interval = current_interval;
-          bool left_hit = left != nullptr && left->Trace(ray, left_interval, result);
-          if (left_hit) {
-            ray_interval.min = left_interval.min;
+          BvhNode<N>* closer_child = dist_to_left < dist_to_right ? children[LEFT] : children[RIGHT];
+          Interval trace_interval = Interval(current_interval.min, dist_to_left < dist_to_right ? dist_to_left : dist_to_right);
+          bool hit = closer_child != nullptr && closer_child->Trace(ray, trace_interval, result);
+          if (hit) {
+            ray_interval = trace_interval;
             return true;
           }
 
-          Interval right_interval = Interval(current_interval.min, left_hit ? result.t : current_interval.max);
-          bool right_hit = right != nullptr && right->Trace(ray, right_interval, result);
-          if (right_hit) {
-            ray_interval.min = right_interval.min;
+          trace_interval = Interval(dist_to_left > dist_to_right ? dist_to_left : dist_to_right, current_interval.max);
+          bool hit_other = closer_child != nullptr && closer_child->Trace(ray, trace_interval, result);
+          if (hit_other) {
+            ray_interval = trace_interval;
             return true;
           }
 
+          /// FIXME: some entities never get hit in the leaf nodes and this hack fixes it,
+          ///         but the bvh needs fixing so this is not necessary, the code above should be all we need
           for (Entity* e : entities) {
             OE_ASSERT(e != nullptr, "Entity is null!");
             if (!e->HasVisibleComponent()) {
@@ -352,8 +356,6 @@ namespace other {
           }
 
           return false;
-
-          // return left_hit || right_hit;
         } else if constexpr (N == 8) {
           static_assert(false, "Tracing unimplemented for Octree");
           return false;

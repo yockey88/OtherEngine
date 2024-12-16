@@ -130,6 +130,7 @@ namespace other {
     MAT4,
 
     SAMPLER2D,
+    SAMPLER2D_ARRAY,
 
     ASSET,
     ENTITY,
@@ -209,6 +210,7 @@ namespace other {
       case UINT32:
       case FLOAT:
       case SAMPLER2D:
+      case SAMPLER2D_ARRAY:
         return 4;
 
       case INT64:

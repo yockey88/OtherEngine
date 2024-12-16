@@ -59,11 +59,9 @@ namespace other {
     }
     if (spec.stencil) {
       glEnable(GL_STENCIL_TEST);
-      // glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
     }
     if (spec.color) {
       glClearColor(spec.clear_color.x, spec.clear_color.y, spec.clear_color.z, spec.clear_color.w);
-      glClear(GL_COLOR_BUFFER_BIT);
     }
     glClear(clear_flags);
 

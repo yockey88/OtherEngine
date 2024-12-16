@@ -8,6 +8,7 @@
 #include "asset/asset_defines.hpp"
 #include "asset/asset_manager.hpp"
 
+#include "rendering/material.hpp"
 #include "rendering/rendering_defines.hpp"
 
 namespace other {
@@ -111,6 +112,14 @@ namespace other {
 
   const std::vector<SubMesh>& ModelSource::SubMeshes() const {
     return submeshes;
+  }
+
+  void ModelSource::SetMaterialTable(Ref<MaterialTable>& table) {
+    material_table = table;
+  }
+
+  Ref<MaterialTable> ModelSource::GetMaterialTable() const {
+    return material_table;
   }
 
   Ref<Model> ModelSource::CreateModel(Ref<ModelSource>& source, const std::vector<uint32_t>& sub_meshes) {
@@ -220,8 +229,6 @@ namespace other {
     OE_ASSERT(model_source != nullptr, "Attempting construct model from null source!");
     SetSubMeshes({});
     RebuildMesh();
-
-    /// build materials
   }
 
   Model::Model(Ref<ModelSource>& model_src, const std::vector<uint32_t>& sub_meshes)
@@ -229,15 +236,13 @@ namespace other {
     OE_ASSERT(model_src != nullptr, "Attempting construct model from null source!");
     SetSubMeshes(sub_meshes);
     RebuildMesh();
-
-    /// build materials
   }
 
   Model::Model(const Ref<Model>& other) {
     handle = other->handle;
     model_source = Ref<ModelSource>::Clone(other->model_source);
     sub_meshes = other->sub_meshes;
-    model_vao = other->model_vao;
+    model_vaos = other->model_vaos;
   }
 
   const std::vector<uint32_t>& Model::SubMeshes() const {
@@ -253,45 +258,42 @@ namespace other {
   }
 
   void Model::RebuildMesh() {
-    OE_ASSERT(model_source != nullptr, "Model has null source!");
-    if (model_vao != nullptr) {
+    OE_ASSERT(model_source != nullptr, "Static Model has null source!");
+
+    const std::vector<float>& vertices = model_source->RawVertices();
+    const std::vector<Index>& indices = model_source->Indices();
+    std::vector<uint32_t> idxs{};
+
+    const std::vector<uint32_t>& src_layout = model_source->RawLayout();
+    if (sub_meshes.empty()) {
+      for (const auto& i : indices) {
+        idxs.push_back(i.v1);
+        idxs.push_back(i.v2);
+        idxs.push_back(i.v3);
+      }
+      model_vaos.push_back(NewRef<VertexArray>(vertices, idxs, src_layout));
       return;
     }
 
-    auto& src_verts = model_source->RawVertices();
-    auto& idxs = model_source->Indices();
+    const std::vector<SubMesh>& src_submeshes = model_source->SubMeshes();
+    for (const uint32_t sm_idx : sub_meshes) {
+      std::vector<float> raw_vertices{};
+      std::vector<uint32_t> idxs{};
 
-    std::vector<uint32_t> raw_indices{};
-    std::vector<float> raw_vertices{};
+      const SubMesh& sm = src_submeshes[sm_idx];
 
-    if (!sub_meshes.empty()) {
-      const std::vector<SubMesh>& src_submeshes = model_source->SubMeshes();
-
-      for (const uint32_t sm_idx : sub_meshes) {
-        const SubMesh& sm = src_submeshes[sm_idx];
-
-        for (uint32_t i = sm.base_vertex; i < sm.base_vertex + sm.vert_cnt; ++i) {
-          raw_vertices.push_back(src_verts[i]);
-        }
-        for (uint32_t i = sm.base_idx; i < sm.base_idx + sm.idx_cnt; ++i) {
-          raw_indices.push_back(idxs[i].v1);
-          raw_indices.push_back(idxs[i].v2);
-          raw_indices.push_back(idxs[i].v3);
-        }
+      for (uint32_t i = sm.base_vertex; i < sm.base_vertex + sm.vert_cnt; ++i) {
+        raw_vertices.push_back(vertices[i]);
       }
-    } else {
-      for (const auto& v : src_verts) {
-        raw_vertices.push_back(v);
+
+      for (uint32_t i = sm.base_idx; i < sm.base_idx + sm.idx_cnt; ++i) {
+        idxs.push_back(indices[i].v1);
+        idxs.push_back(indices[i].v2);
+        idxs.push_back(indices[i].v3);
       }
-      for (const auto& i : idxs) {
-        raw_indices.push_back(i.v1);
-        raw_indices.push_back(i.v2);
-        raw_indices.push_back(i.v3);
-      }
+
+      model_vaos.push_back(NewRef<VertexArray>(raw_vertices, idxs, src_layout));
     }
-
-    model_vao = NewRef<VertexArray>(raw_vertices, raw_indices);
-    OE_ASSERT(model_vao != nullptr, "null model vao after model creation!");
   }
 
   Ref<ModelSource> Model::GetModelSource() const {
@@ -299,83 +301,31 @@ namespace other {
     return Ref<ModelSource>::Clone(model_source);
   }
 
-  StaticModel::StaticModel(Ref<ModelSource>& model_source) {
-    OE_ASSERT(model_source != nullptr, "Attempting construct model from null source!");
-    this->model_source = Ref<ModelSource>::Clone(model_source);
-    SetSubMeshes({});
-    RebuildMesh();
-
-    /// build materials
-  }
-
-  StaticModel::StaticModel(Ref<ModelSource>& model_src, const std::vector<uint32_t>& sub_meshes) {
+  StaticModel::StaticModel(Ref<ModelSource>& model_src) {
     OE_ASSERT(model_src != nullptr, "Attempting construct model from null source!");
-    this->model_source = Ref<ModelSource>::Clone(model_source);
-    SetSubMeshes(sub_meshes);
+    model_source = Ref<ModelSource>::Clone(model_src);
     RebuildMesh();
-
-    /// build materials
   }
 
   StaticModel::StaticModel(const Ref<StaticModel>& other) {
     handle = other->handle;
     model_source = Ref<ModelSource>::Clone(other->model_source);
-    sub_meshes = other->sub_meshes;
-    model_vao = other->model_vao;
-  }
-
-  const std::vector<uint32_t>& StaticModel::SubMeshes() const {
-    return sub_meshes;
-  }
-
-  void StaticModel::SetSubMeshes(const std::vector<uint32_t>& sms) {
-    if (!sms.empty()) {
-      sub_meshes = sms;
-    } else {
-      sub_meshes = {};
-    }
+    model_vao = Ref<VertexArray>::Clone(other->model_vao);
   }
 
   void StaticModel::RebuildMesh() {
     OE_ASSERT(model_source != nullptr, "Static Model has null source!");
-    if (model_vao != nullptr) {
-      return;
+
+    const std::vector<float>& vertices = model_source->RawVertices();
+    const std::vector<Index>& indices = model_source->Indices();
+    std::vector<uint32_t> idxs{};
+
+    for (const auto& i : indices) {
+      idxs.push_back(i.v1);
+      idxs.push_back(i.v2);
+      idxs.push_back(i.v3);
     }
-
-    const std::vector<float>& src_vertices = model_source->RawVertices();
-    const std::vector<Index>& src_indices = model_source->Indices();
-    const std::vector<uint32_t>& src_raw_indices = model_source->RawIndices();
-    const std::vector<uint32_t>& src_layout = model_source->RawLayout();
-
-    std::vector<float> raw_vertices{};
-    std::vector<uint32_t> raw_indices{};
-
-    if (!sub_meshes.empty()) {
-      const std::vector<SubMesh>& src_submeshes = model_source->SubMeshes();
-
-      for (const uint32_t sm_idx : sub_meshes) {
-        const SubMesh& sm = src_submeshes[sm_idx];
-
-        for (uint32_t i = sm.base_vertex; i < sm.base_vertex + sm.vert_cnt; ++i) {
-          raw_vertices.push_back(src_vertices[i]);
-        }
-
-        for (uint32_t i = sm.base_idx; i < sm.base_idx + sm.idx_cnt; ++i) {
-          raw_indices.push_back(src_indices[i].v1);
-          raw_indices.push_back(src_indices[i].v2);
-          raw_indices.push_back(src_indices[i].v3);
-        }
-      }
-    } else {
-      raw_vertices = src_vertices;
-      for (const auto& i : src_indices) {
-        raw_indices.push_back(i.v1);
-        raw_indices.push_back(i.v2);
-        raw_indices.push_back(i.v3);
-      }
-    }
-
-    model_vao = NewRef<VertexArray>(src_vertices, src_raw_indices, src_layout);
+    model_vao = NewRef<VertexArray>(vertices, idxs);
     OE_ASSERT(model_vao != nullptr, "null model vao after model creation!");
   }
 

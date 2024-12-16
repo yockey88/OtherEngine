@@ -4,21 +4,26 @@
 #ifndef OTHER_ENGINE_MATERIAL_HPP
 #define OTHER_ENGINE_MATERIAL_HPP
 
+#include <cstdint>
+
 #include <glm/glm.hpp>
+
+#include "core/ref.hpp"
+
+#include "rendering/shader.hpp"
+#include "rendering/uniform.hpp"
 
 namespace other {
 
   struct Material {
-    glm::vec4 color{ 0.5f, 0.5f, 0.5f, 1.f };
-    float shininess = 32.f;
-    float padding[3];
-
-    Material() = default;
-    Material(const glm::vec4& color, float shininess)
-        : color(color), shininess(shininess) {}
+    uint32_t albedo_tex_idx = 0;
+    uint32_t normal_tex_idx = 0;
+    uint32_t roughness_tex_idx = 0;
+    uint32_t padding = 0;
   };
 
-  static_assert(sizeof(Material) == 2 * (4 * sizeof(float)), "Material size is invalid for GPU layout!");
+  static_assert(sizeof(Material) == (4 * sizeof(uint32_t)), "Material size is invalid for GPU layout!");
+  // // static_assert(sizeof(Material) == 4 * sizeof(uint32_t), "Material size is invalid for GPU layout!");
   static_assert(sizeof(Material) % 16 == 0, "Material size not a multiple of 16!");
 
 }  // namespace other

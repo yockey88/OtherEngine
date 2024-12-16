@@ -184,7 +184,7 @@ namespace other {
     constexpr glm::mat4 identity = glm::identity<glm::mat4>();
     const static AssetHandle wireframe = ModelFactory::CreateBoxWireframe();
     Ref<StaticModel> model = AssetManager::GetAsset<StaticModel>(wireframe);
-    Material mat(glm::vec4(1.f, 0.f, 0.f, 1.f), 16.f);
+    // Material mat(glm::vec4(1.f, 0.f, 0.f, 1.f), 16.f);
 
     glm::mat4 model_mat = glm::translate(identity, bbox.Center());
     model_mat = glm::scale(model_mat, bbox.extent);
@@ -192,7 +192,7 @@ namespace other {
     RenderStaticSubmission s = {
       .model = model,
       .transform = model_mat,
-      .material = mat,
+      // .material = mat,
       .render_state = RenderState::FILL,
       .draw_mode = DrawMode::LINES,
     };
@@ -217,7 +217,7 @@ namespace other {
     constexpr glm::mat4 identity = glm::identity<glm::mat4>();
     const static AssetHandle wireframe = ModelFactory::CreateBoxWireframe();
     Ref<StaticModel> model = AssetManager::GetAsset<StaticModel>(wireframe);
-    Material mat(glm::vec4(1.f, 0.f, 0.f, 1.f), 16.f);
+    // Material mat(glm::vec4(1.f, 0.f, 0.f, 1.f), 16.f);
 
     glm::mat4 model_mat = glm::translate(identity, bbox.Center());
     model_mat = glm::scale(model_mat, bbox.extent);
@@ -225,7 +225,7 @@ namespace other {
     RenderStaticSubmission s = {
       .model = model,
       .transform = model_mat,
-      .material = mat,
+      // .material = mat,
       .render_state = RenderState::FILL,
       .draw_mode = DrawMode::LINES,
     };

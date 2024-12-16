@@ -37,8 +37,6 @@ namespace other {
 
     if (add_file) {
       EventQueue::PushEvent<CreateFileEvent>({ handle.Get() });
-    } else {
-      EventQueue::PushEvent<DeleteFileEvent>({ handle.Get() });
     }
   }
 

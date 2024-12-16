@@ -33,6 +33,7 @@ namespace other {
 
     virtual bool Exists() const;
     virtual bool IsOpen() const;
+    virtual bool Remove();
 
     operator Path() const;
 
@@ -69,6 +70,7 @@ namespace other {
 
     virtual std::string ReadString();
     virtual std::vector<char> ReadChars();
+    virtual std::vector<uint8_t> ReadBytes();
 
     UUID handle = 0;
 

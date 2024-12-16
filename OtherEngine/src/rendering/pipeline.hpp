@@ -28,6 +28,7 @@ namespace other {
     AssetHandle source_handle;
     RenderState render_state = RenderState::FILL;
     DrawMode draw_mode = DrawMode::TRIANGLES;
+    uint32_t submesh_idx = 0;
 
     bool selected;
   };
@@ -39,14 +40,15 @@ struct std::hash<other::MeshKey> {
   std::size_t operator()(const other::MeshKey& key) const {
     return std::hash<uint64_t>{}(key.source_handle.Get()) ^
       std::hash<uint32_t>{}(static_cast<uint32_t>(key.render_state)) ^
-      std::hash<uint32_t>{}(static_cast<uint32_t>(key.draw_mode));
+      std::hash<uint32_t>{}(static_cast<uint32_t>(key.draw_mode)) ^
+      std::hash<uint32_t>{}(key.submesh_idx);
   }
 };
 
 template <>
 struct std::equal_to<other::MeshKey> {
   bool operator()(const other::MeshKey& lhs, const other::MeshKey& rhs) const {
-    return lhs.source_handle.Get() == rhs.source_handle.Get() && lhs.render_state == rhs.render_state && lhs.draw_mode == rhs.draw_mode;
+    return lhs.source_handle.Get() == rhs.source_handle.Get() && lhs.render_state == rhs.render_state && lhs.draw_mode == rhs.draw_mode && lhs.submesh_idx == rhs.submesh_idx;
   }
 };
 
@@ -74,7 +76,7 @@ namespace other {
   struct RenderSubmission {
     Ref<Model> model = nullptr;
     glm::mat4 transform = glm::mat4(1.f);
-    Material material{};
+    std::vector<Material> materials{};
     RenderState render_state = RenderState::FILL;
     DrawMode draw_mode = DrawMode::TRIANGLES;
 
@@ -109,7 +111,7 @@ namespace other {
     void SubmitRenderPass(const Ref<RenderPass>& render_pass);
 
     /// FIXME: material system needs overhaul
-    void SubmitModel(const Ref<Model>& model, const glm::mat4& transform, const Material& color, DrawMode topology = DrawMode::TRIANGLES);
+    void SubmitModel(const Ref<Model>& model, const glm::mat4& transform, const std::vector<Material>& materials, DrawMode topology = DrawMode::TRIANGLES);
     void SubmitModel(const RenderSubmission& submission);
 
     void SubmitStaticModel(const Ref<StaticModel>& model, const glm::mat4& transform, const Material& color, DrawMode topology = DrawMode::TRIANGLES);
@@ -135,7 +137,7 @@ namespace other {
 
     void PerformPass(Ref<RenderPass>& pass);
 
-    FrameMeshes::iterator InsertMeshKey(MeshKey& key, const Ref<Model>& indices);
+    FrameMeshes::iterator InsertMeshKey(MeshKey& key, const Ref<Model>& model, uint32_t submesh_idx);
     FrameMeshes::iterator InsertStaticMeshKey(MeshKey& key, const Ref<StaticModel>& model);
 
     void RenderAll();

@@ -32,6 +32,7 @@
 #include "rendering/direction_light.hpp"
 #include "rendering/framebuffer.hpp"
 #include "rendering/material.hpp"
+#include "rendering/material_table.hpp"
 #include "rendering/perspective_camera.hpp"
 #include "rendering/point_light.hpp"
 #include "rendering/renderer.hpp"
@@ -120,6 +121,8 @@ using namespace other;
 
 void UpdateCamera(other::Ref<CameraBase>& camera);
 
+uint32_t BuildMaterialTable(uint32_t mip_levels, const glm::vec2& size, const std::vector<glm::vec3>& colors);
+
 #ifdef _WIN32
   #define WIN32_LEAN_AND_MEAN
   #include <Windows.h>
@@ -144,6 +147,7 @@ int main(int argc, char* argv[]) {
     ScriptEngine::Initialize(mock_engine.config);
     PhysicsEngine::Initialize(mock_engine.config);
     AppState::AttachApplication();
+    AppState::mode = EngineMode::EDITOR;
 
     OE_DEBUG("GL Sandbox Launched");
 
@@ -181,15 +185,22 @@ int main(int argc, char* argv[]) {
     const other::Path shader_dir = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders";
     const other::Path fbshader_path = shader_dir / "fbshader.oshader";
     const other::Path gbuffer_shader_path = shader_dir / "gbuffer.oshader";
-    const other::Path deferred_shader_path = shader_dir / "deferred_shading.oshader";
     Ref<Shader> fb_shader = other::BuildShader(fbshader_path);
     Ref<Shader> gbuffer_shader = other::BuildShader(gbuffer_shader_path);
-    Ref<Shader> deferred_shader = other::BuildShader(deferred_shader_path);
-    deferred_shader->Bind();
-    deferred_shader->SetUniform("goe_position", 0);
-    deferred_shader->SetUniform("goe_normal", 1);
-    deferred_shader->SetUniform("goe_albedo", 2);
-    deferred_shader->Unbind();
+
+    // const other::Path deferred_shader_path = shader_dir / "deferred_shading.oshader";
+    // Ref<Shader> deferred_shader = other::BuildShader(deferred_shader_path);
+    // deferred_shader->Bind();
+    // deferred_shader->SetUniform("goe_position", 0);
+    // deferred_shader->SetUniform("goe_normal", 1);
+    // deferred_shader->SetUniform("goe_albedo", 2);
+    // deferred_shader->Unbind();
+
+    const other::Path gl_sb_material_dir = other::Filesystem::GetEngineCoreDir() / "tests" / "gl_sandbox" / "shaders";
+    const other::Path mat_path = gl_sb_material_dir / "mat.oshader";
+
+    Ref<Shader> mat_shader = other::BuildShader(mat_path);
+    // Ref<Shader> mat2_shader = other::BuildShader(mat2_path);
 
     other::Ref<CameraBase> camera = other::NewRef<PerspectiveCamera>(glm::ivec2{ win_w, win_h });
     camera->SetPosition({ 0.f, 0.f, 3.f });
@@ -201,9 +212,6 @@ int main(int argc, char* argv[]) {
 
     glm::mat4 model2 = glm::mat4(1.0f);
     model2 = glm::translate(model2, glm::vec3(2.f, 0.f, 0.f));
-
-    other::Material material1({ 0.1f, 0.5f, 0.31f, 1.f }, 32.f);
-    other::Material material2({ 0.1f, 0.5f, 0.31f, 1.f }, 32.f);
 
     other::PointLight point_light{
       .position = { 1.2f, 1.0f, 2.0f, 1.f },
@@ -258,6 +266,24 @@ int main(int argc, char* argv[]) {
     glUniform1i(glGetUniformLocation(shader2, "g_normal"), 1);
     glUniform1i(glGetUniformLocation(shader2, "g_albedo_spec"), 2);
     glUseProgram(0);
+
+    /// generate sampler2DArray
+    uint32_t mip_levels = 1;
+    glm::ivec2 size = { 800, 600 };
+    std::vector<glm::vec3> colors = {
+      { 1.f, 0.f, 0.f },
+      { 0.f, 1.f, 0.f },
+    };
+    uint32_t num_colors = colors.size();
+
+    Ref<MaterialTable> material_table = NewRef<MaterialTable>(mip_levels, num_colors, size);
+    material_table->SetTexture(MaterialTable::ALBEDO, 0, colors[0]);
+    material_table->SetTexture(MaterialTable::ALBEDO, 1, colors[1]);
+
+    material_table->SetTexture(MaterialTable::NORMAL, 0, glm::vec3(1.f));
+    material_table->SetTexture(MaterialTable::NORMAL, 1, glm::vec3(1.f));
+    material_table->SetTexture(MaterialTable::ROUGHNESS, 0, glm::vec3(1.f));
+    material_table->SetTexture(MaterialTable::ROUGHNESS, 1, glm::vec3(1.f));
 
     OE_DEBUG("Uniforms Set");
 
@@ -338,36 +364,60 @@ int main(int argc, char* argv[]) {
       model1 = glm::rotate(model1, m1_rotation, { 1.f, 1.f, 1.f });
       m1_rotation += 0.1f;
 
-      glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-      ///> GBUFFER RENDER
-      gbuffer.Bind();
+      // model_buffer.ZeroMem();
+      // model_buffer.BufferData(model1);
+      // model_buffer.BufferData(model2);
+
+      // model_uniforms->BindBase();
+      // model_uniforms->LoadFromBuffer(model_buffer);
 
       model_buffer.ZeroMem();
-      material_buffer.ZeroMem();
-
       model_buffer.BufferData(model1);
-      material_buffer.BufferData(material1);
-
       model_buffer.BufferData(model2);
-      material_buffer.BufferData(material2);
 
       model_uniforms->BindBase();
       model_uniforms->LoadFromBuffer(model_buffer);
-      material_uniforms->BindBase();
-      material_uniforms->LoadFromBuffer(material_buffer);
 
-      cube.Draw(other::LINES, 2);
+      /// start material textures at the the end of gbuffer textures
+      material_table->Bind(GBuffer::NUM_TEX_IDXS);
+      gbuffer.SetInput("albedo_textures", GBuffer::NUM_TEX_IDXS);
+      gbuffer.SetInput("normal_textures", GBuffer::NUM_TEX_IDXS + 1);
+      gbuffer.SetInput("roughness_textures", GBuffer::NUM_TEX_IDXS + 2);
 
+      ///> GBUFFER RENDER
+      gbuffer.Bind();
+      cube.Draw(other::TRIANGLES, 2);
       gbuffer.Unbind();
       /// > GBUFFER RENDER
 
       /// > LIGHTING PASS
-      frame->BindFrame();
-      deferred_shader->Bind();
-      fb_mesh->Draw(other::TRIANGLES);
-      deferred_shader->Unbind();
-      frame->UnbindFrame();
+      // frame->BindFrame();
+      // deferred_shader->Bind();
+      // fb_mesh->Draw(other::TRIANGLES);
+      // deferred_shader->Unbind();
+      // frame->UnbindFrame();
       /// > LIGHTING PASS
+
+      // /// > GEOMETRY PASS
+      frame->BindFrame();
+
+      model_buffer.ZeroMem();
+      model_buffer.BufferData(model1);
+      model_buffer.BufferData(model2);
+
+      model_uniforms->BindBase();
+      model_uniforms->LoadFromBuffer(model_buffer);
+
+      mat_shader->Bind();
+      mat_shader->SetUniform("albedo_textures", GBuffer::NUM_TEX_IDXS);
+      mat_shader->SetUniform("normal_textures", GBuffer::NUM_TEX_IDXS + 1);
+      mat_shader->SetUniform("roughness_textures", GBuffer::NUM_TEX_IDXS + 2);
+
+      cube.Draw(other::TRIANGLES, colors.size());
+      mat_shader->Unbind();
+
+      frame->UnbindFrame();
+      /// > GEOMETRY PASS
 
       /// > DRAW TO SCREEN
       other::Renderer::DrawFramebufferToWindow(frame);
@@ -379,9 +429,7 @@ int main(int argc, char* argv[]) {
 
       if (ImGui::Begin("GBuffer")) {
         RenderItem(gbuffer.textures[0], "Position", ImVec2((float)win_w / 2, (float)win_h / 2));
-        ImGui::SameLine();
         RenderItem(gbuffer.textures[1], "Normals", ImVec2((float)win_w / 2, (float)win_h / 2));
-        ImGui::SameLine();
         RenderItem(gbuffer.textures[2], "Albedo", ImVec2((float)win_w / 2, (float)win_h / 2));
       }
       ImGui::End();
@@ -444,6 +492,49 @@ int main(int argc, char* argv[]) {
   return exit;
 }
 
+uint32_t BuildMaterialTable(uint32_t mip_levels, const glm::vec2& size, const std::vector<glm::vec3>& colors) {
+  uint32_t levels = colors.size();
+
+  std::vector<std::vector<uint8_t>> seperate_textures;
+  std::vector<uint8_t> data;
+
+  for (uint32_t i = 0; i < levels; i++) {
+    std::vector<uint8_t>& tex_data = seperate_textures.emplace_back();
+    tex_data.resize(size.x * size.y * 4);
+
+    for (uint32_t j = 0; j < size.x * size.y; j += 4) {
+      tex_data[j + 0] = static_cast<uint8_t>(colors[i].r * 255);
+      tex_data[j + 1] = static_cast<uint8_t>(colors[i].g * 255);
+      tex_data[j + 2] = static_cast<uint8_t>(colors[i].b * 255);
+      tex_data[j + 3] = 255;
+    }
+  }
+
+  for (uint32_t i = 0; i < levels; i++) {
+    std::vector<uint8_t>& tex_data = seperate_textures[i];
+    data.insert(data.end(), tex_data.begin(), tex_data.end());
+  }
+
+  uint32_t mat_table;
+
+  glGenTextures(1, &mat_table);
+  glBindTexture(GL_TEXTURE_2D_ARRAY, mat_table);
+  glTexStorage3D(GL_TEXTURE_2D_ARRAY, mip_levels, GL_RGBA8, size.x, size.y, levels);
+  CHECK();
+
+  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  CHECK();
+
+  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0, size.x, size.y, levels, other::ChannelType::RGBA, GL_UNSIGNED_BYTE, data.data());
+  CHECK();
+
+  glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+  return mat_table;
+}
+
 Quad::Quad() {
   vertices = {
     /* (-,+,0) */ -1.0f,
@@ -493,59 +584,69 @@ void Quad::Draw() {
   glBindVertexArray(0);
 }
 
+// glm::vec3 position
+// glm::vec3 normal
+// glm::vec3 tangent
+// glm::vec3 bitangent
+// glm::vec2 uv_coord
+
 Cube::Cube() {
+  // clang-format off
   vertices = {
-    /* (-,-,+) */ -1.0f / 2.0f,
-    -1.0f / 2.0f,
-    1.0f / 2.0f,
-    -1.f,
-    -1.f,
-    1.f,
-    /* (+,-,+) */ 1.0f / 2.0f,
-    -1.0f / 2.0f,
-    1.0f / 2.0f,
-    1.f,
-    -1.f,
-    1.f,
-    /* (+,+,+) */ 1.0f / 2.0f,
-    1.0f / 2.0f,
-    1.0f / 2.0f,
-    1.f,
-    1.f,
-    1.f,
-    /* (-,+,+) */ -1.0f / 2.0f,
-    1.0f / 2.0f,
-    1.0f / 2.0f,
-    -1.f,
-    1.f,
-    1.f,
-    /* (-,-,-) */ -1.0f / 2.0f,
-    -1.0f / 2.0f,
-    -1.0f / 2.0f,
-    -1.f,
-    -1.f,
-    -1.f,
-    /* (+,-,-) */ 1.0f / 2.0f,
-    -1.0f / 2.0f,
-    -1.0f / 2.0f,
-    1.f,
-    -1.f,
-    -1.f,
-    /* (+,+,-) */ 1.0f / 2.0f,
-    1.0f / 2.0f,
-    -1.0f / 2.0f,
-    1.f,
-    1.f,
-    -1.f,
-    /* (-,+,-) */ -1.0f / 2.0f,
-    1.0f / 2.0f,
-    -1.0f / 2.0f,
-    -1.f,
-    1.f,
-    -1.f,
+    /* (-,-,+) */
+    -1.0f / 2.0f, -1.0f / 2.0f, 1.0f / 2.0f,
+    -1.f, -1.f, 1.f,
+    0.f, 0.f, 0.f,
+    0.f, 0.f, 0.f,
+    0.f, 1.f,
+    /* (+,-,+) */ 
+    1.0f / 2.0f, -1.0f / 2.0f, 1.0f / 2.0f,
+    1.f, -1.f, 1.f,
+    0.f, 0.f, 0.f,
+    0.f, 0.f, 0.f,
+    1.f, 1.f,
+    /* (+,+,+) */ 
+    1.0f / 2.0f, 1.0f / 2.0f, 1.0f / 2.0f,
+    1.f, 1.f, 1.f,
+    0.f, 0.f, 0.f,
+    0.f, 0.f, 0.f,
+    1.f, 0.f,
+    /* (-,+,+) */ 
+    -1.0f / 2.0f, 1.0f / 2.0f, 1.0f / 2.0f,
+    -1.f, 1.f, 1.f,
+    0.f, 0.f, 0.f,
+    0.f, 0.f, 0.f,
+    0.f, 0.f,
+    /* (-,-,-) */ 
+    -1.0f / 2.0f, -1.0f / 2.0f, -1.0f / 2.0f,
+    -1.f, -1.f, -1.f,
+    0.f, 0.f, 0.f,
+    0.f, 0.f, 0.f,
+    0.f, 1.f,
+    /* (+,-,-) */ 
+    1.0f / 2.0f, -1.0f / 2.0f, -1.0f / 2.0f,
+    1.f, -1.f, -1.f,
+    0.f, 0.f, 0.f,
+    0.f, 0.f, 0.f,
+    1.f, 1.f,
+    /* (+,+,-) */ 
+    1.0f / 2.0f, 1.0f / 2.0f, -1.0f / 2.0f,
+    1.f, 1.f, -1.f,
+    0.f, 0.f, 0.f,
+    0.f, 0.f, 0.f,
+    1.f, 0.f,
+    /* (-,+,-) */ 
+    -1.0f / 2.0f, 1.0f / 2.0f, -1.0f / 2.0f,
+    -1.f, 1.f, -1.f,
+    0.f, 0.f, 0.f,
+    0.f, 0.f, 0.f,
+    0.f, 0.f,
   };
+  // clang-format on
   glGenVertexArrays(1, &vao);
   glBindVertexArray(vao);
+
+  uint32_t stride = 14;
 
   glGenBuffers(1, &vbo);
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -555,10 +656,15 @@ Cube::Cube() {
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride * sizeof(float), (void*)0);
   glEnableVertexAttribArray(0);
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride * sizeof(float), (void*)(3 * sizeof(float)));
   glEnableVertexAttribArray(1);
+  glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, stride * sizeof(float), (void*)(6 * sizeof(float)));
+  glEnableVertexAttribArray(2);
+  glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, stride * sizeof(float), (void*)(9 * sizeof(float)));
+  glEnableVertexAttribArray(3);
+  glVertexAttribPointer(4, 2, GL_FLOAT, GL_FALSE, stride * sizeof(float), (void*)(12 * sizeof(float)));
 
   glBindVertexArray(0);
 }
@@ -571,7 +677,9 @@ Cube::~Cube() {
 
 void Cube::Draw(other::DrawMode mode, uint32_t instances) {
   glBindVertexArray(vao);
-  glDrawElementsInstancedBaseVertexBaseInstance(mode, 36, GL_UNSIGNED_INT, (void*)0, 2, 0, 0);
+
+  // glDrawElementsInstancedBaseVertexBaseInstance(mesh_key.draw_mode, msl.num_elements, GL_UNSIGNED_INT, (void*)0, msl.instance_count, msl.base_vertex, msl.base_instance);
+  glDrawElementsInstancedBaseVertexBaseInstance(mode, 36, GL_UNSIGNED_INT, (void*)0, instances, 0, 0);
   glBindVertexArray(0);
 }
 

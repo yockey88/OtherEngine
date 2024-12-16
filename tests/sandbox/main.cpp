@@ -11,19 +11,6 @@
 
 using namespace other;
 
-class DrawDepthMapPass : public RenderPass {
- public:
-  DrawDepthMapPass(Ref<Shader> shader) : RenderPass({
-                                           .name = "display-depth",
-                                           .tag_col = { 0.f, 0.5f, 1.f, 1.f },
-                                           .uniforms = {
-                                             { "screen_tex", ValueType::SAMPLER2D, sizeof(uint32_t) },
-                                           },
-                                           .shader = shader,
-                                         }) {}
-  virtual ~DrawDepthMapPass() override {}
-};
-
 class SandboxApp : public App {
  public:
   SandboxApp(const other::CmdLine& cmd_line, const other::ConfigTable& config)
@@ -39,14 +26,6 @@ class SandboxApp : public App {
   }
 
   virtual void Render() override {
-    Ref<SceneRenderer> renderer = AppState::Scenes()->GetRenderer();
-    OE_ASSERT(renderer != nullptr, "Renderer is null");
-    if (debug_quad == 0) {
-      return;
-    }
-
-    Ref<StaticModel> quad = AssetManager::GetAsset<StaticModel>(debug_quad);
-    renderer->SubmitStaticModel({ "DisplayShadowMap", "DisplayDepth" }, quad, glm::mat4(1.f), Material({ 1.f, 1.f, 1.f, 1.f }, 32.f), DrawMode::TRIANGLE_STRIP);
   }
 
   virtual Ref<SceneRenderer> CreateSceneRenderer() override {

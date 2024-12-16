@@ -334,14 +334,15 @@ namespace other {
     }
 
     void BindMesh(sol::state& lua_state) {
-      lua_state.new_usertype<Material>(
-        "Material",
-        sol::constructors<
-          Material(),
-          Material(const glm::vec4&, float)>(),
-        "color", &Material::color,
-        "shininess", &Material::shininess
-      );
+      // lua_state.new_usertype<Material>(
+      //   "Material",
+      //   sol::constructors<
+      //     Material(),
+      //     Material(const glm::vec4&, float)>()
+      // );
+      //   ,
+      // "color", &Material::color,
+      // "shininess", &Material::shininess
 
       // clang-format off
       lua_state.new_usertype<ComponentProxy<Mesh>>(
@@ -349,32 +350,33 @@ namespace other {
         sol::meta_function::index,
         &ComponentProxy<Mesh>::GetComponentField,
         sol::meta_function::new_index,
-        &ComponentProxy<Mesh>::SetComponentField,
-        "material", sol::property(
-          [](ComponentProxy<Mesh>& self) -> Material& {
-            return self.proxy->target.material;
-          },
-          [](ComponentProxy<Mesh>& self, const Material& mat) {
-            self.proxy->target.material = mat;
-          }
-        )
+        &ComponentProxy<Mesh>::SetComponentField
       );
+        // "material", sol::property(
+        //   [](ComponentProxy<Mesh>& self) -> Material& {
+        //     return self.proxy->target.material;
+        //   },
+        //   [](ComponentProxy<Mesh>& self, const Material& mat) {
+        //     self.proxy->target.material = mat;
+        //   }
+        // )
 
       lua_state.new_usertype<ComponentProxy<StaticMesh>>(
         "StaticMesh",
         sol::meta_function::index,
         &ComponentProxy<StaticMesh>::GetComponentField,
         sol::meta_function::new_index,
-        &ComponentProxy<StaticMesh>::SetComponentField,
-        "material", sol::property(
-          [](ComponentProxy<StaticMesh>& self) -> Material& {
-            return self.proxy->target.material;
-          },
-          [](ComponentProxy<StaticMesh>& self, const Material& mat) {
-            self.proxy->target.material = mat;
-          }
-        )
+        &ComponentProxy<StaticMesh>::SetComponentField
       );
+        // ,
+        // "material", sol::property(
+        //   [](ComponentProxy<StaticMesh>& self) -> Material& {
+        //     return self.proxy->target.material;
+        //   },
+        //   [](ComponentProxy<StaticMesh>& self, const Material& mat) {
+        //     self.proxy->target.material = mat;
+        //   }
+        // )
       // clang-format on
     }
 

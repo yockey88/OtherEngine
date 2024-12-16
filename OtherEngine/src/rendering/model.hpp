@@ -12,12 +12,15 @@
 #include "asset/asset.hpp"
 #include "asset/asset_defines.hpp"
 
+#include "rendering/material.hpp"
+#include "rendering/material_table.hpp"
 #include "rendering/rendering_defines.hpp"
 #include "rendering/vertex.hpp"
 
 namespace other {
 
   class Model;
+  class StaticModel;
 
   class ModelSource : public Asset {
    public:
@@ -34,7 +37,11 @@ namespace other {
     std::vector<SubMesh>& SubMeshes();
     const std::vector<SubMesh>& SubMeshes() const;
 
-    static Ref<Model> CreateModel(Ref<ModelSource>& source, const std::vector<uint32_t>& sub_meshes = {});
+    void SetMaterialTable(Ref<MaterialTable>& table);
+    Ref<MaterialTable> GetMaterialTable() const;
+
+    static Ref<Model> CreateModel(Ref<ModelSource>& source, const std::vector<uint32_t>& sub_meshes);
+    static Ref<StaticModel> CreateStaticModel(Ref<ModelSource>& source);
 
     void DumpVertexBuffer();
 
@@ -75,10 +82,10 @@ namespace other {
 
     std::vector<Bone> bones;
     std::vector<BoneInfl> bone_influences;
+    // std::map<uint32_t , std::vector<Triangle>> triangles;
     // mutable Scope<Skeleton> skeleton = nullptr;
 
-    // std::vector<Ref<Material>> materials;
-    // std::map<uint32_t , std::vector<Triangle>> triangles;
+    Ref<MaterialTable> material_table = nullptr;
 
     BBox bounding_box;
     std::string file_path;
@@ -95,7 +102,6 @@ namespace other {
 
     explicit Model(Ref<ModelSource>& mesh_source);
     Model(Ref<ModelSource>& mesh_src, const std::vector<uint32_t>& sub_meshes);
-    Model(const std::vector<float>& vertices, const std::vector<uint32_t>& indices, const std::vector<uint32_t>& submeshes);
     Model(const Ref<Model>& other);
     virtual ~Model() {}
 
@@ -105,13 +111,11 @@ namespace other {
 
     void RebuildMesh();
 
-    Ref<VertexArray> model_vao = nullptr;
+    std::vector<Ref<VertexArray>> model_vaos = {};
 
    private:
     Ref<ModelSource> model_source;
     std::vector<uint32_t> sub_meshes;
-
-    // Ref<MaterialTable> material_table;
   };
 
   class StaticModel : public Asset {
@@ -119,14 +123,10 @@ namespace other {
     OE_ASSET(MODEL);
 
     explicit StaticModel(Ref<ModelSource>& mesh_source);
-    StaticModel(Ref<ModelSource>& mesh_src, const std::vector<uint32_t>& sub_meshes);
     StaticModel(const Ref<StaticModel>& other);
     virtual ~StaticModel() {}
 
     Ref<VertexArray> GetMesh() const;
-
-    const std::vector<uint32_t>& SubMeshes() const;
-    void SetSubMeshes(const std::vector<uint32_t>& sub_meshes);
     Ref<ModelSource> GetModelSource() const;
 
     void RebuildMesh();
@@ -135,9 +135,6 @@ namespace other {
 
    private:
     Ref<ModelSource> model_source;
-    std::vector<uint32_t> sub_meshes;
-
-    /// Ref<MaterialTable> material_table;
   };
 
 }  // namespace other

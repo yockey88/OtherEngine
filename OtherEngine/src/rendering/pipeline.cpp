@@ -66,29 +66,54 @@ namespace other {
     passes.push_back(render_pass);
   }
 
-  void Pipeline::SubmitModel(const Ref<Model>& model, const glm::mat4& transform, const Material& material, DrawMode topology) {
+  void Pipeline::SubmitModel(const Ref<Model>& model, const glm::mat4& transform, const std::vector<Material>& materials, DrawMode topology) {
     SubmitModel({
       .model = model,
       .transform = transform,
-      .material = material,
+      .materials = materials,
       .draw_mode = topology,
     });
   }
 
   void Pipeline::SubmitModel(const RenderSubmission& submission) {
-    Ref<ModelSource> source = submission.model->GetModelSource();
-    MeshKey key = submission;
-
-    auto itr = model_submissions.find(key);
-    if (itr == model_submissions.end()) {
-      itr = InsertMeshKey(key, submission.model);
+    const std::vector<uint32_t>& sm_idxs = submission.model->SubMeshes();
+    if (sm_idxs.empty()) {
+      OE_ASSERT(submission.materials.size() == 1, "Model has no submeshes, but multiple materials submitted");
+      SubmitStaticModel({
+        .model = submission.model,
+        .transform = submission.transform,
+        .material = submission.materials[0],
+        .draw_mode = submission.draw_mode,
+      });
+      return;
     }
 
-    OE_ASSERT(itr != model_submissions.end(), "Failed to insert mesh key");
-    auto& [mk, sl] = *itr;
-    sl.cpu_model_storage.BufferData(submission.transform);
-    sl.cpu_material_storage.BufferData(submission.material);
-    ++sl.instance_count;
+    Ref<ModelSource> source = submission.model->GetModelSource();
+    const std::vector<SubMesh>& submeshes = source->SubMeshes();
+
+    for (const uint32_t sm_idx : sm_idxs) {
+      OE_ASSERT(sm_idx < submeshes.size(), "Submesh index out of bounds");
+      RenderStaticSubmission sub{
+        .model = submission.model,
+        .transform = submission.transform,
+        .material = submission.materials[sm_idx],
+        .draw_mode = submission.draw_mode,
+      };
+
+      MeshKey key = sub;
+      key.submesh_idx = sm_idx;
+
+      auto itr = model_submissions.find(key);
+      if (itr == model_submissions.end()) {
+        itr = InsertMeshKey(key, submission.model, sm_idx);
+      }
+
+      OE_ASSERT(itr != model_submissions.end(), "Failed to insert mesh key");
+      auto& [mk, sl] = *itr;
+      sl.cpu_model_storage.BufferData(submission.transform);
+      sl.cpu_material_storage.BufferData(submission.materials[sm_idx]);
+      ++sl.instance_count;
+    }
   }
 
   void Pipeline::SubmitStaticModel(const Ref<StaticModel>& model, const glm::mat4& transform, const Material& material, DrawMode topology) {
@@ -103,6 +128,7 @@ namespace other {
   void Pipeline::SubmitStaticModel(const RenderStaticSubmission& submission) {
     Ref<ModelSource> source = submission.model->GetModelSource();
     MeshKey key = submission;
+    key.submesh_idx = 0;
 
     auto itr = model_submissions.find(key);
     if (itr == model_submissions.end()) {
@@ -185,22 +211,14 @@ namespace other {
     CHECKGL();
   }
 
-  FrameMeshes::iterator Pipeline::InsertMeshKey(MeshKey& key, const Ref<Model>& model) {
+  FrameMeshes::iterator Pipeline::InsertMeshKey(MeshKey& key, const Ref<Model>& model, uint32_t submesh_idx) {
     OE_ASSERT(model != nullptr, "Model is null");
     OE_ASSERT(model->GetModelSource() != nullptr, "Model source is null");
+    OE_ASSERT(submesh_idx < model->SubMeshes().size(), "Submesh index out of bounds");
 
-    const std::vector<float>& vertices = model->GetModelSource()->RawVertices();
-    const std::vector<Index>& indices = model->GetModelSource()->Indices();
-    std::vector<uint32_t> idxs{};
-    for (const auto& i : indices) {
-      idxs.push_back(i.v1);
-      idxs.push_back(i.v2);
-      idxs.push_back(i.v3);
-    }
+    Ref<VertexArray> vao = Ref<VertexArray>::Clone(model->model_vaos[submesh_idx]);
+    OE_ASSERT(vao != nullptr, "Failed to clone vertex array");
 
-    Ref<VertexArray> vao =
-      // model->model_vao;
-      NewRef<VertexArray>(vertices, idxs);
     MeshSubmissionList msl{
       .vao = vao,
       .num_elements = vao->NumElements(),
@@ -208,11 +226,8 @@ namespace other {
       .cpu_model_storage = Buffer(),
       .cpu_material_storage = Buffer(),
     };
-
-    if (model->SubMeshes().size() > 0) {
-      const std::vector<SubMesh>& submeshes = model->GetModelSource()->SubMeshes();
-      msl.base_vertex = submeshes[model->SubMeshes()[0]].base_vertex;
-    }
+    msl.base_vertex = 0;
+    msl.base_instance = 0;
 
     return model_submissions.insert({ key, std::move(msl) }).first;
   }
@@ -221,19 +236,7 @@ namespace other {
     OE_ASSERT(model != nullptr, "Static model is null");
     OE_ASSERT(model->GetModelSource() != nullptr, "Static model source is null");
 
-    const std::vector<float>& vertices = model->GetModelSource()->RawVertices();
-    const std::vector<Index>& indices = model->GetModelSource()->Indices();
-    std::vector<uint32_t> idxs{};
-    for (const auto& i : indices) {
-      idxs.push_back(i.v1);
-      idxs.push_back(i.v2);
-      idxs.push_back(i.v3);
-    }
-
-    Ref<VertexArray> vao =
-      // model->model_vao;
-      NewRef<VertexArray>(vertices, idxs);
-
+    Ref<VertexArray> vao = Ref<VertexArray>::Clone(model->model_vao);
     MeshSubmissionList msl{
       .vao = vao,
       .num_elements = vao->NumElements(),
@@ -241,11 +244,7 @@ namespace other {
       .cpu_model_storage = Buffer(),
       .cpu_material_storage = Buffer(),
     };
-    // if (model->SubMeshes().size() > 0) {
-    //   const std::vector<SubMesh>& submeshes = model->GetModelSource()->SubMeshes();
-    //   msl.base_vertex = submeshes[model->SubMeshes()[0]].base_vertex;
-    // } else {
-    // }
+
     msl.base_vertex = 0;
     msl.base_instance = 0;
 
@@ -271,6 +270,8 @@ namespace other {
     glPolygonMode(GL_FRONT_AND_BACK, mesh_key.render_state);
     glDrawElementsInstancedBaseVertexBaseInstance(mesh_key.draw_mode, msl.num_elements, GL_UNSIGNED_INT, (void*)0, msl.instance_count, msl.base_vertex, msl.base_instance);
     CHECKGL();
+
+    msl.vao->Unbind();
   }
 
 }  // namespace other

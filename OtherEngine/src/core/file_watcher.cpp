@@ -8,6 +8,8 @@
 #include "event/core_events.hpp"
 #include "event/event_queue.hpp"
 
+#include "rendering/renderer.hpp"
+
 namespace other {
 
   FileWatcher::FileWatcher(UUID hash, const Path& path) {
@@ -18,6 +20,12 @@ namespace other {
   }
 
   bool FileWatcher::Poll() {
+    if (exists && !std::filesystem::exists(file_path)) {
+      exists = false;
+      EventQueue::PushEvent<DeleteFileEvent>({ handle.Get() });
+      return false;
+    }
+
     if (!exists) {
       return false;
     }
