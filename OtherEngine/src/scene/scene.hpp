@@ -81,7 +81,6 @@ namespace other {
     Ref<PhysicsWorld> GetPhysicsWorld() const;
 
     Ref<LightEnvironment> GetEnvironment() const;
-    Ref<MaterialTable> GetMaterialTable() const;
 
     const bool IsInitialized() const;
     const bool IsRunning() const;
@@ -120,7 +119,6 @@ namespace other {
     Ref<ModelSource> model_source = nullptr;
 
     Ref<LightEnvironment> environment = nullptr;
-    Ref<MaterialTable> material_table = nullptr;
 
     void OnAddRigidBody2D(entt::registry& context, entt::entity ent);
     void OnAddCollider2D(entt::registry& context, entt::entity ent);

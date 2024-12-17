@@ -37,7 +37,16 @@ namespace other {
     const std::vector<Uniform> material_unis = {
       { "materials", USER_TYPE },
     };
+    const std::vector<Uniform> material_table_unis = {
+      { "albedo_textures", SAMPLER2D_ARRAY },
+      { "normal_textures", SAMPLER2D_ARRAY },
+      { "roughness_textures", SAMPLER2D_ARRAY },
+    };
+
     for (const auto& u : material_unis) {
+      DefineInput(u);
+    }
+    for (const auto& u : material_table_unis) {
       DefineInput(u);
     }
   }

@@ -506,7 +506,6 @@ namespace other {
             OE_ERROR("Failed to retrieve Model Source [{}] from asset handler", model.file_handle);
           } else {
             Ref<Model> m = ModelSource::CreateModel(source, {});
-            // mesh.material = source->material;
             mesh.handle = m->handle;
             change = true;
           }

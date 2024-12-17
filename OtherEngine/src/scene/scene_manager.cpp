@@ -20,7 +20,6 @@
 #include "rendering/renderer.hpp"
 #include "scripting/script_engine.hpp"
 
-
 namespace other {
 
   void SceneManager::Unload() {

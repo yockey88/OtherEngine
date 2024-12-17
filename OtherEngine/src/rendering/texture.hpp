@@ -59,6 +59,7 @@ namespace other {
     uint32_t GetRendererId() const;
 
     Buffer PixelData();
+    Buffer PixelData() const;
 
    protected:
     TargetType type;

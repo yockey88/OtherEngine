@@ -3,6 +3,8 @@
  **/
 #include "rendering/model_factory.hpp"
 
+#include <glm/fwd.hpp>
+
 #include "asset/asset_manager.hpp"
 
 #include "rendering/model.hpp"
@@ -50,6 +52,8 @@ namespace other {
 
     AssetHandle handle = AssetManager::CreateMemOnly<ModelSource>("FramebufferMesh-Source", fb_verts, idxs, layout);
     Ref<ModelSource> source = AssetManager::GetAsset<ModelSource>(handle);
+    OE_ASSERT(source != nullptr, "Failed to get framebuffer mesh source");
+
     framebuffer_mesh_handle = AssetManager::CreateMemOnly<StaticModel>("FramebufferMesh", source);
     return *framebuffer_mesh_handle;
   }
@@ -77,6 +81,8 @@ namespace other {
 
     AssetHandle source_handle = AssetManager::CreateMemOnly<ModelSource>("LineModel-Source", vertices, indices, glm::mat4(1.f));
     Ref<ModelSource> source = AssetManager::GetAsset<ModelSource>(source_handle);
+    OE_ASSERT(source != nullptr, "Failed to get framebuffer mesh source");
+
     line_handle = AssetManager::CreateMemOnly<StaticModel>("LineModel", source);
     return *line_handle;
   }
@@ -103,6 +109,7 @@ namespace other {
 
     AssetHandle source_handle = AssetManager::CreateMemOnly<ModelSource>("TriangleModel-Source", vertices, indices, glm::mat4(1.f));
     Ref<ModelSource> source = AssetManager::GetAsset<ModelSource>(source_handle);
+    OE_ASSERT(source != nullptr, "Failed to get framebuffer mesh source");
 
     AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>("TriangleModel", source);
     triangle_handle = handle;
@@ -136,6 +143,8 @@ namespace other {
 
     AssetHandle source_handle = AssetManager::CreateMemOnly<ModelSource>("RectModel-Source", vertices, indices, glm::mat4(1.f));
     Ref<ModelSource> source = AssetManager::GetAsset<ModelSource>(source_handle);
+    OE_ASSERT(source != nullptr, "Failed to get framebuffer mesh source");
+
     AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>("RectModel", source);
 
     OE_DEBUG("Created rect mesh : [{}]", handle);
@@ -181,6 +190,8 @@ namespace other {
 
     OE_DEBUG("Created box mesh source [{}]", mesh_source_handle);
     Ref<ModelSource> mesh_source = AssetManager::GetAsset<ModelSource>(mesh_source_handle);
+    OE_ASSERT(mesh_source != nullptr, "Failed to get framebuffer mesh source");
+
     AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>("BoxModel", mesh_source);
 
     OE_DEBUG("Created cube mesh [{}]", handle);
@@ -242,6 +253,8 @@ namespace other {
 
     AssetHandle mesh_source_handle = AssetManager::CreateMemOnly<ModelSource>("BoxWireframeModel-Source", vertices, indices, glm::mat4(1.f));
     Ref<ModelSource> mesh_source = AssetManager::GetAsset<ModelSource>(mesh_source_handle);
+    OE_ASSERT(mesh_source != nullptr, "Failed to get framebuffer mesh source");
+
     AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>("BoxWireframeModel", mesh_source);
 
     OE_DEBUG("Created cube wireframe mesh [{}]", handle);

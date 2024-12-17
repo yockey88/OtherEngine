@@ -8,6 +8,16 @@
 
 namespace other {
 
+  Ref<MaterialTable> AssetManager::material_table = nullptr;
+
+  Ref<MaterialTable> AssetManager::GetMaterialTable() {
+    if (material_table == nullptr) {
+      material_table = Ref<MaterialTable>::Create();
+      material_table->RegisterMaterial({ 1.f, 1.f, 1.f, 1.f }, { 0.f, 0.f, 1.f, 1.f }, { 0.5f, 0.5f, 0.5f, 0.5f });
+    }
+    return material_table;
+  }
+
   AssetType AssetManager::AssetTypeFromExtension(const std::string_view extension) {
     auto it = asset_extensions.find(FNV(extension));
     if (it == asset_extensions.end()) {

@@ -31,7 +31,7 @@ namespace other {
       std::vector<Vertex> vertices;
       std::vector<Index> triangles;
 
-      Material material;
+      UUID material_id;
 
       uint32_t start_vertex = 0;
       uint32_t start_index = 0;
@@ -46,7 +46,8 @@ namespace other {
     ModelData* current_model = nullptr;
 
     std::vector<ModelData> models;
-    Ref<MaterialTable> material_table = nullptr;
+    Ref<MaterialTable> material_table;
+    std::vector<UUID> material_ids;
 
     std::vector<uint64_t> loaded_texture_hashes;
 

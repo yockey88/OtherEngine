@@ -104,7 +104,7 @@ fragment {
 
   void main () {
     /// diffuse 
-    vec3 color = texture(albedo_textures, vec3(foe_uvs, instanceid)).rgb;
+    vec3 color = texture(albedo_textures, vec3(foe_uvs, foe_material.albedo)).rgb;
     vec3 norm = normalize(foe_normal);
     vec3 light_color = direction_light.color.xyz;
     vec3 ambient = 0.3 * light_color;

@@ -47,6 +47,10 @@ namespace other {
     return pixel_data;
   }
 
+  Buffer Texture::PixelData() const {
+    return pixel_data;
+  }
+
   void Texture::SetChannels(uint32_t format) {
     switch (spec.channels) {
       case RED: spec.channels = RED; break;

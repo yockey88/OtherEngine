@@ -268,22 +268,14 @@ int main(int argc, char* argv[]) {
     glUseProgram(0);
 
     /// generate sampler2DArray
-    uint32_t mip_levels = 1;
-    glm::ivec2 size = { 800, 600 };
-    std::vector<glm::vec3> colors = {
-      { 1.f, 0.f, 0.f },
-      { 0.f, 1.f, 0.f },
+    std::vector<glm::vec4> colors = {
+      { 1.f, 0.f, 0.f, 1.f },
+      { 0.f, 1.f, 0.f, 1.f },
     };
-    uint32_t num_colors = colors.size();
 
-    Ref<MaterialTable> material_table = NewRef<MaterialTable>(mip_levels, num_colors, size);
-    material_table->SetTexture(MaterialTable::ALBEDO, 0, colors[0]);
-    material_table->SetTexture(MaterialTable::ALBEDO, 1, colors[1]);
-
-    material_table->SetTexture(MaterialTable::NORMAL, 0, glm::vec3(1.f));
-    material_table->SetTexture(MaterialTable::NORMAL, 1, glm::vec3(1.f));
-    material_table->SetTexture(MaterialTable::ROUGHNESS, 0, glm::vec3(1.f));
-    material_table->SetTexture(MaterialTable::ROUGHNESS, 1, glm::vec3(1.f));
+    Ref<MaterialTable> material_table = NewRef<MaterialTable>();
+    other::UUID mat1 = material_table->RegisterMaterial(colors[0], glm::vec4(1.f), glm::vec4(1.f));
+    other::UUID mat2 = material_table->RegisterMaterial(colors[1], glm::vec4(1.f), glm::vec4(1.f));
 
     OE_DEBUG("Uniforms Set");
 
@@ -407,6 +399,18 @@ int main(int argc, char* argv[]) {
 
       model_uniforms->BindBase();
       model_uniforms->LoadFromBuffer(model_buffer);
+
+      MaterialTable::Material mat1_data = material_table->GetMaterial(mat1);
+      MaterialTable::Material mat2_data = material_table->GetMaterial(mat2);
+      Material gpumat1 = mat1_data;
+      Material gpumat2 = mat2_data;
+
+      material_buffer.ZeroMem();
+      material_buffer.BufferData(gpumat1);
+      material_buffer.BufferData(gpumat2);
+
+      material_uniforms->BindBase();
+      material_uniforms->LoadFromBuffer(material_buffer);
 
       mat_shader->Bind();
       mat_shader->SetUniform("albedo_textures", GBuffer::NUM_TEX_IDXS);

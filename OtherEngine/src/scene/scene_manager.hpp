@@ -16,10 +16,10 @@
 #include "scene/bvh.hpp"
 #include "scene/scene.hpp"
 
+#include "rendering/material_table.hpp"
 #include "rendering/scene_renderer.hpp"
 
 #include "editor/saves.hpp"
-
 
 namespace other {
 
@@ -86,6 +86,7 @@ namespace other {
     bool playing_scene = false;
     SceneMetadata* active_scene = nullptr;
     Ref<SceneRenderer> scene_renderer = nullptr;
+    Ref<MaterialTable> material_table = nullptr;
 
     std::vector<std::string> scene_paths;
     std::map<UUID, SceneMetadata> loaded_scenes;

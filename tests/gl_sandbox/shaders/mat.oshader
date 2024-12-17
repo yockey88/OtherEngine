@@ -2,7 +2,8 @@ vertex [mesh : default] {
 
   void main() {
     instanceid = gl_InstanceID;
-    mat4 model = models[gl_InstanceID];
+    foe_material = materials[instanceid]
+    mat4 model = models[instanceid];
     gl_Position = projection * view * model * vec4(voe_position, 1.0);
   }
 
@@ -13,7 +14,7 @@ fragment {
   out vec4 FragColor;
 
   void main() {
-    vec4 color = texture(albedo_textures, vec3(foe_uvs, instanceid));
+    vec4 color = texture(albedo_textures, vec3(foe_uvs, foe_material.albedo));
     FragColor = color;
   }
 

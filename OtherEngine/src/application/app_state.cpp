@@ -87,11 +87,6 @@ namespace other {
     return data->scenes;
   }
 
-  Ref<SceneRenderer> AppState::GetSceneRenderer() {
-    OE_ASSERT(data != nullptr, "Can not access app data until app is loaded");
-    return data->scenes->GetRenderer();
-  }
-
   UUID AppState::PushUIWindow(Ref<UIWindow> window) {
     OE_ASSERT(data != nullptr, "Can not access app data until app is loaded");
     UUID id = FNV(window->Title());

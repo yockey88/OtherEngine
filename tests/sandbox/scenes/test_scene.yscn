@@ -38,8 +38,9 @@ children = {}
 visible = true
 is-primitive = true
 primitive = 3
-material.color = { 1.0, 0.5, 0.31, 1 }
-material.shininess = 32
+material = {
+  albedo = { 1.0, 0.5, 0.31, 1 }
+}
 
 [cube.script]
 *SandboxScripts = { "Other::TestScript2" }
@@ -78,8 +79,9 @@ children = {}
 visible = true
 is-primitive = true
 primitive = 3
-material.color = { 0.1, 0.5, 0.31, 1 }
-material.shininess = 32
+material = {
+  albedo = { 1.0, 0.5, 0.31, 1 }
+}
 
 [camera]
 UUID = 4220486183894562136

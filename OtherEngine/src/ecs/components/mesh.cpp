@@ -7,6 +7,8 @@
 
 #include "core/config_keys.hpp"
 
+#include "asset/asset_manager.hpp"
+
 #include "ecs/entity.hpp"
 
 #include "rendering/model_factory.hpp"
@@ -29,6 +31,20 @@ namespace other {
     auto& mesh = entity->AddComponent<Mesh>();
     mesh.visible = scene_table.GetVal<bool>(key_value, kVisibleValue, false).value_or(false);
     mesh.handle = scene_table.GetVal<uint64_t>(key_value, kHandleValue, false).value_or(0);
+    // std::string material_key = GetComponentSectionKey(entity->Name(), std::string{ kMaterialValue });
+    // std::string albedo_key = GetComponentSectionKey(material_key, "albedo");
+    // std::string normal_key = GetComponentSectionKey(material_key, "normal");
+    // std::string roughness_key = GetComponentSectionKey(material_key, "roughness");
+
+    // auto albedo = scene_table.GetVal<glm::vec4>(key_value, albedo_key, false).value_or(glm::vec4{ 1.f });
+    // auto normal = scene_table.GetVal<glm::vec4>(key_value, normal_key, false).value_or(glm::vec4{ 1.f });
+    // auto roughness = scene_table.GetVal<glm::vec4>(key_value, roughness_key, false).value_or(glm::vec4{ 1.f });
+
+    // Ref<MaterialTable> table = scene->GetMaterialTable();
+    // OE_ASSERT(table != nullptr, "Failed to retrieve material table from scene");
+
+    // mesh.material = table->RegisterMaterial(albedo, normal, roughness);
+    // mesh.primitive_selection = mesh.primitive_id;
     // mesh.material = scene_table.GetVal<Material>(key_value, kMaterialValue, false).value_or(Material{});
 
     /// material data
@@ -52,6 +68,23 @@ namespace other {
     std::string key_value = GetComponentSectionKey(entity->Name(), std::string{ kStaticMeshValue });
 
     auto& mesh = entity->AddComponent<StaticMesh>();
+
+    std::string albedo_key = GetComponentSectionKey(std::string{ kMaterialValue }, "albedo");
+    std::string normal_key = GetComponentSectionKey(std::string{ kMaterialValue }, "normal");
+    std::string roughness_key = GetComponentSectionKey(std::string{ kMaterialValue }, "roughness");
+
+    auto albedo = scene_table.GetVal<glm::vec4>(key_value, albedo_key, false).value_or(glm::vec4{ 1.f });
+    auto normal = scene_table.GetVal<glm::vec4>(key_value, normal_key, false).value_or(glm::vec4{ 1.f });
+    auto roughness = scene_table.GetVal<glm::vec4>(key_value, roughness_key, false).value_or(glm::vec4{ 1.f });
+
+    Ref<MaterialTable> table = AssetManager::GetMaterialTable();
+    OE_ASSERT(table != nullptr, "Failed to retrieve material table from scene");
+
+    mesh.material = table->RegisterMaterial(albedo, normal, roughness);
+    OE_ASSERT(mesh.material.Get() != 0, "Failed to register material for static mesh");
+    OE_ASSERT(table->HasMaterial(mesh.material), "Material not found in table");
+    mesh.primitive_selection = mesh.primitive_id;
+
     /// we dont deserialize the handle because CreateBox below will create a new one,
     ///   because the old would be invalid anyways
     mesh.visible = scene_table.GetVal<bool>(key_value, kVisibleValue, false).value_or(false);
@@ -61,9 +94,6 @@ namespace other {
     } else {
       return;
     }
-    // mesh.material = scene_table.GetVal<Material>(key_value, kMaterialValue, false).value_or(Material{});
-
-    mesh.primitive_selection = mesh.primitive_id;
 
     OE_DEBUG("Deserialized mesh {} {}", key_value, mesh.primitive_id);
 

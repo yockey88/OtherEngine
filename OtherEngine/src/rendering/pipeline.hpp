@@ -4,97 +4,19 @@
 #ifndef OTHER_ENGINE_PIPELINE_HPP
 #define OTHER_ENGINE_PIPELINE_HPP
 
-#include <functional>
-
-#include "core/buffer.hpp"
 #include "core/ref.hpp"
 #include "core/ref_counted.hpp"
 #include "core/writer_reader.hpp"
 
 #include "rendering/framebuffer.hpp"
 #include "rendering/gbuffer.hpp"
-#include "rendering/layout.hpp"
 #include "rendering/material.hpp"
 #include "rendering/model.hpp"
+#include "rendering/render_graph.hpp"
 #include "rendering/render_pass.hpp"
 #include "rendering/rendering_defines.hpp"
-#include "rendering/vertex.hpp"
 
 namespace other {
-
-  using RenderFn = std::function<void(void*)>;
-
-  struct MeshKey {
-    AssetHandle source_handle;
-    RenderState render_state = RenderState::FILL;
-    DrawMode draw_mode = DrawMode::TRIANGLES;
-    uint32_t submesh_idx = 0;
-
-    bool selected;
-  };
-
-}  // namespace other
-
-template <>
-struct std::hash<other::MeshKey> {
-  std::size_t operator()(const other::MeshKey& key) const {
-    return std::hash<uint64_t>{}(key.source_handle.Get()) ^
-      std::hash<uint32_t>{}(static_cast<uint32_t>(key.render_state)) ^
-      std::hash<uint32_t>{}(static_cast<uint32_t>(key.draw_mode)) ^
-      std::hash<uint32_t>{}(key.submesh_idx);
-  }
-};
-
-template <>
-struct std::equal_to<other::MeshKey> {
-  bool operator()(const other::MeshKey& lhs, const other::MeshKey& rhs) const {
-    return lhs.source_handle.Get() == rhs.source_handle.Get() && lhs.render_state == rhs.render_state && lhs.draw_mode == rhs.draw_mode && lhs.submesh_idx == rhs.submesh_idx;
-  }
-};
-
-namespace other {
-  struct PipelineSpec {
-    bool back_face_culling = true;
-    bool depth_test = true;
-    float line_width = 1.f;
-
-    FramebufferSpec framebuffer_spec{};
-
-    std::string pipeline_name;
-  };
-
-  struct RenderStaticSubmission {
-    Ref<StaticModel> model = nullptr;
-    glm::mat4 transform = glm::mat4(1.f);
-    Material material{};
-    RenderState render_state = RenderState::FILL;
-    DrawMode draw_mode = DrawMode::TRIANGLES;
-
-    operator MeshKey() const;
-  };
-
-  struct RenderSubmission {
-    Ref<Model> model = nullptr;
-    glm::mat4 transform = glm::mat4(1.f);
-    std::vector<Material> materials{};
-    RenderState render_state = RenderState::FILL;
-    DrawMode draw_mode = DrawMode::TRIANGLES;
-
-    operator MeshKey() const;
-  };
-
-  struct MeshSubmissionList {
-    Ref<VertexArray> vao = nullptr;
-    size_t num_elements = 0;
-
-    uint32_t instance_count = 0;
-    uint32_t base_vertex = 0;
-    uint32_t base_instance = 0;
-
-    Buffer cpu_model_storage;
-    Buffer cpu_material_storage;
-  };
-  using FrameMeshes = std::unordered_map<MeshKey, MeshSubmissionList>;
 
   class Pipeline : public RefCounted {
    public:
@@ -107,14 +29,13 @@ namespace other {
     const std::vector<Ref<RenderPass>>& GetRenderPasses() const;
 
     void SetViewportSize(const glm::ivec2& size);
-
     void SubmitRenderPass(const Ref<RenderPass>& render_pass);
 
     /// FIXME: material system needs overhaul
-    void SubmitModel(const Ref<Model>& model, const glm::mat4& transform, const std::vector<Material>& materials, DrawMode topology = DrawMode::TRIANGLES);
+    void SubmitModel(const Ref<Model>& model, const glm::mat4& transform, UUID material_id, DrawMode topology = DrawMode::TRIANGLES);
     void SubmitModel(const RenderSubmission& submission);
 
-    void SubmitStaticModel(const Ref<StaticModel>& model, const glm::mat4& transform, const Material& color, DrawMode topology = DrawMode::TRIANGLES);
+    void SubmitStaticModel(const Ref<StaticModel>& model, const glm::mat4& transform, UUID material_id, DrawMode topology = DrawMode::TRIANGLES);
     void SubmitStaticModel(const RenderStaticSubmission& submission);
 
     void Render(bool render_gbuffer = false);

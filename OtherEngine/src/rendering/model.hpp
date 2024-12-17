@@ -6,13 +6,11 @@
 
 #include <glm/glm.hpp>
 
-#include "core/uuid.hpp"
 #include "math/bounding_box.hpp"
 
 #include "asset/asset.hpp"
 #include "asset/asset_defines.hpp"
 
-#include "rendering/material.hpp"
 #include "rendering/material_table.hpp"
 #include "rendering/rendering_defines.hpp"
 #include "rendering/vertex.hpp"
@@ -36,9 +34,6 @@ namespace other {
 
     std::vector<SubMesh>& SubMeshes();
     const std::vector<SubMesh>& SubMeshes() const;
-
-    void SetMaterialTable(Ref<MaterialTable>& table);
-    Ref<MaterialTable> GetMaterialTable() const;
 
     static Ref<Model> CreateModel(Ref<ModelSource>& source, const std::vector<uint32_t>& sub_meshes);
     static Ref<StaticModel> CreateStaticModel(Ref<ModelSource>& source);
@@ -85,8 +80,6 @@ namespace other {
     // std::map<uint32_t , std::vector<Triangle>> triangles;
     // mutable Scope<Skeleton> skeleton = nullptr;
 
-    Ref<MaterialTable> material_table = nullptr;
-
     BBox bounding_box;
     std::string file_path;
 
@@ -111,6 +104,7 @@ namespace other {
 
     void RebuildMesh();
 
+    /// 1 vertex array from each submesh
     std::vector<Ref<VertexArray>> model_vaos = {};
 
    private:

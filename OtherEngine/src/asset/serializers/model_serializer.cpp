@@ -10,11 +10,11 @@
 
 #include "core/filesystem.hpp"
 #include "core/logger.hpp"
+#include "core/rand.hpp"
 
 #include "asset/asset_manager.hpp"
 
 #include "rendering/model.hpp"
-#include "rendering/texture.hpp"
 
 namespace other {
 
@@ -61,6 +61,8 @@ namespace other {
       return false;
     }
 
+    OE_ASSERT(material_table != nullptr, "Material table is null");
+
     std::vector<SubMesh> submeshes;
     std::vector<Vertex> source_vertices;
     std::vector<Index> source_indices;
@@ -79,7 +81,10 @@ namespace other {
       submesh.base_vertex = vert_offset;
       submesh.base_idx = idx_offset;
       submesh.model_name = model.name;
-      submesh.material = model.material;
+
+      /// TODO: this should somehow be linked to the source's UUID
+      ///         maybe UUID of submesh[i] \in S sould be SU + i (where SU is the UUID of the source) ?
+      submesh.sub_mesh_id = Random::GenerateUUID();
 
       for (Vertex& v : model.vertices) {
         source_vertices.push_back(v);
@@ -100,8 +105,6 @@ namespace other {
     /// normalize mesh scale to not be so big
 
     Ref<ModelSource> source = NewRef<ModelSource>(source_vertices, source_indices, submeshes);
-    source->SetMaterialTable(material_table);
-
     metadata.asset = source;
     return true;
   }
@@ -123,11 +126,7 @@ namespace other {
 
     /// nodes are processed, now process materials using stored models
     for (ModelData& model : models) {
-      model.material = {
-        .albedo_tex_idx = model.mat_idx,
-        .normal_tex_idx = model.mat_idx,
-        .roughness_tex_idx = model.mat_idx,
-      };
+      model.material_id = material_ids[model.mat_idx];
     }
 
     return true;
@@ -228,8 +227,8 @@ namespace other {
   bool ModelSerializer::BuildMaterialTable(const aiScene* scene) {
     OE_ASSERT(scene != nullptr, "Attempting to build a material table without a scene");
 
-    uint32_t mip_levels = 1;
-    material_table = NewRef<MaterialTable>(mip_levels, scene->mNumMaterials, glm::vec2{ 1920.f, 1080.f });
+    material_table = AssetManager::GetMaterialTable();
+    OE_ASSERT(material_table != nullptr, "Material table is null");
 
     for (uint32_t i = 0; i < scene->mNumMaterials; ++i) {
       aiMaterial* material = scene->mMaterials[i];
@@ -246,13 +245,13 @@ namespace other {
       uint32_t textureCount = material->GetTextureCount(aiTextureType_DIFFUSE);
       OE_DEBUG("    TextureCount = {0}", textureCount);
 
-      Opt<glm::vec3> albedo_col = std::nullopt;
+      Opt<glm::vec4> albedo_col = std::nullopt;
       Opt<float> emission = std::nullopt;
 
       aiColor3D col;
       aiColor3D emissive;
       if (material->Get(AI_MATKEY_COLOR_DIFFUSE, col) == AI_SUCCESS) {
-        albedo_col = { col.r, col.g, col.b };
+        albedo_col = { col.r, col.g, col.b, 1.f };
       }
 
       if (material->Get(AI_MATKEY_COLOR_EMISSIVE, emissive) == AI_SUCCESS) {
@@ -275,10 +274,14 @@ namespace other {
       bool has_albedo_map = material->GetTexture(aiTextureType_DIFFUSE, 0, &tex_path) == AI_SUCCESS;
       bool fallback = !has_albedo_map;
 
+      Opt<MaterialTable::Texture> albedo_tex = std::nullopt;
+      Opt<MaterialTable::Texture> normal_tex = std::nullopt;
+      Opt<MaterialTable::Texture> roughness_tex = std::nullopt;
+
       if (has_albedo_map) {
         if (const aiTexture* tex = scene->GetEmbeddedTexture(tex_path.C_Str())) {
           uint8_t* data = reinterpret_cast<uint8_t*>(tex->pcData);
-          material_table->SetTexture(MaterialTable::ALBEDO, i, data);
+          albedo_tex = MaterialTable::CreateTexture(4 * tex->mWidth * tex->mHeight, data, { tex->mWidth, tex->mHeight });
         }
         /// if texture not embedded, attempt loading from file if it exists
         else if (Path full_path = std::filesystem::absolute(Path{ tex_path.C_Str() }); Filesystem::FileExists(full_path)) {
@@ -289,7 +292,7 @@ namespace other {
               OE_ERROR("Failed to get texture  from file : {}", full_path);
               fallback = !albedo_col.has_value();
             } else {
-              material_table->SetTexture(MaterialTable::ALBEDO, i, data.data());
+              albedo_tex = MaterialTable::CreateTexture(data.size(), data.data(), { 1920.f, 1080.f });
             }
           } else {
             OE_ERROR("Failed to get file handle : {}", full_path);
@@ -304,9 +307,9 @@ namespace other {
       }
 
       if (fallback) {
-        material_table->SetTexture(MaterialTable::ALBEDO, i, glm::vec3{ 1.f, 1.f, 1.f });
+        albedo_tex = MaterialTable::CreateTexture(glm::vec4{ 1.f }, { 1920.f, 1080.f });
       } else if (albedo_col.has_value()) {
-        material_table->SetTexture(MaterialTable::ALBEDO, i, albedo_col.value());
+        albedo_tex = MaterialTable::CreateTexture(albedo_col.value(), { 1920.f, 1080.f });
       }
 
       // Normal maps
@@ -315,7 +318,7 @@ namespace other {
       if (has_normal_map) {
         if (const aiTexture* texture = scene->GetEmbeddedTexture(tex_path.C_Str())) {
           uint8_t* data = reinterpret_cast<uint8_t*>(texture->pcData);
-          material_table->SetTexture(MaterialTable::NORMAL, i, data);
+          normal_tex = MaterialTable::CreateTexture(4 * texture->mWidth * texture->mHeight, data, { texture->mWidth, texture->mHeight });
         } else if (Path full_path = std::filesystem::absolute(Path{ tex_path.C_Str() }); Filesystem::FileExists(full_path)) {
           Ref<FileHandle> file = Filesystem::GetFile(full_path);
           if (file != nullptr) {
@@ -324,7 +327,7 @@ namespace other {
               OE_ERROR("Failed to get texture  from file : {}", full_path);
               fallback = true;
             } else {
-              material_table->SetTexture(MaterialTable::NORMAL, i, data.data());
+              normal_tex = MaterialTable::CreateTexture(data.size(), data.data(), { 1920.f, 1080.f });
             }
           } else {
             OE_ERROR("Failed to get file handle : {}", full_path);
@@ -337,7 +340,7 @@ namespace other {
       }
 
       if (fallback) {
-        material_table->SetTexture(MaterialTable::NORMAL, i, glm::vec3{ 1.f, 1.f, 1.f });
+        normal_tex = MaterialTable::CreateTexture(glm::vec4{ 0.5f, 0.5f, 1.f, 1.f }, { 1920.f, 1080.f });
       }
 
       // Roughness map
@@ -346,7 +349,7 @@ namespace other {
       if (has_roughness_map) {
         if (const aiTexture* texture = scene->GetEmbeddedTexture(tex_path.C_Str())) {
           uint8_t* data = reinterpret_cast<uint8_t*>(texture->pcData);
-          material_table->SetTexture(MaterialTable::ROUGHNESS, i, data);
+          roughness_tex = MaterialTable::CreateTexture(4 * texture->mWidth * texture->mHeight, data, { texture->mWidth, texture->mHeight });
         } else if (Path full_path = std::filesystem::absolute(Path{ tex_path.C_Str() }); Filesystem::FileExists(full_path)) {
           Ref<FileHandle> file = Filesystem::GetFile(full_path);
           if (file != nullptr) {
@@ -355,7 +358,7 @@ namespace other {
               OE_ERROR("Failed to get texture  from file : {}", full_path);
               fallback = true;
             } else {
-              material_table->SetTexture(MaterialTable::ROUGHNESS, i, data.data());
+              roughness_tex = MaterialTable::CreateTexture(data.size(), data.data(), { 1920.f, 1080.f });
             }
           } else {
             OE_ERROR("Failed to get file handle : {}", full_path);
@@ -368,8 +371,16 @@ namespace other {
       }
 
       if (fallback) {
-        material_table->SetTexture(MaterialTable::ROUGHNESS, i, glm::vec3{ 1.f, 1.f, 1.f });
+        roughness_tex = MaterialTable::CreateTexture(glm::vec4{ 0.5f, 0.5f, 0.5f, 1.f }, { 1920.f, 1080.f });
       }
+
+      OE_ASSERT(albedo_tex.has_value(), "Albedo texture is null");
+      OE_ASSERT(normal_tex.has_value(), "Normal texture is null");
+      OE_ASSERT(roughness_tex.has_value(), "Roughness texture is null");
+
+      UUID mat_id = material_table->RegisterMaterial(albedo_tex.value(), normal_tex.value(), roughness_tex.value());
+      OE_DEBUG("    Material ID = {0}", mat_id);
+      material_ids.push_back(mat_id);
     }
 
     return true;

@@ -373,9 +373,10 @@ namespace other {
     /// define this in both vertex and fragment
     if (context == VERTEX_SHADER || context == FRAGMENT_SHADER) {
       stream << "struct Material {\n";
-      stream << "  int diffuse_tex_idx;\n";
-      stream << "  int normal_tex_idx;\n";
-      stream << "  int roughness_tex_idx;\n";
+      stream << "  int albedo;\n";
+      stream << "  int normal;\n";
+      stream << "  int roughness;\n";
+      stream << "  int _oe_internal_padding;\n";
       stream << "};\n\n";
 
       stream << "struct PointLight {\n";
@@ -483,7 +484,7 @@ namespace other {
       stream << "uniform sampler2DArray height_textures;\n";
 
       stream << "flat in int instanceid;\n";
-      stream << "in Material foe_material;\n\n";
+      stream << "flat in Material foe_material;\n\n";
       stream << "in vec4 foe_light_space_position;\n";
       stream << "in vec3 foe_viewpoint;\n";
       stream << "in vec3 foe_position;\n";

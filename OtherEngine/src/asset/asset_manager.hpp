@@ -36,8 +36,13 @@ namespace other {
       return Ref<Asset>::Cast<A>(asset);
     }
 
+    static Ref<MaterialTable> GetMaterialTable();
+
     static AssetType AssetTypeFromExtension(const std::string_view extension);
     static bool AssetValid(AssetHandle handle);
+
+   private:
+    static Ref<MaterialTable> material_table;
   };
 
 }  // namespace other

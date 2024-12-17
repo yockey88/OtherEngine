@@ -8,7 +8,6 @@
 #include "asset/asset_defines.hpp"
 #include "asset/asset_manager.hpp"
 
-#include "rendering/material.hpp"
 #include "rendering/rendering_defines.hpp"
 
 namespace other {
@@ -82,7 +81,6 @@ namespace other {
   }
 
   ModelSource::ModelSource(std::vector<Vertex>& verts, std::vector<Index>& idxs, std::vector<SubMesh>& sms) {
-    /// set submeshes
     submeshes.swap(sms);
 
     BuildVertexBuffer(verts);
@@ -112,14 +110,6 @@ namespace other {
 
   const std::vector<SubMesh>& ModelSource::SubMeshes() const {
     return submeshes;
-  }
-
-  void ModelSource::SetMaterialTable(Ref<MaterialTable>& table) {
-    material_table = table;
-  }
-
-  Ref<MaterialTable> ModelSource::GetMaterialTable() const {
-    return material_table;
   }
 
   Ref<Model> ModelSource::CreateModel(Ref<ModelSource>& source, const std::vector<uint32_t>& sub_meshes) {
