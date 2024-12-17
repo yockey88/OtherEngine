@@ -86,7 +86,7 @@ namespace other {
       return tex;
     }
 
-    void Bind(uint32_t base_slot = GL_TEXTURE0) const;
+    void Bind(uint32_t base_slot = 0) const;
     void Unbind() const;
 
     UUID RegisterMaterial(const glm::vec4& albedo, const glm::vec4& normal, const glm::vec4& roughness);

@@ -69,8 +69,6 @@ namespace other {
     Ref<MaterialTable> material_table = AssetManager::GetMaterialTable();
     OE_ASSERT(material_table != nullptr, "Material table is null");
 
-    UUID material_id = submission.material.Get() == 0 ? material_table->DefaultMaterial() : submission.material;
-
     if (sm_idxs.empty()) {
       MeshKey key = submission;
       key.submesh_idx = 0;
@@ -83,6 +81,9 @@ namespace other {
       OE_ASSERT(itr != model_submissions.end(), "Failed to insert mesh key");
       auto& [mk, sl] = *itr;
 
+      // UUID material_id = submission.material.Get() == 0 ? material_table->DefaultMaterial() : submission.material;
+      UUID material_id = material_table->DefaultMaterial();
+
       OE_ASSERT(material_table->HasMaterial(material_id), "Material not found in table");
       Material gpumat = material_table->GetMaterial(material_id);
 
@@ -93,38 +94,40 @@ namespace other {
     }
     OE_ASSERT(false, "Multi-submesh rendering not implemented");
 
-    // Ref<ModelSource> source = submission.model->GetModelSource();
-    // OE_ASSERT(source != nullptr, "Model source is null");
+    Ref<ModelSource> source = submission.model->GetModelSource();
+    OE_ASSERT(source != nullptr, "Model source is null");
 
-    // const std::vector<SubMesh>& submeshes = source->SubMeshes();
+    const std::vector<SubMesh>& submeshes = source->SubMeshes();
 
-    // for (const uint32_t sm_idx : sm_idxs) {
-    //   OE_ASSERT(sm_idx < submeshes.size(), "Submesh index out of bounds");
-    //   RenderSubmission sub{
-    //     .model = submission.model,
-    //     .transform = submission.transform,
-    //     .material = material_id.Get() == 0 ? material_table->DefaultMaterial() : material_id,
-    //     .draw_mode = submission.draw_mode,
-    //   };
+    for (const uint32_t sm_idx : sm_idxs) {
+      OE_ASSERT(sm_idx < submeshes.size(), "Submesh index out of bounds");
+      RenderSubmission sub{
+        .model = submission.model,
+        .transform = submission.transform,
+        .draw_mode = submission.draw_mode,
+      };
 
-    //   MeshKey key = sub;
-    //   key.submesh_idx = sm_idx;
+      MeshKey key = sub;
+      key.submesh_idx = sm_idx;
 
-    //   auto itr = model_submissions.find(key);
-    //   if (itr == model_submissions.end()) {
-    //     itr = InsertMeshKey(key, submission.model, sm_idx);
-    //   }
+      auto itr = model_submissions.find(key);
+      if (itr == model_submissions.end()) {
+        itr = InsertMeshKey(key, submission.model, sm_idx);
+      }
 
-    //   OE_ASSERT(itr != model_submissions.end(), "Failed to insert mesh key");
-    //   auto& [mk, sl] = *itr;
+      OE_ASSERT(itr != model_submissions.end(), "Failed to insert mesh key");
+      auto& [mk, sl] = *itr;
 
-    //   OE_ASSERT(material_table->HasMaterial(su), "Material not found in table");
-    //   Material gpumat = material_table->GetMaterial(material_id);
+      // UUID material_id = submission.material.Get() == 0 ? material_table->DefaultMaterial() : submission.material;
+      UUID material_id = material_table->DefaultMaterial();
 
-    //   sl.cpu_model_storage.BufferData(submission.transform);
-    //   sl.cpu_material_storage.BufferData(gpumat);
-    //   ++sl.instance_count;
-    // }
+      OE_ASSERT(material_table->HasMaterial(material_id), "Material not found in table");
+      Material gpumat = material_table->GetMaterial(material_id);
+
+      sl.cpu_model_storage.BufferData(submission.transform);
+      sl.cpu_material_storage.BufferData(gpumat);
+      ++sl.instance_count;
+    }
   }
 
   void Pipeline::SubmitStaticModel(const Ref<StaticModel>& model, const glm::mat4& transform, UUID material_id, DrawMode topology) {
@@ -154,8 +157,11 @@ namespace other {
     Ref<MaterialTable> material_table = AssetManager::GetMaterialTable();
     OE_ASSERT(material_table != nullptr, "Material table is null");
 
-    OE_ASSERT(material_table->HasMaterial(submission.material), "Material not found in table");
-    Material gpumat = material_table->GetMaterial(submission.material);
+    // UUID material_id = submission.material.Get() == 0 ? material_table->DefaultMaterial() : submission.material;
+    UUID material_id = material_table->DefaultMaterial();
+
+    OE_ASSERT(material_table->HasMaterial(material_id), "Material not found in table");
+    Material gpumat = material_table->GetMaterial(material_id);
 
     sl.cpu_model_storage.BufferData(submission.transform);
     sl.cpu_material_storage.BufferData(gpumat);
@@ -243,7 +249,7 @@ namespace other {
       OE_ASSERT(submesh_idx < model->SubMeshes().size(), "Submesh index out of bounds");
     }
 
-    Ref<VertexArray> vao = Ref<VertexArray>::Clone(model->model_vaos[submesh_idx]);
+    Ref<VertexArray> vao = Ref<VertexArray>::Clone(model->model_vaos[0]);
     OE_ASSERT(vao != nullptr, "Failed to clone vertex array");
 
     MeshSubmissionList msl{
@@ -264,6 +270,8 @@ namespace other {
     OE_ASSERT(model->GetModelSource() != nullptr, "Static model source is null");
 
     Ref<VertexArray> vao = Ref<VertexArray>::Clone(model->model_vao);
+    OE_ASSERT(vao != nullptr, "Failed to clone vertex array");
+
     MeshSubmissionList msl{
       .vao = vao,
       .num_elements = vao->NumElements(),

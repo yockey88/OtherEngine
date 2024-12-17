@@ -90,12 +90,10 @@ namespace other {
   }
 
   bool AssetRegistry::Contains(AssetHandle handle) const {
-    OE_TRACE("Checking for asset handle : {}", handle);
     return std::ranges::find_if(assets, [&](const auto& pair) -> bool { return pair.second.handle == handle; }) != assets.end();
   }
 
   bool AssetRegistry::HasKey(const AssetKey& key) const {
-    OE_TRACE("Checking for asset key : {}", key);
     return assets.find(key) != assets.end();
   }
 

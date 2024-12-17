@@ -184,8 +184,10 @@ int main(int argc, char* argv[]) {
 
     const other::Path shader_dir = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders";
     const other::Path fbshader_path = shader_dir / "fbshader.oshader";
+    const other::Path default_shader_path = shader_dir / "default.oshader";
     const other::Path gbuffer_shader_path = shader_dir / "gbuffer.oshader";
     Ref<Shader> fb_shader = other::BuildShader(fbshader_path);
+    Ref<Shader> default_shader = other::BuildShader(default_shader_path);
     Ref<Shader> gbuffer_shader = other::BuildShader(gbuffer_shader_path);
 
     // const other::Path deferred_shader_path = shader_dir / "deferred_shading.oshader";
@@ -356,43 +358,6 @@ int main(int argc, char* argv[]) {
       model1 = glm::rotate(model1, m1_rotation, { 1.f, 1.f, 1.f });
       m1_rotation += 0.1f;
 
-      // model_buffer.ZeroMem();
-      // model_buffer.BufferData(model1);
-      // model_buffer.BufferData(model2);
-
-      // model_uniforms->BindBase();
-      // model_uniforms->LoadFromBuffer(model_buffer);
-
-      model_buffer.ZeroMem();
-      model_buffer.BufferData(model1);
-      model_buffer.BufferData(model2);
-
-      model_uniforms->BindBase();
-      model_uniforms->LoadFromBuffer(model_buffer);
-
-      /// start material textures at the the end of gbuffer textures
-      material_table->Bind(GBuffer::NUM_TEX_IDXS);
-      gbuffer.SetInput("albedo_textures", GBuffer::NUM_TEX_IDXS);
-      gbuffer.SetInput("normal_textures", GBuffer::NUM_TEX_IDXS + 1);
-      gbuffer.SetInput("roughness_textures", GBuffer::NUM_TEX_IDXS + 2);
-
-      ///> GBUFFER RENDER
-      gbuffer.Bind();
-      cube.Draw(other::TRIANGLES, 2);
-      gbuffer.Unbind();
-      /// > GBUFFER RENDER
-
-      /// > LIGHTING PASS
-      // frame->BindFrame();
-      // deferred_shader->Bind();
-      // fb_mesh->Draw(other::TRIANGLES);
-      // deferred_shader->Unbind();
-      // frame->UnbindFrame();
-      /// > LIGHTING PASS
-
-      // /// > GEOMETRY PASS
-      frame->BindFrame();
-
       model_buffer.ZeroMem();
       model_buffer.BufferData(model1);
       model_buffer.BufferData(model2);
@@ -412,13 +377,39 @@ int main(int argc, char* argv[]) {
       material_uniforms->BindBase();
       material_uniforms->LoadFromBuffer(material_buffer);
 
+      ///> GBUFFER RENDER
+      /// start material textures at the the end of gbuffer textures
+      material_table->Bind(GBuffer::NUM_TEX_IDXS);
+      gbuffer.SetInput("albedo_textures", GBuffer::NUM_TEX_IDXS);
+
+      gbuffer.Bind();
+      cube.Draw(other::TRIANGLES, 2);
+      gbuffer.Unbind();
+      material_table->Unbind();
+      /// > GBUFFER RENDER
+
+      /// > LIGHTING PASS
+      // frame->BindFrame();
+      // deferred_shader->Bind();
+      // fb_mesh->Draw(other::TRIANGLES);
+      // deferred_shader->Unbind();
+      // frame->UnbindFrame();
+      /// > LIGHTING PASS
+
+      // /// > GEOMETRY PASS
+      frame->BindFrame();
+
+      material_table->Bind();
+
       mat_shader->Bind();
-      mat_shader->SetUniform("albedo_textures", GBuffer::NUM_TEX_IDXS);
-      mat_shader->SetUniform("normal_textures", GBuffer::NUM_TEX_IDXS + 1);
-      mat_shader->SetUniform("roughness_textures", GBuffer::NUM_TEX_IDXS + 2);
+      mat_shader->SetUniform("albedo_textures", 0);
+      mat_shader->SetUniform("normal_textures", 1);
+      mat_shader->SetUniform("roughness_textures", 2);
 
       cube.Draw(other::TRIANGLES, colors.size());
       mat_shader->Unbind();
+
+      material_table->Unbind();
 
       frame->UnbindFrame();
       /// > GEOMETRY PASS

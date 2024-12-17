@@ -280,27 +280,35 @@ namespace other {
 
     /* (+,+,+) */ vertices[0].position = { 1.f / 2.0f, 1.f / 2.0f, 1.f / 2.0f };
     /* (+,+,+) */ vertices[0].normal = { 1.0f, 1.0f, 1.0f };
+    /* (+,+,+) */ vertices[0].uv_coord = { 1.f, 0.f };
 
     /* (-,+,+) */ vertices[1].position = { -1.f / 2.0f, 1.f / 2.0f, 1.f / 2.0f };
     /* (-,+,+) */ vertices[1].normal = { -1.0f, 1.0f, 1.0f };
+    /* (-,+,+) */ vertices[1].uv_coord = { 0.f, 0.f };
 
     /* (-,-,+) */ vertices[2].position = { -1.f / 2.0f, -1.f / 2.0f, 1.f / 2.0f };
     /* (-,-,+) */ vertices[2].normal = { -1.0f, -1.0f, 1.0f };
+    /* (-,-,+) */ vertices[2].uv_coord = { 0.f, 1.f };
 
     /* (+,-,+) */ vertices[3].position = { 1.f / 2.0f, -1.f / 2.0f, 1.f / 2.0f };
     /* (+,-,+) */ vertices[3].normal = { 1.0f, -1.0f, 1.0f };
+    /* (+,-,+) */ vertices[3].uv_coord = { 1.f, 1.f };
 
     /* (+,+,-) */ vertices[4].position = { 1.f / 2.0f, 1.f / 2.0f, -1.f / 2.0f };
     /* (+,+,-) */ vertices[4].normal = { 1.0f, 1.0f, -1.0f };
+    /* (+,+,-) */ vertices[4].uv_coord = { 1.f, 0.f };
 
     /* (-,+,-) */ vertices[5].position = { -1.f / 2.0f, 1.f / 2.0f, -1.f / 2.0f };
     /* (-,+,-) */ vertices[5].normal = { -1.0f, 1.0f, -1.0f };
+    /* (-,+,-) */ vertices[5].uv_coord = { 0.f, 0.f };
 
     /* (-,-,-) */ vertices[6].position = { -1.f / 2.0f, -1.f / 2.0f, -1.f / 2.0f };
     /* (-,-,-) */ vertices[6].normal = { -1.0f, -1.0f, -1.0f };
+    /* (-,-,-) */ vertices[6].uv_coord = { 0.f, 1.f };
 
     /* (+,-,-) */ vertices[7].position = { 1.f / 2.0f, -1.f / 2.0f, -1.f / 2.0f };
     /* (+,-,-) */ vertices[7].normal = { 1.0f, -1.0f, -1.0f };
+    /* (+,-,-) */ vertices[7].uv_coord = { 1.f, 1.f };
 
     box_vertices = vertices;
     return vertices;

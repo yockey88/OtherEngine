@@ -37,7 +37,7 @@ namespace other {
   MaterialTable::MaterialTable(const glm::vec2& size)
       : size(size) {
     handle = GenerateUUID();
-    default_material = RegisterMaterial(glm::vec4(1.f), glm::vec4(0.5f, 0.5f, 1.f, 1.f), glm::vec4(0.5f));
+    default_material = RegisterMaterial(glm::vec4(1.f), glm::vec4(1.f), glm::vec4(1.f));
   }
 
   MaterialTable::~MaterialTable() {
@@ -83,7 +83,7 @@ namespace other {
       const Table& table = tables[i];
       uint32_t slot = base_slot + i;
 
-      glActiveTexture(GL_TEXTURE0 + i);
+      glActiveTexture(GL_TEXTURE0 + slot);
       CHECKGL();
       glBindTexture(GL_TEXTURE_2D_ARRAY, table.texture);
       CHECKGL();

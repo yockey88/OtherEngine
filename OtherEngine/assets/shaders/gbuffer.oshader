@@ -22,7 +22,7 @@ fragment {
   void main() {
     g_position = vec4(foe_position , 1.0);
     g_normal = vec4(normalize(foe_normal) , 1.0);
-    g_albedo.rgb = texture(albedo_textures, vec3(foe_uvs, instanceid)).rgb;
+    g_albedo.rgb = texture(albedo_textures, vec3(foe_uvs, foe_material.albedo)).rgb;
     g_albedo.a = 32.0;
   }
 

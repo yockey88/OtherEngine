@@ -73,16 +73,21 @@ namespace other {
     std::string normal_key = GetComponentSectionKey(std::string{ kMaterialValue }, "normal");
     std::string roughness_key = GetComponentSectionKey(std::string{ kMaterialValue }, "roughness");
 
-    auto albedo = scene_table.GetVal<glm::vec4>(key_value, albedo_key, false).value_or(glm::vec4{ 1.f });
-    auto normal = scene_table.GetVal<glm::vec4>(key_value, normal_key, false).value_or(glm::vec4{ 1.f });
-    auto roughness = scene_table.GetVal<glm::vec4>(key_value, roughness_key, false).value_or(glm::vec4{ 1.f });
+    // auto albedo = scene_table.GetVal<glm::vec4>(key_value, albedo_key, false);
+    // auto normal = scene_table.GetVal<glm::vec4>(key_value, normal_key, false);
+    // auto roughness = scene_table.GetVal<glm::vec4>(key_value, roughness_key, false);
 
-    Ref<MaterialTable> table = AssetManager::GetMaterialTable();
-    OE_ASSERT(table != nullptr, "Failed to retrieve material table from scene");
+    // Ref<MaterialTable> table = AssetManager::GetMaterialTable();
+    // OE_ASSERT(table != nullptr, "Failed to retrieve material table from scene");
 
-    mesh.material = table->RegisterMaterial(albedo, normal, roughness);
-    OE_ASSERT(mesh.material.Get() != 0, "Failed to register material for static mesh");
-    OE_ASSERT(table->HasMaterial(mesh.material), "Material not found in table");
+    // if (albedo.has_value() && normal.has_value() && roughness.has_value()) {
+    //   mesh.material = table->RegisterMaterial(*albedo, *normal, *roughness);
+    // } else {
+    //   mesh.material = table->DefaultMaterial();
+    // }
+
+    // OE_ASSERT(mesh.material.Get() != 0, "Failed to register material for static mesh");
+    // OE_ASSERT(table->HasMaterial(mesh.material), "Material not found in table");
     mesh.primitive_selection = mesh.primitive_id;
 
     /// we dont deserialize the handle because CreateBox below will create a new one,

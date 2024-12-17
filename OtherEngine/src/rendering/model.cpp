@@ -114,7 +114,7 @@ namespace other {
 
   Ref<Model> ModelSource::CreateModel(Ref<ModelSource>& source, const std::vector<uint32_t>& sub_meshes) {
     const AssetMetadata& meta = AppState::Assets()->GetMetadata(source->handle);
-    AssetHandle handle = AssetManager::CreateMemOnly<Model>(fmtstr("{}.{}", meta.path, source->models_produced), source);
+    AssetHandle handle = AssetManager::CreateMemOnly<Model>(fmtstr("{}.{}", meta.path, source->models_produced), source, sub_meshes);
     ++source->models_produced;
     return AssetManager::GetAsset<Model>(handle);
   }
@@ -214,13 +214,6 @@ namespace other {
     }
   }
 
-  Model::Model(Ref<ModelSource>& model_source)
-      : model_source(model_source) {
-    OE_ASSERT(model_source != nullptr, "Attempting construct model from null source!");
-    SetSubMeshes({});
-    RebuildMesh();
-  }
-
   Model::Model(Ref<ModelSource>& model_src, const std::vector<uint32_t>& sub_meshes)
       : model_source(model_src) {
     OE_ASSERT(model_src != nullptr, "Attempting construct model from null source!");
@@ -240,11 +233,7 @@ namespace other {
   }
 
   void Model::SetSubMeshes(const std::vector<uint32_t>& sms) {
-    if (!sms.empty()) {
-      sub_meshes = sms;
-    } else {
-      sub_meshes = {};
-    }
+    sub_meshes = sms;
   }
 
   void Model::RebuildMesh() {
@@ -255,35 +244,36 @@ namespace other {
     std::vector<uint32_t> idxs{};
 
     const std::vector<uint32_t>& src_layout = model_source->RawLayout();
-    if (sub_meshes.empty()) {
-      for (const auto& i : indices) {
-        idxs.push_back(i.v1);
-        idxs.push_back(i.v2);
-        idxs.push_back(i.v3);
-      }
-      model_vaos.push_back(NewRef<VertexArray>(vertices, idxs, src_layout));
-      return;
+    for (const auto& i : indices) {
+      idxs.push_back(i.v1);
+      idxs.push_back(i.v2);
+      idxs.push_back(i.v3);
     }
+    model_vaos.push_back(NewRef<VertexArray>(vertices, idxs, src_layout));
 
-    const std::vector<SubMesh>& src_submeshes = model_source->SubMeshes();
-    for (const uint32_t sm_idx : sub_meshes) {
-      std::vector<float> raw_vertices{};
-      std::vector<uint32_t> idxs{};
+    // if (sub_meshes.empty()) {
+    //   return;
+    // }
 
-      const SubMesh& sm = src_submeshes[sm_idx];
+    // const std::vector<SubMesh>& src_submeshes = model_source->SubMeshes();
+    // for (const uint32_t sm_idx : sub_meshes) {
+    //   std::vector<float> raw_vertices{};
+    //   std::vector<uint32_t> idxs{};
 
-      for (uint32_t i = sm.base_vertex; i < sm.base_vertex + sm.vert_cnt; ++i) {
-        raw_vertices.push_back(vertices[i]);
-      }
+    //   const SubMesh& sm = src_submeshes[sm_idx];
 
-      for (uint32_t i = sm.base_idx; i < sm.base_idx + sm.idx_cnt; ++i) {
-        idxs.push_back(indices[i].v1);
-        idxs.push_back(indices[i].v2);
-        idxs.push_back(indices[i].v3);
-      }
+    //   for (uint32_t i = sm.base_vertex; i < sm.base_vertex + sm.vert_cnt; ++i) {
+    //     raw_vertices.push_back(vertices[i]);
+    //   }
 
-      model_vaos.push_back(NewRef<VertexArray>(raw_vertices, idxs, src_layout));
-    }
+    //   for (uint32_t i = sm.base_idx; i < sm.base_idx + sm.idx_cnt; ++i) {
+    //     idxs.push_back(indices[i].v1);
+    //     idxs.push_back(indices[i].v2);
+    //     idxs.push_back(indices[i].v3);
+    //   }
+
+    //   model_vaos.push_back(NewRef<VertexArray>(raw_vertices, idxs, src_layout));
+    // }
   }
 
   Ref<ModelSource> Model::GetModelSource() const {

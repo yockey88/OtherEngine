@@ -93,7 +93,6 @@ namespace other {
    public:
     OE_ASSET(MODEL);
 
-    explicit Model(Ref<ModelSource>& mesh_source);
     Model(Ref<ModelSource>& mesh_src, const std::vector<uint32_t>& sub_meshes);
     Model(const Ref<Model>& other);
     virtual ~Model() {}
