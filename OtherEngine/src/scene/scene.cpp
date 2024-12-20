@@ -5,6 +5,7 @@
 
 #include <ranges>
 
+#include <box2d/b2_types.h>
 #include <entt/entity/entity.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/fwd.hpp>
@@ -32,7 +33,6 @@
 #include "ecs/systems/core_systems.hpp"
 
 #include "rendering/camera_base.hpp"
-#include "rendering/material.hpp"
 #include "rendering/model.hpp"
 #include "scripting/cs/cs_object.hpp"
 #include "scripting/script_engine.hpp"
@@ -385,6 +385,30 @@ namespace other {
       } else if (light.type == POINT_LIGHT_SRC) {
         environment->point_lights.push_back(light.pointlight);
       }
+    });
+
+    registry.view<Mesh, Transform>().each([](Mesh& mesh, Transform& transform) {
+      // if (!AppState::Assets()->IsValid(mesh.handle)) {
+      //   return;
+      // }
+
+      // Ref<Model> model = AssetManager::GetAsset<Model>(mesh.handle);
+      // if (model == nullptr) {
+      //   return;
+      // }
+
+      // Ref<ModelSource> source = model->GetModelSource();
+      // OE_ASSERT(source != nullptr, "Model source is null");
+
+      // std::vector<SubMesh>& submeshes = source->SubMeshes();
+      // const std::vector<uint32_t>& sm_idxs = model->SubMeshes();
+
+      // for (const uint32_t sm_idx : sm_idxs) {
+      //   OE_ASSERT(sm_idx < submeshes.size(), "Submesh index out of bounds");
+
+      //   SubMesh& submesh = submeshes[sm_idx];
+      //   submesh.transform = transform.model_transform * submesh.transform;
+      // }
     });
 
     if (!running) {

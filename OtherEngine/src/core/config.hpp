@@ -52,7 +52,7 @@ namespace other {
     template <typename T>
     const Opt<T> GetVal(const std::string_view section, const std::string_view key, bool case_sensitive_key = false) const;
 
-    std::string TableString();
+    std::string TableString() const;
 
    private:
     Path config_path;

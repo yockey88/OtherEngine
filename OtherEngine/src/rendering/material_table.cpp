@@ -53,7 +53,7 @@ namespace other {
   MaterialTable::Texture MaterialTable::CreateTexture(const glm::vec4& color, const glm::vec2& size) {
     Texture tex = { .id = Random::GenerateUUID() };
     tex.data.resize(size.x * size.y * 4);
-    for (uint32_t j = 0; j < size.x * size.y; j += 4) {
+    for (uint32_t j = 0; j < size.x * size.y * 4; j += 4) {
       tex.data[j + 0] = static_cast<uint8_t>(color.r * 255);
       tex.data[j + 1] = static_cast<uint8_t>(color.g * 255);
       tex.data[j + 2] = static_cast<uint8_t>(color.b * 255);
@@ -378,11 +378,11 @@ namespace other {
 
     std::vector<uint8_t> data;
     data.resize(size.x * size.y * 4);
-    for (uint32_t j = 0; j < size.x * size.y; j += 4) {
+    for (uint32_t j = 0; j < size.x * size.y * 4; j += 4) {
       data[j + 0] = static_cast<uint8_t>(color.r * 255);
       data[j + 1] = static_cast<uint8_t>(color.g * 255);
       data[j + 2] = static_cast<uint8_t>(color.b * 255);
-      data[j + 3] = 255;
+      data[j + 3] = static_cast<uint8_t>(color.a * 255);
     }
 
     SetTexture(type, idx, data.data());

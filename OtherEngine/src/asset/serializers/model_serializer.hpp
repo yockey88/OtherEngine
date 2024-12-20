@@ -26,36 +26,26 @@ namespace other {
     virtual bool Load(AssetMetadata& metadata) override;
 
    protected:
-    struct ModelData {
-      std::string name;
-      std::vector<Vertex> vertices;
-      std::vector<Index> triangles;
+    BBox mesh_bounds = BBox::empty;
 
-      UUID material_id;
-
-      uint32_t start_vertex = 0;
-      uint32_t start_index = 0;
-      uint32_t idx_cnt = 0;
-      uint32_t vert_cnt = 0;
-
-      uint32_t mat_idx = 0;
-
-      /// bone data
-      /// submesh data
-    };
-    ModelData* current_model = nullptr;
-
-    std::vector<ModelData> models;
-    Ref<MaterialTable> material_table;
-    std::vector<UUID> material_ids;
-
-    std::vector<uint64_t> loaded_texture_hashes;
-
+    uint32_t vertex_offset = 0;
+    uint32_t index_offset = 0;
     std::stack<uint32_t> index_stack;
+
+    std::vector<Vertex> vertices;
+    std::vector<Index> indices;
+    std::vector<SubMesh> submeshes;
+    std::vector<MeshNode> nodes;
+
+    std::vector<UUID> material_ids;
+    std::vector<uint64_t> loaded_texture_hashes;
 
     virtual bool ProcessScene(const aiScene* scene, const std::string& path);
     virtual bool ProcessNode(const aiNode* node, const aiScene* scene);
+
     virtual bool ProcessMesh(const aiMesh* mesh, const aiScene* scene);
+    virtual void TraverseNodes(const aiNode* node, int32_t node_idx, const glm::mat4& parent_transform = glm::mat4(1.f), uint32_t level = 0);
+
     virtual bool BuildMaterialTable(const aiScene* scene);
   };
 

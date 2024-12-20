@@ -73,21 +73,23 @@ namespace other {
     std::string normal_key = GetComponentSectionKey(std::string{ kMaterialValue }, "normal");
     std::string roughness_key = GetComponentSectionKey(std::string{ kMaterialValue }, "roughness");
 
-    // auto albedo = scene_table.GetVal<glm::vec4>(key_value, albedo_key, false);
-    // auto normal = scene_table.GetVal<glm::vec4>(key_value, normal_key, false);
-    // auto roughness = scene_table.GetVal<glm::vec4>(key_value, roughness_key, false);
+    auto albedo = scene_table.GetVal<glm::vec4>(key_value, albedo_key, false);
+    auto normal = scene_table.GetVal<glm::vec4>(key_value, normal_key, false);
+    auto roughness = scene_table.GetVal<glm::vec4>(key_value, roughness_key, false);
 
-    // Ref<MaterialTable> table = AssetManager::GetMaterialTable();
-    // OE_ASSERT(table != nullptr, "Failed to retrieve material table from scene");
+    Ref<MaterialTable> table = AssetManager::GetMaterialTable();
+    OE_ASSERT(table != nullptr, "Failed to retrieve material table from scene");
 
-    // if (albedo.has_value() && normal.has_value() && roughness.has_value()) {
-    //   mesh.material = table->RegisterMaterial(*albedo, *normal, *roughness);
-    // } else {
-    //   mesh.material = table->DefaultMaterial();
-    // }
+    if (albedo.has_value() && normal.has_value() && roughness.has_value()) {
+      OE_DEBUG(" > Mesh material found : albedo = {0}, normal = {1}, roughness = {2}", albedo.value(), normal.value(), roughness.value());
+      mesh.material = table->RegisterMaterial(*albedo, *normal, *roughness);
+    } else {
+      OE_DEBUG(" > Mesh material not found, using default");
+      mesh.material = table->DefaultMaterial();
+    }
 
-    // OE_ASSERT(mesh.material.Get() != 0, "Failed to register material for static mesh");
-    // OE_ASSERT(table->HasMaterial(mesh.material), "Material not found in table");
+    OE_ASSERT(mesh.material.Get() != 0, "Failed to register material for static mesh");
+    OE_ASSERT(table->HasMaterial(mesh.material), "Material not found in table");
     mesh.primitive_selection = mesh.primitive_id;
 
     /// we dont deserialize the handle because CreateBox below will create a new one,

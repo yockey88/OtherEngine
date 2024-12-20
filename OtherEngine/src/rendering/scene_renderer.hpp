@@ -11,7 +11,8 @@
 #include "scene/light_environment.hpp"
 
 #include "rendering/camera_base.hpp"
-#include "rendering/material_table.hpp"
+#include "rendering/draw_calls.hpp"
+#include "rendering/gbuffer.hpp"
 #include "rendering/model.hpp"
 #include "rendering/pipeline.hpp"
 #include "rendering/render_pass.hpp"
@@ -114,6 +115,8 @@ namespace other {
 
       Ref<UniformBuffer> camera_uniforms = nullptr;
       Ref<UniformBuffer> light_uniforms = nullptr;
+
+      Ref<GBuffer> gbuffer = nullptr;
 
       ~FrameSubmissions();
     } frame_data;

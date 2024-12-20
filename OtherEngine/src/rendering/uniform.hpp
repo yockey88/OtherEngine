@@ -38,6 +38,9 @@ namespace other {
     Opt<size_t> size = std::nullopt;  /// must be set for user types
   };
 
+  template <typename T>
+  struct UniformVariable {};
+
   struct ShaderStorage {
     ShaderStorageType type;
     uint32_t binding_point;
@@ -57,6 +60,11 @@ namespace other {
 
     std::string name;
     std::map<UUID, InOutVar> vars;
+  };
+
+  struct DescriptorSet {
+    std::vector<Uniform> uniforms;
+    std::vector<InOutBlock> in_out_blocks;
   };
 
   class UniformBuffer : public RefCounted {

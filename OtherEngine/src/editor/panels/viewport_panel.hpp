@@ -20,6 +20,7 @@ namespace other {
     virtual ~ViewportPanel() override {}
 
     virtual void OnAttach() override;
+    virtual void OnUpdate(float dt) override;
 
     virtual void OnRender() override;
     virtual bool OnGuiRender(bool& is_open) override;
@@ -30,6 +31,7 @@ namespace other {
     Ref<Scene> active_scene;
     glm::vec2 viewport_padding = { 0.f, 0.f };
 
+    glm::vec2 last_viewport_size = { 0.f, 0.f };
     Ref<Framebuffer> viewport;
 
     bool window_hovered = false;

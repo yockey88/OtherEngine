@@ -12,7 +12,8 @@ namespace other {
 
   Ref<MaterialTable> AssetManager::GetMaterialTable() {
     if (material_table == nullptr) {
-      material_table = Ref<MaterialTable>::Create();
+      glm::vec2 size = { 1920.f, 1080.f };
+      material_table = NewRef<MaterialTable>(size);
     }
     return material_table;
   }

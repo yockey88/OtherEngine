@@ -104,113 +104,17 @@ namespace other {
       }
 
       auto& [id, uni] = *itr;
-      if (sizeof(T) != GetValueSize(uni.type)) {
-        OE_ERROR("Attempting to set uniform {} to invalidly sized type {}", name, typeid(T).name());
-        return;
-      }
-
-      if constexpr (std::same_as<T, int32_t>) {
-        auto itr = int_processors.find(id);
-        if (itr != int_processors.end()) {
-          auto& [id2, processor] = *itr;
-          processor(val);
-        }
-      } else if constexpr (std::same_as<T, float>) {
-        auto itr = float_processors.find(id);
-        if (itr != float_processors.end()) {
-          auto& [id2, processor] = *itr;
-          processor(val);
-        }
-      } else if constexpr (std::same_as<T, glm::vec2>) {
-        auto itr = vec2_processors.find(id);
-        if (itr != vec2_processors.end()) {
-          auto& [id2, processor] = *itr;
-          processor(val);
-        }
-      } else if constexpr (std::same_as<T, glm::vec3>) {
-        auto itr = vec3_processors.find(id);
-        if (itr != vec3_processors.end()) {
-          auto& [id2, processor] = *itr;
-          processor(val);
-        }
-      } else if constexpr (std::same_as<T, glm::vec4>) {
-        auto itr = vec4_processors.find(id);
-        if (itr != vec4_processors.end()) {
-          auto& [id2, processor] = *itr;
-          processor(val);
-        }
-      } else if constexpr (std::same_as<T, glm::mat2>) {
-        auto itr = mat2_processors.find(id);
-        if (itr != mat2_processors.end()) {
-          auto& [id2, processor] = *itr;
-          processor(val);
-        }
-      } else if constexpr (std::same_as<T, glm::mat3>) {
-        auto itr = mat3_processors.find(id);
-        if (itr != mat3_processors.end()) {
-          auto& [id2, processor] = *itr;
-          processor(val);
-        }
-      } else if constexpr (std::same_as<T, glm::mat4>) {
-        auto itr = mat4_processors.find(id);
-        if (itr != mat4_processors.end()) {
-          auto& [id2, processor] = *itr;
-          processor(val);
-        }
-      }
-
+      OE_ASSERT(sizeof(T) == GetValueSize(uni.type), "Attempting to set uniform {} to invalidly sized type {}", name, typeid(T).name());
       spec.shader->SetUniform(uni.name, val, index);
     }
 
     virtual void SetRenderState() {}
-    /// just return them by default
-    virtual Buffer ProcessModels(Buffer& buffer) { return buffer; }
-    virtual Buffer ProcessMaterials(Buffer& buffer) { return buffer; }
-
-    template <typename T>
-    using UniformProcessor = std::function<void(T&)>;
-
-    template <typename T>
-    void RegisterUniformProcessor(const std::string_view name, UniformProcessor<T> processor) {
-      UUID hash = FNV(name);
-
-      if constexpr (std::same_as<T, int32_t>) {
-        int_processors[hash] = processor;
-      } else if constexpr (std::same_as<T, float>) {
-        vec4_processors[hash] = processor;
-      } else if constexpr (std::same_as<T, glm::vec2>) {
-        vec4_processors[hash] = processor;
-      } else if constexpr (std::same_as<T, glm::vec3>) {
-        vec3_processors[hash] = processor;
-      } else if constexpr (std::same_as<T, glm::vec4>) {
-        vec4_processors[hash] = processor;
-      } else if constexpr (std::same_as<T, glm::mat2>) {
-        mat2_processors[hash] = processor;
-      } else if constexpr (std::same_as<T, glm::mat3>) {
-        mat3_processors[hash] = processor;
-      } else if constexpr (std::same_as<T, glm::mat4>) {
-        mat4_processors[hash] = processor;
-      }
-    }
 
    protected:
     std::map<UUID, Uniform> uniforms;
     std::map<UUID, Ref<UniformBuffer>> uniform_blocks;
 
     RenderPassSpec spec;
-
-   private:
-    template <typename T>
-    using UniformProcessorMap = std::unordered_map<UUID, UniformProcessor<T>>;
-
-    UniformProcessorMap<int32_t> int_processors;
-    UniformProcessorMap<float> float_processors;
-    UniformProcessorMap<glm::vec2> vec2_processors;
-    UniformProcessorMap<glm::vec3> vec3_processors;
-    UniformProcessorMap<glm::vec4> vec4_processors;
-    UniformProcessorMap<glm::mat2> mat2_processors;
-    UniformProcessorMap<glm::mat3> mat3_processors;
-    UniformProcessorMap<glm::mat4> mat4_processors;
   };
 
   template <>

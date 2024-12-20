@@ -8,11 +8,9 @@
 #include "core/ref_counted.hpp"
 #include "core/writer_reader.hpp"
 
+#include "rendering/draw_calls.hpp"
 #include "rendering/framebuffer.hpp"
-#include "rendering/gbuffer.hpp"
-#include "rendering/material.hpp"
 #include "rendering/model.hpp"
-#include "rendering/render_graph.hpp"
 #include "rendering/render_pass.hpp"
 #include "rendering/rendering_defines.hpp"
 
@@ -38,18 +36,18 @@ namespace other {
     void SubmitStaticModel(const Ref<StaticModel>& model, const glm::mat4& transform, UUID material_id, DrawMode topology = DrawMode::TRIANGLES);
     void SubmitStaticModel(const RenderStaticSubmission& submission);
 
-    void Render(bool render_gbuffer = false);
+    void Render();
     Ref<Framebuffer> GetOutput() const;
-    GBuffer& GetGBuffer();
 
     void Clear();
 
    private:
     uint32_t vao_id = 0;
     PipelineSpec spec{};
-    FrameMeshes model_submissions;
 
-    Ref<GBuffer> gbuffer = nullptr;
+    FrameMeshes model_submissions;
+    StaticFrameMeshes static_model_submissions;
+
     Ref<UniformBuffer> model_storage = nullptr;
     Ref<UniformBuffer> material_storage = nullptr;
 
@@ -58,11 +56,12 @@ namespace other {
 
     void PerformPass(Ref<RenderPass>& pass);
 
-    FrameMeshes::iterator InsertMeshKey(MeshKey& key, const Ref<Model>& model, uint32_t submesh_idx);
-    FrameMeshes::iterator InsertStaticMeshKey(MeshKey& key, const Ref<StaticModel>& model);
+    FrameMeshes::iterator InsertMeshKey(MeshKey& key, const Ref<Model>& model);
+    StaticFrameMeshes::iterator InsertStaticMeshKey(MeshKey& key, const Ref<StaticModel>& model);
 
     void RenderAll();
-    void RenderMeshes(const MeshKey& mesh_key, MeshSubmissionList& msl);
+    void RenderStaticMeshes(const MeshKey& mesh_key, StaticMeshDrawCall& sl);
+    void RenderMeshes(const MeshKey& mesh_key, MeshDrawCall& sl);
   };
 
   template <>

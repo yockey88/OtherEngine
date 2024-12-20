@@ -38,11 +38,9 @@ children = {}
 visible = true
 is-primitive = true
 primitive = 3
-material = {
-  albedo = { 1.0, 0.31, 0.5, 1 },
-  normal = { 1.0 , 1.0 , 1.0, 1 },
-  roughness = { 1.0, 1.0, 1.0, 1 }
-}
+material.albedo = { 0, 1, 0, 1 },
+material.normal = { 1.0 , 1.0 , 1.0, 1 },
+material.roughness = { 1.0, 1.0, 1.0, 1 }
 
 [cube.script]
 *SandboxScripts = { "Other::TestScript2" }
@@ -81,11 +79,9 @@ children = {}
 visible = true
 is-primitive = true
 primitive = 3
-material = {
-  albedo = { 0.31, 1.0, 0.5, 1 },
-  normal = { 1.0 , 1.0 , 1.0, 1 },
-  roughness = { 1.0, 1.0, 1.0, 1 }
-}
+material.albedo = { 1, 0, 0, 1 }
+material.normal = { 1.0 , 1.0 , 1.0, 1 }
+material.roughness = { 1.0, 1.0, 1.0, 1 }
 
 [camera]
 UUID = 4220486183894562136

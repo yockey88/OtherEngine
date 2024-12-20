@@ -57,7 +57,7 @@ namespace other {
       MaterialIndex* indices;
     };
 
-    MaterialTable(const glm::vec2& size = { 1920.f, 1080.f });
+    MaterialTable(const glm::vec2& size);
     virtual ~MaterialTable() override;
 
     UUID DefaultMaterial() const;

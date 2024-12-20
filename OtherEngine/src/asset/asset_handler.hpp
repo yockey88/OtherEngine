@@ -4,6 +4,8 @@
 #ifndef OTHER_ENGINE_ASSET_HANDLER_HPP
 #define OTHER_ENGINE_ASSET_HANDLER_HPP
 
+#include <set>
+
 #include "core/ref.hpp"
 #include "core/ref_counted.hpp"
 

@@ -4,6 +4,8 @@
 #ifndef OTHER_ENGINE_ASSET_DATABASE_HPP
 #define OTHER_ENGINE_ASSET_DATABASE_HPP
 
+#include <set>
+
 #include "asset/asset_defines.hpp"
 #include "asset/asset_registry.hpp"
 

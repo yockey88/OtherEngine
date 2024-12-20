@@ -6,12 +6,10 @@
 
 #include <cstdint>
 #include <map>
-#include <set>
 #include <string>
 #include <string_view>
 
 #include "core/defines.hpp"
-#include "core/ref.hpp"
 #include "core/uuid.hpp"
 
 namespace other {
@@ -25,24 +23,19 @@ namespace other {
       return id.Get();
     }
 
-    constexpr AssetHandle()
-        : id(0) {}
+    constexpr AssetHandle() : id(0) {}
+    constexpr AssetHandle(uint64_t uid) : id(uid) {}
+    constexpr AssetHandle(UUID id) : id(id) {}
 
-    constexpr AssetHandle(uint64_t uid) {
-      id = uid;
+    constexpr auto operator<=>(const AssetHandle& other) const = default;
+    constexpr auto operator<=>(uint64_t otherid) const {
+      return id.Get() <=> otherid;
     }
-
-    constexpr AssetHandle(UUID id)
-        : id(id) {}
   };
 
   template <>
   constexpr ValueType GetValueType<AssetHandle>() {
     return ValueType::ASSET;
-  }
-
-  inline bool operator==(const AssetHandle& lhs, const AssetHandle& rhs) {
-    return lhs.id == rhs.id;
   }
 
   enum AssetFlag : uint16_t {
@@ -248,13 +241,6 @@ namespace std {
   struct hash<other::AssetHandle> {
     size_t operator()(const other::AssetHandle& handle) const {
       return hash<other::UUID>{}(handle.id);
-    }
-  };
-
-  template <>
-  struct less<other::AssetHandle> {
-    size_t operator()(const other::AssetHandle& lhs, const other::AssetHandle& rhs) const {
-      return lhs.Get() < rhs.Get();
     }
   };
 

@@ -221,10 +221,10 @@ namespace other {
     Ref<Pipeline>& depth_pl = pipelines[FNV("Depth")];
 
     glCullFace(GL_FRONT);
-    shadow_map_pl->Render(false);
+    shadow_map_pl->Render();
     glCullFace(GL_BACK);
 
-    depth_pl->Render(false);
+    depth_pl->Render();
 
     image_ir[FNV("ShadowMap")] = framebuffers[SHADOW_MAP_FB] = shadow_map_pl->GetOutput();
     image_ir[FNV("Depth")] = framebuffers[DEPTH_TEXTURE_FB] = depth_pl->GetOutput();
@@ -238,7 +238,7 @@ namespace other {
 
     /// materials go 6-8
 
-    pipelines[FNV("Geometry")]->Render(false);
+    pipelines[FNV("Geometry")]->Render();
     image_ir[FNV("Geometry")] = pipelines[FNV("Geometry")]->GetOutput();
 
     ResetFrame();

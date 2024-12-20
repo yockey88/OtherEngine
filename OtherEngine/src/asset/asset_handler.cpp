@@ -117,7 +117,7 @@ namespace other {
       OE_ERROR("Failed to load asset : {}", metadata.path.empty() ? "<no path>" : metadata.path);
       return;
     }
-    OE_ASSERT(asset->handle != 0, "Asset handle is 0 : {}", metadata.path.empty() ? "<no path>" : metadata.path);
+    OE_ASSERT(asset->handle != 0u, "Asset handle is 0 : {}", metadata.path.empty() ? "<no path>" : metadata.path);
     metadata.handle = asset->handle;
     metadata.asset = asset.Raw();
     asset->SetFlag(AssetFlag::ASSET_LOADED, true);

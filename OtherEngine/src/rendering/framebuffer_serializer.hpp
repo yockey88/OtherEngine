@@ -4,9 +4,12 @@
 #ifndef OTHER_ENGINE_FRAMEBUFFER_SERIALIZER_HPP
 #define OTHER_ENGINE_FRAMEBUFFER_SERIALIZER_HPP
 
+#include "core/ref.hpp"
+
 #include "rendering/framebuffer.hpp"
 
 #include "serialization/serializer.hpp"
+
 
 namespace other {
 

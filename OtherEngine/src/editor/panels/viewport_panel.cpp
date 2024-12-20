@@ -42,6 +42,19 @@ namespace other {
       "ViewportPanel--KeyPressed",
       { std::bind_front(&ViewportPanel::HandleKeyPressed, this) }
     );
+
+    last_viewport_size = Renderer::GetWindow()->Size();
+  }
+
+  void ViewportPanel::OnUpdate(float dt) {
+    EditorState& editor = EditorState::Get();
+    if (editor.editor_camera == nullptr) {
+      return;
+    }
+
+    // calculate zoom / fov / etc....
+
+    editor.editor_camera->SetViewport(last_viewport_size);
   }
 
   void ViewportPanel::OnRender() {}
@@ -184,6 +197,8 @@ namespace other {
 
     ImVec2 min_bound = ImGui::GetWindowPos();
     ImVec2 window_size = ImGui::GetWindowSize();
+    last_viewport_size = { window_size.x, window_size.y };
+
     ImVec2 max_bound = { min_bound.x + window_size.x, min_bound.y + window_size.y };
 
     ImVec2 viewport_cursor_pos = ImGui::GetCursorPos();
@@ -220,40 +235,19 @@ namespace other {
       editor.last_mouse_viewport_click = std::nullopt;
     }
 
-    ImVec2 framebuffer_size;
-    ImVec2 img_size;
     if (viewport == nullptr) {
       ScopedColor red_text(ImGuiCol_Text, ui::theme::red);
       ImGui::Text("Failed to find viewport frame, settings may be corrupt");
     } else {
-      ImVec2 cursor_pos = ImGui::GetCursorPos();
-      ImVec2 curr_win_size = ImGui::GetContentRegionAvail();
-
-      float aspect_ratio = Renderer::GetWindow()->AspectRatio();
-      float ui_aspect_ratio = curr_win_size.x / curr_win_size.y;
-
-      glm::vec2 size = { curr_win_size.x, curr_win_size.y };
-      if (ui_aspect_ratio > aspect_ratio) {
-        size.x = curr_win_size.y * aspect_ratio;
-        viewport_padding = { (curr_win_size.x - size.x) * 0.5f, 0.f };
-      } else {
-        size.y = curr_win_size.x / aspect_ratio;
-        viewport_padding = { 0.f, (curr_win_size.y - size.y) * 0.5f };
-      }
-
       ImTextureID tex_id = (void*)(uintptr_t)viewport->texture;
-      img_size = { size.x, size.y };
-
-      ImGui::SetCursorPos({ viewport_padding.x, viewport_padding.y });
-      ImGui::Image(tex_id, img_size, ImVec2(0, 1), ImVec2(1, 0));
-      ImGui::SetCursorPos(cursor_pos);
-      framebuffer_size = { size.x, size.y };
+      ImGui::Image(tex_id, window_size, ImVec2(0, 1), ImVec2(1, 0));
     }
 
     /// only render gixmos if simulating or editing
     if (EditorState::scene_mode == SceneEditorMode::PLAYING || !SelectionManager::HasSelection()) {
       return;
     }
+
     Entity* selected = SelectionManager::ActiveSelection();
     OE_ASSERT(selected != nullptr, "Active Selection is null!");
 
@@ -277,7 +271,7 @@ namespace other {
 
     ImGuizmo::SetOrthographic(false);
     ImGuizmo::SetDrawlist();
-    ImGuizmo::SetRect(real_pos.x, real_pos.y, framebuffer_size.x, framebuffer_size.y);
+    ImGuizmo::SetRect(real_pos.x, real_pos.y, last_viewport_size.x, last_viewport_size.y);
 
     if (ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(projection), editor.guizmo_op, editor.guizmo_mode, glm::value_ptr(model)) &&
         ImGuizmo::IsUsing()) {
@@ -297,10 +291,25 @@ namespace other {
         // case ImGuizmo::ROTATE_X:
         // case ImGuizmo::ROTATE_Y:
         // case ImGuizmo::ROTATE_Z:
-        case ImGuizmo::ROTATE:
-          transform.qrotation = rotation;
-          transform.erotation = glm::eulerAngles(rotation);
-          break;
+        case ImGuizmo::ROTATE: {
+          glm::vec3 original_erot = transform.erotation;
+
+          // Map original rotation to range [-180, 180] which is what ImGuizmo gives us
+          original_erot.x = fmodf(original_erot.x + glm::pi<float>(), glm::two_pi<float>()) - glm::pi<float>();
+          original_erot.y = fmodf(original_erot.y + glm::pi<float>(), glm::two_pi<float>()) - glm::pi<float>();
+          original_erot.z = fmodf(original_erot.z + glm::pi<float>(), glm::two_pi<float>()) - glm::pi<float>();
+
+          glm::vec3 delta_erot = glm::eulerAngles(rotation) - original_erot;
+
+          // Try to avoid drift due numeric precision
+          if (fabs(delta_erot.x) < 0.001) delta_erot.x = 0.0f;
+          if (fabs(delta_erot.y) < 0.001) delta_erot.y = 0.0f;
+          if (fabs(delta_erot.z) < 0.001) delta_erot.z = 0.0f;
+
+          glm::vec3 new_rotation = transform.erotation + delta_erot;
+          transform.erotation = new_rotation;
+          transform.qrotation = glm::quat(new_rotation);
+        } break;
 
         // case ImGuizmo::SCALE_X:
         // case ImGuizmo::SCALE_Y:

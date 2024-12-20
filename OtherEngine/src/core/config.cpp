@@ -627,16 +627,16 @@ namespace other {
   //   return Material(color.value_or(glm::vec4(1.f)), shininess.value_or(32.f));
   // }
 
-  std::string ConfigTable::TableString() {
+  std::string ConfigTable::TableString() const {
     std::stringstream ss;
     for (auto& [section, keys] : table) {
-      ss << "[" << section_map[section] << "]" << std::endl;
+      ss << "[" << section_map.at(section) << "]" << std::endl;
       for (auto& [key, value] : keys) {
         if (value.size() == 1) {
-          ss << key_map[key] << " = " << value[0] << std::endl;
+          ss << key_map.at(key) << " = " << value[0] << std::endl;
           continue;
         } else if (value.size() > 1) {
-          ss << key_map[key] << " = { " << value[0];
+          ss << key_map.at(key) << " = { " << value[0];
           for (size_t i = 1; i < value.size(); i++) {
             ss << ", " << value[i];
           }

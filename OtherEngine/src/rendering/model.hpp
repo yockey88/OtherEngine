@@ -25,10 +25,9 @@ namespace other {
     OE_ASSET(MODEL_SOURCE);
 
     ModelSource() {}
-    ModelSource(std::vector<float>& vertices, std::vector<uint32_t>& indices, Layout& layout);
-    ModelSource(std::vector<float>& vertices, std::vector<Index>& indices, Layout& layout);
-    ModelSource(std::vector<Vertex>& vertices, std::vector<Index>& indices, const glm::mat4& transform);
-    ModelSource(std::vector<Vertex>& vertices, std::vector<Index>& indices, std::vector<SubMesh>& submeshes);
+    ModelSource(const std::vector<float>& vertices, const std::vector<uint32_t>& indices, const Layout& layout);
+    ModelSource(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, const glm::mat4& transform);
+    ModelSource(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, const std::vector<SubMesh>& submeshes);
 
     virtual ~ModelSource() {}
 
@@ -55,6 +54,8 @@ namespace other {
     const std::vector<uint32_t>& RawLayout() const;
     const Layout& GetLayout() const;
 
+    Ref<VertexArray> source_vao;
+
    private:
     friend class Model;
     friend class StaticModel;
@@ -62,30 +63,32 @@ namespace other {
 
     size_t models_produced = 0;
 
-    std::vector<SubMesh> submeshes;
-
     Ref<VertexBuffer> vertex_buffer;
     Ref<VertexBuffer> index_buffer;
     Ref<VertexBuffer> bone_infl_buffer;
 
-    std::vector<float> fvertices;
-    std::vector<uint32_t> raw_indices;
-    std::vector<Vertex> vertices;
-    std::vector<Index> indices;
-    std::vector<uint32_t> raw_layout;
-    Layout layout;
+    std::vector<SubMesh> submeshes;
+    std::vector<MeshNode> nodes;
 
-    std::vector<Bone> bones;
-    std::vector<BoneInfl> bone_influences;
+    std::vector<Vertex> vertices;
+    std::vector<float> raw_vertices;
+
+    std::vector<Index> indices;
+    std::vector<uint32_t> raw_indices;
+
+    Layout layout;
+    std::vector<uint32_t> raw_layout;
+
+    // std::vector<Bone> bones;
+    // std::vector<BoneInfl> bone_influences;
     // std::map<uint32_t , std::vector<Triangle>> triangles;
     // mutable Scope<Skeleton> skeleton = nullptr;
 
-    BBox bounding_box;
+    BBox bounding_box = BBox::empty;
     std::string file_path;
 
-    std::vector<MeshNode> nodes;
-
     void BuildVertexBuffer(const std::vector<Vertex>& vertices);
+    void BuildIndexBuffer(const std::vector<Index>& vertices);
     void SetLayout();
   };
 
@@ -93,6 +96,7 @@ namespace other {
    public:
     OE_ASSET(MODEL);
 
+    Model(Ref<ModelSource>& mesh_src);
     Model(Ref<ModelSource>& mesh_src, const std::vector<uint32_t>& sub_meshes);
     Model(const Ref<Model>& other);
     virtual ~Model() {}
@@ -103,12 +107,13 @@ namespace other {
 
     void RebuildMesh();
 
-    /// 1 vertex array from each submesh
-    std::vector<Ref<VertexArray>> model_vaos = {};
+    Ref<VertexArray> source_vao = nullptr;
 
    private:
     Ref<ModelSource> model_source;
     std::vector<uint32_t> sub_meshes;
+
+    // std::map<UUID, Triangle> triangles;
   };
 
   class StaticModel : public Asset {

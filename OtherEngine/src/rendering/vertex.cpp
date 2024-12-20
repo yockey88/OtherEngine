@@ -16,7 +16,7 @@ namespace other {
       : buffer_type(type), buffer_usage(usage), buffer_size(size) {
     glGenBuffers(1, &renderer_id);
     glBindBuffer(type, renderer_id);
-    glBufferData(buffer_type, size, data, buffer_usage);
+    glBufferData(type, size, data, buffer_usage);
   }
 
   VertexBuffer::~VertexBuffer() {
@@ -67,7 +67,6 @@ namespace other {
     Bind();
 
     vertex_buffer = NewRef<VertexBuffer>(vertices.data(), vertices.size() * sizeof(float));
-
     if (indices.size() != 0) {
       index_buffer = NewRef<VertexBuffer>(indices.data(), indices.size() * sizeof(uint32_t), STATIC_DRAW, ELEMENT_ARRAY_BUFFER);
     }
@@ -113,7 +112,7 @@ namespace other {
     return renderer_id;
   }
 
-  size_t VertexArray::NumElements() const {
+  uint32_t VertexArray::NumElements() const {
     return indices.size();
   }
 

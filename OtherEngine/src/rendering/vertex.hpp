@@ -80,6 +80,7 @@ namespace other {
     Material material{};
 
     UUID sub_mesh_id;
+    UUID material_id;
     std::string model_name;
 
     bool rigged = false;
@@ -137,7 +138,7 @@ namespace other {
 
     uint32_t RendererId() const;
 
-    size_t NumElements() const;
+    uint32_t NumElements() const;
 
     static DrawMode DrawModeFromFaceIndexCount(uint32_t);
 

@@ -9,99 +9,61 @@
 #include "asset/asset_manager.hpp"
 
 #include "rendering/rendering_defines.hpp"
+#include "rendering/vertex.hpp"
 
 namespace other {
 
-  ModelSource::ModelSource(std::vector<float>& vertices, std::vector<uint32_t>& indices, Layout& topology) {
-    fvertices.swap(vertices);
-    layout = topology;
+  ModelSource::ModelSource(const std::vector<float>& vertices, const std::vector<uint32_t>& indices, const Layout& layout)
+      : raw_vertices(vertices), raw_indices(indices), layout(layout) {
     raw_layout = layout.GetRawLayout();
-    raw_indices.swap(indices);
 
-    vertex_buffer = NewRef<VertexBuffer>(fvertices.data(), fvertices.size() * sizeof(float));
+    vertex_buffer = NewRef<VertexBuffer>(raw_vertices.data(), raw_vertices.size() * sizeof(float));
     if (indices.size() > 0) {
-      index_buffer = NewRef<VertexBuffer>(indices.data(), 3 * indices.size() * sizeof(uint32_t), STATIC_DRAW, ELEMENT_ARRAY_BUFFER);
+      index_buffer = NewRef<VertexBuffer>(raw_indices.data(), raw_indices.size() * sizeof(uint32_t), STATIC_DRAW, ELEMENT_ARRAY_BUFFER);
     }
+
+    source_vao = NewRef<VertexArray>(raw_vertices, raw_indices, raw_layout);
 
     OE_ASSERT(vertex_buffer != nullptr, "null vertex buffer after model creation!");
+    OE_ASSERT(source_vao != nullptr, "null vertex array after model creation!");
   }
 
-  ModelSource::ModelSource(std::vector<float>& vertices, std::vector<Index>& idxs, Layout& layout) {
-    SubMesh submesh;
-    submesh.base_vertex = 0;
-    submesh.base_idx = 0;
-    submesh.idx_cnt = static_cast<uint32_t>(idxs.size());
-    submesh.transform = glm::mat4(1.f);
-    submeshes.push_back(submesh);
+  ModelSource::ModelSource(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, const glm::mat4& transform)
+      : vertices(vertices), indices(indices) {
+    BuildVertexBuffer(vertices);
+    BuildIndexBuffer(indices);
 
-    fvertices.swap(vertices);
-    raw_layout = layout.GetRawLayout();
-    this->layout = layout;
-
-    for (auto& idx : idxs) {
-      raw_indices.push_back(idx.v1);
-      raw_indices.push_back(idx.v2);
-      raw_indices.push_back(idx.v3);
-    }
-
-    indices.swap(idxs);
-
-    vertex_buffer = NewRef<VertexBuffer>(fvertices.data(), fvertices.size() * sizeof(float));
+    vertex_buffer = NewRef<VertexBuffer>(raw_vertices.data(), raw_vertices.size() * sizeof(float));
     if (indices.size() > 0) {
-      index_buffer = NewRef<VertexBuffer>(indices.data(), 3 * indices.size() * sizeof(uint32_t), STATIC_DRAW, ELEMENT_ARRAY_BUFFER);
-    }
-  }
-
-  ModelSource::ModelSource(std::vector<Vertex>& verts, std::vector<Index>& idxs, const glm::mat4& transform) {
-    SubMesh submesh;
-    submesh.base_vertex = 0;
-    submesh.base_idx = 0;
-    submesh.idx_cnt = static_cast<uint32_t>(indices.size());
-    submesh.transform = transform;
-    submeshes.push_back(submesh);
-
-    BuildVertexBuffer(verts);
-    indices.swap(idxs);
-
-    vertex_buffer = NewRef<VertexBuffer>(fvertices.data(), fvertices.size() * sizeof(float));
-    if (indices.size() > 0) {
-      index_buffer = NewRef<VertexBuffer>(indices.data(), 3 * indices.size() * sizeof(uint32_t), STATIC_DRAW, ELEMENT_ARRAY_BUFFER);
+      index_buffer = NewRef<VertexBuffer>(raw_indices.data(), raw_indices.size() * sizeof(uint32_t), STATIC_DRAW, ELEMENT_ARRAY_BUFFER);
     }
 
-    raw_layout = Vertex::RawLayout();
     layout = Vertex::Layout();
+    raw_layout = Vertex::RawLayout();
 
-    for (auto& idx : idxs) {
-      raw_indices.push_back(idx.v1);
-      raw_indices.push_back(idx.v2);
-      raw_indices.push_back(idx.v3);
-    }
+    source_vao = NewRef<VertexArray>(raw_vertices, raw_indices, raw_layout);
 
     OE_ASSERT(vertex_buffer != nullptr, "null vertex buffer after model creation!");
+    OE_ASSERT(source_vao != nullptr, "null vertex array after model creation!");
   }
 
-  ModelSource::ModelSource(std::vector<Vertex>& verts, std::vector<Index>& idxs, std::vector<SubMesh>& sms) {
-    submeshes.swap(sms);
+  ModelSource::ModelSource(const std::vector<Vertex>& verts, const std::vector<Index>& idxs, const std::vector<SubMesh>& sms)
+      : submeshes(sms), vertices(verts), indices(idxs) {
+    BuildVertexBuffer(vertices);
+    BuildIndexBuffer(indices);
 
-    BuildVertexBuffer(verts);
-    indices.swap(idxs);
-
-    vertex_buffer = NewRef<VertexBuffer>(fvertices.data(), fvertices.size() * sizeof(float));
+    vertex_buffer = NewRef<VertexBuffer>(raw_vertices.data(), raw_vertices.size() * sizeof(float));
     if (indices.size() > 0) {
-      /// indices stored as triangles with idx1 , idx2 , idx3
-      index_buffer = NewRef<VertexBuffer>(indices.data(), 3 * indices.size() * sizeof(uint32_t), STATIC_DRAW, ELEMENT_ARRAY_BUFFER);
+      index_buffer = NewRef<VertexBuffer>(raw_indices.data(), raw_indices.size() * sizeof(uint32_t), STATIC_DRAW, ELEMENT_ARRAY_BUFFER);
     }
 
-    raw_layout = Vertex::RawLayout();
     layout = Vertex::Layout();
+    raw_layout = Vertex::RawLayout();
 
-    for (auto& idx : idxs) {
-      raw_indices.push_back(idx.v1);
-      raw_indices.push_back(idx.v2);
-      raw_indices.push_back(idx.v3);
-    }
+    source_vao = NewRef<VertexArray>(raw_vertices, raw_indices, raw_layout);
 
     OE_ASSERT(vertex_buffer != nullptr, "null vertex buffer after model creation!");
+    OE_ASSERT(source_vao != nullptr, "null vertex array after model creation!");
   }
 
   std::vector<SubMesh>& ModelSource::SubMeshes() {
@@ -153,7 +115,7 @@ namespace other {
   }
 
   const std::vector<float>& ModelSource::RawVertices() const {
-    return fvertices;
+    return raw_vertices;
   }
 
   const std::vector<uint32_t>& ModelSource::RawIndices() const {
@@ -178,24 +140,32 @@ namespace other {
 
   void ModelSource::BuildVertexBuffer(const std::vector<Vertex>& verts) {
     for (auto& v : verts) {
-      fvertices.push_back(v.position.x);
-      fvertices.push_back(v.position.y);
-      fvertices.push_back(v.position.z);
+      raw_vertices.push_back(v.position.x);
+      raw_vertices.push_back(v.position.y);
+      raw_vertices.push_back(v.position.z);
 
-      fvertices.push_back(v.normal.x);
-      fvertices.push_back(v.normal.y);
-      fvertices.push_back(v.normal.z);
+      raw_vertices.push_back(v.normal.x);
+      raw_vertices.push_back(v.normal.y);
+      raw_vertices.push_back(v.normal.z);
 
-      fvertices.push_back(v.tangent.x);
-      fvertices.push_back(v.tangent.y);
-      fvertices.push_back(v.tangent.z);
+      raw_vertices.push_back(v.tangent.x);
+      raw_vertices.push_back(v.tangent.y);
+      raw_vertices.push_back(v.tangent.z);
 
-      fvertices.push_back(v.bitangent.x);
-      fvertices.push_back(v.bitangent.y);
-      fvertices.push_back(v.bitangent.z);
+      raw_vertices.push_back(v.bitangent.x);
+      raw_vertices.push_back(v.bitangent.y);
+      raw_vertices.push_back(v.bitangent.z);
 
-      fvertices.push_back(v.uv_coord.x);
-      fvertices.push_back(v.uv_coord.y);
+      raw_vertices.push_back(v.uv_coord.x);
+      raw_vertices.push_back(v.uv_coord.y);
+    }
+  }
+
+  void ModelSource::BuildIndexBuffer(const std::vector<Index>& vertices) {
+    for (auto& idx : vertices) {
+      raw_indices.push_back(idx.v1);
+      raw_indices.push_back(idx.v2);
+      raw_indices.push_back(idx.v3);
     }
   }
 
@@ -214,6 +184,13 @@ namespace other {
     }
   }
 
+  Model::Model(Ref<ModelSource>& mesh_src)
+      : model_source(mesh_src) {
+    OE_ASSERT(mesh_src != nullptr, "Attempting construct model from null source!");
+    SetSubMeshes({});
+    RebuildMesh();
+  }
+
   Model::Model(Ref<ModelSource>& model_src, const std::vector<uint32_t>& sub_meshes)
       : model_source(model_src) {
     OE_ASSERT(model_src != nullptr, "Attempting construct model from null source!");
@@ -225,7 +202,7 @@ namespace other {
     handle = other->handle;
     model_source = Ref<ModelSource>::Clone(other->model_source);
     sub_meshes = other->sub_meshes;
-    model_vaos = other->model_vaos;
+    source_vao = Ref<VertexArray>::Clone(other->source_vao);
   }
 
   const std::vector<uint32_t>& Model::SubMeshes() const {
@@ -234,46 +211,24 @@ namespace other {
 
   void Model::SetSubMeshes(const std::vector<uint32_t>& sms) {
     sub_meshes = sms;
+    if (sms.empty()) {
+      sub_meshes.resize(model_source->SubMeshes().size());
+      for (uint32_t i = 0; i < sub_meshes.size(); ++i) {
+        sub_meshes[i] = i;
+      }
+    } else {
+      for (const uint32_t smidx : sub_meshes) {
+        OE_ASSERT(smidx < model_source->SubMeshes().size(), "Submesh index out of bounds!");
+      }
+    }
   }
 
   void Model::RebuildMesh() {
     OE_ASSERT(model_source != nullptr, "Static Model has null source!");
+    OE_ASSERT(!sub_meshes.empty(), "Model has no submeshes!");
 
-    const std::vector<float>& vertices = model_source->RawVertices();
-    const std::vector<Index>& indices = model_source->Indices();
-    std::vector<uint32_t> idxs{};
-
-    const std::vector<uint32_t>& src_layout = model_source->RawLayout();
-    for (const auto& i : indices) {
-      idxs.push_back(i.v1);
-      idxs.push_back(i.v2);
-      idxs.push_back(i.v3);
-    }
-    model_vaos.push_back(NewRef<VertexArray>(vertices, idxs, src_layout));
-
-    // if (sub_meshes.empty()) {
-    //   return;
-    // }
-
-    // const std::vector<SubMesh>& src_submeshes = model_source->SubMeshes();
-    // for (const uint32_t sm_idx : sub_meshes) {
-    //   std::vector<float> raw_vertices{};
-    //   std::vector<uint32_t> idxs{};
-
-    //   const SubMesh& sm = src_submeshes[sm_idx];
-
-    //   for (uint32_t i = sm.base_vertex; i < sm.base_vertex + sm.vert_cnt; ++i) {
-    //     raw_vertices.push_back(vertices[i]);
-    //   }
-
-    //   for (uint32_t i = sm.base_idx; i < sm.base_idx + sm.idx_cnt; ++i) {
-    //     idxs.push_back(indices[i].v1);
-    //     idxs.push_back(indices[i].v2);
-    //     idxs.push_back(indices[i].v3);
-    //   }
-
-    //   model_vaos.push_back(NewRef<VertexArray>(raw_vertices, idxs, src_layout));
-    // }
+    /// not sure what to do here, maybe build data structures like the triangle cache
+    /// or something like that
   }
 
   Ref<ModelSource> Model::GetModelSource() const {
