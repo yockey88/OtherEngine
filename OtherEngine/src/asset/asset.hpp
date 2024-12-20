@@ -6,9 +6,10 @@
 
 #include <type_traits>
 
+#include "core/file_handle.hpp"
 #include "core/ref_counted.hpp"
 
-#include "asset/asset_types.hpp"
+#include "asset/asset_defines.hpp"
 
 namespace other {
 
@@ -36,6 +37,13 @@ namespace other {
     bool CheckFlag(AssetFlag flag) const;
     void SetFlag(AssetFlag flag, bool val = true);
 
+    Ref<FileHandle> file_handle = nullptr;
+
+    friend struct AssetMetadata;
+    friend class AssetRegistry;
+    friend class AssetDatabase;
+
+    friend class AssetHandler;
     friend class EditorAssetHandler;
     friend class RuntimeAssetHandler;
   };

@@ -42,10 +42,9 @@ namespace other {
       glm::vec3 dim = scale * 0.5f;
       bbox = BBox(position - dim, position + dim);
 
-      qrotation = glm::quat(erotation);
-      model_transform = glm::translate(glm::mat4(1.f), position) *
-        glm::scale(glm::mat4(1.f), scale) *
-        glm::toMat4(qrotation);
+      erotation = glm::eulerAngles(qrotation);
+      model_transform = glm::translate(glm::mat4(1.f), position) * glm::mat4_cast(qrotation);
+      model_transform = glm::scale(model_transform, scale);
       return model_transform;
     }
 

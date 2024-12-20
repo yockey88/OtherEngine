@@ -7,7 +7,7 @@
 #include <reflection/echo_defines.hpp>
 #include <reflection/reflected_object.hpp>
 
-#include "asset/asset_types.hpp"
+#include "asset/asset_defines.hpp"
 
 #include "ecs/component.hpp"
 #include "ecs/component_serializer.hpp"
@@ -18,8 +18,7 @@ namespace other {
 
   struct Mesh : public Component {
     AssetHandle handle;
-    Material material;
-    // Ref<MaterialTable> mat_table = nullptr;
+    UUID material;
     std::vector<UUID> bone_entity_ids;
     bool visible = true;
 
@@ -36,9 +35,7 @@ namespace other {
 
   struct StaticMesh : public Component {
     AssetHandle handle;
-    Material material;
-
-    // Ref<MaterialTable> mat_table = nullptr;
+    UUID material;
     bool visible = true;
 
     bool is_primitive = false;

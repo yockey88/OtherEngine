@@ -88,7 +88,7 @@ namespace other {
 
     void LoadFile(const std::string& file);
 
-    std::string GetFile() const { return file_path; }
+    std::string GetFilePath() const;
 
    private:
     Zep::ZepBuffer* buffer = nullptr;

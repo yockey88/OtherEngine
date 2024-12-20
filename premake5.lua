@@ -24,11 +24,11 @@ configuration.groups = {
     "./OtherTestEngine"
   },
 
-  -- ["Tools"] = { "./tools" } ,
-  ["Games"] = {
-    "./yockcraft",
-    "./cell_automaton",
-  },
+  ["Tools"] = { "./tools" } ,
+  -- ["Games"] = {
+  --   "./yockcraft",
+  --   "./cell_automaton",
+  -- },
 }
 
 local choc = {}
@@ -139,6 +139,12 @@ tracy.path = "./externals/tracy"
 tracy.include_dir = "%{wks.location}/externals/tracy/tracy"
 tracy.lib_name = "tracy"
 
+local assimp = {}
+assimp.name = "assimp"
+assimp.path = "./externals/assimp"
+assimp.include_dir = "%{wks.location}/externals/assimp"
+assimp.lib_name = "assimp"
+
 function query_terminal(command)
   local success, handle = pcall(io.popen, command)
   if not success then
@@ -203,6 +209,14 @@ dotother.path = "./DotOther"
 dotother.include_dir = "%{wks.location}/DotOther/Native"
 dotother.lib_name = "DotOther.Native"
 
+local assimp = {}
+assimp.name = "assimp"
+assimp.include_dir = "%{wks.location}/externals/assimp"
+assimp.lib_dir = "%{wks.location}/externals/assimp/lib/%{cfg.buildcfg}"
+assimp.lib_name = "assimp-vc143-mt"
+assimp.debug_lib_name = "assimp-vc143-mtd"
+assimp.configurations = { "Debug", "Release" }
+
 AddDependency(choc)
 AddDependency(entt)
 AddDependency(refl)
@@ -223,6 +237,7 @@ AddDependency(stb)
 AddDependency(jolt)
 AddDependency(pybind)
 -- AddDependency(tracy)
+AddDependency(assimp)
 
 AddDependency(dotother)
 

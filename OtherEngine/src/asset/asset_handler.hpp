@@ -4,13 +4,14 @@
 #ifndef OTHER_ENGINE_ASSET_HANDLER_HPP
 #define OTHER_ENGINE_ASSET_HANDLER_HPP
 
+#include <set>
+
 #include "core/ref.hpp"
 #include "core/ref_counted.hpp"
 
 #include "asset/asset.hpp"
-#include "asset/asset_metadata.hpp"
-#include "asset/asset_types.hpp"
-
+#include "asset/asset_defines.hpp"
+#include "asset/asset_registry.hpp"
 
 namespace other {
 
@@ -21,9 +22,23 @@ namespace other {
     AssetHandler() {}
     virtual ~AssetHandler() {}
 
+    const AssetMetadata& GetMetadata(AssetHandle handle);
+    const AssetMetadata& GetMetadata(const Path& path);
+    const AssetMetadata& GetMetadata(const AssetKey& key);
+    AssetMetadata& GetMutableMetadata(AssetHandle handle);
+
+    AssetHandle ImportAsset(const Path& path);
+    AssetHandle GetAssetHandleFromFilePath(const Path& filepath);
+
+    AssetType GetAssetTypeFromExtension(const std::string& extension);
+    AssetType GetAssetTypeFromPath(const Path& path);
+
     virtual AssetType GetAssetType(AssetHandle assetHandle) = 0;
     virtual Ref<Asset> GetAsset(AssetHandle assetHandle) = 0;
-    virtual void AddMemOnly(Ref<Asset>& asset) = 0;
+    virtual Ref<Asset> GetAsset(UUID file_handle, AssetType type) = 0;
+    virtual Ref<Asset> GetAsset(const AssetKey& key) = 0;
+
+    virtual void AddMemOnly(const std::string_view virtual_filename, Ref<Asset>& asset) = 0;
     virtual bool ReloadData(AssetHandle assetHandle) = 0;
 
     // the asset handle is valid (this says nothing about the asset itself)
@@ -37,14 +52,14 @@ namespace other {
     // asset file is missing
     virtual bool IsMissing(AssetHandle handle) = 0;
 
+    virtual void Remove(AssetKey key) = 0;
     virtual void Remove(AssetHandle handle) = 0;
 
-    virtual AssetSet GetAllOfType(AssetType type) = 0;
-    virtual const AssetMap& GetAll() = 0;
+    virtual std::set<AssetHandle> GetAllOfType(AssetType type) = 0;
+    virtual std::set<AssetKey> GetAllKeysOfType(AssetType type) = 0;
 
    protected:
-    AssetMap assets;
-    AssetMap memory_assets;
+    void TryLoadAsset(AssetMetadata& metadata);
   };
 
 }  // namespace other

@@ -9,6 +9,7 @@
 #include "core/defines.hpp"
 #include "core/filesystem.hpp"
 #include "core/logger.hpp"
+#include "core/ref.hpp"
 #include "engine/engine_state_machine.hpp"
 
 #include "application/app_state.hpp"
@@ -42,6 +43,10 @@ namespace other {
     EventQueue::Shutdown();
     IO::Shutdown();
     Logger::Shutdown();
+
+    if (detail::NumberOfLivingReferences() > 0) {
+      println("Engine shutdown with {} living references", detail::NumberOfLivingReferences());
+    }
   }
 
   void Engine::Run() {
@@ -84,6 +89,8 @@ namespace other {
     if (state->IsFinished()) {
       OE_ASSERT(AppState::exit_code.has_value(), "No exit code set for engine shutdown");
       exit_code = AppState::exit_code.value();
+    } else if (state->IsError()) {
+      /// TODO: handle error state
     } else {
       state->Step();
     }
@@ -166,21 +173,6 @@ namespace other {
     println(" > {}", ini_file.value());
     return ini_file;
   }
-
-  /// FIXME: switch missing cases!!! default triggered in most cases
-  // ExitCode Engine::ProcessExitCode(ExitCode code) {
-  //   switch (code) {
-  //     case ExitCode::FAILURE:
-  //       OE_CRITICAL("Application RUN failure");
-  //       return code;
-
-  //     case ExitCode::SUCCESS:
-  //       return code;
-
-  //     default:
-  //       return ExitCode::FAILURE;
-  //   }
-  // }
 
   ExitCode Engine::LoadConfig() {
     println("Loading OtherEngine configuration");

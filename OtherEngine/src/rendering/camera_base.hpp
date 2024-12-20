@@ -12,7 +12,6 @@
 #include "core/ref.hpp"
 #include "core/ref_counted.hpp"
 
-
 namespace other {
 
   class Entity;
@@ -41,9 +40,9 @@ namespace other {
     void CalculateMatrix();
     void UpdateCoordinateFrame();
 
-    const glm::mat4& GetMatrix() const;
-    const glm::mat4& ViewMatrix() const;
-    const glm::mat4& ProjectionMatrix() const;
+    const glm::mat4& GetMatrix();
+    const glm::mat4& ViewMatrix();
+    const glm::mat4& ProjectionMatrix();
 
     void MoveForward();
     void MoveBackward();

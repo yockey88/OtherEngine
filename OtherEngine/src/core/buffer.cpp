@@ -93,6 +93,10 @@ namespace other {
     return element_sizes[index];
   }
 
+  uint8_t* Buffer::RawBytes() {
+    return reinterpret_cast<uint8_t*>(&data[0]);
+  }
+
   const uint8_t* Buffer::ReadBytes(uint64_t offset) const {
     OE_ASSERT(offset <= capacity, "Buffer::ReadBytes |> Out of bounds! attempted read at {} > {} real capacity", offset, capacity);
     return static_cast<const uint8_t*>(&data[offset]);

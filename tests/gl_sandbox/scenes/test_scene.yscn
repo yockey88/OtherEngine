@@ -1,0 +1,150 @@
+#[
+  primary sandbox scene
+#]
+
+[metadata]
+name = "test_scene"
+entities = {
+  "cube" ,
+  "sun" ,
+  "floor",
+  "camera",
+  "backpack",
+}
+
+
+[physics.2D]
+gravity = { 0 , -9.8 }
+
+[physics.3D]
+
+
+[cube]
+UUID = 12461263173642597452
+components = {
+  static-mesh , 
+  script
+}
+
+[cube.transform]
+position = { 0 , 0 , 0 }
+rotation = { 0 , 0 , 0 , 0 }
+scale = { 1 , 1 , 1 }
+
+[cube.relationship]
+children = {}
+
+[cube.static-mesh]
+visible = true
+is-primitive = true
+primitive = 3
+material.color = { 1.0, 0.5, 0.31, 1 }
+material.shininess = 32
+
+[cube.script]
+*SandboxScripts = { "Other::TestScript2" }
+
+[sun]
+UUID = 4025795962345870502
+components = {
+  light-source
+}
+
+[sun.transform]
+position = { -1.0 , 1.0 , -1.0 } 
+rotation = { 0 , 0 , 0 , 0 }
+scale = { 0.2 , 0.2 , 0.2 }
+
+[sun.light-source]
+type = 0
+direction = { 2.0 , -4.0 , 1.0 , 1.0 }
+color = { 0.22 , 0.22 , 0.11 , 1.0 }
+
+[floor]
+UUID = 14382231788964811176
+components = {
+  static-mesh
+}
+
+[floor.transform]
+position = { 0 , -2 , 0 }
+rotation = { 0 , 0 , 0 , 1 }
+scale = { 10 , 0.05 , 10 }
+
+[floor.relationship]
+children = {}
+
+[floor.static-mesh]
+visible = true
+is-primitive = true
+primitive = 3
+material.color = { 0.1, 0.5, 0.31, 1 }
+material.shininess = 32
+
+[camera]
+UUID = 4220486183894562136
+components = {
+  camera
+}
+
+[camera.transform]
+position = { 0 , 0 , 3 }
+rotation = { 0 , 0 , 0 , 1 }
+scale = { 1 , 1 , 1 }
+
+[camera.relationship]
+children = {}
+
+[camera.camera]
+type = perspective
+position = { 0 , 0 , 3 }
+direction = { 0 , 0 , -1 }
+up = { 0 , 0 , 1 }
+world-up = { 0 , 1 , 0 }
+right = { 0 , 0 , 1 }
+rotation = { 0 , 0 , 0 }
+viewport = { 1920 , 1080 } 
+clip = { 0.1 , 10000 }
+speed = 0.1
+sensitivity = 0.2
+fov = 75
+zoom = 45
+constrain-pitch = true
+primary = true
+pinned = true
+
+[backpack]
+UUID = 4299032860123401593
+components = {
+  mesh
+}
+
+[mesh]
+visible = true
+
+#[
+
+  cube = {
+    id = 12461263173642597452
+    <transform> = {
+      position = { 0 , 0 , 0 }
+      rotation = { 0 , 0 , 0 , 0 }
+      scale = { 1 , 1 , 1 }
+    }
+
+    <relationship> = {
+      children = {}
+    }
+
+    <static-mesh> = {
+      visible = true
+      is-primitive = true
+      primitive = 3
+    }
+
+    <script> = {
+      *SandboxScripts = { "Other::TestScript2" }
+    }
+  }
+
+#]

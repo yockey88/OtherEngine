@@ -3,11 +3,17 @@
  **/
 #include "ecs/systems/component_gui.hpp"
 
+#include <glm/ext/vector_float4.hpp>
 #include <imgui/imgui.h>
 
+#include "core/filesystem.hpp"
+
 #include "application/app_state.hpp"
+#include "asset/asset_defines.hpp"
+#include "asset/asset_manager.hpp"
 
 #include "ecs/components/camera.hpp"
+#include "ecs/components/light_source.hpp"
 #include "ecs/components/transform.hpp"
 
 #include "rendering/camera_base.hpp"
@@ -15,6 +21,8 @@
 #include "rendering/model_factory.hpp"
 #include "rendering/orthographic_camera.hpp"
 #include "rendering/perspective_camera.hpp"
+#include "rendering/ui/ui_colors.hpp"
+#include "rendering/ui/ui_helpers.hpp"
 
 namespace other {
 
@@ -484,26 +492,63 @@ namespace other {
 
   bool DrawMesh(Entity* ent) {
     auto& mesh = ent->GetComponent<Mesh>();
+    AssetHandle original_handle = mesh.handle;
+
+    bool change = false;
+
+    std::set<AssetKey> model_sources = AppState::Assets()->GetAllKeysOfType(AssetType::MODEL_SOURCE);
+    if (ui::BeginTreeNode("Model Sources", false)) {
+      for (const AssetKey& model : model_sources) {
+        AssetMetadata meta = AppState::Assets()->GetMetadata(model);
+        if (ImGui::Selectable(meta.path.filename().string().c_str(), mesh.handle == meta.handle)) {
+          Ref<ModelSource> source = AssetManager::GetAsset<ModelSource>(model);
+          if (source == nullptr) {
+            OE_ERROR("Failed to retrieve Model Source [{}] from asset handler", model.file_handle);
+          } else {
+            Ref<Model> m = ModelSource::CreateModel(source, {});
+            mesh.handle = m->handle;
+            change = true;
+          }
+        }
+      }
+
+      ui::EndTreeNode();
+    }
 
     if (mesh.handle == 0) {
-      /// display other meshes
+      ScopedColor red_text(ImGuiCol_Text, ui::theme::muted);
+      ImGui::Text("No mesh attached");
+      return false;
+    }
+
+    bool valid = AppState::Assets()->IsHandleValid(mesh.handle);
+    if (!valid) {
+      ScopedColor red_text(ImGuiCol_Text, ui::theme::red);
+      ImGui::Text("Mesh handle [%lld] invalid", mesh.handle.Get());
+      return false;
+    }
+
+    if (mesh.handle == original_handle) {
+      ScopedColor green_text(ImGuiCol_Text, ui::theme::green);
+      ImGui::Text("Mesh handle [%lld] valid", mesh.handle.Get());
       return false;
     }
 
     Ref<Model> model = AppState::Assets()->GetAsset(mesh.handle);
     if (model == nullptr) {
       ScopedColor red_text(ImGuiCol_Text, ui::theme::red);
-      ImGui::Text("Mesh [{}] invalid");
+      ImGui::Text("Unknown error retrievieng Mesh [{}] from asset handler");
       return false;
     }
 
     ImGui::Text("Rendering Mesh");
 
-    return false;
+    return mesh.handle != original_handle;
   }
 
   bool DrawStaticMesh(Entity* ent) {
     auto& mesh = ent->GetComponent<StaticMesh>();
+    AssetHandle original_handle = mesh.handle;
 
     const char* options[] = {
       "Empty", "Triangle", "Rect", "Cube", "Sphere", "Capsule"
@@ -511,8 +556,8 @@ namespace other {
 
     if (ui::PropertyDropdown("Primitive Meshes", options, kCapsuleIdx, mesh.primitive_selection)) {}
 
+    bool change = false;
     if (mesh.primitive_id != mesh.primitive_selection && ImGui::Button("Confirm Change")) {
-      bool change = false;
       switch (mesh.primitive_selection) {
         case kTriangleIdx: {
           mesh.handle = ModelFactory::CreateTriangle();
@@ -559,21 +604,26 @@ namespace other {
     }
 
     if (mesh.primitive_id == kEmptyIdx) {
+      mesh.handle = 0;
+      return false;
+    }
+
+    if (mesh.handle == 0) {
+      ScopedColor red_text(ImGuiCol_Text, ui::theme::muted);
+      ImGui::Text("No mesh attached");
       return false;
     }
 
     bool valid = AppState::Assets()->IsHandleValid(mesh.handle);
     if (!valid) {
       ScopedColor red_text(ImGuiCol_Text, ui::theme::red);
-      ImGui::Text("Static Mesh handle [%lld] invalid", mesh.handle.Get());
+      ImGui::Text("Mesh handle [%lld] invalid", mesh.handle.Get());
       return false;
     }
 
-    valid = AppState::Assets()->IsValid(mesh.handle);
-    if (!valid) {
-      ScopedColor red_text(ImGuiCol_Text, ui::theme::red);
-      ImGui::Text("Static Mesh [{}] invalid");
-      return false;
+    {
+      ScopedColor green_text(ImGuiCol_Text, ui::theme::green);
+      ImGui::Text("Mesh handle [%lld] valid", mesh.handle.Get());
     }
 
     Ref<StaticModel> model = AppState::Assets()->GetAsset(mesh.handle);
@@ -583,11 +633,10 @@ namespace other {
       return false;
     }
 
-    //// draw selection and settings
+    ImGui::Text("Rendering Static Mesh");
+    /// render mesh
 
-    ImGui::Text("Rendering Mesh");
-
-    return false;
+    return mesh.handle != original_handle;
   }
 
   bool DrawCamera(Entity* ent) {
@@ -656,9 +705,55 @@ namespace other {
   }
 
   bool DrawLightSource(Entity* ent) {
-    ui::BeginPropertyGrid();
+    OE_ASSERT(ent != nullptr, "Entity is null");
+    OE_ASSERT(ent->HasComponent<LightSource>(), "Entity does not have LightSource component");
 
-    ui::EndPropertyGrid();
+    LightSource& light = ent->GetComponent<LightSource>();
+
+    static uint32_t selected = (uint32_t)light.type;
+    static int32_t count = 2;
+    static const char* light_types[] = {
+      "Directional",
+      "Point",
+    };
+    bool changed = ui::PropertyDropdown("Light Source Type", light_types, count, selected);
+    if (changed) {
+      light.type = static_cast<LightSourceType>(selected);
+    }
+
+    switch (light.type) {
+      case DIRECTION_LIGHT_SRC: {
+        bool light_direction_modified = false;
+        glm::vec3 direction = light.direction_light.direction;
+        if (ui::widgets::DrawVec3Control("Direction", direction, light_direction_modified, 0.f,  /// replace this value from redo/undo stack
+                                         100.f, ui::VectorAxis::ZERO, glm::zero<glm::vec3>(), glm::zero<glm::vec3>(), 0.1f)) {
+          light.direction_light.direction = glm::vec4(direction, 1.f);
+        }
+
+        ImGui::Text("Color");
+        ImGui::ColorEdit3("##Direction Light Color", glm::value_ptr(light.direction_light.color), ImGuiColorEditFlags_NoInputs);
+      } break;
+
+      case POINT_LIGHT_SRC: {
+        bool light_position_modified = false;
+        glm::vec3 position = light.pointlight.position;
+        if (ui::widgets::DrawVec3Control("Position", position, light_position_modified, 0.f,  /// replace this value from redo/undo stack
+                                         100.f, ui::VectorAxis::ZERO, glm::zero<glm::vec3>(), glm::zero<glm::vec3>(), 0.1f)) {
+          light.pointlight.position = glm::vec4(position, 1.f);
+        }
+
+        ImGui::Text("Color");
+        ImGui::ColorEdit3("##Point Light Color", glm::value_ptr(light.pointlight.color), ImGuiColorEditFlags_NoInputs);
+
+        if (ui::Property("Radius", &light.pointlight.radius, 0.f, 1000.f)) {}
+        if (ui::Property("Constant", &light.pointlight.constant, 0.f, 1000.f)) {}
+        if (ui::Property("Linear", &light.pointlight.linear, 0.f, 1000.f)) {}
+        if (ui::Property("Quadratic", &light.pointlight.quadratic, 0.f, 1000.f)) {}
+      } break;
+
+      default:
+        break;
+    }
     return false;
   }
 

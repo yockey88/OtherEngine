@@ -17,7 +17,6 @@
 #include "scripting/script_defines.hpp"
 #include "scripting/script_object.hpp"
 
-
 namespace other {
 
   enum class ScriptType {
@@ -47,7 +46,7 @@ namespace other {
 
   class ScriptModule : public Asset {
    public:
-    OE_ASSET(SCRIPTFILE);
+    OE_ASSET(SCRIPT);
 
     ScriptModule(LanguageModuleType language, const std::string& module_name)
         : language(language), module_name(module_name) {}

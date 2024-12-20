@@ -15,6 +15,7 @@
 #include "event/mouse_events.hpp"
 #include "input/mouse.hpp"
 
+#include "ecs/components/light_source.hpp"
 #include "scene/bvh.hpp"
 #include "scene/scene_manager.hpp"
 
@@ -25,6 +26,12 @@
 
 #include "editor/editor_images.hpp"
 #include "editor/editor_state.hpp"
+#include "editor/panels/file_editor.hpp"
+#include "editor/panels/framebuffer_editor.hpp"
+#include "editor/panels/pipeline_creator.hpp"
+#include "editor/panels/renderpass_creator.hpp"
+#include "editor/panels/scene_renderer_settings.hpp"
+#include "editor/panels/shader_creator.hpp"
 #include "editor/selection_manager.hpp"
 
 namespace other {
@@ -108,7 +115,8 @@ namespace other {
       return;
     }
 
-    if (EditorState::scene_mode == SceneEditorMode::SIMULATING) {
+    if (EditorState::scene_mode == SceneEditorMode::SIMULATING ||
+        EditorState::scene_mode == SceneEditorMode::FREE_CAMERA) {
       DefaultUpdateCamera(editor.editor_camera);
     }
   }
@@ -118,47 +126,52 @@ namespace other {
     panel_manager->Render();
 
     /// dont trace if no scene or not editing
-    if (!AppState::Scenes()->HasActiveScene() || EditorState::scene_mode == SceneEditorMode::PLAYING) {
+    if (!AppState::Scenes()->HasActiveScene() ||
+        EditorState::scene_mode == SceneEditorMode::PLAYING) {
       return;
     }
 
     /// submit editor camera for main render,
-    AppState::Scenes()->GetRenderer()->SubmitCamera(editor.editor_camera);
+    Ref<CameraBase> editor_camera = editor.editor_camera;
+    AppState::Scenes()->GetRenderer()->SubmitCamera(editor_camera);
   }
 
   void EditorLayer::OnUIRender() {
     using namespace std::string_view_literals;
 
-    Ref<SceneRenderer> scene_renderer = AppState::Scenes()->GetRenderer();
-    OE_ASSERT(scene_renderer != nullptr, "No scene renderer found");
+    bool scene_active = AppState::Scenes()->HasActiveScene();
+    bool render_success = scene_active;
+    if (scene_active) {
+      Ref<SceneRenderer> scene_renderer = AppState::Scenes()->GetRenderer();
+      OE_ASSERT(scene_renderer != nullptr, "No scene renderer found");
 
-    SceneMetadata* active_scene = AppState::Scenes()->ActiveScene();
-    OE_ASSERT(active_scene != nullptr, "No active scene found");
-    OE_ASSERT(active_scene->scene != nullptr, "No active scene found");
+      SceneMetadata* active_scene = AppState::Scenes()->ActiveScene();
+      OE_ASSERT(active_scene != nullptr, "No active scene found");
+      OE_ASSERT(active_scene->scene != nullptr, "No active scene found");
 
-    /// render scene as it is for runtime, this clears the pipelines
-    /// TODO: finalize scene and then draw editor information on top
-    // bool runtime_frame_success = scene_renderer->FinalizeScene();
-    // scene_renderer->ClearLightEnvironment();
+      /// render scene as it is for runtime, this clears the pipelines
+      /// TODO: finalize scene and then draw editor information on top
+      // bool runtime_frame_success = scene_renderer->Render();
+      // scene_renderer->ClearLightEnvironment();
 
-    /// render scene for editor
-    if (EditorState::scene_mode != SceneEditorMode::PLAYING) {
-      active_scene->scene->Render(scene_renderer);
-      scene_renderer->RenderGbuffer();
+      /// render scene for editor
+      if (EditorState::scene_mode != SceneEditorMode::PLAYING) {
+        // active_scene->bvh->RenderBounds(scene_renderer);
 
-      active_scene->bvh->RenderBounds("Geometry", scene_renderer);
+        if (SelectionManager::HasSelection()) {
+          Entity* selected = SelectionManager::ActiveSelection();
+          OE_ASSERT(selected != nullptr, "Selected entity is null!");
 
-      if (SelectionManager::HasSelection()) {
-        Entity* selected = SelectionManager::ActiveSelection();
-        OE_ASSERT(selected != nullptr, "Selected entity is null!");
-
-        RenderSubmission sub = selected->WireframeSubmission();
-        OE_ASSERT(sub.model != nullptr, "Wireframe model is null!");
-        scene_renderer->SubmitStaticModel("Geometry", sub);
+          // RenderSubmission sub = selected->WireframeSubmission();
+          // OE_ASSERT(sub.model != nullptr, "Wireframe model is null!");
+          // scene_renderer->SubmitStaticModel(sub);
+        }
       }
+
+      render_success = scene_renderer->Render();
     }
 
-    bool render_success = scene_renderer->FinalizeScene();
+    EditorState& editor = EditorState::Get();
 
     // clang-format off
     ui::MainMenuBar([&]() {
@@ -182,6 +195,20 @@ namespace other {
         ui::MenuItem{ "Terminal"sv, [&]() {} }
       );
 
+      ui::Menu(
+        "Tools",
+        ui::MenuItem{ "Pipeline Creator"sv, [&]() { editor.panel_creator_id = panel_manager->AddPanel("Pipeline-Creator", NewRef<PipelineCreator>()); } },
+        ui::MenuItem{ "File Editor"sv, [&]() { editor.panel_creator_id = panel_manager->AddPanel("Shader-Creator", NewRef<FileEditor>()); } },
+        ui::MenuItem{ "Renderpass Creator"sv, [&]() { editor.panel_creator_id = panel_manager->AddPanel("Renderpass-Creator", NewRef<RenderpassCreator>()); } },
+        ui::MenuItem{ "Shader Creator"sv, [&]() { editor.panel_creator_id = panel_manager->AddPanel("Shader-Creator", NewRef<ShaderCreator>()); } },
+        ui::MenuItem{ "Framebuffer Creator"sv , [&]() { editor.panel_creator_id = panel_manager->AddPanel("Framebuffer-Creator", NewRef<FramebufferEditor>()); } }
+      );
+
+      ui::Menu(
+        "Rendering",
+        ui::MenuItem{ "Scene Renderer Settings"sv, [&]() { editor.panel_creator_id = panel_manager->AddPanel("Scene-Renderer-Settings", NewRef<SceneRendererSettings>()); } }
+      );
+
       // ui::Menu("Assets", [&]() {});
       // ui::Menu("Objects", [&]() {});
     });
@@ -199,14 +226,14 @@ namespace other {
      *
      **/
 
-    EditorState& editor = EditorState::Get();
     if (ImGui::Begin("Inspector")) {
-      if (!render_success) {
+      if (scene_active && !render_success) {
         ScopedColor err_color(ImGuiCol_Text, ui::theme::red);
         if (ImGui::BeginChild("[ ERROR ]", { 0, 0 }, false, ImGuiWindowFlags_NoScrollbar)) {
           ImGui::Text("Failed to render scene");
           ImGui::EndChild();
         }
+      } else if (!scene_active) {
       }
 
       switch (EditorState::scene_mode) {
@@ -376,6 +403,10 @@ namespace other {
       return false;
     }
 
+    if (!editor.trace_mouse_click) {
+      return false;
+    }
+
     SceneMetadata* scene = AppState::Scenes()->ActiveScene();
     OE_ASSERT(scene != nullptr, "No active scene!");
     OE_ASSERT(scene->scene != nullptr, "Scene is null!");
@@ -400,6 +431,13 @@ namespace other {
     }
 
     OE_ASSERT(trace->hit_entity != nullptr, "Hit entity is null!");
+    if (trace->hit_entity->HasComponent<LightSource>()) {
+      const LightSource& light = trace->hit_entity->ReadComponent<LightSource>();
+      if (light.type == LightSourceType::DIRECTION_LIGHT_SRC) {
+        editor.guizmo_op = ImGuizmo::OPERATION::ROTATE;
+      }
+    }
+
     SelectionManager::Select(trace->hit_entity);
     return false;
   }

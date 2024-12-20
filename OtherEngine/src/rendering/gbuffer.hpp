@@ -4,8 +4,6 @@
 #ifndef GBUFFER_HPP
 #define GBUFFER_HPP
 
-#include <array>
-
 #include <glm/glm.hpp>
 
 #include "core/ref.hpp"
@@ -14,38 +12,44 @@
 
 namespace other {
 
-  class GBuffer {
-    public:
-      enum TexIndex {
-        POSITION = 0 ,
-        NORMAL       ,
-        ALBEDO       ,
+  class GBuffer : public RefCounted {
+   public:
+    enum TexIndex {
+      POSITION = 0,
+      NORMAL,
+      ALBEDO,
+      SPECULAR,
 
-        NUM_TEX_IDXS ,
-        INVALID_TEX_IDX = NUM_TEX_IDXS
-      };
+      NUM_TEX_IDXS,
+      INVALID_TEX_IDX = NUM_TEX_IDXS
+    };
 
-      uint32_t render_buffer = 0;
-      uint32_t textures[NUM_TEX_IDXS] = {
-        0 , 0 , 0 
-      };
+    uint32_t render_buffer = 0;
+    uint32_t textures[NUM_TEX_IDXS] = {
+      0, 0, 0, 0
+    };
 
-      GBuffer(const glm::ivec2& size);
-      ~GBuffer();
+    GBuffer(const glm::ivec2& size);
+    virtual ~GBuffer() override;
 
-      bool Valid() const;
+    template <typename T>
+    void SetInput(const std::string_view name, const T& value) {
+      shader->SetUniform(name, value);
+    }
 
-      void Bind() const;
-      void Unbind() const;
+    bool Valid() const;
 
-    private:
-      Ref<Shader> shader = nullptr;
+    void Bind() const;
+    void Unbind() const;
 
-      uint32_t gbuffer_id = 0;
+   private:
+    Ref<Shader> shader = nullptr;
 
-      bool valid = false;
+    uint32_t gbuffer_id = 0;
+
+    bool valid = false;
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !GBUFFER_HPP
+#endif  // !GBUFFER_HPP

@@ -162,15 +162,6 @@ namespace other {
       }
     }
 
-    // template <typename Fn>
-    //   requires requires(Fn&& fn) { fn(); }
-    // void Menu(const std::string_view label, Fn&& fn) {
-    //   if (ImGui::BeginMenu(label.data())) {
-    //     fn();
-    //     ImGui::EndMenu();
-    //   }
-    // }
-
     template <typename Fn>
     struct MenuItem {
       std::string_view first;
@@ -193,14 +184,6 @@ namespace other {
         ImGui::EndMenu();
       }
     }
-
-    // template <typename Fn>
-    //   requires requires(Fn&& fn) { fn(); }
-    // void MenuItem(const std::string_view label, Fn&& fn) {
-    //   if (ImGui::MenuItem(label.data())) {
-    //     fn();
-    //   }
-    // }
 
     bool ColoredButton(const char* label, const ImVec4& backgroundColor, ImVec2 buttonSize);
     bool ColoredButton(const char* label, const ImVec4& background, const ImVec4& foreground, ImVec2 size);

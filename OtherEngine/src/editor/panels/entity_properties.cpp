@@ -6,8 +6,6 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui/imgui.h>
 
-#include "editor/selection_manager.hpp"
-
 #include "input/keyboard.hpp"
 
 #include "ecs/components/camera.hpp"
@@ -24,7 +22,8 @@
 
 #include "rendering/ui/ui_colors.hpp"
 #include "rendering/ui/ui_helpers.hpp"
-#include "scripting/script_engine.hpp"
+
+#include "editor/selection_manager.hpp"
 
 namespace other {
 
@@ -35,6 +34,14 @@ namespace other {
     }
 
     if (!ImGui::Begin("Properties", &is_open)) {
+      SelectionManager::ClearSelection();
+
+      ImGui::End();
+      return false;
+    }
+
+    if (!is_open) {
+      SelectionManager::ClearSelection();
       ImGui::End();
       return false;
     }
@@ -45,13 +52,9 @@ namespace other {
       ScopedColor bg_color(ImGuiCol_WindowBg, ui::theme::background_dark);
 
       Entity* selection = SelectionManager::ActiveSelection();
-      if (selection == nullptr) {
-        ImGui::End();
-        return false;
-      }
+      OE_ASSERT(selection != nullptr, "No active selection!");
 
       ImGui::AlignTextToFramePadding();
-
       ImVec2 avail_region = ImGui::GetContentRegionAvail();
 
       ui::ShiftCursor(4.f, 4.f);

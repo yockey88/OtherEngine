@@ -1,0 +1,32 @@
+vertex [mesh : default] {
+
+  void main() {
+    mat4 model = models[gl_InstanceID];
+    mat3 normal_model = mat3(transpose(inverse(model)));
+    vec3 world_pos = vec3(model * vec4(voe_position , 1.0)); 
+
+    foe_light_space_position = direction_light.light_space_matrix * vec4(world_pos, 1.0);
+
+    instanceid = gl_InstanceID;
+    gl_Position = projection * view * model* vec4(voe_position, 1.0);
+
+    foe_material = materials[gl_InstanceID];
+    foe_viewpoint = viewpoint.xyz;
+
+    foe_position = world_pos.xyz;
+    foe_normal = normal_model * voe_normal;
+    foe_uvs = voe_uvs;
+  }
+
+}
+
+fragment {
+
+  out vec4 FragColor;
+
+  void main() {
+    vec4 color = texture(albedo_textures, vec3(foe_uvs, foe_material.albedo));
+    FragColor = color;
+  }
+
+}

@@ -3,26 +3,22 @@
  **/
 #include "scene/scene_manager.hpp"
 
-#include <fstream>
-
 #include "core/defines.hpp"
-#include "core/filesystem.hpp"
 #include "core/logger.hpp"
 
 #include "application/app_state.hpp"
+#include "asset/asset_database.hpp"
+#include "asset/asset_manager.hpp"
+#include "asset/serializers/scene_serializer.hpp"
 #include "event/event_queue.hpp"
 #include "event/scene_events.hpp"
 #include "input/mouse.hpp"
 
-#include "ecs/entity.hpp"
 #include "scene/bvh.hpp"
-#include "scene/scene_serializer.hpp"
 
 #include "rendering/camera_base.hpp"
 #include "rendering/renderer.hpp"
 #include "scripting/script_engine.hpp"
-
-#include "editor/editor_state.hpp"
 
 namespace other {
 
@@ -39,74 +35,79 @@ namespace other {
     scene_paths.clear();
   }
 
-  bool SceneManager::LoadScene(const Path& scenepath) {
-    OE_DEBUG("Loading scene {}", scenepath);
-
-    Path real_path = scenepath;
-    if (!Filesystem::FileExists(scenepath)) {
-      Ref<Directory> scene_dir = Filesystem::GetDirectory("scenes");
-      OE_ASSERT(scene_dir != nullptr, "Failed to get scene directory!");
-      OE_ASSERT(scene_dir->Exists(), "Scene directory does not exist!");
-
-      OE_DEBUG("Attempting to find scene : {}", real_path);
-
-      Ref<FileHandle> scene = scene_dir->GetFileHandleByName(scenepath.string());
-      if (scene == nullptr) {
-        OE_ERROR("Failed to find scene : {}", scenepath.string());
-        return false;
-      }
-      OE_ASSERT(scene->Exists(), "Scene file handle does not exist!");
-      real_path = *scene;
-    }
-    OE_ASSERT(Filesystem::FileExists(real_path), "Scene file does not exist!");
-
-    UUID id = 0;
-    SceneSerializer serializer;
-    {
-      auto loaded_scene = serializer.Deserialize(real_path.string());
-      if (loaded_scene.scene == nullptr) {
-        OE_ERROR("Failed to deserialize scene : {}", real_path.string());
-        return false;
-      }
-
-      id = FNV(loaded_scene.name);
-      auto& scene_md = loaded_scenes[id] = SceneMetadata{
-        .name = loaded_scene.name,
-        .path = real_path,
-        .scene_table = loaded_scene.scene_table,
-        .scene = Ref<Scene>::Clone(loaded_scene.scene),
-        .corrupted = false
-      };
-
-      scene_md.scene->Initialize();
-      OE_DEBUG("Loaded scene : {} [{}]", loaded_scene.name, id);
+  bool SceneManager::LoadScene(const Ref<FileHandle>& scene_file) {
+    OE_ASSERT(scene_file != nullptr, "Attempting to load null scene file");
+    OE_INFO("Loading scene {}", Path(*scene_file));
+    if (!scene_file->Exists()) {
+      OE_ERROR("Scene file does not exist : {}", Path(*scene_file));
+      return false;
     }
 
-    scene_paths.push_back(real_path.string());
+    if (scene_file->GetAssetType() != AssetType::SCENE) {
+      OE_ERROR("File is not a .yscn file : {}", Path(*scene_file));
+      return false;
+    }
 
-    EventQueue::PushEvent<SceneLoad>({ id.Get() });
+    UUID file_handle = scene_file->handle;
+    AssetKey key = {
+      .file_handle = file_handle,
+      .type = AssetType::SCENE,
+    };
+    OE_DEBUG("Scene = {}", key);
+
+    /// will force load if not already loaded
+    Ref<Scene> scene = AssetManager::GetAsset<Scene>(key);
+    OE_ASSERT(scene != nullptr, "Failed to get scene asset : {}", Path(*scene_file));
+
+    SceneMetadata* scene_md = GetSceneMetadata(scene->scene_handle);
+    OE_ASSERT(scene_md != nullptr, "Failed to get scene metadata for scene : {}", scene->scene_handle);
+
+    OE_TRACE(" > loaded scene : {}", scene_md->name);
+    EventQueue::PushEvent<SceneLoad>({ scene->scene_handle.Get() });
     return true;
   }
 
-  void SceneManager::SetAsActive(const std::string_view& name) {
-    OE_DEBUG("Attempting to set scene {} to active [{}]", name, FNV(name));
+  void SceneManager::AddScene(const DeserializedScene& scene) {
+    OE_ASSERT(scene.scene != nullptr, "Attempting to add null scene");
 
-    UUID id = FNV(name);
-    auto find_scene = loaded_scenes.find(id);
-    if (find_scene == loaded_scenes.end()) {
-      auto itr = std::ranges::find_if(loaded_scenes, [&](const auto& pair) -> bool { return pair.second.name == std::string{ name }; });
-      if (itr == loaded_scenes.end()) {
-        OE_ERROR("Failed to find scene {}", name);
-        return;
-      } else {
-        id = itr->first;
-        OE_DEBUG("Setting {} as active scene", name);
-      }
-    } else {
-      OE_DEBUG("Setting {} as active scene", name);
+    UUID id = scene.scene->scene_handle;
+    if (loaded_scenes.find(id) != loaded_scenes.end()) {
+      OE_WARN("Scene already loaded : {}", scene.name);
+      return;
     }
 
-    active_scene = &loaded_scenes[id];
+    loaded_scenes[id] = SceneMetadata{
+      .name = scene.name,
+      .path = scene.path,
+      .scene_table = scene.scene_table,
+      .scene = Ref<Scene>::Clone(scene.scene),
+      .corrupted = false
+    };
+
+    loaded_scenes[id].scene->Initialize();
+    scene_paths.push_back(scene.path.string());
+  }
+
+  void SceneManager::SetAsActive(const Ref<FileHandle>& scenefile) {
+    OE_ASSERT(scenefile != nullptr, "Attempting to set null scene as active");
+
+    AssetKey key = {
+      .file_handle = scenefile->handle,
+      .type = AssetType::SCENE,
+    };
+    Ref<Scene> scene = AssetManager::GetAsset<Scene>(key);
+
+    OE_DEBUG("Attempting to set scene {} to active [{}]", scene->scene_name, scene->scene_handle);
+
+    auto find_scene = loaded_scenes.find(scene->scene_handle);
+    if (find_scene == loaded_scenes.end()) {
+      OE_ERROR("Failed to set scene {} as active : not found", scene->scene_name);
+      return;
+    }
+
+    OE_ASSERT(find_scene->second.scene != nullptr, "Scene is null in loaded scenes");
+    OE_DEBUG("Setting {} as active scene", scene->scene_name);
+    active_scene = &find_scene->second;
     OE_ASSERT(active_scene != nullptr, "Failed to set active scene!");
     OE_ASSERT(active_scene->scene != nullptr, "Active scene has no scene!");
 
@@ -115,6 +116,41 @@ namespace other {
 
     ScriptEngine::SetSceneContext(active_scene->scene);
     Renderer::SetSceneContext(active_scene->scene);
+    auto primary_cam = active_scene->scene->GetPrimaryCamera();
+    if (primary_cam != nullptr) {
+      DefaultUpdateCamera(primary_cam);
+    }
+
+    EventQueue::PushEvent<SceneActivate>({ active_scene->scene->SceneHandle().Get() });
+  }
+
+  void SceneManager::Activate(Ref<Scene>& scene) {
+    if (scene == nullptr) {
+      OE_ERROR("Attempting to activate null scene!");
+      return;
+    }
+
+    UUID id = scene->scene_handle;
+    if (HasActiveScene()) {
+      UnloadActive();
+    }
+
+    auto itr = loaded_scenes.find(id);
+    if (itr == loaded_scenes.end()) {
+      loaded_scenes[id] = SceneMetadata{
+        .scene = scene,
+        .bvh = NewRef<BvhTree>(glm::vec3{ 0.f, 0.f, 0.f }),
+        .corrupted = false
+      };
+      itr = loaded_scenes.find(id);
+      itr->second.bvh->AddScene(scene, glm::zero<glm::vec3>());
+    }
+
+    SceneMetadata* active_scene = &itr->second;
+    OE_ASSERT(active_scene != nullptr, "Failed to set active scene!");
+    ScriptEngine::SetSceneContext(active_scene->scene);
+    Renderer::SetSceneContext(active_scene->scene);
+
     auto primary_cam = active_scene->scene->GetPrimaryCamera();
     if (primary_cam != nullptr) {
       DefaultUpdateCamera(primary_cam);
@@ -147,6 +183,14 @@ namespace other {
   Ref<Scene> SceneManager::GetScene(UUID id) const {
     if (auto scn = loaded_scenes.find(id); scn != loaded_scenes.end()) {
       return Ref<Scene>::Clone(scn->second.scene);
+    }
+
+    return nullptr;
+  }
+
+  SceneMetadata* SceneManager::GetSceneMetadata(UUID id) {
+    if (auto scn = loaded_scenes.find(id); scn != loaded_scenes.end()) {
+      return &scn->second;
     }
 
     return nullptr;
@@ -252,25 +296,25 @@ namespace other {
       return;
     }
 
-    Path active_path = active_scene->path;
+    // Path active_path = active_scene->path;
 
-    std::string scene_name = active_scene->name;
-    Ref<Scene> scene = active_scene->scene;
+    // std::string scene_name = active_scene->name;
+    // Ref<Scene> scene = active_scene->scene;
 
-    SceneSerializer serializer;
-    std::stringstream ss;
-    serializer.Serialize(scene_name, ss, scene);
+    // SceneSerializer serializer;
+    // std::stringstream ss;
+    // serializer.Serialize(scene_name, ss, scene);
 
-    if (ss.str().size() == 0) {
-      OE_WARN("Failed to serialize scene!");
-    } else {
-      std::ofstream scn_file(active_path);
-      if (!scn_file.is_open()) {
-        OE_ERROR("Failed to open scene file for scene {}", scene_name);
-      } else {
-        scn_file << ss.str();
-      }
-    }
+    // if (ss.str().size() == 0) {
+    //   OE_WARN("Failed to serialize scene!");
+    // } else {
+    //   std::ofstream scn_file(active_path);
+    //   if (!scn_file.is_open()) {
+    //     OE_ERROR("Failed to open scene file for scene {}", scene_name);
+    //   } else {
+    //     scn_file << ss.str();
+    //   }
+    // }
   }
 
   void SceneManager::UnloadActive() {
@@ -381,13 +425,9 @@ namespace other {
     /// render scene
     active_scene->scene->Render(scene_renderer);
 
-    /// render gbuffer only with scene objects
-    ///   otherwise editor objects get included in lighting calculations
-    scene_renderer->RenderGbuffer();
-
     /// let editor render more stuff on top
     if (AppState::mode != EngineMode::EDITOR) {
-      return scene_renderer->FinalizeScene();
+      return scene_renderer->Render();
     }
     return true;
   }

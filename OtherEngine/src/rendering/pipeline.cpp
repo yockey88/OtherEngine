@@ -7,24 +7,42 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "asset/asset_manager.hpp"
+
 #include "rendering/rendering_defines.hpp"
 #include "rendering/vertex.hpp"
 
 namespace other {
 
-  RenderSubmission::operator MeshKey() const {
-    return {
-      .source_handle = model->GetModelSource()->handle,
-      .render_state = render_state,
-      .draw_mode = draw_mode,
+  Pipeline::Pipeline(PipelineSpec& s)
+      : spec(s) {
+    target = Ref<Framebuffer>::Create(spec.framebuffer_spec);
+
+    uint32_t model_binding_point = 1;
+    std::vector<Uniform> model_uniforms = {
+      { "models", ValueType::MAT4, 100 },
+
     };
+
+    uint32_t material_binding_point = 2;
+    std::vector<Uniform> material_uniforms = {
+      { "materials", ValueType::USER_TYPE, 100, sizeof(Material) },
+    };
+
+    model_storage = NewRef<UniformBuffer>("ModelData", model_uniforms, model_binding_point, SHADER_STORAGE);
+    material_storage = NewRef<UniformBuffer>("MaterialData", material_uniforms, material_binding_point, SHADER_STORAGE);
   }
 
-  Pipeline::Pipeline(PipelineSpec& s)
-      : spec(s), gbuffer(s.framebuffer_spec.size) {
-    target = Ref<Framebuffer>::Create(spec.framebuffer_spec);
-    model_storage = NewRef<UniformBuffer>("ModelData", spec.model_uniforms, spec.model_binding_point, SHADER_STORAGE);
-    material_storage = NewRef<UniformBuffer>("MaterialData", spec.material_uniforms, spec.material_binding_point, SHADER_STORAGE);
+  std::string Pipeline::Name() const {
+    return spec.pipeline_name;
+  }
+
+  const FramebufferSpec& Pipeline::TargetSpec() const {
+    return spec.framebuffer_spec;
+  }
+
+  const std::vector<Ref<RenderPass>>& Pipeline::GetRenderPasses() const {
+    return passes;
   }
 
   void Pipeline::SetViewportSize(const glm::ivec2& size) {
@@ -35,74 +53,95 @@ namespace other {
     passes.push_back(render_pass);
   }
 
-  void Pipeline::SubmitModel(Ref<Model> model, const glm::mat4& transform, const Material& material) {
-  }
-
-  void Pipeline::SubmitStaticModel(Ref<StaticModel> model, const glm::mat4& transform, const Material& material) {
-    SubmitStaticModel({
+  void Pipeline::SubmitModel(const Ref<Model>& model, const glm::mat4& transform, UUID material_id, DrawMode topology) {
+    SubmitModel({
       .model = model,
       .transform = transform,
-      .material = material,
-      .draw_mode = spec.topology,
+      .material = material_id,
+      .draw_mode = topology,
     });
   }
 
-  void Pipeline::SubmitStaticModel(const RenderSubmission& submission) {
+  void Pipeline::SubmitModel(const RenderSubmission& submission) {
+    OE_ASSERT(submission.model != nullptr, "Model is null");
+
     Ref<ModelSource> source = submission.model->GetModelSource();
+    OE_ASSERT(source != nullptr, "Model source is null");
+
+    const std::vector<SubMesh>& submeshes = source->SubMeshes();
+    OE_ASSERT(!submeshes.empty(), "Model source has no submeshes");
+
+    const std::vector<uint32_t>& sm_idxs = submission.model->SubMeshes();
+    OE_ASSERT(!sm_idxs.empty(), "Model has no submeshes");
+
     MeshKey key = submission;
 
     auto itr = model_submissions.find(key);
     if (itr == model_submissions.end()) {
-      auto& verts = submission.model->GetModelSource()->RawVertices();
-      auto& idxs = submission.model->GetModelSource()->Indices();
-
-      itr = InsertMeshKey(key, verts, idxs);
-      OE_ASSERT(itr != model_submissions.end(), "Failed to insert mesh key");
+      itr = InsertMeshKey(key, submission.model);
     }
+    OE_ASSERT(itr != model_submissions.end(), "Failed to insert mesh key");
 
     auto& [mk, sl] = *itr;
+
+    Ref<MaterialTable> material_table = AssetManager::GetMaterialTable();
+    OE_ASSERT(material_table != nullptr, "Material table is null");
+
+    sl.submissions.resize(submeshes.size());
     sl.cpu_model_storage.BufferData(submission.transform);
-    sl.cpu_material_storage.BufferData(submission.material);
+    for (uint32_t i = 0; i < sm_idxs.size(); ++i) {
+      const uint32_t sm_idx = sm_idxs[i];
+      OE_ASSERT(sm_idx < submeshes.size(), "Submesh index out of bounds");
+
+      const SubMesh& sub_mesh = submeshes[sm_idx];
+
+      UUID material_id = sub_mesh.material_id.Get() == 0 ? material_table->DefaultMaterial() : sub_mesh.material_id;
+      OE_ASSERT(material_table->HasMaterial(material_id), "Material not found in table");
+      Material gpumat = material_table->GetMaterial(material_id);
+
+      sl.submissions[sm_idx].cpu_material_storage.BufferData(gpumat);
+      sl.submissions[sm_idx].instance_count++;
+    }
+  }
+
+  void Pipeline::SubmitStaticModel(const Ref<StaticModel>& model, const glm::mat4& transform, UUID material_id, DrawMode topology) {
+    SubmitStaticModel({
+      .model = model,
+      .transform = transform,
+      .material = material_id,
+      .draw_mode = topology,
+    });
+  }
+
+  void Pipeline::SubmitStaticModel(const RenderStaticSubmission& submission) {
+    Ref<ModelSource> source = submission.model->GetModelSource();
+    OE_ASSERT(source != nullptr, "Model source is null");
+
+    MeshKey key = submission;
+
+    auto itr = static_model_submissions.find(key);
+    if (itr == static_model_submissions.end()) {
+      itr = InsertStaticMeshKey(key, submission.model);
+    }
+
+    OE_ASSERT(itr != static_model_submissions.end(), "Failed to insert mesh key");
+    auto& [mk, sl] = *itr;
+    OE_ASSERT(sl.vao != nullptr, "Mesh submission list has null vertex array");
+
+    Ref<MaterialTable> material_table = AssetManager::GetMaterialTable();
+    OE_ASSERT(material_table != nullptr, "Material table is null");
+
+    UUID material_id = submission.material.Get() == 0 ? material_table->DefaultMaterial() : submission.material;
+    OE_ASSERT(material_table->HasMaterial(material_id), "Material not found in table");
+    Material gpumat = material_table->GetMaterial(material_id);
+
+    sl.cpu_model_storage.BufferData(submission.transform);
+    sl.cpu_material_storage.BufferData(gpumat);
+    sl.index_count = sl.vao->NumElements();
     ++sl.instance_count;
   }
 
-  void Pipeline::RenderGbuffer() {
-    material_storage->Clear();
-    model_storage->Clear();
-
-    gbuffer.Bind();
-    CHECKGL();
-
-    RenderAll();
-    CHECKGL();
-
-    gbuffer.Unbind();
-    CHECKGL();
-  }
-
   void Pipeline::Render() {
-    /** Passes to implement
-     * ----------------
-     * shadow mapping (expensive) :
-     *  direct light map pass (from viewpoint of primary direct light source)
-     *  spot shadow map pass (from each pointlight ???)
-     *
-     * pre depth pass
-     * hzb compute
-     * pre integration
-     * light culling
-     * skybox pass
-     * GTAO compute
-     * GTAO denoise compute
-     * AO Composite
-     * pre convolution compute
-     * jump flood
-     * ssr compute
-     * ssr composite
-     * edge detection
-     * bloom compute
-     * composite pass
-     **/
     material_storage->Clear();
     model_storage->Clear();
 
@@ -120,21 +159,25 @@ namespace other {
     CHECKGL();
   }
 
-  Ref<Framebuffer> Pipeline::GetOutput() {
+  Ref<Framebuffer> Pipeline::GetOutput() const {
     return target;
-  }
-
-  GBuffer& Pipeline::GetGBuffer() {
-    return gbuffer;
   }
 
   void Pipeline::Clear() {
     /// dont clear the mesh key for a tiny optimization on future submissions
-    for (auto& [mk, sl] : model_submissions) {
+    for (auto& [mk, sl] : static_model_submissions) {
       sl.cpu_model_storage.ZeroMem();
       sl.cpu_material_storage.ZeroMem();
       sl.instance_count = 0;
     }
+    for (auto& [mk, sl] : model_submissions) {
+      // sl.cpu_model_storage.ZeroMem();
+      // sl.cpu_material_storage.ZeroMem();
+      for (auto& sub : sl.submissions) {
+        sub.instance_count = 0;
+      }
+    }
+    static_model_submissions.clear();
     model_submissions.clear();
   }
 
@@ -142,9 +185,15 @@ namespace other {
     CHECKGL();
 
     pass->Bind();
-    pass->SetInput("goe_position", 0);
-    pass->SetInput("goe_normal", 1);
-    pass->SetInput("goe_albedo", 2);
+    // pass->SetInput("goe_position", 0);
+    // pass->SetInput("goe_normal", 1);
+    // pass->SetInput("goe_albedo", 2);
+    // pass->SetInput("goe_specular", 3);
+    pass->SetInput("albedo_textures", 0);
+    pass->SetInput("normal_textures", 1);
+    pass->SetInput("roughness_textures", 2);
+    pass->SetInput("goe_shadow_map", 3);
+    pass->SetInput("goe_depth_map", 4);
 
     CHECKGL();
 
@@ -156,46 +205,120 @@ namespace other {
     CHECKGL();
   }
 
-  FrameMeshes::iterator Pipeline::InsertMeshKey(MeshKey& key, const std::vector<float>& vertices, const std::vector<Index>& indices) {
-    std::vector<uint32_t> idxs{};
-    for (const auto& i : indices) {
-      idxs.push_back(i.v1);
-      idxs.push_back(i.v2);
-      idxs.push_back(i.v3);
-    }
+  FrameMeshes::iterator Pipeline::InsertMeshKey(MeshKey& key, const Ref<Model>& model) {
+    OE_ASSERT(model != nullptr, "Model is null");
 
-    key.vao = NewRef<VertexArray>(vertices, idxs);
-    key.num_elements = key.vao->NumElements();
+    const std::vector<uint32_t>& sm_idxs = model->SubMeshes();
+    OE_ASSERT(!sm_idxs.empty(), "Model has no submeshes");
 
-    MeshSubmissionList msl{
-      .instance_count = 0,
-      .cpu_model_storage = Buffer(),  /// pre-allocate here?
-      .cpu_material_storage = Buffer(),
+    Ref<ModelSource> source = model->GetModelSource();
+    OE_ASSERT(source != nullptr, "Model source is null");
+
+    const std::vector<SubMesh>& submeshes = source->SubMeshes();
+    OE_ASSERT(!submeshes.empty(), "Model source has no submeshes");
+
+    Ref<VertexArray> vao = Ref<VertexArray>::Clone(source->source_vao);
+
+    MeshDrawCall msl = {
+      .vao = vao,
+      .base_instance = 0,
+      .cpu_model_storage = Buffer(),
+      .submissions = {},
     };
+    msl.submissions.reserve(sm_idxs.size());
+    for (auto& sm_idx : sm_idxs) {
+      const SubMesh& sub_mesh = submeshes[sm_idx];
+      msl.submissions.push_back({
+        .cpu_material_storage = Buffer(),
+        .vertex_offset = sub_mesh.base_vertex,
+        .vertex_count = sub_mesh.vert_cnt,
+        .index_offset = sub_mesh.base_idx,
+        .index_count = sub_mesh.idx_cnt,
+      });
+    }
 
     return model_submissions.insert({ key, std::move(msl) }).first;
   }
 
+  StaticFrameMeshes::iterator Pipeline::InsertStaticMeshKey(MeshKey& key, const Ref<StaticModel>& model) {
+    OE_ASSERT(model != nullptr, "Static model is null");
+    OE_ASSERT(model->GetModelSource() != nullptr, "Static model source is null");
+
+    Ref<VertexArray> vao = Ref<VertexArray>::Clone(model->model_vao);
+    OE_ASSERT(vao != nullptr, "Failed to clone vertex array");
+
+    StaticMeshDrawCall msl = {
+      .vao = vao,
+      .cpu_model_storage = Buffer(),
+      .cpu_material_storage = Buffer(),
+      .instance_count = 0,
+      .index_count = 0,
+    };
+
+    return static_model_submissions.insert({ key, std::move(msl) }).first;
+  }
+
   void Pipeline::RenderAll() {
-    for (auto& [mk, sl] : model_submissions) {
-      RenderMeshes(mk, sl.instance_count, sl.cpu_model_storage, sl.cpu_material_storage);
+    for (auto& [mk, draw_call] : static_model_submissions) {
+      RenderStaticMeshes(mk, draw_call);
+    }
+    for (auto& [mk, draw_call] : model_submissions) {
+      RenderMeshes(mk, draw_call);
     }
   }
 
-  void Pipeline::RenderMeshes(const MeshKey& mesh_key, uint32_t instance_count, const Buffer& model_buffer, const Buffer& material_buffer) {
-    model_storage->BindBase();
+  void Pipeline::RenderStaticMeshes(const MeshKey& mesh_key, StaticMeshDrawCall& draw_call) {
+    OE_ASSERT(material_storage != nullptr, "Material storage is null");
+    OE_ASSERT(model_storage != nullptr, "Model storage is null");
+    OE_ASSERT(draw_call.vao != nullptr, "Mesh submission list has null vertex array");
+
+    Ref<MaterialTable> material_table = AssetManager::GetMaterialTable();
+    OE_ASSERT(material_table != nullptr, "Material table is null");
+
+    draw_call.vao->Bind();
+    material_table->Bind();
     CHECKGL();
-    model_storage->LoadFromBuffer(model_buffer);
+
+    model_storage->BindBase();
+    model_storage->LoadFromBuffer(draw_call.cpu_model_storage);
     CHECKGL();
 
     material_storage->BindBase();
-    material_storage->LoadFromBuffer(material_buffer);
-
-    mesh_key.vao->Bind();
+    material_storage->LoadFromBuffer(draw_call.cpu_material_storage);
 
     glPolygonMode(GL_FRONT_AND_BACK, mesh_key.render_state);
-    glDrawElementsInstancedBaseVertexBaseInstance(mesh_key.draw_mode, mesh_key.num_elements, GL_UNSIGNED_INT, (void*)0, instance_count, 0, 0);
+    glDrawElementsInstancedBaseVertexBaseInstance(mesh_key.draw_mode, draw_call.index_count, GL_UNSIGNED_INT, (void*)0, draw_call.instance_count, 0, 0);
+
+    material_table->Unbind();
+    draw_call.vao->Unbind();
+  }
+
+  void Pipeline::RenderMeshes(const MeshKey& mesh_key, MeshDrawCall& draw_call) {
+    OE_ASSERT(material_storage != nullptr, "Material storage is null");
+    OE_ASSERT(model_storage != nullptr, "Model storage is null");
+    OE_ASSERT(draw_call.vao != nullptr, "Mesh submission list has null vertex array");
+
+    Ref<MaterialTable> material_table = AssetManager::GetMaterialTable();
+    OE_ASSERT(material_table != nullptr, "Material table is null");
+
+    draw_call.vao->Bind();
+    material_table->Bind();
     CHECKGL();
+
+    model_storage->BindBase();
+    model_storage->LoadFromBuffer(draw_call.cpu_model_storage);
+
+    for (auto& sub_call : draw_call.submissions) {
+      material_storage->BindBase();
+      material_storage->LoadFromBuffer(sub_call.cpu_material_storage);
+
+      glPolygonMode(GL_FRONT_AND_BACK, mesh_key.render_state);
+      glDrawElementsInstancedBaseVertexBaseInstance(mesh_key.draw_mode, sub_call.index_count, GL_UNSIGNED_INT, (void*)0, sub_call.instance_count, sub_call.vertex_offset, 0);
+      CHECKGL();
+    }
+
+    material_table->Unbind();
+    draw_call.vao->Unbind();
   }
 
 }  // namespace other

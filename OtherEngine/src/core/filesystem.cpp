@@ -9,6 +9,9 @@
 #include "core/config_keys.hpp"
 #include "core/directory.hpp"
 #include "core/logger.hpp"
+#include "core/memory_file.hpp"
+
+#include "parsing/parser_combinators.hpp"
 
 namespace other {
   namespace {
@@ -43,26 +46,37 @@ namespace other {
       std::filesystem::current_path(cwd.value());
     }
 
-    /// this may or may not equal project-root
-    sFileTree.dir = Ref<Directory>::Create(Filesystem::GetWorkingDirectory());
+    MountDirectory("working-directory", std::filesystem::current_path());
+    MountDirectory("core-shaders", GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders");
+  }
+
+  Ref<Directory> Filesystem::MountProjectRoot(const std::string_view name, const Path& path) {
+    OE_ASSERT(sFileTree.dir == nullptr, "Project root already mounted");
+    uint64_t hash = FNV(name);
+    sFileTree.dir = sFileTree.mounted_dirs[hash] = NewRef<Directory>(path, hash);
     OE_ASSERT(sFileTree.dir != nullptr, "Failed to create project directory");
     OE_ASSERT(sFileTree.dir->Exists(), "Project directory does not exist : {}", std::filesystem::current_path().string());
 
     OE_DEBUG("Filesystem initialized with working directory : [{}]", sFileTree.dir->AbsolutePath());
+    return sFileTree.dir;
   }
 
   void Filesystem::Poll() {
-    OE_ASSERT(sFileTree.dir != nullptr, "Filesystem not initialized");
+    if (sFileTree.dir == nullptr) {
+      return;
+    }
     /// poll for changes in the virtual file tree
 
-    for (auto& [id, dir] : sFileTree.mounted_dirs) {
-      OE_ASSERT(dir != nullptr, "Mounted directory is null");
-      dir->Poll();
-    }
+    sFileTree.dir->Poll();
 
     for (auto& [id, file] : sFileTree.registered_files) {
       OE_ASSERT(file != nullptr, "Registered file is null");
       file->Poll();
+    }
+
+    for (auto& [id, dir] : sFileTree.mounted_dirs) {
+      OE_ASSERT(dir != nullptr, "Mounted directory is null");
+      dir->Poll();
     }
   }
 
@@ -110,11 +124,40 @@ namespace other {
     }
   }
 
-  bool Filesystem::AttemptDelete(const Path& path) {
+  bool Filesystem::RemoveFile(UUID handle) {
     try {
-      return std::filesystem::remove(path);
+      bool success = sFileTree.dir->RemoveFile(handle);
+      if (success) {
+        OE_DEBUG("Removed file : {}", handle);
+      }
+
+      for (auto& [id, dir] : sFileTree.mounted_dirs) {
+        if (dir->RemoveFile(handle)) {
+          success = true;
+          OE_DEBUG("Removed file : {}", handle);
+        }
+      }
+
+      auto find_file = sFileTree.registered_files.find(handle);
+      if (find_file != sFileTree.registered_files.end()) {
+        auto& file = find_file->second;
+        if (file->Exists()) {
+          success = file->Remove();
+        }
+
+        if (!success && file->Exists()) {
+          success = file->Remove();
+        }
+        sFileTree.registered_files.erase(find_file);
+      }
+
+      if (success) {
+        OE_DEBUG("Removed file : {}", handle);
+      }
+
+      return success;
     } catch (std::filesystem::filesystem_error& e) {
-      OE_ERROR("Filesystem error : {}", e.what());
+      OE_ERROR("Failed to delete file : {}", e.what());
       return false;
     } catch (...) {
       OE_ERROR("Unknown Filesystem error");
@@ -122,13 +165,22 @@ namespace other {
     }
   }
 
+  bool Filesystem::RemoveDirectory(UUID handle) {
+    // try {
+    //   return std::filesystem::remove_all(path);
+    // } catch (std::filesystem::filesystem_error& e) {
+    //   OE_ERROR("Filesystem error : {}", e.what());
+    //   return false;
+    // } catch (...) {
+    //   OE_ERROR("Unknown Filesystem error");
+    //   return false;
+    // }
+    return false;
+  }
+
   Ref<Directory> Filesystem::MountDirectory(const std::string_view name, const Path& path) {
     OE_DEBUG("Mounting directory : {} at {}", name, path.string());
     if (!PathExists(path)) {
-      /// TODO: decide if we want to create mounted directories
-      // if (!CreateDir(path)) {
-      //   OE_ERROR("Failed to create directory : {}", path.string());
-      // }
       OE_ERROR("Directory does not exist : {}", path.string());
       return nullptr;
     }
@@ -140,8 +192,7 @@ namespace other {
       return find_dir->second;
     }
 
-    Ref<Directory> dir = Ref<Directory>::Create(path);
-    dir->handle = id;
+    Ref<Directory> dir = NewRef<Directory>(path, id);
     sFileTree.mounted_dirs[id] = dir;
     OE_DEBUG(" > Mounted directory : {} at {}", name, path.string());
 
@@ -161,7 +212,7 @@ namespace other {
       return find_file->second;
     }
 
-    Ref<FileHandle> file = Ref<FileHandle>::Create(hash, path);
+    Ref<FileHandle> file = NewRef<FileHandle>(path);
     if (file == nullptr) {
       OE_ERROR("Failed to open file : {}", path.string());
       return nullptr;
@@ -176,6 +227,16 @@ namespace other {
     return file;
   }
 
+  Ref<FileHandle> Filesystem::CreateMemoryFile(const std::string_view drive, const std::string_view virtual_filename, const std::string_view ext) {
+    Ref<FileHandle> file = NewRef<MemoryFile>(virtual_filename, ext);
+    if (file == nullptr) {
+      OE_ERROR("Failed to create memory file : {}", virtual_filename);
+      return nullptr;
+    }
+
+    return file;
+  }
+
   Ref<Directory> Filesystem::OpenDirectory(const Path& path) {
     for (auto& [id, dir] : sFileTree.mounted_dirs) {
       if (dir->AbsolutePath() == path || dir->ProjectRelativePath() == path) {
@@ -183,7 +244,8 @@ namespace other {
       }
     }
 
-    Ref<Directory> dir = Ref<Directory>::Create(path);
+    uint64_t hash = FNV(path.stem().string());
+    Ref<Directory> dir = NewRef<Directory>(path, hash);
     if (dir == nullptr) {
       OE_ERROR("Failed to open directory : {}", path.string());
       return nullptr;
@@ -214,7 +276,7 @@ namespace other {
       return file;
     }
 
-    Ref<FileHandle> file = Ref<FileHandle>::Create(hash, path, mode);
+    Ref<FileHandle> file = NewRef<FileHandle>(path, mode);
     if (file == nullptr) {
       OE_ERROR("Failed to open file : {}", path.string());
       return nullptr;
@@ -244,7 +306,7 @@ namespace other {
   Ref<Directory> Filesystem::GetDirectory(UUID id) {
     auto find_dir = sFileTree.mounted_dirs.find(id);
     if (find_dir != sFileTree.mounted_dirs.end()) {
-      return find_dir->second;
+      return Ref<Directory>::Clone(find_dir->second);
     }
 
     OE_ERROR("Failed to find directory with id : {}", id);
@@ -254,7 +316,7 @@ namespace other {
   Ref<FileHandle> Filesystem::GetFile(const Path& path) {
     for (auto& [id, dir] : sFileTree.mounted_dirs) {
       if (dir->Contains(path)) {
-        OE_DEBUG("Found path in mounted directory : {} [ full path = {} ]", path.string(), (*dir) / path);
+        OE_TRACE("Found path in mounted directory : {} [ full path = {} ]", path.string(), (*dir) / path);
         return dir->OpenFile(path);
       }
     }
@@ -270,7 +332,7 @@ namespace other {
       return find_file->second;
     }
 
-    Ref<FileHandle> file = Ref<FileHandle>::Create(hash, path);
+    Ref<FileHandle> file = NewRef<FileHandle>(path);
     if (file == nullptr) {
       OE_ERROR("Failed to open file : {}", path.string());
       return nullptr;

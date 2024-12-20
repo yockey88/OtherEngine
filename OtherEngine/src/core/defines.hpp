@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <iostream>
 #include <memory>
 #include <optional>
 #include <stack>
@@ -129,6 +130,7 @@ namespace other {
     MAT4,
 
     SAMPLER2D,
+    SAMPLER2D_ARRAY,
 
     ASSET,
     ENTITY,
@@ -180,9 +182,13 @@ namespace other {
     }
   }
 
+  ValueType StringToValueType(const std::string& str);
+  std::string_view ValueTypeToString(ValueType type);
+
   struct UUID;
+
   /// these return entity, because we should only ever be using this function for scripting
-  ///   apis, their use elsewhere doesn't ever use UUIDs
+  ///   apis
   template <>
   constexpr ValueType GetValueType<UUID>() {
     return ValueType::ENTITY;
@@ -204,6 +210,7 @@ namespace other {
       case UINT32:
       case FLOAT:
       case SAMPLER2D:
+      case SAMPLER2D_ARRAY:
         return 4;
 
       case INT64:
@@ -228,6 +235,7 @@ namespace other {
       case MAT4:
         return 4 * 4 * 4;
 
+      case USER_TYPE:
       default:
         return 0;
     }

@@ -23,7 +23,7 @@ namespace other {
     App(const CmdLine& cmdline, const ConfigTable& config);
     virtual ~App();
 
-    virtual Ref<AssetHandler> CreateAssetHandler();
+    virtual Ref<AssetHandler> CreateAssetHandler(EngineMode mode);
     virtual Ref<SceneRenderer> CreateSceneRenderer();
 
     void Load();
@@ -36,6 +36,13 @@ namespace other {
     void OnRender();
     void OnRenderUI();
     void Detach();
+
+    struct RenderSpec {
+      std::vector<FramebufferSpec> framebuffer_specs;
+      std::vector<RenderPassSpec> render_passes;
+      std::vector<PipelineSpec> pipelines;
+      std::map<UUID, std::vector<UUID>> pipeline_to_pass_map;
+    } render_specs;
 
    protected:
     virtual void OnLoad() {}

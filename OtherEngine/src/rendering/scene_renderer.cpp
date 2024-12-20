@@ -6,8 +6,13 @@
 #include <glad/glad.h>
 
 #include "core/defines.hpp"
+#include "core/filesystem.hpp"
 #include "core/logger.hpp"
 
+#include "asset/asset_manager.hpp"
+
+#include "rendering/geometry_pass.hpp"
+#include "rendering/pipeline.hpp"
 #include "rendering/uniform.hpp"
 
 namespace other {
@@ -20,168 +25,286 @@ namespace other {
   SceneRenderer::~SceneRenderer() {
   }
 
-  void SceneRenderer::SetViewportSize(const glm::ivec2& size) {
-    for (auto& [_, pl] : pipelines) {
-      pl->SetViewportSize(size);
-    }
+  const std::map<UUID, Ref<Pipeline>>& SceneRenderer::GetPipelines() const {
+    return pipelines;
   }
 
-  void SceneRenderer::SubmitCamera(const Ref<CameraBase>& camera) {
+  void SceneRenderer::SetViewportSize(const glm::ivec2& size) {
+  }
+
+  void SceneRenderer::SubmitCamera(Ref<CameraBase>& camera) {
+    /// FIXME: different pipelines should be able to have different camera bindings
     if (frame_data.viewpoint != nullptr) {
       /// only one viewpoint per frame
       return;
     }
     OE_ASSERT(camera != nullptr, "Camera is null");
-    OE_ASSERT(camera_uniforms != nullptr, "Camera uniforms are null");
+    OE_ASSERT(frame_data.camera_uniforms != nullptr, "Camera uniforms are null");
 
     const glm::mat4& proj = camera->ProjectionMatrix();
     const glm::mat4& view = camera->ViewMatrix();
     glm::vec4 cam_pos = glm::vec4(camera->Position(), 1.f);
 
-    camera_uniforms->SetUniform("projection", proj);
-    camera_uniforms->SetUniform("view", view);
-    camera_uniforms->SetUniform("viewpoint", cam_pos);
+    frame_data.camera_uniforms->SetUniform("projection", proj);
+    frame_data.camera_uniforms->SetUniform("view", view);
+    frame_data.camera_uniforms->SetUniform("viewpoint", cam_pos);
     frame_data.viewpoint = camera;
   }
 
-  void SceneRenderer::SubmitEnvironment(const Ref<LightEnvironment>& environment) {
+  void SceneRenderer::SubmitEnvironment(Ref<LightEnvironment>& environment) {
     if (frame_data.environment != nullptr) {
       /// only one environment per frame
       return;
     }
     OE_ASSERT(environment != nullptr, "Environment is null");
-    OE_ASSERT(light_uniforms != nullptr, "Light uniforms are null");
+    OE_ASSERT(frame_data.light_uniforms != nullptr, "Light uniforms are null");
 
-    float num_dir_lights = environment->direction_lights.size();
     float num_point_lights = environment->point_lights.size();
     glm::vec4 light_count{
-      num_dir_lights, num_point_lights,
-      0, 0
+      num_point_lights,
+      0, 0, 0
     };
-    light_uniforms->BindBase();
-    light_uniforms->SetUniform("num_lights", light_count);
+    frame_data.light_uniforms->BindBase();
+    frame_data.light_uniforms->SetUniform("num_lights", light_count);
     for (size_t i = 0; i < num_point_lights; ++i) {
       auto& l = environment->point_lights[i];
-      light_uniforms->SetUniform("point_lights", l, i);
+      frame_data.light_uniforms->SetUniform("point_lights", l, i);
     }
-    for (size_t i = 0; i < num_dir_lights; ++i) {
-      auto& l = environment->direction_lights[i];
-      light_uniforms->SetUniform("direction_lights", l, i);
+
+    if (environment->direction_light.has_value()) {
+      frame_data.light_uniforms->SetUniform("direction_light", environment->direction_light.value());
     }
     frame_data.environment = environment;
   }
 
   void SceneRenderer::ClearLightEnvironment() {
     glm::vec4 light_count{ 0, 0, 0, 0 };
-    light_uniforms->BindBase();
-    light_uniforms->SetUniform("num_lights", light_count);
+    frame_data.light_uniforms->BindBase();
+    frame_data.light_uniforms->SetUniform("num_lights", light_count);
   }
 
-  void SceneRenderer::SubmitModel(const std::string_view pl_name, Ref<Model> model, const glm::mat4& transform, const Material& material) {
-    if (model == nullptr) {
-      return;
-    }
-  }
-
-  void SceneRenderer::SubmitStaticModel(const std::string_view pl_name, Ref<StaticModel> model, const glm::mat4& transform, const Material& material) {
+  void SceneRenderer::SubmitModel(const Ref<Model>& model, const glm::mat4& transform, UUID material_id, DrawMode topology) {
     if (model == nullptr) {
       return;
     }
 
-    auto itr = pipelines.find(FNV(pl_name));
-    if (itr == pipelines.end()) {
-      OE_ERROR("Submitting model to unknown pipeline {}!", pl_name);
-      return;
-    }
-
-    itr->second->SubmitStaticModel(model, transform, material);
+    SubmitModel({
+      .model = model,
+      .transform = transform,
+      .material = material_id,
+      .draw_mode = topology,
+    });
   }
 
-  void SceneRenderer::SubmitStaticModel(const std::string_view pl_name, const RenderSubmission& submission) {
+  void SceneRenderer::SubmitModel(const RenderSubmission& submission) {
     if (submission.model == nullptr) {
       return;
     }
-
-    auto itr = pipelines.find(FNV(pl_name));
-    if (itr == pipelines.end()) {
-      OE_ERROR("Submitting model to unknown pipeline {}!", pl_name);
-      return;
-    }
-
-    itr->second->SubmitStaticModel(submission);
-  }
-
-  void SceneRenderer::RenderGbuffer() {
-    if (!FrameComplete()) {
-      return;
-    }
-
-    PreRenderSettings();
     for (auto& [id, pl] : pipelines) {
-      pl->RenderGbuffer();
+      pl->SubmitModel(submission);
     }
   }
 
-  bool SceneRenderer::RenderAll() {
+  void SceneRenderer::SubmitStaticModel(const Ref<StaticModel>& model, const glm::mat4& transform, UUID material_id, DrawMode topology) {
+    if (model == nullptr) {
+      return;
+    }
+
+    SubmitStaticModel({
+      .model = model,
+      .transform = transform,
+      .material = material_id,
+      .draw_mode = topology,
+    });
+  }
+
+  void SceneRenderer::SubmitStaticModel(const RenderStaticSubmission& submission) {
+    if (submission.model == nullptr) {
+      return;
+    }
+    for (auto& [id, pl] : pipelines) {
+      pl->SubmitStaticModel(submission);
+    }
+  }
+
+  void SceneRenderer::SubmitModel(const std::vector<std::string>& pls, const Ref<Model>& model, const glm::mat4& transform, UUID material_id, DrawMode topology) {
+    for (auto& pl : pls) {
+      auto itr = pipelines.find(FNV(pl));
+      if (itr == pipelines.end()) {
+        continue;
+      }
+
+      itr->second->SubmitModel(model, transform, material_id, topology);
+    }
+  }
+
+  void SceneRenderer::SubmitStaticModel(const std::vector<std::string>& pls, const Ref<StaticModel>& model, const glm::mat4& transform, UUID material_id, DrawMode topology) {
+    for (auto& pl : pls) {
+      auto itr = pipelines.find(FNV(pl));
+      if (itr == pipelines.end()) {
+        continue;
+      }
+
+      SubmitStaticModel(pls, {
+                               .model = model,
+                               .transform = transform,
+                               .material = material_id,
+                               .draw_mode = topology,
+                             });
+    }
+  }
+
+  void SceneRenderer::SubmitModel(const std::vector<std::string>& pls, const RenderSubmission& submission) {
+    for (auto& pl : pls) {
+      auto itr = pipelines.find(FNV(pl));
+      if (itr == pipelines.end()) {
+        continue;
+      }
+
+      itr->second->SubmitModel(submission);
+    }
+  }
+
+  void SceneRenderer::SubmitStaticModel(const std::vector<std::string>& pls, const RenderStaticSubmission& submission) {
+    for (auto& pl : pls) {
+      auto itr = pipelines.find(FNV(pl));
+      if (itr == pipelines.end()) {
+        continue;
+      }
+
+      itr->second->SubmitStaticModel(submission);
+    }
+  }
+
+  bool SceneRenderer::Render() {
     if (!FrameComplete()) {
       return false;
     }
 
-    PreRenderSettings();
-    FlushDrawList();
-    return true;
-  }
+    /** Passes to implement
+     * ----------------
+     * shadow mapping (expensive) :
+     *  shadow map pass
+     *  spot shadow map pass
+     *
+     * pre depth pass
+     * hzb compute
+     * pre integration
+     * light culling
+     * skybox pass
+     * geometry pass
+     *
+     * if GTAO passes:
+     *  GTAO compute
+     *  GTAO denoise compute
+     *  AO Composite
+     *
+     * pre convolution compute
+     *
+     * if jump flood:
+     *  jump flood
+     *
+     * if SSR pases:
+     *  ssr compute
+     *  ssr composite
+     *
+     * if edge detection passes:
+     *  edge detection
+     *
+     * bloom compute
+     * composite pass
+     **/
 
-  bool SceneRenderer::FinalizeScene() {
-    if (!FrameComplete()) {
-      ResetFrame();
-      return false;
-    }
+    /// FIXME: This whole function needs to be handled better
 
-    PreRenderSettings();
-    FlushDrawList();
+    Ref<Pipeline>& shadow_map_pl = pipelines[FNV("ShadowMap")];
+    Ref<Pipeline>& depth_pl = pipelines[FNV("Depth")];
+
+    glCullFace(GL_FRONT);
+    shadow_map_pl->Render();
+    glCullFace(GL_BACK);
+
+    depth_pl->Render();
+
+    image_ir[FNV("ShadowMap")] = framebuffers[SHADOW_MAP_FB] = shadow_map_pl->GetOutput();
+    image_ir[FNV("Depth")] = framebuffers[DEPTH_TEXTURE_FB] = depth_pl->GetOutput();
+
+    /// gbuffer takes 0-3 (position, normals, albedo, specular) so we start at 4
+    /// mat table goes 0-2, so we start at 3
+    glActiveTexture(GL_TEXTURE0 + 3);
+    glBindTexture(GL_TEXTURE_2D, framebuffers[SHADOW_MAP_FB]->texture);
+    glActiveTexture(GL_TEXTURE0 + 4);
+    glBindTexture(GL_TEXTURE_2D, framebuffers[DEPTH_TEXTURE_FB]->texture);
+
+    /// materials go 6-8
+
+    pipelines[FNV("Geometry")]->Render();
+    image_ir[FNV("Geometry")] = pipelines[FNV("Geometry")]->GetOutput();
+
     ResetFrame();
     return true;
   }
 
-  void SceneRenderer::ClearPipelines() {
-    for (auto& [id, pl] : pipelines) {
+  void SceneRenderer::Clear() {
+    /// dont clear the mesh key for a tiny optimization on future submissions
+    for (auto& [mk, pl] : pipelines) {
       pl->Clear();
     }
   }
 
-  const std::map<UUID, Ref<Framebuffer>>& SceneRenderer::GetRender() const {
-    return image_ir;
+  Ref<Framebuffer> SceneRenderer::GetRender(UUID pipeline_id) const {
+    auto itr = pipelines.find(pipeline_id);
+    if (itr == pipelines.end()) {
+      return nullptr;
+    }
+
+    return itr->second->GetOutput();
+  }
+
+  SceneRenderer::FrameSubmissions::~FrameSubmissions() {
+    viewpoint = nullptr;
+    environment = nullptr;
+    camera_uniforms = nullptr;
+    light_uniforms = nullptr;
   }
 
   void SceneRenderer::Initialize() {
-    /// already made render passes
-    for (auto& rp : spec.passes) {
-      passes[FNV(rp->Name())] = Ref<RenderPass>::Clone(rp);
-    }
+    Ref<Directory> shader_dir = Filesystem::GetDirectory("shaders");
+    Ref<FileHandle> shadow_map_shader_file = shader_dir->GetFile("shadow_map.oshader");
+    Ref<FileHandle> depth_shader_file = shader_dir->GetFile("depth_shader.oshader");
+    OE_ASSERT(shadow_map_shader_file != nullptr, "Failed to get shader file : {}", "shadow_map.oshader");
+    OE_ASSERT(depth_shader_file != nullptr, "Failed to get shader file : {}", "depth_shader.oshader");
 
-    /// pipelines
-    for (auto& pl : spec.pipelines) {
-      pipelines[FNV(pl.debug_name)] = NewRef<Pipeline>(pl);
-    }
+    Ref<Directory> core_shaders = Filesystem::GetDirectory("core-shaders");
+    OE_ASSERT(core_shaders != nullptr, "Failed to get core shaders directory");
+    OE_ASSERT(core_shaders->Exists(), "Core shaders directory does not exist");
 
-    for (auto& [pipeline_id, pass_list] : spec.pipeline_to_pass_map) {
-      auto itr = pipelines.find(pipeline_id);
-      if (itr == pipelines.end()) {
-        continue;
-      }
-      auto [_, pipeline] = *itr;
+    Ref<FileHandle> default_shader_file = core_shaders->GetFile("default.oshader");
+    OE_ASSERT(default_shader_file != nullptr, "Failed to get default shader file : {}", "default.oshader");
+    OE_ASSERT(default_shader_file->Exists(), "Default shader file does not exist : {}", "default.oshader");
 
-      for (auto& pass_id : pass_list) {
-        auto pass_itr = passes.find(pass_id);
-        if (pass_itr == passes.end()) {
-          continue;
-        }
-        auto [__, pass] = *pass_itr;
+    Ref<Shader> default_shader = AssetManager::GetAsset<Shader>(default_shader_file->handle, default_shader_file->GetAssetType());
+    OE_ASSERT(default_shader != nullptr, "Failed to get default shader : {}", "default.oshader");
 
-        pipeline->SubmitRenderPass(pass);
-      }
-    }
+    Ref<Shader> shadow_map_shader = AssetManager::GetAsset<Shader>(shadow_map_shader_file->handle, shadow_map_shader_file->GetAssetType());
+    RenderPassSpec shadow_map_spec = {
+      .name = "shadow-map-pass",
+      .tag_col = { 0.f, 0.f, 0.f, 1.f },
+      .shader = shadow_map_shader,
+    };
+
+    Ref<Shader> depth_shader = AssetManager::GetAsset<Shader>(depth_shader_file->handle, depth_shader_file->GetAssetType());
+    RenderPassSpec depth_spec = {
+      .name = "depth-pass",
+      .tag_col = { 1.f, 0.f, 0.f, 1.f },
+      .shader = depth_shader,
+    };
+
+    render_passes[SHADOW_MAP] = NewRef<RenderPass>(shadow_map_spec);
+    render_passes[DEPTH_PASS] = NewRef<RenderPass>(depth_spec);
+
+    std::vector<Uniform> geometry_unis = {};
+    render_passes[GEOMETRY_PASS] = NewRef<GeometryPass>(geometry_unis, default_shader);
 
     uint32_t camera_binding_pnt = spec.camera_binding_pnt;
     std::vector<Uniform> cam_unis = spec.cam_unis.size() > 0 ?
@@ -197,21 +320,74 @@ namespace other {
       spec.light_unis :
       std::vector<Uniform>{
         { "num_lights", ValueType::VEC4 },
+        { "direction_light", ValueType::USER_TYPE, 1, sizeof(DirectionLight) },
         { "point_lights", ValueType::USER_TYPE, 100, sizeof(PointLight) },
-        { "direction_lights", ValueType::USER_TYPE, 100, sizeof(DirectionLight) },
       };
 
-    camera_uniforms = NewRef<UniformBuffer>("Camera", cam_unis, camera_binding_pnt);
-    light_uniforms = NewRef<UniformBuffer>("Lights", light_unis, light_binding_pnt, SHADER_STORAGE);
-    OE_ASSERT(camera_uniforms != nullptr, "Failed to create camera uniforms");
-    OE_ASSERT(light_uniforms != nullptr, "Failed to create light uniforms");
+    spec.vertex_layout = {
+      { ValueType::VEC3, "position" },
+      { ValueType::VEC3, "normal" },
+      { ValueType::VEC3, "tangent" },
+      { ValueType::VEC3, "binormal" },
+      { ValueType::VEC2, "uvs" }
+    };
 
-    camera_uniforms->BindBase();
-    light_uniforms->BindBase();
+    frame_data.camera_uniforms = NewRef<UniformBuffer>("Camera", cam_unis, camera_binding_pnt);
+    frame_data.light_uniforms = NewRef<UniformBuffer>("Lights", light_unis, light_binding_pnt, SHADER_STORAGE);
+
+    OE_ASSERT(frame_data.camera_uniforms != nullptr, "Failed to create camera uniforms");
+    OE_ASSERT(frame_data.light_uniforms != nullptr, "Failed to create light uniforms");
+
+    frame_data.camera_uniforms->BindBase();
+    frame_data.light_uniforms->BindBase();
+
+    /// already made render passes
+    for (auto& rp : spec.passes) {
+      custom_passes[FNV(rp->Name())] = Ref<RenderPass>::Clone(rp);
+    }
+
+    /// pipelines
+    for (auto& pl : spec.pipelines) {
+      pipelines[FNV(pl.pipeline_name)] = NewRef<Pipeline>(pl);
+    }
+
+    for (auto& [id, pass_registration] : spec.pipeline_passes) {
+      auto itr = pipelines.find(id);
+      if (itr == pipelines.end()) {
+        continue;
+      }
+      auto [_, pipeline] = *itr;
+
+      for (const auto& pass : pass_registration.passes) {
+        if (pass >= NUM_RENDER_PASSES) {
+          continue;
+        }
+
+        pipeline->SubmitRenderPass(render_passes[pass]);
+      }
+    }
+
+    for (auto& [pipeline_id, pass_list] : spec.pipeline_custom_passes) {
+      auto itr = pipelines.find(pipeline_id);
+      if (itr == pipelines.end()) {
+        continue;
+      }
+      auto [_, pipeline] = *itr;
+
+      for (auto& pass_id : pass_list) {
+        auto pass_itr = custom_passes.find(pass_id);
+        if (pass_itr == custom_passes.end()) {
+          continue;
+        }
+        auto [__, pass] = *pass_itr;
+
+        pipeline->SubmitRenderPass(pass);
+      }
+    }
   }
 
   void SceneRenderer::Shutdown() {
-    pipelines.clear();
+    frame_data = {};
   }
 
   void SceneRenderer::PreRenderSettings() {
@@ -219,16 +395,8 @@ namespace other {
     ///       but not below
   }
 
-  void SceneRenderer::FlushDrawList() {
-    for (auto& [id, pl] : pipelines) {
-      pl->Render();
-      image_ir[id] = pl->GetOutput();
-    }
-  }
-
   bool SceneRenderer::FrameComplete() const {
-    return frame_data.viewpoint != nullptr &&
-      frame_data.environment != nullptr;
+    return frame_data.viewpoint != nullptr && frame_data.environment != nullptr;
   }
 
   void SceneRenderer::ResetFrame() {

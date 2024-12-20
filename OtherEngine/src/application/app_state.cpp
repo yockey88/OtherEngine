@@ -87,11 +87,6 @@ namespace other {
     return data->scenes;
   }
 
-  Ref<SceneRenderer> AppState::GetSceneRenderer() {
-    OE_ASSERT(data != nullptr, "Can not access app data until app is loaded");
-    return data->scenes->GetRenderer();
-  }
-
   UUID AppState::PushUIWindow(Ref<UIWindow> window) {
     OE_ASSERT(data != nullptr, "Can not access app data until app is loaded");
     UUID id = FNV(window->Title());
@@ -159,12 +154,18 @@ namespace other {
     Ref<FileHandle> primary_scene = scene_dir->GetFileHandleByName(*proj_meta.primary_scene);
     OE_ASSERT(primary_scene != nullptr, "Failed to get primary scene file handle");
 
-    if (!data->scenes->LoadScene(*primary_scene)) {
+    if (!primary_scene->Exists()) {
+      OE_ERROR("Primary scene does not exist : {}", *proj_meta.primary_scene);
+      return;
+    }
+
+    OE_INFO("Primary scene : {}", *proj_meta.primary_scene);
+    if (!data->scenes->LoadScene(primary_scene)) {
       OE_ERROR("Failed to load primary scene : {}", *proj_meta.primary_scene);
       return;
     }
 
-    data->scenes->SetAsActive(*proj_meta.primary_scene);
+    data->scenes->SetAsActive(primary_scene);
     OE_DEBUG("Primary Scene Loaded : {}", *proj_meta.primary_scene);
   }
 
@@ -172,6 +173,9 @@ namespace other {
     if (is_attached) {
       return;
     }
+
+    data->assets = data->app_handle->CreateAssetHandler(mode);
+    data->scenes->LoadRenderer(data->app_handle->CreateSceneRenderer());
 
     Environment::Initialize();
 
@@ -187,12 +191,12 @@ namespace other {
     EventQueue::Poll();
 
     // then create application objects
-    data->assets = data->app_handle->CreateAssetHandler();
-    data->scenes->LoadRenderer(data->app_handle->CreateSceneRenderer());
     is_attached = true;
   }
 
   void AppState::DetachApplication() {
+    /// write out any changes to project file
+
     data->layers->InvokeControlledLoop(&Layer::Detach);
     data->layers->Clear();
 
@@ -256,7 +260,7 @@ namespace other {
 
   void AppState::HandleRender() {
     Renderer::GetWindow()->Clear();
-    data->scenes->GetRenderer()->ClearPipelines();
+    data->scenes->GetRenderer()->Clear();
 
     data->app_handle->OnRender();
     data->layers->InvokeControlledLoop(&Layer::Render);

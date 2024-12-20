@@ -4,13 +4,14 @@
 #include <pybind11/pybind11.h>
 
 #include "core/defines.hpp"
-#include "editor/editor_asset_handler.hpp"
 
 #include "event/key_events.hpp"
 #include "event/window_events.hpp"
 #include "parsing/cmd_line_parser.hpp"
 
 #include "scene/light_environment.hpp"
+
+#include "editor/editor_asset_handler.hpp"
 
 #include "other_engine.hpp"
 
@@ -44,8 +45,6 @@ namespace {
     /// will only ever be called if editor is active because otherwise the scripts
     ///   wont be reloaded
     // virtual void OnScriptReload() override;
-
-    virtual Ref<AssetHandler> CreateAssetHandler() override;
   };
 
 }  // anonymous namespace
@@ -74,36 +73,37 @@ namespace {
   }
 
   ExitCode OpenScene(const std::string_view scene) {
-    println("Loading environment config...");
-    auto cfg = LoadConfig();
-    if (!cfg) {
-      return ExitCode::FAILURE;
-    }
+    // println("Loading environment config...");
+    // auto cfg = LoadConfig();
+    // if (!cfg) {
+    //   return ExitCode::FAILURE;
+    // }
 
-    try {
-      // println("Loading other environment...");
-      // LoadSystems();
+    // try {
+    //   // println("Loading other environment...");
+    //   // LoadSystems();
 
-      // AppState::Scenes()->LoadScene(scene);
-      // AppState::Scenes()->SetAsActive(scene);
+    //   // AppState::Scenes()->LoadScene(scene);
+    //   // AppState::Scenes()->SetAsActive(scene);
 
-      println("opening scene : {}", scene);
-      // PyEnv::application->Run();
-      while (true) {
-      }
+    //   println("opening scene : {}", scene);
+    //   // PyEnv::application->Run();
+    //   while (true) {
+    //   }
 
-      // println("shutting down environment...");
-      // ShutdownSystems();
-    } catch (std::exception& e) {
-      println("Failed to load environment : {}", e.what());
-      return ExitCode::FAILURE;
-    } catch (...) {
-      println("Failed to environment : unknown error");
-      return ExitCode::FAILURE;
-    }
+    //   // println("shutting down environment...");
+    //   // ShutdownSystems();
+    // } catch (std::exception& e) {
+    //   println("Failed to load environment : {}", e.what());
+    //   return ExitCode::FAILURE;
+    // } catch (...) {
+    //   println("Failed to environment : unknown error");
+    //   return ExitCode::FAILURE;
+    // }
 
-    println("exiting with code {}", PyEnv::exit_code.value());
-    return PyEnv::exit_code.value();
+    // println("exiting with code {}", PyEnv::exit_code.value());
+    // return PyEnv::exit_code.value();
+    return ExitCode::FAILURE;
   }
 
   struct LogWrapper {
@@ -155,10 +155,6 @@ namespace {
 
   void EnvironmentApp::OnDetach() {
     println(" > EnvironmentApp::OnDetach");
-  }
-
-  Ref<AssetHandler> EnvironmentApp::CreateAssetHandler() {
-    return NewRef<EditorAssetHandler>();
   }
 
   Opt<Path> PyEnv::env_cfg_path = std::nullopt;

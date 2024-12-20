@@ -4,6 +4,8 @@
  **/
 #include "rendering/layout.hpp"
 
+#include "core/value.hpp"
+
 namespace other {
 
   uint32_t VertexBufferElement::GetComponentCount() {
@@ -39,6 +41,14 @@ namespace other {
 
   const std::vector<VertexBufferElement> Layout::Elements() const {
     return elements;
+  }
+
+  std::vector<uint32_t> Layout::GetRawLayout() const {
+    std::vector<uint32_t> raw_layout;
+    for (const auto& e : elements) {
+      raw_layout.push_back(Value::NumElements(e.type));
+    }
+    return raw_layout;
   }
 
   uint32_t Layout::Count() const {

@@ -8,8 +8,8 @@ entities = {
   "cube" ,
   "sun" ,
   "floor",
-  "entity",
-  "camera"
+  "camera",
+  "backpack",
 }
 
 
@@ -38,8 +38,9 @@ children = {}
 visible = true
 is-primitive = true
 primitive = 3
-material.color = { 1.0, 0.5, 0.31, 1 }
-material.shininess = 32
+material.albedo = { 0, 1, 0, 1 },
+material.normal = { 1.0 , 1.0 , 1.0, 1 },
+material.roughness = { 1.0, 1.0, 1.0, 1 }
 
 [cube.script]
 *SandboxScripts = { "Other::TestScript2" }
@@ -56,8 +57,8 @@ rotation = { 0 , 0 , 0 , 0 }
 scale = { 0.2 , 0.2 , 0.2 }
 
 [sun.light-source]
-type = 1
-direction = { 0 , -1.0 , 0 , 1.0 }
+type = 0
+direction = { 2.0 , -4.0 , 1.0 , 1.0 }
 color = { 0.22 , 0.22 , 0.11 , 1.0 }
 
 [floor]
@@ -69,7 +70,7 @@ components = {
 [floor.transform]
 position = { 0 , -2 , 0 }
 rotation = { 0 , 0 , 0 , 1 }
-scale = { 10 , 1 , 10 }
+scale = { 10 , 0.05 , 10 }
 
 [floor.relationship]
 children = {}
@@ -78,8 +79,9 @@ children = {}
 visible = true
 is-primitive = true
 primitive = 3
-material.color = { 0.1, 0.5, 0.31, 1 }
-material.shininess = 32
+material.albedo = { 1, 0, 0, 1 }
+material.normal = { 1.0 , 1.0 , 1.0, 1 }
+material.roughness = { 1.0, 1.0, 1.0, 1 }
 
 [camera]
 UUID = 4220486183894562136
@@ -113,6 +115,14 @@ constrain-pitch = true
 primary = true
 pinned = true
 
+[backpack]
+UUID = 4299032860123401593
+components = {
+  mesh
+}
+
+[mesh]
+visible = true
 
 #[
 

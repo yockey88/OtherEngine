@@ -5,9 +5,12 @@
 #define OTHER_ENGINE_VIEWPORT_PANEL_HPP
 
 #include "core/ref.hpp"
-#include "editor/editor_panel.hpp"
+
+#include "event/key_events.hpp"
 
 #include "scene/scene.hpp"
+
+#include "editor/editor_panel.hpp"
 
 namespace other {
 
@@ -16,6 +19,9 @@ namespace other {
     ViewportPanel() {}
     virtual ~ViewportPanel() override {}
 
+    virtual void OnAttach() override;
+    virtual void OnUpdate(float dt) override;
+
     virtual void OnRender() override;
     virtual bool OnGuiRender(bool& is_open) override;
     virtual void OnProjectChange(const Ref<Project>& project) override;
@@ -23,11 +29,18 @@ namespace other {
 
    private:
     Ref<Scene> active_scene;
-
     glm::vec2 viewport_padding = { 0.f, 0.f };
 
-    void RenderCreateEntity(Entity* parent = nullptr);
-    bool RenderEntity(const UUID& id, Entity* entity);
+    glm::vec2 last_viewport_size = { 0.f, 0.f };
+    Ref<Framebuffer> viewport;
+
+    bool window_hovered = false;
+    bool open_framebuffer_menu = false;
+
+    void RenderFramebufferList(Ref<SceneRenderer>& renderer);
+    void RenderViewport(const Ref<Framebuffer>& viewport);
+
+    bool HandleKeyPressed(KeyPressed& event);
   };
 
 }  // namespace other

@@ -1,29 +1,33 @@
 /**
  * \file core/ref.hpp
-*/
+ */
 #include "core/ref.hpp"
 
 #include <unordered_set>
 
 namespace other {
-namespace {
+  namespace {
 
-  std::unordered_set<void*> refs;
+    std::unordered_set<void*> refs;
 
-} // namespace anon
-namespace detail {
+  }  // namespace
+  namespace detail {
 
-  void RegisterReference(void* instance) {
-    refs.insert(instance);
-  }
+    void RegisterReference(void* instance) {
+      refs.insert(instance);
+    }
 
-  void RemoveReference(void* instance) {
-    refs.erase(instance);
-  }
+    void RemoveReference(void* instance) {
+      refs.erase(instance);
+    }
 
-  bool IsValidRef(void* instance) {
-    return refs.find(instance) != refs.end();
-  }
+    bool IsValidRef(void* instance) {
+      return refs.find(instance) != refs.end();
+    }
 
-} // namespace detail
-} // namespace other
+    size_t NumberOfLivingReferences() {
+      return refs.size();
+    }
+
+  }  // namespace detail
+}  // namespace other

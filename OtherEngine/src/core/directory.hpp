@@ -12,32 +12,40 @@
 #include "core/file_handle.hpp"
 #include "core/ref.hpp"
 
-#include "asset/asset_types.hpp"
+#include "asset/asset_defines.hpp"
 
 namespace other {
 
-  struct Directory : public RefCounted {
-    UUID handle;
-    Ref<Directory> parent_dir;
+  struct CreateFileEvent;
 
-    std::set<AssetHandle> assets;
+  class Directory : public RefCounted {
+   public:
+    UUID handle;
+
+    Ref<Directory> parent_dir;
 
     std::map<UUID, Ref<FileHandle>> file_handles;
     std::map<UUID, Ref<Directory>> children;
 
     Directory();
-    Directory(const Path& path);
-    Directory(Directory* parent, const Path& path);
-    Directory(const Ref<Directory>& parent, const Path& path);
+    Directory(const Path& path, UUID hash);
+    Directory(Directory* parent, const Path& path, UUID hash);
+    Directory(const Ref<Directory>& parent, const Path& path, UUID hash);
 
     operator Path() const;
 
+    std::string Name() const;
+
     void Poll();
+    void Update();
     bool Exists() const;
     bool Contains(const Path& path) const;
     bool Contains(UUID handle) const;
 
     Ref<Directory> AddFolder(const std::string_view name);
+    Ref<FileHandle> AddFile(const std::string_view path);
+    bool RemoveFile(UUID handle);
+    bool RemoveChildDirectory(UUID handle);
 
     Ref<FileHandle> GetFile(const Path& path);
     Ref<FileHandle> GetFile(UUID handle);
@@ -45,7 +53,8 @@ namespace other {
     Ref<FileHandle> OpenFile(UUID handle, std::ios_base::openmode mode = std::ios_base::in | std::ios_base::out | std::ios_base::app);
     Ref<FileHandle> GetFileHandleByName(const std::string_view name);
 
-    std::vector<Path> GetFiles(Opt<std::string> ext = std::nullopt) const;
+    std::vector<Path> GetFilePaths(Opt<std::string> ext = std::nullopt) const;
+    std::vector<Ref<FileHandle>> GetFiles(Opt<std::string> ext = std::nullopt) const;
 
     const Path AbsolutePath() const;
     const Path ProjectRelativePath() const;
@@ -54,10 +63,8 @@ namespace other {
     Ref<DirectoryWatcher> watcher = nullptr;
     Path proj_relative_path;
 
-    std::vector<Path> paths;
-
-    void Initialize();
-    void CollectChildren();
+    void Initialize(bool create_dir_handles);
+    void CollectChildren(bool create_dir_handles);
   };
 
 }  // namespace other

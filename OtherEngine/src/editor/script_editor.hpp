@@ -9,7 +9,7 @@
 
 #include "core/logger.hpp"
 
-#include "asset/asset_types.hpp"
+#include "asset/asset_defines.hpp"
 
 #include "rendering/ui/text_editor.hpp"
 

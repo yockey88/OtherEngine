@@ -6,83 +6,36 @@
 
 #include <glm/glm.hpp>
 
-#include "core/uuid.hpp"
 #include "math/bounding_box.hpp"
 
 #include "asset/asset.hpp"
-#include "asset/asset_types.hpp"
+#include "asset/asset_defines.hpp"
 
+#include "rendering/material_table.hpp"
 #include "rendering/rendering_defines.hpp"
 #include "rendering/vertex.hpp"
 
 namespace other {
 
-  struct Bone {
-    glm::mat4 sub_mesh_inverse = glm::mat4(1.f);
-    glm::mat4 inverse_bind_pose = glm::mat4(1.f);
-    uint32_t sub_mesh_idx = 0;
-    uint32_t bone_idx = 0;
-  };
-
-  /// bone serializer?
-
-  struct BoneInfl {
-    uint32_t bone_info_indices[4] = { 0, 0, 0, 0 };
-    float weights[4] = { 0.f, 0.f, 0.f, 0.f };
-
-    /// void AddBoneData(uint32_t idx , float weight) {}
-    /// void NormalizeWeights() {}
-  };
-
-  static constexpr int32_t num_attributes = 5;
-
-  struct Index {
-    uint32_t v1, v2, v3;
-  };
-
-  class SubMesh {
-   public:
-    uint32_t base_vertex = 0;
-    uint32_t base_idx = 0;
-    uint32_t mat_idx = 0;
-    uint32_t idx_cnt = 0;
-    uint32_t vert_cnt = 0;
-
-    glm::mat4 transform{ 0.f };
-    glm::mat4 local_transform{ 0.f };
-    BBox bounds{};
-
-    UUID sub_mesh_id;
-    std::string model_name;
-
-    bool rigged = false;
-  };
-
-  struct MeshNode {
-    uint32_t parent = 0xFFFFFFFF;
-    std::vector<uint32_t> children;
-    std::vector<uint32_t> sub_meshes;
-
-    std::string name;
-    glm::mat4 local_transform;
-
-    inline bool Root() const {
-      return parent == 0xFFFFFFFF;
-    }
-  };
+  class Model;
+  class StaticModel;
 
   class ModelSource : public Asset {
    public:
     OE_ASSET(MODEL_SOURCE);
 
     ModelSource() {}
-    ModelSource(std::vector<Vertex>& vertices, std::vector<Index>& indices, const glm::mat4& transform);
-    ModelSource(std::vector<Vertex>& vertices, std::vector<Index>& indices, std::vector<SubMesh>& submeshes);
+    ModelSource(const std::vector<float>& vertices, const std::vector<uint32_t>& indices, const Layout& layout);
+    ModelSource(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, const glm::mat4& transform);
+    ModelSource(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, const std::vector<SubMesh>& submeshes);
 
     virtual ~ModelSource() {}
 
     std::vector<SubMesh>& SubMeshes();
     const std::vector<SubMesh>& SubMeshes() const;
+
+    static Ref<Model> CreateModel(Ref<ModelSource>& source, const std::vector<uint32_t>& sub_meshes);
+    static Ref<StaticModel> CreateStaticModel(Ref<ModelSource>& source);
 
     void DumpVertexBuffer();
 
@@ -101,33 +54,41 @@ namespace other {
     const std::vector<uint32_t>& RawLayout() const;
     const Layout& GetLayout() const;
 
+    Ref<VertexArray> source_vao;
+
    private:
-    std::vector<SubMesh> submeshes;
+    friend class Model;
+    friend class StaticModel;
+    friend class ModelFactory;
+
+    size_t models_produced = 0;
 
     Ref<VertexBuffer> vertex_buffer;
     Ref<VertexBuffer> index_buffer;
     Ref<VertexBuffer> bone_infl_buffer;
 
-    std::vector<float> fvertices;
-    std::vector<uint32_t> raw_indices;
-    std::vector<Vertex> vertices;
-    std::vector<Index> indices;
-    std::vector<uint32_t> raw_layout;
-    Layout layout;
-
-    std::vector<Bone> bones;
-    std::vector<BoneInfl> bone_influences;
-    // mutable Scope<Skeleton> skeleton = nullptr;
-
-    // std::vector<Ref<Material>> materials;
-    // std::map<uint32_t , std::vector<Triangle>> triangles;
-
-    BBox bounding_box;
-    std::string file_path;
-
+    std::vector<SubMesh> submeshes;
     std::vector<MeshNode> nodes;
 
+    std::vector<Vertex> vertices;
+    std::vector<float> raw_vertices;
+
+    std::vector<Index> indices;
+    std::vector<uint32_t> raw_indices;
+
+    Layout layout;
+    std::vector<uint32_t> raw_layout;
+
+    // std::vector<Bone> bones;
+    // std::vector<BoneInfl> bone_influences;
+    // std::map<uint32_t , std::vector<Triangle>> triangles;
+    // mutable Scope<Skeleton> skeleton = nullptr;
+
+    BBox bounding_box = BBox::empty;
+    std::string file_path;
+
     void BuildVertexBuffer(const std::vector<Vertex>& vertices);
+    void BuildIndexBuffer(const std::vector<Index>& vertices);
     void SetLayout();
   };
 
@@ -135,30 +96,24 @@ namespace other {
    public:
     OE_ASSET(MODEL);
 
-    explicit Model(Ref<ModelSource>& mesh_source);
+    Model(Ref<ModelSource>& mesh_src);
     Model(Ref<ModelSource>& mesh_src, const std::vector<uint32_t>& sub_meshes);
     Model(const Ref<Model>& other);
     virtual ~Model() {}
 
-    Ref<VertexArray> GetMesh() const;
-
     const std::vector<uint32_t>& SubMeshes() const;
-
     void SetSubMeshes(const std::vector<uint32_t>& sub_meshes);
+    Ref<ModelSource> GetModelSource() const;
 
     void RebuildMesh();
 
-    Ref<ModelSource> GetModelSource();
-    Ref<ModelSource> GetModelSource() const;
-
-    void SetModelAsset(Ref<ModelSource> model_src);
+    Ref<VertexArray> source_vao = nullptr;
 
    private:
     Ref<ModelSource> model_source;
-    Ref<VertexArray> model_vao = nullptr;
     std::vector<uint32_t> sub_meshes;
 
-    // Ref<MaterialTable> material_table;
+    // std::map<UUID, Triangle> triangles;
   };
 
   class StaticModel : public Asset {
@@ -166,29 +121,18 @@ namespace other {
     OE_ASSET(MODEL);
 
     explicit StaticModel(Ref<ModelSource>& mesh_source);
-    StaticModel(Ref<ModelSource>& mesh_src, const std::vector<uint32_t>& sub_meshes);
     StaticModel(const Ref<StaticModel>& other);
     virtual ~StaticModel() {}
 
     Ref<VertexArray> GetMesh() const;
-
-    const std::vector<uint32_t>& SubMeshes() const;
-
-    void SetSubMeshes(const std::vector<uint32_t>& sub_meshes);
+    Ref<ModelSource> GetModelSource() const;
 
     void RebuildMesh();
 
-    Ref<ModelSource> GetModelSource();
-    Ref<ModelSource> GetModelSource() const;
-
-    void SetModelAsset(Ref<ModelSource>& mesh_src);
+    Ref<VertexArray> model_vao = nullptr;
 
    private:
     Ref<ModelSource> model_source;
-    Ref<VertexArray> model_vao = nullptr;
-    std::vector<uint32_t> sub_meshes;
-
-    /// Ref<MaterialTable> material_table;
   };
 
 }  // namespace other

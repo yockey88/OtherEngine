@@ -31,7 +31,7 @@ namespace other {
 
     Opt<AssetHandle> debug_model = std::nullopt;
 
-    static Material debug_light_mat;
+    // static Material debug_light_mat;
 
     ECS_COMPONENT(LightSource, kLightSourceIndex);
   };

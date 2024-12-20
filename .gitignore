@@ -17,6 +17,10 @@ tools/other.egg-info/
 ## Project tools
 tool_dev/
 
+## test projects
+tests/test_data/
+tests/simulation_tests/
+
 ## games
 cell_automaton/
 yockcraft/
@@ -40,9 +44,8 @@ tools/runtestbed.py
 
 # configuration files
 *.config
-*.ini
-*.json
 *.xml
+imgui.ini
 
 ## Pycache
 *__pycache__*

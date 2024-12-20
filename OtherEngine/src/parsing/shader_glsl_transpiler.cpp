@@ -5,11 +5,13 @@
 
 #include "core/defines.hpp"
 #include "core/errors.hpp"
+#include "core/formatters.hpp"
 
 #include "parsing/parsing_defines.hpp"
 #include "parsing/shader_ast_node.hpp"
 
 #include "rendering/rendering_defines.hpp"
+#include "rendering/uniform.hpp"
 
 namespace other {
 
@@ -19,36 +21,7 @@ namespace other {
     std::vector<Ref<AstNode>>* correct_nodes = nullptr;
     std::string* output_src = nullptr;
 
-    bool other_shader = false;
-    switch (ast.type) {
-      case VERTEX_SHADER:
-        correct_nodes = &ast.vertex_nodes;
-        output_src = &result.vert_source;
-        break;
-      case FRAGMENT_SHADER:
-        correct_nodes = &ast.fragment_nodes;
-        output_src = &result.frag_source;
-        break;
-      case GEOMETRY_SHADER:
-        if (result.geom_source.has_value()) {
-          correct_nodes = &ast.geometry_nodes;
-          output_src = &result.geom_source.value();
-        }
-        break;
-      case OTHER_SHADER:
-        other_shader = true;
-        break;
-      default:
-        break;
-    }
-
-    if (!other_shader) {
-      if (correct_nodes == nullptr || output_src == nullptr) {
-        throw ShaderException("GLSL Transpiler state corrupted, transpiling invalid shader!", INVALID_SHADER_CTX, 0, 0);
-      }
-
-      *output_src = TranspileTo(*correct_nodes);
-    } else {
+    if (ast.type == OTHER_SHADER) {
       context = VERTEX_SHADER;
       result.vert_source = TranspileTo(ast.vertex_nodes);
 
@@ -59,12 +32,42 @@ namespace other {
         context = GEOMETRY_SHADER;
         result.geom_source = TranspileTo(ast.geometry_nodes);
       }
+    } else {
+      switch (ast.type) {
+        case VERTEX_SHADER:
+          correct_nodes = &ast.vertex_nodes;
+          output_src = &result.vert_source;
+          break;
+        case FRAGMENT_SHADER:
+          correct_nodes = &ast.fragment_nodes;
+          output_src = &result.frag_source;
+          break;
+        case GEOMETRY_SHADER:
+          if (result.geom_source.has_value()) {
+            correct_nodes = &ast.geometry_nodes;
+            output_src = &result.geom_source.value();
+          }
+          break;
+        default:
+          break;
+      }
+
+      if (correct_nodes == nullptr || output_src == nullptr) {
+        throw ShaderException("GLSL Transpiler state corrupted, transpiling invalid shader!", INVALID_SHADER_CTX, 0, 0);
+      }
+
+      *output_src = TranspileTo(*correct_nodes);
     }
 
     if (!mesh_layout.has_value()) {
       throw Error(SHADER_TRANSPILATION, "Failed to set mesh layout parsing shader!");
     }
     result.layout = mesh_layout.value();
+
+    OE_DEBUG("Transpiled Shader: {} (uniforms : {})", result.name, result.uniforms.size());
+    for (auto& uni : result.uniforms) {
+      OE_DEBUG("Uniform: {} , {}", uni.second.name, uni.second.type);
+    }
 
     return result;
   }
@@ -130,11 +133,15 @@ namespace other {
         .type = ValueTypeFromString(stmt.type.value),
       };
 
-      if (!flags.push_uniforms.empty()) {
-        uniform_stack.push(uni);
-      } else {
-        result.uniforms[FNV(uni.name)] = uni;
-      }
+      uniform_stack.push(uni);
+      return;
+    } else if (!flags.push_in_out.empty()) {
+      InOutVar var{
+        .name = stmt.name.value,
+        .type = ValueTypeFromString(stmt.type.value),
+      };
+
+      in_out_var_stack.push(var);
       return;
     }
 
@@ -271,8 +278,21 @@ namespace other {
   }
 
   void ShaderGlslTranspiler::Visit(LayoutVarDecl& stmt) {
-    token_stack.push(stmt.type.value_or(Token({}, INVALID_TOKEN, "")));
-    token_stack.push(stmt.name.value_or(Token({}, INVALID_TOKEN, "")));
+    OE_ASSERT(stmt.type.has_value(), "LayoutVarDecl must have a type!");
+    OE_ASSERT(stmt.name.has_value(), "LayoutVarDecl must have a name!");
+
+    InOutVar var{
+      .name = stmt.name.value().value,
+      .type = ValueTypeFromString(stmt.type.value().value),
+    };
+
+    if (stmt.in_out.value == "in") {
+      var.in_out = INPUT;
+    } else if (stmt.in_out.value == "out") {
+      var.in_out = OUTPUT;
+    }
+
+    result.inouts[FNV(var.name)] = var;
   }
 
   void ShaderGlslTranspiler::Visit(ShaderStorageStmt& stmt) {
@@ -280,27 +300,57 @@ namespace other {
       throw Error(SHADER_TRANSPILATION, "Shader storage stack is corrupt parsing shader uniforms!");
     }
 
-    flags.push_uniforms.push(true);
     stmt.body->Accept(*this);
-    flags.push_uniforms.pop();
 
     ShaderStorage& storage = shader_storage_stack.top();
     while (!uniform_stack.empty()) {
       auto uni = uniform_stack.top();
       uniform_stack.pop();
-
       storage.uniforms[FNV(uni.name)] = uni;
     }
   }
 
   void ShaderGlslTranspiler::Visit(InOutBlockStmt& stmt) {
+    flags.push_in_out.push(true);
     stmt.body->Accept(*this);
+    flags.push_in_out.pop();
+
+    if (in_out_var_stack.empty()) {
+      throw Error(SHADER_TRANSPILATION, "In out var stack is empty parsing shader uniforms!");
+    }
+
+    InOutBlock block{
+      .name = stmt.name.value,
+    };
+
+    if (stmt.in_out.value == "in") {
+      block.in_out = INPUT;
+    } else if (stmt.in_out.value == "out") {
+      block.in_out = OUTPUT;
+    }
+
+    while (!in_out_var_stack.empty()) {
+      InOutVar var = in_out_var_stack.top();
+      in_out_var_stack.pop();
+
+      var.in_out = block.in_out;
+      block.vars[FNV(var.name)] = var;
+    }
   }
 
   void ShaderGlslTranspiler::Visit(UniformDecl& stmt) {
     flags.is_uniform.push(true);
     stmt.var_decl->Accept(*this);
     flags.is_uniform.pop();
+
+    if (uniform_stack.size() != 1) {
+      throw Error(SHADER_TRANSPILATION, "Uniform stack is corrupt parsing shader uniforms!");
+    }
+
+    Uniform uni = uniform_stack.top();
+    uniform_stack.pop();
+
+    result.uniforms[FNV(uni.name)] = uni;
   }
 
   void ShaderGlslTranspiler::Visit(ShaderDecl& stmt) {
@@ -315,6 +365,7 @@ namespace other {
     }
   }
 
+  /// FIXME: this is bad, bad bad bad
   std::string ShaderGlslTranspiler::TranspileTo(std::vector<Ref<AstNode>>& nodes) {
     std::stringstream stream;
     stream << "#version 460 core\n\n";
@@ -322,13 +373,12 @@ namespace other {
     /// define this in both vertex and fragment
     if (context == VERTEX_SHADER || context == FRAGMENT_SHADER) {
       stream << "struct Material {\n";
-      stream << "  vec4 color;\n";
-      stream << "  float shininess;\n";
+      stream << "  int albedo;\n";
+      stream << "  int normal;\n";
+      stream << "  int roughness;\n";
+      stream << "  int _oe_internal_padding;\n";
       stream << "};\n\n";
-    }
 
-    /// lights only necessary in fragment
-    if (context == FRAGMENT_SHADER) {
       stream << "struct PointLight {\n";
       stream << "  vec4 position;\n";
       stream << "  vec4 color;\n";
@@ -336,11 +386,14 @@ namespace other {
       stream << "  float constant;\n";
       stream << "  float linear;\n";
       stream << "  float quadratic;\n";
+      stream << "  mat4 light_space_matrix;\n";
       stream << "};\n\n";
 
       stream << "struct DirectionLight {\n";
       stream << "  vec4 direction;\n";
       stream << "  vec4 color;\n";
+      stream << "  vec4 position;\n";
+      stream << "  mat4 light_space_matrix;\n";
       stream << "};\n\n";
     }
 
@@ -383,27 +436,62 @@ namespace other {
       stream << "layout (std430 , binding = 2) readonly buffer MaterialData {\n";
       stream << "  Material materials[MAX_MATERIALS];\n";
       stream << "};\n\n";
+
+      stream << "#define MAX_LIGHTS 100\n";
+      stream << "layout (std430 , binding = 3) readonly buffer Lights {\n";
+      stream << "  vec4 num_lights;\n";
+      stream << "  DirectionLight direction_light;\n";
+      stream << "  PointLight point_lights[MAX_LIGHTS];\n";
+      stream << "};\n\n";
+
+      stream << "uniform sampler2DArray albedo_textures;\n";
+      stream << "uniform sampler2DArray normal_textures;\n";
+      stream << "uniform sampler2DArray roughness_textures;\n";
+
       stream << "out int instanceid;\n";
-      stream << "out Material material;\n\n";
+      stream << "out Material foe_material;\n\n";
+      stream << "out vec4 foe_light_space_position;\n";
+      stream << "out vec3 foe_viewpoint;\n";
+      stream << "out vec3 foe_position;\n";
+      stream << "out vec3 foe_normal;\n";
+      stream << "out vec3 foe_tangent;\n";
+      stream << "out vec3 foe_bitangent;\n";
+      stream << "out vec2 foe_uvs;\n";
     } else if (context == FRAGMENT_SHADER) {
       /// hack, these should not be here
       /// FIXME: rewrite transpiler
       stream << "layout (location = 0) out vec4 g_position;\n";
       stream << "layout (location = 1) out vec4 g_normal;\n";
       stream << "layout (location = 2) out vec4 g_albedo;\n";
+
       stream << "#define MAX_LIGHTS 100\n";
       stream << "layout (std430 , binding = 3) readonly buffer Lights {\n";
-      /// num direction lights is num_lights.x
-      /// num point lights is num_lights.y
-      /// num_lights.z and .w are padding
       stream << "  vec4 num_lights;\n";
+      stream << "  DirectionLight direction_light;\n";
       stream << "  PointLight point_lights[MAX_LIGHTS];\n";
-      stream << "  DirectionLight direction_lights[MAX_LIGHTS];\n";
       stream << "};\n\n";
+
       stream << "uniform sampler2D goe_position;\n";
       stream << "uniform sampler2D goe_normal;\n";
       stream << "uniform sampler2D goe_albedo;\n";
-      stream << "in Material material;\n\n";
+      stream << "uniform sampler2D goe_specular;\n";
+      stream << "uniform sampler2D goe_shadow_map;\n";
+      stream << "uniform sampler2D goe_depth;\n";
+
+      stream << "uniform sampler2DArray albedo_textures;\n";
+      stream << "uniform sampler2DArray normal_textures;\n";
+      stream << "uniform sampler2DArray specular_textures;\n";
+      stream << "uniform sampler2DArray height_textures;\n";
+
+      stream << "flat in int instanceid;\n";
+      stream << "flat in Material foe_material;\n\n";
+      stream << "in vec4 foe_light_space_position;\n";
+      stream << "in vec3 foe_viewpoint;\n";
+      stream << "in vec3 foe_position;\n";
+      stream << "in vec3 foe_normal;\n";
+      stream << "in vec3 foe_tangent;\n";
+      stream << "in vec3 foe_bitangent;\n";
+      stream << "in vec2 foe_uvs;\n";
     }
 
     for (auto& n : nodes) {

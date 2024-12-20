@@ -21,7 +21,14 @@ namespace other {
     uint8_t* pixels_raw = stbi_load(file_path.string().c_str(), &w, &h, &format_detection, 0);
     OE_ASSERT(pixels_raw != nullptr, "Failed to load image {}", file_path);
 
-    SetData(pixels_raw, { w, h }, format_detection);
+    SetChannels(format_detection);
+    glGenTextures(1, &renderer_id);
+    Bind();
+
+    glTexImage2D(type, 0, spec.channels, w, h, 0, spec.channels, GL_UNSIGNED_BYTE, pixels_raw);
+    glGenerateMipmap(type);
+
+    stbi_image_free(pixels_raw);
   }
 
   void Texture::Bind(uint32_t slot) const {
@@ -40,26 +47,18 @@ namespace other {
     return pixel_data;
   }
 
-  void Texture::SetData(uint8_t* pixels, const glm::vec2& size, int32_t format) {
-    // pixel_data.Write(pixels , size.x * size.y);
+  Buffer Texture::PixelData() const {
+    return pixel_data;
+  }
 
-    switch (format) {
-      case 1: spec.channels = RED; break;
-      case 3: spec.channels = RGB; break;
-      case 4: spec.channels = RGBA; break;
+  void Texture::SetChannels(uint32_t format) {
+    switch (spec.channels) {
+      case RED: spec.channels = RED; break;
+      case RGB: spec.channels = RGB; break;
+      case RGBA: spec.channels = RGBA; break;
       default:
-        OE_ASSERT(false, "INVALID IMAGE FORMAT {} on image {}", format, spec.name);
+        OE_ASSERT(false, "INVALID IMAGE FORMAT {} on image {}", spec.channels, spec.name);
     }
-
-    glGenTextures(1, &renderer_id);
-    Bind();
-
-    OnLoad();
-    glTexImage2D(type, 0, spec.channels, size.x, size.y, 0, spec.channels, GL_UNSIGNED_BYTE, pixels);
-    glGenerateMipmap(type);
-    stbi_image_free(pixels);
-
-    Unbind();
   }
 
   Texture2D::Texture2D(const Path& file_path, const TextureSpecification& spec)
@@ -70,11 +69,45 @@ namespace other {
     glTexParameteri(type, GL_TEXTURE_WRAP_T, spec.wrap.t_val);
   }
 
-  void Texture2D::OnLoad() {
+  Texture2D::Texture2D(uint8_t* pixels, const glm::vec2& size)
+      : Texture(TEX_2D, Path(""), TextureSpecification{}) {
+    spec.size = size;
+    SetData(pixels, size, spec.channels);
+  }
+
+  Texture2D::Texture2D(const glm::vec3& color, const glm::ivec2& size)
+      : Texture(TEX_2D, Path(""), TextureSpecification{}) {
+    spec.size = size;
+
+    std::vector<uint8_t> pixels{};
+    pixels.resize(size.x * size.y * 3);
+
+    for (int i = 0; i < size.x * size.y; i++) {
+      pixels[i * 3] = static_cast<uint8_t>(color.r * 255);
+      pixels[i * 3 + 1] = static_cast<uint8_t>(color.g * 255);
+      pixels[i * 3 + 2] = static_cast<uint8_t>(color.b * 255);
+    }
+
+    SetData(pixels.data(), size, RGB);
+  }
+
+  void Texture2D::SetData(const uint8_t* pixels, const glm::vec2& size, int32_t format) {
+    SetChannels(format);
+
+    glGenTextures(1, &renderer_id);
+    Bind();
+
+    glTexImage2D(type, 0, spec.channels, size.x, size.y, 0, spec.channels, GL_UNSIGNED_BYTE, pixels);
+    glGenerateMipmap(type);
+
+    Unbind();
   }
 
   CubeMapTexture::CubeMapTexture(const Path& path, const TextureSpecification& spec)
       : Texture(TEX_CUBE_MAP, path, spec) {
+  }
+
+  void CubeMapTexture::SetData(const uint8_t* pixels, const glm::vec2& size, int32_t format) {
   }
 
 }  // namespace other

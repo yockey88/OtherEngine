@@ -10,12 +10,16 @@
 #include "core/defines.hpp"
 #include "core/ref.hpp"
 #include "core/uuid.hpp"
-#include "editor/saves.hpp"
+
+#include "asset/serializers/scene_serializer.hpp"
 
 #include "scene/bvh.hpp"
 #include "scene/scene.hpp"
 
+#include "rendering/material_table.hpp"
 #include "rendering/scene_renderer.hpp"
+
+#include "editor/saves.hpp"
 
 namespace other {
 
@@ -35,8 +39,11 @@ namespace other {
 
     void Unload();
 
-    bool LoadScene(const Path& scenepath);
-    void SetAsActive(const std::string_view& name);
+    bool LoadScene(const Ref<FileHandle>& scenepath);
+    void AddScene(const DeserializedScene& scene);
+    void SetAsActive(const Ref<FileHandle>& scenefile);
+
+    void Activate(Ref<Scene>& scene);
 
     void StartScene();
     void StopScene();
@@ -44,6 +51,7 @@ namespace other {
     bool IsPlaying() const;
 
     Ref<Scene> GetScene(UUID id) const;
+    SceneMetadata* GetSceneMetadata(UUID id);
 
     void RemoveScene(UUID id);
     void RemoveScene(const std::string_view name);
@@ -78,6 +86,7 @@ namespace other {
     bool playing_scene = false;
     SceneMetadata* active_scene = nullptr;
     Ref<SceneRenderer> scene_renderer = nullptr;
+    Ref<MaterialTable> material_table = nullptr;
 
     std::vector<std::string> scene_paths;
     std::map<UUID, SceneMetadata> loaded_scenes;

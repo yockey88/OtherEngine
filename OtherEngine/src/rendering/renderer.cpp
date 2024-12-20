@@ -10,10 +10,10 @@
 
 #include "application/app_state.hpp"
 
-#include "rendering/geometry_pass.hpp"
 #include "rendering/rendering_defines.hpp"
 #include "rendering/scene_renderer.hpp"
 #include "rendering/shader.hpp"
+
 
 namespace other {
 
@@ -110,6 +110,25 @@ namespace other {
   }
 
   Ref<SceneRenderer> Renderer::DefaultSceneRenderer() {
+    OE_INFO("Using default scene renderer");
+    return NewRef<SceneRenderer>(GetDefaultSceneSpec());
+  }
+
+  Ref<SceneRenderer> Renderer::ConstructSceneRenderer(App::RenderSpec* spec) {
+    OE_ASSERT(spec != nullptr, "No render spec provided");
+    SceneRenderSpec render_spec = GetDefaultSceneSpec();
+
+    for (auto& pipeline : spec->pipelines) {
+      render_spec.pipelines.push_back(pipeline);
+    }
+    for (auto& pass : spec->render_passes) {
+      render_spec.passes.push_back(NewRef<RenderPass>(pass));
+    }
+
+    return NewRef<SceneRenderer>(render_spec);
+  }
+
+  SceneRenderSpec Renderer::GetDefaultSceneSpec() {
     Layout default_layout = {
       { ValueType::VEC3, "position" },
       { ValueType::VEC3, "normal" },
@@ -117,52 +136,31 @@ namespace other {
       { ValueType::VEC3, "binormal" },
       { ValueType::VEC2, "uvs" }
     };
-
-    uint32_t model_binding_pnt = 1;
     std::vector<Uniform> model_unis = {
       { "models", ValueType::MAT4, 100 },
     };
-
-    uint32_t material_binding_pnt = 2;
     std::vector<Uniform> material_unis = {
       { "materials", ValueType::USER_TYPE, 100, sizeof(Material) },
     };
 
-    Path engine_core_dir = Filesystem::GetEngineCoreDir();
-    Path assets_dir = engine_core_dir / "OtherEngine" / "assets";
-    Path shader_dir = assets_dir / "shaders";
-    Path default_path = shader_dir / "default.oshader";
-
-    std::vector<Uniform> geometry_unis = {};
-    Ref<Shader> geometry_shader = BuildShader(default_path);
-    Ref<RenderPass> geom_pass = NewRef<GeometryPass>(geometry_unis, geometry_shader);
-
     SceneRenderSpec spec{
+      .model_uniforms = model_unis,
+      .material_uniforms = material_unis,
+      .vertex_layout = default_layout,
       .pipelines = {
         {
-          .topology = DrawMode::TRIANGLES,
           .framebuffer_spec = {
             .depth_func = LESS_EQUAL,
             .clear_color = { 0.1f, 0.1f, 0.1f, 1.f },
-            .size = Renderer::WindowSize(),
+            .size = { 1920, 1080 },
           },
-          .vertex_layout = default_layout,
-          .model_uniforms = model_unis,
-          .model_binding_point = model_binding_pnt,
-          .material_uniforms = material_unis,
-          .material_binding_point = material_binding_pnt,
-          .debug_name = "Geometry",
-        },
-      },
-      .passes = { geom_pass },
-      .pipeline_to_pass_map = {
-        {
-          FNV("Geometry"),
-          { FNV(geom_pass->Name()) },
+          .pipeline_name = "Geometry",
         },
       },
     };
-    return NewRef<SceneRenderer>(spec);
+    spec.pipeline_passes[FNV("Geometry")].passes.push_back(SceneRenderer::GEOMETRY_PASS);
+
+    return spec;
   }
 
 }  // namespace other

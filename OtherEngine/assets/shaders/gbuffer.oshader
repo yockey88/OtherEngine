@@ -1,12 +1,8 @@
 vertex [mesh : default] {
-  
-  out vec3 fviewpoint;
-  out vec3 foe_position;
-  out vec3 foe_normal;
 
   void main() {
     mat4 model = models[gl_InstanceID];
-    material = materials[gl_InstanceID];
+    foe_material = materials[gl_InstanceID];
 
     vec4 world_pos = model * vec4(voe_position , 1.0);
     foe_position = world_pos.xyz;
@@ -14,6 +10,7 @@ vertex [mesh : default] {
 
     mat3 normal_mat = transpose(inverse(mat3(model)));
     foe_normal = normal_mat * voe_normal;
+    foe_uvs = voe_uvs;
 
     gl_Position = projection * view * world_pos;
   }
@@ -22,14 +19,11 @@ vertex [mesh : default] {
 
 fragment {
   
-  in vec3 foe_position;
-  in vec3 foe_normal;
-  
   void main() {
     g_position = vec4(foe_position , 1.0);
     g_normal = vec4(normalize(foe_normal) , 1.0);
-    g_albedo.rgb = material.color.rgb;
-    g_albedo.a = material.shininess;
+    g_albedo.rgb = texture(albedo_textures, vec3(foe_uvs, foe_material.albedo)).rgb;
+    g_albedo.a = 32.0;
   }
 
 }

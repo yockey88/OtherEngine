@@ -10,11 +10,11 @@
 #include <type_traits>
 
 #include <glm/gtc/type_ptr.hpp>
-
 #include <reflection/echo_defines.hpp>
 
 #include "core/logger.hpp"
 #include "math/vecmath.hpp"
+
 
 namespace other {
 
@@ -54,6 +54,7 @@ namespace other {
       return *reinterpret_cast<T*>(data + offset);
     }
 
+    uint8_t* RawBytes();
     const uint8_t* ReadBytes(uint64_t offset = 0) const;
     void Write(const void* data, uint64_t size, uint64_t offset = 0);
 
@@ -130,8 +131,7 @@ namespace other {
       }
 
       if (start_index + num_elts > container.size()) {
-        OE_ERROR("Attempting to read from invalid memory when writing to buffer! expected min {} > {} real size", 
-                  start_index + num_elts, container.size());
+        OE_ERROR("Attempting to read from invalid memory when writing to buffer! expected min {} > {} real size", start_index + num_elts, container.size());
         return;
       }
 
@@ -173,10 +173,8 @@ namespace other {
 
       size_t offset = std::accumulate(element_sizes.begin(), element_sizes.begin() + idx, 0);
 
-      OE_ASSERT(offset <= capacity, "Attempting to retrieve data with incorrectly sized type! sizeof({}) == {} > {}",
-                                    typeid(T).name(), sizeof(T), capacity);
-      OE_ASSERT(sizeof(T) == element_sizes[idx], "Attempting to access buffer with invalidly sized type {}! expected size {} != {} stored size", 
-                                                  typeid(T).name(), sizeof(T), element_sizes[idx]);
+      OE_ASSERT(offset <= capacity, "Attempting to retrieve data with incorrectly sized type! sizeof({}) == {} > {}", typeid(T).name(), sizeof(T), capacity);
+      OE_ASSERT(sizeof(T) == element_sizes[idx], "Attempting to access buffer with invalidly sized type {}! expected size {} != {} stored size", typeid(T).name(), sizeof(T), element_sizes[idx]);
       return offset;
     }
 

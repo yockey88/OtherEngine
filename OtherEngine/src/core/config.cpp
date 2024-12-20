@@ -109,6 +109,60 @@ namespace other {
     }
   }
 
+  void ConfigTable::AddFramebufferSpec(const std::string_view key, const std::string_view value) {
+    uint64_t key_hash = FNV(key);
+    if (unparsed_framebuffer_specs.find(key_hash) != unparsed_framebuffer_specs.end()) {
+      OE_WARN("Duplicate ramebuffer spec! {} already exists", key);
+      return;
+    }
+    unparsed_framebuffer_specs[key_hash] = value;
+  }
+
+  void ConfigTable::AddVertexLayout(const std::string_view key, const std::string_view value) {
+    uint64_t key_hash = FNV(key);
+    if (unparsed_vertex_layouts.find(key_hash) != unparsed_vertex_layouts.end()) {
+      OE_WARN("Duplicate vertex layout! {} already exists", key);
+      return;
+    }
+    unparsed_vertex_layouts[key_hash] = value;
+  }
+
+  void ConfigTable::AddUniform(const std::string_view key, const std::string_view value) {
+    uint64_t key_hash = FNV(key);
+    if (unparsed_uniforms.find(key_hash) != unparsed_uniforms.end()) {
+      OE_WARN("Duplicate uniform! {} already exists", key);
+      return;
+    }
+    unparsed_uniforms[key_hash] = value;
+  }
+
+  void ConfigTable::AddRenderPass(const std::string_view key, const std::string_view value) {
+    uint64_t key_hash = FNV(key);
+    if (unparsed_render_passes.find(key_hash) != unparsed_render_passes.end()) {
+      OE_WARN("Duplicate render pass! {} already exists", key);
+      return;
+    }
+    unparsed_render_passes[key_hash] = value;
+  }
+
+  void ConfigTable::AddPipeline(const std::string_view key, const std::string_view value) {
+    uint64_t key_hash = FNV(key);
+    if (unparsed_pipelines.find(key_hash) != unparsed_pipelines.end()) {
+      OE_WARN("Duplicate pipeline! {} already exists", key);
+      return;
+    }
+    unparsed_pipelines[key_hash] = value;
+  }
+
+  void ConfigTable::AddScriptSection(const std::string_view key, const UnparsedScriptSection& value) {
+    uint64_t key_hash = FNV(key);
+    if (unparsed_script_sections.find(key_hash) != unparsed_script_sections.end()) {
+      OE_WARN("Duplicate script section! {} already exists", key);
+      return;
+    }
+    unparsed_script_sections[key_hash] = value;
+  }
+
   const std::map<uint64_t, std::vector<std::string>> ConfigTable::Get(const std::string_view section) const {
     std::string sec = section.data();
     std::transform(sec.begin(), sec.end(), sec.begin(), ::toupper);
@@ -132,6 +186,26 @@ namespace other {
     }
 
     return {};
+  }
+
+  const std::map<uint64_t, std::string>& ConfigTable::GetFramebufferSpecs() const {
+    return unparsed_framebuffer_specs;
+  }
+
+  const std::map<uint64_t, std::string>& ConfigTable::GetVertexLayouts() const {
+    return unparsed_vertex_layouts;
+  }
+
+  const std::map<uint64_t, std::string>& ConfigTable::GetUniforms() const {
+    return unparsed_uniforms;
+  }
+
+  const std::map<uint64_t, std::string>& ConfigTable::GetRenderPasses() const {
+    return unparsed_render_passes;
+  }
+
+  const std::map<uint64_t, std::string>& ConfigTable::GetPipelines() const {
+    return unparsed_pipelines;
   }
 
   const std::vector<std::string> ConfigTable::Get(const std::string_view section, const std::string_view key, bool case_sensitive_key) const {
@@ -541,28 +615,28 @@ namespace other {
     return GetListVal<double>(section, key, *this, case_sensitive_key);
   }
 
-  template <>
-  const Opt<Material> ConfigTable::GetVal(const std::string_view section, const std::string_view key, bool case_sensitive_key) const {
-    auto color = GetVal<glm::vec4>(section, std::string{ key } + ".COLOR", case_sensitive_key);
-    auto shininess = GetVal<float>(section, std::string{ key } + ".SHININESS", case_sensitive_key);
+  // template <>
+  // const Opt<Material> ConfigTable::GetVal(const std::string_view section, const std::string_view key, bool case_sensitive_key) const {
+  //   auto color = GetVal<glm::vec4>(section, std::string{ key } + ".COLOR", case_sensitive_key);
+  //   auto shininess = GetVal<float>(section, std::string{ key } + ".SHININESS", case_sensitive_key);
 
-    if (!color.has_value() && !shininess.has_value()) {
-      return std::nullopt;
-    }
+  //   if (!color.has_value() && !shininess.has_value()) {
+  //     return std::nullopt;
+  //   }
 
-    return Material(color.value_or(glm::vec4(1.f)), shininess.value_or(32.f));
-  }
+  //   return Material(color.value_or(glm::vec4(1.f)), shininess.value_or(32.f));
+  // }
 
-  std::string ConfigTable::TableString() {
+  std::string ConfigTable::TableString() const {
     std::stringstream ss;
     for (auto& [section, keys] : table) {
-      ss << "[" << section_map[section] << "]" << std::endl;
+      ss << "[" << section_map.at(section) << "]" << std::endl;
       for (auto& [key, value] : keys) {
         if (value.size() == 1) {
-          ss << key_map[key] << " = " << value[0] << std::endl;
+          ss << key_map.at(key) << " = " << value[0] << std::endl;
           continue;
         } else if (value.size() > 1) {
-          ss << key_map[key] << " = { " << value[0];
+          ss << key_map.at(key) << " = { " << value[0];
           for (size_t i = 1; i < value.size(); i++) {
             ss << ", " << value[i];
           }

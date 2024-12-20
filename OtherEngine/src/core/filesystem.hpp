@@ -31,10 +31,14 @@ namespace other {
     static bool PathExists(const Path& path);
     static bool IsDirectory(const Path& path);
     static bool CreateDir(const Path& path);
-    static bool AttemptDelete(const Path& path);
+    static bool RemoveFile(UUID handle);
+    static bool RemoveDirectory(UUID handle);
 
+    static Ref<Directory> MountProjectRoot(const std::string_view name, const Path& path);
     static Ref<Directory> MountDirectory(const std::string_view name, const Path& path);
     static Ref<FileHandle> RegisterFile(const Path& path);
+
+    static Ref<FileHandle> CreateMemoryFile(const std::string_view drive, const std::string_view virtual_filename, const std::string_view ext);
 
     static Ref<Directory> OpenDirectory(const Path& path);
     static Ref<FileHandle> OpenFile(const Path& path, std::ios_base::openmode mode = std::ios_base::in | std::ios_base::out);

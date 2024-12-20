@@ -6,16 +6,18 @@
 
 #include <vector>
 
+#include "core/defines.hpp"
 #include "core/ref_counted.hpp"
 
 #include "rendering/direction_light.hpp"
 #include "rendering/point_light.hpp"
 
+
 namespace other {
 
   class LightEnvironment : public RefCounted {
    public:
-    std::vector<DirectionLight> direction_lights;
+    Opt<DirectionLight> direction_light;
     std::vector<PointLight> point_lights;
   };
 

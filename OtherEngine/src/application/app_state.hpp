@@ -8,6 +8,7 @@
 #include "core/layer_stack.hpp"
 #include "engine/engine_states.hpp"
 
+#include "asset/asset_defines.hpp"
 #include "asset/asset_handler.hpp"
 #include "project/project.hpp"
 
@@ -38,8 +39,6 @@ namespace other {
 
     static Scope<LayerStack>& Layers();
     static Scope<SceneManager>& Scenes();
-
-    static Ref<SceneRenderer> GetSceneRenderer();
 
     static UUID PushUIWindow(Ref<UIWindow> window);
     static void PopUIWindow(UUID id);
@@ -84,7 +83,6 @@ namespace other {
       UIWindowMap ui_windows;
 
       float frame_delta = 0.0f;
-
       bool loading = true;
 
       Data(App* app_handle, Ref<Project> proj);

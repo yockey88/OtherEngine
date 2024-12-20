@@ -5,6 +5,10 @@
 
 #include <array>
 
+#include "core/uuid.hpp"
+
+#include "event/event_handler.hpp"
+
 #include "editor/panels/entity_properties.hpp"
 #include "editor/panels/log_panel.hpp"
 #include "editor/panels/project_panel.hpp"
@@ -12,15 +16,7 @@
 #include "editor/panels/viewport_panel.hpp"
 #include "editor/selection_manager.hpp"
 
-#include "event/event_handler.hpp"
-
 namespace other {
-
-  constexpr static UUID kProjectPanelId = FNV("ProjectPanel");
-  constexpr static UUID kScenePanelId = FNV("ScenePanel");
-  constexpr static UUID kPropertiesPanelId = FNV("PropertiesPanel");
-  constexpr static UUID kConsolePanelId = FNV("ConsolePanel");
-  constexpr static UUID kViewportPanelId = FNV("ViewportPanel");
 
   constexpr static uint32_t kNumDefaultPanels = 5;
 
@@ -29,23 +25,23 @@ namespace other {
 
   constexpr static std::array<PanelBuilderPair, kNumDefaultPanels> kPanelBuilderMap{
     PanelBuilderPair{
-      kProjectPanelId,
+      Panel::kProjectPanelId,
       []() -> Ref<EditorPanel> { return NewRef<ProjectPanel>(); },
     },
     PanelBuilderPair{
-      kScenePanelId,
+      Panel::kScenePanelId,
       []() -> Ref<EditorPanel> { return NewRef<ScenePanel>(); },
     },
     PanelBuilderPair{
-      kPropertiesPanelId,
+      Panel::kPropertiesPanelId,
       []() -> Ref<EditorPanel> { return NewRef<EntityProperties>(); },
     },
     PanelBuilderPair{
-      kConsolePanelId,
+      Panel::kConsolePanelId,
       []() -> Ref<EditorPanel> { return NewRef<LogPanel>(); },
     },
     PanelBuilderPair{
-      kViewportPanelId,
+      Panel::kViewportPanelId,
       []() -> Ref<EditorPanel> { return NewRef<ViewportPanel>(); },
     },
   };
@@ -66,6 +62,43 @@ namespace other {
     OE_DEBUG("Panel Manager attached");
   }
 
+  void PanelManager::OpenPanel(const UUID& panel_id) {
+    if (auto itr = active_panels.find(panel_id); itr != active_panels.end()) {
+      itr->second.panel_open = true;
+    }
+  }
+
+  UUID PanelManager::AddPanel(const std::string& name, const Ref<EditorPanel>& panel) {
+    UUID id = FNV(name);
+    if (auto itr = active_panels.find(id); itr != active_panels.end()) {
+      itr->second.panel_open = true;
+      return id;
+    }
+
+    auto& p = active_panels[id] = Panel{ true, panel };
+    p.panel->OnProjectChange(project_context);
+    p.panel->OnAttach();
+
+    return id;
+  }
+
+  void PanelManager::RemovePanel(const std::string& name) {
+    UUID id = FNV(name);
+    RemovePanel(id);
+  }
+
+  void PanelManager::RemovePanel(const UUID& panel_id) {
+    auto itr = active_panels.find(panel_id);
+    OE_ASSERT(itr != active_panels.end(), "Attempting to remove non-existent panel!");
+
+    auto& panel = itr->second;
+    panel.panel_open = false;
+    panel.panel->OnDetach();
+    panel.panel = nullptr;
+
+    active_panels.erase(itr);
+  }
+
   void PanelManager::EarlyUpdate(float dt) {
     for (auto& [id, panel] : active_panels) {
       if (panel.panel == nullptr) {
@@ -74,8 +107,6 @@ namespace other {
 
       panel.panel->OnEarlyUpdate(dt);
     }
-
-    active_panels[kPropertiesPanelId].panel_open = SelectionManager::HasSelection();
   }
 
   void PanelManager::Update(float dt) {
@@ -86,8 +117,6 @@ namespace other {
 
       panel.panel->OnUpdate(dt);
     }
-
-    active_panels[kPropertiesPanelId].panel_open = SelectionManager::HasSelection();
   }
 
   void PanelManager::LateUpdate(float dt) {
@@ -98,14 +127,14 @@ namespace other {
 
       panel.panel->OnLateUpdate(dt);
     }
-
-    active_panels[kPropertiesPanelId].panel_open = SelectionManager::HasSelection();
   }
 
   void PanelManager::Render() {
   }
 
   bool PanelManager::RenderUI() {
+    std::queue<UUID> closed_panels;
+
     bool panel_signal = false;
     for (auto& [id, panel] : active_panels) {
       if (panel.panel == nullptr) {
@@ -114,9 +143,20 @@ namespace other {
 
       panel_signal = panel.panel->OnGuiRender(panel.panel_open) || panel_signal;
 
-      if (id == kPropertiesPanelId && SelectionManager::HasSelection() && !panel.panel_open) {
-        SelectionManager::ClearSelection();
+      /// dont remove these panels
+      if (id == Panel::kProjectPanelId || id == Panel::kScenePanelId || id == Panel::kPropertiesPanelId ||
+          id == Panel::kConsolePanelId || id == Panel::kViewportPanelId) {
+        continue;
       }
+
+      if (!panel.panel_open) {
+        closed_panels.push(id);
+      }
+    }
+
+    while (!closed_panels.empty()) {
+      RemovePanel(closed_panels.front());
+      closed_panels.pop();
     }
 
     return panel_signal;

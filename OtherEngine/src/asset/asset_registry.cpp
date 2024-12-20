@@ -3,58 +3,133 @@
  **/
 #include "asset\asset_registry.hpp"
 
+#include <algorithm>
+
+#include "core/file_handle.hpp"
+
+#include "asset/asset.hpp"
+
 namespace other {
 
-  AssetMetadata& AssetRegistry::operator[](AssetHandle handle) {
-    return assets[handle];
+  bool AssetMetadata::IsValid() const {
+    return file_handle.Get() != 0 && type != AssetType::BLANK_ASSET;
   }
 
-  const AssetMetadata& AssetRegistry::operator[](AssetHandle handle) const {
-    return assets.at(handle);
+  bool AssetMetadata::Loaded() const {
+    if (loaded) {
+      OE_ASSERT(asset != nullptr, "Asset is loaded but asset is null : {}", handle);
+      OE_ASSERT(asset->handle == handle, "Asset mismatch : {}", handle);
+      OE_ASSERT(asset->CheckFlag(AssetFlag::ASSET_LOADED), "Asset not loaded : {}", handle);
+
+      return true;
+    } else {
+      return false;
+    }
   }
 
-  AssetMetadata& AssetRegistry::At(AssetHandle handle) {
-    return assets.at(handle);
+  bool AssetMetadata::Unloaded() const {
+    if (!loaded) {
+      OE_ASSERT(asset == nullptr, "Asset is not loaded but asset exists : {}", handle);
+      return true;
+    } else {
+      return false;
+    }
   }
 
-  const AssetMetadata& AssetRegistry::At(AssetHandle handle) const {
-    return assets.at(handle);
+  void AssetRegistry::AddAsset(const FileHandle* file) {
+    OE_ASSERT(file != nullptr, "Invalid file handle");
+    OE_ASSERT(file->handle.Get() != 0, "Invalid file handle");
+    OE_ASSERT(file->Exists(), "File does not exist : {}", file->AbsolutePath().string());
+
+    AssetKey key = {
+      .file_handle = file->handle,
+      .type = file->GetAssetType(),
+    };
+
+    if (HasKey(key)) {
+      OE_TRACE("[{}] asset already registered : {}\n > [{}]", file->GetAssetType(), file->AbsolutePath(), key);
+      return;
+    }
+
+    OE_TRACE("{} ({})", key, Path(*file));
+
+    AssetMetadata meta = {
+      .handle = 0,
+      .file_handle = file->handle,
+      .type = file->GetAssetType(),
+      .path = file->AbsolutePath(),
+      .loaded = false,
+      .memory_asset = false,
+    };
+
+    assets.insert({ key, meta });
+    OE_ASSERT(assets.find(key) != assets.end(), "Failed to register [{}] asset : {}\n > [{}]", file->GetAssetType(), file->AbsolutePath(), key);
+    OE_DEBUG("Registered [{}] asset : {}", file->GetAssetType(), meta);
   }
 
-  size_t AssetRegistry::Size() const {
-    return assets.size();
+  void AssetRegistry::AddMemoryAsset(const AssetMetadata& metadata) {
+    if (metadata.handle == 0) {
+      OE_ERROR("Invalid asset handle");
+      return;
+    }
+
+    AssetKey key = {
+      .file_handle = metadata.file_handle,
+      .type = metadata.type,
+    };
+
+    if (assets.find(key) != assets.end()) {
+      OE_WARN("Asset with file handle [{}] already registered", metadata.file_handle);
+      return;
+    }
+    OE_ASSERT(metadata.asset != nullptr, "Memory asset is null : {}", metadata.handle);
+
+    OE_TRACE("Registering [{}] memory asset {}", metadata.asset->GetAssetType(), metadata.handle);
+    assets.insert({ key, metadata });
+    OE_ASSERT(assets.find(key) != assets.end(), "Failed to register memory asset : {}", metadata.handle);
   }
 
   bool AssetRegistry::Contains(AssetHandle handle) const {
-    return assets.find(handle) != assets.end();
+    return std::ranges::find_if(assets, [&](const auto& pair) -> bool { return pair.second.handle == handle; }) != assets.end();
   }
 
-  bool AssetRegistry::Empty() const {
-    return assets.empty();
+  bool AssetRegistry::HasKey(const AssetKey& key) const {
+    return assets.find(key) != assets.end();
   }
 
-  void AssetRegistry::Clear() {
-    assets.clear();
+  AssetMetadata& AssetRegistry::GetMetadata(AssetHandle handle) {
+    auto itr = std::ranges::find_if(assets, [&](const auto& pair) -> bool { return pair.second.handle == handle; });
+    OE_ASSERT(itr != assets.end(), "Asset not found : {}", handle);
+    return itr->second;
   }
 
-  AssetDataMap::iterator AssetRegistry::find(AssetHandle handle) {
-    return assets.find(handle);
+  AssetMetadata& AssetRegistry::GetMetadata(const AssetKey& key) {
+    return assets.at(key);
   }
 
-  AssetDataMap::iterator AssetRegistry::begin() {
-    return assets.begin();
+  void AssetRegistry::RemoveAsset(AssetHandle handle) {
+    auto itr = std::ranges::find_if(assets, [&](const auto& pair) -> bool { return pair.second.handle == handle; });
+    if (itr == assets.end()) {
+      OE_WARN("Asset not found : {}", handle);
+      return;
+    }
+
+    assets.erase(itr);
   }
 
-  AssetDataMap::iterator AssetRegistry::end() {
-    return assets.end();
+  void AssetRegistry::RemoveAsset(const AssetKey& key) {
+    auto itr = assets.find(key);
+    if (itr == assets.end()) {
+      OE_WARN("Asset not found : {}", key.file_handle);
+      return;
+    }
+
+    OE_DEBUG("Removing asset : {}", key);
+    assets.erase(itr);
   }
 
-  AssetDataMap::const_iterator AssetRegistry::cbegin() const {
-    return assets.cbegin();
-  }
-
-  AssetDataMap::const_iterator AssetRegistry::cend() const {
-    return assets.cend();
+  const std::unordered_map<AssetKey, AssetMetadata>& AssetRegistry::ReadAllAssets() const {
+    return assets;
   }
 
 }  // namespace other

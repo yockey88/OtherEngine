@@ -3,11 +3,15 @@
  **/
 #include "rendering/model_factory.hpp"
 
+#include <glm/fwd.hpp>
+
 #include "asset/asset_manager.hpp"
 
 #include "rendering/model.hpp"
 
 namespace other {
+
+  Opt<AssetHandle> ModelFactory::framebuffer_mesh_handle = std::nullopt;
 
   Opt<AssetHandle> ModelFactory::line_handle = std::nullopt;
 
@@ -21,6 +25,38 @@ namespace other {
   Opt<AssetHandle> ModelFactory::capsule_handle = std::nullopt;
 
   Opt<std::vector<Vertex>> ModelFactory::box_vertices = std::nullopt;
+
+  AssetHandle ModelFactory::CreateFramebufferMesh() {
+    if (framebuffer_mesh_handle.has_value()) {
+      return *framebuffer_mesh_handle;
+    }
+
+    // clang-format off
+    std::vector<float> fb_verts = {
+       1.f,  1.f, 1.f, 1.f,
+      -1.f,  1.f, 0.f, 1.f,
+      -1.f, -1.f, 0.f, 0.f,
+       1.f, -1.f, 1.f, 0.f,
+    };
+    // clang-format on
+
+    std::vector<uint32_t> idxs = {
+      // 0, 1, 3,
+      // 1, 2, 3
+    };
+
+    Layout layout = {
+      { VEC3, "voe_position" },
+      { VEC2, "voe_uvs" }
+    };
+
+    AssetHandle handle = AssetManager::CreateMemOnly<ModelSource>("FramebufferMesh-Source", fb_verts, idxs, layout);
+    Ref<ModelSource> source = AssetManager::GetAsset<ModelSource>(handle);
+    OE_ASSERT(source != nullptr, "Failed to get framebuffer mesh source");
+
+    framebuffer_mesh_handle = AssetManager::CreateMemOnly<StaticModel>("FramebufferMesh", source);
+    return *framebuffer_mesh_handle;
+  }
 
   AssetHandle ModelFactory::CreateLine(const glm::vec3& start, const glm::vec3& end) {
     if (line_handle.has_value()) {
@@ -43,11 +79,12 @@ namespace other {
     /// 3rd index is irrelevant
     indices[0] = { 0, 1, 0 };
 
-    AssetHandle source_handle = AssetManager::CreateMemOnly<ModelSource>(vertices, indices, glm::mat4(1.f));
+    AssetHandle source_handle = AssetManager::CreateMemOnly<ModelSource>("LineModel-Source", vertices, indices, glm::mat4(1.f));
     Ref<ModelSource> source = AssetManager::GetAsset<ModelSource>(source_handle);
-    AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>(source);
+    OE_ASSERT(source != nullptr, "Failed to get framebuffer mesh source");
 
-    return handle;
+    line_handle = AssetManager::CreateMemOnly<StaticModel>("LineModel", source);
+    return *line_handle;
   }
 
   AssetHandle ModelFactory::CreateTriangle() {
@@ -70,10 +107,11 @@ namespace other {
     indices.resize(1);
     indices[0] = { 0, 1, 2 };
 
-    AssetHandle source_handle = AssetManager::CreateMemOnly<ModelSource>(vertices, indices, glm::mat4(1.f));
+    AssetHandle source_handle = AssetManager::CreateMemOnly<ModelSource>("TriangleModel-Source", vertices, indices, glm::mat4(1.f));
     Ref<ModelSource> source = AssetManager::GetAsset<ModelSource>(source_handle);
+    OE_ASSERT(source != nullptr, "Failed to get framebuffer mesh source");
 
-    AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>(source);
+    AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>("TriangleModel", source);
     triangle_handle = handle;
 
     return handle;
@@ -103,9 +141,11 @@ namespace other {
     indices[0] = { 0, 1, 3 };
     indices[1] = { 1, 2, 3 };
 
-    AssetHandle source_handle = AssetManager::CreateMemOnly<ModelSource>(vertices, indices, glm::mat4(1.f));
+    AssetHandle source_handle = AssetManager::CreateMemOnly<ModelSource>("RectModel-Source", vertices, indices, glm::mat4(1.f));
     Ref<ModelSource> source = AssetManager::GetAsset<ModelSource>(source_handle);
-    AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>(source);
+    OE_ASSERT(source != nullptr, "Failed to get framebuffer mesh source");
+
+    AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>("RectModel", source);
 
     OE_DEBUG("Created rect mesh : [{}]", handle);
     rect_handle = handle;
@@ -121,33 +161,32 @@ namespace other {
 
     std::vector<Index> indices;
     indices.resize(12);
-    /// front face
-    indices[0] = { 0, 1, 2 };  /// upper = <+,+,+> => <-,+,+> => <-,-,+>
-    indices[1] = { 2, 3, 0 };  /// lower = <-,-,+> => <+,-,+> => <+,+,+>
+    indices[0] = { 0, 1, 2 };
+    indices[1] = { 2, 3, 0 };
 
-    /// left face
-    indices[2] = { 1, 5, 6 };  /// upper = <-,+,+> => <-,+,-> => <-,-,->
-    indices[3] = { 6, 2, 1 };  /// lower = <-,-,-> => <-,-,+> => <-,+,+>
+    indices[2] = { 1, 5, 6 };
+    indices[3] = { 6, 2, 1 };
 
-    /// back face
-    indices[4] = { 5, 4, 7 };  ///  upper = <-,+,-> => <+,+,-> => <+,-,->
-    indices[5] = { 7, 6, 5 };  ///  lower = <+,-,-> => <-,-,-> => <-,+,->
+    indices[4] = { 7, 6, 5 };
+    indices[5] = { 5, 4, 7 };
 
-    /// right face
-    indices[6] = { 4, 0, 3 };  /// upper = <+,+,-> => <+,+,+> => <+,-,+>
-    indices[7] = { 3, 7, 4 };  /// lower = <+,-,+> => <+,-,-> => <+,+,->
+    indices[6] = { 4, 0, 3 };
+    indices[7] = { 3, 7, 4 };
 
-    /// top face
-    indices[8] = { 4, 5, 1 };  /// back = <+,+,-> => <-,+,-> => <-,+,+>
-    indices[9] = { 1, 0, 4 };  /// front = <-,+,+> => <+,+,+> => <+,+,->
+    indices[8] = { 4, 5, 1 };
+    indices[9] = { 1, 0, 4 };
 
-    /// bottom face
-    indices[10] = { 3, 2, 6 };  /// front = <+,-,+> => <-,-,+> => <-,-,->
-    indices[11] = { 6, 7, 3 };  /// back = <-,-,-> => <+,-,-> => <+,-,+>
+    indices[10] = { 3, 2, 6 };
+    indices[11] = { 6, 7, 3 };
 
-    AssetHandle mesh_source_handle = AssetManager::CreateMemOnly<ModelSource>(vertices, indices, glm::mat4(1.f));
+    OE_DEBUG("Creating box model");
+    AssetHandle mesh_source_handle = AssetManager::CreateMemOnly<ModelSource>("BoxModel-Source", vertices, indices, glm::mat4(1.f));
+
+    OE_DEBUG("Created box mesh source [{}]", mesh_source_handle);
     Ref<ModelSource> mesh_source = AssetManager::GetAsset<ModelSource>(mesh_source_handle);
-    AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>(mesh_source);
+    OE_ASSERT(mesh_source != nullptr, "Failed to get framebuffer mesh source");
+
+    AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>("BoxModel", mesh_source);
 
     OE_DEBUG("Created cube mesh [{}]", handle);
     box_handle = handle;
@@ -206,9 +245,11 @@ namespace other {
       4, 7  // (back-right)
     };
 
-    AssetHandle mesh_source_handle = AssetManager::CreateMemOnly<ModelSource>(vertices, indices, glm::mat4(1.f));
+    AssetHandle mesh_source_handle = AssetManager::CreateMemOnly<ModelSource>("BoxWireframeModel-Source", vertices, indices, glm::mat4(1.f));
     Ref<ModelSource> mesh_source = AssetManager::GetAsset<ModelSource>(mesh_source_handle);
-    AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>(mesh_source);
+    OE_ASSERT(mesh_source != nullptr, "Failed to get framebuffer mesh source");
+
+    AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>("BoxWireframeModel", mesh_source);
 
     OE_DEBUG("Created cube wireframe mesh [{}]", handle);
     box_wireframe_handle = handle;
@@ -231,29 +272,37 @@ namespace other {
     std::vector<Vertex> vertices;
     vertices.resize(8);
 
-    /* (+,+,+) */ vertices[0].position = { 1.f / 2.0f, 1.f / 2.0f, 1.f / 2.0f };
-    /* (+,+,+) */ vertices[0].normal = { 1.0f, 1.0f, 1.0f };
+    /* (-,-,+) */ vertices[0].position = { -1.f / 2.0f, -1.f / 2.0f, 1.f / 2.0f };
+    /* (-,-,+) */ vertices[0].normal = { -1.0f, -1.0f, 1.0f };
+    /* (-,-,+) */ vertices[0].uv_coord = { 0.f, 1.f };
 
-    /* (-,+,+) */ vertices[1].position = { -1.f / 2.0f, 1.f / 2.0f, 1.f / 2.0f };
-    /* (-,+,+) */ vertices[1].normal = { -1.0f, 1.0f, 1.0f };
+    /* (+,-,+) */ vertices[1].position = { 1.f / 2.0f, -1.f / 2.0f, 1.f / 2.0f };
+    /* (+,-,+) */ vertices[1].normal = { 1.0f, -1.0f, 1.0f };
+    /* (+,-,+) */ vertices[1].uv_coord = { 1.f, 1.f };
 
-    /* (-,-,+) */ vertices[2].position = { -1.f / 2.0f, -1.f / 2.0f, 1.f / 2.0f };
-    /* (-,-,+) */ vertices[2].normal = { -1.0f, -1.0f, 1.0f };
+    /* (+,+,+) */ vertices[2].position = { 1.f / 2.0f, 1.f / 2.0f, 1.f / 2.0f };
+    /* (+,+,+) */ vertices[2].normal = { 1.0f, 1.0f, 1.0f };
+    /* (+,+,+) */ vertices[2].uv_coord = { 1.f, 0.f };
 
-    /* (+,-,+) */ vertices[3].position = { 1.f / 2.0f, -1.f / 2.0f, 1.f / 2.0f };
-    /* (+,-,+) */ vertices[3].normal = { 1.0f, -1.0f, 1.0f };
+    /* (-,+,+) */ vertices[3].position = { -1.f / 2.0f, 1.f / 2.0f, 1.f / 2.0f };
+    /* (-,+,+) */ vertices[3].normal = { -1.0f, 1.0f, 1.0f };
+    /* (-,+,+) */ vertices[3].uv_coord = { 0.f, 0.f };
 
-    /* (+,+,-) */ vertices[4].position = { 1.f / 2.0f, 1.f / 2.0f, -1.f / 2.0f };
-    /* (+,+,-) */ vertices[4].normal = { 1.0f, 1.0f, -1.0f };
+    /* (-,-,-) */ vertices[4].position = { -1.f / 2.0f, -1.f / 2.0f, -1.f / 2.0f };
+    /* (-,-,-) */ vertices[4].normal = { -1.0f, -1.0f, -1.0f };
+    /* (-,-,-) */ vertices[4].uv_coord = { 0.f, 1.f };
 
-    /* (-,+,-) */ vertices[5].position = { -1.f / 2.0f, 1.f / 2.0f, -1.f / 2.0f };
-    /* (-,+,-) */ vertices[5].normal = { -1.0f, 1.0f, -1.0f };
+    /* (+,-,-) */ vertices[5].position = { 1.f / 2.0f, -1.f / 2.0f, -1.f / 2.0f };
+    /* (+,-,-) */ vertices[5].normal = { 1.0f, -1.0f, -1.0f };
+    /* (+,-,-) */ vertices[5].uv_coord = { 1.f, 1.f };
 
-    /* (-,-,-) */ vertices[6].position = { -1.f / 2.0f, -1.f / 2.0f, -1.f / 2.0f };
-    /* (-,-,-) */ vertices[6].normal = { -1.0f, -1.0f, -1.0f };
+    /* (+,+,-) */ vertices[6].position = { 1.f / 2.0f, 1.f / 2.0f, -1.f / 2.0f };
+    /* (+,+,-) */ vertices[6].normal = { 1.0f, 1.0f, -1.0f };
+    /* (+,+,-) */ vertices[6].uv_coord = { 1.f, 0.f };
 
-    /* (+,-,-) */ vertices[7].position = { 1.f / 2.0f, -1.f / 2.0f, -1.f / 2.0f };
-    /* (+,-,-) */ vertices[7].normal = { 1.0f, -1.0f, -1.0f };
+    /* (-,+,-) */ vertices[7].position = { -1.f / 2.0f, 1.f / 2.0f, -1.f / 2.0f };
+    /* (-,+,-) */ vertices[7].normal = { -1.0f, 1.0f, -1.0f };
+    /* (-,+,-) */ vertices[7].uv_coord = { 0.f, 0.f };
 
     box_vertices = vertices;
     return vertices;

@@ -6,9 +6,12 @@
 
 #include "core/ref.hpp"
 
+#include "application/app.hpp"
+
 #include "scene/scene.hpp"
 
 #include "rendering/framebuffer.hpp"
+#include "rendering/scene_renderer.hpp"
 #include "rendering/window.hpp"
 
 namespace other {
@@ -35,6 +38,9 @@ namespace other {
     static void DrawFramebufferToWindow(const Ref<Framebuffer>& framebuffer);
 
     static Ref<SceneRenderer> DefaultSceneRenderer();
+    static Ref<SceneRenderer> ConstructSceneRenderer(App::RenderSpec* spec);
+
+    static SceneRenderSpec GetDefaultSceneSpec();
 
    private:
     static Scope<Window> window;

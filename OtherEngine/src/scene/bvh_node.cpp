@@ -138,11 +138,11 @@ namespace other {
    */
 
   template <>
-  void BvhNode<2>::RenderEntityBounds(const std::string_view pl_name, Ref<SceneRenderer>& renderer, bool outline) {
+  void BvhNode<2>::RenderEntityBounds(Ref<SceneRenderer>& renderer, bool outline) {
     if (!IsLeaf()) {
       for (auto* c : children) {
         if (c != nullptr) {
-          c->RenderEntityBounds(pl_name, renderer, outline);
+          c->RenderEntityBounds(renderer, outline);
         }
       }
       return;
@@ -152,18 +152,18 @@ namespace other {
       if (e->visited) {
         continue;
       }
-      renderer->SubmitStaticModel(pl_name, e->WireframeSubmission());
+      renderer->SubmitStaticModel(e->WireframeSubmission());
 
       e->visited = true;
     }
   }
 
   template <>
-  void BvhNode<8>::RenderEntityBounds(const std::string_view pl_name, Ref<SceneRenderer>& renderer, bool outline) {
+  void BvhNode<8>::RenderEntityBounds(Ref<SceneRenderer>& renderer, bool outline) {
     if (!IsLeaf()) {
       for (auto* c : children) {
         if (c != nullptr) {
-          c->RenderEntityBounds(pl_name, renderer, outline);
+          c->RenderEntityBounds(renderer, outline);
         }
       }
       return;
@@ -173,71 +173,71 @@ namespace other {
       if (e->visited) {
         continue;
       }
-      renderer->SubmitStaticModel(pl_name, e->WireframeSubmission());
+      renderer->SubmitStaticModel(e->WireframeSubmission());
 
       e->visited = true;
     }
   }
 
   template <>
-  void BvhNode<2>::RenderNodeBounds(const std::string_view pl_name, Ref<SceneRenderer>& renderer, size_t depth) {
+  void BvhNode<2>::RenderNodeBounds(Ref<SceneRenderer>& renderer, size_t depth) {
     constexpr glm::mat4 identity = glm::identity<glm::mat4>();
     const static AssetHandle wireframe = ModelFactory::CreateBoxWireframe();
     Ref<StaticModel> model = AssetManager::GetAsset<StaticModel>(wireframe);
-    Material mat(glm::vec4(1.f, 0.f, 0.f, 1.f), 16.f);
+    // Material mat(glm::vec4(1.f, 0.f, 0.f, 1.f), 16.f);
 
     glm::mat4 model_mat = glm::translate(identity, bbox.Center());
     model_mat = glm::scale(model_mat, bbox.extent);
 
-    RenderSubmission s = {
+    RenderStaticSubmission s = {
       .model = model,
       .transform = model_mat,
-      .material = mat,
+      // .material = mat,
       .render_state = RenderState::FILL,
       .draw_mode = DrawMode::LINES,
     };
 
-    renderer->SubmitStaticModel(pl_name, s);
+    renderer->SubmitStaticModel(s);
 
     if (IsLeaf() || depth == 0) {
       return;
     }
 
     if (children[LEFT] != nullptr) {
-      children[LEFT]->RenderNodeBounds(pl_name, renderer, depth - 1);
+      children[LEFT]->RenderNodeBounds(renderer, depth - 1);
     }
 
     if (children[RIGHT] != nullptr) {
-      children[RIGHT]->RenderNodeBounds(pl_name, renderer, depth - 1);
+      children[RIGHT]->RenderNodeBounds(renderer, depth - 1);
     }
   }
 
   template <>
-  void BvhNode<8>::RenderNodeBounds(const std::string_view pl_name, Ref<SceneRenderer>& renderer, size_t depth) {
+  void BvhNode<8>::RenderNodeBounds(Ref<SceneRenderer>& renderer, size_t depth) {
     constexpr glm::mat4 identity = glm::identity<glm::mat4>();
     const static AssetHandle wireframe = ModelFactory::CreateBoxWireframe();
     Ref<StaticModel> model = AssetManager::GetAsset<StaticModel>(wireframe);
-    Material mat(glm::vec4(1.f, 0.f, 0.f, 1.f), 16.f);
+    // Material mat(glm::vec4(1.f, 0.f, 0.f, 1.f), 16.f);
 
     glm::mat4 model_mat = glm::translate(identity, bbox.Center());
     model_mat = glm::scale(model_mat, bbox.extent);
 
-    RenderSubmission s = {
+    RenderStaticSubmission s = {
       .model = model,
       .transform = model_mat,
-      .material = mat,
+      // .material = mat,
       .render_state = RenderState::FILL,
       .draw_mode = DrawMode::LINES,
     };
 
-    renderer->SubmitStaticModel(pl_name, s);
+    renderer->SubmitStaticModel(s);
     if (IsLeaf() || depth == 0) {
       return;
     }
 
     for (const auto& c : children) {
       if (c != nullptr) {
-        c->RenderNodeBounds(pl_name, renderer, depth - 1);
+        c->RenderNodeBounds(renderer, depth - 1);
       }
     }
   }

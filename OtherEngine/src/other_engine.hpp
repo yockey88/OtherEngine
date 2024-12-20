@@ -16,6 +16,7 @@
 
 #include "application/app.hpp"
 #include "application/app_state.hpp"
+#include "asset/serializers/scene_serializer.hpp"
 #include "event/app_events.hpp"
 #include "event/core_events.hpp"
 #include "event/event.hpp"
@@ -31,7 +32,6 @@
 #include "parsing/ini_parser.hpp"
 
 #include "scene/scene.hpp"
-#include "scene/scene_serializer.hpp"
 
 #include "physics/phyics_engine.hpp"
 #include "rendering/renderer.hpp"
@@ -39,6 +39,7 @@
 #include "scripting/script_engine.hpp"
 
 #include "serialization/serializer.hpp"
+
 
 namespace other {
 

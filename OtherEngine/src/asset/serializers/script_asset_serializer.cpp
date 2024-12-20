@@ -11,16 +11,12 @@
 
 namespace other {
 
-  void ScriptFileAssetSerializer::Serialize(const Ref<Asset>& asset) {
+  void ScriptFileAssetSerializer::Serialize(const AssetMetadata& metadata) {
     OE_ASSERT(false, "ScriptFileAssetSerializer::Serialize unimplemented");
   }
 
-  void ScriptFileAssetSerializer::Serialize(const AssetMetadata& metadata, const Ref<Asset>& asset) {
-    OE_ASSERT(false, "ScriptFileAssetSerializer::Serialize unimplemented");
-  }
-
-  bool ScriptFileAssetSerializer::Load(const AssetMetadata& metadata, Ref<Asset>& asset) {
-    OE_ASSERT(metadata.type == AssetType::SCRIPTFILE, "Asset type mismatch");
+  bool ScriptFileAssetSerializer::Load(AssetMetadata& metadata) {
+    OE_ASSERT(metadata.type == AssetType::DYNAMIC_LIBRARY, "Asset type mismatch");
     Ref<ScriptModule> script_module = ScriptEngine::GetScriptModule(metadata.handle.id);
     if (script_module == nullptr) {
       script_module = ScriptEngine::GetScriptModule(metadata.path.string());

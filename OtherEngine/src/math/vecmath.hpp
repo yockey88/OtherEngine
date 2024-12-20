@@ -432,7 +432,7 @@ namespace other {
   constexpr inline checked_product<4, float, glm::defaultp> vec4_product;
 
   template <glm::length_t N, typename T, glm::qualifier Q>
-  struct checked_divided {
+  struct checked_division {
     constexpr auto operator()(const glm::vec<N, T, Q>& lhs, float rhs) const {
       glm::vec<N, T, Q> quotient;
       for (glm_length_t<N, T, Q> i = 0; i < N; ++i) {
@@ -442,10 +442,26 @@ namespace other {
       return quotient;
     }
   };
-  constexpr inline checked_divided<2, float, glm::defaultp> vec2_div;
-  constexpr inline checked_divided<3, float, glm::defaultp> vec3_div;
-  constexpr inline checked_divided<4, float, glm::defaultp> vec4_div;
+  constexpr inline checked_division<2, float, glm::defaultp> vec2_div;
+  constexpr inline checked_division<3, float, glm::defaultp> vec3_div;
+  constexpr inline checked_division<4, float, glm::defaultp> vec4_div;
 
+  template <glm::length_t N, typename T, glm::qualifier Q>
+  struct checked_vector_scaling {
+    constexpr auto operator()(const glm::vec<N, T, Q>& vec, float scale) const {
+      float current_len = glm::length(vec);
+      if (EpsilonEqual(current_len, 0.f)) {
+        return glm::vec<N, T, Q>(0);
+      }
+
+      return vec * scale / current_len;
+    }
+  };
+  constexpr inline checked_vector_scaling<2, float, glm::defaultp> scale_vec2;
+  constexpr inline checked_vector_scaling<3, float, glm::defaultp> scale_vec3;
+  constexpr inline checked_vector_scaling<4, float, glm::defaultp> scale_vec4;
+
+  /// NOTE: this exists for C# interop and reflection abilities
   template <glm::length_t N, typename T, glm::qualifier Q>
   struct matrix_wrapper {
     glm::mat<N, N, T, Q> mat;

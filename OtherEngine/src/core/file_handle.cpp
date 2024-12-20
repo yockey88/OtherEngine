@@ -8,8 +8,6 @@
 #include <cstring>
 #include <filesystem>
 
-#include "core/filesystem.hpp"
-
 #include "asset/asset_database.hpp"
 #include "asset/asset_manager.hpp"
 #include "event/core_events.hpp"
@@ -17,34 +15,19 @@
 
 namespace other {
 
-  FileHandle::FileHandle(UUID hash, const Path& path, Opt<std::ios_base::openmode> m) {
+  FileHandle::FileHandle(const Path& path, Opt<std::ios_base::openmode> m) {
     project_relative_path = path;
-    handle = hash;
+    handle = FNV(AbsolutePath().string());
 
-    auto ext_t = AssetManager::AssetTypeFromExtension(project_relative_path.extension().string());
-    if (ext_t.has_value()) {
-      asset_type = ext_t.value();
+    if (!Exists() && m.has_value() && (*m & std::ios_base::out)) {
+      std::ofstream file(AbsolutePath());
     }
+    OE_ASSERT(Exists(), "Can not create file handle for non-existent file : {}", project_relative_path.string());
 
-    if (IsAsset() && !AssetDatabase::Contains(handle)) {
-      AssetDatabase::RegisterAsset({
-        .handle = handle,
-        .type = GetAssetType(),
-        .path = project_relative_path,
-        .loaded = false,
-      });
-    }
+    asset_type = AssetManager::AssetTypeFromExtension(project_relative_path.extension().string());
+    OE_TRACE("FileHandle : {} ({}) [{}]", project_relative_path.string(), asset_type, handle);
 
-    if (!Filesystem::FileExists(AbsolutePath())) {
-      if (m.has_value() && (*m & std::ios_base::out)) {
-        std::ofstream file(AbsolutePath());
-        file.close();
-      } else {
-        OE_ERROR("Failed to open file : {}", project_relative_path.string());
-        return;
-      }
-    }
-    OE_ASSERT(Filesystem::FileExists(AbsolutePath()), "Failed to create file : {}", project_relative_path.string());
+    AssetDatabase::RegisterAsset(this);
 
     try {
       watcher = NewRef<FileWatcher>(handle, AbsolutePath());
@@ -77,7 +60,7 @@ namespace other {
     if (!IsOpen()) {
       OE_ERROR("Failed to open file : {} [{}]", project_relative_path.string(), std::strerror(errno));
     } else {
-      OE_DEBUG("Opened file : {}", project_relative_path.string());
+      OE_TRACE("Opened file : {}", project_relative_path.string());
     }
   }
 
@@ -93,8 +76,28 @@ namespace other {
     return file.is_open();
   }
 
-  bool FileHandle::IsAsset() const {
-    return asset_type.has_value();
+  bool FileHandle::Remove() {
+    if (!Exists()) {
+      return true;
+    }
+
+    if (IsOpen()) {
+      Close();
+    }
+
+    AssetKey key = { .file_handle = handle, .type = asset_type };
+    AppState::Assets()->Remove(key);
+
+    try {
+      std::filesystem::remove(AbsolutePath());
+      return !Exists();
+    } catch (std::filesystem::filesystem_error& e) {
+      OE_ERROR("Failed to remove file : {} [{}]", project_relative_path.string(), e.what());
+      return false;
+    } catch (...) {
+      OE_ERROR("Failed to remove file : {} [{}]", project_relative_path.string(), std::strerror(errno));
+      return false;
+    }
   }
 
   FileHandle::operator Path() const {
@@ -102,7 +105,7 @@ namespace other {
   }
 
   AssetType FileHandle::GetAssetType() const {
-    return IsAsset() ? *asset_type : AssetType::GENERIC_FILE;
+    return asset_type;
   }
 
   void FileHandle::Poll() {
@@ -114,13 +117,10 @@ namespace other {
       return;
     }
 
-    if (IsAsset()) {
-    } else {
-      EventQueue::PushEvent<ModifyFileEvent>({ handle.Get() });
-    }
+    EventQueue::PushEvent<ModifyFileEvent>({ handle.Get() });
   }
 
-  const std::string FileHandle::Extension() const {
+  std::string FileHandle::Extension() const {
     if (handle.Get() == 0) {
       return "";
     }
@@ -128,7 +128,7 @@ namespace other {
     return project_relative_path.extension().string();
   }
 
-  const std::string FileHandle::FileName() const {
+  std::string FileHandle::FileName() const {
     if (handle.Get() == 0) {
       return "";
     }
@@ -136,11 +136,11 @@ namespace other {
     return project_relative_path.stem().string();
   }
 
-  const Path FileHandle::AbsolutePath() const {
+  Path FileHandle::AbsolutePath() const {
     return std::filesystem::absolute(project_relative_path);
   }
 
-  const Path FileHandle::ProjectRelativePath() const {
+  Path FileHandle::ProjectRelativePath() const {
     if (handle.Get() == 0) {
       return Path();
     }
@@ -148,7 +148,11 @@ namespace other {
     return project_relative_path;
   }
 
-  std::fstream& FileHandle::RawFileStream() {
+  std::istream& FileHandle::GetReadStream() {
+    return file;
+  }
+
+  std::ostream& FileHandle::GetWriteStream() {
     return file;
   }
 
@@ -173,17 +177,28 @@ namespace other {
   }
 
   std::string FileHandle::ReadString() {
+    if (!Exists()) {
+      OE_ERROR("Failed to read file : {}", project_relative_path.string());
+      return "";
+    }
+
     if (!IsOpen()) {
       OE_ERROR("Failed to read file : {}", project_relative_path.string());
       return "";
     }
 
+    OE_DEBUG("Reading file : {}", project_relative_path.string());
     std::stringstream ss;
     ss << file.rdbuf();
     return ss.str();
   }
 
   std::vector<char> FileHandle::ReadChars() {
+    if (!Exists()) {
+      OE_ERROR("Failed to read file : {}", project_relative_path.string());
+      return {};
+    }
+
     if (!IsOpen()) {
       OE_ERROR("Failed to read file : {}", project_relative_path.string());
       return {};
@@ -200,6 +215,34 @@ namespace other {
     file.read(buffer.data(), size);
 
     return buffer;
+  }
+
+  std::vector<uint8_t> FileHandle::ReadBytes() {
+    if (!Exists()) {
+      OE_ERROR("Failed to read file : {}", project_relative_path.string());
+      return {};
+    }
+
+    Close();
+    Open(std::ios_base::in | std::ios_base::binary);
+
+    if (!IsOpen()) {
+      OE_ERROR("Failed to read file : {}", project_relative_path.string());
+      return {};
+    }
+
+    file.seekg(0, std::ios::end);
+    size_t size = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    if (size == 0) {
+      return {};
+    }
+
+    std::vector<uint8_t> buffer{};
+    buffer.resize(size);
+
+    file.read(reinterpret_cast<char*>(buffer.data()), size);
   }
 
 }  // namespace other

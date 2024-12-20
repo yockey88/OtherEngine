@@ -5,6 +5,7 @@
 
 #include <ranges>
 
+#include <box2d/b2_types.h>
 #include <entt/entity/entity.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/fwd.hpp>
@@ -33,11 +34,9 @@
 
 #include "rendering/camera_base.hpp"
 #include "rendering/model.hpp"
-#include "rendering/pipeline.hpp"
 #include "scripting/cs/cs_object.hpp"
 #include "scripting/script_engine.hpp"
 
-#include "editor/editor_state.hpp"
 #include "editor/selection_manager.hpp"
 
 namespace other {
@@ -77,7 +76,6 @@ namespace other {
 
     environment = NewRef<LightEnvironment>();
 
-    handle = Random::GenerateUUID();
     scene_handle = handle.Get();
   }
 
@@ -115,6 +113,10 @@ namespace other {
     for (auto& [id, entity] : entities) {
       delete entity;
     }
+  }
+
+  const std::string& Scene::Name() const {
+    return scene_name;
   }
 
   UUID Scene::SceneHandle() const {
@@ -204,7 +206,7 @@ namespace other {
 
     OnStart();
 
-    /// do this after client in case the modify environment
+    /// do this after client in case they modify environment
     RebuildEnvironment();
 
     running = true;
@@ -311,16 +313,6 @@ namespace other {
 
     /// TODO: rigid body 3d here
 
-    /// update environment
-    registry.view<LightSource, Transform>().each([](LightSource& light, Transform& transform) {
-      if (light.type == POINT_LIGHT_SRC) {
-        /// sync pointlight transforms to pointlight data
-        transform.position = light.pointlight.position;
-        transform.scale = glm::vec3(0.2f);
-      } else {
-      }
-    });
-
     /// update transforms after other updates, dont overwrite physics changes
     registry.view<Transform>(entt::exclude<RigidBody2D, Collider2D, RigidBody, Collider>).each([](Transform& transform) {
       transform.CalcMatrix();
@@ -361,6 +353,64 @@ namespace other {
 
   void Scene::LateUpdate(float dt) {
     OE_ASSERT(initialized, "Updating scene without initialization");
+
+    /// update environment even if scene is not running
+    registry.view<LightSource, Transform>().each([&](LightSource& light, Transform& transform) {
+      environment->direction_light = std::nullopt;
+      environment->point_lights.clear();
+
+      // glm::mat4 eye = glm::mat4(1.f);
+      if (light.type == DIRECTION_LIGHT_SRC) {
+        /// sync direction light transforms to light data
+        transform.erotation = glm::vec3(light.direction_light.direction);
+        transform.position = -glm::normalize(glm::vec3(light.direction_light.direction)) * 10.f;
+        light.direction_light.position = glm::vec4(transform.position, 1.0);
+
+        float near_plane = 0.1f, far_plane = 100.f;
+        glm::mat4 light_projection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+        glm::mat4 light_view = glm::lookAt(transform.position, glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f));
+        light.direction_light.light_space_matrix = light_projection * light_view;
+
+      }
+      /// sync pointlight transforms to pointlight data
+      else if (light.type == POINT_LIGHT_SRC) {
+        transform.position = light.pointlight.position;
+        transform.scale = glm::vec3(0.2f);
+
+        // light.pointlight.light_space_matrix = glm::translate(eye, light.pointlight.position);
+      }
+
+      if (light.type == DIRECTION_LIGHT_SRC && !environment->direction_light.has_value()) {
+        environment->direction_light = light.direction_light;
+      } else if (light.type == POINT_LIGHT_SRC) {
+        environment->point_lights.push_back(light.pointlight);
+      }
+    });
+
+    registry.view<Mesh, Transform>().each([](Mesh& mesh, Transform& transform) {
+      // if (!AppState::Assets()->IsValid(mesh.handle)) {
+      //   return;
+      // }
+
+      // Ref<Model> model = AssetManager::GetAsset<Model>(mesh.handle);
+      // if (model == nullptr) {
+      //   return;
+      // }
+
+      // Ref<ModelSource> source = model->GetModelSource();
+      // OE_ASSERT(source != nullptr, "Model source is null");
+
+      // std::vector<SubMesh>& submeshes = source->SubMeshes();
+      // const std::vector<uint32_t>& sm_idxs = model->SubMeshes();
+
+      // for (const uint32_t sm_idx : sm_idxs) {
+      //   OE_ASSERT(sm_idx < submeshes.size(), "Submesh index out of bounds");
+
+      //   SubMesh& submesh = submeshes[sm_idx];
+      //   submesh.transform = transform.model_transform * submesh.transform;
+      // }
+    });
+
     if (!running) {
       return;
     }
@@ -372,7 +422,7 @@ namespace other {
     }
 
     registry.view<Camera, Transform>().each([](Camera& camera, Transform& transform) {
-      OE_ASSERT(camera.camera != nullptr, "Camera is null");  /// should never happen
+      OE_ASSERT(camera.camera != nullptr, "Camera is null");
       if (camera.pinned_to_entity_position) {
         camera.camera->SetPosition(transform.position);
       }
@@ -429,8 +479,40 @@ namespace other {
     // }
     renderer->SubmitEnvironment(environment);
 
-    /// TODO: fix hardcoded pipeline names
-    RenderToPipeline("Geometry", renderer);
+    dynamic_mesh_group.each([&renderer](const Mesh& mesh, const Transform& transform) {
+      if (!AppState::Assets()->IsValid(mesh.handle)) {
+        return;
+      }
+
+      auto model = AssetManager::GetAsset<Model>(mesh.handle);
+      renderer->SubmitModel(model, transform.model_transform, mesh.material);
+    });
+
+    static_mesh_group.each([&renderer](const StaticMesh& mesh, const Transform& transform) {
+      if (!AppState::Assets()->IsValid(mesh.handle)) {
+        return;
+      }
+
+      auto model = AssetManager::GetAsset<StaticModel>(mesh.handle);
+      renderer->SubmitStaticModel(model, transform.model_transform, mesh.material);
+    });
+
+    // AssetHandle cube_handle = ModelFactory::CreateBox();
+
+    // light_group.each([&renderer, cube_handle, plname](const LightSource& light, const Transform& transform) {
+    //   if (light.type == DIRECTION_LIGHT_SRC) {
+    //     return;
+    //   }
+
+    //   if (!AppState::Assets()->IsValid(cube_handle)) {
+    //     return;
+    //   }
+
+    //   Material light_material = Material(light.pointlight.color, 32.f);
+
+    //   auto model = AssetManager::GetAsset<StaticModel>(cube_handle);
+    //   renderer->SubmitStaticModel(plname, model, transform.model_transform, light_material);
+    // });
 
     scene_object->Render();
   }
@@ -543,7 +625,7 @@ namespace other {
   }
 
   Entity* Scene::CreateEntity(const std::string& name, UUID id) {
-    Entity* ent = new Entity(this, id, name);
+    Entity* ent = new Entity(registry, id, name);
     for (const auto& [eid, e] : entities) {
       if (eid == id && e->Name() == ent->Name()) {
         OE_WARN("Entity[{} : {}] already exists in scene", id, e->Name());
@@ -551,12 +633,11 @@ namespace other {
       }
     }
 
+    OE_ASSERT(ent != nullptr, "Failed to create entity [{}]", id);
+    OE_ASSERT(ent->HasComponent<Tag>(), "Entity does not have tag component");
+
     root_entities[id] = ent;
     entities[id] = ent;
-
-    auto& tag = ent->GetComponent<Tag>();
-    tag.id = id;
-    tag.name = name;
 
     return ent;
   }
@@ -689,57 +770,22 @@ namespace other {
 
   void Scene::RebuildEnvironment() {
     /// rebuild environment on light source change
+    environment->direction_light = std::nullopt;
     environment->point_lights.clear();
-    environment->direction_lights.clear();
     registry.view<LightSource, Transform>().each([this](LightSource& light, Transform& transform) {
       switch (light.type) {
         case POINT_LIGHT_SRC:
           environment->point_lights.push_back(light.pointlight);
           break;
         case DIRECTION_LIGHT_SRC:
-          environment->direction_lights.push_back(light.direction_light);
+          if (!environment->direction_light.has_value()) {
+            environment->direction_light = light.direction_light;
+          }
           break;
         default:
           break;
       }
     });
-  }
-
-  void Scene::RenderToPipeline(const std::string_view plname, Ref<SceneRenderer>& renderer, bool do_debug) {
-    dynamic_mesh_group.each([&renderer, plname](const Mesh& mesh, const Transform& transform) {
-      if (!AppState::Assets()->IsValid(mesh.handle)) {
-        return;
-      }
-
-      auto model = AssetManager::GetAsset<Model>(mesh.handle);
-      renderer->SubmitModel(plname, model, transform.model_transform, mesh.material);
-    });
-
-    static_mesh_group.each([&renderer, plname](const StaticMesh& mesh, const Transform& transform) {
-      if (!AppState::Assets()->IsValid(mesh.handle)) {
-        return;
-      }
-
-      auto model = AssetManager::GetAsset<StaticModel>(mesh.handle);
-      renderer->SubmitStaticModel(plname, model, transform.model_transform, mesh.material);
-    });
-
-    // AssetHandle cube_handle = ModelFactory::CreateBox();
-
-    // light_group.each([&renderer, cube_handle, plname](const LightSource& light, const Transform& transform) {
-    //   if (light.type == DIRECTION_LIGHT_SRC) {
-    //     return;
-    //   }
-
-    //   if (!AppState::Assets()->IsValid(cube_handle)) {
-    //     return;
-    //   }
-
-    //   Material light_material = Material(light.pointlight.color, 32.f);
-
-    //   auto model = AssetManager::GetAsset<StaticModel>(cube_handle);
-    //   renderer->SubmitStaticModel(plname, model, transform.model_transform, light_material);
-    // });
   }
 
   void Scene::OnAddRigidBody2D(entt::registry& context, entt::entity entt) {

@@ -44,6 +44,8 @@ namespace other {
     Scene();
     virtual ~Scene() override;
 
+    const std::string& Name() const;
+
     UUID SceneHandle() const;
 
     template <typename Fn>
@@ -118,8 +120,6 @@ namespace other {
 
     Ref<LightEnvironment> environment = nullptr;
 
-    void RenderToPipeline(const std::string_view plname, Ref<SceneRenderer>& scene_renderer, bool do_debug = false);
-
     void OnAddRigidBody2D(entt::registry& context, entt::entity ent);
     void OnAddCollider2D(entt::registry& context, entt::entity ent);
 
@@ -144,6 +144,7 @@ namespace other {
    private:
     friend class Entity;
     friend class SceneSerializer;
+    friend class SceneManager;
 
     bool initialized = false;
     bool running = false;
@@ -153,6 +154,8 @@ namespace other {
     bool scene_geometry_changed = true;
 
     entt::registry registry;
+
+    std::string scene_name = "[ Empty Scene ]";
     UUID scene_handle;
     ScriptRef<CsObject> scene_object = nullptr;
 
