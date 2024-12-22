@@ -6,8 +6,6 @@ bin_obj/
 *.vcxproj*
 *csproj
 *csproj.user
-*.lib
-*.dll
 *.exe
 
 # python bindings
@@ -39,13 +37,9 @@ cell_automaton/cell_automaton_modules/obj
 ## C# stuff
 packages/
 
-## scripts
-tools/runtestbed.py
-
 # configuration files
 *.config
 *.xml
-imgui.ini
 
 ## Pycache
 *__pycache__*
