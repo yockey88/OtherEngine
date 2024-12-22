@@ -10,6 +10,7 @@
 #include "asset/asset_manager.hpp"
 
 #include "ecs/entity.hpp"
+#include "scene/scene.hpp"
 
 #include "rendering/model_factory.hpp"
 

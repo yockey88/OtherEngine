@@ -37,16 +37,15 @@ namespace other {
     std::vector<SubMesh> submeshes;
     std::vector<MeshNode> nodes;
 
-    std::vector<UUID> material_ids;
     std::vector<uint64_t> loaded_texture_hashes;
 
-    virtual bool ProcessScene(const aiScene* scene, const std::string& path);
-    virtual bool ProcessNode(const aiNode* node, const aiScene* scene);
+    std::vector<UUID> material_ids;
 
+    virtual void ProcessMaterials(const aiScene* scene);
+    virtual bool ProcessNode(const aiNode* node, const aiScene* scene, const uint32_t parent = 0xFFFFFFFF, const glm::mat4& parent_transform = glm::mat4(1.f), uint32_t level = 0);
     virtual bool ProcessMesh(const aiMesh* mesh, const aiScene* scene);
-    virtual void TraverseNodes(const aiNode* node, int32_t node_idx, const glm::mat4& parent_transform = glm::mat4(1.f), uint32_t level = 0);
 
-    virtual bool BuildMaterialTable(const aiScene* scene);
+    virtual UUID GetMaterial(const uint32_t idx, const aiScene* scene);
   };
 
 }  // namespace other

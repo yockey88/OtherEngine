@@ -8,9 +8,12 @@
 #include "ecs/component.hpp"
 #include "ecs/component_serializer.hpp"
 
+#include "physics/3D/physics_shape.hpp"
+
 namespace other {
 
   struct Collider : public Component {
+    Ref<PhysicsShape> shape = nullptr;
     ECS_COMPONENT(Collider, kRigidBodyIndex);
   };
 

@@ -12,6 +12,7 @@
 #include "ecs/component.hpp"
 #include "ecs/component_serializer.hpp"
 
+#include "physics/3D/physics_body.hpp"
 #include "physics/physics_defines.hpp"
 
 namespace other {
@@ -38,8 +39,7 @@ namespace other {
     float max_linear_velocity = 500.f;
     float max_angular_velocity = 50.f;
 
-    JPH::BodyID body_id;
-    // JPH::Body* body = nullptr;
+    Ref<PhysicsBody> physics_body = nullptr;
 
     ECS_COMPONENT(RigidBody, kRigidBodyIndex);
   };

@@ -13,7 +13,7 @@
 #include "event/key_events.hpp"
 #include "event/window_events.hpp"
 
-#include "physics/phyics_engine.hpp"
+#include "physics/physics_engine.hpp"
 #include "rendering/renderer.hpp"
 #include "rendering/ui/ui.hpp"
 #include "scripting/script_engine.hpp"

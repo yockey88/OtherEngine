@@ -184,7 +184,7 @@ namespace other {
     /** Passes to implement
      * ----------------
      * shadow mapping (expensive) :
-     *  shadow map pass
+     *    X shadow map pass
      *  spot shadow map pass
      *
      * pre depth pass

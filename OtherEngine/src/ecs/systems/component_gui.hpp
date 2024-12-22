@@ -151,7 +151,7 @@ namespace other {
   bool DrawRigidBody(Entity* ent) {
     ui::BeginPropertyGrid();
 
-    auto& body = ent->GetComponent<T>();
+    T& body = ent->GetComponent<T>();
 
     const char* body_type_strings[] = {
       "Static", "Kinematic", "Dynamic"
@@ -168,7 +168,11 @@ namespace other {
     } else {
       if (ui::PropertyDropdown("Type", body_type_strings, 3, selected)) {
         body.type = static_cast<PhysicsBodyType>(selected);
-        ent->UpdateComponent<T>(body);
+        if constexpr (std::same_as<T, RigidBody2D>) {
+          ent->UpdateComponent<RigidBody2D>(body);
+        } else if constexpr (std::same_as<T, RigidBody>) {
+          body.physics_body->SetType(body.type);
+        }
       }
 
       if (body.type == PhysicsBodyType::DYNAMIC) {

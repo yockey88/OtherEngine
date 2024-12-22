@@ -120,11 +120,11 @@ namespace other {
 
     Ref<LightEnvironment> environment = nullptr;
 
-    void OnAddRigidBody2D(entt::registry& context, entt::entity ent);
-    void OnAddCollider2D(entt::registry& context, entt::entity ent);
+    // void OnAddRigidBody2D(entt::registry& context, entt::entity ent);
+    // void OnAddCollider2D(entt::registry& context, entt::entity ent);
 
-    void OnAddRigidBody(entt::registry& context, entt::entity ent);
-    void OnAddCollider(entt::registry& context, entt::entity ent);
+    // void OnAddRigidBody(entt::registry& context, entt::entity ent);
+    // void OnAddCollider(entt::registry& context, entt::entity ent);
 
     void RefreshCameraTransforms();
 

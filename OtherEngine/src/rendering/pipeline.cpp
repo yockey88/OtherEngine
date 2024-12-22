@@ -7,8 +7,11 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "core/logger.hpp"
+
 #include "asset/asset_manager.hpp"
 
+#include "rendering/draw_calls.hpp"
 #include "rendering/rendering_defines.hpp"
 #include "rendering/vertex.hpp"
 
@@ -88,19 +91,20 @@ namespace other {
     OE_ASSERT(material_table != nullptr, "Material table is null");
 
     sl.submissions.resize(submeshes.size());
-    sl.cpu_model_storage.BufferData(submission.transform);
     for (uint32_t i = 0; i < sm_idxs.size(); ++i) {
       const uint32_t sm_idx = sm_idxs[i];
       OE_ASSERT(sm_idx < submeshes.size(), "Submesh index out of bounds");
 
       const SubMesh& sub_mesh = submeshes[sm_idx];
+      SubMeshDrawCall& smdc = sl.submissions[sm_idx];
 
       UUID material_id = sub_mesh.material_id.Get() == 0 ? material_table->DefaultMaterial() : sub_mesh.material_id;
       OE_ASSERT(material_table->HasMaterial(material_id), "Material not found in table");
       Material gpumat = material_table->GetMaterial(material_id);
 
-      sl.submissions[sm_idx].cpu_material_storage.BufferData(gpumat);
-      sl.submissions[sm_idx].instance_count++;
+      smdc.cpu_model_storage.BufferData(submission.transform);
+      smdc.cpu_material_storage.BufferData(gpumat);
+      smdc.instance_count++;
     }
   }
 
@@ -171,9 +175,9 @@ namespace other {
       sl.instance_count = 0;
     }
     for (auto& [mk, sl] : model_submissions) {
-      // sl.cpu_model_storage.ZeroMem();
-      // sl.cpu_material_storage.ZeroMem();
       for (auto& sub : sl.submissions) {
+        sub.cpu_model_storage.ZeroMem();
+        sub.cpu_material_storage.ZeroMem();
         sub.instance_count = 0;
       }
     }
@@ -222,13 +226,13 @@ namespace other {
     MeshDrawCall msl = {
       .vao = vao,
       .base_instance = 0,
-      .cpu_model_storage = Buffer(),
       .submissions = {},
     };
     msl.submissions.reserve(sm_idxs.size());
     for (auto& sm_idx : sm_idxs) {
       const SubMesh& sub_mesh = submeshes[sm_idx];
       msl.submissions.push_back({
+        .cpu_model_storage = Buffer(),
         .cpu_material_storage = Buffer(),
         .vertex_offset = sub_mesh.base_vertex,
         .vertex_count = sub_mesh.vert_cnt,
@@ -256,6 +260,45 @@ namespace other {
     };
 
     return static_model_submissions.insert({ key, std::move(msl) }).first;
+  }
+
+  void Pipeline::SubmitDrawCall(const MeshKey& key, const DrawCall& call) {
+    OE_ASSERT(call.vao != nullptr, "Mesh submission list has null vertex array");
+    // auto itr = draw_calls.find(key);
+    // if (itr == draw_calls.end()) {
+    //   Ref<VertexArray> vao = Ref<VertexArray>::Clone(source->source_vao);
+    //   OE_ASSERT(vao != nullptr, "Failed to clone vertex array");
+
+    //   DrawCall msl = {
+    //     .vao = vao,
+    //     .cpu_model_storage = Buffer(),
+    //     .cpu_material_storage = Buffer(),
+    //     .instance_count = 0,
+    //     .vertex_offset = 0,
+    //     .index_offset = 0,
+    //     .index_count = vao->NumElements(),
+    //   };
+
+    //   auto [itr, res] = draw_calls.insert({ key, std::move(msl) });
+    //   OE_ASSERT(res, "Failed to insert draw call");
+    // }
+
+    // itr = draw_calls.find(key);
+    // OE_ASSERT(itr != draw_calls.end(), "Failed to find draw call");
+
+    // auto& [mk, sl] = *itr;
+    // OE_ASSERT(sl.vao != nullptr, "Mesh submission list has null vertex array");
+
+    // Ref<MaterialTable> material_table = AssetManager::GetMaterialTable();
+    // OE_ASSERT(material_table != nullptr, "Material table is null");
+
+    // UUID material_id = submission.material.Get() == 0 ? material_table->DefaultMaterial() : submission.material;
+    // OE_ASSERT(material_table->HasMaterial(material_id), "Material not found in table");
+    // Material gpumat = material_table->GetMaterial(material_id);
+
+    // sl.cpu_model_storage.BufferData(submission.transform);
+    // sl.cpu_material_storage.BufferData(gpumat);
+    // sl.instance_count++;
   }
 
   void Pipeline::RenderAll() {
@@ -293,6 +336,13 @@ namespace other {
     draw_call.vao->Unbind();
   }
 
+  /**
+   * @note this is slooooow, (also broken at the moment....)
+   *        Goals:
+   *         - bindless textures to avoid filling the material storage for each submesh
+   *         - Giant global vertex buffer with offsets for each model and offsets for each model's submesh
+   *              (maybe runtime option? when export final game/select in menu bake mesh into the runtime asset binary)
+   */
   void Pipeline::RenderMeshes(const MeshKey& mesh_key, MeshDrawCall& draw_call) {
     OE_ASSERT(material_storage != nullptr, "Material storage is null");
     OE_ASSERT(model_storage != nullptr, "Model storage is null");
@@ -305,10 +355,9 @@ namespace other {
     material_table->Bind();
     CHECKGL();
 
-    model_storage->BindBase();
-    model_storage->LoadFromBuffer(draw_call.cpu_model_storage);
-
     for (auto& sub_call : draw_call.submissions) {
+      model_storage->BindBase();
+      model_storage->LoadFromBuffer(sub_call.cpu_model_storage);
       material_storage->BindBase();
       material_storage->LoadFromBuffer(sub_call.cpu_material_storage);
 

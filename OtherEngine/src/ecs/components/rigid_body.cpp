@@ -8,6 +8,7 @@
 #include "core/logger.hpp"
 
 #include "ecs/entity.hpp"
+#include "scene/scene.hpp"
 
 #include "physics/physics_defines.hpp"
 

@@ -6,7 +6,7 @@
 
 #include "application/app_state.hpp"
 
-#include "physics/phyics_engine.hpp"
+#include "physics/physics_engine.hpp"
 #include "rendering/renderer.hpp"
 #include "scripting/script_engine.hpp"
 

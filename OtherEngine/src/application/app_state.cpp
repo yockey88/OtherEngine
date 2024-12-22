@@ -122,6 +122,11 @@ namespace other {
     }
   }
 
+  float AppState::TargetTimeStep() {
+    OE_ASSERT(data != nullptr, "Can not access app data until app is loaded");
+    return data->frame_delta;
+  }
+
   App& AppState::AppHandle() {
     return *data->app_handle;
   }

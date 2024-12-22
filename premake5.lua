@@ -133,6 +133,12 @@ jolt.path = "./externals/jolt"
 jolt.include_dir = "%{wks.location}/externals/jolt"
 jolt.lib_name = "jolt"
 
+local reactphysics = {} 
+reactphysics.name = "reactphysics"
+reactphysics.path = "./externals/reactphysics3d"
+reactphysics.include_dir = "%{wks.location}/externals/reactphysics3d/include"
+reactphysics.lib_name = "reactphysics3d"
+
 local tracy = {}
 tracy.name = "tracy"
 tracy.path = "./externals/tracy"
@@ -235,6 +241,7 @@ AddDependency(sol2)
 AddDependency(box2d)
 AddDependency(stb)
 AddDependency(jolt)
+AddDependency(reactphysics)
 AddDependency(pybind)
 -- AddDependency(tracy)
 AddDependency(assimp)

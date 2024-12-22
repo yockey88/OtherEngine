@@ -10,6 +10,8 @@
 #include "ecs/components/serialization_data.hpp"
 #include "ecs/systems/component_database.hpp"
 #include "ecs/systems/entity_serialization.hpp"
+#include "scene/scene.hpp"
+
 
 namespace other {
 

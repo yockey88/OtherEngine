@@ -16,6 +16,7 @@
 
 #include "scene/bvh.hpp"
 
+#include "physics/physics_engine.hpp"
 #include "rendering/camera_base.hpp"
 #include "rendering/renderer.hpp"
 #include "scripting/script_engine.hpp"
@@ -116,6 +117,7 @@ namespace other {
 
     ScriptEngine::SetSceneContext(active_scene->scene);
     Renderer::SetSceneContext(active_scene->scene);
+    PhysicsEngine::SetSceneContext(active_scene->scene);
     auto primary_cam = active_scene->scene->GetPrimaryCamera();
     if (primary_cam != nullptr) {
       DefaultUpdateCamera(primary_cam);
@@ -150,6 +152,7 @@ namespace other {
     OE_ASSERT(active_scene != nullptr, "Failed to set active scene!");
     ScriptEngine::SetSceneContext(active_scene->scene);
     Renderer::SetSceneContext(active_scene->scene);
+    PhysicsEngine::SetSceneContext(active_scene->scene);
 
     auto primary_cam = active_scene->scene->GetPrimaryCamera();
     if (primary_cam != nullptr) {

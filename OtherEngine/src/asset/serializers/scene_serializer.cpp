@@ -16,8 +16,8 @@
 #include "ecs/entity_serializer.hpp"
 #include "scene/scene_manager.hpp"
 
-#include "physics/phyics_engine.hpp"
 #include "physics/physics_defines.hpp"
+#include "physics/physics_engine.hpp"
 
 namespace other {
 
@@ -42,11 +42,11 @@ namespace other {
       return;
     }
 
-    Ref<Scene> scene = Ref<Asset>::DirectReference<Scene>(metadata.asset);
+    View<Scene> scene = View<Scene>{ metadata.asset };
     SceneMetadata* scene_metadata = AppState::Scenes()->GetSceneMetadata(scene->SceneHandle());
     /// can gaurantee this because asset was loaded
     OE_ASSERT(scene_metadata != nullptr, "Failed to get scene metadata for scene : {}", scene->SceneHandle());
-    Serialize(scene_metadata->name, file->GetWriteStream(), scene);
+    Serialize(scene_metadata->name, file->GetWriteStream(), Ref<Scene>{ scene });
   }
 
   bool SceneSerializer::Load(AssetMetadata& metadata) {
