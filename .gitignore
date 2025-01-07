@@ -6,8 +6,6 @@ bin_obj/
 *.vcxproj*
 *csproj
 *csproj.user
-*.lib
-*.dll
 *.exe
 
 # python bindings
