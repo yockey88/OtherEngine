@@ -22,30 +22,24 @@ else:
             PLATFORM = "windows"
             break
 
-# TODO - add support for linux and mac
-if PLATFORM != "windows":
-    raise EnvironmentError("Unsupported platform detected: {}".format(PLATFORM))
-
 def print_platform_string():
     print("Platform: {}".format(PLATFORM))
 
 def normalize_config_str(config):
-    if config == "debug":
-        return "Debug"
-    if config == "release":
-        return "Release"
-
-    return config
+    return config[0].upper() + config[1:]
 
 
 def run_project(config, name, arguments):
+    proc_args = []
     if is_windows():
         proc_args = ["cmd.exe", "/c", "{}\\run.bat".format(TOOLS_DIR), config, name]
-        proc_args.extend(arguments)
-        ret = subprocess.call(proc_args, cwd=os.getcwd())
-        return True if ret == 0 else False
+    elif is_linux():
+        proc_args = ["sh", "{}\\run.sh".format(TOOLS_DIR), config, name]
     else:
         return False
+    proc_args.extend(arguments)
+    ret = subprocess.call(proc_args, cwd=os.getcwd())
+    return True if ret == 0 else False
 
 def run_dotnet_project(config, name, arguments = []):
     if is_windows():
@@ -98,27 +92,15 @@ def fnv(arg):
         print(" > too many arguments provided to fnv")
         return 1
     
-    return subprocess.call([ "cmd.exe", "/c", ".\\bin\\Debug\\fnv\\fnv.exe", arg[0] ], cwd=os.getcwd())
-
-## TODO: fix this function we don't want to be tied to the solution file
-def list_projects():
-    # stdout = subprocess.DEVNULL if verbose is False else None
-    # stderr = subprocess.DEVNULL if verbose is False else None
-
-    ret = 0
+    proc_args = []
     if is_windows():
-        ret = subprocess.call(
-            [
-                "cmd.exe", "/c", 
-                "{}".format(project_builders.MSBUILD),
-                "-ts", "tests/sandbox.vcxproj",
-            ],
-            stdout=None, stdin=None
-        )
+        proc_args = [ "cmd.exe", "/c", ".\\bin\\Debug\\fnv\\fnv.exe", arg[0] ]
+    elif is_linux():
+        proc_args = [ "./bin/Debug/fnv/fnv", arg[0] ]
     else:
-        raise EnvironmentError("Non-windows platform detected")
+        return 1
     
-    return ret
+    return subprocess.call(proc_args, cwd=os.getcwd())
 
 def create_project(name):
     # create top-level project directory

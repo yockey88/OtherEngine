@@ -11,7 +11,6 @@ from pathlib import Path
 from ..core import Singleton
 from ..core import utilities
 from ..core import parsers
-from ..native import engine as oe
 
 from dataclasses import dataclass
 
@@ -48,6 +47,7 @@ class OtherEnginePipelineEnvironment(Singleton):
 
   def init(self, path="default", parse_cmds=True):
     p = Path(os.getcwd()) / path
+    print("configuring other pipeline using path = {}".format(path));
     if not os.path.exists(p):
       raise IOError(
         """project_config file for Other Engine tool pipeline [{}] not found.
@@ -83,7 +83,6 @@ class OtherEnginePipelineEnvironment(Singleton):
       print("Pipeline settings loaded")
       print("Project configuration: {}".format(self.project_config))
       print("Verbose mode: {}".format(self.settings.verbose))
-      print("Legacy mode: {}".format(self.settings.legacy_cmd))
       print("Build list: {}".format(self.settings.build))
       print("Configuration: {}".format(self.settings.config))
       print("Pipeline configuration loaded\n")
@@ -128,9 +127,6 @@ class OtherEnginePipelineEnvironment(Singleton):
   def is_verbose(self):
     return self.settings.verbose
 
-  def is_legacy(self):
-    return self.settings.legacy_cmd
-  
   def should_test(self):
     return self.settings.test is not None
 
@@ -170,9 +166,12 @@ class OtherEnginePipelineEnvironment(Singleton):
       projects = table["project"]
       projs = []
       for proj in projects:
-        projs.append((proj["name"], proj["path"], proj["config"]))
+        try:
+            projs.append((proj["name"], proj["path"], proj["config"]))
+        except KeyError:
+            projs.append((proj["name"], proj["path"], ""))
     except KeyError or TypeError:
-      projs = []
+      pass
 
     pc = PipelineConfig(engine_path, projs)
     pc.table = table

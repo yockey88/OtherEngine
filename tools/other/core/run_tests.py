@@ -7,7 +7,7 @@ from pathlib import Path
 from . import project_settings
 from . import utilities
 
-def run_test(include_filter  = [], exclude_filter = [], other_args = []):
+def run_test(config, include_filter  = [], exclude_filter = [], other_args = []):
   f = [] 
 
   include_str = None
@@ -24,12 +24,12 @@ def run_test(include_filter  = [], exclude_filter = [], other_args = []):
 
   filter_exists = include_str is not None or exclude_str is not None
   
-  fstr = "--gtest_filter=" if filter_exists else None
-  fstr += include_str if include_str is not None else ""
+  fstr = "--gtest_filter=" if filter_exists else "" 
+  fstr += include_str if include_str is not None else "" 
   fstr += ":" if include_str is not None and exclude_str is not None else ""
   fstr += exclude_str if exclude_str is not None else ""
   
-  proc_args = ["./bin/Debug/unit_tests/unit_tests.exe"]
+  proc_args = ["./bin/{}/tests/tests.exe".format(config)]
   proc_args.extend([fstr] if filter_exists else [])
 
   if len(other_args) > 0:

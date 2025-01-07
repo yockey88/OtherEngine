@@ -3,7 +3,11 @@
 
 using namespace other;
 
-void Usage() {}
+void Usage() {
+  println("FNV Hash Calculator");
+  println("Usage: fnv <string>");
+  println("   > Example: fnv hello");
+}
 
 int main(int argc, char* argv[]) {
   if (argc < 2) {

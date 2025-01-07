@@ -1,19 +1,20 @@
 local fnv = {
-  name = "fnv" ,
-  path = "./fnv" ,
-  kind = "ConsoleApp" ,
-  language = "C++" ,
-  cppdialect = "C++latest" ,
+  name = "fnv",
+  path = "./fnv",
+  kind = "ConsoleApp",
+  language = "C++",
+  cppdialect = "C++latest",
 
   files = function()
     files {
-      "./fnv.cpp" ,
+      "./fnv.cpp",
     }
-  end ,
+  end,
 
   components = {
-    ["OtherEngine"] = "%{wks.location}/OtherEngine/src" ,
-  } ,
+    ["OtherEngine"] = "%{wks.location}/OtherEngine/src",
+  },
 }
 
 AddConsoleProject(fnv)
+

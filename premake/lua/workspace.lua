@@ -9,27 +9,20 @@ local function WorkspaceHeader(config)
   if config.architecture ~= nil then
     architecture (config.architecture)
   end
-
-  if config.config_table == nil then
-    config.config_table = { "Debug" , "Release" }
-  end
   
   config.config_table = config.config_table or { "Debug" , "Release" }
   configurations (config.config_table)
 
   startproject (config.start_project)
+  
+  config.workspace_filters = config.workspace_filters or function()end
+  config.workspace_filters()
 
   language "C++"
   if config.cpp_dialect ~= nil then
     cppdialect (config.cpp_dialect)
   else
     cppdialect "C++latest"
-  end
-
-  if config.static_runtime ~= nil then
-    staticruntime (config.static_runtime)
-  else
-    staticruntime "On"
   end
 end
 
