@@ -5,29 +5,17 @@
 #ifndef OTHER_ENGINE_PHYSICS_SHAPE_HPP
 #define OTHER_ENGINE_PHYSICS_SHAPE_HPP
 
-#include <Jolt/Jolt.h>
-#include <Jolt/Physics/Collision/Shape/Shape.h>
-#include <Jolt/Physics/Collision/Shape/BoxShape.h>
-#include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
+#include "core/ref_counted.hpp"
 
 namespace other {
 
-  class PhysicsShape {
-    public:
-      virtual ~PhysicsShape() {}
+  class PhysicsShape : public RefCounted {
+   public:
+    virtual ~PhysicsShape() {}
 
-    private:
+   private:
   };
 
-  class BoxShape : public PhysicsShape {
-    public:
-      virtual ~BoxShape() override {}
+}  // namespace other
 
-    private:
-      JPH::Ref<JPH::BoxShapeSettings> settings = nullptr;
-      JPH::Ref<JPH::RotatedTranslatedShape> shape = nullptr;
-  };
-
-} // namespace other
-
-#endif // !OTHER_ENGINE_PHYSICS_SHAPE_HPP
+#endif  // !OTHER_ENGINE_PHYSICS_SHAPE_HPP

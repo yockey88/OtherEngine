@@ -6,6 +6,8 @@
 
 // #include <functional>
 
+#include <cstdint>
+
 #include "asset/asset_defines.hpp"
 
 #include "rendering/model.hpp"
@@ -54,6 +56,7 @@ namespace other {
   };
 
   struct SubMeshDrawCall {
+    Buffer cpu_model_storage;
     Buffer cpu_material_storage;
 
     uint32_t vertex_offset = 0;
@@ -68,7 +71,6 @@ namespace other {
   struct MeshDrawCall {
     Ref<VertexArray> vao = nullptr;
     uint32_t base_instance = 0;
-    Buffer cpu_model_storage;
 
     std::vector<SubMeshDrawCall> submissions;
   };
@@ -79,6 +81,19 @@ namespace other {
     Buffer cpu_material_storage;
 
     uint32_t instance_count = 0;
+    uint32_t index_count = 0;
+
+    UUID material_id = 0;
+  };
+
+  struct DrawCall {
+    Ref<VertexArray> vao = nullptr;
+    Buffer cpu_model_storage;
+    Buffer cpu_material_storage;
+
+    uint32_t instance_count = 0;
+    uint32_t vertex_offset = 0;
+    uint32_t index_offset = 0;
     uint32_t index_count = 0;
 
     UUID material_id = 0;

@@ -32,7 +32,7 @@
 #include "event/event_queue.hpp"
 #include "input/io.hpp"
 
-#include "physics/phyics_engine.hpp"
+#include "physics/physics_engine.hpp"
 #include "rendering/camera_base.hpp"
 #include "rendering/direction_light.hpp"
 #include "rendering/framebuffer.hpp"

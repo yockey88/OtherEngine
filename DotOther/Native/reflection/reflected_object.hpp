@@ -7,7 +7,6 @@
 #include "reflection/echo_defines.hpp"
 #include "reflection/type_database.hpp"
 
-
 #define ECHO_REFLECT()                                                                                         \
  public:                                                                                                       \
   virtual const dotother::echo::TypeMetadata& ReadMetadata() const override {                                  \

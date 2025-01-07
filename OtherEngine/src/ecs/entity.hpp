@@ -6,6 +6,7 @@
 
 #include <entt/entt.hpp>
 #include <glm/glm.hpp>
+#include <hosting/native_object.hpp>
 #include <reflection/reflected_object.hpp>
 
 #include "core/logger.hpp"
@@ -15,12 +16,16 @@
 
 #include "ecs/component.hpp"
 #include "ecs/components/relationship.hpp"
+#include "ecs/components/script.hpp"
 #include "ecs/components/serialization_data.hpp"
 #include "ecs/components/tag.hpp"
 #include "ecs/components/transform.hpp"
-#include "scene/scene.hpp"
+
+#include "rendering/draw_calls.hpp"
 
 namespace other {
+
+  class Scene;
 
   class Entity : public dotother::NObject {
    public:

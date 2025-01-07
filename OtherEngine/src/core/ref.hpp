@@ -22,6 +22,55 @@ namespace other {
 
   template <typename T, typename U>
   concept RefCastable = std::convertible_to<T, U> || std::derived_from<T, U> || std::derived_from<U, T>;
+  template <typename T>
+  concept RefType = std::derived_from<T, RefCounted>;
+
+  template <typename T>
+  class Ref;
+
+  /// TODO: find a way to enforece limetime requirements on the object to avoid someone destroying the object
+  ///         out from under the view
+  /**
+   * @brief non-owning reference
+   **/
+  template <typename T>
+  struct View {
+    View(const T& ref)
+        : object(&ref) {}
+    View(T&& ref) noexcept
+        : object(&ref) {}
+    View(T* ptr)
+        : object(ptr) {}
+
+    // this does not increment the reference count
+    View(const Ref<T>& ref)
+        : object(ref.Raw()) {}
+    View(Ref<T>&& ref) noexcept
+        : object(ref.Raw()) {}
+
+    T* operator->() { return object; }
+    const T* operator->() const { return object; }
+
+    T* Raw() { return object; }
+    const T* Raw() const { return object; }
+
+    bool operator==(const View<T>& other) const {
+      return object == other.object;
+    }
+
+    bool operator==(std::nullptr_t) const {
+      return object == nullptr;
+    }
+
+    bool EqualsObj(const View<T>& other) const {
+      return object == other.object;
+    }
+
+   private:
+    friend class Ref<T>;
+
+    mutable T* object = nullptr;
+  };
 
   template <typename T>
   class Ref {
@@ -42,6 +91,11 @@ namespace other {
     Ref(Ref<T>&& other) noexcept {
       object = other.object;
       other.object = nullptr;
+    }
+
+    Ref(View<T> view) {
+      object = view.object;
+      IncRef();
     }
 
     Ref& operator=(const Ref<T>& other) {
@@ -115,11 +169,11 @@ namespace other {
     T* Raw() { return object; }
     const T* Raw() const { return object; }
 
-    void Reset(T* object = nullptr) {
-      this->object = object;
-      if (this->object == nullptr) {
+    void Reset(T* obj = nullptr) {
+      if (obj == nullptr) {
         DecRef();
       }
+      object = obj;
     }
 
     template <typename U>
@@ -148,19 +202,11 @@ namespace other {
     }
 
     template <typename... Args>
-      requires requires(Args&&... args) {
-        requires std::is_base_of_v<RefCounted, T>;
-        requires std::is_constructible_v<T, Args...>;
+      requires std::is_base_of_v<RefCounted, T> && requires(Args&&... args) {
+        new T(std::forward<Args>(args)...);
       }
     static Ref<T> Create(Args&&... args) {
       return Ref<T>(new T(std::forward<Args>(args)...));
-    }
-
-    template <typename U>
-      requires RefCastable<T, U>
-    static Ref<U> DirectReference(Ref<T> ptr) {
-      /// call private constructor to avoid incrementing the reference count
-      return Ref<U>(reinterpret_cast<U*>(ptr.object), false);
     }
 
     bool operator==(const Ref<T>& other) const {
@@ -176,6 +222,7 @@ namespace other {
     }
 
    private:
+    /// requires mutable to call IncRef and DecRef in const contexts
     mutable T* object;
 
     /// for direct referncing in cases where we don't want to increment the reference count
@@ -204,10 +251,8 @@ namespace other {
 
     template <typename U>
     friend class Ref;
+    friend struct View<T>;
   };
-
-  template <typename T>
-  concept RefType = std::derived_from<T, RefCounted>;
 
   template <typename T, typename... Args>
     requires RefType<T> && std::constructible_from<T, Args...>

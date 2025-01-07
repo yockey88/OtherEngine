@@ -6,6 +6,7 @@
 #include "core/config_keys.hpp"
 
 #include "ecs/entity.hpp"
+#include "scene/scene.hpp"
 
 namespace other {
 

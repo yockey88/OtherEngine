@@ -10,6 +10,7 @@
 #include "core/logger.hpp"
 
 #include "ecs/entity.hpp"
+#include "scene/scene.hpp"
 
 #include "scripting/cs/cs_object.hpp"
 #include "scripting/script_engine.hpp"

@@ -6,8 +6,10 @@
 #include "core/config_keys.hpp"
 
 #include "ecs/entity.hpp"
+#include "scene/scene.hpp"
 
 #include "physics/physics_defines.hpp"
+
 
 namespace other {
 

@@ -5,45 +5,44 @@
 #ifndef OTHER_ENGINE_PHYSICS_WORLD_HPP
 #define OTHER_ENGINE_PHYSICS_WORLD_HPP
 
-#include <Jolt/Jolt.h>
-#include <Jolt/Core/TempAllocator.h>
-#include <Jolt/Core/JobSystemThreadPool.h>
-#include <Jolt/Physics/PhysicsSystem.h>
+#include <map>
 
-#include "core/defines.hpp"
+#include "core/ref.hpp"
 #include "core/ref_counted.hpp"
+#include "core/uuid.hpp"
 
-#include "physics/3D/broad_phase_layer_handler.hpp"
-#include "physics/3D/broad_phase_filter.hpp"
-#include "physics/3D/object_layer_filter.hpp"
-#include "physics/3D/activation_listener.hpp"
-#include "physics/3D/contact_listener.hpp"
+#include "ecs/components/transform.hpp"
+
+#include "physics/3D/physics_body.hpp"
+#include "physics/3D/physics_shape.hpp"
 
 namespace other {
 
+  class Scene;
+
   class PhysicsWorld : public RefCounted {
-    public:
-      PhysicsWorld();
-      ~PhysicsWorld();
+   public:
+    PhysicsWorld();
+    virtual ~PhysicsWorld();
 
-      void Simulate(float ts);
+    virtual void Simulate(float ts) = 0;
+    virtual Ref<PhysicsBody> CreateBody(const Transform& initial_transform) = 0;
 
-      JPH::BodyInterface& GetPhysicsBodies();
+    virtual Ref<PhysicsShape> CreateBoxShape(const glm::vec3& half_extents) = 0;
+    virtual Ref<PhysicsShape> CreateSphereShape(float radius) = 0;
+    virtual Ref<PhysicsShape> CreateCapsuleShape(float radius, float height) = 0;
+    virtual Ref<PhysicsShape> CreateCylinderShape(float radius, float height) = 0;
+    virtual Ref<PhysicsShape> CreateConeShape(float radius, float height) = 0;
+    virtual Ref<PhysicsShape> CreateConvexMeshShape(const std::vector<glm::vec3>& vertices, const std::vector<uint32_t>& indices, uint32_t num_faces) = 0;
 
-    private:
-      Scope<JPH::TempAllocatorImpl> temp_alloc = nullptr;
-      Scope<JPH::JobSystemThreadPool> thread_pool = nullptr;
+    virtual void SetSceneContext(const Ref<Scene>& scene) = 0;
 
-      Scope<ActivationListener> activation_listener = nullptr;
-      Scope<ContactListener> contact_listener = nullptr;
+    float alpha = 0.f;
 
-      BroadPhaseLayerHandler broad_phase_layer_handler;
-      BroadPhaseLayerFilter broad_phase_layer_filter;
-      ObjectLayerFilter obj_layer_filter;
-
-      Scope<JPH::PhysicsSystem> system = nullptr;
+   private:
+    std::map<UUID, Ref<PhysicsBody>> bodies;
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_PHYSICS_WORLD_HPP
+#endif  // !OTHER_ENGINE_PHYSICS_WORLD_HPP

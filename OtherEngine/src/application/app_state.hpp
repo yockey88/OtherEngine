@@ -46,6 +46,8 @@ namespace other {
     static UUID PushLayer(Ref<Layer> layer);
     static void PopLayer(Opt<UUID> id);
 
+    static float TargetTimeStep();
+
     static App& AppHandle();
 
     /**

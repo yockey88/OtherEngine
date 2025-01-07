@@ -48,6 +48,8 @@ namespace other {
     FrameMeshes model_submissions;
     StaticFrameMeshes static_model_submissions;
 
+    std::map<MeshKey, DrawCall> draw_calls;
+
     Ref<UniformBuffer> model_storage = nullptr;
     Ref<UniformBuffer> material_storage = nullptr;
 
@@ -58,6 +60,8 @@ namespace other {
 
     FrameMeshes::iterator InsertMeshKey(MeshKey& key, const Ref<Model>& model);
     StaticFrameMeshes::iterator InsertStaticMeshKey(MeshKey& key, const Ref<StaticModel>& model);
+
+    void SubmitDrawCall(const MeshKey& key, const DrawCall& call);
 
     void RenderAll();
     void RenderStaticMeshes(const MeshKey& mesh_key, StaticMeshDrawCall& sl);

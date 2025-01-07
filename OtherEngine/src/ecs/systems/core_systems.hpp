@@ -7,51 +7,46 @@
 #include <entt/entity/fwd.hpp>
 #include <entt/entt.hpp>
 
+#include "ecs/components/collider.hpp"
+#include "ecs/components/collider_2d.hpp"
+#include "ecs/components/mesh.hpp"
+#include "ecs/components/rigid_body.hpp"
+#include "ecs/components/rigid_body_2d.hpp"
 #include "ecs/components/tag.hpp"
 #include "ecs/components/transform.hpp"
-#include "ecs/components/rigid_body_2d.hpp"
-#include "ecs/components/collider_2d.hpp"
-#include "ecs/components/rigid_body.hpp"
-#include "ecs/components/collider.hpp"
 
 #include "physics/2D/physics_world_2d.hpp"
 #include "physics/3D/physics_world.hpp"
 
 namespace other {
 
-  using SystemFn = void(*)(entt::registry&,entt::entity);
+  using SystemFn = void (*)(entt::registry&, entt::entity);
 
-  // template <typename T>
-  // struct OeSystemCallback {
-  //   template <typename O>
-  //   OeSysCall (entt::registry& reg , SysFunc fn , O* obj) {
-  //   }
-  // };
+  void OnConstructEntity(entt::registry& context, entt::entity entt);
+  void OnDestroyEntity(entt::registry& context, entt::entity entt);
 
-#define CORE_SYSTEM(name) \
-  void name(entt::registry& context , entt::entity entt)
+  void OnCameraAddition(entt::registry& context, entt::entity entt);
 
-  CORE_SYSTEM(OnConstructEntity);
-  CORE_SYSTEM(OnDestroyEntity);
-  CORE_SYSTEM(OnCameraAddition);
+  void OnAddScript(entt::registry& context, entt::entity entt);
 
-  CORE_SYSTEM(OnAddScript);
+  void OnAddModel(entt::registry& context, entt::entity entt);
+  void OnAddStaticModel(entt::registry& context, entt::entity entt);
 
-  CORE_SYSTEM(OnAddModel);
-  CORE_SYSTEM(OnAddStaticModel);
-  
-  void Initialize2DRigidBody(Ref<PhysicsWorld2D>& world , RigidBody2D& body , const Tag& tag , const Transform& transform);
-  void Initialize2DCollider(Ref<PhysicsWorld2D>& world , RigidBody2D& body , Collider2D& collider , const Transform& transform);
+  void OnAddRigidBody2D(entt::registry& context, entt::entity entt);
+  void OnRigidBody2DUpdate(entt::registry& context, entt::entity entt);
 
-  CORE_SYSTEM(OnRigidBody2DUpdate);
-  CORE_SYSTEM(OnCollider2DUpdate);
-  
-  void InitializeRigidBody(Ref<PhysicsWorld>& world , RigidBody& body , const Tag& tag , const Transform& transform);
-  void InitializeCollider(Ref<PhysicsWorld>& world , RigidBody& body , Collider& collider , const Transform& transform);
+  void OnAddRigidBody(entt::registry& context, entt::entity entt);
+  void OnRigidBodyUpdate(entt::registry& context, entt::entity entt);
 
-  CORE_SYSTEM(OnRigidBodyUpdate);
-  CORE_SYSTEM(OnColliderUpdate);
+  void OnAddCollider2D(entt::registry& context, entt::entity entt);
+  void OnCollider2DUpdate(entt::registry& context, entt::entity entt);
 
-} // namespace other
+  void OnAddCollider(entt::registry& context, entt::entity entt);
+  void OnColliderUpdate(entt::registry& context, entt::entity entt);
 
-#endif // !OTHER_ENGINE_CORE_SYSTEMS_HPP
+  void Initialize2DRigidBody(Ref<PhysicsWorld2D>& world, RigidBody2D& body, const Tag& tag, const Transform& transform);
+  void Initialize2DCollider(Ref<PhysicsWorld2D>& world, RigidBody2D& body, Collider2D& collider, const Transform& transform);
+
+}  // namespace other
+
+#endif  // !OTHER_ENGINE_CORE_SYSTEMS_HPP
