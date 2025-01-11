@@ -19,12 +19,15 @@
 #include "asset/asset.hpp"
 
 #include "ecs/component.hpp"
+#include "ecs/components/collider_2d.hpp"
 #include "ecs/components/light_source.hpp"
 #include "ecs/components/mesh.hpp"
 #include "ecs/components/relationship.hpp"
+#include "ecs/components/rigid_body_2d.hpp"
 #include "ecs/components/script.hpp"
 #include "ecs/components/transform.hpp"
 #include "scene/light_environment.hpp"
+#include "scene/scene_capture.hpp"
 
 #include "physics/2D/physics_world_2d.hpp"
 #include "physics/3D/physics_world.hpp"
@@ -65,6 +68,9 @@ namespace other {
     Ref<CameraBase> GetPrimaryCamera() const;
 
     void Render(Ref<SceneRenderer>& scene_renderer);
+
+    void SetDebugPhysicsRendering(bool debug);
+    void RenderPhysicsDebug(Ref<SceneRenderer>& scene_renderer);
 
     void RenderUI();
 
@@ -113,12 +119,19 @@ namespace other {
     void GeometryChanged();
     void RebuildEnvironment();
 
+    void CaptureScene();
+    void RestoreLastCapture();
+
+    void ResetPhysicsSimulation();
+
    protected:
     other::AssetHandle model_handle;
     Ref<StaticModel> model = nullptr;
     Ref<ModelSource> model_source = nullptr;
 
     Ref<LightEnvironment> environment = nullptr;
+
+    CaptureStack capture_stack;
 
     // void OnAddRigidBody2D(entt::registry& context, entt::entity ent);
     // void OnAddCollider2D(entt::registry& context, entt::entity ent);
@@ -182,6 +195,16 @@ namespace other {
 
     void FixRoots();
     void BuildGroups();
+
+    void OnAddRigidBody(entt::registry& context, entt::entity entt);
+    void OnAddCollider(entt::registry& context, entt::entity entt);
+    void OnAddRigidBody2D(entt::registry& context, entt::entity entt);
+    void OnRigidBody2DUpdate(entt::registry& context, entt::entity entt);
+    void OnAddCollider2D(entt::registry& context, entt::entity entt);
+    void OnCollider2DUpdate(entt::registry& context, entt::entity entt);
+
+    void Initialize2DRigidBody(Ref<PhysicsWorld2D>& world, RigidBody2D& body, const Tag& tag, const Transform& transform);
+    void Initialize2DCollider(Ref<PhysicsWorld2D>& world, RigidBody2D& body, Collider2D& collider, const Transform& transform);
   };
 
 }  // namespace other

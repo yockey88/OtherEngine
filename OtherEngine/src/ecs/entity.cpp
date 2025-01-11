@@ -33,15 +33,15 @@ namespace other {
     tag.name = name;
   }
 
-  const entt::entity& Entity::Handle() const {
+  entt::entity Entity::Handle() const {
     return handle;
   }
 
-  const UUID& Entity::GetUUID() const {
+  UUID Entity::GetUUID() const {
     return uuid;
   }
 
-  const std::string Entity::Name() const {
+  const std::string& Entity::Name() const {
     return ReadComponent<Tag>().name;
   }
 
@@ -109,23 +109,17 @@ namespace other {
     Ref<StaticModel> model = AssetManager::GetAsset<StaticModel>(wireframe);
     OE_ASSERT(model != nullptr, "Failed to get wireframe model");
 
-    // Material mat(glm::vec4(235.f / 255.f, 132.f / 255.f, 9.f / 255.f, 1.f), 1.f);
+    Ref<MaterialTable> material_table = AssetManager::GetMaterialTable();
 
     RenderStaticSubmission submission = {
       .model = model,
       .transform = glm::scale(ReadComponent<Transform>().model_transform, glm::vec3(1.03f)),
-      // .material = mat,
-      .render_state = RenderState::FILL,
+      .material_table = material_table,
+      .material = material_table->SelectionWireframeMaterial(),
       .draw_mode = DrawMode::LINES,
+      .line_thickness = 3.f,
     };
     OE_ASSERT(submission.model != nullptr, "Wireframe model is null!");
-
-    /// TODO: rewrite this to take into account the entities mesh if it has one
-    ///       - if it has one render a wireframe of the mesh in highlight color
-    ///       - if it does not have a mesh render a wireframe of the bounding box in highlight color
-    // if (HasVisibleComponent()) {
-    // } else {
-    // }
     return submission;
   }
 

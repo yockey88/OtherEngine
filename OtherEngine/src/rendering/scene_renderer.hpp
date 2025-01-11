@@ -74,17 +74,23 @@ namespace other {
     void SubmitDirectionLight(const DirectionLight& light);
     void SubmitPointLight(const PointLight& light);
 
-    void SubmitModel(const Ref<Model>& model, const glm::mat4& transform, UUID material_id, DrawMode topology = DrawMode::TRIANGLES);
+    void SubmitModel(const Ref<Model>& model, const Ref<MaterialTable>& mat_table, const glm::mat4& transform, UUID material_id, DrawMode topology = DrawMode::TRIANGLES);
     void SubmitModel(const RenderSubmission& submission);
 
-    void SubmitStaticModel(const Ref<StaticModel>& model, const glm::mat4& transform, UUID material_id, DrawMode topology = DrawMode::TRIANGLES);
+    void SubmitStaticModel(const Ref<StaticModel>& model, const Ref<MaterialTable>& mat_table, const glm::mat4& transform, UUID material_id, DrawMode topology = DrawMode::TRIANGLES);
     void SubmitStaticModel(const RenderStaticSubmission& submission);
 
-    void SubmitModel(const std::vector<std::string>& pls, const Ref<Model>& model, const glm::mat4& transform, UUID material_id, DrawMode topology = DrawMode::TRIANGLES);
+    void SubmitModel(const std::vector<std::string>& pls, const Ref<Model>& model, const Ref<MaterialTable>& mat_table, const glm::mat4& transform, UUID material_id, DrawMode topology = DrawMode::TRIANGLES);
     void SubmitModel(const std::vector<std::string>& pls, const RenderSubmission& submission);
 
-    void SubmitStaticModel(const std::vector<std::string>& pls, const Ref<StaticModel>& model, const glm::mat4& transform, UUID material_id, DrawMode topology = DrawMode::TRIANGLES);
+    void SubmitStaticModel(const std::vector<std::string>& pls, const Ref<StaticModel>& model, const Ref<MaterialTable>& mat_table, const glm::mat4& transform, UUID material_id, DrawMode topology = DrawMode::TRIANGLES);
     void SubmitStaticModel(const std::vector<std::string>& pls, const RenderStaticSubmission& submission);
+
+    void SubmitDebugDrawCommands(const std::string_view pl, const std::vector<DebugDrawCommand>& cmds);
+
+    // void DrawLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color = glm::vec4(1.f), float thickness = 1.f);
+    // void DrawRect(const glm::vec3& min, const glm::vec3& max, const glm::vec4& color = glm::vec4(1.f));
+    // void DrawTriangle(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c, const glm::vec4& color = glm::vec4(1.f));
 
     bool Render();
 
@@ -98,6 +104,7 @@ namespace other {
       GEOMETRY_PASS,
 
       NUM_RENDER_PASSES,
+      INVALID_RENDER_PASSES = NUM_RENDER_PASSES
     };
 
     enum FramebufferIndex {
@@ -106,12 +113,14 @@ namespace other {
       FINAL_FRAME_FB,
 
       NUM_FRAMEBUFFERS,
+      INVALID_FRAMEBUFFERS = NUM_FRAMEBUFFERS
     };
 
    private:
     struct FrameSubmissions {
       Ref<CameraBase> viewpoint = nullptr;
       Ref<LightEnvironment> environment = nullptr;
+      Ref<MaterialTable> material_table = nullptr;
 
       Ref<UniformBuffer> camera_uniforms = nullptr;
       Ref<UniformBuffer> light_uniforms = nullptr;

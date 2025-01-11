@@ -6,6 +6,8 @@
 
 namespace other {
 
+  PhysicsShapeType PhysicsShape::ShapeType() const {
+    return type;
+  }
 
-
-} // namespace other
+}  // namespace other

@@ -25,7 +25,7 @@ local function ProjectHeader(project_data)
       cppdialect "C++latest"
     end
 
-    staticruntime "off"
+    staticruntime "on"
 
     if project_data.tdir == nil then
       assert(Tdir ~= nil, "Tdir is nil")

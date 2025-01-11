@@ -58,7 +58,7 @@ IncludeCategories:
   - Regex:           '<([A-Za-z0-9\/-_])+>'
     Priority:        1
   # Headers in <> from specific external libraries.
-  - Regex:           '<((glm|spdlog|entt|glad|gtest|imgui(zmo)?|json|magic_enum|refl|nlohmann|assimp)\/ | SDL*)>'
+  - Regex:           '<((glm|spdlog|entt|glad|gtest|imgui(zmo)?|json|magic_enum|refl|nlohmann|assimp|reactphysics3d)\/ | SDL*)>'
     Priority:        2
   # Headers in <> with extension.
   - Regex:           '<([A-Za-z0-9\/-_])+\.h(pp|xx|h)?>'

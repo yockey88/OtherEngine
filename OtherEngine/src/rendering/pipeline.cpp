@@ -56,10 +56,11 @@ namespace other {
     passes.push_back(render_pass);
   }
 
-  void Pipeline::SubmitModel(const Ref<Model>& model, const glm::mat4& transform, UUID material_id, DrawMode topology) {
+  void Pipeline::SubmitModel(const Ref<Model>& model, const Ref<MaterialTable>& material_table, const glm::mat4& transform, UUID material_id, DrawMode topology) {
     SubmitModel({
       .model = model,
       .transform = transform,
+      .material_table = material_table,
       .material = material_id,
       .draw_mode = topology,
     });
@@ -87,7 +88,8 @@ namespace other {
 
     auto& [mk, sl] = *itr;
 
-    Ref<MaterialTable> material_table = AssetManager::GetMaterialTable();
+    Ref<MaterialTable> material_table = submission.material_table;
+
     OE_ASSERT(material_table != nullptr, "Material table is null");
 
     sl.submissions.resize(submeshes.size());
@@ -108,10 +110,11 @@ namespace other {
     }
   }
 
-  void Pipeline::SubmitStaticModel(const Ref<StaticModel>& model, const glm::mat4& transform, UUID material_id, DrawMode topology) {
+  void Pipeline::SubmitStaticModel(const Ref<StaticModel>& model, const Ref<MaterialTable>& material_table, const glm::mat4& transform, UUID material_id, DrawMode topology) {
     SubmitStaticModel({
       .model = model,
       .transform = transform,
+      .material_table = material_table,
       .material = material_id,
       .draw_mode = topology,
     });
@@ -132,7 +135,7 @@ namespace other {
     auto& [mk, sl] = *itr;
     OE_ASSERT(sl.vao != nullptr, "Mesh submission list has null vertex array");
 
-    Ref<MaterialTable> material_table = AssetManager::GetMaterialTable();
+    Ref<MaterialTable> material_table = submission.material_table;
     OE_ASSERT(material_table != nullptr, "Material table is null");
 
     UUID material_id = submission.material.Get() == 0 ? material_table->DefaultMaterial() : submission.material;
@@ -143,6 +146,10 @@ namespace other {
     sl.cpu_material_storage.BufferData(gpumat);
     sl.index_count = sl.vao->NumElements();
     ++sl.instance_count;
+  }
+
+  void Pipeline::SubmitDebugDrawCommands(const std::vector<DebugDrawCommand>& cmds) {
+    debug_draw_commands.insert(debug_draw_commands.end(), cmds.begin(), cmds.end());
   }
 
   void Pipeline::Render() {
@@ -159,6 +166,12 @@ namespace other {
       PerformPass(pass);
       CHECKGL();
     }
+
+    /// HACK:
+    for (const DebugDrawCommand& cmd : debug_draw_commands) {
+      cmd();
+    }
+
     target->UnbindFrame();
     CHECKGL();
   }
@@ -227,6 +240,7 @@ namespace other {
       .vao = vao,
       .base_instance = 0,
       .submissions = {},
+      .line_thickness = key.line_thickness,
     };
     msl.submissions.reserve(sm_idxs.size());
     for (auto& sm_idx : sm_idxs) {
@@ -257,6 +271,7 @@ namespace other {
       .cpu_material_storage = Buffer(),
       .instance_count = 0,
       .index_count = 0,
+      .line_thickness = key.line_thickness,
     };
 
     return static_model_submissions.insert({ key, std::move(msl) }).first;
@@ -329,6 +344,7 @@ namespace other {
     material_storage->BindBase();
     material_storage->LoadFromBuffer(draw_call.cpu_material_storage);
 
+    glLineWidth(draw_call.line_thickness);
     glPolygonMode(GL_FRONT_AND_BACK, mesh_key.render_state);
     glDrawElementsInstancedBaseVertexBaseInstance(mesh_key.draw_mode, draw_call.index_count, GL_UNSIGNED_INT, (void*)0, draw_call.instance_count, 0, 0);
 
@@ -361,6 +377,7 @@ namespace other {
       material_storage->BindBase();
       material_storage->LoadFromBuffer(sub_call.cpu_material_storage);
 
+      glLineWidth(draw_call.line_thickness);
       glPolygonMode(GL_FRONT_AND_BACK, mesh_key.render_state);
       glDrawElementsInstancedBaseVertexBaseInstance(mesh_key.draw_mode, sub_call.index_count, GL_UNSIGNED_INT, (void*)0, sub_call.instance_count, sub_call.vertex_offset, 0);
       CHECKGL();

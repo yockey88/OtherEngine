@@ -3,13 +3,48 @@
  **/
 #include "ecs/components/transform.hpp"
 
+#include <glm/ext/quaternion_geometric.hpp>
+
 #include "core/config_keys.hpp"
 
 #include "ecs/entity.hpp"
 #include "scene/scene.hpp"
 
-
 namespace other {
+
+  Transform::Transform(const glm::vec3& position)
+      : Component(kTransformIndex), position(position) {
+    bbox = BBox(position);
+  }
+
+  Transform::Transform(float p)
+      : Component(kTransformIndex), position(glm::vec3(p)) {
+    bbox = BBox(position);
+  }
+
+  Transform::Transform(float x, float y, float z)
+      : Component(kTransformIndex), position(glm::vec3(x, y, z)) {
+    bbox = BBox(position);
+  }
+
+  const glm::mat4& Transform::CalcMatrix() {
+    glm::vec3 dim = scale * 0.5f;
+    bbox = BBox(position - dim, position + dim);
+
+    qrotation = glm::normalize(qrotation);
+
+    erotation = glm::eulerAngles(qrotation);
+    model_transform = glm::translate(glm::mat4(1.f), position);
+    model_transform = glm::scale(model_transform, scale);
+    model_transform = model_transform * glm::mat4_cast(qrotation);
+    return model_transform;
+  }
+
+  void Transform::Rotate(float angle, const glm::vec3& axis) {
+    glm::quat q = glm::angleAxis(angle, axis);
+    qrotation = q * qrotation;
+    erotation = glm::eulerAngles(qrotation);
+  }
 
   void TransformSerializer::Serialize(std::ostream& stream, Entity* entity, const Ref<Scene>& scene) const {
     auto& transform = entity->GetComponent<Transform>();

@@ -13,7 +13,6 @@
 #include "event/key_events.hpp"
 #include "event/window_events.hpp"
 
-#include "physics/physics_engine.hpp"
 #include "rendering/renderer.hpp"
 #include "rendering/ui/ui.hpp"
 #include "scripting/script_engine.hpp"
@@ -125,7 +124,6 @@ namespace other {
     Renderer::Initialize(engine->config);
     UI::Initialize(engine->config, Renderer::GetWindow());
     ScriptEngine::Initialize(engine->config);
-    PhysicsEngine::Initialize(engine->config);
 
     /// MAYBE: indicate what mode the engine is running using this event (headless_load_finished, server_load_finished, etc...)
     engine->EngineEvent(EngineStateEvent::ENGINE_LOAD_FINISHED);
@@ -240,7 +238,6 @@ namespace other {
     ///   to ensure we are in a stable state before shutting down
     EventQueue::Poll();
 
-    PhysicsEngine::Shutdown();
     ScriptEngine::Shutdown();
     UI::Shutdown();
     Renderer::Shutdown();

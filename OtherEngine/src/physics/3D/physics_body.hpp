@@ -31,9 +31,12 @@ namespace other {
     void SetType(PhysicsBodyType type);
     void SetLayer(uint32_t layer);
 
+    virtual void SetTransform(const Transform& transform) = 0;
+    virtual Transform GetTransform() const = 0;
+
     virtual glm::vec3 GetPosition() const = 0;
     virtual glm::quat GetOrientation() const = 0;
-    virtual Transform InterpolateTransform(const Transform& target, float alpha) const = 0;
+    virtual Transform InterpolateTransform(float alpha) = 0;
 
     virtual void AddCollider(Ref<PhysicsShape> shape) = 0;
 

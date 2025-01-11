@@ -13,18 +13,21 @@ namespace other {
 
   class JoltBody : public PhysicsBody {
    public:
-    JoltBody(JPH::BodyInterface& body_interface, Entity* entity);
+    JoltBody(JPH::BodyInterface& body_interface, JPH::Body* body);
     virtual ~JoltBody() = default;
 
-    virtual glm::vec3 GetPosition() const override { return {}; }
-    virtual glm::quat GetOrientation() const override { return {}; }
-    virtual Transform InterpolateTransform(const Transform& target, float alpha) const override { return {}; }
+    void SetTransform(const Transform& transform) override;
+    Transform GetTransform() const override;
 
-    virtual void AddCollider(Ref<PhysicsShape> shape) override {}
+    virtual glm::vec3 GetPosition() const override;
+    virtual glm::quat GetOrientation() const override;
+    virtual Transform InterpolateTransform(float alpha) override;
+
+    virtual void AddCollider(Ref<PhysicsShape> shape) override;
 
    private:
     JPH::BodyInterface& body_interface;
-    Entity* entity;
+    JPH::Body* body = nullptr;
   };
 
 }  // namespace other

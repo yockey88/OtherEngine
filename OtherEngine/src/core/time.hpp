@@ -10,9 +10,10 @@
 namespace other {
   namespace time {
 
-    using Clock = std::chrono::steady_clock;
+    using SteadyClock = std::chrono::steady_clock;
     using Duration = std::chrono::duration<uint64_t, std::micro>;
-    using TimePoint = std::chrono::time_point<std::chrono::steady_clock>;
+    using FloatDuration = std::chrono::duration<float>;
+    using TimePoint = std::chrono::time_point<SteadyClock>;
 
     class Timer {
       TimePoint start;
@@ -53,7 +54,7 @@ namespace other {
       bool paused = false;
 
      public:
-      Stopwatch() : start(Clock::now()) {}
+      Stopwatch() : start(SteadyClock::now()) {}
       ~Stopwatch() {}
 
       void Start();
@@ -71,11 +72,11 @@ namespace other {
       ~DeltaTime() {}
 
       inline void Start() {
-        last_time_point = Clock::now();
+        last_time_point = SteadyClock::now();
       }
 
       inline float Get() {
-        TimePoint current_time_point = Clock::now();
+        TimePoint current_time_point = SteadyClock::now();
         duration = std::chrono::duration_cast<Duration>(current_time_point - last_time_point);
         last_time_point = current_time_point;
         return (float)duration.count() / 1000;
@@ -83,7 +84,7 @@ namespace other {
 
       template <typename T>
       inline float GetAs() {
-        TimePoint current_time_point = Clock::now();
+        TimePoint current_time_point = SteadyClock::now();
         duration = std::chrono::duration_cast<T>(current_time_point - last_time_point);
         last_time_point = current_time_point;
         return (float)duration.count();
@@ -97,10 +98,10 @@ namespace other {
     template <uint32_t fps>
     class FrameRateEnforcer {
       std::chrono::duration<double, std::ratio<1, fps>> frame_duration;
-      std::chrono::time_point<std::chrono::steady_clock, decltype(frame_duration)> time_point;
+      std::chrono::time_point<SteadyClock, decltype(frame_duration)> time_point;
 
      public:
-      FrameRateEnforcer() { time_point = std::chrono::steady_clock::now(); }
+      FrameRateEnforcer() { time_point = SteadyClock::now(); }
 
       inline float TimeStep() const { return (float)(1.f / fps); }
 

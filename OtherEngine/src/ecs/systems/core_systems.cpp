@@ -9,6 +9,8 @@
 #include <box2d/b2_fixture.h>
 #include <box2d/b2_polygon_shape.h>
 
+#include "application/app_state.hpp"
+
 #include "ecs/components/camera.hpp"
 #include "ecs/components/mesh.hpp"
 #include "ecs/components/relationship.hpp"
@@ -20,7 +22,6 @@
 #include "ecs/entity.hpp"
 
 #include "physics/physics_defines.hpp"
-#include "physics/physics_engine.hpp"
 #include "rendering/perspective_camera.hpp"
 #include "rendering/renderer.hpp"
 
@@ -72,187 +73,6 @@ namespace other {
   void OnAddStaticModel(entt::registry& context, entt::entity entt) {
     Entity ent(context, entt);
     auto& mesh = ent.GetComponent<StaticMesh>();
-  }
-
-  void OnAddRigidBody2D(entt::registry& context, entt::entity entt) {
-    Ref<Scene> scene = PhysicsEngine::GetSceneContext();
-    OE_ASSERT(scene != nullptr, "Somehow added a rigid body 2D component without an active scene context");
-
-    auto physics_world = scene->Get2DPhysicsWorld();
-    OE_ASSERT(physics_world != nullptr, "Somehow added a rigid body 2D component without active 2D physics");
-
-    Entity ent(context, entt);
-    auto& body = ent.GetComponent<RigidBody2D>();
-
-    auto& tag = ent.GetComponent<Tag>();
-    auto& transform = ent.GetComponent<Transform>();
-
-    Initialize2DRigidBody(physics_world, body, tag, transform);
-  }
-
-  void OnRigidBody2DUpdate(entt::registry& context, entt::entity entt) {
-    Ref<Scene> scene = PhysicsEngine::GetSceneContext();
-    OE_ASSERT(scene != nullptr, "Somehow updated a rigidy body 2D component without and active scene context");
-
-    auto physics_world = scene->Get2DPhysicsWorld();
-    OE_ASSERT(physics_world != nullptr, "Somehow updated a rigid body 2D component without active 2D physics");
-
-    Entity ent(context, entt);
-    auto& body = ent.GetComponent<RigidBody2D>();
-
-    auto& tag = ent.GetComponent<Tag>();
-    auto& transform = ent.GetComponent<Transform>();
-
-    Initialize2DRigidBody(physics_world, body, tag, transform);
-  }
-
-  void OnAddRigidBody(entt::registry& context, entt::entity entt) {
-    Ref<Scene> scene = PhysicsEngine::GetSceneContext();
-    OE_ASSERT(scene != nullptr, "Somehow added a rigid body component without an active scene context");
-
-    Ref<PhysicsWorld> physics_world = scene->GetPhysicsWorld();
-    OE_ASSERT(physics_world != nullptr, "Somehow added a rigid body component without active 3D physics");
-
-    Entity ent(context, entt);
-    Transform& transform = ent.GetComponent<Transform>();
-    RigidBody& body = ent.GetComponent<RigidBody>();
-
-    body.physics_body = physics_world->CreateBody(transform);
-    body.physics_body->SetType(body.type);
-    body.physics_body->SetLayer(body.layer_id);
-  }
-
-  void OnRigidBodyUpdate(entt::registry& context, entt::entity entt) {
-    // Ref<Scene> scene = PhysicsEngine::GetSceneContext();
-    // OE_ASSERT(scene != nullptr, "Somehow updated a rigid body component without an active scene context");
-
-    // auto physics_world = scene->GetPhysicsWorld();
-    // OE_ASSERT(physics_world != nullptr, "Somehow updated a rigid body component without active 3D physics");
-
-    // Entity ent(context, entt);
-    // auto& body = ent.GetComponent<RigidBody>();
-
-    // auto& tag = ent.GetComponent<Tag>();
-    // auto& transform = ent.GetComponent<Transform>();
-
-    // InitializeRigidBody(physics_world, body, tag, transform);
-  }
-
-  void OnAddCollider(entt::registry& context, entt::entity entt) {
-    Ref<Scene> scene = PhysicsEngine::GetSceneContext();
-    OE_ASSERT(scene != nullptr, "Somehow added a collider component without an active scene context");
-
-    Ref<PhysicsWorld> physics_world = scene->GetPhysicsWorld();
-    OE_ASSERT(physics_world != nullptr, "Somehow added a collider component without active 3D physics");
-
-    Entity ent(context, entt);
-    if (!ent.HasComponent<RigidBody>()) {
-      ent.AddComponent<RigidBody>();
-    }
-
-    auto& body = ent.GetComponent<RigidBody>();
-    auto& collider = ent.GetComponent<Collider>();
-    auto& transform = ent.GetComponent<Transform>();
-
-    collider.shape = physics_world->CreateBoxShape(transform.scale / 2.f);
-
-    if (collider.shape == nullptr) {
-      OE_ERROR("Failed to create collider shape for entity [{}]", entt);
-      return;
-    }
-
-    if (ent.HasComponent<RigidBody>()) {
-      auto& body = ent.GetComponent<RigidBody>();
-      body.physics_body->AddCollider(collider.shape);
-    }
-  }
-
-  void OnColliderUpdate(entt::registry& context, entt::entity entt) {
-    // Ref<Scene> scene = PhysicsEngine::GetSceneContext();
-    // OE_ASSERT(scene != nullptr, "Somehow updated a collider component without an active scene context");
-
-    // auto physics_world = scene->GetPhysicsWorld();
-    // OE_ASSERT(physics_world != nullptr, "Somehow updated a collider component without active 3D physics");
-
-    // Entity ent(context, entt);
-    // if (!ent.HasComponent<RigidBody>()) {
-    //   ent.AddComponent<RigidBody>();
-    // }
-
-    // auto& body = ent.GetComponent<RigidBody>();
-    // auto& collider = ent.GetComponent<Collider>();
-    // auto& transform = ent.GetComponent<Transform>();
-
-    // InitializeCollider(physics_world, body, collider, transform);
-  }
-
-  void OnAddCollider2D(entt::registry& context, entt::entity entt) {
-  }
-
-  void OnCollider2DUpdate(entt::registry& context, entt::entity entt) {
-    // Ref<Scene> scene = PhysicsEngine::GetSceneContext();
-    // OE_ASSERT(scene != nullptr, "Somehow updated a collider 2D component without an active scene context");
-
-    // auto physics_world = scene->Get2DPhysicsWorld();
-    // OE_ASSERT(physics_world != nullptr, "Somehow updated a collider 2D component without active 2D physics");
-
-    // Entity ent(context, entt);
-    // if (!ent.HasComponent<RigidBody2D>()) {
-    //   ent.AddComponent<RigidBody2D>();
-    // }
-
-    // auto& body = ent.GetComponent<RigidBody2D>();
-    // auto& collider = ent.GetComponent<Collider2D>();
-    // auto& transform = ent.GetComponent<Transform>();
-
-    // Initialize2DCollider(physics_world, body, collider, transform);
-  }
-
-  void Initialize2DRigidBody(Ref<PhysicsWorld2D>& world, RigidBody2D& body, const Tag& tag, const Transform& transform) {
-    body.body_def = b2BodyDef{};
-    body.body_def.position.x = transform.position.x;
-    body.body_def.position.y = transform.position.y;
-    body.body_def.angle = transform.position.z;
-    body.body_def.linearDamping = body.linear_drag;
-    body.body_def.angularDamping = body.angular_drag;
-    body.body_def.gravityScale = body.gravity_scale;
-    body.body_def.fixedRotation = body.fixed_rotation;
-    body.body_def.bullet = body.bullet;
-    body.body_def.userData.pointer = (uintptr_t)tag.id.Get();
-
-    switch (body.type) {
-      case STATIC:
-        body.body_def.type = b2BodyType::b2_staticBody;
-        break;
-      case KINEMATIC:
-        body.body_def.type = b2BodyType::b2_kinematicBody;
-        break;
-      case DYNAMIC:
-        body.body_def.type = b2BodyType::b2_dynamicBody;
-        break;
-      default:
-        OE_ERROR("Invalid Rigid Body 2D type, can not add to physics scene!");
-        return;
-    }
-
-    body.physics_body = world->CreateBody(&body.body_def);
-
-    body.mass_data = body.physics_body->GetMassData();
-    body.mass_data.mass = body.mass;
-
-    body.physics_body->SetMassData(&body.mass_data);
-  }
-
-  void Initialize2DCollider(Ref<PhysicsWorld2D>& world, RigidBody2D& body, Collider2D& collider, const Transform& transform) {
-    b2PolygonShape shape;
-    shape.SetAsBox(transform.scale.x * collider.size.x, transform.scale.y * collider.size.y);
-
-    b2FixtureDef fixture_def;
-    fixture_def.shape = &shape;
-    fixture_def.density = collider.density;
-    fixture_def.friction = collider.friction;
-
-    collider.fixture = body.physics_body->CreateFixture(&fixture_def);
   }
 
 }  // namespace other

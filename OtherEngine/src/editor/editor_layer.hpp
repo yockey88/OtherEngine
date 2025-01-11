@@ -6,12 +6,14 @@
 
 #include "core/config.hpp"
 #include "core/layer.hpp"
-#include "editor/panel_manager.hpp"
-#include "editor/saves.hpp"
 
 #include "event/key_events.hpp"
 #include "event/mouse_events.hpp"
 #include "event/scene_events.hpp"
+
+#include "scene/scene_capture.hpp"
+
+#include "editor/panel_manager.hpp"
 
 namespace other {
 
@@ -34,11 +36,11 @@ namespace other {
     ConfigTable editor_config;
 
     AssetHandle editor_ray_mesh;
-    Opt<StateCapture> initial_state;
 
     /// TODO: find a better way to manage state than this
     bool playing = false;
     bool lost_window_focus = false;
+    bool rendering_physics_colliders = false;
 
     Scope<PanelManager> panel_manager = nullptr;
     Ref<Framebuffer> viewport = nullptr;

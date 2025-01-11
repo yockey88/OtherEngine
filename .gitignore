@@ -42,8 +42,7 @@ packages/
 *.xml
 
 ## Pycache
-*__pycache__*
-**/__pycache__/**
+__pycache__/
 
 ## Editor directories and files
 .idea/

@@ -16,7 +16,6 @@
 
 #include "scene/bvh.hpp"
 
-#include "physics/physics_engine.hpp"
 #include "rendering/camera_base.hpp"
 #include "rendering/renderer.hpp"
 #include "scripting/script_engine.hpp"
@@ -117,7 +116,6 @@ namespace other {
 
     ScriptEngine::SetSceneContext(active_scene->scene);
     Renderer::SetSceneContext(active_scene->scene);
-    PhysicsEngine::SetSceneContext(active_scene->scene);
     auto primary_cam = active_scene->scene->GetPrimaryCamera();
     if (primary_cam != nullptr) {
       DefaultUpdateCamera(primary_cam);
@@ -152,14 +150,26 @@ namespace other {
     OE_ASSERT(active_scene != nullptr, "Failed to set active scene!");
     ScriptEngine::SetSceneContext(active_scene->scene);
     Renderer::SetSceneContext(active_scene->scene);
-    PhysicsEngine::SetSceneContext(active_scene->scene);
 
     auto primary_cam = active_scene->scene->GetPrimaryCamera();
     if (primary_cam != nullptr) {
-      DefaultUpdateCamera(primary_cam);
+      primary_cam->UpdateCoordinateFrame();
+      primary_cam->CalculateMatrix();
     }
 
     EventQueue::PushEvent<SceneActivate>({ active_scene->scene->SceneHandle().Get() });
+  }
+
+  void SceneManager::Deactivate() {
+    if (!HasActiveScene()) {
+      return;
+    }
+
+    active_scene = nullptr;
+    ScriptEngine::SetSceneContext(nullptr);
+    Renderer::SetSceneContext(nullptr);
+
+    // EventQueue::PushEvent<SceneDeactivate>({ active_scene->scene->SceneHandle().Get() });
   }
 
   void SceneManager::StartScene() {
@@ -230,6 +240,14 @@ namespace other {
       scene_renderer = Renderer::DefaultSceneRenderer();
     }
     return scene_renderer;
+  }
+
+  void SceneManager::SetDebugPhysicsRendering(bool debug) {
+    if (!HasActiveScene()) {
+      return;
+    }
+
+    active_scene->scene->SetDebugPhysicsRendering(debug);
   }
 
   /// TODO: create state-capture system so we don't have to reload the scene each time we stop it to reset
@@ -338,15 +356,15 @@ namespace other {
     active_scene = nullptr;
   }
 
-  StateCapture SceneManager::CaptureScene() {
+  void SceneManager::CaptureScene() {
     if (!HasActiveScene()) {
-      return {};
+      return;
     }
 
-    return SaveStack::RecordState(ActiveScene()->scene);
+    ActiveScene()->scene->CaptureScene();
   }
 
-  void SceneManager::LoadCapture(StateCapture& capture) {
+  void SceneManager::RestoreLastCapture() {
     if (!HasActiveScene()) {
       return;
     }
@@ -357,7 +375,8 @@ namespace other {
       scene_playing = true;
     }
 
-    SaveStack::RestoreState(ActiveScene()->scene, capture);
+    ActiveScene()->scene->RestoreLastCapture();
+    ActiveScene()->scene->ResetPhysicsSimulation();
 
     if (scene_playing) {
       active_scene->scene->Start(AppState::mode);

@@ -11,18 +11,13 @@
 
 #include "input/mouse.hpp"
 
-#include "ecs/components/collider.hpp"
-#include "ecs/components/collider_2d.hpp"
 #include "ecs/components/mesh.hpp"
 #include "ecs/components/relationship.hpp"
-#include "ecs/components/rigid_body.hpp"
-#include "ecs/components/rigid_body_2d.hpp"
 #include "ecs/components/transform.hpp"
 #include "ecs/entity.hpp"
 
 #include "rendering/texture.hpp"
 #include "rendering/ui/ui_helpers.hpp"
-#include "rendering/ui/ui_widgets.hpp"
 
 #include "editor/selection_manager.hpp"
 
@@ -145,78 +140,10 @@ namespace other {
   bool DrawMesh(Entity* ent);
   bool DrawStaticMesh(Entity* ent);
   bool DrawCamera(Entity* ent);
-
-  template <typename T>
-    requires std::same_as<T, RigidBody2D> || std::same_as<T, RigidBody>
-  bool DrawRigidBody(Entity* ent) {
-    ui::BeginPropertyGrid();
-
-    T& body = ent->GetComponent<T>();
-
-    const char* body_type_strings[] = {
-      "Static", "Kinematic", "Dynamic"
-    };
-
-    const char* collision_detection_type_strings[] = {
-      "Discrete", "Continuous"
-    };
-
-    uint32_t selected = body.type;
-    if (selected >= INVALID_PHYSICS_BODY) {
-      ScopedColor red(ImGuiCol_Text, ui::theme::red);
-      ImGui::Text("Invalid valid for Rigid Body 2D body type : %d", body.type);
-    } else {
-      if (ui::PropertyDropdown("Type", body_type_strings, 3, selected)) {
-        body.type = static_cast<PhysicsBodyType>(selected);
-        if constexpr (std::same_as<T, RigidBody2D>) {
-          ent->UpdateComponent<RigidBody2D>(body);
-        } else if constexpr (std::same_as<T, RigidBody>) {
-          body.physics_body->SetType(body.type);
-        }
-      }
-
-      if (body.type == PhysicsBodyType::DYNAMIC) {
-        ui::BeginPropertyGrid();
-
-        ui::Property("Mass", &body.mass);
-        ui::Property("Linear Drag", &body.linear_drag);
-        ui::Property("Angular Drag", &body.angular_drag);
-
-        if constexpr (std::same_as<T, RigidBody2D>) {
-          ui::Property("Gravity Scale", &body.gravity_scale);
-          ui::Property("Fixed Rotation", &body.fixed_rotation);
-          ui::Property("Bullet", &body.bullet);
-        } else if constexpr (std::same_as<T, RigidBody>) {
-          ui::Property("Gravity Disabled", &body.disable_gravity);
-          ui::Property("Is Trigger", &body.is_trigger);
-
-          selected = body.collision_type;
-          if (ui::PropertyDropdown("Collision Detection", collision_detection_type_strings, 2, selected)) {
-            body.collision_type = static_cast<CollisionDetectionType>(selected);
-            ent->UpdateComponent<T>(body);
-          }
-
-          ui::Property("Max Linear Velocity", &body.max_linear_velocity);
-          ui::Property("Max Angular Velocity", &body.max_angular_velocity);
-        }
-
-        ui::EndPropertyGrid();
-      }
-    }
-
-    ui::EndPropertyGrid();
-
-    return false;
-  }
-
-  template <typename T>
-    requires std::same_as<T, Collider2D> || std::same_as<T, Collider>
-  bool DrawCollider(Entity* ent) {
-    ui::BeginPropertyGrid();
-
-    ui::EndPropertyGrid();
-    return false;
-  }
+  bool DrawRigidBody2D(Entity* ent);
+  bool DrawRigidBody(Entity* ent);
+  bool DrawCollider2D(Entity* ent);
+  bool DrawCollider(Entity* ent);
 
   bool DrawLightSource(Entity* ent);
 

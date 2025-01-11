@@ -33,7 +33,6 @@
 
 #include "scene/scene.hpp"
 
-#include "physics/physics_engine.hpp"
 #include "rendering/renderer.hpp"
 #include "rendering/ui/ui.hpp"
 #include "scripting/script_engine.hpp"

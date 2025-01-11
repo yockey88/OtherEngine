@@ -6,7 +6,6 @@
 
 #include "application/app_state.hpp"
 
-#include "physics/physics_engine.hpp"
 #include "rendering/renderer.hpp"
 #include "scripting/script_engine.hpp"
 
@@ -63,7 +62,6 @@ void EnvExecutorTests::SetUpTestSuite() {
   // AppState::Initialize(cmdline, test_config);
   // // Renderer::Initialize(test_config);
   // ScriptEngine::Initialize(test_config);
-  // PhysicsEngine::Initialize(test_config);
 }
 
 void EnvExecutorTests::TearDownTestSuite() {

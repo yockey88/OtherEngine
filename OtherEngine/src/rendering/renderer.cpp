@@ -14,7 +14,6 @@
 #include "rendering/scene_renderer.hpp"
 #include "rendering/shader.hpp"
 
-
 namespace other {
 
   Scope<Window> Renderer::window = nullptr;
@@ -156,8 +155,27 @@ namespace other {
           },
           .pipeline_name = "Geometry",
         },
+        {
+          .framebuffer_spec = {
+            .depth_func = LESS,
+            .clear_color = { 0.1f, 0.1f, 0.1f, 0.5f },
+            .size = { 1920, 1080 },
+          },
+          .pipeline_name = "ShadowMap",
+        },
+        {
+          .framebuffer_spec = {
+            .depth_func = LESS,
+            .clear_color = { 0.f, 0.f, 0.f, 1.f },
+            .size = { 1920, 1080 },
+          },
+          .pipeline_name = "Depth",
+        },
       },
     };
+
+    spec.pipeline_passes[FNV("ShadowMap")].passes.push_back(SceneRenderer::SHADOW_MAP);
+    spec.pipeline_passes[FNV("Depth")].passes.push_back(SceneRenderer::DEPTH_PASS);
     spec.pipeline_passes[FNV("Geometry")].passes.push_back(SceneRenderer::GEOMETRY_PASS);
 
     return spec;

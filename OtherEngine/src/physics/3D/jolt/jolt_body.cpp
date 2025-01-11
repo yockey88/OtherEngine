@@ -3,6 +3,7 @@
  **/
 #include "physics/3D/jolt/jolt_body.hpp"
 
+#include <Jolt/Math/Real.h>
 #include <Jolt/Physics/Body/BodyInterface.h>
 #include <Jolt/Physics/PhysicsSettings.h>
 #include <Jolt/Physics/PhysicsSystem.h>
@@ -14,26 +15,49 @@
 
 namespace other {
 
-  JoltBody::JoltBody(JPH::BodyInterface& body_interface, Entity* entity)
-      : body_interface(body_interface), entity(entity) {
-    const RigidBody& body = entity->ReadComponent<RigidBody>();
+  JoltBody::JoltBody(JPH::BodyInterface& body_interface, JPH::Body* body)
+      : body_interface(body_interface), body(body) {
+  }
 
-    switch (body.type) {
-      case PhysicsBodyType::STATIC: {
-        // CreateStaticBody(body_interface);
-        break;
-      }
-      case PhysicsBodyType::DYNAMIC:
-      case PhysicsBodyType::KINEMATIC: {
-        // CreateDynamicBody(body_interface);
-        break;
-      }
-      default:
-        OE_ASSERT(false, "Invalid body type : {}", body.type);
-        break;
-    }
+  void JoltBody::SetTransform(const Transform& transform) {
+  }
 
-    // m_OldMotionType = JoltUtils::ToJoltMotionType(rigidBodyComponent.BodyType);
+  Transform JoltBody::GetTransform() const {
+    JPH::RVec3 position = body->GetPosition();
+    JPH::Quat orientation = body->GetRotation();
+
+    glm::vec3 pos(position.GetX(), position.GetY(), position.GetZ());
+    glm::quat rot(orientation.GetW(), orientation.GetX(), orientation.GetY(), orientation.GetZ());
+
+    Transform transform;
+    transform.position = pos;
+    transform.qrotation = rot;
+    transform.CalcMatrix();
+    return transform;
+  }
+
+  glm::vec3 JoltBody::GetPosition() const {
+    JPH::RVec3 position = body->GetPosition();
+    return glm::vec3(position.GetX(), position.GetY(), position.GetZ());
+  }
+
+  glm::quat JoltBody::GetOrientation() const {
+    JPH::Quat orientation = body->GetRotation();
+    return glm::quat(orientation.GetW(), orientation.GetX(), orientation.GetY(), orientation.GetZ());
+  }
+
+  Transform JoltBody::InterpolateTransform(float alpha) {
+    JPH::RVec3 position = body->GetPosition();
+    JPH::Quat orientation = body->GetRotation();
+
+    glm::vec3 pos(position.GetX(), position.GetY(), position.GetZ());
+    glm::quat rot(orientation.GetW(), orientation.GetX(), orientation.GetY(), orientation.GetZ());
+
+    Transform transform;
+    transform.position = pos;
+    transform.qrotation = rot;
+    transform.CalcMatrix();
+    return transform;
   }
 
 }  // namespace other

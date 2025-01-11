@@ -19,8 +19,6 @@
 #include "rendering/material_table.hpp"
 #include "rendering/scene_renderer.hpp"
 
-#include "editor/saves.hpp"
-
 namespace other {
 
   struct SceneMetadata {
@@ -44,6 +42,7 @@ namespace other {
     void SetAsActive(const Ref<FileHandle>& scenefile);
 
     void Activate(Ref<Scene>& scene);
+    void Deactivate();
 
     void StartScene();
     void StopScene();
@@ -57,6 +56,7 @@ namespace other {
     void RemoveScene(const std::string_view name);
 
     Ref<SceneRenderer> GetRenderer();
+    void SetDebugPhysicsRendering(bool debug);
 
     bool HasScene(UUID id);
     bool HasScene(const std::string_view name);
@@ -66,8 +66,8 @@ namespace other {
     void SaveActiveScene();
     void UnloadActive();
 
-    StateCapture CaptureScene();
-    void LoadCapture(StateCapture& capture);
+    void CaptureScene();
+    void RestoreLastCapture();
 
     void ClearScenes();
 

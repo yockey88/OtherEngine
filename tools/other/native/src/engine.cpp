@@ -206,13 +206,9 @@ namespace {
 
     // UI::Initialize(*PyEnv::config, Renderer::GetWindow());
     // ScriptEngine::Initialize(*PyEnv::config);
-
-    // PhysicsEngine::Initialize(*PyEnv::config);
   }
 
   void ShutdownSystems() {
-    // PhysicsEngine::Shutdown();
-
     // ScriptEngine::Shutdown();
 
     // UI::Shutdown();

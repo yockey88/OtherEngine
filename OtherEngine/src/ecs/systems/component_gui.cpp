@@ -13,9 +13,14 @@
 #include "asset/asset_manager.hpp"
 
 #include "ecs/components/camera.hpp"
+#include "ecs/components/collider.hpp"
+#include "ecs/components/collider_2d.hpp"
 #include "ecs/components/light_source.hpp"
+#include "ecs/components/rigid_body.hpp"
+#include "ecs/components/rigid_body_2d.hpp"
 #include "ecs/components/transform.hpp"
 
+#include "physics/3D/physics_shape.hpp"
 #include "rendering/camera_base.hpp"
 #include "rendering/model.hpp"
 #include "rendering/model_factory.hpp"
@@ -23,6 +28,7 @@
 #include "rendering/perspective_camera.hpp"
 #include "rendering/ui/ui_colors.hpp"
 #include "rendering/ui/ui_helpers.hpp"
+#include "rendering/ui/ui_widgets.hpp"
 
 namespace other {
 
@@ -44,7 +50,7 @@ namespace other {
     bool multi_edit = false;
     if (multi_edit) {
     } else {
-      auto& component = ent->GetComponent<Transform>();
+      Transform& component = ent->GetComponent<Transform>();
 
       ImGui::TableNextRow();
       if (ui::widgets::DrawVec3Control("Translation", component.position, translation_manually_edited, 0.f,  /// replace this value from redo/undo stack
@@ -65,6 +71,11 @@ namespace other {
       if (translation_manually_edited || rotation_manually_edited || scale_manually_edited) {
         component.CalcMatrix();
         modified = true;
+
+        if (ent->HasComponent<RigidBody>()) {
+          auto& body = ent->GetComponent<RigidBody>();
+          body.physics_body->SetTransform(component);
+        }
       }
     }
 
@@ -697,6 +708,166 @@ namespace other {
         ScopedColor col(ImGuiCol_Text, ui::theme::red);
         ImGui::Text("Invalid Camera Projection Type! Camera Corrupt");
         break;
+    }
+
+    ui::EndPropertyGrid();
+
+    return false;
+  }
+
+  bool DrawRigidBody2D(Entity* ent) {
+    ui::BeginPropertyGrid();
+
+    RigidBody2D& body = ent->GetComponent<RigidBody2D>();
+
+    const char* body_type_strings[] = {
+      "Static", "Kinematic", "Dynamic"
+    };
+
+    uint32_t selected = body.type;
+    if (selected >= INVALID_PHYSICS_BODY) {
+      ScopedColor red(ImGuiCol_Text, ui::theme::red);
+      ImGui::Text("Invalid valid for Rigid Body 2D body type : %d", body.type);
+    } else {
+      if (ui::PropertyDropdown("Type", body_type_strings, 3, selected)) {
+        body.type = static_cast<PhysicsBodyType>(selected);
+        ent->UpdateComponent<RigidBody2D>(body);
+      }
+
+      if (body.type == PhysicsBodyType::DYNAMIC) {
+        ui::BeginPropertyGrid();
+
+        ui::Property("Mass", &body.mass);
+        ui::Property("Linear Drag", &body.linear_drag);
+        ui::Property("Angular Drag", &body.angular_drag);
+        ui::Property("Gravity Scale", &body.gravity_scale);
+        ui::Property("Fixed Rotation", &body.fixed_rotation);
+        ui::Property("Bullet", &body.bullet);
+
+        ui::EndPropertyGrid();
+      }
+    }
+
+    ui::EndPropertyGrid();
+
+    return false;
+  }
+
+  bool DrawRigidBody(Entity* ent) {
+    ui::BeginPropertyGrid();
+
+    RigidBody& body = ent->GetComponent<RigidBody>();
+
+    const char* body_type_strings[] = {
+      "Static", "Kinematic", "Dynamic"
+    };
+
+    const char* collision_detection_type_strings[] = {
+      "Discrete", "Continuous"
+    };
+
+    uint32_t selected = body.type;
+    if (selected >= INVALID_PHYSICS_BODY) {
+      ScopedColor red(ImGuiCol_Text, ui::theme::red);
+      ImGui::Text("Invalid valid for Rigid Body 2D body type : %d", body.type);
+    } else {
+      if (ui::PropertyDropdown("Type", body_type_strings, 3, selected)) {
+        body.type = static_cast<PhysicsBodyType>(selected);
+        body.physics_body->SetType(body.type);
+      }
+
+      if (body.type == PhysicsBodyType::DYNAMIC) {
+        ui::BeginPropertyGrid();
+
+        ui::Property("Mass", &body.mass);
+        ui::Property("Linear Drag", &body.linear_drag);
+        ui::Property("Angular Drag", &body.angular_drag);
+
+        ui::Property("Gravity Disabled", &body.disable_gravity);
+        ui::Property("Is Trigger", &body.is_trigger);
+
+        selected = body.collision_type;
+        if (ui::PropertyDropdown("Collision Detection", collision_detection_type_strings, 2, selected)) {
+          body.collision_type = static_cast<CollisionDetectionType>(selected);
+          ent->UpdateComponent<RigidBody>(body);
+        }
+
+        ui::Property("Max Linear Velocity", &body.max_linear_velocity);
+        ui::Property("Max Angular Velocity", &body.max_angular_velocity);
+
+        ui::EndPropertyGrid();
+      }
+    }
+
+    ui::EndPropertyGrid();
+
+    return false;
+  }
+
+  bool DrawCollider2D(Entity* ent) {
+    Collider2D& collider = ent->GetComponent<Collider2D>();
+
+    ui::BeginPropertyGrid();
+
+    static const char* collider_type_strings[] = {
+      "Box", "Circle", "Polygon"
+    };
+
+    ScopedColor red(ImGuiCol_Text, ui::theme::red);
+    ImGui::Text("Collider 2D ui not implemented yet");
+
+    ui::EndPropertyGrid();
+
+    return false;
+  }
+
+  bool DrawCollider(Entity* ent) {
+    Collider& collider = ent->GetComponent<Collider>();
+    const Transform& transform = ent->GetComponent<Transform>();
+
+    static const char* collider_type_strings[] = {
+      "Box", "Sphere", "Capsule", "Cylinder", "Cone", "Convex Mesh", "Concave Mesh"
+    };
+
+    uint32_t selected = static_cast<uint32_t>(collider.shape->ShapeType());
+
+    ui::BeginPropertyGrid();
+
+    if (ui::PropertyDropdown("Collider Type", collider_type_strings, 7, selected)) {
+      OE_ASSERT(AppState::Scenes()->HasActiveScene(), "Somehow added a rigid body 2D component without an active scene context");
+      Ref<Scene> scene = AppState::Scenes()->ActiveScene()->scene;
+      OE_ASSERT(scene != nullptr, "Somehow added a rigid body 2D component without an active scene context");
+
+      Ref<PhysicsWorld> world = scene->GetPhysicsWorld();
+      OE_ASSERT(world != nullptr, "Somehow added a rigid body component without active 3D physics");
+
+      PhysicsShapeType type = static_cast<PhysicsShapeType>(selected);
+
+      switch (type) {
+        case PhysicsShapeType::BOX:
+          collider.shape = world->CreateBoxShape(transform.scale / 2.f);
+          break;
+
+        case PhysicsShapeType::SPHERE:
+          collider.shape = world->CreateSphereShape(transform.scale.x / 2.f);
+          break;
+
+        case PhysicsShapeType::CAPSULE:
+          collider.shape = world->CreateCapsuleShape(transform.scale.x / 2.f, transform.scale.y);
+          break;
+
+          // case PhysicsShapeType::CONVEX_MESH:
+          //   collider.shape = Ref<ConvexMeshCollider>::Create();
+          //   break;
+
+          // case PhysicsShapeType::CONCAVE_MESH:
+          //   collider.shape = Ref<ConcaveMeshCollider>::Create();
+          //   break;
+
+        default:
+          OE_WARN("Collider type not implemented yet!");
+          break;
+      }
     }
 
     ui::EndPropertyGrid();

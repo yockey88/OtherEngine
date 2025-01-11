@@ -1,6 +1,8 @@
 /**
  * \file gl_sandbox/main.cpp
  **/
+#include <cmath>
+#include <csetjmp>
 #include <iostream>
 
 #include <SDL_events.h>
@@ -14,10 +16,15 @@
 #include <glad/glad.h>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
+#include <glm/fwd.hpp>
+#include <glm/gtc/constants.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <imgui/backends/imgui_impl_sdl2.h>
 #include <imgui/imgui.h>
+#include <reactphysics3d/mathematics/Quaternion.h>
+#include <reactphysics3d/mathematics/Vector3.h>
+#include <reactphysics3d/reactphysics3d.h>
 #include <rendering/gbuffer.hpp>
 
 #include "core/defines.hpp"
@@ -25,14 +32,15 @@
 #include "core/filesystem.hpp"
 #include "core/logger.hpp"
 #include "core/ref.hpp"
+#include "core/time.hpp"
 #include "engine/engine.hpp"
+#include "math/matrix_math.hpp"
 
 #include "application/app_state.hpp"
 #include "asset/asset_manager.hpp"
 #include "event/event_queue.hpp"
 #include "input/io.hpp"
 
-#include "physics/physics_engine.hpp"
 #include "rendering/camera_base.hpp"
 #include "rendering/direction_light.hpp"
 #include "rendering/framebuffer.hpp"
@@ -51,10 +59,11 @@
 #include "scripting/script_engine.hpp"
 
 #include "gl_helpers.hpp"
-#include "sandbox_ui.hpp"
 #include "shader_embed.hpp"
 
 using namespace other;
+
+namespace rp3d = reactphysics3d;
 
 struct Shape {
   uint32_t vao = 0, vbo = 0, ebo = 0;
@@ -93,13 +102,13 @@ struct Quad {
     0, 1, 2,
     1, 2, 3,
   };
+  // clang-format on
 
   Quad();
   ~Quad();
 
   void Draw();
 };
-// clang-format on
 
 struct Cube {
   uint32_t vao = 0, vbo = 0, ebo = 0;
@@ -127,10 +136,11 @@ struct Cube {
   void Draw(other::DrawMode mode, uint32_t instances = 1);
 };
 
-constexpr static uint32_t win_w = 800;
-constexpr static uint32_t win_h = 600;
-
 void UpdateCamera(other::Ref<CameraBase>& camera);
+
+void DoDebugRendering(Ref<VertexArray>& triangles, Ref<VertexArray>& lines, rp3d::PhysicsWorld* world);
+
+Transform GetTransformFromPhysicsTransform(const rp3d::Transform& phys_transform);
 
 #ifdef _WIN32
   #define WIN32_LEAN_AND_MEAN
@@ -154,14 +164,15 @@ int main(int argc, char* argv[]) {
     Renderer::Initialize(mock_engine.config);
     UI::Initialize(mock_engine.config, Renderer::GetWindow());
     ScriptEngine::Initialize(mock_engine.config);
-    PhysicsEngine::Initialize(mock_engine.config);
     AppState::AttachApplication();
     AppState::mode = EngineMode::EDITOR;
 
     uint32_t shader1 = other::GetShader(vert1, frag1);
     uint32_t shader2 = other::GetShader(vert2, frag2);
 
-    Ref<Framebuffer> frame = NewRef<Framebuffer>(other::FramebufferSpec{});
+    Ref<Framebuffer> frame = NewRef<Framebuffer>(other::FramebufferSpec{
+      .size = Renderer::WindowSize(),
+    });
 
     std::vector<float> fb_verts = {
       1.f, 1.f, 1.f, 1.f,
@@ -181,40 +192,18 @@ int main(int argc, char* argv[]) {
     Scope<VertexArray> fb_mesh = NewScope<VertexArray>(fb_verts, fb_indices, fb_layout);
 
     const other::Path shader_dir = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders";
-    const other::Path fbshader_path = shader_dir / "fbshader.oshader";
-    const other::Path default_shader_path = shader_dir / "default.oshader";
-    const other::Path gbuffer_shader_path = shader_dir / "gbuffer.oshader";
-    Ref<Shader> fb_shader = other::BuildShader(fbshader_path);
-    Ref<Shader> default_shader = other::BuildShader(default_shader_path);
-    Ref<Shader> gbuffer_shader = other::BuildShader(gbuffer_shader_path);
-
-    // const other::Path deferred_shader_path = shader_dir / "deferred_shading.oshader";
-    // Ref<Shader> deferred_shader = other::BuildShader(deferred_shader_path);
-    // deferred_shader->Bind();
-    // deferred_shader->SetUniform("goe_position", 0);
-    // deferred_shader->SetUniform("goe_normal", 1);
-    // deferred_shader->SetUniform("goe_albedo", 2);
-    // deferred_shader->Unbind();
+    const other::Path debug_physics_shader_path = shader_dir / "physics_debug.oshader";
+    Ref<Shader> debug_physics_shader = other::BuildShader(debug_physics_shader_path);
 
     const other::Path gl_sb_material_dir = other::Filesystem::GetEngineCoreDir() / "tests" / "gl_sandbox" / "shaders";
     const other::Path mat_path = gl_sb_material_dir / "mat.oshader";
-
     Ref<Shader> mat_shader = other::BuildShader(mat_path);
-    // Ref<Shader> mat2_shader = other::BuildShader(mat2_path);
 
-    other::Ref<CameraBase> camera = other::NewRef<PerspectiveCamera>(glm::ivec2{ win_w, win_h });
-    camera->SetPosition({ 0.f, 0.f, 3.f });
-    glm::mat4 proj = camera->ProjectionMatrix();
-    glm::mat4 view = camera->ViewMatrix();
-
-    glm::mat4 model1 = glm::mat4(1.0f);
-    float m1_rotation = 0.f;
-
-    glm::mat4 model2 = glm::mat4(1.0f);
-    model2 = glm::translate(model2, glm::vec3(2.f, 0.f, 0.f));
-
-    glm::mat4 model3 = glm::mat4(1.0f);
-    model3 = glm::translate(model3, glm::vec3(-2.f, 0.f, 0.f));
+    glm::ivec2 win_size = Renderer::WindowSize();
+    println("Window size : {0}x{1}", win_size.x, win_size.y);
+    other::Ref<CameraBase> camera = other::NewRef<PerspectiveCamera>(win_size);
+    camera->SetPosition({ 0.f, 3.f, 3.f });
+    camera->SetDirection({ 0.f, -3.f, -3.f });
 
     other::PointLight point_light{
       .position = { 1.2f, 1.0f, 2.0f, 1.f },
@@ -253,6 +242,11 @@ int main(int argc, char* argv[]) {
 
     Ref<other::UniformBuffer> camera_uniforms = NewRef<other::UniformBuffer>("Camera", camera_unis, camera_binding_pnt);
     camera_uniforms->BindBase();
+
+    camera_uniforms->SetUniform("projection", camera->ProjectionMatrix());
+    camera_uniforms->SetUniform("view", camera->ViewMatrix());
+    camera_uniforms->SetUniform("viewpoint", camera->Position());
+
     Ref<other::UniformBuffer> light_uniforms = NewRef<other::UniformBuffer>("Lights", light_unis, light_binding_pnt, other::SHADER_STORAGE);
     light_uniforms->BindBase();
 
@@ -264,16 +258,11 @@ int main(int argc, char* argv[]) {
     other::Buffer model_buffer;
     other::Buffer material_buffer;
 
-    glUseProgram(shader2);
-    glUniform1i(glGetUniformLocation(shader2, "g_position"), 0);
-    glUniform1i(glGetUniformLocation(shader2, "g_normal"), 1);
-    glUniform1i(glGetUniformLocation(shader2, "g_albedo_spec"), 2);
-    glUseProgram(0);
-
-    /// generate sampler2DArray
     std::vector<glm::vec4> colors = {
       { 1.f, 0.f, 0.f, 1.f },
       { 0.f, 1.f, 0.f, 1.f },
+      { 0.f, 0.f, 1.f, 1.f },
+      { 0.5f, 0.5f, 0.5f, 1.f },
     };
 
     Ref<MaterialTable> material_table = AssetManager::GetMaterialTable();
@@ -281,36 +270,100 @@ int main(int argc, char* argv[]) {
 
     other::UUID mat1 = material_table->RegisterMaterial(colors[0], glm::vec4(1.f), glm::vec4(1.f));
     other::UUID mat2 = material_table->RegisterMaterial(colors[1], glm::vec4(1.f), glm::vec4(1.f));
-
-    OE_DEBUG("Uniforms Set");
-
-    other::GBuffer gbuffer({ win_w, win_h });
-
-    OE_INFO("Running");
+    other::UUID mat3 = material_table->RegisterMaterial(colors[2], glm::vec4(1.f), glm::vec4(1.f));
+    other::UUID floor_mat = material_table->RegisterMaterial(colors[3], glm::vec4(1.f), glm::vec4(1.f));
 
     Quad quad;
     Cube cube;
 
-    Shape shape(glsandbox_dir / "assets" / "backpack.fbx", material_table);
-
-    Ref<Directory> dir = Filesystem::GetDirectory("assets");
-    if (dir == nullptr) {
-      OE_ERROR("Failed to get directory");
-      throw std::runtime_error("Failed to get directory");
-    }
-    Ref<FileHandle> file = dir->GetFile("backpack.fbx");
-    if (file == nullptr) {
-      OE_ERROR("Failed to get file");
-      throw std::runtime_error("Failed to get file");
-    }
-
-    Ref<ModelSource> source = AssetManager::GetAsset<ModelSource>(file->handle, file->GetAssetType());
-    if (source == nullptr) {
-      OE_ERROR("Failed to get model source");
-      throw std::runtime_error("Failed to get model source");
-    }
-
     CHECKGL();
+
+    rp3d::PhysicsCommon physics_common;
+    rp3d::PhysicsWorld* physics_world = physics_common.createPhysicsWorld();
+
+    Transform transform1;
+    transform1.position = { 0.f, 15.f, 0.f };
+    transform1.scale = { 1.f, 1.f, 1.f };
+
+    transform1.CalcMatrix();
+    rp3d::Vector3 pos1(transform1.position.x, transform1.position.y, transform1.position.z);
+    rp3d::Transform phys_transform1(pos1, rp3d::Quaternion::identity());
+    rp3d::RigidBody* body1 = physics_world->createRigidBody(phys_transform1);
+    body1->setIsActive(true);
+
+    rp3d::Transform i_transform1 = body1->getTransform();
+    rp3d::Vector3 half_extents1(transform1.scale.x / 2.f, transform1.scale.y / 2.f, transform1.scale.z / 2.f);
+    rp3d::BoxShape* box_shape1 = physics_common.createBoxShape(half_extents1);
+    body1->addCollider(box_shape1, rp3d::Transform::identity());
+    body1->setIsDebugEnabled(true);
+
+    Transform transform2;
+    transform2.position = { 0.f, 10.f, 0.f };
+    transform2.scale = { 1.f, 1.f, 1.f };
+
+    transform2.CalcMatrix();
+    rp3d::Vector3 pos2(transform2.position.x, transform2.position.y, transform2.position.z);
+    rp3d::Transform phys_transform2(pos2, rp3d::Quaternion::identity());
+    rp3d::RigidBody* body2 = physics_world->createRigidBody(phys_transform2);
+    body2->setIsActive(true);
+
+    rp3d::Transform i_transform2 = body2->getTransform();
+    rp3d::Vector3 half_extents2(transform2.scale.x / 2.f, transform2.scale.y / 2.f, transform2.scale.z / 2.f);
+    rp3d::BoxShape* box_shape2 = physics_common.createBoxShape(half_extents2);
+    body2->addCollider(box_shape2, rp3d::Transform::identity());
+    body2->setIsDebugEnabled(true);
+
+    Transform transform3;
+    transform3.position = { 0.1f, 20.f, 0.f };
+    transform3.scale = { 1.f, 1.f, 1.f };
+
+    transform3.CalcMatrix();
+    rp3d::Vector3 pos3(transform3.position.x, transform3.position.y, transform3.position.z);
+    rp3d::Transform phys_transform3(pos3, rp3d::Quaternion::identity());
+    rp3d::RigidBody* body3 = physics_world->createRigidBody(phys_transform3);
+    body3->setIsActive(true);
+
+    rp3d::Transform i_transform3 = body3->getTransform();
+    rp3d::Vector3 half_extents3(transform3.scale.x / 2.f, transform3.scale.y / 2.f, transform3.scale.z / 2.f);
+    rp3d::BoxShape* box_shape3 = physics_common.createBoxShape(half_extents3);
+    body3->addCollider(box_shape3, rp3d::Transform::identity());
+    body3->setIsDebugEnabled(true);
+
+    Transform floor_transform;
+    floor_transform.position = { 0.f, -2.f, 0.f };
+    floor_transform.scale = { 10.f, 1.f, 10.f };
+
+    floor_transform.CalcMatrix();
+    rp3d::Vector3 pos_floor(floor_transform.position.x, floor_transform.position.y, floor_transform.position.z);
+    rp3d::Transform phys_transform_floor(pos_floor, rp3d::Quaternion::identity());
+    rp3d::RigidBody* floor_body = physics_world->createRigidBody(phys_transform_floor);
+    floor_body->setType(rp3d::BodyType::STATIC);
+    rp3d::Vector3 half_extents_floor(floor_transform.scale.x / 2.f, floor_transform.scale.y / 2.f, floor_transform.scale.z / 2.f);
+    rp3d::BoxShape* box_shape_floor = physics_common.createBoxShape(half_extents_floor);
+    floor_body->addCollider(box_shape_floor, rp3d::Transform::identity());
+
+    physics_world->setIsDebugRenderingEnabled(true);
+
+    rp3d::DebugRenderer& debug_renderer = physics_world->getDebugRenderer();
+
+    debug_renderer.setContactNormalLength(3.f);
+    debug_renderer.setContactPointSphereRadius(0.1f);
+
+    debug_renderer.setIsDebugItemDisplayed(rp3d::DebugRenderer::DebugItem::COLLIDER_AABB, true);
+    debug_renderer.setIsDebugItemDisplayed(rp3d::DebugRenderer::DebugItem::COLLISION_SHAPE, true);
+    debug_renderer.setIsDebugItemDisplayed(rp3d::DebugRenderer::DebugItem::CONTACT_NORMAL, true);
+    debug_renderer.setIsDebugItemDisplayed(rp3d::DebugRenderer::DebugItem::CONTACT_POINT, true);
+    debug_renderer.setIsDebugItemDisplayed(rp3d::DebugRenderer::DebugItem::COLLISION_SHAPE_NORMAL, true);
+
+    other::time::FrameRateEnforcer<60> enforcer;
+
+    Ref<VertexArray> debug_physics_triangles = nullptr;
+    Ref<VertexArray> debug_physics_lines = nullptr;
+
+    bool interpolate_physics = false;
+    Opt<time::TimePoint> previous_time = std::nullopt;
+    rp3d::decimal accumulator = 0.f;
+    rp3d::decimal alpha = 0.f;
 
     bool running = true;
 
@@ -318,8 +371,20 @@ int main(int argc, char* argv[]) {
     bool force_update = true;
     other::Mouse::FreeCursor();
 
+    OE_INFO("Running");
     while (running) {
       other::IO::Update();
+
+      time::TimePoint current_time;
+      time::FloatDuration delta_time;
+      if (!previous_time.has_value()) {
+        previous_time = time::SteadyClock::now();
+      } else {
+        current_time = time::SteadyClock::now();
+        delta_time = current_time - *previous_time;
+        previous_time = current_time;
+        interpolate_physics = true;
+      }
 
       SDL_Event event;
       while (SDL_PollEvent(&event)) {
@@ -328,16 +393,12 @@ int main(int argc, char* argv[]) {
           case SDL_WINDOWEVENT:
             switch (event.window.event) {
               case SDL_WINDOWEVENT_CLOSE: running = false; break;
-              default:
-                break;
+              default: break;
             }
             break;
           case SDL_KEYDOWN:
             switch (event.key.keysym.sym) {
-              case SDLK_ESCAPE:
-                running = false;
-                break;
-                break;
+              case SDLK_ESCAPE: running = false; break;
               case SDLK_c:
                 camera_lock = !camera_lock;
                 if (camera_lock) {
@@ -346,12 +407,10 @@ int main(int argc, char* argv[]) {
                   other::Mouse::LockCursor();
                 }
                 break;
-              default:
-                break;
+              default: break;
             }
             break;
-          default:
-            break;
+          default: break;
         }
 
         ImGui_ImplSDL2_ProcessEvent(&event);
@@ -362,14 +421,50 @@ int main(int argc, char* argv[]) {
 
       other::EventQueue::Clear();
 
+      float ts = enforcer.TimeStep();
+
+      if (interpolate_physics) {
+        accumulator += delta_time.count();  /// add fixed physics time step
+        while (accumulator >= ts) {
+          physics_world->update(ts);
+          accumulator -= ts;
+        }
+        alpha = accumulator / ts;
+
+        const rp3d::Transform& transf1 = body1->getTransform();
+        const rp3d::Transform& inter_transform1 = rp3d::Transform::interpolateTransforms(i_transform1, transf1, alpha);
+        i_transform1 = inter_transform1;
+        transform1 = GetTransformFromPhysicsTransform(i_transform1);
+
+        const rp3d::Transform& transf2 = body2->getTransform();
+        const rp3d::Transform& inter_transform2 = rp3d::Transform::interpolateTransforms(i_transform2, transf2, alpha);
+        i_transform2 = inter_transform2;
+        transform2 = GetTransformFromPhysicsTransform(i_transform2);
+
+        const rp3d::Transform& transf3 = body3->getTransform();
+        const rp3d::Transform& inter_transform3 = rp3d::Transform::interpolateTransforms(i_transform3, transf3, alpha);
+        i_transform3 = inter_transform3;
+        transform3 = GetTransformFromPhysicsTransform(i_transform3);
+      } else {
+        physics_world->update(ts);
+        const rp3d::Transform& transf1 = body1->getTransform();
+        transform1 = GetTransformFromPhysicsTransform(transf1);
+
+        const rp3d::Transform& transf2 = body2->getTransform();
+        transform2 = GetTransformFromPhysicsTransform(transf2);
+
+        const rp3d::Transform& transf3 = body3->getTransform();
+        transform3 = GetTransformFromPhysicsTransform(transf3);
+      }
+
+      DoDebugRendering(debug_physics_triangles, debug_physics_lines, physics_world);
+
       other::Renderer::GetWindow()->Clear();
 
       /// update camera uniforms
       if (!camera_lock || force_update) {
         force_update = !force_update;
         UpdateCamera(camera);
-        proj = camera->ProjectionMatrix();
-        view = camera->ViewMatrix();
         glm::vec4 cam_pos = glm::vec4(camera->Position(), 1.f);
 
         camera_uniforms->SetUniform("projection", camera->ProjectionMatrix());
@@ -381,29 +476,6 @@ int main(int argc, char* argv[]) {
       light_uniforms->SetUniform("point_lights", point_light);
       light_uniforms->SetUniform("direction_lights", dir_light);
 
-      model1 = glm::mat4(1.f);
-      model1 = glm::rotate(model1, m1_rotation, { 1.f, 1.f, 1.f });
-      m1_rotation += 0.1f;
-
-      ///> GBUFFER RENDER
-      /// start material textures at the the end of gbuffer textures
-      // material_table->Bind(GBuffer::NUM_TEX_IDXS);
-      // gbuffer.SetInput("albedo_textures", GBuffer::NUM_TEX_IDXS);
-      // gbuffer.Bind();
-      // cube.Draw(other::TRIANGLES, 2);
-      // gbuffer.Unbind();
-      // material_table->Unbind();
-      /// > GBUFFER RENDER
-
-      /// > LIGHTING PASS
-      // frame->BindFrame();
-      // deferred_shader->Bind();
-      // fb_mesh->Draw(other::TRIANGLES);
-      // deferred_shader->Unbind();
-      // frame->UnbindFrame();
-      /// > LIGHTING PASS
-
-      // /// > GEOMETRY PASS
       frame->BindFrame();
       material_table->Bind();
       mat_shader->Bind();
@@ -411,62 +483,45 @@ int main(int argc, char* argv[]) {
       mat_shader->SetUniform("normal_textures", 1);
       mat_shader->SetUniform("roughness_textures", 2);
 
-      // default_shader->Bind();
-      // default_shader->SetUniform("albedo_textures", 0);
-      // default_shader->SetUniform("normal_textures", 1);
-      // default_shader->SetUniform("roughness_textures", 2);
-
       model_buffer.ZeroMem();
-      model_buffer.BufferData(model1);
-      model_buffer.BufferData(model2);
+      model_buffer.BufferData(transform1.model_transform);
+      model_buffer.BufferData(transform2.model_transform);
+      model_buffer.BufferData(transform3.model_transform);
+      model_buffer.BufferData(floor_transform.model_transform);
 
       model_uniforms->BindBase();
       model_uniforms->LoadFromBuffer(model_buffer);
 
       MaterialTable::Material mat1_data = material_table->GetMaterial(mat1);
       MaterialTable::Material mat2_data = material_table->GetMaterial(mat2);
+      MaterialTable::Material mat3_data = material_table->GetMaterial(mat3);
+      MaterialTable::Material floor_mat_data = material_table->GetMaterial(floor_mat);
       Material gpumat1 = mat1_data;
       Material gpumat2 = mat2_data;
+      Material gpumat3 = mat3_data;
+      Material gpufloor_mat = floor_mat_data;
 
       material_buffer.ZeroMem();
       material_buffer.BufferData(gpumat1);
       material_buffer.BufferData(gpumat2);
+      material_buffer.BufferData(gpumat3);
+      material_buffer.BufferData(gpufloor_mat);
 
       material_uniforms->BindBase();
       material_uniforms->LoadFromBuffer(material_buffer);
 
       cube.Draw(other::TRIANGLES, colors.size());
 
-      model_buffer.ZeroMem();
-      model_buffer.BufferData(model3);
-
-      model_uniforms->BindBase();
-      model_uniforms->LoadFromBuffer(model_buffer);
-
-      // MaterialTable::Material mat1_data = material_table->GetMaterial(mat1);
-      // MaterialTable::Material mat2_data = material_table->GetMaterial(mat2);
-      // Material gpumat1 = mat1_data;
-      // Material gpumat2 = mat2_data;
-
-      // material_buffer.ZeroMem();
-      // material_buffer.BufferData(gpumat1);
-      // material_buffer.BufferData(gpumat2);
-
-      // material_uniforms->BindBase();
-      // material_uniforms->LoadFromBuffer(material_buffer);
-
-      shape.Draw(other::TRIANGLES);
-
-      mat_shader->Bind();
-      // default_shader->Bind();
-
       material_table->Unbind();
-      frame->UnbindFrame();
-      /// > GEOMETRY PASS
 
-      /// > DRAW TO SCREEN
+      debug_physics_shader->Bind();
+      debug_physics_lines->Draw(DrawMode::LINES);
+      debug_physics_triangles->Draw(DrawMode::TRIANGLES);
+      debug_physics_shader->Unbind();
+
+      frame->UnbindFrame();
+
       other::Renderer::DrawFramebufferToWindow(frame);
-      /// > DRAW TO SCREEN
 
 #define UI_ENABLED 0
 #if UI_ENABLED
@@ -483,11 +538,7 @@ int main(int argc, char* argv[]) {
       other::Renderer::GetWindow()->SwapBuffers();
     }
 
-    glDeleteProgram(shader1);
-    glDeleteProgram(shader2);
-
     AppState::DetachApplication();
-    PhysicsEngine::Shutdown();
     ScriptEngine::Shutdown();
     UI::Shutdown();
     Renderer::Shutdown();
@@ -1032,7 +1083,7 @@ void UpdateCamera(other::Ref<CameraBase>& camera) {
     camera->MoveDown();
   }
 
-  glm::vec2 win_size = { win_w, win_h };
+  glm::vec2 win_size = Renderer::WindowSize();
   glm::ivec2 mouse_pos = other::Mouse::GetPos();
 
   SDL_WarpMouseInWindow(SDL_GetMouseFocus(), win_size.x / 2, win_size.y / 2);
@@ -1059,4 +1110,132 @@ void UpdateCamera(other::Ref<CameraBase>& camera) {
 
   camera->UpdateCoordinateFrame();
   camera->CalculateMatrix();
+}
+
+void DoDebugRendering(Ref<VertexArray>& triangles, Ref<VertexArray>& lines, rp3d::PhysicsWorld* world) {
+  rp3d::DebugRenderer& debug_renderer = world->getDebugRenderer();
+
+  uint32_t nb_lines = debug_renderer.getNbLines();
+  uint32_t nb_triangles = debug_renderer.getNbTriangles();
+
+  const rp3d::Array<rp3d::DebugRenderer::DebugLine>& ls = debug_renderer.getLines();
+  const rp3d::Array<rp3d::DebugRenderer::DebugTriangle>& trs = debug_renderer.getTriangles();
+
+  std::vector<float> line_vertices;
+  std::vector<float> triangle_vertices;
+
+  for (uint32_t i = 0; i < nb_lines; i++) {
+    const rp3d::DebugRenderer::DebugLine& line = ls[i];
+
+    glm::vec4 color = {
+      (line.color1 >> 16) & 0xFF,
+      (line.color1 >> 8) & 0xFF,
+      (line.color1) & 0xFF,
+      1.f
+    };
+
+    glm::vec4 color2 = {
+      (line.color2 >> 16) & 0xFF,
+      (line.color2 >> 8) & 0xFF,
+      (line.color2) & 0xFF,
+      1.f
+    };
+
+    line_vertices.push_back(line.point1.x);
+    line_vertices.push_back(line.point1.y);
+    line_vertices.push_back(line.point1.z);
+
+    line_vertices.push_back(color.r);
+    line_vertices.push_back(color.g);
+    line_vertices.push_back(color.b);
+
+    line_vertices.push_back(line.point2.x);
+    line_vertices.push_back(line.point2.y);
+    line_vertices.push_back(line.point2.z);
+
+    line_vertices.push_back(color2.r);
+    line_vertices.push_back(color2.g);
+    line_vertices.push_back(color2.b);
+  }
+
+  for (uint32_t i = 0; i < nb_triangles; ++i) {
+    const rp3d::DebugRenderer::DebugTriangle& triangle = trs[i];
+
+    glm::vec4 color = {
+      (triangle.color1 >> 16) & 0xFF,
+      (triangle.color1 >> 8) & 0xFF,
+      (triangle.color1) & 0xFF,
+      1.f
+    };
+
+    glm::vec4 color2 = {
+      (triangle.color2 >> 16) & 0xFF,
+      (triangle.color2 >> 8) & 0xFF,
+      (triangle.color2) & 0xFF,
+      1.f
+    };
+
+    glm::vec4 color3 = {
+      (triangle.color3 >> 16) & 0xFF,
+      (triangle.color3 >> 8) & 0xFF,
+      (triangle.color3) & 0xFF,
+      1.f
+    };
+
+    triangle_vertices.push_back(triangle.point1.x);
+    triangle_vertices.push_back(triangle.point1.y);
+    triangle_vertices.push_back(triangle.point1.z);
+
+    triangle_vertices.push_back(color.r);
+    triangle_vertices.push_back(color.g);
+    triangle_vertices.push_back(color.b);
+
+    triangle_vertices.push_back(triangle.point2.x);
+    triangle_vertices.push_back(triangle.point2.y);
+    triangle_vertices.push_back(triangle.point2.z);
+
+    triangle_vertices.push_back(color2.r);
+    triangle_vertices.push_back(color2.g);
+    triangle_vertices.push_back(color2.b);
+
+    triangle_vertices.push_back(triangle.point3.x);
+    triangle_vertices.push_back(triangle.point3.y);
+    triangle_vertices.push_back(triangle.point3.z);
+
+    triangle_vertices.push_back(color3.r);
+    triangle_vertices.push_back(color3.g);
+    triangle_vertices.push_back(color3.b);
+  }
+
+  if (lines == nullptr) {
+    lines = NewRef<VertexArray>(line_vertices, std::vector<uint32_t>{}, std::vector<uint32_t>{ 3, 3 }, BufferUsage::DYNAMIC_DRAW);
+  } else {
+    lines->SetVertices(line_vertices);
+  }
+
+  if (triangles == nullptr) {
+    triangles = NewRef<VertexArray>(triangle_vertices, std::vector<uint32_t>{}, std::vector<uint32_t>{ 3, 3 }, BufferUsage::DYNAMIC_DRAW);
+  } else {
+    triangles->SetVertices(triangle_vertices);
+  }
+}
+
+Transform GetTransformFromPhysicsTransform(const rp3d::Transform& phys_transform) {
+  float fmatrix[16];
+  phys_transform.getOpenGLMatrix(fmatrix);
+
+  glm::mat4 matrix = glm::make_mat4(fmatrix);
+
+  glm::vec3 position;
+  glm::quat rotation;
+  glm::vec3 scale;
+
+  DecomposeTransformMatrix(matrix, position, rotation, scale);
+
+  Transform transform;
+  transform.position = position;
+  transform.qrotation = rotation;
+  transform.scale = scale;
+  transform.CalcMatrix();
+  return transform;
 }

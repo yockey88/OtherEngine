@@ -20,7 +20,7 @@ namespace other {
   /// this has a ton in common with the 2D version so it might be worth it
   ///   to merge them into one
   struct RigidBody : public Component {
-    PhysicsBodyType type = STATIC;
+    PhysicsBodyType type = DYNAMIC;
     uint32_t layer_id = 0;  /// Jolt layer id
     bool enable_dynamic_type_change = false;
 

@@ -115,8 +115,7 @@ namespace other {
       return;
     }
 
-    if (EditorState::scene_mode == SceneEditorMode::SIMULATING ||
-        EditorState::scene_mode == SceneEditorMode::FREE_CAMERA) {
+    if (EditorState::scene_mode == SceneEditorMode::FREE_CAMERA) {
       DefaultUpdateCamera(editor.editor_camera);
     }
   }
@@ -162,12 +161,15 @@ namespace other {
           Entity* selected = SelectionManager::ActiveSelection();
           OE_ASSERT(selected != nullptr, "Selected entity is null!");
 
-          // RenderSubmission sub = selected->WireframeSubmission();
-          // OE_ASSERT(sub.model != nullptr, "Wireframe model is null!");
-          // scene_renderer->SubmitStaticModel(sub);
+          RenderStaticSubmission sub = selected->WireframeSubmission();
+          OE_ASSERT(sub.model != nullptr, "Wireframe model is null!");
+          scene_renderer->SubmitStaticModel(sub);
         }
       }
 
+      if (rendering_physics_colliders) {
+        active_scene->scene->RenderPhysicsDebug(scene_renderer);
+      }
       render_success = scene_renderer->Render();
     }
 
@@ -209,22 +211,17 @@ namespace other {
         ui::MenuItem{ "Scene Renderer Settings"sv, [&]() { editor.panel_creator_id = panel_manager->AddPanel("Scene-Renderer-Settings", NewRef<SceneRendererSettings>()); } }
       );
 
-      // ui::Menu("Assets", [&]() {});
-      // ui::Menu("Objects", [&]() {});
+      ui::Menu(
+        "Scene",
+        ui::MenuItem{ "Show Colliders"sv, [&]() { 
+          rendering_physics_colliders = !rendering_physics_colliders; 
+          AppState::Scenes()->SetDebugPhysicsRendering(rendering_physics_colliders);
+        } }
+      );
     });
     // clang-format on
 
     panel_manager->RenderUI();
-
-    /**
-     * save-initial-state : void -> void
-            // auto& scenes = AppState::Scenes();
-            // SceneMetadata* current_scene = scenes->ActiveScene();
-            // OE_ASSERT(current_scene != nullptr, "No active scene found");
-            // OE_ASSERT(current_scene->scene != nullptr, "No active scene found");
-            // initial_state = SaveStack::RecordState(current_scene->scene);
-     *
-     **/
 
     if (ImGui::Begin("Inspector")) {
       if (scene_active && !render_success) {
@@ -240,6 +237,7 @@ namespace other {
         case SceneEditorMode::STOPPED:
           ui::Button("Play", [&]() {
             // save-initial-state
+            AppState::Scenes()->CaptureScene();
             AppState::Scenes()->StartScene();
             EditorState::scene_mode = SceneEditorMode::PLAYING;
 
@@ -249,6 +247,7 @@ namespace other {
 
           ui::Button("Simulate", [&]() {
             // save-initial-state
+            AppState::Scenes()->CaptureScene();
             AppState::Scenes()->StartScene();
             EditorState::scene_mode = SceneEditorMode::SIMULATING;
 
@@ -266,23 +265,11 @@ namespace other {
         case SceneEditorMode::PLAYING:
           ui::Button("Stop", [&]() {
             AppState::Scenes()->StopScene();
+            AppState::Scenes()->RestoreLastCapture();
             EditorState::scene_mode = SceneEditorMode::STOPPED;
 
             /// lock editor camera to prevent movement while scene is not simulating and camera is not free
             editor.editor_camera->locked = true;
-
-            // auto& scenes = AppState::Scenes();
-            // SceneMetadata* current_scene = scenes->ActiveScene();
-            // OE_ASSERT(current_scene != nullptr, "No active scene found");
-            // OE_ASSERT(current_scene->scene != nullptr, "No active scene found");
-            // OE_ASSERT(initial_state.has_value(), "No initial state found");
-
-            // SaveStack::RestoreState(current_scene->scene, initial_state.value());
-            // initial_state = std::nullopt;
-
-            // current_scene->scene->EarlyUpdate(0.f);
-            // current_scene->scene->Update(0.f);
-            // current_scene->scene->LateUpdate(0.f);
           });
           break;
 
@@ -321,23 +308,10 @@ namespace other {
       if (EditorState::scene_mode == SceneEditorMode::PLAYING ||
           EditorState::scene_mode == SceneEditorMode::SIMULATING) {
         AppState::Scenes()->StopScene();
+        AppState::Scenes()->RestoreLastCapture();
         playing = false;
         Mouse::FreeCursor();
         EditorState::scene_mode = SceneEditorMode::STOPPED;
-
-        /// FIXME: theres a bug here in which cameras are being updated
-        ///         and when, need to update cameras with these rules:
-        ///       - 1 : if scene stopped, no update any camera, render editor camera
-        ///       - 2 : if scene playing, only update active scene camera-entity,
-        ///               and don't submit editor camera to renderer
-        ///       - 3 : if simulating, update editor camera, and only update scene cameras
-        ///               based on user-independent data (if they have something moving the camera based
-        ///               off user input, turn it off) then render through editor camera
-
-        // editor_camera->locked = !editor_camera->locked;
-        // editor_camera->locked ?
-        //   Mouse::FreeCursor() :
-        //   Mouse::LockCursor();
 
         return true;
       }

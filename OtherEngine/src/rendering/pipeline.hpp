@@ -30,11 +30,13 @@ namespace other {
     void SubmitRenderPass(const Ref<RenderPass>& render_pass);
 
     /// FIXME: material system needs overhaul
-    void SubmitModel(const Ref<Model>& model, const glm::mat4& transform, UUID material_id, DrawMode topology = DrawMode::TRIANGLES);
+    void SubmitModel(const Ref<Model>& model, const Ref<MaterialTable>& material_table, const glm::mat4& transform, UUID material_id, DrawMode topology = DrawMode::TRIANGLES);
     void SubmitModel(const RenderSubmission& submission);
 
-    void SubmitStaticModel(const Ref<StaticModel>& model, const glm::mat4& transform, UUID material_id, DrawMode topology = DrawMode::TRIANGLES);
+    void SubmitStaticModel(const Ref<StaticModel>& model, const Ref<MaterialTable>& material_table, const glm::mat4& transform, UUID material_id, DrawMode topology = DrawMode::TRIANGLES);
     void SubmitStaticModel(const RenderStaticSubmission& submission);
+
+    void SubmitDebugDrawCommands(const std::vector<DebugDrawCommand>& cmds);
 
     void Render();
     Ref<Framebuffer> GetOutput() const;
@@ -45,6 +47,7 @@ namespace other {
     uint32_t vao_id = 0;
     PipelineSpec spec{};
 
+    std::vector<DebugDrawCommand> debug_draw_commands;
     FrameMeshes model_submissions;
     StaticFrameMeshes static_model_submissions;
 

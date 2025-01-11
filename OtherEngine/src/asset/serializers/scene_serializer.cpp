@@ -17,7 +17,6 @@
 #include "scene/scene_manager.hpp"
 
 #include "physics/physics_defines.hpp"
-#include "physics/physics_engine.hpp"
 
 namespace other {
 
@@ -89,13 +88,10 @@ namespace other {
     } else {
       glm::vec2 g;
       DeserializeVec2(gravity, g);
-      scene_metadata.scene->physics_world_2d = PhysicsEngine::GetPhysicsWorld2D(g);
+      scene_metadata.scene->physics_world_2d = PhysicsWorld2D::Create(g);
     }
 
-    // deserialize 3d physics metadata
-    // validate physics metadata
-
-    scene_metadata.scene->physics_world = PhysicsEngine::GetPhysicsWorld();
+    scene_metadata.scene->physics_world = PhysicsWorld::Create();
 
     EntitySerializer deserializer;
     auto entities = scene_metadata.scene_table.Get(kMetadataSection, kEntitiesValue);

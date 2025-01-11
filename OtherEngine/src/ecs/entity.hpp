@@ -36,10 +36,10 @@ namespace other {
     ~Entity() {}
 
     const Ref<Scene> GetContext() const;
-    const entt::entity& Handle() const;
+    entt::entity Handle() const;
 
-    const UUID& GetUUID() const;
-    const std::string Name() const;
+    UUID GetUUID() const;
+    const std::string& Name() const;
 
     operator bool() const;
     operator entt::entity() const;
@@ -180,6 +180,7 @@ namespace other {
 
    private:
     friend class Scene;
+    friend class CaptureStack;
 
     entt::registry& registry;
     entt::entity handle = entt::null;

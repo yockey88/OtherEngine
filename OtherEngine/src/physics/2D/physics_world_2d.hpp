@@ -4,30 +4,33 @@
 #ifndef OTHER_ENGINE_PHYSICS_WORLD_2D_HPP
 #define OTHER_ENGINE_PHYSICS_WORLD_2D_HPP
 
-#include <glm/glm.hpp>
 #include <box2d/b2_world.h>
+#include <glm/glm.hpp>
 
 #include "core/defines.hpp"
+#include "core/ref.hpp"
 #include "core/ref_counted.hpp"
 
 namespace other {
 
   class PhysicsWorld2D : public RefCounted {
-    public:
-      PhysicsWorld2D(const glm::vec2& grav);
+   public:
+    PhysicsWorld2D(const glm::vec2& grav);
 
-      void Step(float dt , uint32_t vel_iters , uint32_t pos_iters);
+    static Ref<PhysicsWorld2D> Create(const glm::vec2& grav);
 
-      b2Body* CreateBody(const b2BodyDef* body_def);
-      void DestroyBody(b2Body* body);
+    void Step(float dt, uint32_t vel_iters, uint32_t pos_iters);
 
-      glm::vec2 GetGravity() const;
+    b2Body* CreateBody(const b2BodyDef* body_def);
+    void DestroyBody(b2Body* body);
 
-    private:
-      b2Vec2 gravity;
-      Scope<b2World> world = nullptr;
+    glm::vec2 GetGravity() const;
+
+   private:
+    b2Vec2 gravity;
+    Scope<b2World> world = nullptr;
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_PHYSICS_WORLD_2D_HPP
+#endif  // !OTHER_ENGINE_PHYSICS_WORLD_2D_HPP

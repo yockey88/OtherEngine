@@ -62,32 +62,29 @@ namespace other {
 
   void RigidBodySerializer::Deserialize(Entity* entity, const ConfigTable& scene_table, Ref<Scene>& scene) const {
     OE_ASSERT(entity != nullptr && scene != nullptr, "Attempting to deserialize a rigid-body into null entity or scene!");
+
+    auto& rigid_body = entity->AddComponent<RigidBody>();
     std::string key_value = GetComponentSectionKey(entity->Name(), std::string{ kRigidBodyValue });
 
-    auto& rigid_body = entity->GetComponent<RigidBody>();
-
-    auto body_type = scene_table.Get(key_value, kTypeValue);
-    if (body_type.size() != 1) {
-      OE_ERROR("Failed to deserialize rigidy body 2D into entity {}", entity->Name());
+    auto body_type = scene_table.GetVal<std::string>(key_value, kTypeValue);
+    if (!body_type.has_value()) {
+      OE_ERROR("Failed to deserialize rigidy body into entity {}", entity->Name());
       return;
     }
 
-    std::string type = body_type[0];
-    std::string uc_type;
-    std::transform(type.begin(), type.end(), std::back_inserter(uc_type), ::toupper);
-
-    switch (FNV(uc_type)) {
-      case kStaticValueHash:
+    OE_DEBUG("Rigid body type : {}", *body_type);
+    switch (FNV(*body_type)) {
+      case FNV("static"):
         rigid_body.type = STATIC;
         break;
-      case kKinematicValueHash:
+      case FNV("kinematic"):
         rigid_body.type = KINEMATIC;
         break;
-      case kDynamicValueHash:
+      case FNV("dynamic"):
         rigid_body.type = DYNAMIC;
         break;
       default:
-        OE_ERROR("Rigid body body type section corrupt, cannot deserialize into entity {}", entity->Name());
+        OE_ERROR("Rigid body type section corrupt, cannot deserialize into entity {}", entity->Name());
         entity->RemoveComponent<RigidBody>();
         return;
     }
@@ -98,13 +95,8 @@ namespace other {
     rigid_body.disable_gravity = scene_table.GetVal<bool>(key_value, kDisableGravityValue, false).value_or(false);
     rigid_body.is_trigger = scene_table.GetVal<bool>(key_value, kIsTriggerValue, false).value_or(false);
 
-    auto collision_type = scene_table.Get(key_value, kCollisionTypeValue);
-
-    uc_type.clear();
-    type = body_type[0];
-    std::transform(type.begin(), type.end(), std::back_inserter(uc_type), ::toupper);
-
-    switch (FNV(uc_type)) {
+    auto collision_type = scene_table.GetVal<std::string>(key_value, kSimulationTypeValue).value_or("discrete");
+    switch (FNV(collision_type)) {
       case kDiscreteValueHash:
         rigid_body.collision_type = DISCRETE_COLLISION;
         break;
@@ -112,8 +104,6 @@ namespace other {
         rigid_body.collision_type = CONTINUOUS_COLLISION;
         break;
       default:
-        OE_ERROR("Rigid body collision type section corrupt, cannot deserialize into entity {}", entity->Name());
-        entity->RemoveComponent<RigidBody>();
         return;
     }
 

@@ -33,8 +33,7 @@ namespace other {
 
   class Window {
    public:
-    Window(WindowContext cxt, WindowConfig cfg)
-        : context(cxt), config(cfg) {}
+    Window(WindowContext cxt, WindowConfig cfg);
 
     Window(Window&& other) noexcept;
     Window(const Window&) = delete;

@@ -196,10 +196,9 @@ namespace other {
             edited = DrawAddComponentButton<Mesh>("Mesh") || edited;
             edited = DrawAddComponentButton<StaticMesh>("Static Mesh") || edited;
             edited = DrawAddComponentButton<Camera>("Camera") || edited;
-            edited = DrawAddComponentButton<RigidBody2D>("Rigid Body 2D") || edited;
-            edited = DrawAddComponentButton<Collider2D>("Collider 2D") || edited;
-            edited = DrawAddComponentButton<RigidBody>("Rigid Body") || edited;
-            edited = DrawAddComponentButton<Collider>("Collider") || edited;
+            // edited = DrawAddComponentButton<RigidBody2D>("Rigid Body 2D") || edited;
+            // edited = DrawAddComponentButton<Collider2D>("Collider 2D") || edited;
+            edited = DrawAddComponentButton<RigidBody>("Physics Body") || edited;
             edited = DrawAddComponentButton<LightSource>("Light Source") || edited;
 
             ImGui::EndTable();
@@ -274,10 +273,10 @@ namespace other {
     edited = DrawComponent<Mesh, &DrawMesh>("Mesh") || edited;
     edited = DrawComponent<StaticMesh, &DrawStaticMesh>("Static Mesh") || edited;
     edited = DrawComponent<Camera, &DrawCamera>("Camera") || edited;
-    edited = DrawComponent<RigidBody2D, &DrawRigidBody<RigidBody2D>>("Rigid Body 2D") || edited;
-    edited = DrawComponent<Collider2D, &DrawCollider<Collider2D>>("Collider 2D") || edited;
-    edited = DrawComponent<RigidBody, &DrawRigidBody<RigidBody>>("Rigid Body") || edited;
-    edited = DrawComponent<Collider, &DrawCollider<Collider>>("Collider") || edited;
+    edited = DrawComponent<RigidBody2D, &DrawRigidBody2D>("Rigid Body 2D") || edited;
+    edited = DrawComponent<Collider2D, &DrawCollider2D>("Collider 2D") || edited;
+    edited = DrawComponent<RigidBody, &DrawRigidBody>("Rigid Body") || edited;
+    edited = DrawComponent<Collider, &DrawCollider>("Collider") || edited;
     edited = DrawComponent<LightSource, &DrawLightSource>("Light Source") || edited;
 
     return edited;

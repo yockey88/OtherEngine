@@ -21,6 +21,7 @@ namespace other {
     AssetHandle source_handle;
     RenderState render_state = RenderState::FILL;
     DrawMode draw_mode = DrawMode::TRIANGLES;
+    float line_thickness = 1.f;
 
     constexpr auto operator<=>(const MeshKey&) const = default;
   };
@@ -38,9 +39,13 @@ namespace other {
   struct RenderStaticSubmission {
     Ref<StaticModel> model = nullptr;
     glm::mat4 transform = glm::mat4(1.f);
+
+    Ref<MaterialTable> material_table = nullptr;
     UUID material{};
     RenderState render_state = RenderState::FILL;
     DrawMode draw_mode = DrawMode::TRIANGLES;
+
+    float line_thickness = 1.f;
 
     operator MeshKey() const;
   };
@@ -48,9 +53,13 @@ namespace other {
   struct RenderSubmission {
     Ref<Model> model = nullptr;
     glm::mat4 transform = glm::mat4(1.f);
+
+    Ref<MaterialTable> material_table = nullptr;
     UUID material{};
     RenderState render_state = RenderState::FILL;
     DrawMode draw_mode = DrawMode::TRIANGLES;
+
+    float line_thickness = 1.f;
 
     operator MeshKey() const;
   };
@@ -72,7 +81,10 @@ namespace other {
     Ref<VertexArray> vao = nullptr;
     uint32_t base_instance = 0;
 
+    Ref<MaterialTable> material_table = nullptr;
     std::vector<SubMeshDrawCall> submissions;
+
+    float line_thickness = 1.f;
   };
 
   struct StaticMeshDrawCall {
@@ -83,7 +95,10 @@ namespace other {
     uint32_t instance_count = 0;
     uint32_t index_count = 0;
 
+    Ref<MaterialTable> material_table = nullptr;
     UUID material_id = 0;
+
+    float line_thickness = 1.f;
   };
 
   struct DrawCall {
@@ -96,9 +111,13 @@ namespace other {
     uint32_t index_offset = 0;
     uint32_t index_count = 0;
 
+    Ref<MaterialTable> material_table = nullptr;
     UUID material_id = 0;
+
+    float line_thickness = 1.f;
   };
 
+  using DebugDrawCommand = std::function<void()>;
   using FrameMeshes = std::map<MeshKey, MeshDrawCall>;
   using StaticFrameMeshes = std::map<MeshKey, StaticMeshDrawCall>;
 

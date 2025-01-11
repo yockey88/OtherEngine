@@ -115,6 +115,11 @@ namespace other {
 
   }  // namespace
 
+  Window::Window(WindowContext cxt, WindowConfig cfg)
+      : context(cxt), config(cfg) {
+    glViewport(0, 0, config.size.x, config.size.y);
+  }
+
   Window::Window(Window&& other) noexcept
       : context(other.context), config(other.config) {
     other.context = { nullptr, nullptr };

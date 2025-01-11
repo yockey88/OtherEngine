@@ -13,7 +13,6 @@
 
 #include "physics/3D/physics_body.hpp"
 
-
 namespace other {
 
   class ReactBody : public PhysicsBody {
@@ -21,9 +20,12 @@ namespace other {
     ReactBody(rp3d::RigidBody* body);
     virtual ~ReactBody() override;
 
+    void SetTransform(const Transform& transform) override;
+    Transform GetTransform() const override;
+
     glm::vec3 GetPosition() const override;
     glm::quat GetOrientation() const override;
-    Transform InterpolateTransform(const Transform& target, float alpha) const override;
+    Transform InterpolateTransform(float alpha) override;
 
     void AddCollider(Ref<PhysicsShape> shape) override;
 
@@ -33,6 +35,8 @@ namespace other {
 
     void OnBodyTypeChange(PhysicsBodyType type) override;
     void OnLayerChange(uint32_t layer) override {}
+
+    Transform ExtractTransform(const rp3d::Transform& physics_transform) const;
   };
 
 }  // namespace other

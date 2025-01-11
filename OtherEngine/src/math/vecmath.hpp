@@ -545,56 +545,6 @@ namespace other {
 
 }  // namespace other
 
-template <glm::length_t N, typename T, glm::qualifier Q>
-struct fmt::formatter<glm::vec<N, T, Q>>
-    : public fmt::formatter<std::string_view> {
-  auto format(const glm::vec<N, T, Q>& vec, fmt::format_context& ctx) {
-    std::stringstream ss;
-    ss << "<";
-    ss << vec.x;
-    if constexpr (N >= 2) {
-      ss << "," << vec.y;
-    }
-
-    if constexpr (N >= 3) {
-      ss << "," << vec.z;
-    }
-
-    if constexpr (N >= 4) {
-      ss << "," << vec.w;
-    }
-    ss << ">";
-    return fmt::formatter<std::string_view>::format(
-      other::fmtstr("{}", ss.str()), ctx
-    );
-  }
-};
-
-template <>
-struct fmt::formatter<glm::vec4> : public fmt::formatter<std::string_view> {
-  template <typename FormatContext>
-  auto format(const glm::vec4& v, FormatContext& ctx) {
-    return fmt::formatter<std::string_view>::format(
-      fmt::format(std::string_view{ "({:.2f}, {:.2f}, {:.2f}, {:.2f})" }, v.x, v.y, v.z, v.w), ctx
-    );
-  }
-};
-
-/// TODO: make this better, sometimes columns are not aligned
-template <>
-struct fmt::formatter<glm::mat4> : public fmt::formatter<std::string_view> {
-  auto format(const glm::mat4& mat, fmt::format_context& ctx) {
-    constexpr std::string_view mat_str = "|{} {} {} {}|\n|{} {} {} {}|\n|{} {} {} {}|\n|{} {} {} {}|";
-
-    std::string mat_fmt_str = fmt::format(
-      fmt::runtime(mat_str), mat[0][0], mat[1][0], mat[2][0], mat[3][0],
-      mat[0][1], mat[1][1], mat[2][1], mat[3][1], mat[0][2], mat[1][2],
-      mat[2][2], mat[3][2], mat[0][3], mat[1][3], mat[2][3], mat[3][3]
-    );
-    return fmt::formatter<std::string_view>::format(mat_fmt_str, ctx);
-  }
-};
-
 ECHO_TYPE(
   type(glm::vec2),
   field(x),

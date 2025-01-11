@@ -7,26 +7,30 @@ namespace other {
 
   PhysicsWorld2D::PhysicsWorld2D(const glm::vec2& grav) {
     gravity = {
-      grav.x , grav.y
+      grav.x, grav.y
     };
 
     world = NewScope<b2World>(gravity);
   }
 
-  void PhysicsWorld2D::Step(float dt , uint32_t vel_iters , uint32_t pos_iters) {
-    world->Step(dt , vel_iters , pos_iters);
+  Ref<PhysicsWorld2D> PhysicsWorld2D::Create(const glm::vec2& grav) {
+    return NewRef<PhysicsWorld2D>(grav);
+  }
+
+  void PhysicsWorld2D::Step(float dt, uint32_t vel_iters, uint32_t pos_iters) {
+    world->Step(dt, vel_iters, pos_iters);
   }
 
   b2Body* PhysicsWorld2D::CreateBody(const b2BodyDef* body_def) {
     return world->CreateBody(body_def);
   }
-      
+
   void PhysicsWorld2D::DestroyBody(b2Body* body) {
     world->DestroyBody(body);
   }
-      
+
   glm::vec2 PhysicsWorld2D::GetGravity() const {
-    return { gravity.x , gravity.y };
+    return { gravity.x, gravity.y };
   }
 
-} // namespace other
+}  // namespace other

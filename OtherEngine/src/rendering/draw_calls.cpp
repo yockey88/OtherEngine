@@ -9,6 +9,8 @@ namespace other {
     return {
       .source_handle = model->GetModelSource()->handle,
       .render_state = render_state,
+      .draw_mode = draw_mode,
+      .line_thickness = line_thickness,
     };
   }
 
@@ -16,6 +18,8 @@ namespace other {
     return {
       .source_handle = model->GetModelSource()->handle,
       .render_state = render_state,
+      .draw_mode = draw_mode,
+      .line_thickness = line_thickness,
     };
   }
 

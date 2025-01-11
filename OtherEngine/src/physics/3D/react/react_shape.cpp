@@ -5,10 +5,21 @@
 
 namespace other {
 
-  ReactShape::ReactShape(rp3d::CollisionShape* shape)
-      : shape(shape) {
+  glm::vec2 ReactBoxShape::HalfExtents() const {
+    rp3d::Vector3 extents = shape->getHalfExtents();
+    return glm::vec2(extents.x, extents.y);
   }
 
-  ReactShape::~ReactShape() {}
+  float ReactSphereShape::Radius() const {
+    return shape->getRadius();
+  }
+
+  float ReactCapsuleShape::Radius() const {
+    return shape->getRadius();
+  }
+
+  float ReactCapsuleShape::Height() const {
+    return shape->getHeight();
+  }
 
 }  // namespace other

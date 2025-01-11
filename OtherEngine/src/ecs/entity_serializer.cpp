@@ -7,11 +7,12 @@
 
 #include "ecs/component.hpp"
 #include "ecs/component_serializer.hpp"
+#include "ecs/components/collider.hpp"
+#include "ecs/components/rigid_body.hpp"
 #include "ecs/components/serialization_data.hpp"
 #include "ecs/systems/component_database.hpp"
 #include "ecs/systems/entity_serialization.hpp"
 #include "scene/scene.hpp"
-
 
 namespace other {
 
@@ -98,6 +99,13 @@ namespace other {
       OE_ASSERT(comp_serializer != nullptr, "Failed to retrieve serializer for component : [{}.{}]", entity->Name(), comp);
 
       comp_serializer->Deserialize(entity, scene_table, ctx);
+    }
+
+    if (entity->HasComponent<RigidBody>() && entity->HasComponent<Collider>()) {
+      auto& rigid_body = entity->GetComponent<RigidBody>();
+      auto& collider = entity->GetComponent<Collider>();
+
+      rigid_body.physics_body->AddCollider(collider.shape);
     }
 
     return id;

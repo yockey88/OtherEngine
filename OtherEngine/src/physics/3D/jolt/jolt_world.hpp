@@ -39,16 +39,16 @@ namespace other {
     virtual ~JoltWorld() override;
 
     void Simulate(float ts) override;
-    Ref<PhysicsBody> CreateBody(const Transform& initial_transform) override;
+    Ref<PhysicsBody> CreateBody(Transform& initial_transform) override;
 
-    virtual Ref<PhysicsShape> CreateBoxShape(const glm::vec3& half_extents) override { return nullptr; }
-    virtual Ref<PhysicsShape> CreateSphereShape(float radius) override { return nullptr; }
-    virtual Ref<PhysicsShape> CreateCapsuleShape(float radius, float height) override { return nullptr; }
-    virtual Ref<PhysicsShape> CreateCylinderShape(float radius, float height) override { return nullptr; }
-    virtual Ref<PhysicsShape> CreateConeShape(float radius, float height) override { return nullptr; }
-    virtual Ref<PhysicsShape> CreateConvexMeshShape(const std::vector<glm::vec3>& vertices, const std::vector<uint32_t>& indices, uint32_t num_faces) override { return nullptr; }
+    Ref<PhysicsShape> CreateBoxShape(const glm::vec3& half_extents) override;
+    Ref<PhysicsShape> CreateSphereShape(float radius) override;
+    Ref<PhysicsShape> CreateCapsuleShape(float radius, float height) override;
+    Ref<PhysicsShape> CreateConvexMeshShape(const std::vector<glm::vec3>& vertices, const std::vector<uint32_t>& indices, uint32_t num_faces) override;
+    Ref<PhysicsShape> CreateConcaveMeshShape(const std::vector<glm::vec3>& vertices, const std::vector<uint32_t>& indices, uint32_t num_faces) override;
 
-    void SetSceneContext(const Ref<Scene>& scene) override {}
+    void SetDebugRendering(bool debug) override {}
+    void SubmitDebugRender(Ref<SceneRenderer> renderer) override {}
 
    private:
     Scope<JPH::TempAllocatorImpl> temp_alloc = nullptr;

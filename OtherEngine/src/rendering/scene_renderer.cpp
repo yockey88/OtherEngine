@@ -12,7 +12,10 @@
 #include "asset/asset_manager.hpp"
 
 #include "rendering/geometry_pass.hpp"
+#include "rendering/material.hpp"
+#include "rendering/model_factory.hpp"
 #include "rendering/pipeline.hpp"
+#include "rendering/rendering_defines.hpp"
 #include "rendering/uniform.hpp"
 
 namespace other {
@@ -83,7 +86,7 @@ namespace other {
     frame_data.light_uniforms->SetUniform("num_lights", light_count);
   }
 
-  void SceneRenderer::SubmitModel(const Ref<Model>& model, const glm::mat4& transform, UUID material_id, DrawMode topology) {
+  void SceneRenderer::SubmitModel(const Ref<Model>& model, const Ref<MaterialTable>& mat_table, const glm::mat4& transform, UUID material_id, DrawMode topology) {
     if (model == nullptr) {
       return;
     }
@@ -91,6 +94,7 @@ namespace other {
     SubmitModel({
       .model = model,
       .transform = transform,
+      .material_table = mat_table,
       .material = material_id,
       .draw_mode = topology,
     });
@@ -105,7 +109,7 @@ namespace other {
     }
   }
 
-  void SceneRenderer::SubmitStaticModel(const Ref<StaticModel>& model, const glm::mat4& transform, UUID material_id, DrawMode topology) {
+  void SceneRenderer::SubmitStaticModel(const Ref<StaticModel>& model, const Ref<MaterialTable>& mat_table, const glm::mat4& transform, UUID material_id, DrawMode topology) {
     if (model == nullptr) {
       return;
     }
@@ -113,6 +117,7 @@ namespace other {
     SubmitStaticModel({
       .model = model,
       .transform = transform,
+      .material_table = mat_table,
       .material = material_id,
       .draw_mode = topology,
     });
@@ -127,18 +132,18 @@ namespace other {
     }
   }
 
-  void SceneRenderer::SubmitModel(const std::vector<std::string>& pls, const Ref<Model>& model, const glm::mat4& transform, UUID material_id, DrawMode topology) {
+  void SceneRenderer::SubmitModel(const std::vector<std::string>& pls, const Ref<Model>& model, const Ref<MaterialTable>& mat_table, const glm::mat4& transform, UUID material_id, DrawMode topology) {
     for (auto& pl : pls) {
       auto itr = pipelines.find(FNV(pl));
       if (itr == pipelines.end()) {
         continue;
       }
 
-      itr->second->SubmitModel(model, transform, material_id, topology);
+      itr->second->SubmitModel(model, mat_table, transform, material_id, topology);
     }
   }
 
-  void SceneRenderer::SubmitStaticModel(const std::vector<std::string>& pls, const Ref<StaticModel>& model, const glm::mat4& transform, UUID material_id, DrawMode topology) {
+  void SceneRenderer::SubmitStaticModel(const std::vector<std::string>& pls, const Ref<StaticModel>& model, const Ref<MaterialTable>& mat_table, const glm::mat4& transform, UUID material_id, DrawMode topology) {
     for (auto& pl : pls) {
       auto itr = pipelines.find(FNV(pl));
       if (itr == pipelines.end()) {
@@ -148,6 +153,7 @@ namespace other {
       SubmitStaticModel(pls, {
                                .model = model,
                                .transform = transform,
+                               .material_table = mat_table,
                                .material = material_id,
                                .draw_mode = topology,
                              });
@@ -175,6 +181,87 @@ namespace other {
       itr->second->SubmitStaticModel(submission);
     }
   }
+
+  void SceneRenderer::SubmitDebugDrawCommands(const std::string_view pl, const std::vector<DebugDrawCommand>& cmds) {
+    auto itr = pipelines.find(FNV(pl));
+    if (itr == pipelines.end()) {
+      return;
+    }
+
+    itr->second->SubmitDebugDrawCommands(cmds);
+  }
+
+  // void SceneRenderer::DrawLine(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color, float thickness) {
+  //   AssetHandle line_handle = ModelFactory::CreateLine(start, end);
+  //   Ref<StaticModel> line = AssetManager::GetAsset<StaticModel>(line_handle);
+
+  //   if (frame_data.material_table == nullptr) {
+  //     frame_data.material_table = NewRef<MaterialTable>(glm::ivec2{ 1080, 720 });
+  //   }
+
+  //   UUID material_id = frame_data.material_table->RegisterMaterial(color, glm::vec4(1.f), glm::vec4(1.f));
+
+  //   pipelines[FNV("Geometry")]->SubmitStaticModel({
+  //     .model = line,
+  //     .transform = glm::mat4(1.f),
+  //     .material_table = frame_data.material_table,
+  //     .material = material_id,
+  //     .draw_mode = DrawMode::LINES,
+  //     .line_thickness = thickness,
+  //   });
+  // }
+
+  // void SceneRenderer::DrawRect(const glm::vec3& min, const glm::vec3& max, const glm::vec4& color) {
+  //   AssetHandle rect_handle = ModelFactory::CreateRect();
+  //   Ref<StaticModel> rect = AssetManager::GetAsset<StaticModel>(rect_handle);
+
+  //   glm::vec3 mid = (min + max) / 2.f;
+  //   glm::vec3 scale = glm::abs(max - min) / 2.f;
+
+  //   glm::mat4 transform = glm::translate(glm::mat4(1.f), mid) * glm::scale(glm::mat4(1.f), scale);
+
+  //   if (frame_data.material_table == nullptr) {
+  //     frame_data.material_table = NewRef<MaterialTable>(glm::ivec2{ 1080, 720 });
+  //   }
+
+  //   UUID material_id = frame_data.material_table->RegisterMaterial(color, glm::vec4(1.f), glm::vec4(1.f));
+
+  //   pipelines[FNV("Geometry")]->SubmitStaticModel({
+  //     .model = rect,
+  //     .transform = transform,
+  //     .material_table = frame_data.material_table,
+  //     .material = material_id,
+  //     .draw_mode = DrawMode::TRIANGLES,
+  //   });
+  // }
+
+  // void SceneRenderer::DrawTriangle(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c, const glm::vec4& color) {
+  //   if (a == b || a == c || b == c ||
+  //       glm::length(a - b) < 0.0001f || glm::length(a - c) < 0.0001f || glm::length(b - c) < 0.0001f) {
+  //     return;
+  //   }
+  //   AssetHandle triangle_handle = ModelFactory::CreateTriangle();
+  //   Ref<StaticModel> triangle = AssetManager::GetAsset<StaticModel>(triangle_handle);
+
+  //   glm::vec3 mod = (a + b + c) / 3.f;
+  //   glm::vec3 scale = glm::abs(a - mod);
+
+  //   glm::mat4 transform = glm::mat4(1.f);  // glm::translate(glm::mat4(1.f), mod) * glm::scale(glm::mat4(1.f), scale);
+
+  //   if (frame_data.material_table == nullptr) {
+  //     frame_data.material_table = NewRef<MaterialTable>(glm::ivec2{ 1080, 720 });
+  //   }
+
+  //   UUID material_id = frame_data.material_table->RegisterMaterial(color, glm::vec4(1.f), glm::vec4(1.f));
+
+  //   pipelines[FNV("Geometry")]->SubmitStaticModel({
+  //     .model = triangle,
+  //     .transform = transform,
+  //     .material_table = frame_data.material_table,
+  //     .material = material_id,
+  //     .draw_mode = DrawMode::TRIANGLES,
+  //   });
+  // }
 
   bool SceneRenderer::Render() {
     if (!FrameComplete()) {
@@ -391,8 +478,6 @@ namespace other {
   }
 
   void SceneRenderer::PreRenderSettings() {
-    /// TODO: figure out why glPolygonMode causes INVALID ENUM ?? here
-    ///       but not below
   }
 
   bool SceneRenderer::FrameComplete() const {
@@ -402,6 +487,7 @@ namespace other {
   void SceneRenderer::ResetFrame() {
     frame_data.viewpoint = nullptr;
     frame_data.environment = nullptr;
+    frame_data.material_table = nullptr;
   }
 
 }  // namespace other
