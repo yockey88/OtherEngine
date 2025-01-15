@@ -27,9 +27,9 @@ namespace other {
 
   class Scene;
 
-  class Entity : public dotother::NObject {
+  class Entity {
+    // ECHO_REFLECT();
    public:
-    ECHO_REFLECT();
     Entity(entt::registry& registry, entt::entity handle);
     Entity(entt::registry& registry, UUID uuid, const std::string& name);
 

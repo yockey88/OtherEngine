@@ -16,6 +16,8 @@ namespace other {
     JoltBody(JPH::BodyInterface& body_interface, JPH::Body* body);
     virtual ~JoltBody() = default;
 
+    virtual void OnSetNativeBody(void* body) override;
+
     void SetTransform(const Transform& transform) override;
     Transform GetTransform() const override;
 

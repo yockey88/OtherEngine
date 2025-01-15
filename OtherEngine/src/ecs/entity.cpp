@@ -20,12 +20,11 @@
 namespace other {
 
   Entity::Entity(entt::registry& registry, entt::entity handle)
-      : dotother::NObject(registry.get<Tag>(handle).id.Get()),
-        registry(registry), handle(handle) {
+      : registry(registry), handle(handle) {
   }
 
   Entity::Entity(entt::registry& registry, UUID uuid, const std::string& name)
-      : dotother::NObject(uuid.Get()), registry(registry), uuid(uuid), name(name) {
+      : registry(registry), uuid(uuid), name(name) {
     handle = registry.create();
 
     auto& tag = GetComponent<Tag>();

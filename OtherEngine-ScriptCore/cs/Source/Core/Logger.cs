@@ -18,44 +18,48 @@ namespace Other {
 
     internal static unsafe delegate*<NString , LogLevel , void> Write;
 
-    public static void WriteTrace(string line) {
+    private static string FormatLogMessage(string line, string src_loc) {
+      return $"{line} [{src_loc}]";
+    }
+
+    public static void WriteTrace(string line , [CallerFilePath] string loc = null) {
       unsafe {
-        NString msg = line;
+        NString msg = FormatLogMessage(line, loc);
         Write(msg, LogLevel.Trace);
       }
     }
 
-    public static void WriteDebug(string line) {
+    public static void WriteDebug(string line , [CallerFilePath] string loc = null) {
       unsafe {
-        NString msg = line;
+        NString msg = FormatLogMessage(line, loc);
         Write(msg, LogLevel.Debug);
       }
     }
 
-    public static void WriteInfo(string line) {
+    public static void WriteInfo(string line , [CallerFilePath] string loc = null) {
       unsafe {
-        NString msg = line;
+        NString msg = FormatLogMessage(line, loc);
         Write(msg, LogLevel.Info);
       }
     }
 
-    public static void WriteWarning(string line) {
+    public static void WriteWarning(string line , [CallerFilePath] string loc = null) {
       unsafe {
-        NString msg = line;
+        NString msg = FormatLogMessage(line, loc);
         Write(msg, LogLevel.Warning);
       }
     }
 
-    public static void WriteError(string line) {
+    public static void WriteError(string line , [CallerFilePath] string loc = null) {
       unsafe {
-        NString msg = line;
+        NString msg = FormatLogMessage(line, loc);
         Write(msg, LogLevel.Error);
       }
     }
 
-    public static void WriteFatal(string line) {
+    public static void WriteFatal(string line , [CallerFilePath] string loc = null) {
       unsafe {
-        NString msg = line;
+        NString msg = FormatLogMessage(line, loc);
         Write(msg, LogLevel.Fatal);
       }
     }

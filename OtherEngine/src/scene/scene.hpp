@@ -39,7 +39,7 @@ namespace other {
 
   class Entity;
 
-  class Scene : public Asset, dotother::NObject {
+  class Scene : public Asset, public dotother::NObject {
    public:
     ECHO_REFLECT();
     OE_ASSET(SCENE);

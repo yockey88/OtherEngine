@@ -73,33 +73,33 @@ namespace dotother {
   bool Host::LoadHost() {
     assert(config.has_value() && "Host configuration not set!");
     if (is_loaded) {
-      util::print(DO_STR("Host is already loaded"), MessageLevel::WARNING);
+      DOTOTHER_LOG(DO_STR("Host is already loaded"), MessageLevel::WARNING);
       return true;
     }
 
     /// have to register logging hook so errors can be reported if they occur during load
     if (config->internal_logging_hook != nullptr) {
       util::GetUtils().OverRideLogSink(config->internal_logging_hook);
-      util::print(DO_STR("Internal logging hook registered"), MessageLevel::DEBUG);
+      DOTOTHER_LOG(DO_STR("Internal logging hook registered"), MessageLevel::DEBUG);
     }
 
     if (config->log_callback == nullptr) {
-      util::print(DO_STR("Logging callback not registered for host"), MessageLevel::CRITICAL);
+      DOTOTHER_LOG(DO_STR("Logging callback not registered for host"), MessageLevel::CRITICAL);
       return false;
     }
 
     if (config->exception_callback == nullptr) {
-      util::print(DO_STR("Excpeption callback not registered for host"), MessageLevel::CRITICAL);
+      DOTOTHER_LOG(DO_STR("Excpeption callback not registered for host"), MessageLevel::CRITICAL);
       return false;
     }
 
     if (!std::filesystem::exists(config->host_config_path)) {
-      util::print(DO_STR("Host config path does not exist"), MessageLevel::CRITICAL);
+      DOTOTHER_LOG(DO_STR("Host config path does not exist"), MessageLevel::CRITICAL);
       return false;
     }
 
     if (!std::filesystem::exists(config->managed_asm_path)) {
-      util::print(DO_STR("Managed assembly path does not exist"), MessageLevel::CRITICAL);
+      DOTOTHER_LOG(DO_STR("Managed assembly path does not exist"), MessageLevel::CRITICAL);
       return false;
     }
 
@@ -118,7 +118,7 @@ namespace dotother {
 #else
         std::string result = std::string{ message };
 #endif
-        util::print(DO_STR("CoreCLR error: {}"), MessageLevel::ERR, result);
+        DOTOTHER_LOG(DO_STR("CoreCLR error: {}"), MessageLevel::ERR, result);
       });
     }
 
@@ -129,12 +129,12 @@ namespace dotother {
 
     is_loaded = InitializeHost();
     if (!is_loaded) {
-      util::print(DO_STR("Failed to initialize host, unloading..."), MessageLevel::CRITICAL);
+      DOTOTHER_LOG(DO_STR("Failed to initialize host, unloading..."), MessageLevel::CRITICAL);
       UnloadHost();
       return false;
     }
 
-    util::print(DO_STR("Host loaded successfully"), MessageLevel::INFO);
+    DOTOTHER_LOG(DO_STR("Host loaded successfully"), MessageLevel::INFO);
 
     is_loaded = true;
     return true;
@@ -144,12 +144,12 @@ namespace dotother {
     assert(config.has_value() && "Host configuration not set!");
 
     if (!is_loaded) {
-      util::print(DO_STR("Host is not loaded, can not call entry point"), MessageLevel::CRITICAL);
+      DOTOTHER_LOG(DO_STR("Host is not loaded, can not call entry point"), MessageLevel::CRITICAL);
       throw std::runtime_error("Host is not loaded, can not call entry point");
     }
 
     if (host_calls.entry == nullptr) {
-      util::print(DO_STR("Entry point is null"), MessageLevel::CRITICAL);
+      DOTOTHER_LOG(DO_STR("Entry point is null"), MessageLevel::CRITICAL);
       throw std::runtime_error("Entry point is null");
     }
 
@@ -198,7 +198,7 @@ namespace dotother {
 
   AssemblyContext Host::CreateAsmContext(const std::string_view name) {
     if (!Interop().BoundToAsm()) {
-      util::print(DO_STR("Interop interface not bound"), MessageLevel::CRITICAL);
+      DOTOTHER_LOG(DO_STR("Interop interface not bound"), MessageLevel::CRITICAL);
       throw std::runtime_error("Interop interface not bound");
     }
 
@@ -211,7 +211,7 @@ namespace dotother {
 
   void Host::UnloadAssemblyContext(AssemblyContext& load_context) {
     if (!Interop().BoundToAsm()) {
-      util::print(DO_STR("Interop interface not bound"), MessageLevel::CRITICAL);
+      DOTOTHER_LOG(DO_STR("Interop interface not bound"), MessageLevel::CRITICAL);
       throw std::runtime_error("Interop interface not bound");
     }
     Interop().collect_garbage(0, dotother::GCMode::DEFAULT, true, true);
@@ -278,20 +278,20 @@ namespace dotother {
   bool Host::LoadClrFunctions() {
     std::optional<std::filesystem::path> host_path = GetHostPath();
     if (!host_path.has_value()) {
-      util::print(DO_STR("Failed to get host path"), MessageLevel::CRITICAL);
+      DOTOTHER_LOG(DO_STR("Failed to get host path"), MessageLevel::CRITICAL);
       return false;
     }
 
 #ifdef DOTOTHER_WINDOWS
     void* hostfxr_lib = LoadLibraryW(host_path->c_str());
     if (hostfxr_lib == nullptr) {
-      util::print(DO_STR("Failed to load hostfxr"), MessageLevel::CRITICAL);
+      DOTOTHER_LOG(DO_STR("Failed to load hostfxr"), MessageLevel::CRITICAL);
       return false;
     }
 #else
     void* hostfxr_lib = dlopen(host_path->c_str(), RTLD_NOW);
     if (hostfxr_lib == nullptr) {
-      util::print(DO_STR("Failed to load hostfxr"), MessageLevel::CRITICAL);
+      DOTOTHER_LOG(DO_STR("Failed to load hostfxr"), MessageLevel::CRITICAL);
       return false;
     }
 #endif
@@ -305,10 +305,10 @@ namespace dotother {
 
     if (coreclr.init_host_cmd_line == nullptr || coreclr.init_host_config == nullptr ||
         coreclr.get_runtime_delegate == nullptr || coreclr.close_host_fxr == nullptr) {
-      util::print(DO_STR("Failed to load hostfxr functions"), MessageLevel::CRITICAL);
+      DOTOTHER_LOG(DO_STR("Failed to load hostfxr functions"), MessageLevel::CRITICAL);
       return false;
     }
-    util::print(DO_STR("Hostfxr functions loaded successfully"), MessageLevel::DEBUG);
+    DOTOTHER_LOG(DO_STR("Hostfxr functions loaded successfully"), MessageLevel::DEBUG);
 
     return coreclr.init_host_cmd_line != nullptr && coreclr.init_host_config != nullptr &&
       coreclr.get_runtime_delegate != nullptr && coreclr.close_host_fxr != nullptr;
@@ -318,7 +318,7 @@ namespace dotother {
     hostfxr_handle host_fxr = nullptr;
     int32_t rc = coreclr.init_host_config(config->host_config_path.c_str(), nullptr, &host_fxr);
     if (rc != 0 || host_fxr == nullptr) {
-      util::print(DO_STR("Could not initialize host_fxr handle : {:#08x}"), MessageLevel::CRITICAL, rc);
+      DOTOTHER_LOG(DO_STR("Could not initialize host_fxr handle : {:#08x}"), MessageLevel::CRITICAL, rc);
       coreclr.close_host_fxr(host_fxr);
       return false;
     }
@@ -326,24 +326,24 @@ namespace dotother {
     void* delegate = nullptr;
     rc = coreclr.get_runtime_delegate(host_fxr, hdt_load_assembly_and_get_function_pointer, &delegate);
     if (rc != 0 || delegate == nullptr) {
-      util::print(DO_STR("Could not get managed function pointer : {:#08x}"), MessageLevel::CRITICAL, rc);
+      DOTOTHER_LOG(DO_STR("Could not get managed function pointer : {:#08x}"), MessageLevel::CRITICAL, rc);
       coreclr.close_host_fxr(host_fxr);
       return false;
     }
     coreclr.get_managed_function_ptr = (load_assembly_and_get_function_pointer_fn)delegate;
     if (coreclr.get_managed_function_ptr == nullptr) {
-      util::print(DO_STR("Failed to get managed function pointer"), MessageLevel::CRITICAL);
+      DOTOTHER_LOG(DO_STR("Failed to get managed function pointer"), MessageLevel::CRITICAL);
       return false;
     }
-    util::print(DO_STR("Managed function pointer loaded"), MessageLevel::DEBUG);
+    DOTOTHER_LOG(DO_STR("Managed function pointer loaded"), MessageLevel::DEBUG);
 
     host_calls.entry = nullptr;
     host_calls.entry = LoadManagedFunction<EntryPoint>(config->dotnet_type.c_str(), config->entry_point.c_str());
     if (host_calls.entry == nullptr) {
-      util::print(DO_STR("Failed to load entry point"), MessageLevel::CRITICAL);
+      DOTOTHER_LOG(DO_STR("Failed to load entry point"), MessageLevel::CRITICAL);
       return false;
     }
-    util::print(DO_STR("Entry point loaded"), MessageLevel::INFO);
+    DOTOTHER_LOG(DO_STR("Entry point loaded"), MessageLevel::INFO);
 
     return true;
   }
@@ -414,7 +414,7 @@ namespace dotother {
     interop.wait_for_pending_finalizers = LoadManagedFunction<WaitForPendingFinalizers>(DO_STR("DotOther.Managed.GarbageCollector, DotOther.Managed"), DO_STR("WaitForPendingFinalizers"));
 
     if (!interop.BoundToAsm()) {
-      util::print(DO_STR("Failed to load managed functions, runtime not bound to assembly"), MessageLevel::CRITICAL);
+      DOTOTHER_LOG(DO_STR("Failed to load managed functions, runtime not bound to assembly"), MessageLevel::CRITICAL);
       throw std::runtime_error("Failed to load managed functions, runtime not bound to assembly");
     }
   }
@@ -426,29 +426,25 @@ namespace dotother {
 
     if (!std::filesystem::exists(asm_path)) {
       using namespace std::string_view_literals;
-      util::print(DO_STR("Assembly {} does not exist!"sv), MessageLevel::ERR, asm_path.string());
+      DOTOTHER_LOG(DO_STR("Assembly {} does not exist!"sv), MessageLevel::ERR, asm_path.string());
       return nullptr;
     }
 
     void* handle = nullptr;
     int32_t rc = coreclr.get_managed_function_ptr(asm_path.c_str(), type_name.c_str(), method_name.c_str(), delegate_type, nullptr, &handle);
     if (rc == -1 || handle == nullptr) {
-      util::print(DO_STR("Failed to load managed function {} ({}) | error code : {}"), MessageLevel::ERR,
 #ifdef DOTOTHER_WIDE_CHARS
-                  util::WideToChar(method_name), util::WideToChar(type_name),
+      DOTOTHER_LOG(DO_STR("Failed to load managed function {} ({}) | error code : {}"), MessageLevel::ERR, util::WideToChar(method_name), util::WideToChar(type_name), rc);
 #else
-                  method_name, type_name,
+      DOTOTHER_LOG(DO_STR("Failed to load managed function {} ({}) | error code : {}"), MessageLevel::ERR, method_name, type_name, rc);
 #endif
-                  rc);
       return nullptr;
     } else {
-      util::print(DO_STR("Managed function {} ({}) loaded successfully"), MessageLevel::TRACE,
 #ifdef DOTOTHER_WIDE_CHARS
-                  util::WideToChar(method_name), util::WideToChar(type_name)
+      DOTOTHER_LOG(DO_STR("Managed function {} ({}) loaded successfully"), MessageLevel::TRACE, util::WideToChar(method_name), util::WideToChar(type_name));
 #else
-                  method_name, type_name
+      DOTOTHER_LOG(DO_STR("Managed function {} ({}) loaded successfully"), MessageLevel::TRACE, method_name, type_name);
 #endif
-      );
     }
 
     return handle;

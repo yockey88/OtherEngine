@@ -548,7 +548,7 @@ namespace other {
     }
 
     physics_world->SetDebugRendering(debug);
-    physics_world->Simulate(0.0001f);
+    physics_world->Simulate(0.00001f);
   }
 
   void Scene::RenderPhysicsDebug(Ref<SceneRenderer>& scene_renderer) {
@@ -837,6 +837,8 @@ namespace other {
 
   void Scene::ResetPhysicsSimulation() {
     OE_ASSERT(physics_world != nullptr, "Physics world is null");
+
+    physics_world->ResetSimulation(this);
     registry.view<RigidBody, Transform>().each([](RigidBody& body, Transform& transform) {
       body.physics_body->SetTransform(transform);
     });
@@ -957,6 +959,7 @@ namespace other {
       ent.AddComponent<RigidBody>();
     }
 
+    auto& tag = ent.GetComponent<Tag>();
     auto& body = ent.GetComponent<RigidBody>();
     auto& collider = ent.GetComponent<Collider>();
     auto& transform = ent.GetComponent<Transform>();
@@ -965,6 +968,7 @@ namespace other {
     OE_ASSERT(collider.shape != nullptr, "Failed to create collider shape");
 
     body.physics_body->AddCollider(collider.shape);
+    physics_world->RegisterColliderShape(tag.id, collider.shape);
   }
 
   void Scene::OnAddRigidBody2D(entt::registry& context, entt::entity entt) {

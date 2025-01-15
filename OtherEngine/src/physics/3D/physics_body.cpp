@@ -16,6 +16,10 @@ namespace other {
     OnLayerChange(layer);
   }
 
+  void PhysicsBody::SetNativeBody(void* body) {
+    native_body = body;
+  }
+
   PhysicsBodyType PhysicsBody::GetType() const {
     return body_type;
   }

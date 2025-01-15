@@ -11,6 +11,7 @@
 #include <Jolt/Physics/Body/BodyInterface.h>
 #include <glm/glm.hpp>
 
+#include "core/logger.hpp"
 #include "core/ref.hpp"
 #include "core/ref_counted.hpp"
 
@@ -30,6 +31,9 @@ namespace other {
 
     void SetType(PhysicsBodyType type);
     void SetLayer(uint32_t layer);
+    void SetNativeBody(void* body);
+
+    virtual void OnSetNativeBody(void* body) = 0;
 
     virtual void SetTransform(const Transform& transform) = 0;
     virtual Transform GetTransform() const = 0;
@@ -43,7 +47,14 @@ namespace other {
     PhysicsBodyType GetType() const;
     uint32_t GetLayer() const;
 
+    template <typename NB>
+    NB* GetNativeBody() {
+      OE_ASSERT(native_body != nullptr, "Native body is null!");
+      return static_cast<NB*>(native_body);
+    }
+
    private:
+    void* native_body = nullptr;
     uint32_t object_layer = 0;
     PhysicsBodyType body_type = STATIC;
 

@@ -17,7 +17,6 @@
 #include "reflection/object_proxy.hpp"
 #include "reflection/type_database.hpp"
 
-
 struct MyStruct : echo::serializable {
   ECHO_REFLECT();
 
@@ -39,12 +38,12 @@ struct Foo : echo::callable, echo::static_callable {
   ECHO_REFLECT();
 
   uint32_t operator()() {
-    dotother::util::print(DO_STR("Foo called"), MessageLevel::DEBUG);
+    DOTOTHER_LOG(DO_STR("Foo called"), MessageLevel::DEBUG);
     return 69;
   }
 
   static void Call(float f, uint32_t i) {
-    dotother::util::print(DO_STR("Foo static called w args: {:f} , {}"), MessageLevel::DEBUG, f, i);
+    DOTOTHER_LOG(DO_STR("Foo static called w args: {:f} , {}"), MessageLevel::DEBUG, f, i);
   }
 };
 
@@ -52,12 +51,12 @@ struct Bar : echo::callable, echo::static_callable {
   ECHO_REFLECT();
 
   static float Call() {
-    dotother::util::print(DO_STR("Bar static called"), MessageLevel::DEBUG);
+    DOTOTHER_LOG(DO_STR("Bar static called"), MessageLevel::DEBUG);
     return 420.f;
   }
 
   void operator()(float f, uint32_t i) {
-    dotother::util::print(DO_STR("Bar called w args: {:f} , {}"), MessageLevel::DEBUG, f, i);
+    DOTOTHER_LOG(DO_STR("Bar called w args: {:f} , {}"), MessageLevel::DEBUG, f, i);
   }
 };
 

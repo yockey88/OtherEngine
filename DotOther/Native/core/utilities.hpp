@@ -5,6 +5,7 @@
 #define DOTOTHER_NATIVE_UTILITIES_HPP
 
 #include <iostream>
+#include <source_location>
 #include <string_view>
 
 #include "core/dotother_defines.hpp"
@@ -42,7 +43,7 @@ namespace dotother {
     std::string WideToChar(const std::wstring_view str);
 #else
     std::string CharToWide(const std::string_view str);
-    std::string WideToChar(const std::wstring_view str);
+    std::string WideToChar(const std::string_view str);
 #endif  // DOTOTHER_WIDE_CHARS
 
     template <typename... Args>
@@ -57,21 +58,36 @@ namespace dotother {
                          std::forward<Args>(args)...);
     }
 
+    template <typename... Args>
+    std::string format_w_src_loc(dostring_view fmt, std::source_location loc, Args&&... args) {
+      std::string loc_str = fmt::format(fmt::runtime(" [{}:{}]"), loc.file_name(), loc.line());
+      std::string fmt_str =
+#ifdef DOTOTHER_WIDE_CHARS
+        WideToChar(fmt);
+#else
+        fmt;
+#endif  // DOTOTHER_WIDE_CHARS
+      std::string msg = fmt::format(fmt::runtime(fmt_str), std::forward<Args>(args)...);
+      return fmt::format(fmt::runtime("{} {}"), msg, loc_str);
+    }
+
     namespace {
 
       using namespace std::string_view_literals;
 
       template <typename... Args>
-      static void sink_message(MessageLevel level, dostring_view fmt, Args&&... args) {
-        GetUtils().log_sink(format(fmt, std::forward<Args>(args)...), level);
+      static void sink_message(MessageLevel level, dostring_view fmt, std::source_location loc, Args&&... args) {
+        GetUtils().log_sink(format_w_src_loc(fmt, loc, std::forward<Args>(args)...), level);
       }
 
     }  // anonymous namespace
 
     template <typename... Args>
-    static void print(dostring_view fmt, MessageLevel level, Args&&... args) {
-      sink_message(level, fmt, std::forward<Args>(args)...);
+    static void print(dostring_view fmt, MessageLevel level, std::source_location loc, Args&&... args) {
+      sink_message(level, fmt, loc, std::forward<Args>(args)...);
     }
+
+#define DOTOTHER_LOG(do_str, level, ...) dotother::util::print(do_str, level, std::source_location::current() __VA_OPT__(, ) __VA_ARGS__)
 
     template <typename TArg>
     constexpr ManagedType GetManagedType() {

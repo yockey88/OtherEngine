@@ -59,7 +59,7 @@ namespace dotother {
             refl::runtime::invoke<void, T>(std::forward<T>(target), mname.c_str(), std::forward<Args>(args)...);
           }
         } catch (const std::exception& e) {
-          util::print(DO_STR("Exception caught in InvokeMethod: "), MessageLevel::ERR, e.what());
+          DOTOTHER_LOG(DO_STR("Exception caught in InvokeMethod: "), MessageLevel::ERR, e.what());
         }
       }
 
@@ -74,7 +74,7 @@ namespace dotother {
             return refl::runtime::invoke<R, T>(std::forward<T>(target), mname.c_str(), std::forward<Args>(args)...);
           }
         } catch (const std::exception& e) {
-          util::print(DO_STR("Exception caught in InvokeMethod: "), MessageLevel::ERR, e.what());
+          DOTOTHER_LOG(DO_STR("Exception caught in InvokeMethod: "), MessageLevel::ERR, e.what());
           return DefaultReturn<R>();
         }
       }

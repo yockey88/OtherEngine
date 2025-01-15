@@ -12,39 +12,43 @@
 
 namespace other {
 
-  enum class PhysicsShapeType {
-    BOX = 0,
-    SPHERE,
-    CAPSULE,
-    CONVEX_MESH,
-    CONCAVE_MESH,
-    // COMPOUND_SHAPE,
-    // MUTABLE_COMPOUND_SHAPE,
-
-    NUM_PHYSICS_SHAPES,
-    INVALID_PHYSICS_SHAPE = NUM_PHYSICS_SHAPES,
-  };
-
   class PhysicsShape : public RefCounted {
    public:
+    enum Shape {
+      BOX = 0,
+      SPHERE,
+      CAPSULE,
+      CONVEX_MESH,
+      CONCAVE_MESH,
+      // COMPOUND_SHAPE,
+      // MUTABLE_COMPOUND_SHAPE,
+
+      NUM_PHYSICS_SHAPES,
+      INVALID_PHYSICS_SHAPE = NUM_PHYSICS_SHAPES,
+    };
+
     virtual ~PhysicsShape() {}
 
     // virtual void SetCollisionMaterial(const UUID& material) = 0;
 
-    PhysicsShapeType ShapeType() const;
+    void SetEntity(const UUID& id);
+
+    PhysicsShape::Shape ShapeType() const;
 
    protected:
-    PhysicsShape(PhysicsShapeType type)
+    PhysicsShape(PhysicsShape::Shape type)
         : type(type) {}
 
    private:
-    PhysicsShapeType type;
+    PhysicsShape::Shape type;
+
+    UUID entity_id;
   };
 
   class BoxShape : public PhysicsShape {
    public:
     BoxShape()
-        : PhysicsShape(PhysicsShapeType::BOX) {}
+        : PhysicsShape(PhysicsShape::Shape::BOX) {}
     virtual ~BoxShape() override {}
 
     virtual glm::vec2 HalfExtents() const = 0;
@@ -53,7 +57,7 @@ namespace other {
   class SphereShape : public PhysicsShape {
    public:
     SphereShape()
-        : PhysicsShape(PhysicsShapeType::SPHERE) {}
+        : PhysicsShape(PhysicsShape::Shape::SPHERE) {}
 
     virtual float Radius() const = 0;
   };
@@ -61,7 +65,7 @@ namespace other {
   class CapsuleShape : public PhysicsShape {
    public:
     CapsuleShape()
-        : PhysicsShape(PhysicsShapeType::CAPSULE) {}
+        : PhysicsShape(PhysicsShape::Shape::CAPSULE) {}
 
     virtual float Radius() const = 0;
     virtual float Height() const = 0;
@@ -70,25 +74,25 @@ namespace other {
   class ConvexMeshShape : public PhysicsShape {
    public:
     ConvexMeshShape()
-        : PhysicsShape(PhysicsShapeType::CONVEX_MESH) {}
+        : PhysicsShape(PhysicsShape::Shape::CONVEX_MESH) {}
   };
 
   class ConcaveMeshShape : public PhysicsShape {
    public:
     ConcaveMeshShape()
-        : PhysicsShape(PhysicsShapeType::CONCAVE_MESH) {}
+        : PhysicsShape(PhysicsShape::Shape::CONCAVE_MESH) {}
   };
 
   // class CompoundShape : public PhysicsShape {
   //  public:
   //   CompoundShape()
-  //       : PhysicsShape(PhysicsShapeType::COMPOUND_SHAPE) {}
+  //       : PhysicsShape(PhysicsShape::Shape::COMPOUND_SHAPE) {}
   // };
 
   // class MutableCompoundShape : public PhysicsShape {
   //  public:
   //   MutableCompoundShape()
-  //       : PhysicsShape(PhysicsShapeType::MUTABLE_COMPOUND_SHAPE) {}
+  //       : PhysicsShape(PhysicsShape::Shape::MUTABLE_COMPOUND_SHAPE) {}
   // };
 
 }  // namespace other

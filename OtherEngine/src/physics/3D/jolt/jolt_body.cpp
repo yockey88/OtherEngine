@@ -19,6 +19,14 @@ namespace other {
       : body_interface(body_interface), body(body) {
   }
 
+  void JoltBody::OnSetNativeBody(void* body) {
+    if (body == nullptr) {
+      body = nullptr;
+    } else {
+      this->body = static_cast<JPH::Body*>(body);
+    }
+  }
+
   void JoltBody::SetTransform(const Transform& transform) {
   }
 
@@ -59,5 +67,7 @@ namespace other {
     transform.CalcMatrix();
     return transform;
   }
+
+  void JoltBody::AddCollider(Ref<PhysicsShape> shape) {}
 
 }  // namespace other

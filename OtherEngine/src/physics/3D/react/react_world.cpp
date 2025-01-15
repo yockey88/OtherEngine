@@ -6,14 +6,14 @@
 #include <reactphysics3d/body/RigidBody.h>
 #include <reactphysics3d/mathematics/Vector3.h>
 
-#include "core/directory.hpp"
 #include "core/filesystem.hpp"
 #include "core/formatters.hpp"
 
-#include "asset/asset_manager.hpp"
-
+#include "ecs/components/collider.hpp"
+#include "ecs/components/rigid_body.hpp"
 #include "scene/scene.hpp"
 
+#include "physics/3D/physics_shape.hpp"
 #include "physics/3D/react/react_body.hpp"
 #include "physics/3D/react/react_shape.hpp"
 #include "rendering/shader.hpp"
@@ -35,7 +35,6 @@ namespace other {
 
     // PhysicsSpec spec = scene->GetPhysicsSpec();
 
-    rp3d::PhysicsWorld::WorldSettings settings;
     settings.worldName = "OtherEngine-PhysicsScene";
     settings.gravity = rp3d::Vector3(0.f, -9.81f, 0.f);
     // settings.persistentContactDistanceThreshold = 0.3f;
@@ -58,55 +57,44 @@ namespace other {
     physics_common.destroyPhysicsWorld(physics_world);
   }
 
-  void ReactWorld::ResetSimulation() {
-    // uint32_t num_bodies = physics_world->getNbRigidBodies();
-    // for (uint32_t i = 0; i < num_bodies; i++) {
-    //   glm::vec3 pos = initial_positions[i];
-    //   glm::quat rot = initial_rotations[i];
+  void ReactWorld::ResetSimulation(Scene* scene) {
+    prev_time = std::nullopt;
+    if (physics_world == nullptr) {
+      return;
+    }
 
-    //   rp3d::RigidBody* body = physics_world->getRigidBody(i);
-    //   body->setLinearVelocity(rp3d::Vector3(0.f, 0.f, 0.f));
-    //   body->setAngularVelocity(rp3d::Vector3(0.f, 0.f, 0.f));
-
-    //   rp3d::Transform transform(rp3d::Vector3(pos.x, pos.y, pos.z), rp3d::Quaternion(rot.w, rot.x, rot.y, rot.z));
-    //   body->setTransform(transform);
-
-    //   body->setIsActive(true);
-    // }
-
-    // initial_positions.clear();
-    // initial_rotations.clear();
-
+    SetDebugRendering(debug_render_enabled);
+    debug_data = {
+      .shader = debug_data.shader,
+      .physics_triangles_vao = nullptr,
+      .physics_lines_vao = nullptr,
+    };
+    Simulate(0.00001f);
     prev_time = std::nullopt;
   }
 
   void ReactWorld::Simulate(float ts) {
-    if (!prev_time.has_value()) {
-      prev_time = SteadyClock::now();
+    physics_world->update(ts);
+    interpolate_physics = false;
+    // if (!prev_time.has_value()) {
+    //   prev_time = SteadyClock::now();
 
-      uint32_t num_bodies = physics_world->getNbRigidBodies();
-      for (uint32_t i = 0; i < num_bodies; i++) {
-        rp3d::RigidBody* body = physics_world->getRigidBody(i);
-        initial_positions.push_back(glm::vec3(body->getTransform().getPosition().x, body->getTransform().getPosition().y, body->getTransform().getPosition().z));
-        initial_rotations.push_back(glm::quat(body->getTransform().getOrientation().w, body->getTransform().getOrientation().x, body->getTransform().getOrientation().y, body->getTransform().getOrientation().z));
-      }
+    //   physics_world->update(ts);
+    // } else {
+    //   interpolate_physics = true;
+    //   current_time = SteadyClock::now();
+    //   delta_time = current_time - *prev_time;
+    //   prev_time = current_time;
 
-      physics_world->update(ts);
-    } else {
-      interpolate_physics = true;
-      current_time = SteadyClock::now();
-      delta_time = current_time - *prev_time;
-      prev_time = current_time;
+    //   accumulator += delta_time.count();  /// add fixed physics time step
 
-      accumulator += delta_time.count();  /// add fixed physics time step
+    //   while (accumulator >= ts) {
+    //     physics_world->update(ts);
+    //     accumulator -= ts;
+    //   }
 
-      while (accumulator >= ts) {
-        physics_world->update(ts);
-        accumulator -= ts;
-      }
-
-      alpha = accumulator / ts;
-    }
+    //   alpha = accumulator / ts;
+    // }
   }
 
   Ref<PhysicsBody> ReactWorld::CreateBody(Transform& initial_transform) {
@@ -130,21 +118,21 @@ namespace other {
 
     rp3d::Vector3 extents(half_extents.x, half_extents.y, half_extents.z);
     rp3d::BoxShape* shape = physics_common.createBoxShape(extents);
-    return NewRef<ReactBoxShape>(shape);
+    return NewRef<ReactBoxShape>(shape, this);
   }
 
   Ref<PhysicsShape> ReactWorld::CreateSphereShape(float radius) {
     OE_ASSERT(physics_world != nullptr, "Physics world is null");
 
     rp3d::SphereShape* shape = physics_common.createSphereShape(radius);
-    return NewRef<ReactSphereShape>(shape);
+    return NewRef<ReactSphereShape>(shape, this);
   }
 
   Ref<PhysicsShape> ReactWorld::CreateCapsuleShape(float radius, float height) {
     OE_ASSERT(physics_world != nullptr, "Physics world is null");
 
     rp3d::CapsuleShape* shape = physics_common.createCapsuleShape(radius, height);
-    return NewRef<ReactCapsuleShape>(shape);
+    return NewRef<ReactCapsuleShape>(shape, this);
   }
 
   Ref<PhysicsShape> ReactWorld::CreateConvexMeshShape(const std::vector<glm::vec3>& vertices, const std::vector<uint32_t>& indices, uint32_t num_faces) {
@@ -191,7 +179,7 @@ namespace other {
     }
 
     rp3d::ConvexMeshShape* shape = physics_common.createConvexMeshShape(mesh);
-    return NewRef<ReactConvexMeshShape>(shape);
+    return NewRef<ReactConvexMeshShape>(shape, this);
   }
 
   Ref<PhysicsShape> ReactWorld::CreateConcaveMeshShape(const std::vector<glm::vec3>& vertices, const std::vector<uint32_t>& indices, uint32_t num_faces) {
@@ -209,10 +197,9 @@ namespace other {
     }
 
     if (!debug_render_enabled) {
-      OE_DEBUG("Disabling debug rendering");
+      Simulate(0.00001f);
       return;
     }
-    OE_DEBUG("Enabling debug rendering");
 
     rp3d::DebugRenderer& debug_renderer = physics_world->getDebugRenderer();
     debug_renderer.setContactNormalLength(5.0f);
@@ -345,6 +332,12 @@ namespace other {
         },
       }
     );
+  }
+
+  void ReactWorld::RegisterCallbacks() {
+    OE_ASSERT(physics_world != nullptr, "Physics world is null");
+
+    physics_world->setEventListener(&collision_listener.listener);
   }
 
 }  // namespace other

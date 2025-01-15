@@ -117,25 +117,18 @@ namespace other {
       CopyInto<Script>(registry, capture->registry, ent_map);
       CopyInto<Mesh>(registry, capture->registry, ent_map);
       CopyInto<StaticMesh>(registry, capture->registry, ent_map);
-
-      CopyIntoAndThen<RigidBody>(registry, capture->registry, ent_map, [](RigidBody& body, entt::registry& reg, entt::entity ent) {
-        Transform& transform = reg.get<Transform>(ent);
-        body.physics_body->SetTransform(transform);
-      });
+      CopyInto<RigidBody>(registry, capture->registry, ent_map);
       CopyInto<Collider>(registry, capture->registry, ent_map);
-
-      CopyIntoAndThen<RigidBody2D>(registry, capture->registry, ent_map, [](RigidBody2D& body, entt::registry& reg, entt::entity ent) {
-        // Transform& transform = reg.get<Transform>(ent);
-        // body.physics_body->SetTransform(transform);
-      });
+      CopyInto<RigidBody2D>(registry, capture->registry, ent_map);
       CopyInto<Collider2D>(registry, capture->registry, ent_map);
-
       CopyInto<LightSource>(registry, capture->registry, ent_map);
       CopyInto<Camera>(registry, capture->registry, ent_map);
       // CopyInto<Sprite2D>(registry, capture->registry, ent_map);
 
       capture_stack.pop();
     }
+
+    scene->ResetPhysicsSimulation();
 
     return true;
   }

@@ -100,18 +100,25 @@ namespace other {
         .dotnet_type = DO_STR("DotOther.Managed.DotOtherHost, DotOther.Managed"),
         .entry_point = DO_STR("EntryPoint"),
 
+        // clang-format off
         .exception_callback = [](const dotother::NString message) {
           std::string  msg = message;
-          OE_ERROR("C# Exception Caught : \n\t{}" , msg); },
+          OE_ERROR("C# Exception Caught : \n\t{}" , msg); 
+        },
+        // clang-format on
         .log_callback = &ManagedLoggingCallback,
 
         /// TODO: decide if DotOther should be responsible for invoking native methods or if it should be the responsibility of the user,
-        ///         not really sure how to handle it in a generic way if it is handled by DotOther, but it would be nice to not have the user implement it
+        ///         not really sure how to handle it in a generic way if it is handled by DotOther, but it would be nice to not have the user implement it,
+        ///       another option is to simply use this hook as a filter that is always alled before InvokeNativeMethod
+        // clang-format off
         .invoke_native_method_hook = [](uint64_t object_handle, const dotother::NString method_name) {
           std::string mname = method_name;
           OE_DEBUG("Invoking Native Method on object {:#08x}" , object_handle);
           OE_DEBUG(" > Method Name: {}" , mname);
-          dotother::InteropInterface::Instance().InvokeNativeFunction(object_handle, mname); },
+          dotother::InteropInterface::Instance().InvokeNativeFunction(object_handle, mname); 
+        },
+        // clang-format on
         .internal_logging_hook = &NativeLoggingCallback,
       };
 
@@ -313,7 +320,7 @@ namespace other {
   }
 
   void CsModule::UnloadAll() {
-    for (auto& [_,m] : loaded_modules) {
+    for (auto& [_, m] : loaded_modules) {
       m->Shutdown();
     }
     loaded_modules.clear();
@@ -323,13 +330,13 @@ namespace other {
     for (auto& [_, ctx_id] : assembly_contexts.assembly_ids) {
       auto itr2 = assembly_contexts.contexts.find(ctx_id);
       if (itr2 == assembly_contexts.contexts.end()) {
-        continue; 
+        continue;
       }
 
-      auto& [__,ctx] = *itr2;
+      auto& [__, ctx] = *itr2;
       host->UnloadAssemblyContext(ctx);
       dotother::GarbageCollector::Collect(ctx_id, dotother::GCMode::DEFAULT, true, false);
-    } 
+    }
 
     assembly_contexts.assembly_ids.clear();
     assembly_contexts.contexts.clear();

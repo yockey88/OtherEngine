@@ -10,47 +10,53 @@
 
 namespace other {
 
+  class ReactWorld;
+
   class ReactBoxShape : public BoxShape {
    public:
-    ReactBoxShape(rp3d::BoxShape* shape)
-        : BoxShape(), shape(shape) {}
+    ReactBoxShape(rp3d::BoxShape* shape, ReactWorld* world)
+        : BoxShape(), shape(shape), world(world) {}
     virtual ~ReactBoxShape() override {}
 
     virtual glm::vec2 HalfExtents() const override;
 
     rp3d::BoxShape* shape = nullptr;
+    ReactWorld* world = nullptr;
   };
 
   class ReactSphereShape : public SphereShape {
    public:
-    ReactSphereShape(rp3d::SphereShape* shape)
-        : SphereShape(), shape(shape) {}
+    ReactSphereShape(rp3d::SphereShape* shape, ReactWorld* world)
+        : SphereShape(), shape(shape), world(world) {}
     virtual ~ReactSphereShape() override {}
 
     virtual float Radius() const override;
 
     rp3d::SphereShape* shape = nullptr;
+    ReactWorld* world = nullptr;
   };
 
   class ReactCapsuleShape : public CapsuleShape {
    public:
-    ReactCapsuleShape(rp3d::CapsuleShape* shape)
-        : CapsuleShape(), shape(shape) {}
+    ReactCapsuleShape(rp3d::CapsuleShape* shape, ReactWorld* world)
+        : CapsuleShape(), shape(shape), world(world) {}
     virtual ~ReactCapsuleShape() override {}
 
     virtual float Radius() const override;
     virtual float Height() const override;
 
     rp3d::CapsuleShape* shape = nullptr;
+    ReactWorld* world = nullptr;
   };
 
   class ReactConvexMeshShape : public ConvexMeshShape {
    public:
-    ReactConvexMeshShape(rp3d::ConvexShape* shape)
-        : ConvexMeshShape(), shape(shape) {}
+    ReactConvexMeshShape(rp3d::ConvexShape* shape, ReactWorld* world)
+        : ConvexMeshShape(), shape(shape), world(world) {}
     virtual ~ReactConvexMeshShape() override {}
 
     rp3d::ConvexShape* shape = nullptr;
+    ReactWorld* world = nullptr;
   };
 
   class ReactConcaveMeshShape : public ConcaveMeshShape {

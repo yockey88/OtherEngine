@@ -11,6 +11,7 @@
 #include "physics/3D/physics_body.hpp"
 #include "physics/3D/physics_shape.hpp"
 #include "physics/3D/physics_world.hpp"
+#include "physics/3D/react/react_collision_listener.hpp"
 
 namespace other {
 
@@ -22,7 +23,7 @@ namespace other {
     ReactWorld();
     virtual ~ReactWorld() override;
 
-    virtual void ResetSimulation() override;
+    virtual void ResetSimulation(Scene* scene) override;
     virtual void Simulate(float ts) override;
     virtual Ref<PhysicsBody> CreateBody(Transform& initial_transform) override;
 
@@ -37,10 +38,13 @@ namespace other {
 
    private:
     rp3d::PhysicsCommon physics_common;
+
+    rp3d::PhysicsWorld::WorldSettings settings;
     rp3d::PhysicsWorld* physics_world = nullptr;
 
-    std::vector<glm::vec3> initial_positions;
-    std::vector<glm::quat> initial_rotations;
+    ReactCollisionListener collision_listener;
+
+    void RegisterCallbacks() override;
   };
 
 }  // namespace other

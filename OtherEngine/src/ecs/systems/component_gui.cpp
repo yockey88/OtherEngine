@@ -841,26 +841,26 @@ namespace other {
       Ref<PhysicsWorld> world = scene->GetPhysicsWorld();
       OE_ASSERT(world != nullptr, "Somehow added a rigid body component without active 3D physics");
 
-      PhysicsShapeType type = static_cast<PhysicsShapeType>(selected);
+      PhysicsShape::Shape type = static_cast<PhysicsShape::Shape>(selected);
 
       switch (type) {
-        case PhysicsShapeType::BOX:
+        case PhysicsShape::Shape::BOX:
           collider.shape = world->CreateBoxShape(transform.scale / 2.f);
           break;
 
-        case PhysicsShapeType::SPHERE:
+        case PhysicsShape::Shape::SPHERE:
           collider.shape = world->CreateSphereShape(transform.scale.x / 2.f);
           break;
 
-        case PhysicsShapeType::CAPSULE:
+        case PhysicsShape::Shape::CAPSULE:
           collider.shape = world->CreateCapsuleShape(transform.scale.x / 2.f, transform.scale.y);
           break;
 
-          // case PhysicsShapeType::CONVEX_MESH:
+          // case PhysicsShape::Shape::CONVEX_MESH:
           //   collider.shape = Ref<ConvexMeshCollider>::Create();
           //   break;
 
-          // case PhysicsShapeType::CONCAVE_MESH:
+          // case PhysicsShape::Shape::CONCAVE_MESH:
           //   collider.shape = Ref<ConcaveMeshCollider>::Create();
           //   break;
 

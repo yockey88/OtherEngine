@@ -21,19 +21,19 @@ namespace other {
     stream << "shape = ";
 
     switch (collider.shape->ShapeType()) {
-      case PhysicsShapeType::BOX:
+      case PhysicsShape::Shape::BOX:
         stream << "box\n";
         break;
-      case PhysicsShapeType::SPHERE:
+      case PhysicsShape::Shape::SPHERE:
         stream << "sphere\n";
         break;
-      case PhysicsShapeType::CAPSULE:
+      case PhysicsShape::Shape::CAPSULE:
         stream << "capsule\n";
         break;
-      // case PhysicsShapeType::CONCAVE_MESH:
+      // case PhysicsShape::Shape::CONCAVE_MESH:
       //   stream << "\"concave-mesh\"\n";
       //   break;
-      // case PhysicsShapeType::CONVEX_MESH:
+      // case PhysicsShape::Shape::CONVEX_MESH:
       //   stream << "\"convex-mesh\"\n";
       //   break;
       default:

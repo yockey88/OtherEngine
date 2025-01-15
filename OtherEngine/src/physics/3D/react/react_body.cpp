@@ -19,9 +19,18 @@ namespace other {
   ReactBody::ReactBody(rp3d::RigidBody* body)
       : body(body) {
     inter_transform = body->getTransform();
+    SetNativeBody(body);
   }
 
   ReactBody::~ReactBody() {}
+
+  void ReactBody::OnSetNativeBody(void* body) {
+    if (body == nullptr) {
+      body = nullptr;
+    } else {
+      this->body = static_cast<rp3d::RigidBody*>(body);
+    }
+  }
 
   void ReactBody::SetTransform(const Transform& transform) {
     rp3d::Vector3 pos(transform.position.x, transform.position.y, transform.position.z);
@@ -55,30 +64,30 @@ namespace other {
 
   void ReactBody::AddCollider(Ref<PhysicsShape> shape) {
     switch (shape->ShapeType()) {
-      case PhysicsShapeType::BOX: {
+      case PhysicsShape::Shape::BOX: {
         Ref<ReactBoxShape> box_shape = Ref<PhysicsShape>::Cast<ReactBoxShape>(shape);
         rp3d::Transform local_transform(rp3d::Vector3(0.f, 0.f, 0.f), body->getTransform().getOrientation());
         body->addCollider(box_shape->shape, local_transform);
       } break;
 
-      case PhysicsShapeType::SPHERE: {
+      case PhysicsShape::Shape::SPHERE: {
         Ref<ReactSphereShape> sphere_shape = Ref<PhysicsShape>::Cast<ReactSphereShape>(shape);
         rp3d::Transform local_transform(rp3d::Vector3(0.f, 0.f, 0.f), body->getTransform().getOrientation());
         body->addCollider(sphere_shape->shape, local_transform);
       } break;
 
-      case PhysicsShapeType::CAPSULE: {
+      case PhysicsShape::Shape::CAPSULE: {
         Ref<ReactCapsuleShape> capsule_shape = Ref<PhysicsShape>::Cast<ReactCapsuleShape>(shape);
         rp3d::Transform local_transform(rp3d::Vector3(0.f, 0.f, 0.f), body->getTransform().getOrientation());
         body->addCollider(capsule_shape->shape, local_transform);
       } break;
 
-        // case PhysicsShapeType::CONVEX_MESH: {
+        // case PhysicsShape::Shape::CONVEX_MESH: {
         //   Ref<ReactConvexMeshShape> convex_mesh_shape = Ref<PhysicsShape>::Cast<ReactConvexMeshShape>(shape);
         //   body->addCollider(convex_mesh_shape->shape, body->getTransform());
         // } break;
 
-        // case PhysicsShapeType::CONCAVE_MESH: {
+        // case PhysicsShape::Shape::CONCAVE_MESH: {
         //   Ref<ReactConcaveMeshShape> concave_mesh_shape = Ref<PhysicsShape>::Cast<ReactConcaveMeshShape>(shape);
         //   body->addCollider(concave_mesh_shape->shape, body->getTransform());
         // } break;

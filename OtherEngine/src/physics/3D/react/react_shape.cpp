@@ -3,6 +3,8 @@
  **/
 #include "physics/3D/react/react_shape.hpp"
 
+#include "physics/3D/react/react_world.hpp"
+
 namespace other {
 
   glm::vec2 ReactBoxShape::HalfExtents() const {

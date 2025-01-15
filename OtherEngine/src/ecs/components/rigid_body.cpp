@@ -88,6 +88,7 @@ namespace other {
         entity->RemoveComponent<RigidBody>();
         return;
     }
+    rigid_body.physics_body->SetType(rigid_body.type);
 
     rigid_body.mass = scene_table.GetVal<float>(key_value, kMassValue, false).value_or(1.f);
     rigid_body.linear_drag = scene_table.GetVal<float>(key_value, kLinearDragValue, false).value_or(0.01f);

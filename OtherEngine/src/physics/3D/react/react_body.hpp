@@ -20,6 +20,8 @@ namespace other {
     ReactBody(rp3d::RigidBody* body);
     virtual ~ReactBody() override;
 
+    virtual void OnSetNativeBody(void* body) override;
+
     void SetTransform(const Transform& transform) override;
     Transform GetTransform() const override;
 
@@ -30,6 +32,8 @@ namespace other {
     void AddCollider(Ref<PhysicsShape> shape) override;
 
    private:
+    UUID entity_id;
+
     rp3d::RigidBody* body = nullptr;
     rp3d::Transform inter_transform;
 

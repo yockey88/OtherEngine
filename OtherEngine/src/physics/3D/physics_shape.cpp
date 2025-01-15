@@ -6,7 +6,11 @@
 
 namespace other {
 
-  PhysicsShapeType PhysicsShape::ShapeType() const {
+  void PhysicsShape::SetEntity(const UUID& id) {
+    entity_id = id;
+  }
+
+  PhysicsShape::Shape PhysicsShape::ShapeType() const {
     return type;
   }
 

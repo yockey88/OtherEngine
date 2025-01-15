@@ -29,7 +29,7 @@ namespace other {
 
     static Ref<PhysicsWorld> Create();
 
-    virtual void ResetSimulation() = 0;
+    virtual void ResetSimulation(Scene* scene) = 0;
     virtual void Simulate(float ts) = 0;
     virtual Ref<PhysicsBody> CreateBody(Transform& initial_transform) = 0;
 
@@ -41,6 +41,8 @@ namespace other {
 
     virtual void SetDebugRendering(bool debug) = 0;
     virtual void SubmitDebugRender(Ref<SceneRenderer> renderer) = 0;
+
+    void RegisterColliderShape(UUID entity_id, Ref<PhysicsShape> shape);
 
     bool IsDebugRenderEnabled() const;
 
@@ -63,6 +65,10 @@ namespace other {
       Ref<VertexArray> physics_triangles_vao = nullptr;
       Ref<VertexArray> physics_lines_vao = nullptr;
     } debug_data;
+
+    std::map<UUID, Ref<PhysicsShape>> shapes[PhysicsShape::Shape::NUM_PHYSICS_SHAPES] = { {} };
+
+    virtual void RegisterCallbacks() {}
 
    private:
     std::map<UUID, Ref<PhysicsBody>> bodies;
