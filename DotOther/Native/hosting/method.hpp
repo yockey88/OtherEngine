@@ -11,28 +11,29 @@
 namespace dotother {
 
   class Type;
-  class Attribute; 
+  class Attribute;
 
   class Method {
-    public:
-      Method() {}
+   public:
+    Method(int32_t handle);
 
-      NString GetName() const;
-      Type& GetReturnType();
-      const std::vector<Type*>& ParamTypes();
+    NString GetName() const;
+    Type& GetReturnType();
+    const std::vector<Type*>& ParamTypes();
 
-      TypeAccessibility Accessibility() const;
-      std::vector<Attribute> Attributes() const;
+    size_t Arity() const;
+    TypeAccessibility Accessibility() const;
+    std::vector<Attribute> Attributes() const;
 
-      int32_t handle = -1;
-      
-    private:
-      Type* ret_type = nullptr;
-      std::vector<Type*> param_types{};
+    int32_t handle = -1;
 
-      friend class Type;
+   private:
+    Type* ret_type = nullptr;
+    std::vector<Type*> param_types{};
+
+    friend class Type;
   };
 
-} // namespace dotother
+}  // namespace dotother
 
-#endif // !DOTOTHER_METHOD_HPP
+#endif  // !DOTOTHER_METHOD_HPP

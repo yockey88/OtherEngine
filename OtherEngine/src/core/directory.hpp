@@ -51,7 +51,7 @@ namespace other {
     Ref<FileHandle> GetFile(UUID handle);
     Ref<FileHandle> OpenFile(const Path& path, std::ios_base::openmode mode = std::ios_base::in | std::ios_base::out | std::ios_base::app);
     Ref<FileHandle> OpenFile(UUID handle, std::ios_base::openmode mode = std::ios_base::in | std::ios_base::out | std::ios_base::app);
-    Ref<FileHandle> GetFileHandleByName(const std::string_view name);
+    Ref<FileHandle> GetFileHandleByName(const std::string_view name, Opt<std::string> ext = std::nullopt);
 
     std::vector<Path> GetFilePaths(Opt<std::string> ext = std::nullopt) const;
     std::vector<Ref<FileHandle>> GetFiles(Opt<std::string> ext = std::nullopt) const;

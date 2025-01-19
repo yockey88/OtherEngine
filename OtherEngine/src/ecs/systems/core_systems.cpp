@@ -52,7 +52,6 @@ namespace other {
       script.ApiCall("NativeStop");
       script.ApiCall("OnShutdown");
       script.ApiCall("NativeShutdown");
-      script.Clear();
     }
   }
 

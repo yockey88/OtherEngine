@@ -29,7 +29,7 @@ def run_test(config, include_filter  = [], exclude_filter = [], other_args = [])
   fstr += ":" if include_str is not None and exclude_str is not None else ""
   fstr += exclude_str if exclude_str is not None else ""
   
-  proc_args = ["./bin/{}/tests/tests.exe".format(config)]
+  proc_args = ["./bin/{}/unit_tests/unit_tests.exe".format(config)]
   proc_args.extend([fstr] if filter_exists else [])
 
   if len(other_args) > 0:

@@ -127,7 +127,7 @@ namespace dotother {
       return;
     }
 
-    DOTOTHER_LOG(DO_STR("Registering object {:#8x} ({})"sv), MessageLevel::TRACE, handle, object->proxy->GetTypeName());
+    DOTOTHER_LOG(DO_STR("Registering object {:#8x} ({})"sv), MessageLevel::INFO, handle, object->proxy->GetTypeName());
     registered_objects[handle] = object;
   }
 
@@ -137,7 +137,7 @@ namespace dotother {
     }
 
     if (auto itr = registered_objects.find(handle); itr != registered_objects.end()) {
-      DOTOTHER_LOG(DO_STR("Unregistering object {:#8x} ({})"sv), MessageLevel::TRACE, handle, itr->second->proxy->GetTypeName());
+      DOTOTHER_LOG(DO_STR("Unregistering object {:#8x} ({})"sv), MessageLevel::INFO, handle, itr->second->proxy->GetTypeName());
       registered_objects.erase(itr);
       return;
     }

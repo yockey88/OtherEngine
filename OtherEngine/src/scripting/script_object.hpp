@@ -9,7 +9,6 @@
 #include <type_traits>
 
 #include <entt/entity/fwd.hpp>
-
 #include <hosting/native_string.hpp>
 
 #include "core/ref.hpp"

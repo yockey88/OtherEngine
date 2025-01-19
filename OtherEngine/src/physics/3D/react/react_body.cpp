@@ -114,6 +114,12 @@ namespace other {
     }
   }
 
+  void ReactBody::OnSetEntity() {
+    OE_ASSERT(body != nullptr, "Physics body is null");
+    OE_ASSERT(entity_id.Get() != 0, "Entity ID is null");
+    body->setUserData(&entity_id);
+  }
+
   Transform ReactBody::ExtractTransform(const rp3d::Transform& physics_transform) const {
     float fmatrix[16];
     physics_transform.getOpenGLMatrix(fmatrix);

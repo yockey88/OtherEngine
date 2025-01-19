@@ -71,8 +71,10 @@ namespace dotother {
     asm_name += name;
 
     const dostring& internal_name = internal_call_names.emplace_back(util::CharToWide(asm_name));
-    internal_calls.push_back({ .name = internal_name.c_str(),
-                               .native_function = fn });
+    internal_calls.push_back({
+      .name = internal_name.c_str(),
+      .native_function = fn,
+    });
 
     DOTOTHER_LOG(DO_STR("Internal Call Registered in {} : {} [{:p}]"), MessageLevel::TRACE, asm_name, method_name, fn);
   }
@@ -143,8 +145,12 @@ namespace dotother {
         DOTOTHER_LOG(DO_STR(" > Loading type with ID: {}"), MessageLevel::TRACE, id);
 
         Type type(id);
-        auto t = assembly->types.emplace_back(TypeCache::Instance().CacheType(std::move(type)));
-        DOTOTHER_LOG(DO_STR("  > Type loaded: {}"), MessageLevel::TRACE, t->FullName());
+        Type* t = assembly->types.emplace_back(TypeCache::Instance().CacheType(std::forward<Type>(type)));
+        if (t != nullptr) {
+          DOTOTHER_LOG(DO_STR("  > Type loaded: {}"), MessageLevel::TRACE, FormatType(t));
+        } else {
+          DOTOTHER_LOG(DO_STR("  > Type failed to cache : [{}]"), MessageLevel::ERR, id);
+        }
       }
     } else {
       DOTOTHER_LOG(DO_STR("Failed to load assembly file: {} \n\t STATUS : [{}]"), MessageLevel::ERR, path, assembly->load_status);

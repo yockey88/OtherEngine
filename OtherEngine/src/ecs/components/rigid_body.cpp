@@ -108,8 +108,8 @@ namespace other {
         return;
     }
 
-    auto init_lin_vel = scene_table.Get(key_value, kInitialLinearVelocityValue);
-    auto init_ang_vel = scene_table.Get(key_value, kInitialAngularVelocityValue);
+    const auto& init_lin_vel = scene_table.Get(key_value, kInitialLinearVelocityValue);
+    const auto& init_ang_vel = scene_table.Get(key_value, kInitialAngularVelocityValue);
 
     if (init_lin_vel.size() > 0) {
       DeserializeVec3(init_lin_vel, rigid_body.initial_linear_velocity);

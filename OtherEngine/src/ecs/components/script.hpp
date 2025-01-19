@@ -4,6 +4,7 @@
 #ifndef OTHER_ENGINE_SCRIPT_HPP
 #define OTHER_ENGINE_SCRIPT_HPP
 
+#include <concepts>
 #include <map>
 #include <type_traits>
 
@@ -17,7 +18,6 @@
 #include "scripting/cs/cs_object.hpp"
 #include "scripting/script_object.hpp"
 
-
 namespace other {
 
   struct ScriptObjectData {
@@ -28,24 +28,51 @@ namespace other {
   struct Script : Component {
     ECS_COMPONENT(Script, kScriptIndex);
 
+    Script(Scene* scene) : Component(kScriptIndex) {}
+
     UUID AddScript(const std::string_view name, const std::string_view nspace, const std::string_view module);
-    void RemoveScript(UUID id);
-    void RemoveScript(const std::string_view name);
+    void RemoveScript();
 
     void ApiCall(const std::string_view name);
-    void ApiCall(const std::string_view name, float dt);
+
+    template <typename T>
+    void ApiCall(const std::string_view name, T&& dt) {
+      OE_ASSERT(script_object != nullptr, "Script object is null");
+      script_object->CallMethod<void, T>(std::string{ name }, std::forward<T>(dt));
+    }
+
+    template <typename T>
+      requires std::is_pointer_v<T>
+    void ApiCall(const std::string_view name, T ptr) {
+      OE_ASSERT(ptr != nullptr, "Pointer is null");
+      script_object->CallMethod<void, T>(std::string{ name }, std::forward<T>(ptr));
+    }
+
+    template <typename T>
+    T GetProperty(const std::string_view name) {
+      OE_ASSERT(script_object != nullptr, "Script object is null");
+      return script_object->GetProperty<T>(std::string{ name });
+    }
+
+    template <typename T>
+    void SetProperty(const std::string_view name, T&& arg) {
+      OE_ASSERT(script_object != nullptr, "Script object is null");
+      script_object->SetProperty<T>(std::string{ name }, std::forward<T>(arg));
+    }
+
+    template <typename T>
+    T GetField(const std::string_view name) {
+      OE_ASSERT(script_object != nullptr, "Script object is null");
+      return script_object->GetField<T>(std::string{ name });
+    }
 
     bool ValidateScripts();
 
     void SetHandles();
 
-    void Clear();
-
-    const auto& GetScripts() const { return scripts; }
-
    private:
-    std::map<UUID, ScriptObjectData> data = {};
-    std::map<UUID, ScriptRef<CsObject>> scripts = {};
+    ScriptObjectData object_data = {};
+    ScriptRef<CsObject> script_object = {};
   };
 
   template <typename T>

@@ -66,6 +66,7 @@ namespace other {
       OE_WARN("Failed to parse scene file - {} : {}", scene_path, err.what());
       return false;
     }
+    OE_TRACE("Loading Scene :\n{}", scene_metadata.scene_table.TableString());
 
     scene_metadata.scene = NewRef<Scene>();
 
@@ -91,7 +92,7 @@ namespace other {
       scene_metadata.scene->physics_world_2d = PhysicsWorld2D::Create(g);
     }
 
-    scene_metadata.scene->physics_world = PhysicsWorld::Create();
+    scene_metadata.scene->physics_world = PhysicsWorld::Create(scene_metadata.scene.Raw());
 
     EntitySerializer deserializer;
     auto entities = scene_metadata.scene_table.Get(kMetadataSection, kEntitiesValue);

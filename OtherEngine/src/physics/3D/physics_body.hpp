@@ -32,6 +32,7 @@ namespace other {
     void SetType(PhysicsBodyType type);
     void SetLayer(uint32_t layer);
     void SetNativeBody(void* body);
+    void SetEntityID(const UUID& id);
 
     virtual void OnSetNativeBody(void* body) = 0;
 
@@ -53,6 +54,9 @@ namespace other {
       return static_cast<NB*>(native_body);
     }
 
+   protected:
+    UUID entity_id;
+
    private:
     void* native_body = nullptr;
     uint32_t object_layer = 0;
@@ -60,6 +64,7 @@ namespace other {
 
     virtual void OnBodyTypeChange(PhysicsBodyType type) {}
     virtual void OnLayerChange(uint32_t layer) {}
+    virtual void OnSetEntity() {}
   };
 
 }  // namespace other

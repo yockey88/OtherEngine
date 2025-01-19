@@ -59,7 +59,7 @@ namespace other {
 
   void ScriptEngine::LoadProjectModules() {
     LoadCoreModules();
-    // LoadScripts();
+    LoadScripts();
   }
 
   void ScriptEngine::LoadAttachments(const std::string_view section) {
@@ -271,12 +271,18 @@ namespace other {
 
     OE_DEBUG("Searching for script module {}", name);
     for (auto& [lid, lang] : language_modules) {
-      OE_DEBUG(" > Searching in loaded language module {}", lang.module->GetModuleName());
+      OE_TRACE(" > Searching in loaded language module {}", lang.module->GetModuleName());
       if (!lang.module->HasScript(name)) {
+        OE_TRACE("  > Script module {} not found in language module {}", name, lang.module->GetModuleName());
         continue;
       }
 
       mod = lang.module->GetScriptModule(std::string{ name });
+      if (mod == nullptr) {
+        OE_ERROR("Failed to retrieve script module {} from language module {}", name, lang.module->GetModuleName());
+        return nullptr;
+      }
+
       loaded_modules[FNV(mod->ModuleName())] = mod;
       OE_DEBUG("  > Found script module {} in language module {}", mod->ModuleName(), lang.module->GetModuleName());
       return mod;
@@ -287,6 +293,7 @@ namespace other {
   }
 
   Ref<ScriptModule> ScriptEngine::GetScriptModule(UUID id) {
+    OE_TRACE("Searching for script module {}", id);
     auto itr = std::find_if(loaded_modules.begin(), loaded_modules.end(), [&](const auto& module) -> bool {
       return module.first == id;
     });
@@ -465,31 +472,34 @@ namespace other {
 
   void ScriptEngine::LoadScripts() {
     Ref<Directory> editor_dir = Filesystem::GetDirectory("editor");
-    OE_ASSERT(editor_dir != nullptr, "Failed to load editor directory");
-
     Ref<Directory> script_dir = Filesystem::GetDirectory("scripts");
-    OE_ASSERT(script_dir != nullptr, "Failed to load scripts directory");
 
-    std::vector<Path> editor_scripts = editor_dir->GetFilePaths();
-    std::vector<Path> script_scripts = script_dir->GetFilePaths();
+    if (editor_dir != nullptr) {
+      std::vector<Path> editor_scripts = editor_dir->GetFilePaths();
+      for (const auto& script : editor_scripts) {
+        Ref<FileHandle> file = Filesystem::GetFile(script);
+        if (file == nullptr || !file->Exists()) {
+          continue;
+        }
 
-    for (const auto& script : editor_scripts) {
-      Ref<FileHandle> file = Filesystem::GetFile(script);
-      OE_ASSERT(file != nullptr, "Failed to load script file, file handle was null : {}", script.string());
-      OE_ASSERT(file->Exists(), "Failed to load script file, file does not exist : {}", script.string());
-
-      if (file->GetAssetType() == AssetType::DYNAMIC_LIBRARY) {
-        LoadScriptFile(ScriptType::EDITOR_SCRIPT, file);
+        if (file->GetAssetType() == AssetType::DYNAMIC_LIBRARY) {
+          LoadScriptFile(ScriptType::EDITOR_SCRIPT, file);
+        }
       }
     }
 
-    for (const auto& script : script_scripts) {
-      Ref<FileHandle> file = Filesystem::GetFile(script);
-      OE_ASSERT(file != nullptr, "Failed to load script file, file handle was null : {}", script.string());
-      OE_ASSERT(file->Exists(), "Failed to load script file, file does not exist : {}", script.string());
+    if (script_dir != nullptr) {
+      std::vector<Path> script_scripts = script_dir->GetFilePaths();
 
-      if (file->GetAssetType() == AssetType::DYNAMIC_LIBRARY) {
-        LoadScriptFile(ScriptType::SCENE_SCRIPT, file);
+      for (const auto& script : script_scripts) {
+        Ref<FileHandle> file = Filesystem::GetFile(script);
+        if (file == nullptr || !file->Exists()) {
+          continue;
+        }
+
+        if (file->GetAssetType() == AssetType::DYNAMIC_LIBRARY) {
+          LoadScriptFile(ScriptType::SCENE_SCRIPT, file);
+        }
       }
     }
   }

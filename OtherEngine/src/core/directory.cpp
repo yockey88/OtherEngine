@@ -245,21 +245,28 @@ namespace other {
     return file;
   }
 
-  Ref<FileHandle> Directory::GetFileHandleByName(const std::string_view name) {
+  Ref<FileHandle> Directory::GetFileHandleByName(const std::string_view name, Opt<std::string> ext) {
     if (!Exists()) {
       OE_ERROR("Failed to get file handle, directory does not exist : {}", proj_relative_path.string());
       return nullptr;
     }
 
     for (auto& [id, file] : file_handles) {
-      OE_DEBUG("CHECKING FILE : {} == {}", file->FileName(), name);
+      if (ext.has_value()) {
+        OE_DEBUG("CHECKING FILE : {} == {} (ext : {})", file->FileName(), name, *ext);
+      } else {
+        OE_DEBUG("CHECKING FILE : {} == {}", file->FileName(), name);
+      }
+
       if (file->FileName() == name) {
-        return file;
+        if (!ext.has_value() || ext.value() == file->Extension()) {
+          return file;
+        }
       }
     }
 
     for (auto& [id, dir] : children) {
-      auto file = dir->GetFileHandleByName(name);
+      auto file = dir->GetFileHandleByName(name, ext);
       if (file != nullptr) {
         return file;
       }

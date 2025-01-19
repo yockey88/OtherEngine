@@ -5,6 +5,8 @@
 
 #include "core/logger.hpp"
 
+#include "scene/scene.hpp"
+
 namespace other {
 
   void ReactCollisionListener::Listener::onContact(const rp3d::CollisionCallback::CallbackData& data) {
@@ -12,21 +14,32 @@ namespace other {
       rp3d::CollisionCallback::ContactPair pair = data.getContactPair(i);
 
       rp3d::Body* body1 = pair.getCollider1()->getBody();
+      OE_ASSERT(body1 != nullptr, "Body 1 is null");
+
       rp3d::Collider* collider1 = pair.getCollider1();
+      OE_ASSERT(collider1 != nullptr, "Collider 1 is null");
+
+      UUID* entity1 = (UUID*)body1->getUserData();
+      OE_ASSERT(entity1 != nullptr, "Entity 1 is null");
 
       rp3d::Body* body2 = pair.getCollider2()->getBody();
+      OE_ASSERT(body2 != nullptr, "Body 2 is null");
+
       rp3d::Collider* collider2 = pair.getCollider2();
+      OE_ASSERT(collider2 != nullptr, "Collider 2 is null");
+
+      UUID* entity2 = (UUID*)body2->getUserData();
+      OE_ASSERT(entity2 != nullptr, "Entity 2 is null");
+
+      UUID& ent1 = *entity1;
+      UUID& ent2 = *entity2;
+
+      listener.HandleContact(ent1, ent2);
 
       for (rp3d::uint j = 0; j < pair.getNbContactPoints(); ++j) {
-        rp3d::CollisionCallback::ContactPoint pa = pair.getContactPoint(j);
-
-        rp3d::Vector3 world_loc1 = collider1->getLocalToWorldTransform() * pa.getLocalPointOnCollider1();
-        rp3d::Vector3 world_loc2 = collider2->getLocalToWorldTransform() * pa.getLocalPointOnCollider2();
-
-        // UUID entity1 = body_map[collider1];
-        // UUID entity2 = body_map[collider2];
-
-        // OnContact(entity1, entity2);
+        // rp3d::CollisionCallback::ContactPoint pa = pair.getContactPoint(j);
+        // rp3d::Vector3 world_loc1 = collider1->getLocalToWorldTransform() * pa.getLocalPointOnCollider1();
+        // rp3d::Vector3 world_loc2 = collider2->getLocalToWorldTransform() * pa.getLocalPointOnCollider2();
       }
     }
   }

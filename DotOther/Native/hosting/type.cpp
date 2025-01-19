@@ -13,14 +13,70 @@
 #include "hosting/property.hpp"
 #include "hosting/type_cache.hpp"
 
-
 namespace dotother {
+
+  void Type::Init() {
+    if (handle == -1) {
+      return;
+    }
+
+    int32_t count = 0;
+    // methods
+    {
+      Interop().get_type_methods(handle, nullptr, &count);
+      std::vector<int32_t> handles;
+      handles.resize(count);
+      Interop().get_type_methods(handle, handles.data(), &count);
+
+      for (size_t i = 0; i < handles.size(); ++i) {
+        methods.emplace_back(Method(handles[i]));
+      }
+    }
+
+    /// fields
+    {
+      Interop().get_type_fields(handle, nullptr, &count);
+      std::vector<int32_t> handles;
+      handles.resize(count);
+      Interop().get_type_fields(handle, handles.data(), &count);
+
+      for (size_t i = 0; i < handles.size(); ++i) {
+        fields.emplace_back(Field(handles[i]));
+      }
+    }
+
+    // properties
+    {
+      Interop().get_type_properties(handle, nullptr, &count);
+      std::vector<int32_t> handles;
+      handles.resize(count);
+      Interop().get_type_properties(handle, handles.data(), &count);
+
+      for (size_t i = 0; i < handles.size(); ++i) {
+        properties.emplace_back(Property(handles[i]));
+      }
+    }
+
+    // attributes
+    {
+      Interop().get_type_attributes(handle, nullptr, &count);
+      std::vector<int32_t> handles;
+      handles.resize(count);
+      Interop().get_type_attributes(handle, handles.data(), &count);
+
+      for (size_t i = 0; i < handles.size(); ++i) {
+        attributes.emplace_back(Attribute(handles[i]));
+      }
+    }
+
+    DOTOTHER_LOG(DO_STR("Type::Init: Initialized type: {}"), MessageLevel::TRACE, FullName());
+  }
 
   Type& Type::BaseObject() {
     if (base_type == nullptr) {
       Type base;
       Interop().get_base_type(handle, &base.handle);
-      base_type = TypeCache::Instance().CacheType(std::move(base));
+      base_type = TypeCache::Instance().CacheType(std::forward<Type>(base));
     }
 
     return *base_type;
@@ -42,67 +98,20 @@ namespace dotother {
     return Interop().is_assignable_from(handle, type.handle);
   }
 
-  std::vector<Method> Type::Methods() {
-    int32_t count = 0;
-    Interop().get_type_methods(handle, nullptr, &count);
-    if (count == 0) {
-      return {};
-    }
-
-    std::vector<int32_t> handles;
-    handles.resize(count);
-    Interop().get_type_methods(handle, handles.data(), &count);
-
-    std::vector<Method> res;
-    res.resize(handles.size());
-    for (size_t i = 0; i < handles.size(); ++i) {
-      res[i].handle = handles[i];
-    }
-
-    DOTOTHER_LOG(DO_STR("{} : Loaded {} methods ({})"), MessageLevel::DEBUG, FullName(), handles.size(), count);
-    return res;
+  const std::vector<Method>& Type::Methods() {
+    return methods;
   }
 
-  std::vector<Field> Type::Fields() {
-    int32_t count = 0;
-    Interop().get_type_fields(handle, nullptr, &count);
-
-    std::vector<int32_t> handles{ count };
-    Interop().get_type_fields(handle, handles.data(), &count);
-
-    std::vector<Field> res{ handles.size() };
-    for (size_t i = 0; i < handles.size(); ++i) {
-      res[i].handle = handles[i];
-    }
-    return res;
+  const std::vector<Field>& Type::Fields() {
+    return fields;
   }
 
-  std::vector<Property> Type::Properties() {
-    int32_t count = 0;
-    Interop().get_type_properties(handle, nullptr, &count);
-
-    std::vector<int32_t> handles{ count };
-    Interop().get_type_properties(handle, handles.data(), &count);
-
-    std::vector<Property> res{ handles.size() };
-    for (size_t i = 0; i < handles.size(); ++i) {
-      res[i].handle = handles[i];
-    }
-    return res;
+  const std::vector<Property>& Type::Properties() {
+    return properties;
   }
 
-  std::vector<Attribute> Type::Attributes() {
-    int32_t count = 0;
-    Interop().get_type_attributes(handle, nullptr, &count);
-
-    std::vector<int32_t> handles{ count };
-    Interop().get_type_attributes(handle, handles.data(), &count);
-
-    std::vector<Attribute> res{ handles.size() };
-    for (size_t i = 0; i < handles.size(); ++i) {
-      res[i].handle = handles[i];
-    }
-    return res;
+  const std::vector<Attribute>& Type::Attributes() {
+    return attributes;
   }
 
   bool Type::HasAttribute(const Type& type) {
@@ -121,7 +130,7 @@ namespace dotother {
     if (elt_type == nullptr) {
       Type elt;
       Interop().get_element_type(handle, &elt.handle);
-      elt_type = TypeCache::Instance().CacheType(std::move(elt));
+      elt_type = TypeCache::Instance().CacheType(std::forward<Type>(elt));
     }
 
     return *elt_type;
@@ -144,6 +153,57 @@ namespace dotother {
     res.managed_handle = Interop().create_object(handle, false, argv, arg_ts, argc);
     res.type = this;
     return res;
+  }
+
+  std::string FormatType(Type* t) {
+    if (t == nullptr) {
+      return "(null-type)";
+    }
+    std::string name = t->FullName();
+
+    auto fields = t->Fields();
+    auto properties = t->Properties();
+    auto methods = t->Methods();
+    auto attributes = t->Attributes();
+
+    std::stringstream ss;
+    std::stringstream fieldss;
+    std::stringstream methodss;
+    constexpr std::string_view template_str =
+      R"(
+      (
+        Type : {},
+            > Fields : {} 
+              [{}]
+            > Properties : {}
+            > Methods : {} 
+              [{}]
+            > Attributes : {}
+      )
+      )";
+
+    using namespace std::string_view_literals;
+
+    fieldss << "\n";
+    for (const auto& field : fields) {
+      fieldss << fmt::format("                Field : {}\n"sv, field.GetName());
+    }
+    fieldss << "              ";
+
+    methodss << "\n";
+    for (auto& method : methods) {
+      methodss << fmt::format("                Method : {}\n"sv, method.GetName());
+    }
+    methodss << "              ";
+
+    // clang-format off
+    ss << fmt::format(template_str, name, 
+                      fields.size(), fieldss.str(), 
+                      properties.size(), 
+                      methods.size(), methodss.str(), 
+                      attributes.size());
+    // clang-format on
+    return ss.str();
   }
 
 }  // namespace dotother

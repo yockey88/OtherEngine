@@ -25,13 +25,13 @@ namespace other {
     OE_ASSERT(entity != nullptr && scene != nullptr, "Attempting to deserialize a rigid-body 2D into null entity or scene!");
     std::string key_value = GetComponentSectionKey(entity->Name(), std::string{ kCollider2DValue });
 
-    auto offset_value = scene_table.Get(key_value, kOffsetValue);
+    const auto& offset_value = scene_table.Get(key_value, kOffsetValue);
     if (offset_value.size() != 2) {
       OE_ERROR("Failed to deserialize collider 2D into entity {}", entity->Name());
       return;
     }
 
-    auto size_value = scene_table.Get(key_value, kSizeValue);
+    const auto& size_value = scene_table.Get(key_value, kSizeValue);
     if (size_value.size() != 2) {
       OE_ERROR("Failed to deserialize collider 2D into entity {}", entity->Name());
       return;

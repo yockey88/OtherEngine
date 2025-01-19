@@ -24,10 +24,10 @@ namespace other {
 
   class PhysicsWorld : public RefCounted {
    public:
-    PhysicsWorld();
+    PhysicsWorld(Scene* scene_ctx);
     virtual ~PhysicsWorld();
 
-    static Ref<PhysicsWorld> Create();
+    static Ref<PhysicsWorld> Create(Scene* scene_ctx);
 
     virtual void ResetSimulation(Scene* scene) = 0;
     virtual void Simulate(float ts) = 0;
@@ -70,7 +70,10 @@ namespace other {
 
     virtual void RegisterCallbacks() {}
 
+    Scene* scene_context = nullptr;
+
    private:
+    std::map<void*, UUID> native_bodies;
     std::map<UUID, Ref<PhysicsBody>> bodies;
   };
 

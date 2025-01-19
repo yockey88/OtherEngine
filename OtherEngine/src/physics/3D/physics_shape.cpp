@@ -8,6 +8,7 @@ namespace other {
 
   void PhysicsShape::SetEntity(const UUID& id) {
     entity_id = id;
+    OnSetEntity(id);
   }
 
   PhysicsShape::Shape PhysicsShape::ShapeType() const {

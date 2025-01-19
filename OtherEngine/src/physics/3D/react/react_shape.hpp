@@ -18,7 +18,10 @@ namespace other {
         : BoxShape(), shape(shape), world(world) {}
     virtual ~ReactBoxShape() override {}
 
-    virtual glm::vec2 HalfExtents() const override;
+    void OnSetEntity(const UUID& id) override;
+
+    glm::vec2 HalfExtents() const override;
+    void* NativeShape() override { return shape; }
 
     rp3d::BoxShape* shape = nullptr;
     ReactWorld* world = nullptr;
@@ -30,7 +33,10 @@ namespace other {
         : SphereShape(), shape(shape), world(world) {}
     virtual ~ReactSphereShape() override {}
 
-    virtual float Radius() const override;
+    void OnSetEntity(const UUID& id) override;
+
+    float Radius() const override;
+    void* NativeShape() override { return shape; }
 
     rp3d::SphereShape* shape = nullptr;
     ReactWorld* world = nullptr;
@@ -42,8 +48,11 @@ namespace other {
         : CapsuleShape(), shape(shape), world(world) {}
     virtual ~ReactCapsuleShape() override {}
 
-    virtual float Radius() const override;
-    virtual float Height() const override;
+    void OnSetEntity(const UUID& id) override;
+
+    float Radius() const override;
+    float Height() const override;
+    void* NativeShape() override { return shape; }
 
     rp3d::CapsuleShape* shape = nullptr;
     ReactWorld* world = nullptr;
@@ -55,6 +64,10 @@ namespace other {
         : ConvexMeshShape(), shape(shape), world(world) {}
     virtual ~ReactConvexMeshShape() override {}
 
+    void OnSetEntity(const UUID& id) override;
+
+    void* NativeShape() override { return shape; }
+
     rp3d::ConvexShape* shape = nullptr;
     ReactWorld* world = nullptr;
   };
@@ -64,6 +77,10 @@ namespace other {
     ReactConcaveMeshShape(rp3d::ConcaveShape* shape)
         : ConcaveMeshShape(), shape(shape) {}
     virtual ~ReactConcaveMeshShape() override {}
+
+    void OnSetEntity(const UUID& id) override;
+
+    void* NativeShape() override { return shape; }
 
     rp3d::ConcaveShape* shape = nullptr;
   };

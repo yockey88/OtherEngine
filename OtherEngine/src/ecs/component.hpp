@@ -58,6 +58,7 @@ namespace other {
   constexpr static int32_t kLightSourceIndex = 11;
   /** invisible components
    *                       kSerializationData = -1
+   *                       kSceneComponent = -2
    *                       kNullComponent = -999
    **/
 

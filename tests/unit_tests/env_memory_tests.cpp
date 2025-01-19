@@ -9,9 +9,7 @@
 
 #include "oetest.hpp"
 
-using namespace other;
-
-class MemoryTests : public OtherTest {
+class MemoryTests : public other::OtherTest {
  protected:
   void SetUp() override {
     srand(time(nullptr));
@@ -31,13 +29,14 @@ class MemoryTests : public OtherTest {
     };
   }
 
-  std::array<glm::vec4, Memory::kStackSize> expected_data;
-  std::array<address_t, Memory::kStackSize> addresses;
+  std::array<glm::vec4, other::Memory::kStackSize> expected_data;
+  std::array<other::address_t, other::Memory::kStackSize> addresses;
 
-  std::array<glm::vec4, Memory::kHeapSize> heap_data;
-  std::array<address_t, Memory::kHeapSize> heap_addresses;
+  std::array<glm::vec4, other::Memory::kHeapSize> heap_data;
+  std::array<other::address_t, other::Memory::kHeapSize> heap_addresses;
 };
 
+using namespace other;
 TEST_F(MemoryTests, simple_memory_test) {
   Memory memory;
   address_t addr;

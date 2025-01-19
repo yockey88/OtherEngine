@@ -4,22 +4,21 @@
  **/
 #include "physics/3D/physics_world.hpp"
 
-#include "scene/scene.hpp"
-
 #include "physics/3D/react/react_world.hpp"
 
 namespace other {
 
-  PhysicsWorld::PhysicsWorld() {}
+  PhysicsWorld::PhysicsWorld(Scene* scene_ctx)
+      : scene_context(scene_ctx) {}
 
   PhysicsWorld::~PhysicsWorld() {}
 
-  Ref<PhysicsWorld> PhysicsWorld::Create() {
+  Ref<PhysicsWorld> PhysicsWorld::Create(Scene* scene_ctx) {
     Ref<PhysicsWorld> world = nullptr;
 
 #define OTHER_USE_REACT
 #ifdef OTHER_USE_REACT
-    world = NewRef<ReactWorld>();
+    world = NewRef<ReactWorld>(scene_ctx);
 #else
     world = NewRef<JoltWorld>();
 #endif

@@ -64,7 +64,7 @@ namespace other {
 
   UUID EntitySerializer::Deserialize(Ref<Scene>& ctx, const std::string& name, const ConfigTable& scene_table) const {
     OE_ASSERT(ctx != nullptr, "Attempting to deserialize entity with null scene reference");
-    auto entity_data = scene_table.Get(name);
+    const auto& entity_data = scene_table.Get(name);
 
     Entity* entity = ctx->CreateEntity(name);
     UUID id = entity->GetComponent<Tag>().id;
@@ -87,7 +87,7 @@ namespace other {
       relationship_serializer->Deserialize(entity, scene_table, ctx);
     }
 
-    auto components = scene_table.Get(name, kComponentsValue);
+    const auto& components = scene_table.Get(name, kComponentsValue);
     if (components.empty()) {
       return id;
     }

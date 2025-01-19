@@ -19,7 +19,6 @@ namespace Other {
   public class OtherObject : OtherBehavior {
     private Dictionary<Type , Component> components = new Dictionary<Type , Component>();
     private BehaviorFlags flags = new BehaviorFlags(false , false);
-    public ulong Id => ObjectID;
 
     internal static unsafe delegate*<IntPtr , NString> GetName;
     internal static unsafe delegate*<IntPtr , NString , void> SetName;
@@ -71,6 +70,14 @@ namespace Other {
       ObjectRegistry.Register(this);
     }
 
+    public OtherObject(IntPtr native_handle, UInt64 object_id, UInt32 scene_id) {
+      NativeHandle = native_handle;
+      ObjectID = object_id;
+      EntityID = scene_id;
+      ObjectRegistry.Register(this);
+    }
+
+
     ~OtherObject() {
       ObjectRegistry.Unregister(this);
     }
@@ -98,12 +105,11 @@ namespace Other {
       set { children = value; }
     }
     
-    public override void NativeInitialize() {
-      Scene.AddObject(Id , this);
-    }
+    // public override void NativeInitialize() {
+    //   Scene.AddActiveScript(ObjectID);
+    // }
 
     public override void NativeStart() {
-      Scene.AddObject(Id , this);
     }
 
     public T CreateComponent<T>() where T : Component , new() {
@@ -159,6 +165,21 @@ namespace Other {
       }
       return;
     }
+
+    public void HandleContact(UInt64 other) {
+      OtherObject other_behavior = ObjectRegistry.LookUp(other);
+      if (other_behavior == null) {
+        other_behavior = Scene.GetObject(other);
+        if (other_behavior == null) {
+          return;
+        }
+      }
+      
+      OnContact(other_behavior);
+    }
+
+    public virtual void OnContact(OtherObject other) {}
+
   }
 
 }

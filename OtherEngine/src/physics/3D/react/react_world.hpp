@@ -20,7 +20,7 @@ namespace other {
 
   class ReactWorld : public PhysicsWorld {
    public:
-    ReactWorld();
+    ReactWorld(Scene* scene_ctx);
     virtual ~ReactWorld() override;
 
     virtual void ResetSimulation(Scene* scene) override;
@@ -42,7 +42,7 @@ namespace other {
     rp3d::PhysicsWorld::WorldSettings settings;
     rp3d::PhysicsWorld* physics_world = nullptr;
 
-    ReactCollisionListener collision_listener;
+    Ref<ReactCollisionListener> collision_listener = nullptr;
 
     void RegisterCallbacks() override;
   };

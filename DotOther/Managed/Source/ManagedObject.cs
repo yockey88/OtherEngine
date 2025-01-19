@@ -69,6 +69,8 @@ namespace DotOther.Managed {
 		private static unsafe MethodInfo? TryGetMethodInfo(Type type, string? name, ManagedType* types, Int32 count, BindingFlags flags) {
 			MethodInfo? minfo = null;
 
+			// LogMessage($"Trying to get method '{name}' with {count} parameters on type '{type.FullName}'", MessageLevel.Trace);
+
 			var param_types = new ManagedType[count];
 
 			unsafe {
@@ -79,29 +81,36 @@ namespace DotOther.Managed {
 			}
 
 			var mkey = new MethodKey(type.FullName!, name!, param_types, count);
-			if (!methods.TryGetValue(mkey, out minfo)) {
-				List<MethodInfo> ms = new(type.GetMethods(flags));
+			// LogMessage($"MethodKey({mkey.type_name}.{mkey.name}[{mkey.param_count}])", MessageLevel.Trace);
 
-				Type? baseType = type.BaseType;
-				while (baseType != null) {
-					ms.AddRange(baseType.GetMethods(flags));
-					baseType = baseType.BaseType;
+			if (methods.TryGetValue(mkey, out minfo)) {
+				if (minfo != null) {
+					return minfo;
 				}
-
-				minfo = InteropInterface.FindSuitableMethod<MethodInfo>(name, types, count, CollectionsMarshal.AsSpan(ms));
-				if (minfo == null) {
-					return null;
-				}
-
-				/// <fixme> 
-				/// 	for some reason caching this method like this causes C# exception: 'Object does not match target type.'
-				/// 		on future calls. For some reason this causes methods to get 'locked onto' the first instance of that type to call it.
-				/// 	not really sure why this happens... super slow to not cache methods 
-				/// </fixme>
-				// methods.Add(mkey, minfo);
+				LogMessage($"Cached method '{type.FullName}.{name}[{count}]' was null!.", MessageLevel.Error);
+			}
+			
+			List<MethodInfo> method_info_list = new List<MethodInfo>();
+			method_info_list.AddRange(type.GetMethods(flags));
+			
+			Type? baseType = type.BaseType;
+			while (baseType != null) {
+				method_info_list.AddRange(baseType.GetMethods(flags));
+				baseType = baseType.BaseType;
 			}
 
-			return minfo;
+			// for (Int32 i = 0; i < method_info_list.Count; i++) {
+			// 	LogMessage($"  ----  Method '{type.FullName}.{method_info_list[i].Name}[{method_info_list[i].GetParameters().Length}]'", MessageLevel.Trace);
+			// }
+
+			minfo = InteropInterface.FindSuitableMethod<MethodInfo>(name, types, count, CollectionsMarshal.AsSpan(method_info_list));
+			if (minfo != null) {
+				methods.Add(mkey, minfo!);
+				return minfo;
+			} else {
+				LogMessage($"Method '{type.FullName}.{name}[{count}]' not found.", MessageLevel.Error);
+				return null;
+			}
 		}
 
 		[UnmanagedCallersOnly]
@@ -192,7 +201,6 @@ namespace DotOther.Managed {
 				}
 					
 				var marshalled_parameters = Interop.DotOtherMarshal.MarshalParameterArray(parameters, count, minfo);
-
 				minfo.Invoke(target, marshalled_parameters);
 			} catch (Exception ex) {
 				LogMessage($"InvokeMethod({method_name}[{count}]) failed", MessageLevel.Error);

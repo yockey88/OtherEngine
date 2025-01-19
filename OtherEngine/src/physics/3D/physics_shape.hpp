@@ -30,6 +30,8 @@ namespace other {
     virtual ~PhysicsShape() {}
 
     // virtual void SetCollisionMaterial(const UUID& material) = 0;
+    virtual void* NativeShape() = 0;
+    virtual void OnSetEntity(const UUID& id) = 0;
 
     void SetEntity(const UUID& id);
 

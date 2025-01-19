@@ -91,15 +91,6 @@ namespace DotOther.Managed {
 		private static string GetNoMethodFoundErrorMsg<T>(string method_name , Int32 argc , ReadOnlySpan<T> methods) where T : MethodBase {
 			StringBuilder sb = new();
 			sb.Append($"Couldn't find suitable method '{method_name}' with {argc} arguments\n");
-			if (argc > 0) {
-				/// <fixme> why doesn't this work to get GetName??? <fixme>
-				// sb.Append("	Parameter types:\n");
-
-				// for (Int32 i = 0; i < argc; i++) {
-				// 	ManagedType mtype = param_types[i];
-				// 	sb.Append($"		> {mtype.GetName}\n");
-				// }
-			}
 			sb.Append("	Available methods:\n");
 			foreach (var minfo in methods) {
 				if (minfo.Name != method_name) {
@@ -117,7 +108,10 @@ namespace DotOther.Managed {
 				return null;
 			}
 
+			// LogMessage($"Searching for method '{method_name}' with {argc} arguments ({methods.Length} options)", MessageLevel.Trace);
+
 			foreach (var minfo in methods) {
+				// LogMessage($" > Checking method '{minfo}' ({minfo.GetParameters().Length})", MessageLevel.Trace);
 				var parameters = minfo.GetParameters();
 				if (parameters.Length != argc) {
 					continue;
@@ -152,27 +146,7 @@ namespace DotOther.Managed {
 				}
 			}
 
-			StringBuilder sb = new();
-			sb.Append($"Couldn't find suitable method '{method_name}' with {argc} arguments\n");
-			if (argc > 0) {
-				/// <fixme> why doesn't this work to get GetName??? <fixme>
-				// sb.Append("	Parameter types:\n");
-
-				// for (Int32 i = 0; i < argc; i++) {
-				// 	ManagedType mtype = param_types[i];
-				// 	sb.Append($"		> {mtype.GetName}\n");
-				// }
-			}
-			sb.Append("	Available methods:\n");
-			foreach (var minfo in methods) {
-				if (minfo.Name != method_name) {
-					continue;
-				}
-
-				sb.Append($"		> {minfo}\n");
-			}
-
-			LogMessage($"{GetNoMethodFoundErrorMsg(method_name , argc , methods)}", MessageLevel.Error);
+			// LogMessage($"{GetNoMethodFoundErrorMsg(method_name , argc , methods)}", MessageLevel.Error);
 
 			return null;
 		}
@@ -371,7 +345,7 @@ namespace DotOther.Managed {
 					*count = 0;
 					return;
 				}
-				LogMessage($"Found {methods.Length} methods for type {t.FullName}", MessageLevel.Trace);
+				LogMessage($" > Found {methods.Length} methods for type {t.FullName}", MessageLevel.Trace);
 
 				*count = methods.Length;
 				if (method_arr == null) {
@@ -379,7 +353,7 @@ namespace DotOther.Managed {
 				}
 
 				for (Int32 i = 0; i < methods.Length; i++) {
-					LogMessage($"  > Adding method {methods[i].Name} to cache", MessageLevel.Trace);
+					LogMessage($"  > Adding method [class : {t.Name}] {methods[i].Name} to cache", MessageLevel.Trace);
 					method_arr[i] = cached_methods.Add(methods[i]);
 				}
 
@@ -392,6 +366,10 @@ namespace DotOther.Managed {
 		[UnmanagedCallersOnly]
 		private static unsafe void GetTypeFields(Int32 type, Int32* field_arr, Int32* field_count) {
 			try {
+				if (field_count == null) {
+					throw new ArgumentNullException(nameof(field_count));
+				}
+
 				if (!cached_types.TryGet(type, out var t)) {
 					return;
 				}

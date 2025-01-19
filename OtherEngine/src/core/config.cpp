@@ -64,39 +64,34 @@ namespace other {
     std::string sec = section.data();
     std::transform(sec.begin(), sec.end(), sec.begin(), ::toupper);
 
-    std::string key_str = key.data();
-    if (allow_key_modifications) {
-      std::transform(key_str.begin(), key_str.end(), key_str.begin(), ::toupper);
-    }
-
     auto sec_hash = FNV(sec);
-    auto key_hash = FNV(key_str);
 
     if (auto section_itr = table.find(sec_hash); section_itr == table.end()) {
       section_map[sec_hash] = section;
       table[sec_hash] = std::map<uint64_t, std::vector<std::string>>();
+      key_names[sec_hash] = std::vector<std::string>();
     }
 
-    if (key_str.empty()) {
+    if (key.empty()) {
       return;
     }
 
+    std::string key_str = key.data();
+    if (allow_key_modifications) {
+      std::transform(key_str.begin(), key_str.end(), key_str.begin(), ::toupper);
+    }
+    auto key_hash = FNV(key_str);
+
+    key_names[sec_hash].push_back(key_str);
+
     if (value.empty()) {
-      throw IniException(("Value cannot be empty : {}.{}", section, key), IniError::EMPTY_VALUE);
+      throw IniException(fmtstr("Value cannot be empty : {}.{}", section, key), IniError::EMPTY_VALUE);
     }
 
-    auto section_itr = table.find(sec_hash);
-    assert(section_itr != table.end() && "Section not found in table");
-    auto& [hash, s] = *section_itr;
+    std::cout << fmtstr("Adding key : {} to section : {}\n", key_str, section);
 
     if (auto key_itr = key_map.find(key_hash); key_itr == key_map.end()) {
       key_map[key_hash] = key_str;
-
-      if (auto key_names_itr = key_names.find(sec_hash); key_names_itr == key_names.end()) {
-        key_names[sec_hash] = std::vector<std::string>();
-      }
-
-      key_names[sec_hash].push_back(key_str);
     }
 
     std::string val{ value };
@@ -163,7 +158,8 @@ namespace other {
     unparsed_script_sections[key_hash] = value;
   }
 
-  const std::map<uint64_t, std::vector<std::string>> ConfigTable::Get(const std::string_view section) const {
+  static std::map<uint64_t, std::vector<std::string>> empty_map;
+  const std::map<uint64_t, std::vector<std::string>>& ConfigTable::Get(const std::string_view section) const {
     std::string sec = section.data();
     std::transform(sec.begin(), sec.end(), sec.begin(), ::toupper);
 
@@ -173,19 +169,25 @@ namespace other {
       return table.at(sec_hash);
     }
 
-    return {};
+    return empty_map;
   }
 
-  const std::vector<std::string> ConfigTable::GetKeys(const std::string_view section) const {
+  static std::vector<std::string> empty;
+  const std::vector<std::string>& ConfigTable::GetKeys(const std::string_view section) const {
+    OE_TRACE("Getting keys for section : {}", section);
+
     std::string sec = section.data();
     std::transform(sec.begin(), sec.end(), sec.begin(), ::toupper);
 
     uint64_t sec_hash = FNV(sec);
-    if (table.find(sec_hash) != table.end()) {
-      return key_names.at(sec_hash);
+    if (key_names.find(sec_hash) != key_names.end()) {
+      auto& keys = key_names.at(sec_hash);
+      OE_TRACE(" > Found {} key{}", keys.size(), keys.empty() ? "" : "s");
+      return keys;
     }
 
-    return {};
+    OE_TRACE(" > Section not found : {}", section);
+    return empty;
   }
 
   const std::map<uint64_t, std::string>& ConfigTable::GetFramebufferSpecs() const {
@@ -208,7 +210,7 @@ namespace other {
     return unparsed_pipelines;
   }
 
-  const std::vector<std::string> ConfigTable::Get(const std::string_view section, const std::string_view key, bool case_sensitive_key) const {
+  const std::vector<std::string>& ConfigTable::Get(const std::string_view section, const std::string_view key, bool case_sensitive_key) const {
     std::string sec = section.data();
     std::transform(sec.begin(), sec.end(), sec.begin(), toupper);
 
@@ -223,16 +225,15 @@ namespace other {
     auto itr = table.find(sec_hash);
     if (itr != table.end()) {
       if (auto itr2 = itr->second.find(key_hash); itr2 != itr->second.end()) {
-        std::vector<std::string> ret = itr->second.at(key_hash);
-        return ret;
+        return itr->second.at(key_hash);
       }
 
       OE_WARN("Key {} not found in section {}", k, sec);
-      return {};
+      return empty;
     }
 
     OE_WARN("Section {} not found", sec);
-    return {};
+    return empty;
   }
 
   template <>

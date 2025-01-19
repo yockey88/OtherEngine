@@ -20,6 +20,11 @@ namespace other {
     native_body = body;
   }
 
+  void PhysicsBody::SetEntityID(const UUID& id) {
+    entity_id = id;
+    OnSetEntity();
+  }
+
   PhysicsBodyType PhysicsBody::GetType() const {
     return body_type;
   }

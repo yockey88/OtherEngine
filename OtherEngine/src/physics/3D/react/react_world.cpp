@@ -20,7 +20,8 @@
 
 namespace other {
 
-  ReactWorld::ReactWorld(/* Ref<Scene> scene */) {
+  ReactWorld::ReactWorld(Scene* scene)
+      : PhysicsWorld(scene) {
     Path path = Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders" / "physics_debug.oshader";
     Ref<Shader> shader = BuildShader(path);
     if (shader == nullptr) {
@@ -50,6 +51,8 @@ namespace other {
     // settings.cosAngleSimilarContactManifold = 0.95f;
 
     physics_world = physics_common.createPhysicsWorld(settings);
+
+    collision_listener = NewRef<ReactCollisionListener>(scene);
   }
 
   ReactWorld::~ReactWorld() {
@@ -336,8 +339,8 @@ namespace other {
 
   void ReactWorld::RegisterCallbacks() {
     OE_ASSERT(physics_world != nullptr, "Physics world is null");
-
-    physics_world->setEventListener(&collision_listener.listener);
+    OE_ASSERT(collision_listener != nullptr, "Collision listener is null");
+    physics_world->setEventListener(&collision_listener->listener);
   }
 
 }  // namespace other

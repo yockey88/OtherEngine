@@ -213,6 +213,7 @@ namespace other {
       return nullptr;
     }
 
+    OE_TRACE("Attempting to find C# script module {}", id);
     if (loaded_modules.find(id) != loaded_modules.end()) {
       return loaded_modules[id];
     }
@@ -267,12 +268,14 @@ namespace other {
       OE_DEBUG(" > Loaded C# assembly {} [{}]", module_info.name, id);
     }
 
+    OE_TRACE("C# Assembly {} loaded [{}]", module_info.name, id);
     auto& m = loaded_modules[id] = NewRef<CsScript>(module_info.name, assembly);
     m->Initialize();
     loaded_modules_data[id] = module_info;
 
     file->Open();
     OE_ASSERT(file->IsOpen(), "Failed to reopen file : {}", real_path.string());
+    OE_DEBUG(" > C# Script Loaded : {} [assembly : {}]", module_info.name, id);
     return m;
   }
 

@@ -70,15 +70,15 @@ namespace other {
         return;
     }
 
-    auto pos_value = scene_table.Get(key_value, kPositionValue);
-    auto dir_value = scene_table.Get(key_value, kDirectionValue);
-    auto up_value = scene_table.Get(key_value, kUpValue);
-    auto right_value = scene_table.Get(key_value, kRightValue);
-    auto wup_value = scene_table.Get(key_value, kWorldUpValue);
+    const auto& pos_value = scene_table.Get(key_value, kPositionValue);
+    const auto& dir_value = scene_table.Get(key_value, kDirectionValue);
+    const auto& up_value = scene_table.Get(key_value, kUpValue);
+    const auto& right_value = scene_table.Get(key_value, kRightValue);
+    const auto& wup_value = scene_table.Get(key_value, kWorldUpValue);
 
-    auto ea_value = scene_table.Get(key_value, kRotationValue);
-    auto vp_value = scene_table.Get(key_value, kViewportValue);
-    auto clip_value = scene_table.Get(key_value, kClipValue);
+    const auto& ea_value = scene_table.Get(key_value, kRotationValue);
+    const auto& vp_value = scene_table.Get(key_value, kViewportValue);
+    const auto& clip_value = scene_table.Get(key_value, kClipValue);
 
     auto speed_value = scene_table.GetVal<float>(key_value, kSpeedValue, false);
     auto sens_value = scene_table.GetVal<float>(key_value, kSensitivityValue, false);

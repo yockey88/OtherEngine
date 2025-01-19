@@ -33,7 +33,16 @@ namespace Other {
       return null;
     }
 
-#nullable disable
+#nullable enable
+    public static OtherObject? LookUp(UInt64 handle) {
+      foreach (ObjectKey key in objects.Keys) {
+        if (key.handle == handle) {
+          return objects[key];
+        }
+      }
+      return null;
+    }
+
     public static OtherObject? TryGetObject(UInt64? handle, UInt32? entity_id, IntPtr? native_handle) {
       try {
         Int64 native_handle_value = native_handle.HasValue ? native_handle.Value.ToInt64() : 0;

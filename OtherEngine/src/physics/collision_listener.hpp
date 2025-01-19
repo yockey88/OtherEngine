@@ -4,14 +4,33 @@
 #ifndef OTHER_ENGINE_COLLISION_LISTENER_HPP
 #define OTHER_ENGINE_COLLISION_LISTENER_HPP
 
+#include "core/ref.hpp"
 #include "core/ref_counted.hpp"
 #include "core/uuid.hpp"
+
+#include "scene/scene.hpp"
 
 namespace other {
 
   class CollisionListener : public RefCounted {
    public:
-    virtual void OnContact(UUID entity1, UUID entity2) = 0;
+    class CollisionCallback {
+     public:
+      CollisionCallback(CollisionListener& listener)
+          : listener(listener) {}
+
+     protected:
+      CollisionListener& listener;
+    };
+
+    CollisionListener(Scene* scene)
+        : scene_context(scene) {}
+
+    void HandleContact(UUID entity1, UUID entity2);
+    virtual void OnContact(Entity* entity1, Entity* entity2) {}
+
+   protected:
+    Ref<Scene> scene_context = nullptr;
   };
 
 }  // namespace other

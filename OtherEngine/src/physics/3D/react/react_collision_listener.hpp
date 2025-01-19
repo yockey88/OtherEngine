@@ -8,24 +8,31 @@
 
 #include <reactphysics3d/reactphysics3d.h>
 
+#include "core/ref.hpp"
+
 #include "physics/collision_listener.hpp"
 
 namespace rp3d = reactphysics3d;
 
 namespace other {
 
+  class Scene;
+
   class ReactCollisionListener : public CollisionListener {
    public:
-    struct Listener : public rp3d::EventListener {
+    ReactCollisionListener(Scene* scene)
+        : CollisionListener(scene) {}
+
+    struct Listener : public rp3d::EventListener, public CollisionCallback {
       void onContact(const rp3d::CollisionCallback::CallbackData& data) override;
-    } listener;
 
-    void OnContact(UUID entity1, UUID entity2) override {}
+      Listener(CollisionListener& listener)
+          : CollisionListener::CollisionCallback(listener) {}
+      virtual ~Listener() override = default;
 
-    void RegisterBody(rp3d::Collider* collider, UUID entity_id) {}
+    } listener{ *this };
 
    private:
-    std::map<rp3d::Collider*, UUID> body_map;
   };
 
 }  // namespace other

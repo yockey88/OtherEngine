@@ -8,6 +8,7 @@
 
 #include <core/dotother_defines.hpp>
 #include <entt/entt.hpp>
+#include <gtest_prod.h>
 #include <hosting/native_object.hpp>
 #include <reflection/echo_defines.hpp>
 #include <reflection/object_proxy.hpp>
@@ -81,7 +82,7 @@ namespace other {
 
     entt::registry& Registry();
 
-    ScriptRef<CsObject> SceneScriptObject();
+    Script& SceneScriptObject();
 
     Ref<PhysicsWorld2D> Get2DPhysicsWorld() const;
     Ref<PhysicsWorld> GetPhysicsWorld() const;
@@ -123,6 +124,7 @@ namespace other {
     void RestoreLastCapture();
 
     void ResetPhysicsSimulation();
+    std::pair<Entity*, Entity*> HandleContact(UUID entity1, UUID entity2);
 
    protected:
     other::AssetHandle model_handle;
@@ -167,10 +169,10 @@ namespace other {
     bool scene_geometry_changed = true;
 
     entt::registry registry;
+    Entity* scene_entity = nullptr;
 
     std::string scene_name = "[ Empty Scene ]";
     UUID scene_handle;
-    ScriptRef<CsObject> scene_object = nullptr;
 
     SystemGroup<Relationship> connection_group;
     SystemGroup<LightSource, Transform> light_group;
@@ -195,6 +197,8 @@ namespace other {
 
     void FixRoots();
     void BuildGroups();
+
+    // void OnAddScript(entt::registry& context, entt::entity entt);
 
     void OnAddRigidBody(entt::registry& context, entt::entity entt);
     void OnAddCollider(entt::registry& context, entt::entity entt);

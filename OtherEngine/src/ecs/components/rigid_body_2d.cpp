@@ -10,7 +10,6 @@
 
 #include "physics/physics_defines.hpp"
 
-
 namespace other {
 
   void RigidBody2DSerializer::Serialize(std::ostream& stream, Entity* entity, const Ref<Scene>& scene) const {
@@ -47,7 +46,7 @@ namespace other {
 
     auto& rigid_body = entity->AddComponent<RigidBody2D>();
 
-    auto body_type = scene_table.Get(key_value, kTypeValue);
+    const auto& body_type = scene_table.Get(key_value, kTypeValue);
     if (body_type.size() != 1) {
       OE_ERROR("Failed to deserialize rigidy body 2D into entity {}", entity->Name());
       return;

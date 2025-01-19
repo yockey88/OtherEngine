@@ -9,7 +9,6 @@
 
 #include <glm/ext/quaternion_transform.hpp>
 #include <glm/fwd.hpp>
-
 #include <hosting/native_string.hpp>
 #include <hosting/type.hpp>
 
@@ -98,7 +97,6 @@ namespace other {
       OE_ASSERT(entity != nullptr, "Entity is null!");
       auto itr = has_component_funcs.find(type);
       if (itr == has_component_funcs.end()) {
-        OE_WARN("No component found for type : {}", type);
         return false;
       }
 
@@ -109,7 +107,6 @@ namespace other {
       OE_ASSERT(entity != nullptr, "Entity is null!");
       auto itr = create_component_funcs.find(type);
       if (itr == create_component_funcs.end()) {
-        OE_WARN("No component found for type : {}", type);
         return;
       }
 
@@ -120,7 +117,6 @@ namespace other {
       OE_ASSERT(entity != nullptr, "Entity is null!");
       auto itr = remove_component_funcs.find(type);
       if (itr == remove_component_funcs.end()) {
-        OE_WARN("No component found for type : {}", type);
         return;
       }
 
@@ -160,11 +156,11 @@ namespace other {
       }
 
       if (getter != nullptr) {
-        assembly->SetInternalCall(name, "Get" + std::string{ prop_name }, &getter);
+        assembly->SetInternalCall(name, "Get" + std::string{ prop_name }, (void*)&getter);
       }
 
       if (setter != nullptr) {
-        assembly->SetInternalCall(name, "Set" + std::string{ prop_name }, &setter);
+        assembly->SetInternalCall(name, "Set" + std::string{ prop_name }, (void*)&setter);
       }
     }
 
@@ -222,7 +218,7 @@ namespace other {
       // RegisterComponent<Collider2D>(assembly);
       // RegisterComponent<RigidBody2D>(assembly);
       // RegisterComponent<Camera>(assembly);
-      // RegisterComponent<Script>(assembly);
+      RegisterComponent<Script>(assembly);
 
       RegisterInternalCallAs(assembly, "OtherObject", "NativeHasComponent", (void*)&NativeHasComponent);
       RegisterInternalCallAs(assembly, "OtherObject", "NativeCreateComponent", (void*)&NativeCreateComponent);
@@ -241,26 +237,48 @@ namespace other {
         }
       );
 
-      RegisterCompatibleProperty<dotother::NString>(
-        "OtherObject", "Name", assembly,
+      RegisterFunction(
+        "Scene", "GetSceneId", assembly,
+        [](uint64_t id) -> uint32_t {
+          Ref<Scene> scene = ScriptEngine::GetSceneContext();
+          if (scene == nullptr) {
+            OE_ERROR("Attempting to retrieve native entity handle from invalid scene context!");
+            return 0u;
+          }
+
+          Entity* entity = scene->GetEntity(id);
+          if (entity == nullptr) {
+            OE_ERROR("Entity with id [{}] does not exist in scene", id);
+            return 0u;
+          }
+
+          return static_cast<uint32_t>(entity->Handle());
+        }
+      );
+
+      RegisterFunction(
+        "OtherObject", "GetName", assembly,
         [](Entity* entity) -> dotother::NString {
           OE_ASSERT(entity != nullptr, "Entity is null!");
           return dotother::NString::New(entity->ReadComponent<Tag>().name);
-        },
+        }
+      );
+
+      RegisterFunction(
+        "OtherObject", "SetName", assembly,
         [](Entity* entity, dotother::NString value) {
           OE_ASSERT(entity != nullptr, "Entity is null!");
           entity->GetComponent<Tag>().name = (std::string)value;
         }
       );
 
-      RegisterCompatibleProperty<uint64_t>(
-        "Relationship", "Parent", assembly,
+      RegisterFunction(
+        "Relationship", "GetParent", assembly,
         [](Entity* entity) -> uint64_t {
           OE_ASSERT(entity != nullptr, "Entity is null!");
           auto& relationship = entity->GetComponent<Relationship>();
           return relationship.parent.value_or(0u).Get();
-        },
-        nullptr
+        }
       );
 
       RegisterFunction(

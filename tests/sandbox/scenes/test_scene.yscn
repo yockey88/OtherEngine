@@ -73,8 +73,9 @@ color = { 0.22 , 0.22 , 0.11 , 1.0 }
 UUID = 14382231788964811176
 components = {
   static-mesh,
+  script,
   rigid-body,
-  collider
+  collider,
 }
 
 [floor.transform]
@@ -92,6 +93,9 @@ primitive = 3
 material.albedo = { 1, 0, 0, 1 }
 material.normal = { 1.0 , 1.0 , 1.0, 1 }
 material.roughness = { 1.0, 1.0, 1.0, 1 }
+
+[floor.script]
+*SandboxScripts = { "Other::TestScript2" }
 
 [floor.rigid-body]
 type = static

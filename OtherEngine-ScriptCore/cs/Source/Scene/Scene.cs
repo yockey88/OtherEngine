@@ -1,6 +1,8 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Net;
 using System.Reflection.Metadata;
 using DotOther.Managed;
 using DotOther.Managed.Interop;
@@ -23,20 +25,22 @@ namespace Other {
     }
 
     internal static unsafe delegate*<UInt64 , IntPtr> GetNativeHandle;
+    internal static unsafe delegate*<UInt64, UInt32> GetSceneId;
     internal static unsafe delegate*<IntPtr , NBool32> IsHandleValid;
 
+    private static SortedSet<UInt64> active_scripts = new SortedSet<UInt64>();
     private static Dictionary<UInt64 , OtherObject> objects = new Dictionary<UInt64 , OtherObject>();
-    
-    public override OtherBehavior Parent {
-      get => null;
-      set {}
+
+    public override List<OtherBehavior> Children { 
+      get => throw new NotImplementedException(); 
+      set => throw new NotImplementedException(); 
     }
 
-    public override List<OtherBehavior> Children {
-      get => new List<OtherBehavior>();
-      set {}
+    public override OtherBehavior Parent { 
+      get => throw new NotImplementedException(); 
+      set => throw new NotImplementedException(); 
     }
-
+  
     public static bool IsValidHandle(UInt64 id) {
       bool exists = objects.ContainsKey(id);
       if (exists) {
@@ -55,45 +59,92 @@ namespace Other {
       }
     }
 
-    public static EntityHandle GetEntityHandle(UUID id) {
-      unsafe {
-        if (objects.TryGetValue(id , out OtherObject obj)) {
-          Logger.WriteDebug($"Creating Entity Handle for Object : {obj.Name} [{obj.ObjectID}]");
-          return new EntityHandle(obj);
-        }
+    // public static EntityHandle GetEntityHandle(UUID id) {
+    //   unsafe {
+    //     if (objects.TryGetValue(id , out OtherObject obj)) {
+    //       Logger.WriteDebug($"Creating Entity Handle for Object : {obj.Name} [{obj.ObjectID}]");
+    //       return new EntityHandle(obj);
+    //     }
 
-        obj = ObjectRegistry.TryGetObject(id , null , null);
-        if (obj != null) {
-          Logger.WriteDebug($"Creating Entity Handle for Object : {obj.Name} [{obj.ObjectID}]");
-          return new EntityHandle(obj);
-        }
+    //     obj = ObjectRegistry.TryGetObject(id , null , null);
+    //     if (obj != null) {
+    //       Logger.WriteDebug($"Creating Entity Handle for Object : {obj.Name} [{obj.ObjectID}]");
+    //       return new EntityHandle(obj);
+    //     }
 
-        IntPtr native_handle = GetNativeHandle(id);
-        if (native_handle != IntPtr.Zero) {
-          OtherObject other_object = new OtherObject(native_handle);
-          Logger.WriteDebug($"Creating Entity Handle for Object : {other_object.Name} [{other_object.ObjectID}]");
-          return new EntityHandle(other_object);
-        }
+    //     IntPtr native_handle = GetNativeHandle(id);
+    //     if (native_handle != IntPtr.Zero) {
+    //       OtherObject other_object = new OtherObject(native_handle);
+    //       Logger.WriteDebug($"Creating Entity Handle for Object : {other_object.Name} [{other_object.ObjectID}]");
+    //       return new EntityHandle(other_object);
+    //     }
 
-        Logger.WriteError($"Failed to get entity handle for {id}");
-        return null;
+    //     Logger.WriteError($"Failed to get entity handle for {id}");
+    //     return null;
+    //   }
+    // }
+
+
+    public static void AddActiveScript(UInt64 id) {
+      if (objects.ContainsKey(id)) {
+        active_scripts.Add(id);
+      } else {
+        Logger.WriteError($"Failed to add active script : {id} (object not found)");
       }
     }
 
-    public override void OnShutdown() {
+    public static void RemoveActiveScript(UInt64 id) {
+      if (active_scripts.Contains(id)) {
+        Logger.WriteTrace($"Removing Active Script : {id}");
+        active_scripts.Add(id);
+      }
+    }
+
+#nullable enable
+    public static OtherObject? GetObject(UInt64 id) {
+      if (objects.TryGetValue(id , out OtherObject? obj)) {
+        Logger.WriteDebug($"Found Object : {obj.Name} [{id}]");
+        return obj;
+      }
+      Logger.WriteError($"Failed to get object : {id}");
+      return null;
+    }
+#nullable disable
+
+    public void RegisterSceneObject(UInt64 id) {
+      if (objects.ContainsKey(id)) {
+        return;
+      }
+
+      unsafe {
+        IntPtr native_handle = GetNativeHandle(id);
+        if (native_handle == IntPtr.Zero) {
+          Logger.WriteError($"Failed to register scene object : {id}");
+          return;
+        }
+        UInt32 entity_id = GetSceneId(id);
+
+        OtherObject obj = new OtherObject(native_handle, id, entity_id);
+        Logger.WriteDebug($"Registering Scene Object : {obj.Name} [{id}] [Scene Id : {entity_id}] [Native Handle : 0x{native_handle.ToInt64():x}]");
+        objects.Add(id , obj);
+
+        if (obj.HasComponent<Script>()) {
+          Logger.WriteDebug($"Adding Active Script for [{obj.Name}] : {id}");
+          AddActiveScript(id);
+        }
+      }
+    }
+
+    public void ClearObjects() {
       objects.Clear();
     }
 
-    public static void AddObject(UInt64 id , OtherObject obj) {
-      if (!objects.ContainsKey(id)) {
-        objects.Add(id , obj);
-      }
+    public override void OnInitialize() {
+      Console.WriteLine("Scene Initialized");
     }
 
-    public static void RemoveObject(UInt64 id) {
-      if (objects.ContainsKey(id)) {
-        objects.Remove(id);
-      }
+    public override void OnShutdown() {
+      Console.WriteLine("Scene Shutdown");
     }
   }
 

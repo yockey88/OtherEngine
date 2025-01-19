@@ -45,7 +45,7 @@ namespace other {
 
   /// TODO: get rid of this in some nice ctor/dtor wrapper
   Scene::Scene()
-      : Asset(), dotother::NObject(Random::Generate()) {
+      : Asset(), dotother::NObject(handle.Get()) {
     registry.on_construct<entt::entity>().connect<&OnConstructEntity>();
     registry.on_destroy<entt::entity>().connect<&OnDestroyEntity>();
 
@@ -77,6 +77,8 @@ namespace other {
     environment = NewRef<LightEnvironment>();
 
     scene_handle = handle.Get();
+
+    scene_entity = CreateEntity("Scene");
   }
 
   Scene::~Scene() {
@@ -138,14 +140,14 @@ namespace other {
   void Scene::Initialize() {
     FixRoots();
 
-    scene_object = ScriptEngine::GetObjectRef<CsObject>("Scene", "Other", "OtherEngine.CsCore");
-    OE_ASSERT(scene_object != nullptr, "Failed to retrieve scene object from script engine");
-    scene_object->Initialize();
-
-    OE_DEBUG("Setting Scene.NativeHandle([{:p}])", fmt::ptr(this));
-    scene_object->SetHandles(scene_handle, entt::null, this);
-
     OE_DEBUG("Entities in scene [{}]", entities.size());
+
+    Script& scene_object = scene_entity->AddComponent<Script>();
+    scene_object.parent_handle = scene_entity;
+    scene_object.parent_uuid = scene_handle;
+    scene_object.parent_id = scene_entity->Handle();
+    scene_object.AddScript("Scene", "Other", "OtherEngine.CsCore");
+
     registry.view<Script, Tag>().each([this](Script& script, Tag& tag) {
       script.ApiCall("NativeInitialize");
       script.ApiCall("OnInitialize");
@@ -194,12 +196,16 @@ namespace other {
       script.ApiCall("NativeShutdown");
     });
 
-    scene_object->Shutdown();
-    scene_object = nullptr;
+    Script& scene_object = scene_entity->GetComponent<Script>();
+    scene_object.ApiCall("ClearObjects");
+    scene_object.RemoveScript();
+
+    scene_entity->RemoveComponent<Script>();
   }
 
   void Scene::Start(EngineMode mode) {
     OE_ASSERT(initialized, "Starting scene without initialization");
+    OE_DEBUG("Starting Scene : {}", scene_name);
 
     FixRoots();
 
@@ -207,12 +213,16 @@ namespace other {
       Initialize2DRigidBody(physics_world_2d, body, tag, transform);
     });
 
+    /// register all entities who dont have a script so they can be accessible to client scripts
+    Script& scene_object = scene_entity->GetComponent<Script>();
+    for (auto& [id, entity] : entities) {
+      scene_object.ApiCall<uint64_t>("RegisterSceneObject", id.Get());
+    }
+
     registry.view<Script>().each([&](Script& script) {
       script.ApiCall("NativeStart");
       script.ApiCall("OnStart");
     });
-
-    scene_object->Start();
 
     RefreshCameraTransforms();
 
@@ -237,18 +247,15 @@ namespace other {
     });
 
     registry.view<RigidBody2D>().each([&](RigidBody2D& body) {
-      physics_world_2d->DestroyBody(body.physics_body);
+      if (physics_world_2d != nullptr) {
+        physics_world_2d->DestroyBody(body.physics_body);
+      }
     });
-
-    scene_object->Stop();
 
     OnStop();
 
-    if (scene_object == nullptr) {
-      return;
-    }
-
-    // scene_object->CallMethod("ClearObjects");
+    Script& scene_object = scene_entity->GetComponent<Script>();
+    // scene_object.ApiCall("ClearObjects");
   }
 
   void Scene::EarlyUpdate(float dt) {
@@ -264,10 +271,8 @@ namespace other {
     }
 
     registry.view<Script>().each([&dt](Script& script) {
-      script.ApiCall("EarlyUpdate", dt);
+      script.ApiCall<float>("EarlyUpdate", std::forward<float>(dt));
     });
-
-    scene_object->EarlyUpdate(dt);
 
     OnEarlyUpdate(dt);
 
@@ -340,10 +345,15 @@ namespace other {
       });
     }
 
-    OE_ASSERT(physics_world != nullptr, "Physics world is null");
-    physics_world->Simulate(dt * 0.001f);  /// convert ms dt to seconds
+    if (physics_world != nullptr) {
+      physics_world->Simulate(dt * 0.001f);  /// convert ms dt to seconds
+    }
 
     registry.view<RigidBody, Transform, Tag>().each([&](RigidBody& body, Transform& transform, Tag& tag) {
+      if (physics_world == nullptr) {
+        return;
+      }
+
       OE_ASSERT(body.physics_body != nullptr, "Physics body is null");
 
       if (physics_world->ShouldInterpolateTransform()) {
@@ -361,10 +371,8 @@ namespace other {
 
     /// scripts updated last to give most accurate view of updated state
     registry.view<Script>().each([&dt](Script& script) {
-      script.ApiCall("Update", dt);
+      script.ApiCall<float>("Update", std::forward<float>(dt));
     });
-
-    scene_object->Update(dt);
 
     /// update client app if they have custom logic ,
     ///   do this last to give client accurate state view
@@ -456,10 +464,8 @@ namespace other {
     });
 
     registry.view<Script>().each([&dt](Script& script) {
-      script.ApiCall("LateUpdate", dt);
+      script.ApiCall<float>("LateUpdate", std::forward<float>(dt));
     });
-
-    scene_object->LateUpdate(dt);
 
     OnLateUpdate(dt);
 
@@ -538,12 +544,10 @@ namespace other {
     //   auto model = AssetManager::GetAsset<StaticModel>(cube_handle);
     //   renderer->SubmitStaticModel(plname, model, transform.model_transform, light_material);
     // });
-
-    scene_object->Render();
   }
 
   void Scene::SetDebugPhysicsRendering(bool debug) {
-    if (!initialized) {
+    if (!initialized || physics_world == nullptr) {
       return;
     }
 
@@ -552,21 +556,26 @@ namespace other {
   }
 
   void Scene::RenderPhysicsDebug(Ref<SceneRenderer>& scene_renderer) {
-    OE_ASSERT(physics_world != nullptr, "Physics world is null");
+    if (!initialized || physics_world == nullptr) {
+      return;
+    }
     physics_world->SubmitDebugRender(scene_renderer);
   }
 
   void Scene::RenderUI() {
     // registry.view<UI>().each([](const UI& ui) {});
-    scene_object->RenderUI();
+
+    Script& scene_object = scene_entity->GetComponent<Script>();
+    scene_object.ApiCall("RenderUI");
   }
 
   entt::registry& Scene::Registry() {
     return registry;
   }
 
-  ScriptRef<CsObject> Scene::SceneScriptObject() {
-    return scene_object;
+  Script& Scene::SceneScriptObject() {
+    OE_ASSERT(scene_entity != nullptr, "Scene entity is null");
+    return scene_entity->GetComponent<Script>();
   }
 
   Ref<PhysicsWorld2D> Scene::Get2DPhysicsWorld() const {
@@ -850,6 +859,28 @@ namespace other {
     }
   }
 
+  std::pair<Entity*, Entity*> Scene::HandleContact(UUID entity1, UUID entity2) {
+    auto itr1 = entities.find(entity1);
+    auto itr2 = entities.find(entity2);
+    OE_ASSERT(itr1 != entities.end(), "Entity not found in scene : {}", entity1);
+    OE_ASSERT(itr2 != entities.end(), "Entity not found in scene : {}", entity2);
+
+    auto& ent1 = itr1->second;
+    auto& ent2 = itr2->second;
+    OE_ASSERT(ent1 != nullptr, "Entity is null");
+    OE_ASSERT(ent2 != nullptr, "Entity is null");
+
+    if (ent1->HasComponent<Script>()) {
+      ent1->GetComponent<Script>().ApiCall<uint64_t>("HandleContact", ent2->GetUUID().Get());
+    }
+
+    if (ent2->HasComponent<Script>()) {
+      ent2->GetComponent<Script>().ApiCall<uint64_t>("HandleContact", ent1->GetUUID().Get());
+    }
+
+    return { ent1, ent2 };
+  }
+
   // void Scene::OnAddRigidBody2D(entt::registry& context, entt::entity entt) {
   //   OE_ASSERT(physics_world_2d != nullptr, "Somehow created a rigid body 2D component without active 2D physics");
 
@@ -943,14 +974,32 @@ namespace other {
     static_mesh_group = GetGroup<StaticMesh, Transform>();
   }
 
+  // void Scene::OnAddScript(entt::registry& context, entt::entity entt) {
+  //   Entity ent(context, entt);
+  //   auto& script = ent.GetComponent<Script>();
+
+  //   auto& tag = ent.GetComponent<Tag>();
+
+  //   auto itr = entities.find(tag.id);
+  //   if (itr == entities.end()) {
+  //     OE_ERROR("Entity with id [{}] does not exist", tag.id);
+  //     return;
+  //   }
+  //   auto& [id, entity] = *itr;
+
+  //   script.SetHandles();
+  // }
+
   void Scene::OnAddRigidBody(entt::registry& context, entt::entity entt) {
     OE_ASSERT(physics_world != nullptr, "Somehow added a rigid body component without active 3D physics");
 
     Entity ent(context, entt);
+    Tag& tag = ent.GetComponent<Tag>();
     Transform& transform = ent.GetComponent<Transform>();
     RigidBody& body = ent.GetComponent<RigidBody>();
 
     body.physics_body = physics_world->CreateBody(transform);
+    body.physics_body->SetEntityID(tag.id);
   }
 
   void Scene::OnAddCollider(entt::registry& context, entt::entity entt) {

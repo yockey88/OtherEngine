@@ -28,9 +28,7 @@ namespace other {
         OE_ASSERT(false, "NO C# type found for {}", name);
       }
 
-      static void* method = (void*)fn;
-
-      assembly->SetInternalCall(name, method_name, (void*)method);
+      assembly->SetInternalCall(name, method_name, (void*)fn);
     }
 
   }  // namespace cs_script_bindings

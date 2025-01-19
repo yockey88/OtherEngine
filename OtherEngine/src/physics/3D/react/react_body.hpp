@@ -32,13 +32,12 @@ namespace other {
     void AddCollider(Ref<PhysicsShape> shape) override;
 
    private:
-    UUID entity_id;
-
     rp3d::RigidBody* body = nullptr;
     rp3d::Transform inter_transform;
 
     void OnBodyTypeChange(PhysicsBodyType type) override;
     void OnLayerChange(uint32_t layer) override {}
+    void OnSetEntity() override;
 
     Transform ExtractTransform(const rp3d::Transform& physics_transform) const;
   };

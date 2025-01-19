@@ -35,7 +35,7 @@ namespace other {
 
   class JoltWorld : public PhysicsWorld {
    public:
-    JoltWorld();
+    JoltWorld(Scene* scene_ctx);
     virtual ~JoltWorld() override;
 
     void Simulate(float ts) override;

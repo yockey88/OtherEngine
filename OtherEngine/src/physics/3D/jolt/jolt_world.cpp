@@ -3,6 +3,8 @@
  **/
 #include "physics/3D/jolt/jolt_world.hpp"
 
+#include "scene/scene.hpp"
+
 #include "physics/3D/jolt/jolt_body.hpp"
 
 namespace other {
@@ -26,7 +28,8 @@ namespace other {
     OE_DEBUG("Jolt > {}", in_msg_str, msg);
   }
 
-  JoltWorld::JoltWorld() {
+  JoltWorld::JoltWorld(Scene* scene_ctx)
+      : PhysicsWorld(scene_ctx) {
     JPH::Trace = JoltTrace;
 
     /// TODO: somehow choose the best amount of pre-allocated memory for the scene this world

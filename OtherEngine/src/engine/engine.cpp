@@ -38,6 +38,21 @@ namespace other {
     exit_code = std::nullopt;
   }
 
+  Engine::Engine(const ConfigTable& config, const CmdLine& cmd_line, std::string main_thread_name)
+      : cmd_line(cmd_line), config(config) {
+    Logger::Open(config);
+    Logger::Instance()->RegisterThread(main_thread_name);
+
+    Filesystem::Initialize(cmd_line, config);
+    IO::Initialize();
+    EventQueue::Initialize(config);
+
+    state = CreateStateMachine();
+    OE_ASSERT(state != nullptr, "Failed to create Engine State Machine");
+
+    exit_code = std::nullopt;
+  }
+
   Engine::~Engine() {
     state = nullptr;
     EventQueue::Shutdown();
