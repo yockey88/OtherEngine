@@ -101,13 +101,6 @@ namespace other {
       comp_serializer->Deserialize(entity, scene_table, ctx);
     }
 
-    if (entity->HasComponent<RigidBody>() && entity->HasComponent<Collider>()) {
-      auto& rigid_body = entity->GetComponent<RigidBody>();
-      auto& collider = entity->GetComponent<Collider>();
-
-      rigid_body.physics_body->AddCollider(collider.shape);
-    }
-
     return id;
   }
 

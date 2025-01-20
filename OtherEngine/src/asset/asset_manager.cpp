@@ -18,6 +18,10 @@ namespace other {
     return material_table;
   }
 
+  void AssetManager::Cleanup() {
+    material_table = nullptr;
+  }
+
   AssetType AssetManager::AssetTypeFromExtension(const std::string_view extension) {
     auto it = asset_extensions.find(FNV(extension));
     if (it == asset_extensions.end()) {

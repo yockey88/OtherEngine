@@ -62,6 +62,11 @@ namespace other {
     void Initialize();
     void Start(EngineMode mode = EngineMode::EDITOR);
 
+    /// used to passively update scene (without taking a time step) to allow for behind the scenes
+    ///  updates to occur
+    /// also called in editor (runs always)
+    void Synchronize();
+
     void EarlyUpdate(float dt);
     void Update(float dt);
     void LateUpdate(float dt);
@@ -71,6 +76,8 @@ namespace other {
     void Render(Ref<SceneRenderer>& scene_renderer);
 
     void SetDebugPhysicsRendering(bool debug);
+    bool IsDebugPhysicsRendering() const;
+
     void RenderPhysicsDebug(Ref<SceneRenderer>& scene_renderer);
 
     void RenderUI();
@@ -127,6 +134,8 @@ namespace other {
     std::pair<Entity*, Entity*> HandleContact(UUID entity1, UUID entity2);
 
    protected:
+    static ArenaAllocator<Entity> entity_allocator;
+
     other::AssetHandle model_handle;
     Ref<StaticModel> model = nullptr;
     Ref<ModelSource> model_source = nullptr;
@@ -145,6 +154,8 @@ namespace other {
 
     virtual void OnInit() {}
     virtual void OnStart() {}
+
+    virtual void OnSynchronize() {}
 
     virtual void OnEarlyUpdate(float dt) {}
     virtual void OnUpdate(float dt) {}

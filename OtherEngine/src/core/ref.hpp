@@ -9,6 +9,10 @@
 
 #include "core/errors.hpp"
 #include "core/ref_counted.hpp"
+#include "core/view.hpp"
+
+#include "memory/arena_allocator.hpp"
+#include "profiling/profiling.hpp"
 
 namespace other {
   namespace detail {
@@ -24,53 +28,6 @@ namespace other {
   concept RefCastable = std::convertible_to<T, U> || std::derived_from<T, U> || std::derived_from<U, T>;
   template <typename T>
   concept RefType = std::derived_from<T, RefCounted>;
-
-  template <typename T>
-  class Ref;
-
-  /// TODO: find a way to enforece limetime requirements on the object to avoid someone destroying the object
-  ///         out from under the view
-  /**
-   * @brief non-owning reference
-   **/
-  template <typename T>
-  struct View {
-    View(const T& ref)
-        : object(&ref) {}
-    View(T&& ref) noexcept
-        : object(&ref) {}
-    View(T* ptr)
-        : object(ptr) {}
-
-    // this does not increment the reference count
-    View(const Ref<T>& ref)
-        : object(ref.Raw()) {}
-    View(Ref<T>&& ref) noexcept
-        : object(ref.Raw()) {}
-
-    T* operator->() { return object; }
-    const T* operator->() const { return object; }
-
-    T* Raw() { return object; }
-    const T* Raw() const { return object; }
-
-    bool operator==(const View<T>& other) const {
-      return object == other.object;
-    }
-
-    bool operator==(std::nullptr_t) const {
-      return object == nullptr;
-    }
-
-    bool EqualsObj(const View<T>& other) const {
-      return object == other.object;
-    }
-
-   private:
-    friend class Ref<T>;
-
-    mutable T* object = nullptr;
-  };
 
   template <typename T>
   class Ref {
@@ -184,7 +141,7 @@ namespace other {
 
     template <typename U>
       requires RefCastable<T, U>
-    static Ref<U> Cast(Ref<T>& old_ref) {
+    static Ref<U> Cast(const Ref<T>& old_ref) {
       return Ref<U>(reinterpret_cast<U*>(old_ref.object));
     }
 
@@ -202,11 +159,8 @@ namespace other {
     }
 
     template <typename... Args>
-      requires std::is_base_of_v<RefCounted, T> && requires(Args&&... args) {
-        new T(std::forward<Args>(args)...);
-      }
     static Ref<T> Create(Args&&... args) {
-      return Ref<T>(new T(std::forward<Args>(args)...));
+      return Ref<T>(allocator.Allocate(std::forward<Args>(args)...));
     }
 
     bool operator==(const Ref<T>& other) const {
@@ -222,6 +176,7 @@ namespace other {
     }
 
    private:
+    static inline ArenaAllocator<T> allocator;
     /// requires mutable to call IncRef and DecRef in const contexts
     mutable T* object;
 
@@ -243,7 +198,8 @@ namespace other {
 
         if (object->Count() == 0) {
           detail::RemoveReference(object);
-          delete object;
+          allocator.Free(object);
+
           object = nullptr;
         }
       }
@@ -251,7 +207,6 @@ namespace other {
 
     template <typename U>
     friend class Ref;
-    friend struct View<T>;
   };
 
   template <typename T, typename... Args>

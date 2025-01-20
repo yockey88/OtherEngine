@@ -113,6 +113,7 @@ namespace other {
   }
 
   void EngineLaunching::OnStep() {
+    PROFILE_SECTION("EngineLaunching--OnStep");
     /// TODO: implement actual engine launch logic,
     ///       - check if headless mode
     ///       - check configuration settings (server, client, editor, runtime, etc....)
@@ -201,6 +202,7 @@ namespace other {
   }
 
   void EngineIdle::OnStep() {
+    PROFILE_SECTION("EngineIdle--OnStep");
     ScriptEngine::UpdateAttachments(engine->dt);
     engine->EngineEvent(EngineStateEvent::APP_ATTACHED);
   }
@@ -233,6 +235,7 @@ namespace other {
 
   void EngineShutdown::OnStep() {
     OE_ASSERT(AppState::exit_code.has_value(), "No exit code set for engine shutdown");
+    PROFILE_SECTION("EngineShutdown--OnStep");
 
     /// clear event queue from any remaining events and flush one more event loop with no scene
     ///   to ensure we are in a stable state before shutting down

@@ -13,9 +13,13 @@
 #include "engine/engine_state_machine.hpp"
 
 #include "application/app_state.hpp"
+#include "asset/asset_database.hpp"
+#include "asset/asset_manager.hpp"
 #include "event/event_queue.hpp"
 #include "input/io.hpp"
 #include "parsing/ini_parser.hpp"
+
+#include "memory/arena.hpp"
 
 namespace other {
 
@@ -28,6 +32,7 @@ namespace other {
     Logger::Open(config);
     Logger::Instance()->RegisterThread(main_thread_name);
 
+    AssetDatabase::Initialize();
     Filesystem::Initialize(cmdline, config);
     IO::Initialize();
     EventQueue::Initialize(config);
@@ -58,6 +63,9 @@ namespace other {
     EventQueue::Shutdown();
     IO::Shutdown();
     Logger::Shutdown();
+    AssetDatabase::Shutdown();
+    AssetManager::Cleanup();
+    Filesystem::Shutdown();
 
     if (detail::NumberOfLivingReferences() > 0) {
       println("Engine shutdown with {} living references", detail::NumberOfLivingReferences());
@@ -65,6 +73,8 @@ namespace other {
   }
 
   void Engine::Run() {
+    PROFILE_SECTION("Engine--Run");
+
     Start();
     OE_INFO("Running");
     do {
@@ -93,10 +103,14 @@ namespace other {
   }
 
   void Engine::Step() {
+    PROFILE_SECTION("Engine--Step");
+    ADD_MARK;
+
     dt = delta.Get();
     AppState::OnEngineTick(dt);
 
     if (!event_queue.empty()) {
+      PROFILE_SECTION("Engine--state:HandleEvent");
       state->HandleEvent(event_queue.front());
       event_queue.pop();
     }

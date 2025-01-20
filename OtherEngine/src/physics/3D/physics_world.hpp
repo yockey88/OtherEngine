@@ -40,11 +40,11 @@ namespace other {
     virtual Ref<PhysicsShape> CreateConcaveMeshShape(const std::vector<glm::vec3>& vertices, const std::vector<uint32_t>& indices, uint32_t num_faces) = 0;
 
     virtual void SetDebugRendering(bool debug) = 0;
+    bool IsDebugRenderEnabled() const;
+
     virtual void SubmitDebugRender(Ref<SceneRenderer> renderer) = 0;
 
     void RegisterColliderShape(UUID entity_id, Ref<PhysicsShape> shape);
-
-    bool IsDebugRenderEnabled() const;
 
     bool ShouldInterpolateTransform() const;
     float InterpolationAlpha() const;

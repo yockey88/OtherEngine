@@ -57,6 +57,7 @@ namespace other {
 
     Ref<SceneRenderer> GetRenderer();
     void SetDebugPhysicsRendering(bool debug);
+    bool IsDebugPhysicsRendering() const;
 
     bool HasScene(UUID id);
     bool HasScene(const std::string_view name);

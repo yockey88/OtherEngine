@@ -9,6 +9,7 @@
 #include "core/filesystem.hpp"
 #include "core/logger.hpp"
 #include "core/util.hpp"
+#include "core/view.hpp"
 
 #include "application/app_state.hpp"
 #include "parsing/ini_parser.hpp"
@@ -41,7 +42,8 @@ namespace other {
       return;
     }
 
-    View<Scene> scene = View<Scene>{ metadata.asset };
+    Ref<Scene> sref = Ref<Asset>::Cast<Scene>(metadata.asset);
+    View<Scene> scene = View<Scene>{ sref };
     SceneMetadata* scene_metadata = AppState::Scenes()->GetSceneMetadata(scene->SceneHandle());
     /// can gaurantee this because asset was loaded
     OE_ASSERT(scene_metadata != nullptr, "Failed to get scene metadata for scene : {}", scene->SceneHandle());

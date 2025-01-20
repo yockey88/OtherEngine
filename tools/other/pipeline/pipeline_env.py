@@ -64,7 +64,7 @@ class OtherEnginePipelineEnvironment(Singleton):
     
     self.pipeline_config = pipeline_config
     if parse_cmds:
-      parser = parsers.initialize_parser()
+      parser = parsers.initialize_parser(table)
       if len(sys.argv) == 1:
         parser.print_help()
         self.help_printed = True

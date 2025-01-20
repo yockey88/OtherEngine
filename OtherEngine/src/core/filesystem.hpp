@@ -24,6 +24,7 @@ namespace other {
   class Filesystem {
    public:
     static void Initialize(const CmdLine& cmdline, const ConfigTable& config);
+    static void Shutdown();
 
     static void Poll();
 

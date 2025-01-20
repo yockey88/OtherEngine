@@ -142,12 +142,12 @@ engine_cmds: list[Command] = [
     ),
 
     # configuration
-    Command(
-        "-c", "--config",
-        "sets the configuration for the passed in commands",
-        action='store_const', choices=["debug", "release", "profiling"], 
-        default="debug"
-    ),
+    # Command(
+    #     "-c", "--config",
+    #     "sets the configuration for the passed in commands",
+    #     action='store_const', choices=["debug", "release", "profiling"], 
+    #     default="debug"
+    # ),
 
     # generate engine files
     Command(

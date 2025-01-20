@@ -50,6 +50,12 @@ namespace other {
     MountDirectory("core-shaders", GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders");
   }
 
+  void Filesystem::Shutdown() {
+    sFileTree.registered_files.clear();
+    sFileTree.mounted_dirs.clear();
+    sFileTree.dir = nullptr;
+  }
+
   Ref<Directory> Filesystem::MountProjectRoot(const std::string_view name, const Path& path) {
     OE_ASSERT(sFileTree.dir == nullptr, "Project root already mounted");
     uint64_t hash = FNV(name);
@@ -62,6 +68,7 @@ namespace other {
   }
 
   void Filesystem::Poll() {
+    PROFILE_SECTION("Filesystem--Poll");
     if (sFileTree.dir == nullptr) {
       return;
     }

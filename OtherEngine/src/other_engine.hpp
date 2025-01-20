@@ -37,6 +37,7 @@
 #include "rendering/ui/ui.hpp"
 #include "scripting/script_engine.hpp"
 
+#include "memory/arena_allocator.hpp"
 #include "serialization/serializer.hpp"
 
 namespace other {
@@ -77,16 +78,18 @@ namespace other {
 
     #define IMPLEMENT_CLIENT_LOADERS(project_name, driver)                                                   \
       namespace other {                                                                                      \
+        static ArenaAllocator<project_name> app_allocator;                                                   \
+        static ArenaAllocator<driver> driver_allocator;                                                      \
         CLIENT_SIDE App* NewApp(const CmdLine& cmd_line, const ConfigTable& config) {                        \
           static_assert(std::is_base_of_v<App, project_name>, #project_name " must derive from other::App"); \
-          return new project_name(cmd_line, config);                                                         \
+          return app_allocator.Allocate(cmd_line, config);                                                   \
         }                                                                                                    \
         CLIENT_SIDE Engine* LoadDriver(const CmdLine& cmd_line) {                                            \
           static_assert(std::is_base_of_v<Engine, driver>, #driver " must derive from other::Engine");       \
-          return new driver(cmd_line, #project_name "--MainThread");                                         \
+          return driver_allocator.Allocate(cmd_line);                                                        \
         }                                                                                                    \
-        CLIENT_SIDE void FreeApp(App* a) { delete a; }                                                       \
-        CLIENT_SIDE void UnloadDriver(Engine* d) { delete d; }                                               \
+        CLIENT_SIDE void FreeApp(App* a) { app_allocator.Free(a); }                                          \
+        CLIENT_SIDE void UnloadDriver(Engine* d) { driver_allocator.Free(d); }                               \
       }  // namespace other
 
     #define ENTRY_POINT(project_name, driver)        \

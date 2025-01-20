@@ -17,6 +17,7 @@
 namespace other {
 
   ExitCode Executor::Execute(const CommandBlock& bl) {
+    PROFILE_SECTION("Executor--Execute(CommandBlock)");
     block = bl;
 
     if (block->command_queue.empty()) {
@@ -45,6 +46,7 @@ namespace other {
   }
 
   ExitCode Executor::Execute(const Command& command) {
+    PROFILE_SECTION("Executor--Execute(Command)");
     switch (command.command) {
       case CommandType::CLEAR_COMMAND:
         return HandleClear(command);

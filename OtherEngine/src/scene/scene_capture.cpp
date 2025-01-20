@@ -125,10 +125,9 @@ namespace other {
       CopyInto<Camera>(registry, capture->registry, ent_map);
       // CopyInto<Sprite2D>(registry, capture->registry, ent_map);
 
-      capture_stack.pop();
+      scene->ResetPhysicsSimulation();
     }
-
-    scene->ResetPhysicsSimulation();
+    capture_stack.pop();
 
     return true;
   }

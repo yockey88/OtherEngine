@@ -78,6 +78,7 @@ namespace other {
         entity->RemoveComponent<Collider>();
         return;
     }
+    OE_ASSERT(collider.shape != nullptr, "Failed to create collider shape for entity {}", entity->Name());
   }
 
 }  // namespace other

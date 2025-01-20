@@ -44,6 +44,7 @@ namespace other {
     Opt<UUID> panel_creator_id = std::nullopt;
 
     static EditorState& Get();
+    static void Shutdown();
   };
 
 }  // namespace other

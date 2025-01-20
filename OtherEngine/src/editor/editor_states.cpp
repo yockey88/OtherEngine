@@ -41,6 +41,7 @@ namespace other {
   }
 
   void EditorIdle::OnStep() {
+    PROFILE_SECTION("EditorIdle--OnStep");
     if (AppState::IsLoading()) {
       Ref<EditorLayer> layer = AppState::PushLayer<EditorLayer>();
       OE_ASSERT(layer != nullptr, "Failed to push editor layer");
@@ -96,6 +97,7 @@ namespace other {
   }
 
   void EditingScene::OnStep() {
+    PROFILE_SECTION("EditingScene--OnStep");
     AppState::FlushUpdateLoop();
     AppState::HandleRender();
   }

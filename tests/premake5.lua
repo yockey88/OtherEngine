@@ -32,11 +32,37 @@ local sandbox = {
         '{COPY} "%{wks.location}externals/sdl2/lib/Release/SDL2.dll" "%{cfg.targetdir}"',
         '{COPY} "%{wks.location}externals/assimp/lib/Release/assimp-vc143-mt.dll" "%{cfg.targetdir}"',
       }
+    filter { "configurations:Profile" }
+      postbuildcommands {
+        '{COPY} "%{wks.location}externals/sdl2/lib/Release/SDL2.dll" "%{cfg.targetdir}"',
+        '{COPY} "%{wks.location}externals/assimp/lib/Release/assimp-vc143-mt.dll" "%{cfg.targetdir}"',
+      }
     filter { "configurations:Debug" }
       postbuildcommands {
         '{COPY} "%{wks.location}externals/sdl2/lib/Debug/SDL2d.dll" "%{cfg.targetdir}"',
         '{COPY} "%{wks.location}externals/assimp/lib/Debug/assimp-vc143-mtd.dll" "%{cfg.targetdir}"',
       }
+  end,
+
+  custom_configurations = function()
+    filter "configurations:Profile"
+      runtime "Release"
+      optimize "Full"
+      symbols "On"
+      
+      defines { 
+        "OTHER_PROFILE_BUILD",
+        "TRACY_ENABLE",
+        "TRACY_ON_DEMAND",
+        "TRACY_CALLSTACK=10", 
+      }
+
+      files { 
+        "%{wks.location}/externals/tracy/TracyClient.cpp",
+      }
+      includedirs { "%{wks.location}/externals/tracy" }
+      
+      ProcessDependencies("Release")
   end,
 
   components = {
@@ -87,6 +113,27 @@ local gl_sandbox = {
         '{COPY} "%{wks.location}externals/sdl2/lib/Debug/SDL2d.dll" "%{cfg.targetdir}"',
         '{COPY} "%{wks.location}externals/assimp/lib/Debug/assimp-vc143-mtd.dll" "%{cfg.targetdir}"',
       }
+  end,
+
+  custom_configurations = function()
+    filter "configurations:Profile"
+      runtime "Release"
+      optimize "Full"
+      symbols "On"
+      
+      defines { 
+        "OTHER_PROFILE_BUILD",
+        "TRACY_ENABLE",
+        "TRACY_ON_DEMAND",
+        "TRACY_CALLSTACK=10", 
+      }
+
+      files { 
+        "%{wks.location}/externals/tracy/TracyClient.cpp",
+      }
+      includedirs { "%{wks.location}/externals/tracy" }
+      
+      ProcessDependencies("Release")
   end,
 
   components = {
@@ -141,6 +188,27 @@ local unit_tests = {
       }
   end,
 
+  custom_configurations = function()
+    filter "configurations:Profile"
+      runtime "Release"
+      optimize "Full"
+      symbols "On"
+      
+      defines { 
+        "OTHER_PROFILE_BUILD",
+        "TRACY_ENABLE",
+        "TRACY_ON_DEMAND",
+        "TRACY_CALLSTACK=10", 
+      }
+
+      files { 
+        "%{wks.location}/externals/tracy/TracyClient.cpp",
+      }
+      includedirs { "%{wks.location}/externals/tracy" }
+      
+      ProcessDependencies("Release")
+  end,
+
   components = {
     ["OtherEngine"] = "%{wks.location}/OtherEngine/src",
     ["OtherTestEngine"] = "%{wks.location}/OtherTestEngine/src",
@@ -172,6 +240,27 @@ local default_sim_testing_table = {
       "OE_MODULE",
       "OE_TESTING_ENVIRONMENT"
     }
+  end,
+
+  custom_configurations = function()
+    filter "configurations:Profile"
+      runtime "Release"
+      optimize "Full"
+      symbols "On"
+      
+      defines { 
+        "OTHER_PROFILE_BUILD",
+        "TRACY_ENABLE",
+        "TRACY_ON_DEMAND",
+        "TRACY_CALLSTACK=10", 
+      }
+
+      files { 
+        "%{wks.location}/externals/tracy/TracyClient.cpp",
+      }
+      includedirs { "%{wks.location}/externals/tracy" }
+      
+      ProcessDependencies("Release")
   end,
 
   components = {

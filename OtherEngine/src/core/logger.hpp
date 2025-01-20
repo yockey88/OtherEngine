@@ -17,6 +17,8 @@
 #include "core/defines.hpp"
 #include "core/formatters.hpp"
 
+#include "memory/arena_allocator.hpp"
+
 #ifdef OE_TESTING_ENVIRONMENT
   #include "testing_core/errors.hpp"
 #endif  // !OE_TESTING_ENVIRONMENT
@@ -120,6 +122,7 @@ namespace other {
     static void Shutdown();
 
    private:
+    friend class ArenaAllocator<Logger>;
     Logger();
     Logger(const ConfigTable& config);
     ~Logger() {}

@@ -6,6 +6,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
+#include <reactphysics3d/mathematics/Vector3.h>
 
 #include "core/logger.hpp"
 #include "math/matrix_math.hpp"
@@ -16,13 +17,20 @@
 
 namespace other {
 
-  ReactBody::ReactBody(rp3d::RigidBody* body)
-      : body(body) {
+  ReactBody::ReactBody(rp3d::RigidBody* body, rp3d::PhysicsWorld* world)
+      : PhysicsBody(), body(body), world(world) {
+    OE_ASSERT(body != nullptr, "Physics body is null");
+    OE_ASSERT(world != nullptr, "Physics world is null");
     inter_transform = body->getTransform();
     SetNativeBody(body);
   }
 
-  ReactBody::~ReactBody() {}
+  ReactBody::~ReactBody() {
+    if (body != nullptr) {
+      world->destroyRigidBody(body);
+    }
+    body = nullptr;
+  }
 
   void ReactBody::OnSetNativeBody(void* body) {
     if (body == nullptr) {
@@ -62,22 +70,120 @@ namespace other {
     return ExtractTransform(i_transform);
   }
 
-  void ReactBody::AddCollider(Ref<PhysicsShape> shape) {
+  void ReactBody::SetVelocity(const glm::vec3& velocity) {
+    rp3d::Vector3 vel = rp3d::Vector3{ velocity.x, velocity.y, velocity.z };
+    body->setLinearVelocity(vel);
+  }
+
+  glm::vec3 ReactBody::GetVelocity() const {
+    const rp3d::Vector3& velocity = body->getLinearVelocity();
+    return glm::vec3{
+      velocity.x,
+      velocity.y,
+      velocity.z,
+    };
+  }
+
+  void ReactBody::SetAngularVelocity(const glm::vec3& velocity) {
+    const rp3d::Vector3& vel = rp3d::Vector3{ velocity.x, velocity.y, velocity.z };
+    body->setAngularVelocity(vel);
+  }
+
+  glm::vec3 ReactBody::GetAngularVelocity() const {
+    const rp3d::Vector3& velocity = body->getAngularVelocity();
+    return glm::vec3{
+      velocity.x,
+      velocity.y,
+      velocity.z,
+    };
+  }
+
+  void ReactBody::SetMass(float mass) {
+    body->setMass(mass);
+  }
+
+  float ReactBody::GetMass() const {
+    return body->getMass();
+  }
+
+  void ReactBody::SetLinearDrag(float drag) {
+    body->setLinearDamping(drag);
+  }
+
+  float ReactBody::GetLinearDrag() const {
+    return body->getLinearDamping();
+  }
+
+  void ReactBody::SetAngularDrag(float drag) {
+    body->setAngularDamping(drag);
+  }
+
+  float ReactBody::GetAngularDrag() const {
+    return body->getAngularDamping();
+  }
+
+  void ReactBody::SetGravityScale(float scale) {
+    // body->setGravityScale(scale);
+  }
+
+  float ReactBody::GetGravityScale() const {
+    // return body->getGravityScale();
+    return 1.f;
+  }
+
+  void ReactBody::SetFixedRotation(bool fixed) {
+    body->setIsAllowedToSleep(fixed);
+  }
+
+  bool ReactBody::GetFixedRotation() const {
+    return body->isAllowedToSleep();
+  }
+
+  void ReactBody::SetBullet(bool bullet) {
+    // body->setIsBullet(bullet);
+  }
+
+  bool ReactBody::GetBullet() const {
+    // return body->isBullet();
+    return false;
+  }
+
+  void ReactBody::SetTrigger(bool trigger) {
+    // body->setTrigg
+  }
+
+  bool ReactBody::IsTrigger() const {
+    // return body->isTrigger();
+    return false;
+  }
+
+  void ReactBody::OnAddCollider(Ref<PhysicsShape> shape) {
+    OE_ASSERT(body != nullptr, "Physics body is null");
+
     switch (shape->ShapeType()) {
       case PhysicsShape::Shape::BOX: {
         Ref<ReactBoxShape> box_shape = Ref<PhysicsShape>::Cast<ReactBoxShape>(shape);
+        OE_ASSERT(box_shape != nullptr, "Box shape is null");
+        OE_ASSERT(box_shape->shape != nullptr, "Box shape is null");
+
         rp3d::Transform local_transform(rp3d::Vector3(0.f, 0.f, 0.f), body->getTransform().getOrientation());
         body->addCollider(box_shape->shape, local_transform);
       } break;
 
       case PhysicsShape::Shape::SPHERE: {
         Ref<ReactSphereShape> sphere_shape = Ref<PhysicsShape>::Cast<ReactSphereShape>(shape);
+        OE_ASSERT(sphere_shape != nullptr, "Sphere shape is null");
+        OE_ASSERT(sphere_shape->shape != nullptr, "Sphere shape is null");
+
         rp3d::Transform local_transform(rp3d::Vector3(0.f, 0.f, 0.f), body->getTransform().getOrientation());
         body->addCollider(sphere_shape->shape, local_transform);
       } break;
 
       case PhysicsShape::Shape::CAPSULE: {
         Ref<ReactCapsuleShape> capsule_shape = Ref<PhysicsShape>::Cast<ReactCapsuleShape>(shape);
+        OE_ASSERT(capsule_shape != nullptr, "Capsule shape is null");
+        OE_ASSERT(capsule_shape->shape != nullptr, "Capsule shape is null");
+
         rp3d::Transform local_transform(rp3d::Vector3(0.f, 0.f, 0.f), body->getTransform().getOrientation());
         body->addCollider(capsule_shape->shape, local_transform);
       } break;
@@ -96,6 +202,14 @@ namespace other {
         OE_WARN("Physics Shape unimplemented!");
         break;
     }
+  }
+
+  void ReactBody::OnRemoveCollider(Ref<PhysicsShape> shape) {
+    // OE_ASSERT(body != nullptr, "Physics body is null");
+    // rp3d::Collider* collider = (rp3d::Collider*)shape->NativeShape();
+    // OE_ASSERT(collider != nullptr, "Collider is null");
+
+    // body->removeCollider(collider);
   }
 
   void ReactBody::OnBodyTypeChange(PhysicsBodyType type) {

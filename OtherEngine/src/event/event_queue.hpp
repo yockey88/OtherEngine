@@ -33,6 +33,7 @@ namespace other {
     template <typename T>
       requires Event<T>
     static void PushEvent(const T& arg) {
+      PROFILE_SECTION("EventQueue--PushEvent");
       size_t idx = event_buffer.BufferData(arg);
       EventHandle handle{
         .ptr = event_buffer.PointerAt<T>(idx),

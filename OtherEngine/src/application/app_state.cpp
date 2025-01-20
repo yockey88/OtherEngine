@@ -11,6 +11,7 @@
 #include "environment/environment.hpp"
 
 #include "application/app.hpp"
+#include "asset/asset_database.hpp"
 #include "event/event_queue.hpp"
 #include "input/io.hpp"
 
@@ -219,6 +220,8 @@ namespace other {
   }
 
   void AppState::OnEngineTick(float dt) {
+    PROFILE_SECTION("AppState--OnEngineTick");
+
     if (data != nullptr) {
       data->frame_delta = dt;
     }
@@ -228,6 +231,7 @@ namespace other {
   }
 
   void AppState::FlushUpdateLoop() {
+    PROFILE_SECTION("AppState--FlushUpdateLoop");
     if (Environment::Get().terminal_open) {
       Environment::Get().terminal.Dispatch();
     }
@@ -239,18 +243,24 @@ namespace other {
   }
 
   void AppState::RunEarlyUpdate() {
+    PROFILE_SECTION("AppState--RunEarlyUpdate");
+
     data->app_handle->DoEarlyUpdate(data->frame_delta);
     data->layers->InvokeControlledLoop(&Layer::EarlyUpdate, data->frame_delta);
     data->scenes->EarlyUpdateScene(data->frame_delta);
   }
 
   void AppState::RunUpdate() {
+    PROFILE_SECTION("AppState--RunUpdate");
+
     data->app_handle->DoUpdate(data->frame_delta);
     data->layers->InvokeControlledLoop(&Layer::Update, data->frame_delta);
     data->scenes->UpdateScene(data->frame_delta);
   }
 
   void AppState::RunLateUpdate() {
+    PROFILE_SECTION("AppState--RunLateUpdate");
+
     data->app_handle->DoLateUpdate(data->frame_delta);
     data->layers->InvokeControlledLoop(&Layer::LateUpdate, data->frame_delta);
     data->scenes->LateUpdateScene(data->frame_delta);
@@ -264,6 +274,8 @@ namespace other {
   }
 
   void AppState::HandleRender() {
+    PROFILE_SECTION("AppState--HandleRender");
+
     Renderer::GetWindow()->Clear();
     data->scenes->GetRenderer()->Clear();
 

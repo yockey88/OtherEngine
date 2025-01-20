@@ -9,7 +9,7 @@ configuration.static_runtime = "on"
 configuration.target_dir = "%{wks.location}/bin/%{cfg.buildcfg}/%{prj.name}"
 configuration.obj_dir = "%{wks.location}/bin_obj/%{cfg.buildcfg}/%{prj.name}"
 
-configuration.build_configurations = { "Debug", "Release" }
+configuration.config_table = { "Debug", "Release", "Profile" }
 configuration.platforms = { "Windows" }
 
 configuration.groups = {
@@ -96,7 +96,7 @@ sdl2.include_dir = "%{wks.location}/externals/sdl2/SDL2"
 sdl2.lib_dir = "%{wks.location}/externals/sdl2/lib/%{cfg.buildcfg}"
 sdl2.lib_name = "SDL2"
 sdl2.debug_lib_name = "SDL2d"
-sdl2.configurations = { "Debug", "Release" }
+sdl2.configurations = { "Debug", "Release", "Profile" }
 
 local spdlog = {}
 spdlog.name = "spdlog"

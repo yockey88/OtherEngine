@@ -173,28 +173,6 @@ namespace other {
 
     EditorState& editor = EditorState::Get();
 
-    /// menu bar for guizmo tools
-    ui::MenuBar([&]() {
-      ui::Menu(
-        "Tools",
-        ui::MenuItem(
-          "Translate",
-          [&]() { editor.guizmo_op = ImGuizmo::OPERATION::TRANSLATE; }
-        ),
-        ui::MenuItem("Rotate", [&]() { editor.guizmo_op = ImGuizmo::OPERATION::ROTATE; }),
-        ui::MenuItem("Scale", [&]() { editor.guizmo_op = ImGuizmo::OPERATION::SCALE; })
-      );
-
-      ui::Menu(
-        "Modes",
-        ui::MenuItem("Local", [&]() { editor.guizmo_mode = ImGuizmo::MODE::LOCAL; }),
-        ui::MenuItem(
-          "World",
-          [&]() { /* editor.guizmo_mode = ImGuizmo::MODE::WORLD; */ }
-        )
-      );
-    });
-
     ImVec2 min_bound = ImGui::GetWindowPos();
     ImVec2 window_size = ImGui::GetWindowSize();
     last_viewport_size = { window_size.x, window_size.y };
@@ -309,7 +287,7 @@ namespace other {
 
             glm::vec3 new_rotation = transform.erotation + delta_erot;
             transform.erotation = new_rotation;
-            transform.qrotation = glm::quat(new_rotation);
+            transform.qrotation = glm::quat(transform.erotation);
           } break;
 
           // case ImGuizmo::SCALE_X:
@@ -332,9 +310,17 @@ namespace other {
           default:
             break;
         }
-      }
+        transform.CalcMatrix();
 
-      transform.CalcMatrix();
+        {
+          SceneMetadata* active_scene = AppState::Scenes()->ActiveScene();
+          if (active_scene != nullptr) {
+            active_scene->scene->Synchronize();
+          }
+          OE_ASSERT(active_scene->scene != nullptr, "No active scene found");
+          active_scene->scene->Synchronize();
+        }
+      }
     }
   }
 

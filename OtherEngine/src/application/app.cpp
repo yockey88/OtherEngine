@@ -8,6 +8,7 @@
 #include "core/logger.hpp"
 
 #include "application/app_state.hpp"
+#include "asset/asset_database.hpp"
 #include "event/event_queue.hpp"
 #include "parsing/cmd_line_parser.hpp"
 

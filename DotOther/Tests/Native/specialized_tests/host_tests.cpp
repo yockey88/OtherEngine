@@ -4,7 +4,7 @@
 #include <filesystem>
 #include <print>
 
-#include <glm/glm.hpp>
+// #include <glm/glm.hpp>
 #include <gtest/gtest.h>
 
 #include "core/dotest.hpp"
@@ -48,7 +48,7 @@ class HostTests : public DoTest {
   };
 
   static owner<NObject> native_object;
-  static inline glm::vec3 vec = glm::vec3(1.f, 2.f, 3.f);  // , 4.f);
+  // static inline glm::vec3 vec = glm::vec3(1.f, 2.f, 3.f);  // , 4.f);
 
   virtual void SetUp() {
     host = Host::Instance(config);
@@ -67,10 +67,10 @@ class HostTests : public DoTest {
   }
 
  public:
-  static void* GetVec3() {
-    DOTOTHER_LOG(DO_STR("Getting Native Object Handle: {:#08x} (address : {:p})"sv), MessageLevel::DEBUG, native_object->object_handle, fmt::ptr(&native_object));
-    return &vec;
-  }
+  // static void* GetVec3() {
+  //   DOTOTHER_LOG(DO_STR("Getting Native Object Handle: {:#08x} (address : {:p})"sv), MessageLevel::DEBUG, native_object->object_handle, fmt::ptr(&native_object));
+  //   return &vec;
+  // }
 
  protected:
   Host* host = nullptr;
@@ -101,7 +101,7 @@ TEST_F(HostTests, load_asm_and_call_functions) {
   ASSERT_NE(assembly, nullptr);
   ASSERT_NE(assembly->GetId(), -1);
 
-  assembly->SetInternalCall("DotOther.Tests.Mod1", "GetVec3", (void*)&HostTests::GetVec3);
+  // assembly->SetInternalCall("DotOther.Tests.Mod1", "GetVec3", (void*)&HostTests::GetVec3);
   ASSERT_NO_FATAL_FAILURE(assembly->UploadInternalCalls());
 
   Type& type = assembly->GetType("DotOther.Tests.Mod1");

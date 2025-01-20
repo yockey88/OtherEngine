@@ -5,6 +5,8 @@
 
 #include <glm/fwd.hpp>
 
+#include "math/math.hpp"
+
 #include "asset/asset_manager.hpp"
 
 #include "rendering/model.hpp"
@@ -257,11 +259,112 @@ namespace other {
   }
 
   AssetHandle ModelFactory::CreateSphere(float radius) {
-    return 0;
+    std::vector<Vertex> vertices;
+    std::vector<Index> indices;
+
+    constexpr float lat_bands = 30;
+    constexpr float long_bands = 30;
+
+    for (float latitude = 0.0f; latitude <= lat_bands; latitude++) {
+      const float theta = latitude * (float)constants::pi / lat_bands;
+      const float sin_theta = glm::sin(theta);
+      const float cos_theta = glm::cos(theta);
+
+      for (float longitude = 0.0f; longitude <= long_bands; longitude++) {
+        const float phi = longitude * 2.f * (float)constants::pi / long_bands;
+        const float sin_phi = glm::sin(phi);
+        const float cos_phi = glm::cos(phi);
+
+        Vertex vertex;
+        vertex.normal = { cos_phi * sin_theta, cos_theta, sin_phi * sin_theta };
+        vertex.position = { radius * vertex.normal.x, radius * vertex.normal.y, radius * vertex.normal.z };
+        vertices.push_back(vertex);
+      }
+    }
+
+    for (uint32_t latitude = 0; latitude < (uint32_t)lat_bands; latitude++) {
+      for (uint32_t longitude = 0; longitude < (uint32_t)long_bands; longitude++) {
+        const uint32_t first = (latitude * ((uint32_t)long_bands + 1)) + longitude;
+        const uint32_t second = first + (uint32_t)long_bands + 1;
+
+        indices.push_back({ first, second, first + 1 });
+        indices.push_back({ second, second + 1, first + 1 });
+      }
+    }
+
+    AssetHandle mesh_source_handle = AssetManager::CreateMemOnly<ModelSource>("SphereModel-Source", vertices, indices, glm::mat4(1.f));
+    Ref<ModelSource> mesh_source = AssetManager::GetAsset<ModelSource>(mesh_source_handle);
+    OE_ASSERT(mesh_source != nullptr, "Failed to get framebuffer mesh source");
+
+    AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>("SphereModel", mesh_source);
+    OE_DEBUG("Created sphere mesh [{}]", handle);
+    sphere_handle = handle;
+    return handle;
   }
 
+  namespace {
+
+    static void CalculateRing(size_t segments, float radius, float y, float dy, float height, float actual_radius, std::vector<Vertex>& vertices) {
+      float seg_incr = 1.0f / (float)(segments - 1);
+      for (size_t s = 0; s < segments; s++) {
+        float x = glm::cos(float(constants::pi * 2) * s * seg_incr) * radius;
+        float z = glm::sin(float(constants::pi * 2) * s * seg_incr) * radius;
+
+        Vertex& vertex = vertices.emplace_back();
+        vertex.position = glm::vec3(actual_radius * x, actual_radius * y + height * dy, actual_radius * z);
+      }
+    }
+
+  }  // namespace
+
   AssetHandle ModelFactory::CreateCapsule(float radius, float height) {
-    return 0;
+    constexpr size_t subdivision_height = 8;
+    constexpr size_t rings_body = subdivision_height + 1;
+    constexpr size_t rings_total = subdivision_height + rings_body;
+    constexpr size_t num_segments = 12;
+    constexpr float radius_mod = 0.021f;  // Needed to ensure that the wireframe is always visible
+
+    std::vector<Vertex> vertices;
+    std::vector<Index> indices;
+
+    vertices.reserve(num_segments * rings_total);
+    indices.reserve((num_segments - 1) * (rings_total - 1) * 2);
+
+    float bodyIncr = 1.0f / (float)(rings_body - 1);
+    float ringIncr = 1.0f / (float)(subdivision_height - 1);
+
+    for (int r = 0; r < subdivision_height / 2; r++)
+      CalculateRing(num_segments, glm::sin(float(constants::pi) * r * ringIncr), glm::sin(float(constants::pi) * (r * ringIncr - 0.5f)), -0.5f, height, radius + radius_mod, vertices);
+
+    for (int r = 0; r < rings_body; r++)
+      CalculateRing(num_segments, 1.0f, 0.0f, r * bodyIncr - 0.5f, height, radius + radius_mod, vertices);
+
+    for (int r = subdivision_height / 2; r < subdivision_height; r++)
+      CalculateRing(num_segments, glm::sin(float(constants::pi) * r * ringIncr), glm::sin(float(constants::pi) * (r * ringIncr - 0.5f)), 0.5f, height, radius + radius_mod, vertices);
+
+    for (int r = 0; r < rings_total - 1; r++) {
+      for (int s = 0; s < num_segments - 1; s++) {
+        Index& index1 = indices.emplace_back();
+        index1.v1 = (uint32_t)(r * num_segments + s + 1);
+        index1.v2 = (uint32_t)(r * num_segments + s + 0);
+        index1.v3 = (uint32_t)((r + 1) * num_segments + s + 1);
+
+        Index& index2 = indices.emplace_back();
+        index2.v1 = (uint32_t)((r + 1) * num_segments + s + 0);
+        index2.v2 = (uint32_t)((r + 1) * num_segments + s + 1);
+        index2.v3 = (uint32_t)(r * num_segments + s);
+      }
+    }
+
+    AssetHandle mesh_source_handle = AssetManager::CreateMemOnly<ModelSource>("CapsuleModel-Source", vertices, indices, glm::mat4(1.f));
+    Ref<ModelSource> mesh_source = AssetManager::GetAsset<ModelSource>(mesh_source_handle);
+    OE_ASSERT(mesh_source != nullptr, "Failed to get framebuffer mesh source");
+
+    AssetHandle handle = AssetManager::CreateMemOnly<StaticModel>("CapsuleModel", mesh_source);
+
+    OE_DEBUG("Created capsule mesh [{}]", handle);
+    capsule_handle = handle;
+    return handle;
   }
 
   std::vector<Vertex> ModelFactory::GetBoxVertices() {

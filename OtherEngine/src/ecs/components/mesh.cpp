@@ -123,6 +123,7 @@ namespace other {
       } break;
 
       case kSphereIdx:
+        break;
       case kCapsuleIdx:
         // Capsule
         break;

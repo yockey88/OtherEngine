@@ -59,6 +59,27 @@ local function add_dotother_comps(project, addnethost)
     }
   end
 
+  project.custom_configurations = function()
+    filter "configurations:Profile"
+      runtime "Release"
+      optimize "Full"
+      symbols "On"
+      
+      defines { 
+        "DOTOTHER_PROFILE_BUILD",
+        "TRACY_ENABLE",
+        "TRACY_ON_DEMAND",
+        "TRACY_CALLSTACK=10", 
+      }
+
+      files { 
+        "%{wks.location}/externals/tracy/TracyClient.cpp",
+      }
+      includedirs { "%{wks.location}/externals/tracy" }
+      
+      ProcessDependencies("Release")
+  end
+
   project.components = {}
   project.components["DotOther.Native"] = "%{wks.location}/DotOther/Native/src"
   project.components["gtest"] = "%{wks.location}/externals/gtest/googletest/include"

@@ -27,6 +27,7 @@ namespace other {
     static bool ReadTerminalInput();
 
    private:
+    friend class ArenaAllocator<Environment>;
     static Environment* instance;
 
     Environment();

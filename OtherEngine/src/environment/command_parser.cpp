@@ -11,6 +11,7 @@
 namespace other {
 
   CommandParser::CommandWithArg CommandParser::CreateCommand(const parsed_cmd_t& command) {
+    PROFILE_SECTION("CommandParser--CreateCommand");
     if (command.empty()) {
       OE_ERROR("INVALID command! : {}", fmt::join(command, " , "));
       Command cmd;
@@ -89,6 +90,7 @@ namespace other {
   }
 
   CommandBlock CommandParser::FinalizeCommandBlock(const parse_tree_t& ir) {
+    PROFILE_SECTION("CommandParser--FinalizeCommandBlock");
     auto [id_opt, cmds] = ir;
     if (cmds.empty()) {
       OE_WARN("Parsing empty command list! : {}", id_opt.has_value() ? *id_opt : "<nameless-block>");
@@ -119,6 +121,7 @@ namespace other {
   }
 
   CommandBlock CommandParser::ParseBlock(const std::string_view block) {
+    PROFILE_SECTION("CommandParser--ParserBlock");
     try {
       std::string block_str = TrimBeginningAndEnd(std::string{ block });
       std::istringstream stream(block_str);

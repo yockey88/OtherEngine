@@ -13,7 +13,6 @@
 
 #include "core/defines.hpp"
 #include "core/value.hpp"
-
 #include "environment/env_defines.hpp"
 
 namespace other {
@@ -37,7 +36,7 @@ namespace other {
         throw std::out_of_range("Attempting to set value on invalid index");
       }
 
-      ValueWrapperAt(idx).Set<T>();
+      ValueWrapperAt(idx) = Value(T{});
       return PageFromIndex(idx);
     }
 
@@ -51,13 +50,13 @@ namespace other {
       if (index >= kMemorySize) {
         throw std::out_of_range("Attempting to set value on invalid index");
       }
-      ValueWrapperAt(index).Set(val);
+      ValueWrapperAt(index) = std::forward<T>(val);
 
       return { static_cast<uint8_t>(page), static_cast<uint32_t>(page_idx) };
     }
 
     template <typename T>
-      requires (!std::same_as<T,std::string>)
+      requires(!std::same_as<T, std::string>)
     T& Get(address_t address) {
       size_t index = address.page * kPageSize + address.page_idx;
 
@@ -66,10 +65,10 @@ namespace other {
       }
 
       Value& val = ValueWrapperAt(index);
-      OE_ASSERT(val.Type() == GetValueType<T>(), "Attempting to get value of incorrect type");
+      OE_ASSERT(val.GetType() == GetValueType<T>(), "Attempting to get value of incorrect type");
 
-      T* value = val.AddressAs<T>();
-      OE_ASSERT(value != nullptr , "Value is empty!");
+      T* value = val.GetPtr<T>();
+      OE_ASSERT(value != nullptr, "Value is empty!");
       return *value;
     }
 
@@ -81,7 +80,7 @@ namespace other {
       }
 
       Value& val = ValueWrapperAt(index);
-      OE_ASSERT(val.Type() == ValueType::STRING, "Attempting to get value of incorrect type");
+      OE_ASSERT(val.GetType() == ValueType::STRING, "Attempting to get value of incorrect type");
 
       return val.Get<std::string>();
     }
@@ -95,9 +94,9 @@ namespace other {
       }
 
       Value& val = ValueWrapperAt(index);
-      OE_ASSERT(val.Type() == GetValueType<T>(), "Attempting to get value of incorrect type");
+      OE_ASSERT(val.GetType() == GetValueType<T>(), "Attempting to get value of incorrect type");
 
-      T* value = val.AddressAs<T>();
+      T* value = val.GetPtr<T>();
       OE_ASSERT(value != nullptr, "Attempting to get value that is nullptr");
       return value;
     }
@@ -111,7 +110,7 @@ namespace other {
 
       size_t index = heap_cursor.position;
       address_t addr = heap_cursor.address;
-      ValueWrapperAt(index).Set<T>(T{});
+      ValueWrapperAt(index) = Value(T{});
       ++heap_cursor;
 
       return addr;
@@ -125,7 +124,7 @@ namespace other {
 
       size_t index = heap_cursor.position;
       address_t addr = heap_cursor.address;
-      ValueWrapperAt(index).Set<T>(val);
+      ValueWrapperAt(index) = val;
       ++heap_cursor;
 
       return addr;
@@ -142,10 +141,10 @@ namespace other {
       address_t addr = heap_cursor.address;
 
       if constexpr (requires { T{ std::forward<Args>(args)... }; }) {
-        ValueWrapperAt(index).Set<T>(T{ std::forward<Args>(args)... });
+        ValueWrapperAt(index) = T{ std::forward<Args>(args)... };
       } else {
         T t(std::forward<Args>(args)...);
-        ValueWrapperAt(index).Set<T>(t);
+        ValueWrapperAt(index) = t;
       }
 
       ++heap_cursor;
@@ -163,7 +162,7 @@ namespace other {
 
       size_t index = stack_cursor.position;
       address_t addr = stack_cursor.address;
-      ValueWrapperAt(index).Set(val);
+      ValueWrapperAt(index) = val;
       ++stack_cursor;
 
       return addr;
@@ -175,7 +174,7 @@ namespace other {
         throw std::out_of_range("Environment memory empty, stack underflow detected");
       }
 
-      if (GetValueType<T>() != ValueWrapperAt(stack_cursor.position - 1).Type()) {
+      if (GetValueType<T>() != ValueWrapperAt(stack_cursor.position - 1).GetType()) {
         throw std::runtime_error("Attempting to pop value of incorrect type");
       }
 

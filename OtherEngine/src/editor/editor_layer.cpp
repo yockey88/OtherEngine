@@ -69,7 +69,7 @@ namespace other {
 
     // load editor icons and data
     EditorImages::Initialize();
-    Renderer::GetWindow()->ForceResize({ 1920, 1080 });
+    // Renderer::GetWindow()->ForceResize({ 1920, 1080 });
 
     EditorState& editor = EditorState::Get();
 
@@ -86,6 +86,7 @@ namespace other {
   void EditorLayer::OnDetach() {
     panel_manager->Detach();
     EditorImages::Shutdown();
+    EditorState::Shutdown();
 
     EventQueue::UnregisterEventDispatcher("EditorLayer--KeyPressed");
     EventQueue::UnregisterEventDispatcher("EditorLayer--MousePressed");
@@ -215,13 +216,15 @@ namespace other {
         "Scene",
         ui::MenuItem{ "Show Colliders"sv, [&]() { 
           rendering_physics_colliders = !rendering_physics_colliders; 
-          AppState::Scenes()->SetDebugPhysicsRendering(rendering_physics_colliders);
+          AppState::Scenes()->SetDebugPhysicsRendering(!AppState::Scenes()->IsDebugPhysicsRendering());
         } }
       );
     });
     // clang-format on
 
-    panel_manager->RenderUI();
+    bool ui_signal = panel_manager->RenderUI();
+    /// do something with the fact that a UI panel was interacted with????
+    ///   this may not need to return a bool at all
 
     if (ImGui::Begin("Inspector")) {
       if (scene_active && !render_success) {
@@ -237,7 +240,6 @@ namespace other {
         case SceneEditorMode::STOPPED:
           ui::Button("Play", [&]() {
             // save-initial-state
-            AppState::Scenes()->CaptureScene();
             AppState::Scenes()->StartScene();
             EditorState::scene_mode = SceneEditorMode::PLAYING;
 
@@ -247,7 +249,6 @@ namespace other {
 
           ui::Button("Simulate", [&]() {
             // save-initial-state
-            AppState::Scenes()->CaptureScene();
             AppState::Scenes()->StartScene();
             EditorState::scene_mode = SceneEditorMode::SIMULATING;
 
@@ -265,7 +266,12 @@ namespace other {
         case SceneEditorMode::PLAYING:
           ui::Button("Stop", [&]() {
             AppState::Scenes()->StopScene();
-            AppState::Scenes()->RestoreLastCapture();
+            {
+              SceneMetadata* active_scene = AppState::Scenes()->ActiveScene();
+              OE_ASSERT(active_scene != nullptr, "No active scene found");
+              OE_ASSERT(active_scene->scene != nullptr, "No active scene found");
+              active_scene->scene->Synchronize();
+            }
             EditorState::scene_mode = SceneEditorMode::STOPPED;
 
             /// lock editor camera to prevent movement while scene is not simulating and camera is not free
@@ -308,7 +314,6 @@ namespace other {
       if (EditorState::scene_mode == SceneEditorMode::PLAYING ||
           EditorState::scene_mode == SceneEditorMode::SIMULATING) {
         AppState::Scenes()->StopScene();
-        AppState::Scenes()->RestoreLastCapture();
         playing = false;
         Mouse::FreeCursor();
         EditorState::scene_mode = SceneEditorMode::STOPPED;

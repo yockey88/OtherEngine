@@ -23,6 +23,8 @@
 #include <magic_enum/magic_enum.hpp>
 #include <spdlog/fmt/fmt.h>
 
+#include "profiling/profiling.hpp"
+
 #define bit(x) (1ll << x)
 
 #ifdef OE_MODULE
@@ -137,6 +139,7 @@ namespace other {
 
     /// user types
     USER_TYPE,
+    OPAQUE_HANDLE
   };
 
   template <typename T>

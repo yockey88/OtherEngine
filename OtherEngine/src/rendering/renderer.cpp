@@ -77,6 +77,8 @@ namespace other {
   }
 
   void Renderer::Shutdown() {
+    window_shader = nullptr;
+    window_mesh = nullptr;
     scene_ctx = nullptr;
     window = nullptr;
   }

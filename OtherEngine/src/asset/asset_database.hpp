@@ -15,6 +15,9 @@ namespace other {
 
   class AssetDatabase {
    public:
+    static void Initialize();
+    static void Shutdown();
+
     static bool Contains(AssetHandle handle);
     static bool HasKey(AssetKey key);
 

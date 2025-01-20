@@ -11,6 +11,7 @@
 #include "core/directory_watcher.hpp"
 #include "core/file_handle.hpp"
 #include "core/ref.hpp"
+#include "core/view.hpp"
 
 #include "asset/asset_defines.hpp"
 
@@ -22,7 +23,7 @@ namespace other {
    public:
     UUID handle;
 
-    Ref<Directory> parent_dir;
+    View<Directory> parent_dir;
 
     std::map<UUID, Ref<FileHandle>> file_handles;
     std::map<UUID, Ref<Directory>> children;
@@ -30,7 +31,7 @@ namespace other {
     Directory();
     Directory(const Path& path, UUID hash);
     Directory(Directory* parent, const Path& path, UUID hash);
-    Directory(const Ref<Directory>& parent, const Path& path, UUID hash);
+    Directory(Ref<Directory>& parent, const Path& path, UUID hash);
 
     operator Path() const;
 

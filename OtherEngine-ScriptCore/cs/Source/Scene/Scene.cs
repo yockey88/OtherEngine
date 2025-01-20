@@ -1,11 +1,8 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Net;
-using System.Reflection.Metadata;
+using System.Text;
 using DotOther.Managed;
-using DotOther.Managed.Interop;
 
 namespace Other {
 
@@ -125,11 +122,11 @@ namespace Other {
         UInt32 entity_id = GetSceneId(id);
 
         OtherObject obj = new OtherObject(native_handle, id, entity_id);
-        Logger.WriteDebug($"Registering Scene Object : {obj.Name} [{id}] [Scene Id : {entity_id}] [Native Handle : 0x{native_handle.ToInt64():x}]");
+        Logger.WriteTrace($"Registering Scene Object : {obj.Name} [{id}] [Scene Id : {entity_id}] [Native Handle : 0x{native_handle.ToInt64():x}]");
         objects.Add(id , obj);
 
         if (obj.HasComponent<Script>()) {
-          Logger.WriteDebug($"Adding Active Script for [{obj.Name}] : {id}");
+          Logger.WriteTrace($"Adding Active Script for [{obj.Name}] : {id}");
           AddActiveScript(id);
         }
       }
@@ -137,6 +134,18 @@ namespace Other {
 
     public void ClearObjects() {
       objects.Clear();
+    }
+
+    public void ListObjects() {
+      foreach (KeyValuePair<UInt64 , OtherObject> obj in objects) {
+        StringBuilder sb = new StringBuilder();
+        sb.Append($"Object : {obj.Value.Name} [{obj.Key}]");
+        if (active_scripts.Contains(obj.Key)) {
+          sb.Append(" (Active Script)");
+        }
+
+        Logger.WriteTrace(sb.ToString());
+      }
     }
 
     public override void OnInitialize() {

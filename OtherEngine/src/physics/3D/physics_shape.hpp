@@ -10,6 +10,9 @@
 #include "core/ref_counted.hpp"
 #include "core/uuid.hpp"
 
+#include "ecs/components/transform.hpp"
+
+
 namespace other {
 
   class PhysicsShape : public RefCounted {
@@ -32,6 +35,7 @@ namespace other {
     // virtual void SetCollisionMaterial(const UUID& material) = 0;
     virtual void* NativeShape() = 0;
     virtual void OnSetEntity(const UUID& id) = 0;
+    virtual void SetTransform(const Transform& transform) = 0;
 
     void SetEntity(const UUID& id);
 

@@ -15,6 +15,7 @@
 #include <glm/gtx/euler_angles.hpp>
 #include <hosting/native_string.hpp>
 
+#include "core/logger.hpp"
 #include "core/rand.hpp"
 
 #include "application/app_state.hpp"
@@ -42,6 +43,8 @@
 #include "editor/selection_manager.hpp"
 
 namespace other {
+
+  ArenaAllocator<Entity> Scene::entity_allocator;
 
   /// TODO: get rid of this in some nice ctor/dtor wrapper
   Scene::Scene()
@@ -125,7 +128,7 @@ namespace other {
     registry.on_construct<entt::entity>().disconnect();
 
     for (auto& [id, entity] : entities) {
-      delete entity;
+      entity_allocator.Free(entity);
     }
   }
 
@@ -205,13 +208,31 @@ namespace other {
 
   void Scene::Start(EngineMode mode) {
     OE_ASSERT(initialized, "Starting scene without initialization");
-    OE_DEBUG("Starting Scene : {}", scene_name);
+    OE_TRACE("Starting Scene : {}", scene_name);
+
+    CaptureScene();
 
     FixRoots();
 
     registry.view<RigidBody2D, Tag, Transform>().each([this](RigidBody2D& body, const Tag& tag, const Transform& transform) {
       Initialize2DRigidBody(physics_world_2d, body, tag, transform);
     });
+
+    registry.view<RigidBody, Transform>().each([this](RigidBody& body, Transform& transform) {
+      body.physics_body->SetTransform(transform);
+      /// TODO: replace this with some sort of initial velocity (not sure where to get that yet)
+      body.physics_body->SetVelocity(glm::vec3(0.f));
+      body.physics_body->SetAngularVelocity(glm::vec3(0.f));
+    });
+
+    registry.view<Collider, Transform, Tag>().each([this](Collider& collider, Transform& transform, Tag& tag) {
+      collider.shape->SetTransform(transform);
+      physics_world->RegisterColliderShape(tag.id, collider.shape);
+    });
+
+    // registry.view<RigidBody, Collider>().each([this](RigidBody& body, Collider& collider) {
+    //   body.physics_body->AddCollider(collider.shape);
+    // });
 
     /// register all entities who dont have a script so they can be accessible to client scripts
     Script& scene_object = scene_entity->GetComponent<Script>();
@@ -246,16 +267,40 @@ namespace other {
       script.ApiCall("NativeStop");
     });
 
-    registry.view<RigidBody2D>().each([&](RigidBody2D& body) {
-      if (physics_world_2d != nullptr) {
-        physics_world_2d->DestroyBody(body.physics_body);
-      }
-    });
+    // registry.view<Collider, Transform, Tag>().each([this](Collider& collider, Transform& transform, Tag& tag) {
+    //   physics_world->UnregisterColliderShape(tag.id, collider.shape);
+    // });
+
+    // registry.view<RigidBody, Collider>().each([this](RigidBody& body, Collider& collider) {
+    //   body.physics_body->RemoveCollider(collider.shape);
+    // });
 
     OnStop();
 
-    Script& scene_object = scene_entity->GetComponent<Script>();
-    // scene_object.ApiCall("ClearObjects");
+    RestoreLastCapture();
+
+    ResetPhysicsSimulation();
+  }
+
+  void Scene::Synchronize() {
+    OE_ASSERT(initialized, "Updating scene without initialization");
+    if (corrupt) {
+      Stop();
+      return;
+    }
+
+    registry.view<RigidBody, Transform>().each([this](RigidBody& body, Transform& transform) {
+      body.physics_body->SetTransform(transform);
+      /// TODO: replace this with some sort of initial velocity (not sure where to get that yet)
+      body.physics_body->SetVelocity(glm::vec3(0.f));
+      body.physics_body->SetAngularVelocity(glm::vec3(0.f));
+    });
+
+    registry.view<Collider, Transform>().each([this](Collider& collider, Transform& transform) {
+      collider.shape->SetTransform(transform);
+    });
+
+    physics_world->Simulate(0.00001f);
   }
 
   void Scene::EarlyUpdate(float dt) {
@@ -555,6 +600,14 @@ namespace other {
     physics_world->Simulate(0.00001f);
   }
 
+  bool Scene::IsDebugPhysicsRendering() const {
+    if (!initialized || physics_world == nullptr) {
+      return false;
+    }
+
+    return physics_world->IsDebugRenderEnabled();
+  }
+
   void Scene::RenderPhysicsDebug(Ref<SceneRenderer>& scene_renderer) {
     if (!initialized || physics_world == nullptr) {
       return;
@@ -673,7 +726,8 @@ namespace other {
   }
 
   Entity* Scene::CreateEntity(const std::string& name, UUID id) {
-    Entity* ent = new Entity(registry, id, name);
+    Entity* ent = entity_allocator.Allocate(registry, id, name);
+
     for (const auto& [eid, e] : entities) {
       if (eid == id && e->Name() == ent->Name()) {
         OE_WARN("Entity[{} : {}] already exists in scene", id, e->Name());
@@ -848,14 +902,8 @@ namespace other {
     OE_ASSERT(physics_world != nullptr, "Physics world is null");
 
     physics_world->ResetSimulation(this);
-    registry.view<RigidBody, Transform>().each([](RigidBody& body, Transform& transform) {
-      body.physics_body->SetTransform(transform);
-    });
 
     if (physics_world_2d != nullptr) {
-      // registry.view<RigidBody2D, Transform>().each([](RigidBody2D& body, Transform& transform) {
-      //   body.physics_body->SetTransform(transform);
-      // });
     }
   }
 
@@ -880,60 +928,6 @@ namespace other {
 
     return { ent1, ent2 };
   }
-
-  // void Scene::OnAddRigidBody2D(entt::registry& context, entt::entity entt) {
-  //   OE_ASSERT(physics_world_2d != nullptr, "Somehow created a rigid body 2D component without active 2D physics");
-
-  //   Entity ent(context, entt);
-  //   auto& body = ent.GetComponent<RigidBody2D>();
-
-  //   auto& tag = ent.GetComponent<Tag>();
-  //   auto& transform = ent.GetComponent<Transform>();
-
-  //   Initialize2DRigidBody(physics_world_2d, body, tag, transform);
-  // }
-
-  // void Scene::OnAddCollider2D(entt::registry& context, entt::entity entt) {
-  //   OE_ASSERT(physics_world_2d != nullptr, "Somehow created a collider 2D component without active 2D physics");
-
-  //   Entity ent(context, entt);
-  //   if (!ent.HasComponent<RigidBody2D>()) {
-  //     ent.AddComponent<RigidBody2D>();
-  //   }
-
-  //   auto& body = ent.AddComponent<RigidBody2D>();
-  //   auto& collider = ent.AddComponent<Collider2D>();
-  //   auto& transform = ent.GetComponent<Transform>();
-
-  //   Initialize2DCollider(physics_world_2d, body, collider, transform);
-  // }
-
-  // void Scene::OnAddRigidBody(entt::registry& context, entt::entity entt) {
-  //   OE_ASSERT(physics_world != nullptr, "Somehow created a rigid body component without active 3D physics!");
-
-  //   Entity ent(context, entt);
-  //   auto& body = ent.GetComponent<RigidBody>();
-
-  //   auto& tag = ent.GetComponent<Tag>();
-  //   auto& transform = ent.GetComponent<Transform>();
-
-  //   InitializeRigidBody(physics_world, body, tag, transform);
-  // }
-
-  // void Scene::OnAddCollider(entt::registry& context, entt::entity entt) {
-  //   OE_ASSERT(physics_world != nullptr, "Somehow created a collider component without active 3D physics!");
-
-  //   Entity ent(context, entt);
-  //   if (!ent.HasComponent<RigidBody>()) {
-  //     ent.AddComponent<RigidBody>();
-  //   }
-
-  //   auto& body = ent.AddComponent<RigidBody>();
-  //   auto& collider = ent.AddComponent<Collider>();
-  //   auto& transform = ent.GetComponent<Transform>();
-
-  //   InitializeCollider(physics_world, body, collider, transform);
-  // }
 
   void Scene::RefreshCameraTransforms() {
     registry.view<Camera, Transform>().each([](Camera& camera, Transform& transform) {
@@ -1013,11 +1007,11 @@ namespace other {
     auto& collider = ent.GetComponent<Collider>();
     auto& transform = ent.GetComponent<Transform>();
 
-    collider.shape = physics_world->CreateBoxShape(transform.scale / 2.f);
+    glm::vec3 half_extents = transform.scale / 2.f;
+    collider.shape = physics_world->CreateBoxShape(half_extents);
     OE_ASSERT(collider.shape != nullptr, "Failed to create collider shape");
 
     body.physics_body->AddCollider(collider.shape);
-    physics_world->RegisterColliderShape(tag.id, collider.shape);
   }
 
   void Scene::OnAddRigidBody2D(entt::registry& context, entt::entity entt) {

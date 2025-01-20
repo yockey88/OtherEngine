@@ -3,12 +3,14 @@
  **/
 #include "environment/terminal.hpp"
 
-#include "editor/editor_sink.hpp"
-#include "editor/panels/log_panel.hpp"
 #include "environment/command.hpp"
 #include "environment/command_parser.hpp"
 
 #include "application/app_state.hpp"
+
+#include "editor/editor_sink.hpp"
+#include "editor/panels/log_panel.hpp"
+
 
 namespace other {
 
@@ -30,6 +32,7 @@ namespace other {
   }
 
   void Terminal::Dispatch() {
+    PROFILE_SECTION("Terminal--Dispatch");
     while (!message_buffer.empty()) {
       CommandBlock command = parser.ParseBlock(message_buffer.front().message);
       message_buffer.pop();

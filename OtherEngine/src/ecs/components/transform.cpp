@@ -4,6 +4,7 @@
 #include "ecs/components/transform.hpp"
 
 #include <glm/ext/quaternion_geometric.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 #include "core/config_keys.hpp"
 
@@ -32,11 +33,12 @@ namespace other {
     bbox = BBox(position - dim, position + dim);
 
     qrotation = glm::normalize(qrotation);
-
     erotation = glm::eulerAngles(qrotation);
-    model_transform = glm::translate(glm::mat4(1.f), position);
-    model_transform = glm::scale(model_transform, scale);
-    model_transform = model_transform * glm::mat4_cast(qrotation);
+
+    model_transform = glm::translate(glm::mat4(1.f), position) *
+      glm::toMat4(qrotation) *
+      glm::scale(glm::mat4(1.f), scale);
+
     return model_transform;
   }
 

@@ -9,15 +9,16 @@
 
 namespace other {
 
+  static ArenaAllocator<Environment> env_allocator;
   Environment* Environment::instance = nullptr;
 
   void Environment::Initialize() {
     Shutdown();
-    instance = new Environment();
+    instance = env_allocator.Allocate();
   }
 
   void Environment::Shutdown() {
-    delete instance;
+    env_allocator.Free(instance);
     instance = nullptr;
   }
 

@@ -37,6 +37,7 @@ namespace other {
     }
 
     static Ref<MaterialTable> GetMaterialTable();
+    static void Cleanup();
 
     static AssetType AssetTypeFromExtension(const std::string_view extension);
     static bool AssetValid(AssetHandle handle);

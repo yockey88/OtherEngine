@@ -31,6 +31,7 @@ namespace other {
   }
 
   void Mouse::Update() {
+    PROFILE_SECTION("Mouse--Update");
     state.previous_position = state.position;
 
     uint32_t curr_state = SDL_GetMouseState(&state.position.x, &state.position.y);

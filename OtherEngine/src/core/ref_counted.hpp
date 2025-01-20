@@ -9,20 +9,24 @@
 namespace other {
 
   class RefCounted {
-    public:
-      RefCounted() 
+   public:
+    RefCounted()
         : count(0) {}
-      virtual ~RefCounted() = default;
+    virtual ~RefCounted() = default;
 
-      void Increment();
-      void Decrement();
+    void ViewIncrement() const;
+    void ViewDecrement() const;
 
-      uint64_t Count() const { return count; }
-    
-    private:
-      mutable std::atomic<uint64_t> count;
+    void Increment();
+    void Decrement();
+
+    uint64_t Count() const { return count; }
+
+   private:
+    mutable std::atomic<uint64_t> views;
+    mutable std::atomic<uint64_t> count;
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_REF_COUNTED_HPP
+#endif  // !OTHER_ENGINE_REF_COUNTED_HPP

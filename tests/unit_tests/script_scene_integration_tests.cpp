@@ -72,6 +72,12 @@ TEST_F(ScriptSceneIntegrationTests, scene_object_generic_functions) {
   }
 
   scene->Start();
+
+  {
+    Script& scene_obj = scene->SceneScriptObject();
+    scene_obj.ApiCall("ListObjects");
+  }
+
   scene->EarlyUpdate(0.0f);
   scene->Update(0.0f);
   scene->LateUpdate(0.0f);

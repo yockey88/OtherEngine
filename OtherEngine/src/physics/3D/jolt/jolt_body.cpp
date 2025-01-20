@@ -68,6 +68,8 @@ namespace other {
     return transform;
   }
 
-  void JoltBody::AddCollider(Ref<PhysicsShape> shape) {}
+  void JoltBody::OnAddCollider(Ref<PhysicsShape> shape) {}
+
+  void JoltBody::OnRemoveCollider(Ref<PhysicsShape> shape) {}
 
 }  // namespace other

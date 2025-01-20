@@ -7,6 +7,7 @@
 #include <glm/gtc/epsilon.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include "core/logger.hpp"
 #include "math/vecmath.hpp"
 
 namespace other {
@@ -18,17 +19,18 @@ namespace other {
 
     mat4 local_matrix(matrix);
 
-    // Normalize the matrix.
-    if (epsilonEqual(local_matrix[3][3], static_cast<T>(0), epsilon<T>()))
-      return false;
-
-    if (epsilonNotEqual(local_matrix[0][3], static_cast<T>(0), epsilon<T>()) ||
-        epsilonNotEqual(local_matrix[1][3], static_cast<T>(0), epsilon<T>()) ||
-        epsilonNotEqual(local_matrix[2][3], static_cast<T>(0), epsilon<T>())) {
-      // Clear the perspective partition
-      local_matrix[0][3] = local_matrix[1][3] = local_matrix[2][3] = static_cast<T>(0);
-      local_matrix[3][3] = static_cast<T>(1);
+    /// normalize the matrix
+    for (length_t i = 0; i < 3; ++i) {
+      local_matrix[i] = vec4_div(local_matrix[i], local_matrix[3][3]);
     }
+
+    OE_ASSERT(epsilonEqual(local_matrix[3][3], static_cast<T>(1), epsilon<T>()), "Matrix is not normalized");
+    OE_ASSERT(
+      epsilonEqual(local_matrix[0][3], static_cast<T>(0), epsilon<T>()) &&
+        epsilonEqual(local_matrix[1][3], static_cast<T>(0), epsilon<T>()) &&
+        epsilonEqual(local_matrix[2][3], static_cast<T>(0), epsilon<T>()),
+      "Matrix is not normalized"
+    );
 
     // Next take care of translation (easy).
     translation = vec3(local_matrix[3]);
@@ -54,40 +56,46 @@ namespace other {
     // At this point, the matrix (in rows[]) is orthonormal.
     // Check for a coordinate system flip.  If the determinant
     // is -1, then negate the matrix and the scaling factors.
-
-    /*
-        // At this point, the matrix (in rows[]) is orthonormal.
-        // Check for a coordinate system flip.  If the determinant
-        // is -1, then negate the matrix and the scaling factors.
-        Pdum3 = cross(row[1], row[2]); // v3Cross(row[1], row[2], Pdum3);
-        if(dot(row[0], Pdum3) < 0)
-        {
-            for(length_t i = 0; i < 3; i++)
-            {
-                Scale[i] *= static_cast<T>(-1);
-                row[i] *= static_cast<T>(-1);
-            }
-        }
-    */
-
-    // Now, get the rotations out, as described in the gem.
-
-    // FIXME - Add the ability to return either quaternions (which are
-    // easier to recompose with) or Euler angles (rx, ry, rz), which
-    // are easier for authors to deal with. The latter will only be useful
-    // when we fix https://bugs.webkit.org/show_bug.cgi?id=23799, so I
-    // will leave the Euler angle code here for now.
-    glm::vec3 rot = { 0.f, 0.f, 0.f };
-    rot.y = asin(-row[0][2]);
-    if (cos(rot.y) != 0) {
-      rot.x = atan2(row[1][2], row[2][2]);
-      rot.z = atan2(row[0][1], row[0][0]);
-    } else {
-      rot.x = atan2(-row[2][0], row[1][1]);
-      rot.z = 0;
+    vec3 pdum = cross(row[1], row[2]);
+    if (dot(row[0], pdum) < 0) {
+      for (length_t i = 0; i < 3; i++) {
+        scale[i] *= static_cast<T>(-1);
+        row[i] *= static_cast<T>(-1);
+      }
     }
 
-    rotation = glm::quat(rot);
+    int32_t i, j, k;
+    T root;
+    T trace = row[0].x + row[1].y + row[2].z;
+    if (trace > static_cast<T>(0)) {
+      root = sqrt(trace + static_cast<T>(1));
+      rotation.w = static_cast<T>(0.5) * root;
+      root = static_cast<T>(0.5) / root;
+      rotation.x = root * (row[1].z - row[2].y);
+      rotation.y = root * (row[2].x - row[0].z);
+      rotation.z = root * (row[0].y - row[1].x);
+    } else {
+      static int32_t next[3] = { 1, 2, 0 };
+      i = 0;
+      if (row[1].y > row[0].x) {
+        i = 1;
+      }
+      if (row[2].z > row[i][i]) {
+        i = 2;
+      }
+
+      j = next[i];
+      k = next[j];
+
+      root = sqrt(row[i][i] - row[j][j] - row[k][k] + static_cast<T>(1));
+
+      rotation[i] = static_cast<T>(0.5) * root;
+      root = static_cast<T>(0.5) / root;
+      rotation[j] = root * (row[i][j] + row[j][i]);
+      rotation[k] = root * (row[i][k] + row[k][i]);
+      rotation.w = root * (row[j][k] - row[k][j]);
+    }
+
     return true;
   }
 

@@ -60,7 +60,7 @@ end
 local function ProcessConfigurations(config)
   print("[ Processing Configurations ]")
 
-  if ContainsValue(config.build_configurations , "Debug") then
+  if ContainsValue(config.config_table , "Debug") then
     filter "configurations:Debug"
     if config.debug_configuration ~= nil then
       config.debug_configuration()
@@ -73,7 +73,7 @@ local function ProcessConfigurations(config)
     print(" -- No debug configuration")
   end
 
-  if ContainsValue(config.build_configurations , "Release") then
+  if ContainsValue(config.config_table , "Release") then
     filter "configurations:Release"
       if config.release_configuration ~= nil then
         config.release_configuration()

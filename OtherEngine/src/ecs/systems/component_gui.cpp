@@ -559,13 +559,14 @@ namespace other {
 
   bool DrawStaticMesh(Entity* ent) {
     auto& mesh = ent->GetComponent<StaticMesh>();
+    auto& transform = ent->GetComponent<Transform>();
     AssetHandle original_handle = mesh.handle;
 
     const char* options[] = {
       "Empty", "Triangle", "Rect", "Cube", "Sphere", "Capsule"
     };
 
-    if (ui::PropertyDropdown("Primitive Meshes", options, kCapsuleIdx, mesh.primitive_selection)) {}
+    if (ui::PropertyDropdown("Primitive Meshes", options, kCapsuleIdx + 1u, mesh.primitive_selection)) {}
 
     bool change = false;
     if (mesh.primitive_id != mesh.primitive_selection && ImGui::Button("Confirm Change")) {
@@ -588,14 +589,28 @@ namespace other {
           }
         } break;
 
-        case kSphereIdx:
-        case kCapsuleIdx:
-          OE_WARN("Assigning cube until other implementations available!");
-          [[fallthrough]];
         case kCubeIdx: {
           mesh.handle = ModelFactory::CreateBox();
           if (!AppState::Assets()->IsValid(mesh.handle)) {
             OE_ERROR("Failed to Create Cube Static Mesh");
+          } else {
+            change = true;
+          }
+        } break;
+
+        case kSphereIdx: {
+          mesh.handle = ModelFactory::CreateSphere(transform.scale.x / 2.f);
+          if (!AppState::Assets()->IsValid(mesh.handle)) {
+            OE_ERROR("Failed to Create Sphere Static Mesh");
+          } else {
+            change = true;
+          }
+        } break;
+
+        case kCapsuleIdx: {
+          mesh.handle = ModelFactory::CreateCapsule(transform.scale.x / 2.f, transform.scale.y);
+          if (!AppState::Assets()->IsValid(mesh.handle)) {
+            OE_ERROR("Failed to Create Capsule Static Mesh");
           } else {
             change = true;
           }
@@ -829,11 +844,13 @@ namespace other {
       "Box", "Sphere", "Capsule", "Cylinder", "Cone", "Convex Mesh", "Concave Mesh"
     };
 
-    uint32_t selected = static_cast<uint32_t>(collider.shape->ShapeType());
+    PhysicsShape::Shape old_type = collider.shape->ShapeType();
+    uint32_t selected = static_cast<uint32_t>(old_type);
 
     ui::BeginPropertyGrid();
 
-    if (ui::PropertyDropdown("Collider Type", collider_type_strings, 7, selected)) {
+    bool changed = false;
+    if (ui::PropertyDropdown("Collider Type", collider_type_strings, PhysicsShape::Shape::NUM_PHYSICS_SHAPES, selected)) {
       OE_ASSERT(AppState::Scenes()->HasActiveScene(), "Somehow added a rigid body 2D component without an active scene context");
       Ref<Scene> scene = AppState::Scenes()->ActiveScene()->scene;
       OE_ASSERT(scene != nullptr, "Somehow added a rigid body 2D component without an active scene context");
@@ -842,35 +859,42 @@ namespace other {
       OE_ASSERT(world != nullptr, "Somehow added a rigid body component without active 3D physics");
 
       PhysicsShape::Shape type = static_cast<PhysicsShape::Shape>(selected);
+      if (type != old_type) {
+        switch (type) {
+          case PhysicsShape::Shape::BOX:
+            changed = true;
+            collider.shape = world->CreateBoxShape(transform.scale / 2.f);
+            break;
 
-      switch (type) {
-        case PhysicsShape::Shape::BOX:
-          collider.shape = world->CreateBoxShape(transform.scale / 2.f);
-          break;
+          case PhysicsShape::Shape::SPHERE:
+            changed = true;
+            collider.shape = world->CreateSphereShape(transform.scale.x / 2.f);
+            break;
 
-        case PhysicsShape::Shape::SPHERE:
-          collider.shape = world->CreateSphereShape(transform.scale.x / 2.f);
-          break;
+          case PhysicsShape::Shape::CAPSULE:
+            changed = true;
+            collider.shape = world->CreateCapsuleShape(transform.scale.x / 2.f, transform.scale.y);
+            break;
 
-        case PhysicsShape::Shape::CAPSULE:
-          collider.shape = world->CreateCapsuleShape(transform.scale.x / 2.f, transform.scale.y);
-          break;
+            // case PhysicsShape::Shape::CONVEX_MESH:
+            //   new_shape = Ref<ConvexMeshCollider>::Create();
+            //   break;
 
-          // case PhysicsShape::Shape::CONVEX_MESH:
-          //   collider.shape = Ref<ConvexMeshCollider>::Create();
-          //   break;
+            // case PhysicsShape::Shape::CONCAVE_MESH:
+            //   new_shape = Ref<ConcaveMeshCollider>::Create();
+            //   break;
 
-          // case PhysicsShape::Shape::CONCAVE_MESH:
-          //   collider.shape = Ref<ConcaveMeshCollider>::Create();
-          //   break;
-
-        default:
-          OE_WARN("Collider type not implemented yet!");
-          break;
+          default:
+            OE_WARN("Collider type not implemented yet!");
+            break;
+        }
       }
     }
 
     ui::EndPropertyGrid();
+    if (!changed) {
+      return false;
+    }
 
     return false;
   }

@@ -1,10 +1,10 @@
 /**
  * \file input\io.cpp
-*/
+ */
 #include "input\io.hpp"
 
-#include "input\mouse.hpp"
 #include "input\keyboard.hpp"
+#include "input\mouse.hpp"
 
 namespace other {
 
@@ -20,6 +20,7 @@ namespace other {
   }
 
   void IO::Update() {
+    PROFILE_SECTION("IO--Update");
     mouse->Update();
     keyboard->Update();
   }
@@ -29,4 +30,4 @@ namespace other {
     keyboard = nullptr;
   }
 
-} // namespace other
+}  // namespace other

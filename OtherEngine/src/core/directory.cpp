@@ -27,12 +27,13 @@ namespace other {
     Initialize(false);
   }
 
-  Directory::Directory(const Ref<Directory>& parent, const Path& path, UUID hash)
+  Directory::Directory(Ref<Directory>& parent, const Path& path, UUID hash)
       : handle(hash), parent_dir(parent), proj_relative_path(path) {
     Initialize(false);
   }
 
   void Directory::Poll() {
+    PROFILE_SECTION("Directory--Poll");
     if (watcher != nullptr) {
       watcher->Poll();
     }

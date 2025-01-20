@@ -14,29 +14,46 @@
 namespace other {
   namespace {
 
-    static AssetRegistry asset_registry;
+    static ArenaAllocator<AssetRegistry> asset_database_allocator;
+    static AssetRegistry* asset_registry = nullptr;
 
   }  // anonymous namespace
 
+  void AssetDatabase::Initialize() {
+    asset_registry = asset_database_allocator.Allocate();
+  }
+
+  void AssetDatabase::Shutdown() {
+    if (asset_registry != nullptr) {
+      asset_database_allocator.Free(asset_registry);
+    }
+    asset_registry = nullptr;
+  }
+
   bool AssetDatabase::Contains(AssetHandle handle) {
-    return asset_registry.Contains(handle);
+    OE_ASSERT(asset_registry != nullptr, "Asset registry not initialized");
+    OE_ASSERT(handle != 0, "Invalid asset handle");
+    return asset_registry->Contains(handle);
   }
 
   bool AssetDatabase::HasKey(AssetKey key) {
-    return asset_registry.HasKey(key);
+    OE_ASSERT(asset_registry != nullptr, "Asset registry not initialized");
+    return asset_registry->HasKey(key);
   }
 
   void AssetDatabase::RegisterAsset(const FileHandle* file) {
+    OE_ASSERT(asset_registry != nullptr, "Asset registry not initialized");
     OE_ASSERT(file != nullptr, "Invalid file handle");
     if (!file->Exists()) {
       OE_ERROR("File does not exist : {}", file->AbsolutePath().string());
       return;
     }
 
-    asset_registry.AddAsset(file);
+    asset_registry->AddAsset(file);
   }
 
   void AssetDatabase::RegisterMemoryAsset(Ref<Asset>& asset, const std::string_view virtual_filename) {
+    OE_ASSERT(asset_registry != nullptr, "Asset registry not initialized");
     OE_ASSERT(asset != nullptr, "Invalid asset");
 
     /// @TODO: grab virtual dir from asset type and attach appropriate extension
@@ -59,16 +76,18 @@ namespace other {
       .memory_asset = true,
     };
     OE_DEBUG("Registering [{}] memory asset : {} [{}]", md.type, vpath, md.handle);
-    asset_registry.AddMemoryAsset(md);
+    asset_registry->AddMemoryAsset(md);
   }
 
   void AssetDatabase::RegisterAssetHandle(const AssetKey& key, AssetHandle handle) {
+    OE_ASSERT(asset_registry != nullptr, "Asset registry not initialized");
+
     if (!HasKey(key)) {
       OE_ERROR("Asset key not found : {}", key.file_handle);
       return;
     }
 
-    AssetMetadata& md = asset_registry.GetMetadata(key);
+    AssetMetadata& md = asset_registry->GetMetadata(key);
     md.handle = handle;
   }
 
@@ -82,60 +101,68 @@ namespace other {
   }
 
   void AssetDatabase::RegisterLoadedAsset(Asset* asset) {
+    OE_ASSERT(asset_registry != nullptr, "Asset registry not initialized");
     OE_ASSERT(asset != nullptr, "Invalid asset");
     OE_ASSERT(asset->handle != 0, "Invalid asset handle");
 
-    auto itr = std::ranges::find_if(asset_registry.ReadAllAssets(), [&](const auto& pair) -> bool { return pair.second.handle == asset->handle; });
+    auto itr = std::ranges::find_if(asset_registry->ReadAllAssets(), [&](const auto& pair) -> bool { return pair.second.handle == asset->handle; });
     if (asset->CheckFlag(AssetFlag::ASSET_LOADED)) {
       OE_WARN("Asset already loaded : {}", asset->handle);
-      OE_ASSERT(itr != asset_registry.ReadAllAssets().end(), "Asset not found : {}", asset->handle);
+      OE_ASSERT(itr != asset_registry->ReadAllAssets().end(), "Asset not found : {}", asset->handle);
       OE_ASSERT(itr->second.asset != nullptr && itr->second.handle == asset->handle, "Asset mismatch : {}", asset->handle);
       return;
     }
 
-    AssetMetadata& md = asset_registry.GetMetadata(asset->handle);
+    AssetMetadata& md = asset_registry->GetMetadata(asset->handle);
     md.loaded = true;
     md.asset = asset;
     asset->SetFlag(AssetFlag::ASSET_LOADED, true);
   }
 
   void AssetDatabase::UnregisterAsset(const AssetKey& key) {
+    OE_ASSERT(asset_registry != nullptr, "Asset registry not initialized");
     OE_ASSERT(HasKey(key), "Asset key not found : {}", key.file_handle);
-    asset_registry.RemoveAsset(key);
+    asset_registry->RemoveAsset(key);
   }
 
   void AssetDatabase::UnregisterAsset(const AssetMetadata& metadata) {
+    OE_ASSERT(asset_registry != nullptr, "Asset registry not initialized");
     OE_ASSERT(metadata.handle != 0, "Invalid asset metadata");
     UnregisterAsset(metadata.handle);
   }
 
   void AssetDatabase::UnregisterAsset(const AssetHandle metadata) {
+    OE_ASSERT(asset_registry != nullptr, "Asset registry not initialized");
     OE_ASSERT(metadata != 0, "Invalid asset metadata");
-    asset_registry.RemoveAsset(metadata);
+    asset_registry->RemoveAsset(metadata);
   }
 
   AssetHandle AssetDatabase::GetHandle(const AssetKey& key) {
+    OE_ASSERT(asset_registry != nullptr, "Asset registry not initialized");
     if (!HasKey(key)) {
       OE_ERROR("Asset key not found : {}", key.file_handle);
       return 0;
     }
 
-    return asset_registry.GetMetadata(key).handle;
+    return asset_registry->GetMetadata(key).handle;
   }
 
   AssetMetadata& AssetDatabase::Get(const AssetKey& key) {
+    OE_ASSERT(asset_registry != nullptr, "Asset registry not initialized");
     OE_ASSERT(HasKey(key), "Asset key not found : {}", key.file_handle);
-    return asset_registry.GetMetadata(key);
+    return asset_registry->GetMetadata(key);
   }
 
   AssetMetadata& AssetDatabase::Get(AssetHandle handle) {
+    OE_ASSERT(asset_registry != nullptr, "Asset registry not initialized");
     OE_ASSERT(Contains(handle), "Asset not found : {}", handle);
-    return asset_registry.GetMetadata(handle);
+    return asset_registry->GetMetadata(handle);
   }
 
   std::set<AssetHandle> AssetDatabase::GetAllOfType(AssetType type) {
+    OE_ASSERT(asset_registry != nullptr, "Asset registry not initialized");
     std::set<AssetHandle> result;
-    for (auto& [key, md] : asset_registry.ReadAllAssets()) {
+    for (auto& [key, md] : asset_registry->ReadAllAssets()) {
       if (md.handle == 0) {
         continue;
       }
@@ -148,14 +175,15 @@ namespace other {
   }
 
   std::set<AssetKey> AssetDatabase::GetAllKeysOfType(AssetType type) {
+    OE_ASSERT(asset_registry != nullptr, "Asset registry not initialized");
     std::set<AssetKey> result;
-    for (auto itr = asset_registry.ReadAllAssets().begin(); itr != asset_registry.ReadAllAssets().end(); ++itr) {
+    for (auto itr = asset_registry->ReadAllAssets().begin(); itr != asset_registry->ReadAllAssets().end(); ++itr) {
       if (itr->second.type == type) {
         result.insert(itr->first);
       }
     }
 
-    for (auto& [key, md] : asset_registry.ReadAllAssets()) {
+    for (auto& [key, md] : asset_registry->ReadAllAssets()) {
       if (!HasKey(key)) {
         continue;
       }

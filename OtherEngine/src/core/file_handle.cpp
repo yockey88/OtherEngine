@@ -109,6 +109,7 @@ namespace other {
   }
 
   void FileHandle::Poll() {
+    PROFILE_SECTION("FileHandle--Poll");
     if (watcher == nullptr) {
       return;
     }

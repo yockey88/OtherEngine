@@ -25,6 +25,32 @@ namespace other {
     OnSetEntity();
   }
 
+  void PhysicsBody::AddCollider(Ref<PhysicsShape> shape) {
+    if (collider_shape != nullptr) {
+      /// destroy collider shape
+      RemoveCollider(shape);
+    }
+
+    /// add new collider shape
+    collider_shape = shape;
+    OnAddCollider(shape);
+  }
+
+  void PhysicsBody::RemoveCollider(Ref<PhysicsShape> shape) {
+    if (collider_shape == nullptr) {
+      return;
+    }
+
+    if (collider_shape->NativeShape() != shape->NativeShape()) {
+      return;
+    }
+
+    // physics_world->UnregisterColliderShape(entity_id, collider_shape);
+
+    OnRemoveCollider(shape);
+    collider_shape = nullptr;
+  }
+
   PhysicsBodyType PhysicsBody::GetType() const {
     return body_type;
   }

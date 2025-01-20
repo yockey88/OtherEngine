@@ -198,7 +198,8 @@ namespace other {
             edited = DrawAddComponentButton<Camera>("Camera") || edited;
             // edited = DrawAddComponentButton<RigidBody2D>("Rigid Body 2D") || edited;
             // edited = DrawAddComponentButton<Collider2D>("Collider 2D") || edited;
-            edited = DrawAddComponentButton<RigidBody>("Physics Body") || edited;
+            edited = DrawAddComponentButton<RigidBody>("Rigid Body") || edited;
+            edited = DrawAddComponentButton<Collider>("Collider") || edited;
             edited = DrawAddComponentButton<LightSource>("Light Source") || edited;
 
             ImGui::EndTable();

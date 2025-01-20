@@ -19,6 +19,7 @@ namespace other {
     virtual ~ReactBoxShape() override {}
 
     void OnSetEntity(const UUID& id) override;
+    void SetTransform(const Transform& transform) override;
 
     glm::vec2 HalfExtents() const override;
     void* NativeShape() override { return shape; }
@@ -34,6 +35,7 @@ namespace other {
     virtual ~ReactSphereShape() override {}
 
     void OnSetEntity(const UUID& id) override;
+    void SetTransform(const Transform& transform) override;
 
     float Radius() const override;
     void* NativeShape() override { return shape; }
@@ -49,6 +51,7 @@ namespace other {
     virtual ~ReactCapsuleShape() override {}
 
     void OnSetEntity(const UUID& id) override;
+    void SetTransform(const Transform& transform) override;
 
     float Radius() const override;
     float Height() const override;
@@ -65,6 +68,7 @@ namespace other {
     virtual ~ReactConvexMeshShape() override {}
 
     void OnSetEntity(const UUID& id) override;
+    void SetTransform(const Transform& transform) override;
 
     void* NativeShape() override { return shape; }
 
@@ -79,6 +83,7 @@ namespace other {
     virtual ~ReactConcaveMeshShape() override {}
 
     void OnSetEntity(const UUID& id) override;
+    void SetTransform(const Transform& transform) override;
 
     void* NativeShape() override { return shape; }
 

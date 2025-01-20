@@ -61,9 +61,21 @@ namespace other {
   }
 
   void ReactWorld::ResetSimulation(Scene* scene) {
-    prev_time = std::nullopt;
-    if (physics_world == nullptr) {
-      return;
+    OE_ASSERT(physics_world != nullptr, "Physics world is null");
+
+    auto& scene_entities = scene->SceneEntities();
+    for (const auto& [id, entity] : scene_entities) {
+      if (entity == nullptr) {
+        continue;
+      }
+
+      if (entity->HasComponent<RigidBody>()) {
+        auto& body = entity->GetComponent<RigidBody>();
+        auto& transform = entity->GetComponent<Transform>();
+        body.physics_body->SetTransform(transform);
+        body.physics_body->SetVelocity(glm::vec3(0.f));
+        body.physics_body->SetAngularVelocity(glm::vec3(0.f));
+      }
     }
 
     SetDebugRendering(debug_render_enabled);
@@ -113,28 +125,40 @@ namespace other {
       body->setIsDebugEnabled(true);
     }
 
-    return NewRef<ReactBody>(body);
+    return NewRef<ReactBody>(body, physics_world);
   }
 
   Ref<PhysicsShape> ReactWorld::CreateBoxShape(const glm::vec3& half_extents) {
     OE_ASSERT(physics_world != nullptr, "Physics world is null");
+    OE_TRACE("Creating box shape with half extents: {0}", half_extents);
 
     rp3d::Vector3 extents(half_extents.x, half_extents.y, half_extents.z);
     rp3d::BoxShape* shape = physics_common.createBoxShape(extents);
+    OE_ASSERT(shape != nullptr, "Failed to create box shape");
+
     return NewRef<ReactBoxShape>(shape, this);
   }
 
   Ref<PhysicsShape> ReactWorld::CreateSphereShape(float radius) {
     OE_ASSERT(physics_world != nullptr, "Physics world is null");
+    OE_TRACE("Creating sphere shape with radius: {0}", radius);
 
-    rp3d::SphereShape* shape = physics_common.createSphereShape(radius);
+    rp3d::decimal r = radius;
+    rp3d::SphereShape* shape = physics_common.createSphereShape(r);
+    OE_ASSERT(shape != nullptr, "Failed to create sphere shape");
+
     return NewRef<ReactSphereShape>(shape, this);
   }
 
   Ref<PhysicsShape> ReactWorld::CreateCapsuleShape(float radius, float height) {
     OE_ASSERT(physics_world != nullptr, "Physics world is null");
+    OE_TRACE("Creating capsule shape with radius: {0} and height: {1}", radius, height);
 
-    rp3d::CapsuleShape* shape = physics_common.createCapsuleShape(radius, height);
+    rp3d::decimal r = radius;
+    rp3d::decimal h = height;
+    rp3d::CapsuleShape* shape = physics_common.createCapsuleShape(r, h);
+    OE_ASSERT(shape != nullptr, "Failed to create capsule shape");
+
     return NewRef<ReactCapsuleShape>(shape, this);
   }
 
@@ -199,19 +223,23 @@ namespace other {
       body->setIsDebugEnabled(debug_render_enabled);
     }
 
-    if (!debug_render_enabled) {
-      Simulate(0.00001f);
-      return;
-    }
-
     rp3d::DebugRenderer& debug_renderer = physics_world->getDebugRenderer();
     debug_renderer.setContactNormalLength(5.0f);
     debug_renderer.setContactPointSphereRadius(0.3f);
-    debug_renderer.setIsDebugItemDisplayed(rp3d::DebugRenderer::DebugItem::COLLIDER_AABB, true);
-    debug_renderer.setIsDebugItemDisplayed(rp3d::DebugRenderer::DebugItem::COLLISION_SHAPE, true);
-    debug_renderer.setIsDebugItemDisplayed(rp3d::DebugRenderer::DebugItem::CONTACT_POINT, true);
-    debug_renderer.setIsDebugItemDisplayed(rp3d::DebugRenderer::DebugItem::CONTACT_NORMAL, true);
-    debug_renderer.setIsDebugItemDisplayed(rp3d::DebugRenderer::DebugItem::COLLIDER_BROADPHASE_AABB, true);
+    debug_renderer.setIsDebugItemDisplayed(rp3d::DebugRenderer::DebugItem::COLLIDER_AABB, debug);
+    debug_renderer.setIsDebugItemDisplayed(rp3d::DebugRenderer::DebugItem::COLLISION_SHAPE, debug);
+    debug_renderer.setIsDebugItemDisplayed(rp3d::DebugRenderer::DebugItem::CONTACT_POINT, debug);
+    debug_renderer.setIsDebugItemDisplayed(rp3d::DebugRenderer::DebugItem::CONTACT_NORMAL, debug);
+    debug_renderer.setIsDebugItemDisplayed(rp3d::DebugRenderer::DebugItem::COLLIDER_BROADPHASE_AABB, debug);
+
+    if (!debug) {
+      debug_data = {
+        .shader = debug_data.shader,
+        .physics_triangles_vao = nullptr,
+        .physics_lines_vao = nullptr,
+      };
+      Simulate(0.00001f);
+    }
   }
 
   void ReactWorld::SubmitDebugRender(Ref<SceneRenderer> renderer) {
@@ -328,6 +356,10 @@ namespace other {
       "Geometry",
       {
         [&]() {
+          if (debug_data.physics_lines_vao == nullptr || debug_data.physics_triangles_vao == nullptr) {
+            return;
+          }
+
           debug_data.shader->Bind();
           debug_data.physics_lines_vao->Draw(DrawMode::LINES);
           debug_data.physics_triangles_vao->Draw(DrawMode::TRIANGLES);

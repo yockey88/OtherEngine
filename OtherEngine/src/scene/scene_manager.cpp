@@ -250,6 +250,14 @@ namespace other {
     active_scene->scene->SetDebugPhysicsRendering(debug);
   }
 
+  bool SceneManager::IsDebugPhysicsRendering() const {
+    if (!HasActiveScene()) {
+      return false;
+    }
+
+    return active_scene->scene->IsDebugPhysicsRendering();
+  }
+
   /// TODO: create state-capture system so we don't have to reload the scene each time we stop it to reset
   ///         it to how it was.
   ///       this should also be the same system to handle undoing changes and stuff like that

@@ -11,6 +11,8 @@
 #include "event/event_queue.hpp"
 #include "parsing/cmd_line_parser.hpp"
 
+#include "memory/arena.hpp"
+
 namespace other {
   namespace {
 
@@ -21,6 +23,8 @@ namespace other {
   }  // anonymous namespace
 
   ExitCode Main(int argc, char* argv[]) {
+    PROFILE_SECTION("OtherEngine--Main");
+
     CmdLine cmd_line(argc, argv);
     ExitCode ec = ProcessArgs(cmd_line);
 #ifdef OE_DEBUG_BUILD
@@ -30,6 +34,7 @@ namespace other {
       return ec;
     }
 
+    Arena::Initialize();
     Engine* driver = LoadDriver(cmd_line);
     try {
       OE_ASSERT(driver != nullptr, "Failed to load driver");
@@ -42,8 +47,9 @@ namespace other {
       println("Unknown exception caught at top level : MAJOR ERROR");
       ec = ExitCode::FAILURE;
     }
-
     UnloadDriver(driver);
+    Arena::Shutdown();
+
     return ec;
   }
 

@@ -22,18 +22,18 @@ namespace other {
     OE_ASSERT(index < kMemorySize, "Attempting to get value on invalid index");
     return memory.at(index);
   }
-    
+
   ValueType Memory::CheckValueType(address_t addr) const {
-    OE_ASSERT(addr.page < kNumPages && addr.page_idx < kPageSize , "Invalid address!");
+    OE_ASSERT(addr.page < kNumPages && addr.page_idx < kPageSize, "Invalid address!");
 
     size_t idx = addr.page * kPageSize + addr.page_idx;
     OE_ASSERT(idx < kMemorySize, "Out of bounds error!");
 
     const Value& v = ValueWrapperAt(idx);
-    if (v.Empty()) {
+    if (v.IsEmpty()) {
       return ValueType::EMPTY_TYPE;
     }
-    return v.Type();
+    return v.GetType();
   }
 
   Memory::MemoryCursor::MemoryCursor(size_t pos) {

@@ -84,8 +84,8 @@ namespace other {
       if (cfg.size() > 0) {
         bool resize = config.GetVal<bool>(kWindowFlagsSection, kResizableValue, false).value_or(false);
         bool borderless = config.GetVal<bool>(kWindowFlagsSection, kBorderlessValue, false).value_or(false);
-        bool maximized = config.GetVal<bool>(kWindowFlagsSection, kMaximizedValue, false).value_or(false);
-        bool minimized = config.GetVal<bool>(kWindowFlagsSection, kMinimizedValue, false).value_or(false);
+        bool maximized = config.GetVal<bool>(kWindowFlagsSection, kMaximizedValue, false).value_or(true);
+        bool minimized = config.GetVal<bool>(kWindowFlagsSection, kMinimizedValue, false).value_or(!maximized);
         bool allow_highdpi = config.GetVal<bool>(kWindowFlagsSection, kAllowHighDpiValue, false).value_or(false);
 
         if (resize) {
@@ -97,6 +97,8 @@ namespace other {
         }
 
         if (maximized) {
+          flags &= ~SDL_WINDOW_FULLSCREEN;
+          flags &= ~SDL_WINDOW_MINIMIZED;
           flags |= SDL_WINDOW_MAXIMIZED;
         }
 
@@ -109,6 +111,9 @@ namespace other {
         if (allow_highdpi) {
           flags |= SDL_WINDOW_ALLOW_HIGHDPI;
         }
+      } else {
+        flags |= SDL_WINDOW_RESIZABLE;
+        flags |= SDL_WINDOW_MAXIMIZED;
       }
       return flags;
     }
@@ -202,12 +207,6 @@ namespace other {
   WindowConfig Window::ConfigureWindow(const other::ConfigTable& config) {
     other::WindowConfig cfg;
 
-    const auto wheight = config.GetVal<uint32_t>(kWindowSection, kHeightValue, false);
-    const auto wwidth = config.GetVal<uint32_t>(kWindowSection, kWidthValue, false);
-
-    cfg.size.x = wwidth.value_or(1920);
-    cfg.size.y = wheight.value_or(1080);
-
     const auto title_cfg = config.Get(kWindowSection, kTitleValue);
     if (title_cfg.size() > 0) {
       cfg.title = title_cfg[0];
@@ -226,6 +225,14 @@ namespace other {
     }
 
     cfg.flags = ProcessFlags(config);
+    const auto wheight = config.GetVal<uint32_t>(kWindowSection, kHeightValue, false);
+    const auto wwidth = config.GetVal<uint32_t>(kWindowSection, kWidthValue, false);
+    if (!(cfg.flags & SDL_WINDOW_MAXIMIZED)) {
+      cfg.size.x = wwidth.value_or(1920);
+      cfg.size.y = wheight.value_or(1080);
+    } else {
+      cfg.size = { 0, 0 };
+    }
 
     glm::vec4 col = { 0.1f, 0.3f, 0.5f, 1.0f };
     const auto color = config.Get(kWindowSection, kClearColorValue);

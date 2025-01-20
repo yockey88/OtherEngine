@@ -23,18 +23,18 @@ namespace other {
     ReactWorld(Scene* scene_ctx);
     virtual ~ReactWorld() override;
 
-    virtual void ResetSimulation(Scene* scene) override;
-    virtual void Simulate(float ts) override;
-    virtual Ref<PhysicsBody> CreateBody(Transform& initial_transform) override;
+    void ResetSimulation(Scene* scene) override;
+    void Simulate(float ts) override;
+    Ref<PhysicsBody> CreateBody(Transform& initial_transform) override;
 
-    virtual Ref<PhysicsShape> CreateBoxShape(const glm::vec3& half_extents) override;
-    virtual Ref<PhysicsShape> CreateSphereShape(float radius) override;
-    virtual Ref<PhysicsShape> CreateCapsuleShape(float radius, float height) override;
-    virtual Ref<PhysicsShape> CreateConvexMeshShape(const std::vector<glm::vec3>& vertices, const std::vector<uint32_t>& indices, uint32_t num_faces) override;
-    virtual Ref<PhysicsShape> CreateConcaveMeshShape(const std::vector<glm::vec3>& vertices, const std::vector<uint32_t>& indices, uint32_t num_faces) override;
+    Ref<PhysicsShape> CreateBoxShape(const glm::vec3& half_extents) override;
+    Ref<PhysicsShape> CreateSphereShape(float radius) override;
+    Ref<PhysicsShape> CreateCapsuleShape(float radius, float height) override;
+    Ref<PhysicsShape> CreateConvexMeshShape(const std::vector<glm::vec3>& vertices, const std::vector<uint32_t>& indices, uint32_t num_faces) override;
+    Ref<PhysicsShape> CreateConcaveMeshShape(const std::vector<glm::vec3>& vertices, const std::vector<uint32_t>& indices, uint32_t num_faces) override;
 
-    virtual void SetDebugRendering(bool debug) override;
-    virtual void SubmitDebugRender(Ref<SceneRenderer> renderer) override;
+    void SetDebugRendering(bool debug) override;
+    void SubmitDebugRender(Ref<SceneRenderer> renderer) override;
 
    private:
     rp3d::PhysicsCommon physics_common;

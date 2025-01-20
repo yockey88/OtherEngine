@@ -33,6 +33,7 @@ namespace other {
   }
 
   void EventQueue::Poll() {
+    PROFILE_SECTION("EventQueue--Poll");
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
       switch (event.type) {
@@ -68,6 +69,7 @@ namespace other {
   }
 
   void EventQueue::Clear() {
+    PROFILE_SECTION("EventQueue--Clear");
     event_buffer.ZeroMem();
     scratch_buffer.ZeroMem();
     num_events = 0;
@@ -105,6 +107,7 @@ namespace other {
 
   void EventQueue::Dispatch() {
     OE_ASSERT(scratch_buffer.NumElements() == num_events, "No events to dispatch");
+    PROFILE_SECTION("EventQueue--Dispatch");
 
     for (size_t handle_idx = 0; handle_idx < num_events; ++handle_idx) {
       EventHandle* event = scratch_buffer.PointerAt<EventHandle>(handle_idx);
