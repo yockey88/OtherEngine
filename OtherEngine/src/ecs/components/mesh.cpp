@@ -110,6 +110,7 @@ namespace other {
     }
 
     /// will be replaced during scene update
+    auto& transform = entity->GetComponent<Transform>();
     switch (mesh.primitive_id) {
       case kTriangleIdx: {
         mesh.handle = ModelFactory::CreateTriangle();
@@ -123,9 +124,11 @@ namespace other {
       } break;
 
       case kSphereIdx:
+        mesh.handle = ModelFactory::CreateSphere(transform.scale.x / 2.f);
         break;
+
       case kCapsuleIdx:
-        // Capsule
+        mesh.handle = ModelFactory::CreateCapsule(transform.scale.x / 2.f, transform.scale.y);
         break;
 
       default:

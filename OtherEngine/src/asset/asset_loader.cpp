@@ -4,6 +4,7 @@
 #include "asset/asset_loader.hpp"
 
 #include "core/logger.hpp"
+#include "core/scope.hpp"
 
 #include "asset/serializers/model_serializer.hpp"
 #include "asset/serializers/scene_serializer.hpp"

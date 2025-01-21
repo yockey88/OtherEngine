@@ -40,11 +40,11 @@ namespace dotother {
         return *this;
       }
 
-      ObjectProxy Clone() {
+      ObjectProxy Clone() const {
         return ObjectProxy(&target);
       }
 
-      std::string GetTypeName() {
+      std::string GetTypeName() const {
         return (std::string)refl::descriptor::get_name(descriptor);
       }
 

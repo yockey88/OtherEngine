@@ -153,396 +153,402 @@ int main(int argc, char* argv[]) {
 #endif
   int exit = 0;
   try {
-    const other::Path glsandbox_dir = "C:/Yock/code/OtherEngine/tests/gl_sandbox";
-    const other::Path config_path = glsandbox_dir / "gl_sandbox.other";
-
-    cmd_line.SetFlag("--project", { config_path.string() });
-
-    other::Engine mock_engine(cmd_line, "Sandbox--Thread");
-
-    AppState::Initialize(&mock_engine);
-    Renderer::Initialize(mock_engine.config);
-    UI::Initialize(mock_engine.config, Renderer::GetWindow());
-    ScriptEngine::Initialize(mock_engine.config);
-    AppState::AttachApplication();
-    AppState::mode = EngineMode::EDITOR;
-
-    uint32_t shader1 = other::GetShader(vert1, frag1);
-    uint32_t shader2 = other::GetShader(vert2, frag2);
-
-    Ref<Framebuffer> frame = NewRef<Framebuffer>(other::FramebufferSpec{
-      .size = Renderer::WindowSize(),
-    });
-
-    std::vector<float> fb_verts = {
-      1.f, 1.f, 1.f, 1.f,
-      -1.f, 1.f, 0.f, 1.f,
-      -1.f, -1.f, 0.f, 0.f,
-      1.f, -1.f, 1.f, 0.f
-    };
-
-    std::vector<uint32_t> fb_indices = {
-      0, 1, 3,
-      1, 2, 3
-    };
-    std::vector<uint32_t> fb_layout = {
-      2, 2
-    };
-
-    Scope<VertexArray> fb_mesh = NewScope<VertexArray>(fb_verts, fb_indices, fb_layout);
-
-    const other::Path shader_dir = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders";
-    const other::Path debug_physics_shader_path = shader_dir / "physics_debug.oshader";
-    Ref<Shader> debug_physics_shader = other::BuildShader(debug_physics_shader_path);
-
-    const other::Path gl_sb_material_dir = other::Filesystem::GetEngineCoreDir() / "tests" / "gl_sandbox" / "shaders";
-    const other::Path mat_path = gl_sb_material_dir / "mat.oshader";
-    Ref<Shader> mat_shader = other::BuildShader(mat_path);
-
-    glm::ivec2 win_size = Renderer::WindowSize();
-    println("Window size : {0}x{1}", win_size.x, win_size.y);
-    other::Ref<CameraBase> camera = other::NewRef<PerspectiveCamera>(win_size);
-    camera->SetPosition({ 0.f, 3.f, 3.f });
-    camera->SetDirection({ 0.f, -3.f, -3.f });
-
-    other::PointLight point_light{
-      .position = { 1.2f, 1.0f, 2.0f, 1.f },
-      .color = { 0.2f, 0.2f, 0.2f, 1.f },
-    };
-    other::DirectionLight dir_light{
-      .direction = { -0.2f, 1.0f, -0.3f, 1.f },
-      .color = { 1.0f, 1.0f, 1.0f, 1.f },
-    };
-
-    CHECKGL();
-
-    uint32_t camera_binding_pnt = 0;
-    std::vector<other::Uniform> camera_unis = {
-      { "projection", other::ValueType::MAT4 },
-      { "view", other::ValueType::MAT4 },
-      { "viewpoint", other::ValueType::VEC4 },
-    };
-
-    uint32_t model_binding_pnt = 1;
-    std::vector<other::Uniform> model_unis = {
-      { "models", other::ValueType::MAT4, 100 },
-    };
-
-    uint32_t material_binding_pnt = 2;
-    std::vector<other::Uniform> material_unis = {
-      { "materials", other::ValueType::USER_TYPE, 100, sizeof(other::Material) },
-    };
-
-    uint32_t light_binding_pnt = 3;
-    std::vector<other::Uniform> light_unis = {
-      { "num_lights", other::ValueType::VEC4 },
-      { "point_lights", other::ValueType::USER_TYPE, 100, sizeof(other::PointLight) },
-      { "direction_lights", other::ValueType::USER_TYPE, 100, sizeof(other::DirectionLight) },
-    };
-
-    Ref<other::UniformBuffer> camera_uniforms = NewRef<other::UniformBuffer>("Camera", camera_unis, camera_binding_pnt);
-    camera_uniforms->BindBase();
-
-    camera_uniforms->SetUniform("projection", camera->ProjectionMatrix());
-    camera_uniforms->SetUniform("view", camera->ViewMatrix());
-    camera_uniforms->SetUniform("viewpoint", camera->Position());
-
-    Ref<other::UniformBuffer> light_uniforms = NewRef<other::UniformBuffer>("Lights", light_unis, light_binding_pnt, other::SHADER_STORAGE);
-    light_uniforms->BindBase();
-
-    Ref<other::UniformBuffer> material_uniforms = NewRef<other::UniformBuffer>("MaterialData", material_unis, material_binding_pnt, other::SHADER_STORAGE);
-    material_uniforms->BindBase();
-    Ref<other::UniformBuffer> model_uniforms = NewRef<other::UniformBuffer>("ModelData", model_unis, model_binding_pnt, other::SHADER_STORAGE);
-    model_uniforms->BindBase();
-
-    other::Buffer model_buffer;
-    other::Buffer material_buffer;
-
-    std::vector<glm::vec4> colors = {
-      { 1.f, 0.f, 0.f, 1.f },
-      { 0.f, 1.f, 0.f, 1.f },
-      { 0.f, 0.f, 1.f, 1.f },
-      { 0.5f, 0.5f, 0.5f, 1.f },
-    };
-
-    Ref<MaterialTable> material_table = AssetManager::GetMaterialTable();
-    OE_ASSERT(material_table != nullptr, "Material table is null");
-
-    other::UUID mat1 = material_table->RegisterMaterial(colors[0], glm::vec4(1.f), glm::vec4(1.f));
-    other::UUID mat2 = material_table->RegisterMaterial(colors[1], glm::vec4(1.f), glm::vec4(1.f));
-    other::UUID mat3 = material_table->RegisterMaterial(colors[2], glm::vec4(1.f), glm::vec4(1.f));
-    other::UUID floor_mat = material_table->RegisterMaterial(colors[3], glm::vec4(1.f), glm::vec4(1.f));
-
-    Quad quad;
-    Cube cube;
-
-    CHECKGL();
-
-    rp3d::PhysicsCommon physics_common;
-    rp3d::PhysicsWorld* physics_world = physics_common.createPhysicsWorld();
-
-    Transform transform1;
-    transform1.position = { 0.f, 15.f, 0.f };
-    transform1.scale = { 1.f, 1.f, 1.f };
-
-    transform1.CalcMatrix();
-    rp3d::Vector3 pos1(transform1.position.x, transform1.position.y, transform1.position.z);
-    rp3d::Transform phys_transform1(pos1, rp3d::Quaternion::identity());
-    rp3d::RigidBody* body1 = physics_world->createRigidBody(phys_transform1);
-    body1->setIsActive(true);
-
-    rp3d::Transform i_transform1 = body1->getTransform();
-    rp3d::Vector3 half_extents1(transform1.scale.x / 2.f, transform1.scale.y / 2.f, transform1.scale.z / 2.f);
-    rp3d::BoxShape* box_shape1 = physics_common.createBoxShape(half_extents1);
-    body1->addCollider(box_shape1, rp3d::Transform::identity());
-    body1->setIsDebugEnabled(true);
-
-    Transform transform2;
-    transform2.position = { 0.f, 10.f, 0.f };
-    transform2.scale = { 1.f, 1.f, 1.f };
-
-    transform2.CalcMatrix();
-    rp3d::Vector3 pos2(transform2.position.x, transform2.position.y, transform2.position.z);
-    rp3d::Transform phys_transform2(pos2, rp3d::Quaternion::identity());
-    rp3d::RigidBody* body2 = physics_world->createRigidBody(phys_transform2);
-    body2->setIsActive(true);
-
-    rp3d::Transform i_transform2 = body2->getTransform();
-    rp3d::Vector3 half_extents2(transform2.scale.x / 2.f, transform2.scale.y / 2.f, transform2.scale.z / 2.f);
-    rp3d::BoxShape* box_shape2 = physics_common.createBoxShape(half_extents2);
-    body2->addCollider(box_shape2, rp3d::Transform::identity());
-    body2->setIsDebugEnabled(true);
-
-    Transform transform3;
-    transform3.position = { 0.1f, 20.f, 0.f };
-    transform3.scale = { 1.f, 1.f, 1.f };
-
-    transform3.CalcMatrix();
-    rp3d::Vector3 pos3(transform3.position.x, transform3.position.y, transform3.position.z);
-    rp3d::Transform phys_transform3(pos3, rp3d::Quaternion::identity());
-    rp3d::RigidBody* body3 = physics_world->createRigidBody(phys_transform3);
-    body3->setIsActive(true);
-
-    rp3d::Transform i_transform3 = body3->getTransform();
-    rp3d::Vector3 half_extents3(transform3.scale.x / 2.f, transform3.scale.y / 2.f, transform3.scale.z / 2.f);
-    rp3d::BoxShape* box_shape3 = physics_common.createBoxShape(half_extents3);
-    body3->addCollider(box_shape3, rp3d::Transform::identity());
-    body3->setIsDebugEnabled(true);
-
-    Transform floor_transform;
-    floor_transform.position = { 0.f, -2.f, 0.f };
-    floor_transform.scale = { 10.f, 1.f, 10.f };
-
-    floor_transform.CalcMatrix();
-    rp3d::Vector3 pos_floor(floor_transform.position.x, floor_transform.position.y, floor_transform.position.z);
-    rp3d::Transform phys_transform_floor(pos_floor, rp3d::Quaternion::identity());
-    rp3d::RigidBody* floor_body = physics_world->createRigidBody(phys_transform_floor);
-    floor_body->setType(rp3d::BodyType::STATIC);
-    rp3d::Vector3 half_extents_floor(floor_transform.scale.x / 2.f, floor_transform.scale.y / 2.f, floor_transform.scale.z / 2.f);
-    rp3d::BoxShape* box_shape_floor = physics_common.createBoxShape(half_extents_floor);
-    floor_body->addCollider(box_shape_floor, rp3d::Transform::identity());
-
-    physics_world->setIsDebugRenderingEnabled(true);
-
-    rp3d::DebugRenderer& debug_renderer = physics_world->getDebugRenderer();
-
-    debug_renderer.setContactNormalLength(3.f);
-    debug_renderer.setContactPointSphereRadius(0.1f);
-
-    debug_renderer.setIsDebugItemDisplayed(rp3d::DebugRenderer::DebugItem::COLLIDER_AABB, true);
-    debug_renderer.setIsDebugItemDisplayed(rp3d::DebugRenderer::DebugItem::COLLISION_SHAPE, true);
-    debug_renderer.setIsDebugItemDisplayed(rp3d::DebugRenderer::DebugItem::CONTACT_NORMAL, true);
-    debug_renderer.setIsDebugItemDisplayed(rp3d::DebugRenderer::DebugItem::CONTACT_POINT, true);
-    debug_renderer.setIsDebugItemDisplayed(rp3d::DebugRenderer::DebugItem::COLLISION_SHAPE_NORMAL, true);
-
-    other::time::FrameRateEnforcer<60> enforcer;
-
-    Ref<VertexArray> debug_physics_triangles = nullptr;
-    Ref<VertexArray> debug_physics_lines = nullptr;
-
-    bool interpolate_physics = false;
-    Opt<time::TimePoint> previous_time = std::nullopt;
-    rp3d::decimal accumulator = 0.f;
-    rp3d::decimal alpha = 0.f;
-
-    bool running = true;
-
-    bool camera_lock = true;
-    bool force_update = true;
-    other::Mouse::FreeCursor();
-
-    OE_INFO("Running");
-    while (running) {
-      other::IO::Update();
-
-      time::TimePoint current_time;
-      time::FloatDuration delta_time;
-      if (!previous_time.has_value()) {
-        previous_time = time::SteadyClock::now();
-      } else {
-        current_time = time::SteadyClock::now();
-        delta_time = current_time - *previous_time;
-        previous_time = current_time;
-        interpolate_physics = true;
-      }
-
-      SDL_Event event;
-      while (SDL_PollEvent(&event)) {
-        switch (event.type) {
-          case SDL_QUIT: running = false; break;
-          case SDL_WINDOWEVENT:
-            switch (event.window.event) {
-              case SDL_WINDOWEVENT_CLOSE: running = false; break;
-              default: break;
-            }
-            break;
-          case SDL_KEYDOWN:
-            switch (event.key.keysym.sym) {
-              case SDLK_ESCAPE: running = false; break;
-              case SDLK_c:
-                camera_lock = !camera_lock;
-                if (camera_lock) {
-                  other::Mouse::FreeCursor();
-                } else {
-                  other::Mouse::LockCursor();
-                }
-                break;
-              default: break;
-            }
-            break;
-          default: break;
-        }
-
-        ImGui_ImplSDL2_ProcessEvent(&event);
-      }
-      if (!running) {
-        break;
-      }
-
-      other::EventQueue::Clear();
-
-      float ts = enforcer.TimeStep();
-
-      if (interpolate_physics) {
-        accumulator += delta_time.count();  /// add fixed physics time step
-        while (accumulator >= ts) {
-          physics_world->update(ts);
-          accumulator -= ts;
-        }
-        alpha = accumulator / ts;
-
-        const rp3d::Transform& transf1 = body1->getTransform();
-        const rp3d::Transform& inter_transform1 = rp3d::Transform::interpolateTransforms(i_transform1, transf1, alpha);
-        i_transform1 = inter_transform1;
-        transform1 = GetTransformFromPhysicsTransform(i_transform1);
-
-        const rp3d::Transform& transf2 = body2->getTransform();
-        const rp3d::Transform& inter_transform2 = rp3d::Transform::interpolateTransforms(i_transform2, transf2, alpha);
-        i_transform2 = inter_transform2;
-        transform2 = GetTransformFromPhysicsTransform(i_transform2);
-
-        const rp3d::Transform& transf3 = body3->getTransform();
-        const rp3d::Transform& inter_transform3 = rp3d::Transform::interpolateTransforms(i_transform3, transf3, alpha);
-        i_transform3 = inter_transform3;
-        transform3 = GetTransformFromPhysicsTransform(i_transform3);
-      } else {
-        physics_world->update(ts);
-        const rp3d::Transform& transf1 = body1->getTransform();
-        transform1 = GetTransformFromPhysicsTransform(transf1);
-
-        const rp3d::Transform& transf2 = body2->getTransform();
-        transform2 = GetTransformFromPhysicsTransform(transf2);
-
-        const rp3d::Transform& transf3 = body3->getTransform();
-        transform3 = GetTransformFromPhysicsTransform(transf3);
-      }
-
-      DoDebugRendering(debug_physics_triangles, debug_physics_lines, physics_world);
-
-      other::Renderer::GetWindow()->Clear();
-
-      /// update camera uniforms
-      if (!camera_lock || force_update) {
-        force_update = !force_update;
-        UpdateCamera(camera);
-        glm::vec4 cam_pos = glm::vec4(camera->Position(), 1.f);
-
-        camera_uniforms->SetUniform("projection", camera->ProjectionMatrix());
-        camera_uniforms->SetUniform("view", camera->ViewMatrix());
-        camera_uniforms->SetUniform("viewpoint", cam_pos);
-      }
-
-      light_uniforms->SetUniform("num_lights", glm::vec4{ 0, 1, 0, 0 });
-      light_uniforms->SetUniform("point_lights", point_light);
-      light_uniforms->SetUniform("direction_lights", dir_light);
-
-      frame->BindFrame();
-      material_table->Bind();
-      mat_shader->Bind();
-      mat_shader->SetUniform("albedo_textures", 0);
-      mat_shader->SetUniform("normal_textures", 1);
-      mat_shader->SetUniform("roughness_textures", 2);
-
-      model_buffer.ZeroMem();
-      model_buffer.BufferData(transform1.model_transform);
-      model_buffer.BufferData(transform2.model_transform);
-      model_buffer.BufferData(transform3.model_transform);
-      model_buffer.BufferData(floor_transform.model_transform);
-
-      model_uniforms->BindBase();
-      model_uniforms->LoadFromBuffer(model_buffer);
-
-      MaterialTable::Material mat1_data = material_table->GetMaterial(mat1);
-      MaterialTable::Material mat2_data = material_table->GetMaterial(mat2);
-      MaterialTable::Material mat3_data = material_table->GetMaterial(mat3);
-      MaterialTable::Material floor_mat_data = material_table->GetMaterial(floor_mat);
-      Material gpumat1 = mat1_data;
-      Material gpumat2 = mat2_data;
-      Material gpumat3 = mat3_data;
-      Material gpufloor_mat = floor_mat_data;
-
-      material_buffer.ZeroMem();
-      material_buffer.BufferData(gpumat1);
-      material_buffer.BufferData(gpumat2);
-      material_buffer.BufferData(gpumat3);
-      material_buffer.BufferData(gpufloor_mat);
-
+    Arena::Initialize();
+    {
+      const other::Path glsandbox_dir = "C:/Yock/code/OtherEngine/tests/gl_sandbox";
+      const other::Path config_path = glsandbox_dir / "gl_sandbox.other";
+
+      cmd_line.SetFlag("--project", { config_path.string() });
+
+      other::Engine mock_engine(cmd_line, "Sandbox--Thread");
+
+      AppState::Initialize(&mock_engine);
+      Renderer::Initialize(mock_engine.config);
+      UI::Initialize(mock_engine.config, Renderer::GetWindow());
+      ScriptEngine::Initialize(mock_engine.config);
+      AppState::AttachApplication();
+      AppState::mode = EngineMode::EDITOR;
+
+      uint32_t shader1 = other::GetShader(vert1, frag1);
+      uint32_t shader2 = other::GetShader(vert2, frag2);
+
+      Ref<Framebuffer> frame = NewRef<Framebuffer>(other::FramebufferSpec{
+        .size = Renderer::WindowSize(),
+      });
+
+      std::vector<float> fb_verts = {
+        1.f, 1.f, 1.f, 1.f,
+        -1.f, 1.f, 0.f, 1.f,
+        -1.f, -1.f, 0.f, 0.f,
+        1.f, -1.f, 1.f, 0.f
+      };
+
+      std::vector<uint32_t> fb_indices = {
+        0, 1, 3,
+        1, 2, 3
+      };
+      std::vector<uint32_t> fb_layout = {
+        2, 2
+      };
+
+      Scope<VertexArray> fb_mesh = NewScope<VertexArray>(fb_verts, fb_indices, fb_layout);
+
+      const other::Path shader_dir = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders";
+      const other::Path debug_physics_shader_path = shader_dir / "physics_debug.oshader";
+      Ref<Shader> debug_physics_shader = other::BuildShader(debug_physics_shader_path);
+
+      const other::Path gl_sb_material_dir = other::Filesystem::GetEngineCoreDir() / "tests" / "gl_sandbox" / "shaders";
+      const other::Path mat_path = gl_sb_material_dir / "mat.oshader";
+      Ref<Shader> mat_shader = other::BuildShader(mat_path);
+
+      glm::ivec2 win_size = Renderer::WindowSize();
+      println("Window size : {0}x{1}", win_size.x, win_size.y);
+      other::Ref<CameraBase> camera = other::NewRef<PerspectiveCamera>(win_size);
+      camera->SetPosition({ 0.f, 3.f, 3.f });
+      camera->SetDirection({ 0.f, -3.f, -3.f });
+
+      other::PointLight point_light{
+        .position = { 1.2f, 1.0f, 2.0f, 1.f },
+        .color = { 0.2f, 0.2f, 0.2f, 1.f },
+      };
+      other::DirectionLight dir_light{
+        .direction = { -0.2f, 1.0f, -0.3f, 1.f },
+        .color = { 1.0f, 1.0f, 1.0f, 1.f },
+      };
+
+      CHECKGL();
+
+      uint32_t camera_binding_pnt = 0;
+      std::vector<other::Uniform> camera_unis = {
+        { "projection", other::ValueType::MAT4 },
+        { "view", other::ValueType::MAT4 },
+        { "viewpoint", other::ValueType::VEC4 },
+      };
+
+      uint32_t model_binding_pnt = 1;
+      std::vector<other::Uniform> model_unis = {
+        { "models", other::ValueType::MAT4, 100 },
+      };
+
+      uint32_t material_binding_pnt = 2;
+      std::vector<other::Uniform> material_unis = {
+        { "materials", other::ValueType::USER_TYPE, 100, sizeof(other::Material) },
+      };
+
+      uint32_t light_binding_pnt = 3;
+      std::vector<other::Uniform> light_unis = {
+        { "num_lights", other::ValueType::VEC4 },
+        { "point_lights", other::ValueType::USER_TYPE, 100, sizeof(other::PointLight) },
+        { "direction_lights", other::ValueType::USER_TYPE, 100, sizeof(other::DirectionLight) },
+      };
+
+      Ref<other::UniformBuffer> camera_uniforms = NewRef<other::UniformBuffer>("Camera", camera_unis, camera_binding_pnt);
+      camera_uniforms->BindBase();
+
+      camera_uniforms->SetUniform("projection", camera->ProjectionMatrix());
+      camera_uniforms->SetUniform("view", camera->ViewMatrix());
+      camera_uniforms->SetUniform("viewpoint", camera->Position());
+
+      Ref<other::UniformBuffer> light_uniforms = NewRef<other::UniformBuffer>("Lights", light_unis, light_binding_pnt, other::SHADER_STORAGE);
+      light_uniforms->BindBase();
+
+      Ref<other::UniformBuffer> material_uniforms = NewRef<other::UniformBuffer>("MaterialData", material_unis, material_binding_pnt, other::SHADER_STORAGE);
       material_uniforms->BindBase();
-      material_uniforms->LoadFromBuffer(material_buffer);
+      Ref<other::UniformBuffer> model_uniforms = NewRef<other::UniformBuffer>("ModelData", model_unis, model_binding_pnt, other::SHADER_STORAGE);
+      model_uniforms->BindBase();
 
-      cube.Draw(other::TRIANGLES, colors.size());
+      other::Buffer model_buffer;
+      other::Buffer material_buffer;
 
-      material_table->Unbind();
+      std::vector<glm::vec4> colors = {
+        { 1.f, 0.f, 0.f, 1.f },
+        { 0.f, 1.f, 0.f, 1.f },
+        { 0.f, 0.f, 1.f, 1.f },
+        { 0.5f, 0.5f, 0.5f, 1.f },
+      };
 
-      debug_physics_shader->Bind();
-      debug_physics_lines->Draw(DrawMode::LINES);
-      debug_physics_triangles->Draw(DrawMode::TRIANGLES);
-      debug_physics_shader->Unbind();
+      Ref<MaterialTable> material_table = AssetManager::GetMaterialTable();
+      OE_ASSERT(material_table != nullptr, "Material table is null");
 
-      frame->UnbindFrame();
+      other::UUID mat1 = material_table->RegisterMaterial(colors[0], glm::vec4(1.f), glm::vec4(1.f));
+      other::UUID mat2 = material_table->RegisterMaterial(colors[1], glm::vec4(1.f), glm::vec4(1.f));
+      other::UUID mat3 = material_table->RegisterMaterial(colors[2], glm::vec4(1.f), glm::vec4(1.f));
+      other::UUID floor_mat = material_table->RegisterMaterial(colors[3], glm::vec4(1.f), glm::vec4(1.f));
 
-      other::Renderer::DrawFramebufferToWindow(frame);
+      Quad quad;
+      Cube cube;
+
+      CHECKGL();
+
+      rp3d::PhysicsCommon physics_common;
+      rp3d::PhysicsWorld* physics_world = physics_common.createPhysicsWorld();
+
+      Transform transform1;
+      transform1.position = { 0.f, 15.f, 0.f };
+      transform1.scale = { 1.f, 1.f, 1.f };
+
+      transform1.CalcMatrix();
+      rp3d::Vector3 pos1(transform1.position.x, transform1.position.y, transform1.position.z);
+      rp3d::Transform phys_transform1(pos1, rp3d::Quaternion::identity());
+      rp3d::RigidBody* body1 = physics_world->createRigidBody(phys_transform1);
+      body1->setIsActive(true);
+
+      rp3d::Transform i_transform1 = body1->getTransform();
+      rp3d::Vector3 half_extents1(transform1.scale.x / 2.f, transform1.scale.y / 2.f, transform1.scale.z / 2.f);
+      rp3d::BoxShape* box_shape1 = physics_common.createBoxShape(half_extents1);
+      body1->addCollider(box_shape1, rp3d::Transform::identity());
+      body1->setIsDebugEnabled(true);
+
+      Transform transform2;
+      transform2.position = { 0.f, 10.f, 0.f };
+      transform2.scale = { 1.f, 1.f, 1.f };
+
+      transform2.CalcMatrix();
+      rp3d::Vector3 pos2(transform2.position.x, transform2.position.y, transform2.position.z);
+      rp3d::Transform phys_transform2(pos2, rp3d::Quaternion::identity());
+      rp3d::RigidBody* body2 = physics_world->createRigidBody(phys_transform2);
+      body2->setIsActive(true);
+
+      rp3d::Transform i_transform2 = body2->getTransform();
+      rp3d::Vector3 half_extents2(transform2.scale.x / 2.f, transform2.scale.y / 2.f, transform2.scale.z / 2.f);
+      rp3d::BoxShape* box_shape2 = physics_common.createBoxShape(half_extents2);
+      body2->addCollider(box_shape2, rp3d::Transform::identity());
+      body2->setIsDebugEnabled(true);
+
+      Transform transform3;
+      transform3.position = { 0.1f, 20.f, 0.f };
+      transform3.scale = { 1.f, 1.f, 1.f };
+
+      transform3.CalcMatrix();
+      rp3d::Vector3 pos3(transform3.position.x, transform3.position.y, transform3.position.z);
+      rp3d::Transform phys_transform3(pos3, rp3d::Quaternion::identity());
+      rp3d::RigidBody* body3 = physics_world->createRigidBody(phys_transform3);
+      body3->setIsActive(true);
+
+      rp3d::Transform i_transform3 = body3->getTransform();
+      rp3d::Vector3 half_extents3(transform3.scale.x / 2.f, transform3.scale.y / 2.f, transform3.scale.z / 2.f);
+      // rp3d::BoxShape* box_shape3 = physics_common.createBoxShape(half_extents3);
+      rp3d::CapsuleShape* capsule_shape = physics_common.createCapsuleShape(transform3.scale.x / 2.f, transform3.scale.y);
+      // body3->addCollider(box_shape3, rp3d::Transform::identity());
+      body3->addCollider(capsule_shape, rp3d::Transform::identity());
+      body3->setIsDebugEnabled(true);
+
+      Transform floor_transform;
+      floor_transform.position = { 0.f, -2.f, 0.f };
+      floor_transform.scale = { 10.f, 1.f, 10.f };
+
+      floor_transform.CalcMatrix();
+      rp3d::Vector3 pos_floor(floor_transform.position.x, floor_transform.position.y, floor_transform.position.z);
+      rp3d::Transform phys_transform_floor(pos_floor, rp3d::Quaternion::identity());
+      rp3d::RigidBody* floor_body = physics_world->createRigidBody(phys_transform_floor);
+      floor_body->setType(rp3d::BodyType::STATIC);
+      rp3d::Vector3 half_extents_floor(floor_transform.scale.x / 2.f, floor_transform.scale.y / 2.f, floor_transform.scale.z / 2.f);
+      rp3d::BoxShape* box_shape_floor = physics_common.createBoxShape(half_extents_floor);
+      floor_body->addCollider(box_shape_floor, rp3d::Transform::identity());
+
+      physics_world->setIsDebugRenderingEnabled(true);
+
+      rp3d::DebugRenderer& debug_renderer = physics_world->getDebugRenderer();
+
+      debug_renderer.setContactNormalLength(3.f);
+      debug_renderer.setContactPointSphereRadius(0.1f);
+
+      debug_renderer.setIsDebugItemDisplayed(rp3d::DebugRenderer::DebugItem::COLLIDER_AABB, true);
+      debug_renderer.setIsDebugItemDisplayed(rp3d::DebugRenderer::DebugItem::COLLISION_SHAPE, true);
+      debug_renderer.setIsDebugItemDisplayed(rp3d::DebugRenderer::DebugItem::CONTACT_NORMAL, true);
+      debug_renderer.setIsDebugItemDisplayed(rp3d::DebugRenderer::DebugItem::CONTACT_POINT, true);
+      debug_renderer.setIsDebugItemDisplayed(rp3d::DebugRenderer::DebugItem::COLLISION_SHAPE_NORMAL, true);
+
+      other::time::FrameRateEnforcer<60> enforcer;
+
+      Ref<VertexArray> debug_physics_triangles = nullptr;
+      Ref<VertexArray> debug_physics_lines = nullptr;
+
+      bool interpolate_physics = false;
+      Opt<time::TimePoint> previous_time = std::nullopt;
+      rp3d::decimal accumulator = 0.f;
+      rp3d::decimal alpha = 0.f;
+
+      bool running = true;
+
+      bool camera_lock = true;
+      bool force_update = true;
+      other::Mouse::FreeCursor();
+
+      OE_INFO("Running");
+      while (running) {
+        other::IO::Update();
+
+        time::TimePoint current_time;
+        time::FloatDuration delta_time;
+        if (!previous_time.has_value()) {
+          previous_time = time::SteadyClock::now();
+        } else {
+          current_time = time::SteadyClock::now();
+          delta_time = current_time - *previous_time;
+          previous_time = current_time;
+          interpolate_physics = true;
+        }
+
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+          switch (event.type) {
+            case SDL_QUIT: running = false; break;
+            case SDL_WINDOWEVENT:
+              switch (event.window.event) {
+                case SDL_WINDOWEVENT_CLOSE: running = false; break;
+                default: break;
+              }
+              break;
+            case SDL_KEYDOWN:
+              switch (event.key.keysym.sym) {
+                case SDLK_ESCAPE: running = false; break;
+                case SDLK_c:
+                  camera_lock = !camera_lock;
+                  if (camera_lock) {
+                    other::Mouse::FreeCursor();
+                  } else {
+                    other::Mouse::LockCursor();
+                  }
+                  break;
+                default: break;
+              }
+              break;
+            default: break;
+          }
+
+          ImGui_ImplSDL2_ProcessEvent(&event);
+        }
+        if (!running) {
+          break;
+        }
+
+        other::EventQueue::Clear();
+
+        float ts = enforcer.TimeStep();
+
+        if (interpolate_physics) {
+          accumulator += delta_time.count();  /// add fixed physics time step
+          while (accumulator >= ts) {
+            physics_world->update(ts);
+            accumulator -= ts;
+          }
+          alpha = accumulator / ts;
+
+          const rp3d::Transform& transf1 = body1->getTransform();
+          const rp3d::Transform& inter_transform1 = rp3d::Transform::interpolateTransforms(i_transform1, transf1, alpha);
+          i_transform1 = inter_transform1;
+          transform1 = GetTransformFromPhysicsTransform(i_transform1);
+
+          const rp3d::Transform& transf2 = body2->getTransform();
+          const rp3d::Transform& inter_transform2 = rp3d::Transform::interpolateTransforms(i_transform2, transf2, alpha);
+          i_transform2 = inter_transform2;
+          transform2 = GetTransformFromPhysicsTransform(i_transform2);
+
+          const rp3d::Transform& transf3 = body3->getTransform();
+          const rp3d::Transform& inter_transform3 = rp3d::Transform::interpolateTransforms(i_transform3, transf3, alpha);
+          i_transform3 = inter_transform3;
+          transform3 = GetTransformFromPhysicsTransform(i_transform3);
+        } else {
+          physics_world->update(ts);
+          const rp3d::Transform& transf1 = body1->getTransform();
+          transform1 = GetTransformFromPhysicsTransform(transf1);
+
+          const rp3d::Transform& transf2 = body2->getTransform();
+          transform2 = GetTransformFromPhysicsTransform(transf2);
+
+          const rp3d::Transform& transf3 = body3->getTransform();
+          transform3 = GetTransformFromPhysicsTransform(transf3);
+        }
+
+        DoDebugRendering(debug_physics_triangles, debug_physics_lines, physics_world);
+
+        other::Renderer::GetWindow()->Clear();
+
+        /// update camera uniforms
+        if (!camera_lock || force_update) {
+          force_update = !force_update;
+          UpdateCamera(camera);
+          glm::vec4 cam_pos = glm::vec4(camera->Position(), 1.f);
+
+          camera_uniforms->SetUniform("projection", camera->ProjectionMatrix());
+          camera_uniforms->SetUniform("view", camera->ViewMatrix());
+          camera_uniforms->SetUniform("viewpoint", cam_pos);
+        }
+
+        light_uniforms->SetUniform("num_lights", glm::vec4{ 0, 1, 0, 0 });
+        light_uniforms->SetUniform("point_lights", point_light);
+        light_uniforms->SetUniform("direction_lights", dir_light);
+
+        frame->BindFrame();
+        material_table->Bind();
+        mat_shader->Bind();
+        mat_shader->SetUniform("albedo_textures", 0);
+        mat_shader->SetUniform("normal_textures", 1);
+        mat_shader->SetUniform("roughness_textures", 2);
+
+        model_buffer.ZeroMem();
+        model_buffer.BufferData(transform1.model_transform);
+        model_buffer.BufferData(transform2.model_transform);
+        model_buffer.BufferData(transform3.model_transform);
+        model_buffer.BufferData(floor_transform.model_transform);
+
+        model_uniforms->BindBase();
+        model_uniforms->LoadFromBuffer(model_buffer);
+
+        MaterialTable::Material mat1_data = material_table->GetMaterial(mat1);
+        MaterialTable::Material mat2_data = material_table->GetMaterial(mat2);
+        MaterialTable::Material mat3_data = material_table->GetMaterial(mat3);
+        MaterialTable::Material floor_mat_data = material_table->GetMaterial(floor_mat);
+        Material gpumat1 = mat1_data;
+        Material gpumat2 = mat2_data;
+        Material gpumat3 = mat3_data;
+        Material gpufloor_mat = floor_mat_data;
+
+        material_buffer.ZeroMem();
+        material_buffer.BufferData(gpumat1);
+        material_buffer.BufferData(gpumat2);
+        material_buffer.BufferData(gpumat3);
+        material_buffer.BufferData(gpufloor_mat);
+
+        material_uniforms->BindBase();
+        material_uniforms->LoadFromBuffer(material_buffer);
+
+        cube.Draw(other::TRIANGLES, colors.size());
+
+        material_table->Unbind();
+
+        debug_physics_shader->Bind();
+        debug_physics_lines->Draw(DrawMode::LINES);
+        debug_physics_triangles->Draw(DrawMode::TRIANGLES);
+        debug_physics_shader->Unbind();
+
+        frame->UnbindFrame();
+
+        other::Renderer::DrawFramebufferToWindow(frame);
 
 #define UI_ENABLED 0
 #if UI_ENABLED
-      other::UI::BeginFrame();
+        other::UI::BeginFrame();
 
-      if (ImGui::Begin("GBuffer")) {
-        RenderItem(gbuffer.textures[0], "Position", ImVec2((float)win_w / 2, (float)win_h / 2));
-        RenderItem(gbuffer.textures[1], "Normals", ImVec2((float)win_w / 2, (float)win_h / 2));
-        RenderItem(gbuffer.textures[2], "Albedo", ImVec2((float)win_w / 2, (float)win_h / 2));
-      }
-      ImGui::End();
-      other::UI::EndFrame();
+        if (ImGui::Begin("GBuffer")) {
+          RenderItem(gbuffer.textures[0], "Position", ImVec2((float)win_w / 2, (float)win_h / 2));
+          RenderItem(gbuffer.textures[1], "Normals", ImVec2((float)win_w / 2, (float)win_h / 2));
+          RenderItem(gbuffer.textures[2], "Albedo", ImVec2((float)win_w / 2, (float)win_h / 2));
+        }
+        ImGui::End();
+        other::UI::EndFrame();
 #endif
-      other::Renderer::GetWindow()->SwapBuffers();
-    }
+        other::Renderer::GetWindow()->SwapBuffers();
+      }
 
-    AppState::DetachApplication();
-    ScriptEngine::Shutdown();
-    UI::Shutdown();
-    Renderer::Shutdown();
-    AppState::Shutdown();
+      AppState::DetachApplication();
+      ScriptEngine::Shutdown();
+      UI::Shutdown();
+      Renderer::Shutdown();
+      AppState::Shutdown();
+    }
+    Arena::Shutdown();
   } catch (const other::IniException& e) {
     std::cout << "caught ini error : " << e.what() << "\n";
     exit = 1;

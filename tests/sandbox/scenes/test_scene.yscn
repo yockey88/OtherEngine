@@ -138,7 +138,9 @@ pinned = true
 [backpack]
 UUID = 4299032860123401593
 components = {
-  static-mesh
+  static-mesh,
+  rigid-body,
+  collider,
 }
 
 [backpack.transform]
@@ -147,10 +149,16 @@ position = { -2.7, 0.52, 0 }
 [backpack.static-mesh]
 visible = true
 is-primitive = true
-primitive = 3
+primitive = 4
 material.albedo = { 1, 0, 0, 1 }
 material.normal = { 1.0 , 1.0 , 1.0, 1 }
 material.roughness = { 1.0, 1.0, 1.0, 1 }
+
+[backpack.rigid-body]
+type = "dynamic"
+
+[backpack.collider]
+shape = sphere
 
 #[
 

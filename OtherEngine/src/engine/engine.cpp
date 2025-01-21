@@ -48,6 +48,7 @@ namespace other {
     Logger::Open(config);
     Logger::Instance()->RegisterThread(main_thread_name);
 
+    AssetDatabase::Initialize();
     Filesystem::Initialize(cmd_line, config);
     IO::Initialize();
     EventQueue::Initialize(config);
@@ -62,10 +63,10 @@ namespace other {
     state = nullptr;
     EventQueue::Shutdown();
     IO::Shutdown();
-    Logger::Shutdown();
     AssetDatabase::Shutdown();
     AssetManager::Cleanup();
     Filesystem::Shutdown();
+    Logger::Shutdown();
 
     if (detail::NumberOfLivingReferences() > 0) {
       println("Engine shutdown with {} living references", detail::NumberOfLivingReferences());

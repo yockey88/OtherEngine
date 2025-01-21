@@ -16,6 +16,9 @@
 
 #include "parsing/cmd_line_parser.hpp"
 
+#include "memory/arena_allocator.hpp"
+
+
 namespace other {
 
   /// TODO: make this be the install directory at buildtime
@@ -63,6 +66,19 @@ namespace other {
     static std::vector<Path> GetDirectoryFiles(const Path& path);
     static std::string ReadFile(const Path& path);
     static std::vector<char> ReadFileAsChars(const Path& path);
+
+   private:
+    friend class ArenaAllocator<Filesystem>;
+    static ArenaAllocator<Filesystem> allocator;
+    static Filesystem* instance;
+
+    Filesystem() = default;
+    ~Filesystem() = default;
+
+    Filesystem(Filesystem&&) = delete;
+    Filesystem(const Filesystem&) = delete;
+    Filesystem& operator=(Filesystem&&) = delete;
+    Filesystem& operator=(const Filesystem&) = delete;
   };
 
 }  // namespace other

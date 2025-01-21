@@ -158,14 +158,14 @@ namespace other {
       if (EditorState::scene_mode != SceneEditorMode::PLAYING) {
         // active_scene->bvh->RenderBounds(scene_renderer);
 
-        if (SelectionManager::HasSelection()) {
-          Entity* selected = SelectionManager::ActiveSelection();
-          OE_ASSERT(selected != nullptr, "Selected entity is null!");
+        // if (SelectionManager::HasSelection()) {
+        // Entity* selected = SelectionManager::ActiveSelection();
+        // OE_ASSERT(selected != nullptr, "Selected entity is null!");
 
-          RenderStaticSubmission sub = selected->WireframeSubmission();
-          OE_ASSERT(sub.model != nullptr, "Wireframe model is null!");
-          scene_renderer->SubmitStaticModel(sub);
-        }
+        // RenderStaticSubmission sub = selected->WireframeSubmission();
+        // OE_ASSERT(sub.model != nullptr, "Wireframe model is null!");
+        // scene_renderer->SubmitStaticModel(sub);
+        // }
       }
 
       if (rendering_physics_colliders) {

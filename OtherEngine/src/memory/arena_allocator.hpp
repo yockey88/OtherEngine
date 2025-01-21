@@ -14,6 +14,12 @@
 
 namespace other {
 
+  /**
+   * @note it is important that ArenaAllocator (and most of the other allocators) do not maintain any state,
+   *          these need to be completely stateless so that anyone with memory allocated from the arena can free it without
+   *          needing the original allocator that allocated the memory
+   **/
+
   template <typename T>
   class ArenaAllocator : public Allocator {
    public:

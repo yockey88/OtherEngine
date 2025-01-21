@@ -38,10 +38,28 @@ namespace other {
     auto& shape_map = shapes[type];
     auto [it, inserted] = shape_map.insert({ entity_id, shape });
     if (!inserted) {
-      OE_WARN("Failed to register collider shape for entity: {0}", entity_id);
+      /// already registered, no-op
+      return;
     }
 
     OE_INFO("Registered collider shape for entity: {0}", entity_id);
+  }
+
+  void PhysicsWorld::UnregisterColliderShape(Ref<PhysicsBody> body, Ref<PhysicsShape> shape) {
+    OE_ASSERT(body != nullptr, "Physics body is null");
+    OE_ASSERT(shape != nullptr, "Physics shape is null");
+
+    UUID entity_id = body->GetEntityID();
+    auto& shape_map = shapes[shape->ShapeType()];
+    auto it = shape_map.find(entity_id);
+    if (it == shape_map.end()) {
+      OE_ERROR("Failed to find collider shape for entity: {0}", entity_id);
+      return;
+    }
+
+    auto [id, shape_ref] = *it;
+    body->RemoveCollider(shape_ref);
+    shape_map.erase(it);
   }
 
   bool PhysicsWorld::IsDebugRenderEnabled() const {

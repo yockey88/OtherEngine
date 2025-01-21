@@ -9,6 +9,10 @@
 
 #include "core/logger.hpp"
 
+/**
+ * \todo replace the 'new'/'delete' calls in this file with allocations into the arena
+ **/
+
 namespace other {
 
   Buffer::Buffer(void* d, uint64_t sz) {

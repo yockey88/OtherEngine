@@ -998,17 +998,40 @@ namespace other {
 
   void Scene::OnAddCollider(entt::registry& context, entt::entity entt) {
     Entity ent(context, entt);
-    if (!ent.HasComponent<RigidBody>()) {
+
+    bool has_rigid_body = ent.HasComponent<RigidBody>();
+    if (!has_rigid_body) {
       ent.AddComponent<RigidBody>();
     }
 
-    auto& tag = ent.GetComponent<Tag>();
     auto& body = ent.GetComponent<RigidBody>();
     auto& collider = ent.GetComponent<Collider>();
     auto& transform = ent.GetComponent<Transform>();
 
-    glm::vec3 half_extents = transform.scale / 2.f;
-    collider.shape = physics_world->CreateBoxShape(half_extents);
+    switch (collider.shape_idx) {
+      case PhysicsShape::Shape::BOX: {
+        glm::vec3 half_extents = transform.scale / 2.f;
+        collider.shape = physics_world->CreateBoxShape(half_extents);
+      } break;
+
+      case PhysicsShape::Shape::SPHERE: {
+        collider.shape = physics_world->CreateSphereShape(transform.scale.x / 2.f);
+      } break;
+
+      case PhysicsShape::Shape::CAPSULE: {
+        collider.shape = physics_world->CreateCapsuleShape(transform.scale.x / 2.f, transform.scale.y);
+      } break;
+
+      // case PhysicsShape::Shape::CONVEX_MESH:
+      // case PhysicsShape::Shape::CONCAVE_MESH:
+      default:
+        OE_ERROR("Unimplemented collider shape type");
+        ent.RemoveComponent<Collider>();
+        if (!has_rigid_body && ent.HasComponent<RigidBody>()) {
+          ent.RemoveComponent<RigidBody>();
+        }
+        return;
+    }
     OE_ASSERT(collider.shape != nullptr, "Failed to create collider shape");
 
     body.physics_body->AddCollider(collider.shape);

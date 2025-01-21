@@ -13,6 +13,7 @@
 
 #include "core/config.hpp"
 #include "core/defines.hpp"
+#include "core/scope.hpp"
 
 namespace other {
 
@@ -44,8 +45,8 @@ namespace other {
     ~Window();
 
     bool HasFocus();
-    void Clear();
-    void SwapBuffers();
+    void Clear() const;
+    void SwapBuffers() const;
 
     glm::ivec2 Size();
     glm::ivec2 Position();

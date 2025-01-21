@@ -15,7 +15,6 @@
 #include "core/logger.hpp"
 #include "math/vecmath.hpp"
 
-
 namespace other {
 
   class Buffer {
@@ -226,9 +225,9 @@ namespace other {
 
 ECHO_TYPE(
   type(other::Buffer),
-  func(Size, property("size")),
-  func(Capacity, property("capacity")),
-  func(NumElements, property("num_elements")),
+  func(Size, refl::attr::property("size")),
+  func(Capacity, refl::attr::property("capacity")),
+  func(NumElements, refl::attr::property("num_elements")),
   func(Read),
   func(Write)
 )

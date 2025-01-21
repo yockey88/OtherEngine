@@ -24,9 +24,7 @@ namespace other {
   }
 
   void AssetDatabase::Shutdown() {
-    if (asset_registry != nullptr) {
-      asset_database_allocator.Free(asset_registry);
-    }
+    asset_database_allocator.Free(asset_registry);
     asset_registry = nullptr;
   }
 

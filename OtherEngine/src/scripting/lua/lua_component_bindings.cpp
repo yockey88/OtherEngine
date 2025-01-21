@@ -12,6 +12,8 @@
 #include <sol/property.hpp>
 #include <sol/types.hpp>
 
+#include "core/scope.hpp"
+
 #include "asset/asset_handler.hpp"
 #include "asset/asset_manager.hpp"
 
@@ -64,7 +66,7 @@ namespace other {
       }
       EntityProxy(const EntityProxy& other)
           : id(other.id), name(other.name) {
-        if (other.proxy) {
+        if (other.proxy != nullptr) {
           proxy = NewScope<Proxy>(other.proxy->Clone());
         }
       }

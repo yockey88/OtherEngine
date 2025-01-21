@@ -8,6 +8,7 @@
 #include <string>
 
 #include "core/logger.hpp"
+#include "core/scope.hpp"
 
 #include "asset/asset_defines.hpp"
 
@@ -45,7 +46,7 @@ namespace other {
       editor = nullptr;
     }
 
-    virtual Zep::ZepEditor& GetEditor() const override {
+    Zep::ZepEditor& GetEditor() const override {
       return *editor;
     }
 

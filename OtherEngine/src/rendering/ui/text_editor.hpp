@@ -10,6 +10,8 @@
 #include <zep/editor.h>
 #include <zep/imgui/console_imgui.h>
 
+#include "core/scope.hpp"
+
 #include "rendering/ui/ui_window.hpp"
 
 namespace Zep {

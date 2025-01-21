@@ -45,6 +45,7 @@ namespace other {
     virtual void SubmitDebugRender(Ref<SceneRenderer> renderer) = 0;
 
     void RegisterColliderShape(UUID entity_id, Ref<PhysicsShape> shape);
+    void UnregisterColliderShape(Ref<PhysicsBody> body, Ref<PhysicsShape> shape);
 
     bool ShouldInterpolateTransform() const;
     float InterpolationAlpha() const;

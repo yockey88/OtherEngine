@@ -5,6 +5,7 @@
 #define OTHER_ENGINE_RENDERER_HPP
 
 #include "core/ref.hpp"
+#include "core/scope.hpp"
 
 #include "application/app.hpp"
 

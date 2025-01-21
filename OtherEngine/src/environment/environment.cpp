@@ -13,7 +13,7 @@ namespace other {
   Environment* Environment::instance = nullptr;
 
   void Environment::Initialize() {
-    Shutdown();
+    OE_ASSERT(instance == nullptr, "Environment already initialized");
     instance = env_allocator.Allocate();
   }
 

@@ -4,15 +4,15 @@
 #include "ecs/entity_serializer.hpp"
 
 #include "core/config_keys.hpp"
+#include "core/scope.hpp"
 
 #include "ecs/component.hpp"
 #include "ecs/component_serializer.hpp"
-#include "ecs/components/collider.hpp"
-#include "ecs/components/rigid_body.hpp"
 #include "ecs/components/serialization_data.hpp"
 #include "ecs/systems/component_database.hpp"
 #include "ecs/systems/entity_serialization.hpp"
 #include "scene/scene.hpp"
+
 
 namespace other {
 

@@ -3,6 +3,8 @@
  **/
 #include "memory/arena.hpp"
 
+#include <stacktrace>
+
 #include "core/logger.hpp"
 
 #include "memory/arena_allocator.hpp"
@@ -67,8 +69,8 @@ namespace other {
     instance->allocated_memory += size;
     instance->page_cursor += size;
 
-#ifdef OTHERE_ENGINE_MEMORY_DEBUG
-    ReportAllocation(mem, size);
+#ifdef OTHER_DEBUG_BUILD
+    instance->ReportAllocation(mem, size);
 #endif
 
     return mem;
@@ -77,6 +79,14 @@ namespace other {
   void Arena::Free(void* ptr, std::size_t size) {
     /// do nothing for now, allocators handle calling destructors and zeroing memory
     ///   later we can implement a free list or something or register freed chunks for defragmentation
+    if (ptr == nullptr) {
+      OE_CRITICAL("Attempted to free null pointer.");
+      println("{}", std::stacktrace::current());
+      return;
+    }
+#ifdef OTHER_DEBUG_BUILD
+    instance->ReportDeallocation(ptr, size);
+#endif
     return;
   }
 
@@ -131,7 +141,7 @@ namespace other {
     page_cursor = 0;
   }
 
-#ifdef OTHERENV_MEMORY_DEBUG
+#ifdef OTHER_DEBUG_BUILD
   void Arena::ReportAllocation(void* addr, std::size_t sz) {
     std::stringstream ss;
     ss << "Allocated memory at address: " << addr << ", size: " << sz << "\n";
@@ -139,7 +149,26 @@ namespace other {
     ss << "   > Allocated Memory: " << allocated_memory << "\n";
     ss << "   > Page Allocation Cursor: " << page_allocation_cursor << "\n";
     ss << "   > Page Cursor: " << page_cursor << "\n";
-    OE_DEBUG(ss.str());
+    println(ss.str());
+
+    auto [it, inserted] = allocations.insert({ addr, sz });
+    if (!inserted) {
+      OE_ERROR("Failed to insert allocation into map. Memory address [{:p}] in use", addr);
+    }
+  }
+
+  void Arena::ReportDeallocation(void* ptr, std::size_t sz) {
+    std::stringstream ss;
+    ss << "Deallocated memory at address: " << ptr << ", size: " << sz << "\n";
+    ss << "   > Total Allocations: " << total_allocations << "\n";
+    ss << "   > Allocated Memory: " << allocated_memory << "\n";
+    ss << "   > Page Allocation Cursor: " << page_allocation_cursor << "\n";
+    ss << "   > Page Cursor: " << page_cursor << "\n";
+    println(ss.str());
+
+    auto it = allocations.find(ptr);
+    OE_ASSERT(it != allocations.end(), "Failed to find deallocated memory address in map.");
+    allocations.erase(it);
   }
 #endif
 

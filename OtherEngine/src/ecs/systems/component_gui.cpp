@@ -19,6 +19,7 @@
 #include "ecs/components/rigid_body.hpp"
 #include "ecs/components/rigid_body_2d.hpp"
 #include "ecs/components/transform.hpp"
+#include "scene/scene_manager.hpp"
 
 #include "physics/3D/physics_shape.hpp"
 #include "rendering/camera_base.hpp"
@@ -562,9 +563,7 @@ namespace other {
     auto& transform = ent->GetComponent<Transform>();
     AssetHandle original_handle = mesh.handle;
 
-    const char* options[] = {
-      "Empty", "Triangle", "Rect", "Cube", "Sphere", "Capsule"
-    };
+    const char* options[] = { "Empty", "Triangle", "Rect", "Cube", "Sphere", "Capsule" };
 
     if (ui::PropertyDropdown("Primitive Meshes", options, kCapsuleIdx + 1u, mesh.primitive_selection)) {}
 
@@ -840,63 +839,70 @@ namespace other {
     Collider& collider = ent->GetComponent<Collider>();
     const Transform& transform = ent->GetComponent<Transform>();
 
-    static const char* collider_type_strings[] = {
-      "Box", "Sphere", "Capsule", "Cylinder", "Cone", "Convex Mesh", "Concave Mesh"
-    };
-
-    PhysicsShape::Shape old_type = collider.shape->ShapeType();
-    uint32_t selected = static_cast<uint32_t>(old_type);
+    static const char* collider_type_strings[] = { "Box", "Sphere", "Capsule", "Cylinder", "Cone", "Convex Mesh", "Concave Mesh" };
 
     ui::BeginPropertyGrid();
 
     bool changed = false;
-    if (ui::PropertyDropdown("Collider Type", collider_type_strings, PhysicsShape::Shape::NUM_PHYSICS_SHAPES, selected)) {
-      OE_ASSERT(AppState::Scenes()->HasActiveScene(), "Somehow added a rigid body 2D component without an active scene context");
-      Ref<Scene> scene = AppState::Scenes()->ActiveScene()->scene;
-      OE_ASSERT(scene != nullptr, "Somehow added a rigid body 2D component without an active scene context");
+    if (ui::PropertyDropdown("Collider Type", collider_type_strings, PhysicsShape::Shape::NUM_PHYSICS_SHAPES, collider.shape_idx)) {}
 
+    if (collider.shape_idx != collider.shape->ShapeType() && ImGui::Button("Confirm Change")) {
+      SceneMetadata* md = AppState::Scenes()->ActiveScene();
+      OE_ASSERT(md != nullptr, "No active scene found!");
+      OE_ASSERT(md->scene != nullptr, "No active scene found!");
+      Ref<Scene> scene = md->scene;
       Ref<PhysicsWorld> world = scene->GetPhysicsWorld();
       OE_ASSERT(world != nullptr, "Somehow added a rigid body component without active 3D physics");
 
-      PhysicsShape::Shape type = static_cast<PhysicsShape::Shape>(selected);
-      if (type != old_type) {
-        switch (type) {
-          case PhysicsShape::Shape::BOX:
-            changed = true;
-            collider.shape = world->CreateBoxShape(transform.scale / 2.f);
-            break;
+      auto remove_shape = [&]() {
+        OE_ASSERT(ent->HasComponent<RigidBody>(), "Entity does not have RigidBody component");
+        auto& body = ent->GetComponent<RigidBody>();
+        OE_ASSERT(body.physics_body != nullptr, "Entity does not have a valid physics body");
+        world->UnregisterColliderShape(body.physics_body, collider.shape);
+      };
 
-          case PhysicsShape::Shape::SPHERE:
-            changed = true;
-            collider.shape = world->CreateSphereShape(transform.scale.x / 2.f);
-            break;
+      switch (collider.shape_idx) {
+        case PhysicsShape::Shape::BOX:
+          remove_shape();
+          changed = true;
+          collider.shape = world->CreateBoxShape(transform.scale / 2.f);
+          collider.shape_idx = PhysicsShape::Shape::BOX;
+          break;
 
-          case PhysicsShape::Shape::CAPSULE:
-            changed = true;
-            collider.shape = world->CreateCapsuleShape(transform.scale.x / 2.f, transform.scale.y);
-            break;
+        case PhysicsShape::Shape::SPHERE:
+          remove_shape();
+          changed = true;
+          collider.shape = world->CreateSphereShape(transform.scale.x / 2.f);
+          collider.shape_idx = PhysicsShape::Shape::SPHERE;
+          break;
 
-            // case PhysicsShape::Shape::CONVEX_MESH:
-            //   new_shape = Ref<ConvexMeshCollider>::Create();
-            //   break;
+        case PhysicsShape::Shape::CAPSULE:
+          remove_shape();
+          changed = true;
+          collider.shape = world->CreateCapsuleShape(transform.scale.x / 2.f, transform.scale.y);
+          collider.shape_idx = PhysicsShape::Shape::CAPSULE;
+          break;
 
-            // case PhysicsShape::Shape::CONCAVE_MESH:
-            //   new_shape = Ref<ConcaveMeshCollider>::Create();
-            //   break;
+          // case PhysicsShape::Shape::CONVEX_MESH:
+          //   new_shape = Ref<ConvexMeshCollider>::Create();
+          //   break;
 
-          default:
-            OE_WARN("Collider type not implemented yet!");
-            break;
-        }
+          // case PhysicsShape::Shape::CONCAVE_MESH:
+          //   new_shape = Ref<ConcaveMeshCollider>::Create();
+          //   break;
+
+        default:
+          OE_ERROR("Collider type not implemented yet!");
+          break;
+      }
+
+      if (changed) {
+        collider.shape->SetTransform(transform);
       }
     }
 
     ui::EndPropertyGrid();
-    if (!changed) {
-      return false;
-    }
-
-    return false;
+    return changed;
   }
 
   bool DrawLightSource(Entity* ent) {

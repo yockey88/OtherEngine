@@ -13,8 +13,11 @@
 namespace other {
 
   struct Collider : public Component {
+    uint32_t shape_idx = PhysicsShape::Shape::BOX;
     Ref<PhysicsShape> shape = nullptr;
-    ECS_COMPONENT(Collider, kRigidBodyIndex);
+    ECS_COMPONENT(Collider, kColliderIndex);
+    Collider(uint32_t shape_idx)
+        : Component(kColliderIndex), shape_idx(shape_idx) {}
   };
 
   class ColliderSerializer : public ComponentSerializer {

@@ -26,10 +26,12 @@ namespace other {
   }
 
   void PhysicsBody::AddCollider(Ref<PhysicsShape> shape) {
-    if (collider_shape != nullptr) {
-      /// destroy collider shape
-      RemoveCollider(shape);
-    }
+    OE_ASSERT(collider_shape == nullptr, "Collider shape already exists");
+    OE_ASSERT(shape != nullptr, "Physics shape is null");
+    // if (collider_shape != nullptr) {
+    //   /// destroy collider shape
+    //   RemoveCollider(shape);
+    // }
 
     /// add new collider shape
     collider_shape = shape;
@@ -49,6 +51,10 @@ namespace other {
 
     OnRemoveCollider(shape);
     collider_shape = nullptr;
+  }
+
+  UUID PhysicsBody::GetEntityID() const {
+    return entity_id;
   }
 
   PhysicsBodyType PhysicsBody::GetType() const {

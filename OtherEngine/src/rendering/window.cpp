@@ -155,12 +155,12 @@ namespace other {
     return (SDL_GetWindowFlags(context.window) & SDL_WINDOW_INPUT_FOCUS) != 0;
   }
 
-  void Window::Clear() {
+  void Window::Clear() const {
     glClearColor(config.color.r, config.color.g, config.color.b, config.color.a);
     glClear(config.clear_flags);
   }
 
-  void Window::SwapBuffers() {
+  void Window::SwapBuffers() const {
     SDL_GL_MakeCurrent(context.window, context.context);
     SDL_GL_SwapWindow(context.window);
   }

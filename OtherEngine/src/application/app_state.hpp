@@ -6,9 +6,9 @@
 
 #include "core/defines.hpp"
 #include "core/layer_stack.hpp"
+#include "core/scope.hpp"
 #include "engine/engine_states.hpp"
 
-#include "asset/asset_defines.hpp"
 #include "asset/asset_handler.hpp"
 #include "project/project.hpp"
 

@@ -14,6 +14,10 @@
 #include "parsing/parser_combinators.hpp"
 
 namespace other {
+
+  ArenaAllocator<Filesystem> Filesystem::allocator;
+  Filesystem* Filesystem::instance = nullptr;
+
   namespace {
 
     struct VirtualFiletree {
@@ -27,6 +31,9 @@ namespace other {
   }  // anonymous namespace
 
   void Filesystem::Initialize(const CmdLine& cmdline, const ConfigTable& config) {
+    OE_ASSERT(instance == nullptr, "Filesystem already initialized");
+    instance = allocator.Allocate();
+
     Opt<Path> cwd = std::nullopt;
     Opt<Arg> arg = cmdline.GetArg("--cwd");
     auto cwd_from_cfg = config.GetVal<std::string>(kProjectSection, "WORKING-DIRECTORY");
@@ -51,9 +58,13 @@ namespace other {
   }
 
   void Filesystem::Shutdown() {
+    OE_ASSERT(instance != nullptr, "Filesystem not initialized");
+
     sFileTree.registered_files.clear();
     sFileTree.mounted_dirs.clear();
     sFileTree.dir = nullptr;
+
+    allocator.Free(instance);
   }
 
   Ref<Directory> Filesystem::MountProjectRoot(const std::string_view name, const Path& path) {

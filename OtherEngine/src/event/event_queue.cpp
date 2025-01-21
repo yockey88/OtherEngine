@@ -20,16 +20,19 @@
 
 namespace other {
 
-  Buffer EventQueue::event_buffer;
-  Buffer EventQueue::scratch_buffer;
-  std::map<uint64_t, EventDispatcher> EventQueue::event_handlers;
+  ArenaAllocator<EventQueue> EventQueue::allocator;
+  EventQueue* EventQueue::instance = nullptr;
 
   void EventQueue::Initialize(const ConfigTable& config) {
-    event_buffer.Allocate(kBufferSize);
-    scratch_buffer.Allocate(kBufferSize);
+    OE_ASSERT(instance == nullptr, "EventQueue already initialized");
+
+    instance = allocator.Allocate();
+
+    instance->event_buffer.Allocate(kBufferSize);
+    instance->scratch_buffer.Allocate(kBufferSize);
 
     auto ui_enabled = config.GetVal<bool>(kUiSection, kDisabledValue, false);
-    process_ui_events = !ui_enabled.has_value() || !ui_enabled.value();
+    instance->process_ui_events = !ui_enabled.has_value() || !ui_enabled.value();
   }
 
   void EventQueue::Poll() {
@@ -59,7 +62,7 @@ namespace other {
           break;
       }
 
-      if (process_ui_events) {
+      if (instance->process_ui_events) {
         ImGui_ImplSDL2_ProcessEvent(&event);
       }
     }
@@ -69,48 +72,57 @@ namespace other {
   }
 
   void EventQueue::Clear() {
+    OE_ASSERT(instance != nullptr, "EventQueue not initialized");
     PROFILE_SECTION("EventQueue--Clear");
-    event_buffer.ZeroMem();
-    scratch_buffer.ZeroMem();
-    num_events = 0;
+    instance->event_buffer.ZeroMem();
+    instance->scratch_buffer.ZeroMem();
+    instance->num_events = 0;
   }
 
   void EventQueue::UnregisterEventDispatcher(const std::string_view name) {
+    OE_ASSERT(instance != nullptr, "EventQueue not initialized");
     uint64_t h = FNV(name);
-    auto itr = event_handlers.find(h);
-    if (itr != event_handlers.end()) {
-      event_handlers.erase(itr);
+    auto itr = instance->event_handlers.find(h);
+    if (itr != instance->event_handlers.end()) {
+      instance->event_handlers.erase(itr);
     }
   }
 
   void EventQueue::EnableUIEvents() {
-    process_ui_events = true;
+    OE_ASSERT(instance != nullptr, "EventQueue not initialized");
+    instance->process_ui_events = true;
   }
 
   void EventQueue::DisableUIEvents() {
-    process_ui_events = false;
+    OE_ASSERT(instance != nullptr, "EventQueue not initialized");
+    instance->process_ui_events = false;
   }
 
   void EventQueue::Shutdown() {
+    OE_ASSERT(instance != nullptr, "EventQueue not initialized");
     Clear();
 
-    for (auto& [hash, dispatcher] : event_handlers) {
+    for (auto& [hash, dispatcher] : instance->event_handlers) {
       dispatcher.dispatcher = nullptr;
     }
 
-    event_handlers.clear();
+    instance->event_handlers.clear();
+
+    allocator.Free(instance);
   }
 
   void EventQueue::SetEventFlag(EventType type) {
-    event_flags |= bit(static_cast<uint64_t>(type));
+    OE_ASSERT(instance != nullptr, "EventQueue not initialized");
+    instance->event_flags |= bit(static_cast<uint64_t>(type));
   }
 
   void EventQueue::Dispatch() {
-    OE_ASSERT(scratch_buffer.NumElements() == num_events, "No events to dispatch");
+    OE_ASSERT(instance != nullptr, "EventQueue not initialized");
+    OE_ASSERT(instance->scratch_buffer.NumElements() == instance->num_events, "No events to dispatch");
     PROFILE_SECTION("EventQueue--Dispatch");
 
-    for (size_t handle_idx = 0; handle_idx < num_events; ++handle_idx) {
-      EventHandle* event = scratch_buffer.PointerAt<EventHandle>(handle_idx);
+    for (size_t handle_idx = 0; handle_idx < instance->num_events; ++handle_idx) {
+      EventHandle* event = instance->scratch_buffer.PointerAt<EventHandle>(handle_idx);
       OE_ASSERT(event != nullptr, "Event is null");
       OE_ASSERT(event->ptr != nullptr, "Event ptr is null");
 
@@ -120,14 +132,14 @@ namespace other {
       // }
 
       SetEventFlag(event->Type());
-      for (auto& [hash, dispatcher] : event_handlers) {
+      for (auto& [hash, dispatcher] : instance->event_handlers) {
         OE_ASSERT(dispatcher.dispatcher != nullptr, "Dispatcher is null");
         if (dispatcher.dispatcher->Dispatch(*event)) {
           break;
         }
       }
     }
-    event_flags = 0;
+    instance->event_flags = 0;
   }
 
 }  // namespace other

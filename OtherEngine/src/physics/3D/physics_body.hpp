@@ -82,6 +82,7 @@ namespace other {
     virtual void OnAddCollider(Ref<PhysicsShape> shape) = 0;
     virtual void OnRemoveCollider(Ref<PhysicsShape> shape) = 0;
 
+    UUID GetEntityID() const;
     PhysicsBodyType GetType() const;
     uint32_t GetLayer() const;
 

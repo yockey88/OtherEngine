@@ -223,6 +223,13 @@ assimp.lib_name = "assimp-vc143-mt"
 assimp.debug_lib_name = "assimp-vc143-mtd"
 assimp.configurations = { "Debug", "Release" }
 
+local steamworks = {
+  name = "steamworks",
+  include_dir = "%{wks.location}/externals/steamworks",
+  lib_name = "steam_api64",
+  lib_dir = "%{wks.location}/externals/steamworks/bin",
+}
+
 AddDependency(choc)
 AddDependency(entt)
 AddDependency(refl)
@@ -243,8 +250,8 @@ AddDependency(stb)
 AddDependency(jolt)
 AddDependency(reactphysics)
 AddDependency(pybind)
--- AddDependency(tracy)
 AddDependency(assimp)
+AddDependency(steamworks)
 
 AddDependency(dotother)
 

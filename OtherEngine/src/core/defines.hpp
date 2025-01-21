@@ -244,8 +244,21 @@ namespace other {
     }
   }
 
+#if 0
+  template <typename T>
+  using StdScope = std::unique_ptr<T>;
+  template <typename T, typename... Args>
+  StdScope<T> NewStdScope(Args&&... args) {
+    return std::make_unique<T>(std::forward<Args>(args)...);
+  }
+#else
   template <typename T>
   using Scope = std::unique_ptr<T>;
+  template <typename T, typename... Args>
+  Scope<T> NewScope(Args&&... args) {
+    return std::make_unique<T>(std::forward<Args>(args)...);
+  }
+#endif
 
   template <typename T>
   using StdRef = std::shared_ptr<T>;
@@ -254,11 +267,6 @@ namespace other {
   using Opt = std::optional<T>;
 
   using Path = std::filesystem::path;
-
-  template <typename T, typename... Args>
-  Scope<T> NewScope(Args&&... args) {
-    return std::make_unique<T>(std::forward<Args>(args)...);
-  }
 
   template <typename T, typename... Args>
   StdRef<T> NewStdRef(Args&&... args) {
@@ -293,23 +301,6 @@ namespace other {
 
     return hash;
   }
-
-#ifdef OTHER_DEBUG_BUILD
-
-  class StackTracer {
-   public:
-    StackTracer() = default;
-    ~StackTracer() = default;
-
-    void PrintStack() const;
-
-    // void Push
-
-   private:
-    std::stack<std::stacktrace_entry> traces;
-  };
-
-#endif  // !OE_DEBUG_BUILD
 
 }  // namespace other
 

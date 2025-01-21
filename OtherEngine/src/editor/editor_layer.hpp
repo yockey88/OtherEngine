@@ -6,6 +6,7 @@
 
 #include "core/config.hpp"
 #include "core/layer.hpp"
+#include "core/scope.hpp"
 
 #include "event/key_events.hpp"
 #include "event/mouse_events.hpp"
@@ -14,6 +15,7 @@
 #include "scene/scene_capture.hpp"
 
 #include "editor/panel_manager.hpp"
+
 
 namespace other {
 
