@@ -10,7 +10,6 @@
 #include "application/app_state.hpp"
 #include "event/core_events.hpp"
 #include "event/event_queue.hpp"
-#include "event/key_events.hpp"
 #include "event/window_events.hpp"
 
 #include "rendering/renderer.hpp"
@@ -19,6 +18,8 @@
 
 #include "editor/editor_sink.hpp"
 #include "editor/editor_states.hpp"
+
+#include "steam/steam_manager.hpp"
 
 #ifdef OE_TESTING_ENVIRONMENT
   #include "testing_core/test_engine_states.hpp"
@@ -125,6 +126,12 @@ namespace other {
     Renderer::Initialize(engine->config);
     UI::Initialize(engine->config, Renderer::GetWindow());
     ScriptEngine::Initialize(engine->config);
+
+    SteamManager::Initialize();
+    int32_t app_id = engine->config.GetVal<int32_t>("steam", "app-id").value_or(0);
+    if (app_id != 0) {
+      OE_ASSERT(SteamManager::SteamInitialize(), "Failed to initialize SteamAPI connection!");
+    }
 
     /// MAYBE: indicate what mode the engine is running using this event (headless_load_finished, server_load_finished, etc...)
     engine->EngineEvent(EngineStateEvent::ENGINE_LOAD_FINISHED);
@@ -236,6 +243,8 @@ namespace other {
   void EngineShutdown::OnStep() {
     OE_ASSERT(AppState::exit_code.has_value(), "No exit code set for engine shutdown");
     PROFILE_SECTION("EngineShutdown--OnStep");
+
+    SteamManager::Shutdown();
 
     /// clear event queue from any remaining events and flush one more event loop with no scene
     ///   to ensure we are in a stable state before shutting down

@@ -1,9 +1,0 @@
-[modules]
-driver = "./bin/Debug/sandbox/sandbox"
-
-[log]
-console-level = "trace"
-file-level = "trace"
-
-[steam]
-app-id = 3434590

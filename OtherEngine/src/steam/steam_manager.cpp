@@ -9,8 +9,8 @@
 
 namespace other {
 
-  SteamManager* SteamManager::instance = nullptr;
   ArenaAllocator<SteamManager> SteamManager::steam_manager_allocator;
+  SteamManager* SteamManager::instance = nullptr;
 
   SteamManager* SteamManager::Instance() {
     OE_ASSERT(instance != nullptr, "SteamManager instance is null!");
@@ -30,10 +30,7 @@ namespace other {
   }
 
   bool SteamManager::CheckForRestart(int32_t app_id) {
-    if (SteamAPI_RestartAppIfNecessary(app_id)) {
-      return true;
-    }
-    return false;
+    return SteamAPI_RestartAppIfNecessary(app_id);
   }
 
   bool SteamManager::SteamInitialize() {

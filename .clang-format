@@ -64,10 +64,10 @@ IncludeCategories:
   - Regex:           '<([A-Za-z0-9\/-_])+\.h(pp|xx|h)?>'
     Priority:        3
   # test harness headers
-  - Regex:           '"((testing_core|fuzzing|statistics|benchmarking)\/)'
+  - Regex:           '"((testing_core|fuzzing|statistics|benchmarking|profiling)\/)'
     Priority:        4
   # core headers
-  - Regex:           '"((testing_core|core|math|thread|engine|environment)\/)'
+  - Regex:           '"((testing_core|core|math|thread|engine|environment|memory)\/)'
     Priority:        5
   # application/asset/semi-core system headers
   - Regex:           '"((application|input|event|asset|parsing|project|plugin|layers)\/)'
@@ -76,7 +76,7 @@ IncludeCategories:
   - Regex:           '"((scene|ecs)\/)'
     Priority:        7
   # rendering/scripting/physics headers
-  - Regex:           '"((rendering|scripting|physics)\/)'
+  - Regex:           '"((steam|rendering|scripting|physics)\/)'
     Priority:        8
 
   # editor/library extensions
