@@ -161,6 +161,7 @@ namespace other {
 
     static Script CollectObjects(const ConfigTable& table, const std::vector<std::string>& objects, const std::string_view section);
 
+   public:
     static std::pair<std::string, std::string> ParseScriptName(const std::string_view name);
   };
 

@@ -30,10 +30,21 @@ namespace other {
 
     Script(Scene* scene) : Component(kScriptIndex) {}
 
+    Opt<uint32_t> selected_script = std::nullopt;
+
     UUID AddScript(const std::string_view name, const std::string_view nspace, const std::string_view module);
     void RemoveScript();
 
     void ApiCall(const std::string_view name);
+
+    bool IsEmpty() const;
+    bool IsCorrupt() const;
+
+    UUID ScriptHandle() const;
+    std::string Name() const;
+    LanguageModuleType LanguageType() const;
+
+    std::map<UUID, ScriptField>& GetFields();
 
     template <typename T>
     void ApiCall(const std::string_view name, T&& dt) {
@@ -64,6 +75,12 @@ namespace other {
     T GetField(const std::string_view name) {
       OE_ASSERT(script_object != nullptr, "Script object is null");
       return script_object->GetField<T>(std::string{ name });
+    }
+
+    template <typename T>
+    void SetField(const std::string_view name, T&& arg) {
+      OE_ASSERT(script_object != nullptr, "Script object is null");
+      script_object->SetField<T>(std::string{ name }, std::forward<T>(arg));
     }
 
     bool ValidateScripts();

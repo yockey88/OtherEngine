@@ -167,7 +167,7 @@ namespace other {
         OE_ASSERT(box_shape->shape != nullptr, "Box shape is null");
 
         rp3d::Transform local_transform(rp3d::Vector3(0.f, 0.f, 0.f), body->getTransform().getOrientation());
-        body->addCollider(box_shape->shape, local_transform);
+        collider = body->addCollider(box_shape->shape, local_transform);
       } break;
 
       case PhysicsShape::Shape::SPHERE: {
@@ -176,7 +176,7 @@ namespace other {
         OE_ASSERT(sphere_shape->shape != nullptr, "Sphere shape is null");
 
         rp3d::Transform local_transform(rp3d::Vector3(0.f, 0.f, 0.f), body->getTransform().getOrientation());
-        body->addCollider(sphere_shape->shape, local_transform);
+        collider = body->addCollider(sphere_shape->shape, local_transform);
       } break;
 
       case PhysicsShape::Shape::CAPSULE: {
@@ -185,7 +185,7 @@ namespace other {
         OE_ASSERT(capsule_shape->shape != nullptr, "Capsule shape is null");
 
         rp3d::Transform local_transform(rp3d::Vector3(0.f, 0.f, 0.f), body->getTransform().getOrientation());
-        body->addCollider(capsule_shape->shape, local_transform);
+        collider = body->addCollider(capsule_shape->shape, local_transform);
       } break;
 
         // case PhysicsShape::Shape::CONVEX_MESH: {
@@ -205,11 +205,11 @@ namespace other {
   }
 
   void ReactBody::OnRemoveCollider(Ref<PhysicsShape> shape) {
-    // OE_ASSERT(body != nullptr, "Physics body is null");
-    // rp3d::Collider* collider = (rp3d::Collider*)shape->NativeShape();
-    // OE_ASSERT(collider != nullptr, "Collider is null");
+    OE_ASSERT(shape != nullptr, "Physics shape is null");
+    OE_ASSERT(body != nullptr, "Physics body is null");
 
-    // body->removeCollider(collider);
+    body->removeCollider(collider);
+    collider = nullptr;
   }
 
   void ReactBody::OnBodyTypeChange(PhysicsBodyType type) {

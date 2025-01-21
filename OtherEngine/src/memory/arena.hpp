@@ -63,7 +63,7 @@ namespace other {
 
     void AllocatePage();
 
-#ifdef OTHER_DEBUG_BUILD
+#ifdef OTHER_MEMORY_DEBUG_BUILD
     std::map<void*, size_t> allocations;
     void ReportAllocation(void* ptr, std::size_t size);
     void ReportDeallocation(void* ptr, std::size_t size);

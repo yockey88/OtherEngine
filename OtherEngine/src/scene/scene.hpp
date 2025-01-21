@@ -212,7 +212,10 @@ namespace other {
     // void OnAddScript(entt::registry& context, entt::entity entt);
 
     void OnAddRigidBody(entt::registry& context, entt::entity entt);
+
     void OnAddCollider(entt::registry& context, entt::entity entt);
+    void OnRemoveCollider(entt::registry& context, entt::entity entt);
+
     void OnAddRigidBody2D(entt::registry& context, entt::entity entt);
     void OnRigidBody2DUpdate(entt::registry& context, entt::entity entt);
     void OnAddCollider2D(entt::registry& context, entt::entity entt);

@@ -61,6 +61,8 @@ namespace other {
 
    private:
     rp3d::RigidBody* body = nullptr;
+    rp3d::Collider* collider = nullptr;
+
     rp3d::PhysicsWorld* world = nullptr;
     rp3d::Transform inter_transform;
 

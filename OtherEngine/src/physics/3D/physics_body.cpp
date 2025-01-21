@@ -47,8 +47,6 @@ namespace other {
       return;
     }
 
-    // physics_world->UnregisterColliderShape(entity_id, collider_shape);
-
     OnRemoveCollider(shape);
     collider_shape = nullptr;
   }

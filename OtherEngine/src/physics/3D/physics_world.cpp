@@ -53,11 +53,11 @@ namespace other {
     auto& shape_map = shapes[shape->ShapeType()];
     auto it = shape_map.find(entity_id);
     if (it == shape_map.end()) {
-      OE_ERROR("Failed to find collider shape for entity: {0}", entity_id);
       return;
     }
 
     auto [id, shape_ref] = *it;
+    OE_INFO("Unregistering collider shape for entity: {0}", id);
     body->RemoveCollider(shape_ref);
     shape_map.erase(it);
   }

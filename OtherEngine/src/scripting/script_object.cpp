@@ -5,10 +5,14 @@
 
 #include "ecs/entity.hpp"
 
-namespace  other {
+namespace other {
 
   UUID ScriptObject::GetEntityId() const {
     return handles.entity_id;
+  }
+
+  UUID ScriptObject::GetScriptHandle() const {
+    return script_handle;
   }
 
   const std::string_view ScriptObject::ScriptInstanceName() const {
@@ -16,17 +20,17 @@ namespace  other {
   }
 
   const Opt<std::string> ScriptObject::NameSpace() const {
-    return name_space; 
+    return name_space;
   }
 
   const std::string_view ScriptObject::Name() const {
     return script_name;
   }
-      
+
   LanguageModuleType ScriptObject::LanguageType() const {
     return lang_type;
   }
-      
+
   void ScriptObject::MarkCorrupt() {
     is_corrupt = true;
   }
@@ -38,13 +42,13 @@ namespace  other {
   bool ScriptObject::IsInitialized() const {
     return is_initialized;
   }
-  
-  std::map<UUID , ScriptField>& ScriptObject::GetFields() {
-    return fields; 
+
+  std::map<UUID, ScriptField>& ScriptObject::GetFields() {
+    return fields;
   }
 
-  const std::map<UUID , ScriptField>& ScriptObject::GetFields() const {
-    return fields; 
+  const std::map<UUID, ScriptField>& ScriptObject::GetFields() const {
+    return fields;
   }
 
-} // namespace other
+}  // namespace other

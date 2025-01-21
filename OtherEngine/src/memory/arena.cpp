@@ -5,11 +5,11 @@
 
 #include <stacktrace>
 
-#include "core/logger.hpp"
+#include "profiling/profiling.hpp"
 
+#include "core/logger.hpp"
 #include "memory/arena_allocator.hpp"
 #include "memory/registers.hpp"
-#include "profiling/profiling.hpp"
 
 namespace other {
 
@@ -69,7 +69,7 @@ namespace other {
     instance->allocated_memory += size;
     instance->page_cursor += size;
 
-#ifdef OTHER_DEBUG_BUILD
+#ifdef OTHER_MEMORY_DEBUG_BUILD
     instance->ReportAllocation(mem, size);
 #endif
 
@@ -84,7 +84,7 @@ namespace other {
       println("{}", std::stacktrace::current());
       return;
     }
-#ifdef OTHER_DEBUG_BUILD
+#ifdef OTHER_MEMORY_DEBUG_BUILD
     instance->ReportDeallocation(ptr, size);
 #endif
     return;
@@ -141,7 +141,7 @@ namespace other {
     page_cursor = 0;
   }
 
-#ifdef OTHER_DEBUG_BUILD
+#ifdef OTHER_MEMORY_DEBUG_BUILD
   void Arena::ReportAllocation(void* addr, std::size_t sz) {
     std::stringstream ss;
     ss << "Allocated memory at address: " << addr << ", size: " << sz << "\n";

@@ -40,6 +40,10 @@ namespace dotother {
       null_type;
   }
 
+  const std::vector<Type*>& Assembly::GetTypes() const {
+    return types;
+  }
+
   std::string Assembly::GetAsmQualifiedName(const std::string_view klass, const std::string_view nspace) const {
     if (nspace.empty()) {
       return util::format(DO_STR("{}"), name);
@@ -152,6 +156,8 @@ namespace dotother {
           DOTOTHER_LOG(DO_STR("  > Type failed to cache : [{}]"), MessageLevel::ERR, id);
         }
       }
+
+      DOTOTHER_LOG(DO_STR(" > Loaded [{}] types"), MessageLevel::TRACE, assembly->types.size());
     } else {
       DOTOTHER_LOG(DO_STR("Failed to load assembly file: {} \n\t STATUS : [{}]"), MessageLevel::ERR, path, assembly->load_status);
     }

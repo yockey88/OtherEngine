@@ -63,6 +63,46 @@ namespace other {
     }
   }
 
+  bool Script::IsEmpty() const {
+    return script_object == nullptr;
+  }
+
+  bool Script::IsCorrupt() const {
+    if (script_object != nullptr) {
+      return script_object->IsCorrupt();
+    }
+    return false;
+  }
+
+  UUID Script::ScriptHandle() const {
+    if (script_object != nullptr) {
+      return script_object->GetScriptHandle();
+    }
+    return 0;
+  }
+
+  std::string Script::Name() const {
+    if (script_object != nullptr) {
+      return std::string{ script_object->Name() };
+    }
+    return "<empty>";
+  }
+
+  LanguageModuleType Script::LanguageType() const {
+    if (script_object != nullptr) {
+      return script_object->LanguageType();
+    }
+    return LanguageModuleType::INVALID_LANGUAGE_MODULE;
+  }
+
+  std::map<UUID, ScriptField>& Script::GetFields() {
+    if (script_object != nullptr) {
+      return script_object->GetFields();
+    }
+    static std::map<UUID, ScriptField> empty_map;
+    return empty_map;
+  }
+
   bool Script::ValidateScripts() {
     OE_ASSERT(script_object != nullptr, "Script object is null");
 

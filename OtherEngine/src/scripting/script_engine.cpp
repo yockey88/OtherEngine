@@ -256,6 +256,15 @@ namespace other {
   }
 
   const std::vector<ScriptObjectTag>& ScriptEngine::GetLoadedObjects() {
+    object_tags.clear();
+    for (auto& [id, lang] : language_modules) {
+      for (auto& [lid, mod] : lang.module->GetModules()) {
+        auto objs = mod->GetObjectTags();
+        for (auto& o : objs) {
+          object_tags.push_back(o);
+        }
+      }
+    }
     return object_tags;
   }
 

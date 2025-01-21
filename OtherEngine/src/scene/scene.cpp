@@ -61,6 +61,7 @@ namespace other {
 
     registry.on_construct<RigidBody>().connect<&Scene::OnAddRigidBody>(this);
     registry.on_construct<Collider>().connect<&Scene::OnAddCollider>(this);
+    registry.on_destroy<Collider>().connect<&Scene::OnRemoveCollider>(this);
 
     registry.on_update<LightSource>().connect<&Scene::RebuildEnvironment>(this);
     registry.on_destroy<LightSource>().connect<&Scene::RebuildEnvironment>(this);
@@ -107,6 +108,7 @@ namespace other {
 
     registry.on_construct<RigidBody>().disconnect<&Scene::OnAddRigidBody>(this);
     registry.on_construct<Collider>().disconnect<&Scene::OnAddCollider>(this);
+    registry.on_destroy<Collider>().disconnect<&Scene::OnRemoveCollider>(this);
 
     registry.on_construct<Camera>().disconnect<&OnCameraAddition>();
 
@@ -227,7 +229,6 @@ namespace other {
 
     registry.view<Collider, Transform, Tag>().each([this](Collider& collider, Transform& transform, Tag& tag) {
       collider.shape->SetTransform(transform);
-      physics_world->RegisterColliderShape(tag.id, collider.shape);
     });
 
     // registry.view<RigidBody, Collider>().each([this](RigidBody& body, Collider& collider) {
@@ -1004,6 +1005,7 @@ namespace other {
       ent.AddComponent<RigidBody>();
     }
 
+    auto& tag = ent.GetComponent<Tag>();
     auto& body = ent.GetComponent<RigidBody>();
     auto& collider = ent.GetComponent<Collider>();
     auto& transform = ent.GetComponent<Transform>();
@@ -1025,7 +1027,7 @@ namespace other {
       // case PhysicsShape::Shape::CONVEX_MESH:
       // case PhysicsShape::Shape::CONCAVE_MESH:
       default:
-        OE_ERROR("Unimplemented collider shape type");
+        OE_ERROR("Unimplemented or invalid collider shape type : {}", collider.shape_idx);
         ent.RemoveComponent<Collider>();
         if (!has_rigid_body && ent.HasComponent<RigidBody>()) {
           ent.RemoveComponent<RigidBody>();
@@ -1035,6 +1037,18 @@ namespace other {
     OE_ASSERT(collider.shape != nullptr, "Failed to create collider shape");
 
     body.physics_body->AddCollider(collider.shape);
+    physics_world->RegisterColliderShape(tag.id, collider.shape);
+  }
+
+  void Scene::OnRemoveCollider(entt::registry& context, entt::entity entt) {
+    Entity ent(context, entt);
+
+    OE_ASSERT(ent.HasComponent<RigidBody>(), "Entity does not have rigid body component");
+
+    auto& body = ent.GetComponent<RigidBody>();
+    auto& collider = ent.GetComponent<Collider>();
+
+    physics_world->UnregisterColliderShape(body.physics_body, collider.shape);
   }
 
   void Scene::OnAddRigidBody2D(entt::registry& context, entt::entity entt) {
