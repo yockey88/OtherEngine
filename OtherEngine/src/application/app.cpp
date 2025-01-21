@@ -38,7 +38,10 @@ namespace other {
     if (mode == EngineMode::EDITOR) {
       return NewRef<EditorAssetHandler>();
     } else {
-      OE_ASSERT(false, "NO RUNTIME ASSET HANDLER IMPLEMENTED");
+      OE_CRITICAL("NO RUNTIME ASSET HANDLER IMPLEMENTED");
+      return NewRef<EditorAssetHandler>();
+
+      // OE_ASSERT(false, "NO RUNTIME ASSET HANDLER IMPLEMENTED");
       // return NewRef<RuntimeAssetHandler>();
     }
   }

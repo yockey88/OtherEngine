@@ -15,6 +15,7 @@ tools/other.egg-info/
 
 ## Project tools
 tool_dev/
+steamworks_tools/
 
 ## test projects
 tests/test_data/

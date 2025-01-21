@@ -1,6 +1,0 @@
-
-
-[2024-12-31 09:49:05] Client version: 1733269577
-[2024-12-31 09:49:05] ThreadedReadFromDisk: loading appinfo cache from: C:\Yock\code\other_env\steamworks\tools\ContentBuilder\builder/appcache/appinfo.vdf
-[2024-12-31 09:49:05] ThreadedReadFromDisk: failed to open file: C:\Yock\code\other_env\steamworks\tools\ContentBuilder\builder/appcache/appinfo.vdf
-[2024-12-31 09:49:05] CAppInfoCacheReadFromDiskThread took 0 milliseconds to initialize
