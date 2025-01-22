@@ -23,6 +23,12 @@ namespace dotother {
       Type type;
       Interop().get_field_type(handle, &type.handle);
       this->type = TypeCache::Instance().CacheType(std::forward<Type>(type));
+
+      if (this->type == nullptr) {
+        DOTOTHER_LOG(DO_STR("Field::GetType: Failed to cache field type"), MessageLevel::ERR);
+        static Type null_type(-1);
+        return null_type;
+      }
     }
     return *type;
   }

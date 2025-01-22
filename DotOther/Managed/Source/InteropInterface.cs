@@ -79,6 +79,10 @@ namespace DotOther.Managed {
 				}
 			);
 
+			if (type == null) {
+				type = AssemblyLoader.CheckNetCoreType(name);
+			}
+
 			return type;
 		}
 
@@ -146,12 +150,12 @@ namespace DotOther.Managed {
 				}
 			}
 
-			// LogMessage($"{GetNoMethodFoundErrorMsg(method_name , argc , methods)}", MessageLevel.Error);
+			LogMessage($"{GetNoMethodFoundErrorMsg(method_name , argc , methods)}", MessageLevel.Error);
 
 			return null;
 		}
-#nullable disable
 
+#nullable disable
 		[UnmanagedCallersOnly]
 		private static unsafe void GetAsmTypes(Int32 asm_id, Int32* out_types, Int32* out_type_count) {
 			try {
@@ -173,8 +177,33 @@ namespace DotOther.Managed {
 				}
 
 				if (out_types != null) {
-					for (Int32 i = 0; i < asm_types.Length; i++) {
+					for (Int32 i = 0; i < asm_types.Length; i++) {LogMessage($"  > Adding type {asm_types[i].FullName} to cache", MessageLevel.Trace);
 						out_types[i] = cached_types.Add(asm_types[i]);
+					}
+				}
+			} catch (Exception ex) {
+				HandleException(ex);
+			}
+		}
+
+		[UnmanagedCallersOnly]
+		private static unsafe void GetNetCoreTypes(Int32* out_types, Int32* out_type_count) {
+			try {
+				if (!AssemblyLoader.CoreAsmsLoaded) {
+					LogMessage("Couldn't get types for .NET Core assemblies, no assemblies loaded", MessageLevel.Error);
+					return;
+				}
+
+				ReadOnlySpan<Type> types = AssemblyLoader.CoreTypes;
+				if (out_type_count != null) {
+					*out_type_count = types.Length;
+				} else {
+					LogMessage($"Found {types.Length} types in .NET Core assemblies", MessageLevel.Trace);
+				}
+
+				if (out_types != null) {
+					for (Int32 i = 0; i < types.Length; i++) {
+						out_types[i] = cached_types.Add(types[i]);
 					}
 				}
 			} catch (Exception ex) {
@@ -188,6 +217,7 @@ namespace DotOther.Managed {
 				var type = FindType(name);
 				if (type == null) {
 					LogMessage($"Couldn't get type id for '{name}', type not found", MessageLevel.Error);
+					*out_type = 0;
 					return;
 				}
 
@@ -345,7 +375,7 @@ namespace DotOther.Managed {
 					*count = 0;
 					return;
 				}
-				LogMessage($" > Found {methods.Length} methods for type {t.FullName}", MessageLevel.Trace);
+				// LogMessage($" > Found {methods.Length} methods for type {t.FullName}", MessageLevel.Trace);
 
 				*count = methods.Length;
 				if (method_arr == null) {
@@ -353,11 +383,11 @@ namespace DotOther.Managed {
 				}
 
 				for (Int32 i = 0; i < methods.Length; i++) {
-					LogMessage($"  > Adding method [class : {t.Name}] {methods[i].Name} to cache", MessageLevel.Trace);
+					// LogMessage($"  > Adding method [class : {t.Name}] {methods[i].Name} to cache", MessageLevel.Trace);
 					method_arr[i] = cached_methods.Add(methods[i]);
 				}
 
-				LogMessage($"  > Added {methods.Length} methods to cache", MessageLevel.Trace);
+				// LogMessage($"  > Added {methods.Length} methods to cache", MessageLevel.Trace);
 			} catch (Exception ex) {
 				HandleException(ex);
 			}

@@ -6,6 +6,7 @@
 #include <hosting/garbage_collector.hpp>
 
 #include "scripting/cs/cs_bindings.hpp"
+#include "scripting/cs/cs_module.hpp"
 #include "scripting/cs/cs_object.hpp"
 #include "scripting/script_engine.hpp"
 #include "scripting/script_module.hpp"
@@ -19,6 +20,11 @@ namespace other {
     if (valid && module_name == "OtherEngine.CsCore") {
       cs_script_bindings::RegisterInternalCalls(assembly);
       assembly->UploadInternalCalls();
+    }
+
+    auto& types = assembly->GetTypes();
+    for (auto& type : types) {
+      OE_TRACE(" > Type : {}", type->FullName());
     }
   }
 
@@ -91,7 +97,7 @@ namespace other {
       OE_DEBUG("  > Type found [{}]", type.handle);
     }
 
-    Ref<ScriptObjectHandle<CsObject>> obj = NewRef<CsObject>(this, type, name, nspace, id);
+    Ref<ScriptObjectHandle<CsObject>> obj = NewRef<CsObject>(host, this, assembly, type, name, nspace, id);
     Ref<ScriptObject>& ret = objects[id] = obj;
     loaded_objects[id] = obj;
 

@@ -44,10 +44,10 @@ namespace dotother {
     bool AssignableTo(const Type& type);
     bool AssignableFrom(const Type& type);
 
-    const std::vector<Field>& Fields();
-    const std::vector<Property>& Properties();
-    const std::vector<Method>& Methods();
-    const std::vector<Attribute>& Attributes();
+    std::vector<Field>& Fields();
+    std::vector<Property>& Properties();
+    std::vector<Method>& Methods();
+    std::vector<Attribute>& Attributes();
 
     bool HasAttribute(const Type& type);
 
@@ -83,6 +83,7 @@ namespace dotother {
     int32_t handle = -1;
 
    private:
+    bool initialized = false;
     Type* base_type = nullptr;
     Type* elt_type = nullptr;
 

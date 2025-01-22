@@ -22,6 +22,7 @@ namespace dotother {
         get_assembly_name != nullptr &&
 
         /// type functions
+        get_net_core_types != nullptr &&
         get_asm_types != nullptr &&
         get_type_id != nullptr &&
         get_full_type_name != nullptr &&

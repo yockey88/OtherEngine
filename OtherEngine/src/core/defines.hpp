@@ -105,7 +105,7 @@ namespace other {
   };
 
   enum ValueType {
-    EMPTY_TYPE,  // Void , null , nil ,etc...
+    EMPTY_TYPE = 0,  // Void , null , nil ,etc...
 
     /// primitive types
     BOOL,
@@ -139,7 +139,10 @@ namespace other {
 
     /// user types
     USER_TYPE,
-    OPAQUE_HANDLE
+    OPAQUE_HANDLE,
+
+    NUM_VALUE_TYPES,
+    INVALID_VALUE_TYPE = NUM_VALUE_TYPES,
   };
 
   template <typename T>

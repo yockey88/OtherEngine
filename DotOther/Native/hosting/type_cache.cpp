@@ -27,7 +27,7 @@ namespace dotother {
     }
     t->Init();
 
-    DOTOTHER_LOG(DO_STR("TypeCache::CacheType: Caching type: {}"), MessageLevel::TRACE, FormatType(t));
+    DOTOTHER_LOG(DO_STR("TypeCache::CacheType: Caching type"), MessageLevel::TRACE);  // , FormatType(t));
 
     std::string name = t->FullName();
     name_cache[name] = t;
@@ -41,7 +41,7 @@ namespace dotother {
     if (contains) {
       Type* t = name_cache[name_str];
 
-      DOTOTHER_LOG(DO_STR("TypeCache::GetType: Found type: {}"), MessageLevel::TRACE, FormatType(t));
+      DOTOTHER_LOG(DO_STR("TypeCache::GetType: Found type"), MessageLevel::TRACE);  // , FormatType(t));
       return t;
     }
 
@@ -52,7 +52,7 @@ namespace dotother {
     bool contains = id_cache.contains(id);
     if (contains) {
       Type* t = id_cache[id];
-      DOTOTHER_LOG(DO_STR("TypeCache::GetType: Found type with ID [{}] : {}"), MessageLevel::TRACE, id, FormatType(t));
+      DOTOTHER_LOG(DO_STR("TypeCache::GetType: Found type with ID [{}]"), MessageLevel::TRACE, id);  // , FormatType(t));
       return t;
     }
 

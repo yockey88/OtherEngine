@@ -16,7 +16,7 @@
 namespace dotother {
 
   void Type::Init() {
-    if (handle == -1) {
+    if (handle == -1 || initialized) {
       return;
     }
 
@@ -69,6 +69,7 @@ namespace dotother {
       }
     }
 
+    initialized = true;
     DOTOTHER_LOG(DO_STR("Type::Init: Initialized type: {}"), MessageLevel::TRACE, FullName());
   }
 
@@ -98,19 +99,19 @@ namespace dotother {
     return Interop().is_assignable_from(handle, type.handle);
   }
 
-  const std::vector<Method>& Type::Methods() {
+  std::vector<Method>& Type::Methods() {
     return methods;
   }
 
-  const std::vector<Field>& Type::Fields() {
+  std::vector<Field>& Type::Fields() {
     return fields;
   }
 
-  const std::vector<Property>& Type::Properties() {
+  std::vector<Property>& Type::Properties() {
     return properties;
   }
 
-  const std::vector<Attribute>& Type::Attributes() {
+  std::vector<Attribute>& Type::Attributes() {
     return attributes;
   }
 

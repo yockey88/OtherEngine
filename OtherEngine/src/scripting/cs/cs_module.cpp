@@ -7,7 +7,9 @@
 #include <core/stable_vector.hpp>
 #include <hosting/garbage_collector.hpp>
 #include <hosting/host.hpp>
+#include <hosting/type_cache.hpp>
 
+#include "core/defines.hpp"
 #include "core/filesystem.hpp"
 
 #include "scripting/cs/cs_script.hpp"
@@ -83,6 +85,46 @@ namespace other {
   using namespace std::string_view_literals;
   using namespace dotother::literals;
 
+  namespace {
+
+    ValueType GetValueTypeFromHash(uint64_t hash) {
+      switch (hash) {
+        case FNV("System.Boolean"):
+          return ValueType::BOOL;
+        case FNV("System.Char"):
+          return ValueType::CHAR;
+        case FNV("System.Byte"):
+          return ValueType::UINT8;
+        case FNV("System.Int8"):
+          return ValueType::INT8;
+        case FNV("System.Int16"):
+          return ValueType::INT16;
+        case FNV("System.Int32"):
+          return ValueType::INT32;
+        case FNV("System.Int64"):
+          return ValueType::INT64;
+        case FNV("System.UInt8"):
+          return ValueType::UINT8;
+        case FNV("System.UInt16"):
+          return ValueType::UINT16;
+        case FNV("System.UInt32"):
+          return ValueType::UINT32;
+        case FNV("System.UInt64"):
+          return ValueType::UINT64;
+        case FNV("System.Single"):
+          return ValueType::FLOAT;
+        case FNV("System.Double"):
+          return ValueType::DOUBLE;
+        case FNV("System.String"):
+          return ValueType::STRING;
+
+        default:
+          return ValueType::EMPTY_TYPE;
+      }
+    }
+
+  }  // anonymous namespace
+
   bool CsModule::Initialize() {
     try {
       const Path engine_core_dir = Filesystem::GetEngineCoreDir();
@@ -135,7 +177,36 @@ namespace other {
       /// TODO: should clients be responsible for this????
       host->CallEntryPoint();
 
+      int32_t type_counter = 0;
+      dotother::Interop().get_net_core_types(nullptr, &type_counter);
+
+      DOTOTHER_LOG(DO_STR(" > Loading [{}] core types"), dotother::MessageLevel::TRACE, type_counter);
+
+      std::vector<int32_t> type_ids;
+      type_ids.resize(type_counter);
+      dotother::Interop().get_net_core_types(type_ids.data(), &type_counter);
+
+      for (auto id : type_ids) {
+        // DOTOTHER_LOG(DO_STR(" > Loading core type with ID: {}"), dotother::MessageLevel::TRACE, id);
+
+        Type type(id);
+        Type* t = dotother::TypeCache::Instance().CacheType(std::forward<dotother::Type>(type));
+        if (t == nullptr) {
+          continue;
+        }
+
+        std::string name = t->FullName();
+        ValueType vtype = GetValueTypeFromHash(FNV(name));
+        if (vtype != ValueType::EMPTY_TYPE) {
+          OE_DEBUG(" > Found core type [{} | {}]", name, vtype);
+          core_type_map[vtype] = t->handle;
+          value_type_map[t->handle] = vtype;
+        }
+      }
+
       load_success = true;
+
+      OE_DEBUG("C# module initialized");
       return true;
     } catch (const std::exception& e) {
       OE_ERROR("Failed to create C# host : {}", e.what());
@@ -269,7 +340,7 @@ namespace other {
     }
 
     OE_TRACE("C# Assembly {} loaded [{}]", module_info.name, id);
-    auto& m = loaded_modules[id] = NewRef<CsScript>(module_info.name, assembly);
+    auto& m = loaded_modules[id] = NewRef<CsScript>(this, module_info.name, assembly);
     m->Initialize();
     loaded_modules_data[id] = module_info;
 

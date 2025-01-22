@@ -9,15 +9,18 @@
 #include "hosting/hosted_object.hpp"
 #include "hosting/type.hpp"
 
-
+using dotother::Assembly;
 using dotother::HostedObject;
+using dotother::ref;
 using dotother::Type;
 
 namespace other {
 
+  class CsModule;
+
   class CsObject : public ScriptObjectHandle<CsObject> {
    public:
-    CsObject(ScriptModule* module, Type& type, const std::string_view name, std::string_view nspace, UUID handle);
+    CsObject(CsModule* host, ScriptModule* module, ref<Assembly>& assembly, Type& type, const std::string_view name, std::string_view nspace, UUID handle);
     virtual ~CsObject() override {}
 
     template <typename R, typename... Args>
@@ -55,6 +58,8 @@ namespace other {
     virtual void UpdateNativeFields() override;
 
    private:
+    CsModule* host = nullptr;
+    ref<Assembly> assembly = nullptr;
     Type& type;
     HostedObject hosted_object;
   };

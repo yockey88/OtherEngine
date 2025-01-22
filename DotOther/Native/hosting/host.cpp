@@ -356,6 +356,7 @@ namespace dotother {
     interop.load_assembly = LoadManagedFunction<LoadAssembly>(DO_STR("DotOther.Managed.AssemblyLoader, DotOther.Managed"), DO_STR("LoadAssembly"));
     interop.get_assembly_name = LoadManagedFunction<GetAssemblyName>(DO_STR("DotOther.Managed.AssemblyLoader, DotOther.Managed"), DO_STR("GetAsmName"));
 
+    interop.get_net_core_types = LoadManagedFunction<GetNetCoreTypes>(DO_STR("DotOther.Managed.InteropInterface, DotOther.Managed"), DO_STR("GetNetCoreTypes"));
     interop.get_asm_types = LoadManagedFunction<GetAsmTypes>(DO_STR("DotOther.Managed.InteropInterface, DotOther.Managed"), DO_STR("GetAsmTypes"));
     interop.get_type_id = LoadManagedFunction<GetTypeId>(DO_STR("DotOther.Managed.InteropInterface, DotOther.Managed"), DO_STR("GetTypeId"));
     interop.get_full_type_name = LoadManagedFunction<GetFullTypeName>(DO_STR("DotOther.Managed.InteropInterface, DotOther.Managed"), DO_STR("GetFullTypeName"));

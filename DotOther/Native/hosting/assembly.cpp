@@ -151,7 +151,7 @@ namespace dotother {
         Type type(id);
         Type* t = assembly->types.emplace_back(TypeCache::Instance().CacheType(std::forward<Type>(type)));
         if (t != nullptr) {
-          DOTOTHER_LOG(DO_STR("  > Type loaded: {}"), MessageLevel::TRACE, FormatType(t));
+          //   DOTOTHER_LOG(DO_STR("  > Type loaded: {}"), MessageLevel::TRACE, FormatType(t));
         } else {
           DOTOTHER_LOG(DO_STR("  > Type failed to cache : [{}]"), MessageLevel::ERR, id);
         }
