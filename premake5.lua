@@ -1,6 +1,6 @@
 require("ymake")
 
-OtherBuildTools = require("otherlua.app")
+OtherBuildTools = require("OtherEngine-ScriptCore.lua.app")
 
 local configuration = {}
 configuration.wks_name = "OtherEngine"
