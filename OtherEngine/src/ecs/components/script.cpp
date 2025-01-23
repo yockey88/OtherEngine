@@ -103,6 +103,79 @@ namespace other {
     return empty_map;
   }
 
+  void Script::SetField(const std::string_view name, Value& value) {
+    switch (value.GetType()) {
+      case ValueType::BOOL:
+        script_object->SetField<bool>(std::string{ name }, std::forward<bool>(value.Get<bool>()));
+        return;
+      case ValueType::CHAR:
+        script_object->SetField<char>(std::string{ name }, std::forward<char>(value.Get<char>()));
+        return;
+      case ValueType::INT8:
+        script_object->SetField<int8_t>(std::string{ name }, std::forward<int8_t>(value.Get<int8_t>()));
+        return;
+      case ValueType::INT16:
+        script_object->SetField<int16_t>(std::string{ name }, std::forward<int16_t>(value.Get<int16_t>()));
+        return;
+      case ValueType::INT32:
+        script_object->SetField<int32_t>(std::string{ name }, std::forward<int32_t>(value.Get<int32_t>()));
+        return;
+      case ValueType::INT64:
+        script_object->SetField<int64_t>(std::string{ name }, std::forward<int64_t>(value.Get<int64_t>()));
+        return;
+      case ValueType::UINT8:
+        script_object->SetField<uint8_t>(std::string{ name }, std::forward<uint8_t>(value.Get<uint8_t>()));
+        return;
+      case ValueType::UINT16:
+        script_object->SetField<uint16_t>(std::string{ name }, std::forward<uint16_t>(value.Get<uint16_t>()));
+        return;
+      case ValueType::UINT32:
+        script_object->SetField<uint32_t>(std::string{ name }, std::forward<uint32_t>(value.Get<uint32_t>()));
+        return;
+      case ValueType::UINT64:
+        script_object->SetField<uint64_t>(std::string{ name }, std::forward<uint64_t>(value.Get<uint64_t>()));
+        return;
+      case ValueType::FLOAT:
+        script_object->SetField<float>(std::string{ name }, std::forward<float>(value.Get<float>()));
+        return;
+      case ValueType::DOUBLE:
+        script_object->SetField<double>(std::string{ name }, std::forward<double>(value.Get<double>()));
+        return;
+      case ValueType::VEC2:
+        script_object->SetField<glm::vec2>(std::string{ name }, std::forward<glm::vec2>(value.Get<glm::vec2>()));
+        return;
+      case ValueType::VEC3:
+        script_object->SetField<glm::vec3>(std::string{ name }, std::forward<glm::vec3>(value.Get<glm::vec3>()));
+        return;
+      case ValueType::VEC4:
+        script_object->SetField<glm::vec4>(std::string{ name }, std::forward<glm::vec4>(value.Get<glm::vec4>()));
+        return;
+      case ValueType::MAT2:
+        script_object->SetField<glm::mat2>(std::string{ name }, std::forward<glm::mat2>(value.Get<glm::mat2>()));
+        return;
+      case ValueType::MAT3:
+        script_object->SetField<glm::mat3>(std::string{ name }, std::forward<glm::mat3>(value.Get<glm::mat3>()));
+        return;
+      case ValueType::MAT4:
+        script_object->SetField<glm::mat4>(std::string{ name }, std::forward<glm::mat4>(value.Get<glm::mat4>()));
+        return;
+      case ValueType::STRING:
+        script_object->SetField<std::string>(std::string{ name }, std::forward<std::string>(value.Get<std::string>()));
+        return;
+      case ValueType::ENTITY:
+      case ValueType::ASSET:
+      case ValueType::USER_TYPE:
+      case ValueType::OPAQUE_HANDLE:
+        OE_ERROR("Unimplemented value type");
+        return;
+      case ValueType::EMPTY_TYPE:
+        return;
+
+      default:
+        OE_ASSERT(false, "Invalid value type");
+    }
+  }
+
   bool Script::ValidateScripts() {
     OE_ASSERT(script_object != nullptr, "Script object is null");
 

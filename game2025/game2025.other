@@ -1,0 +1,32 @@
+[project]
+name = "Game2025"
+working-directory = "C:/Yock/code/OtherEngine/game2025"
+bin-dir = "C:/Yock/code/OtherEngine/bin/Debug"
+script-bin-dir = "Game2025/net8.0"
+author = "Y"
+version = 0.0.1
+primary-scene = forest
+scenes = {
+  "forest"
+}
+
+[debug]
+editor = true
+
+[window]
+width = 800
+height = 600
+title = "Forest"
+
+[renderer]
+cull-face = false
+
+[log]
+console-level = "debug"
+file-level = "trace"
+path = "./logs/forest.log"
+
+[script-engine.C#]
+attachments = { 
+  scene = { "Game2025.dll" }
+}

@@ -22,55 +22,55 @@ namespace other {
     Value GetValueFromField(HostedObject& obj, const std::string_view name, ValueType type) {
       switch (type) {
         case ValueType::BOOL:
-          return obj.GetField<bool>(name);
+          return Value{ obj.GetField<bool>(name) };
         case ValueType::CHAR:
-          return obj.GetField<char>(name);
+          return Value{ obj.GetField<char>(name) };
 
         case ValueType::INT8:
-          return obj.GetField<int8_t>(name);
+          return Value{ obj.GetField<int8_t>(name) };
         case ValueType::INT16:
-          return obj.GetField<int16_t>(name);
+          return Value{ obj.GetField<int16_t>(name) };
         case ValueType::INT32:
-          return obj.GetField<int32_t>(name);
+          return Value{ obj.GetField<int32_t>(name) };
         case ValueType::INT64:
-          return obj.GetField<int64_t>(name);
+          return Value{ obj.GetField<int64_t>(name) };
 
         case ValueType::UINT8:
-          return obj.GetField<uint8_t>(name);
+          return Value{ obj.GetField<uint8_t>(name) };
         case ValueType::UINT16:
-          return obj.GetField<uint16_t>(name);
+          return Value{ obj.GetField<uint16_t>(name) };
 
+        case ValueType::UINT32:
         case ValueType::SAMPLER2D:
         case ValueType::SAMPLER2D_ARRAY:
-        case ValueType::UINT32:
-          return obj.GetField<uint32_t>(name);
+          return Value{ obj.GetField<uint32_t>(name) };
         case ValueType::UINT64:
-          return obj.GetField<uint64_t>(name);
+          return Value{ obj.GetField<uint64_t>(name) };
 
         case ValueType::FLOAT:
-          return obj.GetField<float>(name);
+          return Value{ obj.GetField<float>(name) };
         case ValueType::DOUBLE:
-          return obj.GetField<double>(name);
+          return Value{ obj.GetField<double>(name) };
 
         case ValueType::VEC2:
-          return obj.GetField<glm::vec2>(name);
+          return Value{ obj.GetField<glm::vec2>(name) };
         case ValueType::VEC3:
-          return obj.GetField<glm::vec3>(name);
+          return Value{ obj.GetField<glm::vec3>(name) };
         case ValueType::VEC4:
-          return obj.GetField<glm::vec4>(name);
+          return Value{ obj.GetField<glm::vec4>(name) };
         case ValueType::MAT2:
-          return obj.GetField<glm::mat2>(name);
+          return Value{ obj.GetField<glm::mat2>(name) };
         case ValueType::MAT3:
-          return obj.GetField<glm::mat3>(name);
+          return Value{ obj.GetField<glm::mat3>(name) };
         case ValueType::MAT4:
-          return obj.GetField<glm::mat4>(name);
+          return Value{ obj.GetField<glm::mat4>(name) };
 
         case ValueType::STRING:
-          return obj.GetField<std::string>(name);
+          return Value{ obj.GetField<std::string>(name) };
 
         case ValueType::ENTITY:
         case ValueType::ASSET:
-          return obj.GetField<uint64_t>(name);
+          return Value{ obj.GetField<uint64_t>(name) };
 
         case ValueType::USER_TYPE:
         case ValueType::OPAQUE_HANDLE:
@@ -119,23 +119,29 @@ namespace other {
     std::vector<dotother::Field>& fs = type.Fields();
     for (auto& field : fs) {
       std::string name = field.GetName();
-      ScriptField sf = fields[FNV(name)];
+      ScriptField& sf = fields[FNV(name)];
       sf.id = FNV(name);
       sf.name = name;
 
       /// TODO: get attributes from field
       sf.bounds = std::nullopt;
 
-      // ValueType type = ValueType::EMPTY_TYPE;
-      // {
-      //   dotother::Type& t = field.GetType();
-      //   // auto itr = type_map.find(t.handle);
-      //   // if (itr != type_map.end()) {
-      //   //   OE_INFO("Found type {} for field {}", t.FullName(), name);
-      //   // }
-      // }
+      ValueType type = ValueType::EMPTY_TYPE;
+      {
+        dotother::Type& t = field.GetType();
+        if (t.handle == -1) {
+          OE_WARN("Field type is null");
+          continue;
+        }
 
-      // sf.value = GetValueFromField(hosted_object, name, type);
+        auto itr = type_map.find(t.handle);
+        if (itr != type_map.end()) {
+          type = itr->second;
+          OE_INFO("Found type {} for field {} : [{}]", t.FullName(), name, type);
+        }
+      }
+
+      sf.value = GetValueFromField(hosted_object, name, type);
     }
   }
 

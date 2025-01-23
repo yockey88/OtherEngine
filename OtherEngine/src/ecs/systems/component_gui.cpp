@@ -6,6 +6,7 @@
 #include <glm/ext/vector_float4.hpp>
 #include <imgui/imgui.h>
 
+#include "core/defines.hpp"
 #include "core/filesystem.hpp"
 
 #include "application/app_state.hpp"
@@ -20,6 +21,7 @@
 #include "ecs/components/light_source.hpp"
 #include "ecs/components/rigid_body.hpp"
 #include "ecs/components/rigid_body_2d.hpp"
+#include "ecs/components/script.hpp"
 #include "ecs/components/transform.hpp"
 #include "scene/scene_manager.hpp"
 
@@ -291,6 +293,16 @@ namespace other {
     return result;
   }
 
+  void DrawField(ScriptField* field, Script& script_instance) {
+    OE_ASSERT(field != nullptr, "Attempting to draw null script field");
+
+    std::string label = field->name;
+    ui::BeginProperty(field->name.c_str(), "<description>");
+    std::string type_name = std::string{ ValueTypeToString(field->value.GetType()) };
+    ImGui::Text("Field type : [%s]", type_name.c_str());
+    ui::EndProperty();
+  }
+
   bool DrawScriptArray(ScriptField* array, Script& script_instance) {
     // ImGui::Text("Script array : %s" , array->name.c_str());
 
@@ -301,74 +313,66 @@ namespace other {
     bool result = false;
 
     switch (field->value.GetType()) {
-      case ValueType::BOOL: result = result &= DrawFieldValue<bool>(field, script_instance); break;
-      case ValueType::CHAR: result = result &= DrawFieldValue<char>(field, script_instance); break;
-      case ValueType::INT8: result = result &= DrawFieldValue<int8_t>(field, script_instance); break;
-      case ValueType::UINT8: result = result &= DrawFieldValue<uint8_t>(field, script_instance); break;
-      case ValueType::INT16: result = result &= DrawFieldValue<int16_t>(field, script_instance); break;
-      case ValueType::UINT16: result = result &= DrawFieldValue<uint16_t>(field, script_instance); break;
-      case ValueType::INT32: result = result &= DrawFieldValue<int32_t>(field, script_instance); break;
-      case ValueType::UINT32: result = result &= DrawFieldValue<uint32_t>(field, script_instance); break;
-      case ValueType::INT64: result = result &= DrawFieldValue<int64_t>(field, script_instance); break;
-      case ValueType::UINT64: result = result &= DrawFieldValue<uint32_t>(field, script_instance); break;
-      case ValueType::FLOAT: result = result &= DrawFieldValue<float>(field, script_instance); break;
-      case ValueType::DOUBLE: result = result &= DrawFieldValue<double>(field, script_instance); break;
-      case ValueType::VEC2: result = result &= DrawFieldValue<glm::vec2>(field, script_instance); break;
-      case ValueType::VEC3: result = result &= DrawFieldValue<glm::vec3>(field, script_instance); break;
-      case ValueType::VEC4: result = result &= DrawFieldValue<glm::vec4>(field, script_instance); break;
-      case ValueType::STRING: result = result &= DrawFieldValue<std::string>(field, script_instance); break;
+      case ValueType::BOOL:
+        result = result &= DrawFieldValue<bool>(field, script_instance);
+        break;
+      case ValueType::CHAR:
+        result = result &= DrawFieldValue<char>(field, script_instance);
+        break;
+      case ValueType::INT8:
+        result = result &= DrawFieldValue<int8_t>(field, script_instance);
+        break;
+      case ValueType::UINT8:
+        result = result &= DrawFieldValue<uint8_t>(field, script_instance);
+        break;
+      case ValueType::INT16:
+        result = result &= DrawFieldValue<int16_t>(field, script_instance);
+        break;
+      case ValueType::UINT16:
+        result = result &= DrawFieldValue<uint16_t>(field, script_instance);
+        break;
+      case ValueType::INT32:
+        result = result &= DrawFieldValue<int32_t>(field, script_instance);
+        break;
+      case ValueType::UINT32:
+        result = result &= DrawFieldValue<uint32_t>(field, script_instance);
+        break;
+      case ValueType::INT64:
+        result = result &= DrawFieldValue<int64_t>(field, script_instance);
+        break;
+      case ValueType::UINT64:
+        result = result &= DrawFieldValue<uint32_t>(field, script_instance);
+        break;
+      case ValueType::FLOAT:
+        result = result &= DrawFieldValue<float>(field, script_instance);
+        break;
+      case ValueType::DOUBLE:
+        result = result &= DrawFieldValue<double>(field, script_instance);
+        break;
+      case ValueType::VEC2:
+        result = result &= DrawFieldValue<glm::vec2>(field, script_instance);
+        break;
+      case ValueType::VEC3:
+        result = result &= DrawFieldValue<glm::vec3>(field, script_instance);
+        break;
+      case ValueType::VEC4:
+        result = result &= DrawFieldValue<glm::vec4>(field, script_instance);
+        break;
+      case ValueType::STRING:
+        result = result &= DrawFieldValue<std::string>(field, script_instance);
+        break;
       case ValueType::ASSET:
-        ImGui::Text("Asset values unimplemented!");
-        break;
       case ValueType::ENTITY:
-        ImGui::Text("Entity values unimplemented!");
-        break;
       case ValueType::USER_TYPE:
-        ImGui::Text("User Types unimplemented");
-        break;
       default:
-        ImGui::Text("Field value %s has corrupted type", field->name.c_str());
+        DrawField(field, script_instance);
+        break;
     }
 
     return result;
   }
 
   bool DrawScript(Entity* ent) {
-    auto& script = ent->GetComponent<Script>();
-    script.selected_script = std::nullopt;
-
-    if (script.IsEmpty()) {
-      ImGui::Text("No script attached");
-      /// list scripts out here and attach if selected
-      return false;
-    }
-
-    std::string name = script.Name();
-    std::string lang = script.LanguageType() == LanguageModuleType::CS_MODULE ? "C#" : "Lua";
-    bool corrupt = script.IsCorrupt();
-
-    if (corrupt) {
-      ScopedColor red_text(ImGuiCol_Text, ui::theme::red);
-      ImGui::Text("%s corrupt, recompile or reload", name.data());
-
-      if (ImGui::Button("Rebuild Scripts")) {
-        // EventQueue::PushEvent<ScriptReloadEvent>();
-      }
-      return false;
-    }
-
-    ui::BeginPropertyGrid();
-    ImGui::Text("%s [ %s ]", name.c_str(), lang.c_str());
-
-    std::map<UUID, ScriptField>& fields = script.GetFields();
-    for (auto& [id, field] : fields) {
-      // if (DrawScriptField(&field, script)) {
-      //   // test_value = field.value;
-      // }
-    }
-
-    ui::EndPropertyGrid();
-
     // const std::vector<ScriptObjectTag>& loaded_script_objs = ScriptEngine::GetLoadedObjects();
     // if (loaded_script_objs.empty()) {
     //   ImGui::Text("No scripts loaded");
@@ -441,98 +445,103 @@ namespace other {
     //   script.AddScript(name, nspace.value_or(""), mod_name);
     // }
 
-    // if (script.IsEmpty()) {
-    //   ImGui::Text("No script attached");
-    //   return false;
-    // }
+    auto& script = ent->GetComponent<Script>();
+    script.selected_script = std::nullopt;
 
-    // const std::string script_name = std::string{ script.Name() };
-    // const std::string script_lang = script.LanguageType() == LanguageModuleType::CS_MODULE ? "C#" : "Lua";
-    // bool corrupt = script.IsCorrupt();
-    // if (corrupt) {
-    //   ImGui::Text("%s corrupt, recompile or reload", script_name.data());
+    if (script.IsEmpty()) {
+      ImGui::Text("No script attached");
+      /// list scripts out here and attach if selected
+      return false;
+    }
 
-    //   if (ImGui::Button("Rebuild Scripts")) {
-    //     // EventQueue::PushEvent<ScriptReloadEvent>();
-    //   }
-    //   return false;
-    // }
+    std::string name = script.Name();
+    std::string lang = script.LanguageType() == LanguageModuleType::CS_MODULE ? "C#" : "Lua";
+    bool corrupt = script.IsCorrupt();
 
-    // ui::BeginPropertyGrid();
+    if (corrupt) {
+      ImGui::Text("%s corrupt, recompile or reload", name.data());
 
-    // ui::ShiftCursor(10.f, 9.f);
-    // ImGui::Text("%s [ %s ]", script_name.c_str(), script_lang.c_str());
+      if (ImGui::Button("Rebuild Scripts")) {
+        // EventQueue::PushEvent<ScriptReloadEvent>();
+      }
+      return false;
+    }
 
-    // ImGui::NextColumn();
-    // ui::ShiftCursorY(4.f);
-    // ImGui::PushItemWidth(-1);
+    ui::BeginPropertyGrid();
 
-    // ImVec2 og_button_txt_align = ImGui::GetStyle().ButtonTextAlign;
-    // {
-    //   ImGui::GetStyle().ButtonTextAlign = { 0.f, 0.5f };
-    //   float width = ImGui::GetContentRegionAvail().x;
-    //   float item_height = 28.f;
+    ui::ShiftCursor(10.f, 9.f);
+    ImGui::Text("%s [ %s ]", name.c_str(), lang.c_str());
 
-    //   std::string button_txt = "None";
-    //   /// get full name
-    //   /// button_txt = full_name
+    ImGui::NextColumn();
+    ui::ShiftCursorY(4.f);
+    ImGui::PushItemWidth(-1);
 
-    //   if ((GImGui->CurrentItemFlags & ImGuiItemFlags_MixedValue) != 0) {
-    //     button_txt = "---";
-    //   }
+    ImVec2 og_button_txt_align = ImGui::GetStyle().ButtonTextAlign;
+    {
+      ImGui::GetStyle().ButtonTextAlign = { 0.f, 0.5f };
+      float width = ImGui::GetContentRegionAvail().x;
+      float item_height = 28.f;
 
-    //   {
-    //     ScopedColor bg_col(ImGuiCol_WindowBg, ui::theme::property_field);
-    //     ScopedColor button_label_col(ImGuiCol_Text, ui::theme::text);
-    //     ImGui::Button(button_txt.c_str(), { width, item_height });
+      std::string button_txt = "None";
+      /// get full name
+      /// button_txt = full_name
 
-    //     const bool hovered = ImGui::IsItemHovered();
+      if ((GImGui->CurrentItemFlags & ImGuiItemFlags_MixedValue) != 0) {
+        button_txt = "---";
+      }
 
-    //     if (hovered) {
-    //       if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-    //         /// open script in text editor
-    //       } else if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-    //         ImGui::OpenPopup(("##script_popup" + script_name).c_str());
-    //       }
-    //     }
-    //   }
-    // }
+      {
+        ScopedColor bg_col(ImGuiCol_WindowBg, ui::theme::property_field);
+        ScopedColor button_label_col(ImGuiCol_Text, ui::theme::text);
+        ImGui::Button(button_txt.c_str(), { width, item_height });
 
-    // ImGui::GetStyle().ButtonTextAlign = og_button_txt_align;
-    // bool clear = false;
-    // if (ImGui::BeginPopup(("##script_popup" + script_name).c_str())) {
-    //   if (clear) {
-    //   }
+        const bool hovered = ImGui::IsItemHovered();
 
-    //   ImGui::EndPopup();
-    // }
+        if (hovered) {
+          if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+            /// open script in text editor
+          } else if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+            ImGui::OpenPopup(("##script_popup" + name).c_str());
+          }
+        }
+      }
+    }
 
-    // if (ImGui::Button("Remove Script")) {
-    //   script.RemoveScript();
-    //   script.selected_script = std::nullopt;
-    // }
+    ImGui::GetStyle().ButtonTextAlign = og_button_txt_align;
+    bool clear = false;
+    if (ImGui::BeginPopup(("##script_popup" + name).c_str())) {
+      if (clear) {
+      }
 
-    // ImGui::PopItemWidth();
+      ImGui::EndPopup();
+    }
 
-    // ui::EndPropertyGrid();
-    // ui::Underline();
-    // ui::BeginPropertyGrid();
+    if (ImGui::Button("Remove Script")) {
+      script.RemoveScript();
+      script.selected_script = std::nullopt;
+    }
 
-    // /// display exported properties
-    // for (auto& [field_id, val] : script.GetFields()) {
-    //   ImGui::PushID(("##script-field" + val.name).c_str());
-    //   ImGui::SetCursorPosX(50.f);
+    ImGui::PopItemWidth();
 
-    //   // if (val.value.IsArray()) {
-    //   //   DrawScriptArray(&val, s);
-    //   // } else {
-    //   // }
-    //   DrawScriptField(&val, script);
+    ui::EndPropertyGrid();
+    ui::Underline();
+    ui::BeginPropertyGrid();
 
-    //   ImGui::PopID();
-    // }
+    /// display exported properties
+    for (auto& [field_id, val] : script.GetFields()) {
+      ImGui::PushID(("##script-field" + val.name).c_str());
+      ImGui::SetCursorPosX(50.f);
 
-    // ui::EndPropertyGrid();
+      // if (val.value.IsArray()) {
+      //   DrawScriptArray(&val, s);
+      // } else {
+      // }
+      DrawScriptField(&val, script);
+
+      ImGui::PopID();
+    }
+
+    ui::EndPropertyGrid();
 
     return false;
   }

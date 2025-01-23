@@ -293,6 +293,16 @@ namespace other {
     } else if (!render_success) {
     }
 
+    if (AppState::mode == EngineMode::RUNTIME) {
+      Ref<SceneRenderer> scene_renderer = data->scenes->GetRenderer();
+      OE_ASSERT(scene_renderer != nullptr, "No scene renderer found");
+
+      Ref<Framebuffer> render = scene_renderer->GetRender(FNV("Geometry"));
+      if (render != nullptr) {
+        Renderer::DrawFramebufferToWindow(render);
+      }
+    }
+
     if (UI::Enabled()) {
       UI::BeginFrame();
       ScriptEngine::RenderUIAttachments();

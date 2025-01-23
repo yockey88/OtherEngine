@@ -83,6 +83,8 @@ namespace other {
       script_object->SetField<T>(std::string{ name }, std::forward<T>(arg));
     }
 
+    void SetField(const std::string_view name, Value& value);
+
     bool ValidateScripts();
 
     void SetHandles();

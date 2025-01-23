@@ -13,7 +13,6 @@
 #include "core/defines.hpp"
 #include "core/logger.hpp"
 #include "core/ref.hpp"
-
 #include "memory/arena_allocator.hpp"
 
 namespace other {
@@ -45,18 +44,18 @@ namespace other {
       }
     }
 
-    ValueStorageImpl(T* value_ptr) {
-      OE_ASSERT(value_ptr != nullptr, "Value pointer is null!");
-      data = allocator.Allocate(*value_ptr);
-      *(T*)data = *value_ptr;
-      value_type = GetValueType<T>();
+    // ValueStorageImpl(T* value_ptr) {
+    //   OE_ASSERT(value_ptr != nullptr, "Value pointer is null!");
+    //   data = allocator.Allocate(*value_ptr);
+    //   *(T*)data = *value_ptr;
+    //   value_type = GetValueType<T>();
 
-      if constexpr (std::same_as<T, std::string> || std::same_as<T, std::string_view>) {
-        size = value_ptr->size();
-      } else {
-        size = sizeof(T);
-      }
-    }
+    //   if constexpr (std::same_as<T, std::string> || std::same_as<T, std::string_view>) {
+    //     size = value_ptr->size();
+    //   } else {
+    //     size = sizeof(T);
+    //   }
+    // }
 
     ValueStorageImpl() {
       static_assert(std::same_as<T, void*>, "ValueStorageImpl must be specialized for non-void types to use the default constructor!");
@@ -100,21 +99,21 @@ namespace other {
       storage = NewRef<ValueStorageImpl<T>>(value);
     }
 
-    template <typename T>
-    Value(T* value_ptr) {
-      storage = NewRef<ValueStorageImpl<T>>(value_ptr);
-    }
+    // template <typename T>
+    // Value(T* value_ptr) {
+    //   storage = NewRef<ValueStorageImpl<T>>(value_ptr);
+    // }
 
     template <typename T>
     Value& operator=(const T& other) {
       storage = NewRef<ValueStorageImpl<T>>(other);
       return *this;
     }
-    template <typename T>
-    Value& operator=(T* other) {
-      storage = NewRef<ValueStorageImpl<T>>(other);
-      return *this;
-    }
+    // template <typename T>
+    // Value& operator=(T* other) {
+    //   storage = NewRef<ValueStorageImpl<T>>(other);
+    //   return *this;
+    // }
 
     ~Value();
 

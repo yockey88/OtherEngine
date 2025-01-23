@@ -1,5 +1,7 @@
 require("ymake")
 
+OtherBuildTools = require("otherlua.app")
+
 local configuration = {}
 configuration.wks_name = "OtherEngine"
 configuration.architecture = "x64"
@@ -25,10 +27,10 @@ configuration.groups = {
   },
 
   ["Tools"] = { "./tools" } ,
-  -- ["Games"] = {
-  --   "./yockcraft",
+  ["Games"] = {
+    "./game2025",
   --   "./cell_automaton",
-  -- },
+  },
 }
 
 local choc = {}
