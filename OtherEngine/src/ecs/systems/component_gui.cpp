@@ -884,7 +884,7 @@ namespace other {
 
     const Transform& transform = ent->GetComponent<Transform>();
 
-    static const char* collider_type_strings[] = { "Box", "Sphere", "Capsule", "Cylinder", "Cone", "Convex Mesh", "Concave Mesh" };
+    static const char* collider_type_strings[] = { "Box", "Sphere", "Capsule", "Convex Mesh", "Concave Mesh" };
 
     ui::BeginPropertyGrid();
 

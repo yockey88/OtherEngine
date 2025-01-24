@@ -48,6 +48,9 @@ namespace other {
   class MeshSerializer : public ComponentSerializer {
    public:
     COMPONENT_SERIALIZERS(Mesh);
+
+   private:
+    AssetHandle GetMeshHandle(const std::string& path) const;
   };
 
   class StaticMeshSerializer : public ComponentSerializer {

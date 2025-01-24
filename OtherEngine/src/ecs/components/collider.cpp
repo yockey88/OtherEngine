@@ -30,12 +30,12 @@ namespace other {
       case PhysicsShape::Shape::CAPSULE:
         stream << "capsule\n";
         break;
-      // case PhysicsShape::Shape::CONCAVE_MESH:
-      //   stream << "\"concave-mesh\"\n";
-      //   break;
-      // case PhysicsShape::Shape::CONVEX_MESH:
-      //   stream << "\"convex-mesh\"\n";
-      //   break;
+      case PhysicsShape::Shape::CONCAVE_MESH:
+        stream << "\"concave-mesh\"\n";
+        break;
+      case PhysicsShape::Shape::CONVEX_MESH:
+        stream << "\"convex-mesh\"\n";
+        break;
       default:
         OE_ERROR("Collider shape not found for entity {}", entity->Name());
         return;
@@ -63,11 +63,11 @@ namespace other {
       case FNV("capsule"):
         entity->AddComponent<Collider>(PhysicsShape::Shape::CAPSULE);
         break;
-      // case FNV("concave-mesh"):
-      //   entity->AddComponent<Collider>(PhysicsShape::Shape::CONCAVE_MESH);
-      //   break;
-      // case FNV("convex-mesh"):
-      //   entity->AddComponent<Collider>(PhysicsShape::Shape::CONVEX_MESH);
+      case FNV("concave-mesh"):
+        entity->AddComponent<Collider>(PhysicsShape::Shape::CONCAVE_MESH);
+        break;
+      case FNV("convex-mesh"):
+        entity->AddComponent<Collider>(PhysicsShape::Shape::CONVEX_MESH);
       //   break;
       default:
         OE_ERROR("Collider shape section corrupt, cannot deserialize into entity {}", entity->Name());

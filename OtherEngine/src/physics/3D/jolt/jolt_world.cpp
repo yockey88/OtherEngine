@@ -79,11 +79,11 @@ namespace other {
     return nullptr;
   }
 
-  Ref<PhysicsShape> JoltWorld::CreateConvexMeshShape(const std::vector<glm::vec3>& vertices, const std::vector<uint32_t>& indices, uint32_t num_faces) {
+  Ref<PhysicsShape> JoltWorld::CreateConvexMeshShape(const std::vector<float>& vertices, const std::vector<uint32_t>& indices, uint32_t num_faces) {
     return nullptr;
   }
 
-  Ref<PhysicsShape> JoltWorld::CreateConcaveMeshShape(const std::vector<glm::vec3>& vertices, const std::vector<uint32_t>& indices, uint32_t num_faces) {
+  Ref<PhysicsShape> JoltWorld::CreateConcaveMeshShape(const std::vector<float>& vertices, const std::vector<uint32_t>& indices, uint32_t num_faces) {
     return nullptr;
   }
 

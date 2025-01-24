@@ -6,6 +6,7 @@
 #include <glm/ext/matrix_transform.hpp>
 
 #include "core/config_keys.hpp"
+#include "core/filesystem.hpp"
 
 #include "asset/asset_manager.hpp"
 
@@ -32,6 +33,15 @@ namespace other {
     auto& mesh = entity->AddComponent<Mesh>();
     mesh.visible = scene_table.GetVal<bool>(key_value, kVisibleValue, false).value_or(false);
     mesh.handle = scene_table.GetVal<uint64_t>(key_value, kHandleValue, false).value_or(0);
+
+    Opt<std::string> path = scene_table.GetVal<std::string>(key_value, kPathValue, false);
+    if (path.has_value()) {
+      AssetHandle handle = GetMeshHandle(path.value());
+      if (handle != 0) {
+        mesh.handle = handle;
+      }
+    }
+
     // std::string material_key = GetComponentSectionKey(entity->Name(), std::string{ kMaterialValue });
     // std::string albedo_key = GetComponentSectionKey(material_key, "albedo");
     // std::string normal_key = GetComponentSectionKey(material_key, "normal");
@@ -50,6 +60,34 @@ namespace other {
 
     /// material data
     /// paths/other metadata
+  }
+
+  AssetHandle MeshSerializer::GetMeshHandle(const std::string& path) const {
+    Ref<Directory> assets = Filesystem::GetDirectory("assets");
+    if (assets == nullptr) {
+      OE_ERROR("Failed to retrieve assets directory");
+      return 0;
+    }
+
+    Ref<FileHandle> file = assets->OpenFile(path);
+    if (file == nullptr) {
+      OE_ERROR("Failed to open mesh file {}", path);
+      return 0;
+    }
+
+    Ref<ModelSource> asset = AssetManager::GetAsset<ModelSource>(file->handle, AssetType::MODEL_SOURCE);
+    if (asset == nullptr) {
+      OE_ERROR("Failed to retrieve asset handle for mesh {}", path);
+      return 0;
+    }
+
+    Ref<Model> model = ModelSource::CreateModel(asset, {});
+    if (model == nullptr) {
+      OE_ERROR("Failed to create model from asset {}", path);
+      return 0;
+    }
+
+    return model->handle;
   }
 
   void StaticMeshSerializer::Serialize(std::ostream& stream, Entity* entity, const Ref<Scene>& scene) const {

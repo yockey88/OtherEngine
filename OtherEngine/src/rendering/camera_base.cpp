@@ -111,6 +111,12 @@ namespace other {
 
   void CameraBase::SetDirection(const glm::vec3& direction) {
     this->direction = direction;
+    target = position + direction;
+  }
+
+  void CameraBase::SetTarget(const glm::vec3& target) {
+    direction = glm::normalize(target - position);
+    this->target = target;
   }
 
   void CameraBase::SetUp(const glm::vec3& up) {
@@ -182,7 +188,8 @@ namespace other {
   }
 
   void CameraBase::CalculateView() {
-    view = glm::lookAt(position, position + direction, up);
+    SetTarget(target);
+    view = glm::lookAt(position, target, up);
   }
 
   const glm::vec3& CameraBase::Position() const {

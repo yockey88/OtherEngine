@@ -16,7 +16,6 @@
 
 #include "editor/panel_manager.hpp"
 
-
 namespace other {
 
   class EditorLayer : public Layer {
@@ -47,12 +46,17 @@ namespace other {
     Scope<PanelManager> panel_manager = nullptr;
     Ref<Framebuffer> viewport = nullptr;
 
+    Transform editor_grid_transform = Transform(0.f);
+    Ref<Shader> editor_grid_shader = nullptr;
+    Ref<VertexArray> editor_grid_vao = nullptr;
+
     void LaunchSettingsWindow();
 
     Ray CastRay(Ref<CameraBase>& camera, const glm::vec2& mouse_pos);
 
     bool HandleKeyPressed(KeyPressed& event);
     bool HandleMousePressed(MouseButtonPressed& event);
+    bool HandleMouseHeld(MouseButtonHeld& event);
     bool HandleSceneActivate(SceneActivate& event);
     bool HandleSceneUnload(SceneUnload& event);
   };

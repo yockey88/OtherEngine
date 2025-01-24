@@ -37,6 +37,7 @@
 
 #include "rendering/camera_base.hpp"
 #include "rendering/model.hpp"
+#include "rendering/vertex.hpp"
 #include "scripting/cs/cs_object.hpp"
 #include "scripting/script_engine.hpp"
 
@@ -1024,8 +1025,97 @@ namespace other {
         collider.shape = physics_world->CreateCapsuleShape(transform.scale.x / 2.f, transform.scale.y);
       } break;
 
-      // case PhysicsShape::Shape::CONVEX_MESH:
-      // case PhysicsShape::Shape::CONCAVE_MESH:
+      case PhysicsShape::Shape::CONVEX_MESH: {
+        if (!ent.HasAnyComponent<StaticMesh, Mesh>()) {
+          OE_ERROR("Can not create physics mesh without mesh!");
+          ent.RemoveComponent<Collider>();
+          if (!has_rigid_body && ent.HasComponent<RigidBody>()) {
+            ent.RemoveComponent<RigidBody>();
+          }
+          return;
+        }
+
+        if (ent.HasComponent<StaticMesh>()) {
+          auto& mesh = ent.GetComponent<StaticMesh>();
+          Ref<Model> model = AssetManager::GetAsset<StaticModel>(mesh.handle);
+          if (model == nullptr) {
+            OE_ERROR("Model asset is null");
+            ent.RemoveComponent<Collider>();
+            if (!has_rigid_body && ent.HasComponent<RigidBody>()) {
+              ent.RemoveComponent<RigidBody>();
+            }
+            return;
+          }
+
+          Ref<ModelSource> source = model->GetModelSource();
+          if (source == nullptr) {
+            OE_ERROR("Model source is null");
+            ent.RemoveComponent<Collider>();
+            if (!has_rigid_body && ent.HasComponent<RigidBody>()) {
+              ent.RemoveComponent<RigidBody>();
+            }
+            return;
+          }
+
+          const std::vector<Vertex>& vertices = source->Vertices();
+          const std::vector<uint32_t>& idxs = source->RawIndices();
+          uint32_t num_faces = idxs.size() / 3;
+
+          std::vector<float> verts;
+          for (const auto& v : vertices) {
+            verts.push_back(v.position.x);
+            verts.push_back(v.position.y);
+            verts.push_back(v.position.z);
+          }
+
+          collider.shape = physics_world->CreateConvexMeshShape(verts, idxs, num_faces);
+
+        } else if (ent.HasComponent<Mesh>()) {
+          auto& mesh = ent.GetComponent<Mesh>();
+          Ref<Model> model = AssetManager::GetAsset<Model>(mesh.handle);
+          if (model == nullptr) {
+            OE_ERROR("Model asset is null");
+            ent.RemoveComponent<Collider>();
+            if (!has_rigid_body && ent.HasComponent<RigidBody>()) {
+              ent.RemoveComponent<RigidBody>();
+            }
+            return;
+          }
+
+          Ref<ModelSource> source = model->GetModelSource();
+          if (source == nullptr) {
+            OE_ERROR("Model source is null");
+            ent.RemoveComponent<Collider>();
+            if (!has_rigid_body && ent.HasComponent<RigidBody>()) {
+              ent.RemoveComponent<RigidBody>();
+            }
+            return;
+          }
+
+          const std::vector<Vertex>& vertices = source->Vertices();
+          const std::vector<uint32_t>& idxs = source->RawIndices();
+          uint32_t num_faces = idxs.size() / 3;
+
+          std::vector<float> verts;
+          for (const auto& v : vertices) {
+            verts.push_back(v.position.x);
+            verts.push_back(v.position.y);
+            verts.push_back(v.position.z);
+          }
+
+          collider.shape = physics_world->CreateConvexMeshShape(verts, idxs, num_faces);
+        } else {
+          OE_ASSERT(false, "Entity does not have mesh component");
+        }
+      } break;
+      case PhysicsShape::Shape::CONCAVE_MESH: {
+        OE_ERROR("Concave mesh collider not implemented yet");
+        ent.RemoveComponent<Collider>();
+        if (!has_rigid_body && ent.HasComponent<RigidBody>()) {
+          ent.RemoveComponent<RigidBody>();
+        }
+        return;
+      } break;
       default:
         OE_ERROR("Unimplemented or invalid collider shape type : {}", collider.shape_idx);
         ent.RemoveComponent<Collider>();

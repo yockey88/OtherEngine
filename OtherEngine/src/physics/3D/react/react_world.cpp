@@ -162,15 +162,8 @@ namespace other {
     return NewRef<ReactCapsuleShape>(shape, this);
   }
 
-  Ref<PhysicsShape> ReactWorld::CreateConvexMeshShape(const std::vector<glm::vec3>& vertices, const std::vector<uint32_t>& indices, uint32_t num_faces) {
+  Ref<PhysicsShape> ReactWorld::CreateConvexMeshShape(const std::vector<float>& vertices, const std::vector<uint32_t>& indices, uint32_t num_faces) {
     OE_ASSERT(physics_world != nullptr, "Physics world is null");
-
-    std::vector<float> vertices_data;
-    for (const glm::vec3& vertex : vertices) {
-      vertices_data.push_back(vertex.x);
-      vertices_data.push_back(vertex.y);
-      vertices_data.push_back(vertex.z);
-    }
 
     rp3d::PolygonVertexArray::PolygonFace* faces = new rp3d::PolygonVertexArray::PolygonFace[num_faces];
     for (uint32_t i = 0; i < num_faces; i++) {
@@ -179,7 +172,7 @@ namespace other {
     }
 
     // clang-format off
-    rp3d::PolygonVertexArray polygon_vertex_array(vertices.size(), vertices_data.data(), sizeof(float) * 3, indices.data(), sizeof(uint32_t), num_faces, faces, 
+    rp3d::PolygonVertexArray polygon_vertex_array(vertices.size(), vertices.data(), sizeof(float) * 3, indices.data(), sizeof(uint32_t), num_faces, faces, 
                                                   rp3d::PolygonVertexArray::VertexDataType::VERTEX_FLOAT_TYPE, rp3d::PolygonVertexArray::IndexDataType::INDEX_INTEGER_TYPE);
     // clang-format on
 
@@ -209,7 +202,7 @@ namespace other {
     return NewRef<ReactConvexMeshShape>(shape, this);
   }
 
-  Ref<PhysicsShape> ReactWorld::CreateConcaveMeshShape(const std::vector<glm::vec3>& vertices, const std::vector<uint32_t>& indices, uint32_t num_faces) {
+  Ref<PhysicsShape> ReactWorld::CreateConcaveMeshShape(const std::vector<float>& vertices, const std::vector<uint32_t>& indices, uint32_t num_faces) {
     OE_ASSERT(false, "Concave mesh shapes are not implemented yet");
     return nullptr;
   }

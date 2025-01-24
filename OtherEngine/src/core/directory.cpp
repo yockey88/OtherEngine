@@ -260,7 +260,14 @@ namespace other {
       }
 
       if (file->FileName() == name) {
-        if (!ext.has_value() || ext.value() == file->Extension()) {
+        if (!ext.has_value()) {
+          OE_DEBUG("  > found : {}", file->FileName());
+          return file;
+        }
+
+        OE_DEBUG("  > checking extension : {} == {}", file->Extension(), ext.value());
+        if (ext.value() == file->Extension()) {
+          OE_DEBUG("  > matched : {}", file->FileName());
           return file;
         }
       }

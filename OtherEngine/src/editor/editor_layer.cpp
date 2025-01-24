@@ -5,6 +5,7 @@
 
 #include <imgui/imgui.h>
 
+#include "core/filesystem.hpp"
 #include "core/logger.hpp"
 #include "environment/environment.hpp"
 #include "math/vecmath.hpp"
@@ -22,6 +23,7 @@
 #include "rendering/camera_base.hpp"
 #include "rendering/perspective_camera.hpp"
 #include "rendering/renderer.hpp"
+#include "rendering/shader.hpp"
 #include "rendering/ui/ui_helpers.hpp"
 
 #include "editor/editor_images.hpp"
@@ -47,6 +49,18 @@ namespace other {
     std::vector<uint32_t> fb_indices{ 0, 1, 3, 1, 2, 3 };
     std::vector<uint32_t> fb_layout{ 2, 2 };
 
+    std::vector<float> editor_grid_mesh = {
+      1.f, 0.f, -1.f, 1.f, 1.f,
+      -1.f, 0.f, -1.f, 0.f, 1.f,
+      -1.f, 0.f, 1.f, 0.f, 0.f,
+      1.f, 0.f, 1.f, 1.f, 0.f
+    };
+
+    std::vector<uint32_t> editor_grid_indices = { 0, 1, 2, 2, 3, 0 };
+    std::vector<uint32_t> editor_grid_layout = { 3, 2 };
+
+    constexpr std::string_view kEditorGridShader = "editor_grid";
+
   }  // namespace
 
   void EditorLayer::OnAttach() {
@@ -57,6 +71,10 @@ namespace other {
     EventQueue::RegisterEventDispatcher<MouseButtonPressed>(
       "EditorLayer--MousePressed",
       { std::bind_front(&EditorLayer::HandleMousePressed, this) }
+    );
+    EventQueue::RegisterEventDispatcher<MouseButtonHeld>(
+      "EditorLayer--MouseHeld",
+      { std::bind_front(&EditorLayer::HandleMouseHeld, this) }
     );
     EventQueue::RegisterEventDispatcher<SceneActivate>(
       "EditorLayer--SceneActivate",
@@ -75,12 +93,32 @@ namespace other {
 
     auto win_size = Renderer::WindowSize();
     editor.editor_camera = NewRef<PerspectiveCamera>(glm::ivec2{ win_size.x, win_size.y });
-    editor.editor_camera->SetPosition({ 0.f, 0.f, 3.f });
+    editor.editor_camera->SetPosition({ 0.f, 3.f, 3.f });
     editor.editor_camera->locked = true;
     DefaultUpdateCamera(editor.editor_camera);
 
     panel_manager = NewScope<PanelManager>();
     panel_manager->Attach(AppState::ProjectContext(), editor_config);
+
+    editor_grid_vao = NewRef<VertexArray>(fb_verts, fb_indices, fb_layout);
+    OE_ASSERT(editor_grid_vao != nullptr, "Failed to create editor grid vao");
+
+    {
+      Ref<Directory> shaders = Filesystem::GetDirectory("shaders");
+      OE_ASSERT(shaders != nullptr, "Failed to retrieve shaders directory");
+
+      Ref<FileHandle> shader_file = shaders->GetFileHandleByName(kEditorGridShader, ".oshader");
+      OE_ASSERT(shader_file != nullptr, "Failed to get shader file : {}", kEditorGridShader);
+
+      editor_grid_shader = BuildShader(Path(*shader_file));
+      OE_ASSERT(editor_grid_shader != nullptr, "Failed to build editor grid shader");
+    }
+
+    editor_grid_transform.qrotation = glm::quat(glm::rotate(glm::mat4(1.f), glm::radians(90.f), glm::vec3(1.f, 0.f, 0.f)));
+    editor_grid_transform.erotation = glm::eulerAngles(editor_grid_transform.qrotation);
+    editor_grid_transform.scale = glm::vec3(10000.f);
+    editor_grid_transform.position = glm::vec3(0.f);
+    editor_grid_transform.CalcMatrix();
   }
 
   void EditorLayer::OnDetach() {
@@ -90,6 +128,7 @@ namespace other {
 
     EventQueue::UnregisterEventDispatcher("EditorLayer--KeyPressed");
     EventQueue::UnregisterEventDispatcher("EditorLayer--MousePressed");
+    EventQueue::UnregisterEventDispatcher("EditorLayer--MouseHeld");
     EventQueue::UnregisterEventDispatcher("EditorLayer--SceneActivate");
     EventQueue::UnregisterEventDispatcher("EditorLayer--SceneUnload");
   }
@@ -156,6 +195,18 @@ namespace other {
 
       /// render scene for editor
       if (EditorState::scene_mode != SceneEditorMode::PLAYING) {
+        scene_renderer->SubmitDebugDrawCommands(
+          "Geometry",
+          {
+            [this]() {
+              OE_ASSERT(editor_grid_shader != nullptr, "Editor grid shader is null");
+              editor_grid_shader->Bind();
+              editor_grid_shader->SetUniform("model", editor_grid_transform.model_transform);
+              editor_grid_vao->Draw(DrawMode::TRIANGLES);
+              editor_grid_shader->Unbind();
+            },
+          }
+        );
         // active_scene->bvh->RenderBounds(scene_renderer);
 
         // if (SelectionManager::HasSelection()) {
@@ -419,6 +470,33 @@ namespace other {
 
     SelectionManager::Select(trace->hit_entity);
     return false;
+  }
+
+  bool EditorLayer::HandleMouseHeld(MouseButtonHeld& event) {
+    if (EditorState::scene_mode != SceneEditorMode::STOPPED) {
+      return false;
+    }
+
+    if (event.Button() != Mouse::Button::MIDDLE) {
+      return false;
+    }
+
+    EditorState& editor = EditorState::Get();
+    if (SelectionManager::HasSelection()) {
+      /// move selected entity
+    } else {
+      /// move camera
+      glm::vec4 homogeneous_clip_pos = {
+        (2.f * Mouse::GetPos().x) / editor.current_viewport_size.x - 1.f,
+        1.f - (2.f * Mouse::GetPos().y) / editor.current_viewport_size.y,
+        -1.f, 1.f
+      };
+      glm::vec4 shift_pos = glm::vec4(glm::vec2(glm::inverse(editor.editor_camera->ProjectionMatrix()) * homogeneous_clip_pos), -1.f, 0.f);
+      glm::vec3 world_coords_direction = glm::vec3(glm::normalize(glm::inverse(editor.editor_camera->ViewMatrix()) * shift_pos));
+      editor.editor_camera->SetTarget(world_coords_direction);
+      editor.editor_camera->CalculateMatrix();
+    }
+    return true;
   }
 
   bool EditorLayer::HandleSceneActivate(SceneActivate& event) {

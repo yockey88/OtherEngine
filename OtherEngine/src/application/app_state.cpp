@@ -301,6 +301,7 @@ namespace other {
       if (render != nullptr) {
         Renderer::DrawFramebufferToWindow(render);
       }
+    } else if (AppState::mode == EngineMode::EDITOR) {
     }
 
     if (UI::Enabled()) {

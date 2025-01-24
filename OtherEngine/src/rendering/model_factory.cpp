@@ -279,10 +279,9 @@ namespace other {
         const float sin_phi = glm::sin(phi);
         const float cos_phi = glm::cos(phi);
 
-        Vertex vertex;
-        vertex.normal = { cos_phi * sin_theta, cos_theta, sin_phi * sin_theta };
+        Vertex& vertex = vertices.emplace_back();
         vertex.position = { radius * vertex.normal.x, radius * vertex.normal.y, radius * vertex.normal.z };
-        vertices.push_back(vertex);
+        vertex.normal = { cos_phi * sin_theta, cos_theta, sin_phi * sin_theta };
       }
     }
 
@@ -316,6 +315,7 @@ namespace other {
 
         Vertex& vertex = vertices.emplace_back();
         vertex.position = glm::vec3(actual_radius * x, actual_radius * y + height * dy, actual_radius * z);
+        vertex.normal = glm::normalize(glm::vec3(x, y, z));
       }
     }
 
