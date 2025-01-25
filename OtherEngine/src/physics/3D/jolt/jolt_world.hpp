@@ -6,28 +6,19 @@
 
 // clang-format off
 #include <Jolt/Jolt.h>
-#include <Jolt/Core/TempAllocator.h>
 #include <Jolt/Core/JobSystemThreadPool.h>
+#include <Jolt/Core/TempAllocator.h>
 #include <Jolt/Physics/PhysicsSystem.h>
-#include <Jolt/Physics/PhysicsSettings.h>
-#include <Jolt/Physics/Collision/Shape/BoxShape.h>
-#include <Jolt/Physics/Collision/Shape/SphereShape.h>
-#include <Jolt/Physics/Collision/RayCast.h>
-#include <Jolt/Physics/Collision/ShapeCast.h>
-#include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
-#include <Jolt/Physics/Collision/CastResult.h>
-#include <Jolt/Physics/Body/BodyCreationSettings.h>
-#include <Jolt/Physics/Body/BodyActivationListener.h>
-#include <Jolt/Physics/Body/BodyLockMulti.h>
-#include <Jolt/Core/Profiler.h>
 // clang-format on
 
-#include "core/defines.hpp"
+#include "ecs/components/physics_component.hpp"
 
 #include "physics/3D/jolt/activation_listener.hpp"
 #include "physics/3D/jolt/broad_phase_filter.hpp"
 #include "physics/3D/jolt/broad_phase_layer_handler.hpp"
 #include "physics/3D/jolt/contact_listener.hpp"
+#include "physics/3D/jolt/jolt_body.hpp"
+#include "physics/3D/jolt/jolt_shape.hpp"
 #include "physics/3D/jolt/object_layer_filter.hpp"
 #include "physics/3D/physics_world.hpp"
 
@@ -38,8 +29,10 @@ namespace other {
     JoltWorld(Scene* scene_ctx);
     virtual ~JoltWorld() override;
 
+    virtual void ResetSimulation(Scene* scene) override;
     void Simulate(float ts) override;
-    Ref<PhysicsBody> CreateBody(Transform& initial_transform) override;
+    void CreateBody(Entity& entity) override;
+    void DestroyBody(Entity& entity) override;
 
     Ref<PhysicsShape> CreateBoxShape(const glm::vec3& half_extents) override;
     Ref<PhysicsShape> CreateSphereShape(float radius) override;
@@ -51,9 +44,9 @@ namespace other {
     void SubmitDebugRender(Ref<SceneRenderer> renderer) override {}
 
    private:
-    Scope<JPH::TempAllocatorImpl> temp_alloc = nullptr;
+    JPH::TempAllocatorImpl* temp_alloc = nullptr;
     Scope<JPH::JobSystemThreadPool> thread_pool = nullptr;
-
+    Scope<JPH::PhysicsSystem> system = nullptr;
     Scope<ActivationListener> activation_listener = nullptr;
     Scope<ContactListener> contact_listener = nullptr;
 
@@ -61,7 +54,7 @@ namespace other {
     BroadPhaseLayerFilter broad_phase_layer_filter;
     ObjectLayerFilter obj_layer_filter;
 
-    Scope<JPH::PhysicsSystem> system = nullptr;
+    void CreateColliders(Collider& collider, Transform& transform);
   };
 
 }  // namespace other

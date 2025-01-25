@@ -26,9 +26,9 @@ namespace other {
   };
 
   struct Script : Component {
-    ECS_COMPONENT(Script, kScriptIndex);
+    ECS_COMPONENT(Script, SCRIPT_COMPONENT_INDEX);
 
-    Script(Scene* scene) : Component(kScriptIndex) {}
+    Script(Scene* scene) : Component(SCRIPT_COMPONENT_INDEX) {}
 
     Opt<uint32_t> selected_script = std::nullopt;
 

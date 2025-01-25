@@ -3,27 +3,23 @@
  **/
 #include "ecs/systems/core_systems.hpp"
 
-#include <Jolt/Physics/Body/MotionType.h>
-#include <Jolt/Physics/Collision/ObjectLayer.h>
-#include <Jolt/Physics/EActivation.h>
-#include <box2d/b2_fixture.h>
-#include <box2d/b2_polygon_shape.h>
-
 #include "application/app_state.hpp"
 
 #include "ecs/components/camera.hpp"
 #include "ecs/components/mesh.hpp"
 #include "ecs/components/relationship.hpp"
-#include "ecs/components/rigid_body_2d.hpp"
 #include "ecs/components/script.hpp"
 #include "ecs/components/serialization_data.hpp"
 #include "ecs/components/tag.hpp"
 #include "ecs/components/transform.hpp"
 #include "ecs/entity.hpp"
 
-#include "physics/physics_defines.hpp"
 #include "rendering/perspective_camera.hpp"
 #include "rendering/renderer.hpp"
+
+/**
+ * \todo move the rest of this into scene
+ **/
 
 namespace other {
 

@@ -21,11 +21,11 @@ namespace other {
     uint64_t GetID() const { return id.Get(); }
 
     Tag(const std::string& name)
-        : Component(kTagIndex), name(name), id(FNV(name)) {}
+        : Component(TAG_COMPONENT_INDEX), name(name), id(FNV(name)) {}
     Tag(const std::string& name, UUID id)
-        : Component(kTagIndex), name(name), id(id) {}
+        : Component(TAG_COMPONENT_INDEX), name(name), id(id) {}
 
-    ECS_COMPONENT(Tag, kTagIndex);
+    ECS_COMPONENT(Tag, TAG_COMPONENT_INDEX);
   };
 
 }  // namespace other

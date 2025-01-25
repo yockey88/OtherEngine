@@ -31,7 +31,8 @@ namespace other {
 
     virtual void ResetSimulation(Scene* scene) = 0;
     virtual void Simulate(float ts) = 0;
-    virtual Ref<PhysicsBody> CreateBody(Transform& initial_transform) = 0;
+    virtual void CreateBody(Entity& entity) = 0;
+    virtual void DestroyBody(Entity& entity) = 0;
 
     virtual Ref<PhysicsShape> CreateBoxShape(const glm::vec3& half_extents) = 0;
     virtual Ref<PhysicsShape> CreateSphereShape(float radius) = 0;

@@ -12,14 +12,13 @@
 #include "ecs/component.hpp"
 #include "ecs/component_serializer.hpp"
 
-
 namespace other {
 
   struct Relationship : public Component {
     Opt<UUID> parent;
     std::set<UUID> children;
 
-    ECS_COMPONENT(Relationship, kRelationshipIndex);
+    ECS_COMPONENT(Relationship, RELATIONSHIP_COMPONENT_INDEX);
   };
 
   class RelationshipSerializer : public ComponentSerializer {

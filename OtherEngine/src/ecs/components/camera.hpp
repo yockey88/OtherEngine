@@ -19,9 +19,9 @@ namespace other {
     bool is_primary = false;
 
     Camera(const Ref<CameraBase>& camera)
-        : Component(kCameraIndex), camera(camera) {}
+        : Component(CAMERA_COMPONENT_INDEX), camera(camera) {}
 
-    ECS_COMPONENT(Camera, kCameraIndex);
+    ECS_COMPONENT(Camera, CAMERA_COMPONENT_INDEX);
   };
 
   class CameraSerializer : public ComponentSerializer {

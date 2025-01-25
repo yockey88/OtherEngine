@@ -22,7 +22,7 @@ namespace other {
     std::vector<UUID> bone_entity_ids;
     bool visible = true;
 
-    ECS_COMPONENT(Mesh, kMeshIndex);
+    ECS_COMPONENT(Mesh, MESH_COMPONENT_INDEX);
   };
 
   /// primitive mesh types
@@ -42,7 +42,7 @@ namespace other {
     uint32_t primitive_id = 0;
     uint32_t primitive_selection = 0;
 
-    ECS_COMPONENT(StaticMesh, kStaticMeshIndex);
+    ECS_COMPONENT(StaticMesh, STATICMESH_COMPONENT_INDEX);
   };
 
   class MeshSerializer : public ComponentSerializer {

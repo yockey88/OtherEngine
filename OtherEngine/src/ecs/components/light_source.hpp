@@ -33,7 +33,7 @@ namespace other {
 
     // static Material debug_light_mat;
 
-    ECS_COMPONENT(LightSource, kLightSourceIndex);
+    ECS_COMPONENT(LightSource, LIGHTSOURCE_COMPONENT_INDEX);
   };
 
   class LightSourceSerializer : public ComponentSerializer {

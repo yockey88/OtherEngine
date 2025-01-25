@@ -6,18 +6,19 @@
 namespace other {
 
   std::array<ComponentDataBase::ComponentData, kNumComponents> ComponentDataBase::kComponentData = {
-    ComponentDataBase::ComponentData{ &kComponentTags[kTagIndex] },
-    ComponentDataBase::ComponentData{ &kComponentTags[kTransformIndex] },
-    ComponentDataBase::ComponentData{ &kComponentTags[kRelationshipIndex] },
-    ComponentDataBase::ComponentData{ &kComponentTags[kMeshIndex] },
-    ComponentDataBase::ComponentData{ &kComponentTags[kStaticMeshIndex] },
-    ComponentDataBase::ComponentData{ &kComponentTags[kScriptIndex] },
-    ComponentDataBase::ComponentData{ &kComponentTags[kCameraIndex] },
-    ComponentDataBase::ComponentData{ &kComponentTags[kRigidBody2DIndex] },
-    ComponentDataBase::ComponentData{ &kComponentTags[kCollider2DIndex] },
-    ComponentDataBase::ComponentData{ &kComponentTags[kRigidBodyIndex] },
-    ComponentDataBase::ComponentData{ &kComponentTags[kColliderIndex] },
-    ComponentDataBase::ComponentData{ &kComponentTags[kLightSourceIndex] },
+    ComponentDataBase::ComponentData{ &kComponentTags[TAG_COMPONENT_INDEX] },
+    ComponentDataBase::ComponentData{ &kComponentTags[TRANSFORM_COMPONENT_INDEX] },
+    ComponentDataBase::ComponentData{ &kComponentTags[RELATIONSHIP_COMPONENT_INDEX] },
+    ComponentDataBase::ComponentData{ &kComponentTags[MESH_COMPONENT_INDEX] },
+    ComponentDataBase::ComponentData{ &kComponentTags[STATICMESH_COMPONENT_INDEX] },
+    ComponentDataBase::ComponentData{ &kComponentTags[SCRIPT_COMPONENT_INDEX] },
+    ComponentDataBase::ComponentData{ &kComponentTags[CAMERA_COMPONENT_INDEX] },
+    ComponentDataBase::ComponentData{ &kComponentTags[RIGIDBODY2D_COMPONENT_INDEX] },
+    ComponentDataBase::ComponentData{ &kComponentTags[COLLIDER2D_COMPONENT_INDEX] },
+    ComponentDataBase::ComponentData{ &kComponentTags[RIGIDBODY_COMPONENT_INDEX] },
+    ComponentDataBase::ComponentData{ &kComponentTags[COLLIDER_COMPONENT_INDEX] },
+    ComponentDataBase::ComponentData{ &kComponentTags[PHYSICS_OBJECT_COMPONENT_INDEX] },
+    ComponentDataBase::ComponentData{ &kComponentTags[LIGHTSOURCE_COMPONENT_INDEX] },
   };
 
   std::string ComponentDataBase::GetComponentTagUc(size_t idx) {

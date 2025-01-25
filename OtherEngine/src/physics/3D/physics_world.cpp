@@ -4,7 +4,12 @@
  **/
 #include "physics/3D/physics_world.hpp"
 
-#include "physics/3D/react/react_world.hpp"
+// #define OTHER_USE_REACT
+#ifdef OTHER_USE_REACT
+  #include "physics/3D/react/react_world.hpp"
+#else
+  #include "physics/3D/jolt/jolt_world.hpp"
+#endif
 
 namespace other {
 
@@ -16,11 +21,10 @@ namespace other {
   Ref<PhysicsWorld> PhysicsWorld::Create(Scene* scene_ctx) {
     Ref<PhysicsWorld> world = nullptr;
 
-#define OTHER_USE_REACT
 #ifdef OTHER_USE_REACT
     world = NewRef<ReactWorld>(scene_ctx);
 #else
-    world = NewRef<JoltWorld>();
+    world = NewRef<JoltWorld>(scene_ctx);
 #endif
 
     world->RegisterCallbacks();

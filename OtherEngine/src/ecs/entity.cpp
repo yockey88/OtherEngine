@@ -17,6 +17,9 @@
 #include "rendering/model.hpp"
 #include "rendering/model_factory.hpp"
 
+#include "component.hpp"
+
+
 namespace other {
 
   Entity::Entity(entt::registry& registry, entt::entity handle)
@@ -62,7 +65,7 @@ namespace other {
     auto& [n, idx] = *comp_itr;
 
     // special case for these components
-    if (idx == kTagIndex || idx == kTransformIndex || idx == kRelationshipIndex) {
+    if (idx == TAG_COMPONENT_INDEX || idx == TRANSFORM_COMPONENT_INDEX || idx == RELATIONSHIP_COMPONENT_INDEX) {
       return true;
     }
 

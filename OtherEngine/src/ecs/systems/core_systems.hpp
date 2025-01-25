@@ -7,10 +7,9 @@
 #include <entt/entity/fwd.hpp>
 #include <entt/entt.hpp>
 
-#include "ecs/components/collider.hpp"
 #include "ecs/components/collider_2d.hpp"
 #include "ecs/components/mesh.hpp"
-#include "ecs/components/rigid_body.hpp"
+#include "ecs/components/physics_component.hpp"
 #include "ecs/components/rigid_body_2d.hpp"
 #include "ecs/components/tag.hpp"
 #include "ecs/components/transform.hpp"
@@ -26,8 +25,6 @@ namespace other {
   void OnDestroyEntity(entt::registry& context, entt::entity entt);
 
   void OnCameraAddition(entt::registry& context, entt::entity entt);
-
-  void OnAddScript(entt::registry& context, entt::entity entt);
 
   void OnAddModel(entt::registry& context, entt::entity entt);
   void OnAddStaticModel(entt::registry& context, entt::entity entt);

@@ -6,6 +6,10 @@
 
 namespace other {
 
+  BroadPhaseLayerHandler::BroadPhaseLayerHandler() {
+    broad_phase_layer = JPH::BroadPhaseLayer(1);
+  }
+
   JPH::uint BroadPhaseLayerHandler::GetNumBroadPhaseLayers() const {
     return 1;
   }

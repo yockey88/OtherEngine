@@ -324,6 +324,9 @@ namespace other {
   constexpr static std::string_view kRigidBodyValue = "RIGID-BODY";
   constexpr static uint64_t kRigidBodyValueHash = FNV(kRigidBodyValue);
 
+  constexpr static std::string_view kPhysicsObjectValue = "PHYSICS-OBJECT";
+  constexpr static uint64_t kPhysicsObjectValueHash = FNV(kPhysicsObjectValue);
+
   constexpr static std::string_view kRigidBody2DValue = "RIGID-BODY-2D";
   constexpr static uint64_t kRigidBody2DValueHash = FNV(kRigidBody2DValue);
 

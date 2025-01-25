@@ -384,7 +384,7 @@ namespace other {
     }
 
     ActiveScene()->scene->RestoreLastCapture();
-    ActiveScene()->scene->ResetPhysicsSimulation();
+    // ActiveScene()->scene->ResetPhysicsSimulation();
 
     if (scene_playing) {
       active_scene->scene->Start(AppState::mode);

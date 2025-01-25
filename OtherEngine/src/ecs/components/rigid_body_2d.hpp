@@ -28,7 +28,7 @@ namespace other {
     bool fixed_rotation = false;
     bool bullet = false;
 
-    ECS_COMPONENT(RigidBody2D, kRigidBody2DIndex);
+    ECS_COMPONENT(RigidBody2D, RIGIDBODY2D_COMPONENT_INDEX);
   };
 
   class RigidBody2DSerializer : public ComponentSerializer {

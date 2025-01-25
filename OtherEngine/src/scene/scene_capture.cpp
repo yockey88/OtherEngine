@@ -11,14 +11,14 @@
 
 #include "ecs/component.hpp"
 #include "ecs/components/camera.hpp"
-#include "ecs/components/collider.hpp"
 #include "ecs/components/collider_2d.hpp"
 #include "ecs/components/mesh.hpp"
+#include "ecs/components/physics_component.hpp"
 #include "ecs/components/relationship.hpp"
-#include "ecs/components/rigid_body.hpp"
 #include "ecs/components/rigid_body_2d.hpp"
 #include "ecs/components/script.hpp"
 #include "ecs/components/serialization_data.hpp"
+
 // #include "ecs/components/sprite_2d.hpp"
 #include "ecs/components/tag.hpp"
 #include "ecs/components/transform.hpp"
@@ -117,15 +117,14 @@ namespace other {
       CopyInto<Script>(registry, capture->registry, ent_map);
       CopyInto<Mesh>(registry, capture->registry, ent_map);
       CopyInto<StaticMesh>(registry, capture->registry, ent_map);
-      CopyInto<RigidBody>(registry, capture->registry, ent_map);
-      CopyInto<Collider>(registry, capture->registry, ent_map);
-      CopyInto<RigidBody2D>(registry, capture->registry, ent_map);
+      // CopyInto<RigidBody>(registry, capture->registry, ent_map);
+      // CopyInto<Collider>(registry, capture->registry, ent_map);
+      CopyInto<PhysicsObject>(registry, capture->registry, ent_map);
+      // CopyInto<RigidBody2D>(registry, capture->registry, ent_map);
       CopyInto<Collider2D>(registry, capture->registry, ent_map);
       CopyInto<LightSource>(registry, capture->registry, ent_map);
       CopyInto<Camera>(registry, capture->registry, ent_map);
       // CopyInto<Sprite2D>(registry, capture->registry, ent_map);
-
-      scene->ResetPhysicsSimulation();
     }
     capture_stack.pop();
 
@@ -161,8 +160,9 @@ namespace other {
     CopyInto<Script>(capture->registry, registry, capture->entity_map);
     CopyInto<Mesh>(capture->registry, registry, capture->entity_map);
     CopyInto<StaticMesh>(capture->registry, registry, capture->entity_map);
-    CopyInto<RigidBody>(capture->registry, registry, capture->entity_map);
-    CopyInto<Collider>(capture->registry, registry, capture->entity_map);
+    // CopyInto<RigidBody>(capture->registry, registry, capture->entity_map);
+    // CopyInto<Collider>(capture->registry, registry, capture->entity_map);
+    CopyInto<PhysicsObject>(capture->registry, registry, capture->entity_map);
     CopyInto<RigidBody2D>(capture->registry, registry, capture->entity_map);
     CopyInto<Collider2D>(capture->registry, registry, capture->entity_map);
     CopyInto<LightSource>(capture->registry, registry, capture->entity_map);

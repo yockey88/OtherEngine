@@ -26,12 +26,11 @@ namespace other {
   }
 
   void PhysicsBody::AddCollider(Ref<PhysicsShape> shape) {
-    OE_ASSERT(collider_shape == nullptr, "Collider shape already exists");
     OE_ASSERT(shape != nullptr, "Physics shape is null");
-    // if (collider_shape != nullptr) {
-    //   /// destroy collider shape
-    //   RemoveCollider(shape);
-    // }
+    if (collider_shape != nullptr) {
+      /// destroy collider shape
+      RemoveCollider(shape);
+    }
 
     /// add new collider shape
     collider_shape = shape;

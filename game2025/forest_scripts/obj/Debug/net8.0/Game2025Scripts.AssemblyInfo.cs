@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Game2025Scripts")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2fb239858c7973b3242a358188da99b674b81694")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9172ad81edfeb6f5dae4905a07b4b00529019477")]
 [assembly: System.Reflection.AssemblyProductAttribute("Game2025Scripts")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Game2025Scripts")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

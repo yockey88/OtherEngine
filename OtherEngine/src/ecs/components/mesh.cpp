@@ -133,7 +133,7 @@ namespace other {
 
     /// we dont deserialize the handle because CreateBox below will create a new one,
     ///   because the old would be invalid anyways
-    mesh.visible = scene_table.GetVal<bool>(key_value, kVisibleValue, false).value_or(false);
+    mesh.visible = scene_table.GetVal<bool>(key_value, kVisibleValue, false).value_or(true);
     mesh.is_primitive = scene_table.GetVal<bool>(key_value, kIsPrimitiveValue, false).value_or(false);
     if (mesh.is_primitive) {
       mesh.primitive_id = scene_table.GetVal<uint32_t>(key_value, kPrimitiveValue, false).value_or(0);
@@ -144,6 +144,7 @@ namespace other {
     OE_DEBUG("Deserialized mesh {} {}", key_value, mesh.primitive_id);
 
     if (mesh.primitive_id == 0) {
+      OE_ERROR("Corrupted primitive id deserializing {}", key_value);
       return;
     }
 
@@ -174,6 +175,8 @@ namespace other {
         mesh.primitive_id = 0;
         break;
     }
+
+    mesh.primitive_selection = mesh.primitive_id;
 
     /// material data
     /// paths/other metadata

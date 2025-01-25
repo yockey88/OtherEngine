@@ -31,7 +31,7 @@ namespace other {
     [[maybe_unused]] const glm::mat4& CalcMatrix();
     void Rotate(float angle, const glm::vec3& axis);
 
-    ECS_COMPONENT(Transform, kTransformIndex);
+    ECS_COMPONENT(Transform, TRANSFORM_COMPONENT_INDEX);
   };
 
   class TransformSerializer : public ComponentSerializer {

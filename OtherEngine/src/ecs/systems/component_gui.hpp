@@ -141,9 +141,10 @@ namespace other {
   bool DrawStaticMesh(Entity* ent);
   bool DrawCamera(Entity* ent);
   bool DrawRigidBody2D(Entity* ent);
-  bool DrawRigidBody(Entity* ent);
   bool DrawCollider2D(Entity* ent);
+  bool DrawRigidBody(Entity* ent);
   bool DrawCollider(Entity* ent);
+  bool DrawPhysicsObject(Entity* ent);
 
   bool DrawLightSource(Entity* ent);
 

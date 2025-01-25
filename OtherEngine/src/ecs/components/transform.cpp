@@ -14,17 +14,17 @@
 namespace other {
 
   Transform::Transform(const glm::vec3& position)
-      : Component(kTransformIndex), position(position) {
+      : Component(TRANSFORM_COMPONENT_INDEX), position(position) {
     bbox = BBox(position);
   }
 
   Transform::Transform(float p)
-      : Component(kTransformIndex), position(glm::vec3(p)) {
+      : Component(TRANSFORM_COMPONENT_INDEX), position(glm::vec3(p)) {
     bbox = BBox(position);
   }
 
   Transform::Transform(float x, float y, float z)
-      : Component(kTransformIndex), position(glm::vec3(x, y, z)) {
+      : Component(TRANSFORM_COMPONENT_INDEX), position(glm::vec3(x, y, z)) {
     bbox = BBox(position);
   }
 

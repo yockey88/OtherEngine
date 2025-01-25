@@ -13,7 +13,6 @@
 #include "ecs/systems/entity_serialization.hpp"
 #include "scene/scene.hpp"
 
-
 namespace other {
 
   void EntitySerializer::Serialize(std::ostream& stream, Entity* entity, const Ref<Scene>& ctx) const {
@@ -46,11 +45,11 @@ namespace other {
       stream << "}\n\n";
     }
 
-    auto transform_serializer = EntitySerialization::GetComponentSerializer(kTransformIndex);
+    auto transform_serializer = EntitySerialization::GetComponentSerializer(TRANSFORM_COMPONENT_INDEX);
     OE_ASSERT(transform_serializer != nullptr, "Failed to retrive transform serializer!");
     transform_serializer->Serialize(stream, entity, ctx);
 
-    auto relationship_serializer = EntitySerialization::GetComponentSerializer(kRelationshipIndex);
+    auto relationship_serializer = EntitySerialization::GetComponentSerializer(RELATIONSHIP_COMPONENT_INDEX);
     OE_ASSERT(relationship_serializer != nullptr, "Failed to retrive relationship serializer!");
     relationship_serializer->Serialize(stream, entity, ctx);
 
@@ -76,13 +75,13 @@ namespace other {
     }
 
     {  /// transform
-      Scope<ComponentSerializer> transform_serializer = EntitySerialization::GetComponentSerializer(kTransformIndex);
+      Scope<ComponentSerializer> transform_serializer = EntitySerialization::GetComponentSerializer(TRANSFORM_COMPONENT_INDEX);
       OE_ASSERT(transform_serializer != nullptr, "Failed to retrieve transform serializer for deserialization");
       transform_serializer->Deserialize(entity, scene_table, ctx);
     }
 
     {  /// relationship
-      Scope<ComponentSerializer> relationship_serializer = EntitySerialization::GetComponentSerializer(kRelationshipIndex);
+      Scope<ComponentSerializer> relationship_serializer = EntitySerialization::GetComponentSerializer(RELATIONSHIP_COMPONENT_INDEX);
       OE_ASSERT(relationship_serializer != nullptr, "Failed to retrieve relationship serializer for deserialization");
       relationship_serializer->Deserialize(entity, scene_table, ctx);
     }

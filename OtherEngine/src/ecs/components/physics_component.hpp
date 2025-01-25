@@ -1,13 +1,10 @@
-
 /**
- * \file ecs/components/rigid_body.hpp
+ * \file ecs/components/physics_component.hpp
  **/
-#ifndef OTHER_ENGINE_RIGID_BODY_HPP
-#define OTHER_ENGINE_RIGID_BODY_HPP
+#ifndef OTHER_ENGINE_PHYSICS_COMPONENT_HPP
+#define OTHER_ENGINE_PHYSICS_COMPONENT_HPP
 
-#include <Jolt/Jolt.h>
-#include <Jolt/Physics/Body/Body.h>
-#include <Jolt/Physics/Body/BodyID.h>
+#include "core/ref.hpp"
 
 #include "ecs/component.hpp"
 #include "ecs/component_serializer.hpp"
@@ -16,6 +13,8 @@
 #include "physics/physics_defines.hpp"
 
 namespace other {
+
+  class PhysicsWorld;
 
   /// this has a ton in common with the 2D version so it might be worth it
   ///   to merge them into one
@@ -41,12 +40,38 @@ namespace other {
 
     Ref<PhysicsBody> physics_body = nullptr;
 
-    ECS_COMPONENT(RigidBody, kRigidBodyIndex);
+    ECS_COMPONENT(RigidBody, RIGIDBODY_COMPONENT_INDEX);
   };
 
   class RigidBodySerializer : public ComponentSerializer {
    public:
     COMPONENT_SERIALIZERS(RigidBody);
+
+    bool force_deserialize = false;
+  };
+
+  struct Collider : public Component {
+    uint32_t shape_idx = PhysicsShape::Shape::BOX;
+    Ref<PhysicsShape> shape = nullptr;
+    ECS_COMPONENT(Collider, COLLIDER_COMPONENT_INDEX);
+    Collider(uint32_t shape_idx)
+        : Component(COLLIDER_COMPONENT_INDEX), shape_idx(shape_idx) {}
+  };
+
+  class ColliderSerializer : public ComponentSerializer {
+   public:
+    COMPONENT_SERIALIZERS(Collider);
+
+    bool force_deserialize = false;
+  };
+
+  struct PhysicsObject : public Component {
+    ECS_COMPONENT(PhysicsObject, PHYSICS_OBJECT_COMPONENT_INDEX);
+  };
+
+  class PhysicsObjectSerializer : public ComponentSerializer {
+   public:
+    COMPONENT_SERIALIZERS(PhysicsObject);
   };
 
 }  // namespace other
@@ -68,4 +93,12 @@ ECHO_TYPE(
   field(max_angular_velocity)
 );
 
-#endif  // !OTHER_ENGINE_RIGID_BODY_HPP
+ECHO_TYPE(
+  type(other::Collider, refl::attr::bases<other::Component>)
+);
+
+ECHO_TYPE(
+  type(other::PhysicsObject, refl::attr::bases<other::Component>)
+);
+
+#endif  // !OTHER_ENGINE_PHYSICS_COMPONENT_HPP

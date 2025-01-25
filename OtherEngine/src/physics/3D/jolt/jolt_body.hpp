@@ -58,6 +58,7 @@ namespace other {
    private:
     JPH::BodyInterface& body_interface;
     JPH::Body* body = nullptr;
+    JPH::BodyID body_id;
   };
 
 }  // namespace other

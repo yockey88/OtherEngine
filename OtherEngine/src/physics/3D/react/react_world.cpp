@@ -9,13 +9,15 @@
 #include "core/filesystem.hpp"
 #include "core/formatters.hpp"
 
-#include "ecs/components/collider.hpp"
-#include "ecs/components/rigid_body.hpp"
+#include "asset/asset_manager.hpp"
+
+#include "ecs/components/physics_component.hpp"
 #include "scene/scene.hpp"
 
 #include "physics/3D/physics_shape.hpp"
 #include "physics/3D/react/react_body.hpp"
 #include "physics/3D/react/react_shape.hpp"
+#include "rendering/model.hpp"
 #include "rendering/shader.hpp"
 
 namespace other {
@@ -112,20 +114,155 @@ namespace other {
     // }
   }
 
-  Ref<PhysicsBody> ReactWorld::CreateBody(Transform& initial_transform) {
+  void ReactWorld::CreateBody(Entity& ent) {
     OE_ASSERT(physics_world != nullptr, "Physics world is null");
+
+    Tag& tag = ent.GetComponent<Tag>();
+    Transform& initial_transform = ent.GetComponent<Transform>();
+    RigidBody& body = ent.GetComponent<RigidBody>();
+    Collider& collider = ent.GetComponent<Collider>();
 
     initial_transform.CalcMatrix();
     rp3d::Vector3 pos(initial_transform.position.x, initial_transform.position.y, initial_transform.position.z);
     rp3d::Quaternion orientation(initial_transform.qrotation.x, initial_transform.qrotation.y, initial_transform.qrotation.z, initial_transform.qrotation.w);
     rp3d::Transform phys_transform(pos, orientation);
-    rp3d::RigidBody* body = physics_world->createRigidBody(phys_transform);
+    rp3d::RigidBody* rp3d_body = physics_world->createRigidBody(phys_transform);
 
     if (debug_render_enabled) {
-      body->setIsDebugEnabled(true);
+      rp3d_body->setIsDebugEnabled(true);
     }
 
-    return NewRef<ReactBody>(body, physics_world);
+    body.physics_body = NewRef<ReactBody>(rp3d_body, physics_world);
+    body.physics_body->SetEntityID(tag.id);
+    body.physics_body->SetType(body.type);
+
+    auto error_remove = [&ent]() {
+      ent.RemoveComponent<Collider>();
+      ent.RemoveComponent<RigidBody>();
+    };
+
+    switch (collider.shape_idx) {
+      case PhysicsShape::Shape::BOX: {
+        glm::vec3 half_extents = initial_transform.scale / 2.f;
+        collider.shape = CreateBoxShape(half_extents);
+      } break;
+
+      case PhysicsShape::Shape::SPHERE: {
+        collider.shape = CreateSphereShape(initial_transform.scale.x / 2.f);
+      } break;
+
+      case PhysicsShape::Shape::CAPSULE: {
+        collider.shape = CreateCapsuleShape(initial_transform.scale.x / 2.f, initial_transform.scale.y);
+      } break;
+
+      case PhysicsShape::Shape::CONVEX_MESH: {
+        if (!ent.HasAnyComponent<StaticMesh, Mesh>()) {
+          OE_ERROR("Can not create physics mesh without mesh!");
+          error_remove();
+          return;
+        }
+
+        if (ent.HasComponent<StaticMesh>()) {
+          auto& mesh = ent.GetComponent<StaticMesh>();
+          Ref<Model> model = AssetManager::GetAsset<StaticModel>(mesh.handle);
+          if (model == nullptr) {
+            OE_ERROR("Model asset is null");
+            error_remove();
+            return;
+          }
+
+          Ref<ModelSource> source = model->GetModelSource();
+          if (source == nullptr) {
+            OE_ERROR("Model source is null");
+            error_remove();
+            return;
+          }
+
+          const std::vector<Vertex>& vertices = source->Vertices();
+          const std::vector<uint32_t>& idxs = source->RawIndices();
+          uint32_t num_faces = idxs.size() / 3;
+
+          std::vector<float> verts;
+          for (const auto& v : vertices) {
+            verts.push_back(v.position.x);
+            verts.push_back(v.position.y);
+            verts.push_back(v.position.z);
+          }
+
+          collider.shape = CreateConvexMeshShape(verts, idxs, num_faces);
+
+        } else if (ent.HasComponent<Mesh>()) {
+          auto& mesh = ent.GetComponent<Mesh>();
+          Ref<Model> model = AssetManager::GetAsset<Model>(mesh.handle);
+          if (model == nullptr) {
+            OE_ERROR("Model asset is null");
+            error_remove();
+            return;
+          }
+
+          Ref<ModelSource> source = model->GetModelSource();
+          if (source == nullptr) {
+            OE_ERROR("Model source is null");
+            error_remove();
+            return;
+          }
+
+          const std::vector<Vertex>& vertices = source->Vertices();
+          const std::vector<uint32_t>& idxs = source->RawIndices();
+          uint32_t num_faces = idxs.size() / 3;
+
+          std::vector<float> verts;
+          for (const auto& v : vertices) {
+            verts.push_back(v.position.x);
+            verts.push_back(v.position.y);
+            verts.push_back(v.position.z);
+          }
+
+          collider.shape = CreateConvexMeshShape(verts, idxs, num_faces);
+        } else {
+          OE_ASSERT(false, "Entity does not have mesh component");
+        }
+      } break;
+      case PhysicsShape::Shape::CONCAVE_MESH: {
+        OE_ERROR("Concave mesh collider not implemented yet");
+        error_remove();
+        return;
+      } break;
+      default:
+        OE_ERROR("Unimplemented or invalid collider shape type : {}", collider.shape_idx);
+        error_remove();
+        return;
+    }
+    OE_ASSERT(collider.shape != nullptr, "Failed to create collider shape");
+
+    body.physics_body->AddCollider(collider.shape);
+    RegisterColliderShape(tag.id, collider.shape);
+
+    OE_ASSERT(body.physics_body != nullptr, "Physics body is null");
+    OE_ASSERT(collider.shape != nullptr, "Collider shape is null");
+  }
+
+  void ReactWorld::DestroyBody(Entity& ent) {
+    OE_ASSERT(physics_world != nullptr, "Physics world is null");
+
+    if (!ent.HasComponent<RigidBody>()) {
+      return;
+    }
+    {
+      RigidBody& body = ent.GetComponent<RigidBody>();
+      Collider& collider = ent.GetComponent<Collider>();
+      OE_ASSERT(body.physics_body != nullptr, "Physics body is null");
+      OE_ASSERT(collider.shape != nullptr, "Collider shape is null");
+
+      UnregisterColliderShape(body.physics_body, collider.shape);
+      body.physics_body->RemoveCollider(collider.shape);
+
+      rp3d::RigidBody* rp3d_body = body.physics_body->GetNativeBody<rp3d::RigidBody>();
+      physics_world->destroyRigidBody(rp3d_body);
+    }
+
+    ent.RemoveComponent<Collider>();
+    ent.RemoveComponent<RigidBody>();
   }
 
   Ref<PhysicsShape> ReactWorld::CreateBoxShape(const glm::vec3& half_extents) {

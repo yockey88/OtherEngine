@@ -31,8 +31,7 @@ color = { 0.22 , 0.22 , 0.11 , 1.0 }
 UUID = 3660528912626818915
 components = {
   static-mesh,
-  rigid-body,
-  collider,
+  physics-object
 }
 
 [tree.transform]
@@ -43,10 +42,8 @@ visible = true
 is-primitive = true
 primitive = 5
 
-[tree.rigid-body]
+[tree.physics-object]
 type = kinematic
-
-[tree.collider]
 shape = capsule
 
 [terrain]

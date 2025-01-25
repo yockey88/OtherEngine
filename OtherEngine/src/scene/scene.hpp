@@ -210,16 +210,16 @@ namespace other {
     void BuildGroups();
 
     // void OnAddScript(entt::registry& context, entt::entity entt);
+    // void OnAddRigidBody(entt::registry& context, entt::entity entt);
+    // void OnAddCollider(entt::registry& context, entt::entity entt);
+    // void OnRemoveCollider(entt::registry& context, entt::entity entt);
+    // void OnAddRigidBody2D(entt::registry& context, entt::entity entt);
+    // void OnRigidBody2DUpdate(entt::registry& context, entt::entity entt);
+    // void OnAddCollider2D(entt::registry& context, entt::entity entt);
+    // void OnCollider2DUpdate(entt::registry& context, entt::entity entt);
 
-    void OnAddRigidBody(entt::registry& context, entt::entity entt);
-
-    void OnAddCollider(entt::registry& context, entt::entity entt);
-    void OnRemoveCollider(entt::registry& context, entt::entity entt);
-
-    void OnAddRigidBody2D(entt::registry& context, entt::entity entt);
-    void OnRigidBody2DUpdate(entt::registry& context, entt::entity entt);
-    void OnAddCollider2D(entt::registry& context, entt::entity entt);
-    void OnCollider2DUpdate(entt::registry& context, entt::entity entt);
+    void OnAddPhysicsObject(entt::registry& context, entt::entity entt);
+    void OnDestroyPhysicsObject(entt::registry& context, entt::entity entt);
 
     void Initialize2DRigidBody(Ref<PhysicsWorld2D>& world, RigidBody2D& body, const Tag& tag, const Transform& transform);
     void Initialize2DCollider(Ref<PhysicsWorld2D>& world, RigidBody2D& body, Collider2D& collider, const Transform& transform);

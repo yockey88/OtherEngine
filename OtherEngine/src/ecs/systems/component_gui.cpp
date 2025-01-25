@@ -16,10 +16,9 @@
 #include "event/event_queue.hpp"
 
 #include "ecs/components/camera.hpp"
-#include "ecs/components/collider.hpp"
 #include "ecs/components/collider_2d.hpp"
 #include "ecs/components/light_source.hpp"
-#include "ecs/components/rigid_body.hpp"
+#include "ecs/components/physics_component.hpp"
 #include "ecs/components/rigid_body_2d.hpp"
 #include "ecs/components/script.hpp"
 #include "ecs/components/transform.hpp"
@@ -901,12 +900,108 @@ namespace other {
       OE_ASSERT(world != nullptr, "Somehow added a rigid body component without active 3D physics");
 
       uint32_t idx = collider.shape_idx;
-      ent->RemoveComponent<Collider>();
-      collider = ent->AddComponent<Collider>(idx);
+      Ref<PhysicsShape> shape = nullptr;
+
+      switch (idx) {
+        case PhysicsShape::Shape::BOX: {
+          glm::vec3 half_extents = transform.scale / 2.f;
+          shape = world->CreateBoxShape(half_extents);
+        } break;
+
+        case PhysicsShape::Shape::SPHERE: {
+          shape = world->CreateSphereShape(transform.scale.x / 2.f);
+        } break;
+
+        case PhysicsShape::Shape::CAPSULE: {
+          shape = world->CreateCapsuleShape(transform.scale.x / 2.f, transform.scale.y);
+        } break;
+
+        case PhysicsShape::Shape::CONVEX_MESH: {
+          if (!ent->HasAnyComponent<StaticMesh, Mesh>()) {
+            OE_ERROR("Can not create physics mesh without mesh!");
+            return false;
+          }
+
+          if (ent->HasComponent<StaticMesh>()) {
+            auto& mesh = ent->GetComponent<StaticMesh>();
+            Ref<Model> model = AssetManager::GetAsset<StaticModel>(mesh.handle);
+            if (model == nullptr) {
+              OE_ERROR("Model asset is null");
+              return false;
+            }
+
+            Ref<ModelSource> source = model->GetModelSource();
+            if (source == nullptr) {
+              OE_ERROR("Model source is null");
+              return false;
+            }
+
+            const std::vector<Vertex>& vertices = source->Vertices();
+            const std::vector<uint32_t>& idxs = source->RawIndices();
+            uint32_t num_faces = idxs.size() / 3;
+
+            std::vector<float> verts;
+            for (const auto& v : vertices) {
+              verts.push_back(v.position.x);
+              verts.push_back(v.position.y);
+              verts.push_back(v.position.z);
+            }
+
+            collider.shape = world->CreateConvexMeshShape(verts, idxs, num_faces);
+
+          } else if (ent->HasComponent<Mesh>()) {
+            auto& mesh = ent->GetComponent<Mesh>();
+            Ref<Model> model = AssetManager::GetAsset<Model>(mesh.handle);
+            if (model == nullptr) {
+              OE_ERROR("Model asset is null");
+              return false;
+            }
+
+            Ref<ModelSource> source = model->GetModelSource();
+            if (source == nullptr) {
+              OE_ERROR("Model source is null");
+              return false;
+            }
+
+            const std::vector<Vertex>& vertices = source->Vertices();
+            const std::vector<uint32_t>& idxs = source->RawIndices();
+            uint32_t num_faces = idxs.size() / 3;
+
+            std::vector<float> verts;
+            for (const auto& v : vertices) {
+              verts.push_back(v.position.x);
+              verts.push_back(v.position.y);
+              verts.push_back(v.position.z);
+            }
+
+            collider.shape = world->CreateConvexMeshShape(verts, idxs, num_faces);
+          } else {
+            OE_ASSERT(false, "Entity does not have mesh component");
+          }
+        } break;
+        case PhysicsShape::Shape::CONCAVE_MESH: {
+          OE_ERROR("Concave mesh collider not implemented yet");
+          return false;
+        } break;
+        default:
+          OE_ERROR("Unimplemented or invalid collider shape type : {}", collider.shape_idx);
+          return false;
+      }
+
+      if (shape == nullptr) {
+        OE_ERROR("Failed to create physics shape");
+        return false;
+      }
+
+      collider.shape = shape;
     }
 
     ui::EndPropertyGrid();
     return changed;
+  }
+
+  bool DrawPhysicsObject(Entity* ent) {
+    return DrawRigidBody(ent) || DrawCollider(ent);
   }
 
   bool DrawLightSource(Entity* ent) {

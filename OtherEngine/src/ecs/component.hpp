@@ -40,28 +40,33 @@ namespace other {
    *      in the editor/entity_properties.hpp
    **/
 
-  constexpr static size_t kNumComponents = 12;
-
   /// integers signed because of 'invisible components'
   ///   default components attached to all entities that are for internal engine use
-  constexpr static int32_t kTagIndex = 0;
-  constexpr static int32_t kTransformIndex = 1;
-  constexpr static int32_t kRelationshipIndex = 2;
-  constexpr static int32_t kMeshIndex = 3;
-  constexpr static int32_t kStaticMeshIndex = 4;
-  constexpr static int32_t kScriptIndex = 5;
-  constexpr static int32_t kCameraIndex = 6;
-  constexpr static int32_t kRigidBody2DIndex = 7;
-  constexpr static int32_t kCollider2DIndex = 8;
-  constexpr static int32_t kRigidBodyIndex = 9;
-  constexpr static int32_t kColliderIndex = 10;
-  constexpr static int32_t kLightSourceIndex = 11;
+  enum ComponentIndex {
+    TAG_COMPONENT_INDEX = 0,
+    TRANSFORM_COMPONENT_INDEX,
+    RELATIONSHIP_COMPONENT_INDEX,
+    MESH_COMPONENT_INDEX,
+    STATICMESH_COMPONENT_INDEX,
+    SCRIPT_COMPONENT_INDEX,
+    CAMERA_COMPONENT_INDEX,
+    RIGIDBODY2D_COMPONENT_INDEX,
+    COLLIDER2D_COMPONENT_INDEX,
+    RIGIDBODY_COMPONENT_INDEX,
+    COLLIDER_COMPONENT_INDEX,
+    PHYSICS_OBJECT_COMPONENT_INDEX,
+    LIGHTSOURCE_COMPONENT_INDEX,
+
+    NUM_COMPONENTS,
+    INVALID_COMPONENT = NUM_COMPONENTS
+  };
   /** invisible components
    *                       kSerializationData = -1
    *                       kSceneComponent = -2
    *                       kNullComponent = -999
    **/
 
+  constexpr static size_t kNumComponents = NUM_COMPONENTS;
   struct ComponentTag {
     std::string_view name;
     int32_t idx;
@@ -72,19 +77,20 @@ namespace other {
     constexpr auto operator<=>(const ComponentTag& other) const = default;
   };
   //= std::pair<std::string_view, size_t>;
-  constexpr static std::array<ComponentTag, kNumComponents> kComponentTags = {
-    ComponentTag{ "tag", kTagIndex },
-    ComponentTag{ "transform", kTransformIndex },
-    ComponentTag{ "relationship", kRelationshipIndex },
-    ComponentTag{ "mesh", kMeshIndex },
-    ComponentTag{ "static-mesh", kStaticMeshIndex },
-    ComponentTag{ "script", kScriptIndex },
-    ComponentTag{ "camera", kCameraIndex },
-    ComponentTag{ "rigid-body-2d", kRigidBody2DIndex },
-    ComponentTag{ "collider-2d", kCollider2DIndex },
-    ComponentTag{ "rigid-body", kRigidBodyIndex },
-    ComponentTag{ "collider", kColliderIndex },
-    ComponentTag{ "light-source", kLightSourceIndex },
+  constexpr static std::array<ComponentTag, NUM_COMPONENTS> kComponentTags = {
+    ComponentTag{ "tag", TAG_COMPONENT_INDEX },
+    ComponentTag{ "transform", TRANSFORM_COMPONENT_INDEX },
+    ComponentTag{ "relationship", RELATIONSHIP_COMPONENT_INDEX },
+    ComponentTag{ "mesh", MESH_COMPONENT_INDEX },
+    ComponentTag{ "static-mesh", STATICMESH_COMPONENT_INDEX },
+    ComponentTag{ "script", SCRIPT_COMPONENT_INDEX },
+    ComponentTag{ "camera", CAMERA_COMPONENT_INDEX },
+    ComponentTag{ "rigid-body-2d", RIGIDBODY2D_COMPONENT_INDEX },
+    ComponentTag{ "collider-2d", COLLIDER2D_COMPONENT_INDEX },
+    ComponentTag{ "rigid-body", RIGIDBODY_COMPONENT_INDEX },
+    ComponentTag{ "collider", COLLIDER_COMPONENT_INDEX },
+    ComponentTag{ "physics-object", PHYSICS_OBJECT_COMPONENT_INDEX },
+    ComponentTag{ "light-source", LIGHTSOURCE_COMPONENT_INDEX },
   };
 
   class Entity;

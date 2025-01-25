@@ -4,12 +4,12 @@
 #ifndef OTHER_ENGINE_COLLIDER_2D_HPP
 #define OTHER_ENGINE_COLLIDER_2D_HPP
 
-#include <glm/glm.hpp>
-
 #include <box2d/box2d.h>
+#include <glm/glm.hpp>
 
 #include "ecs/component.hpp"
 #include "ecs/component_serializer.hpp"
+
 
 namespace other {
 
@@ -22,7 +22,7 @@ namespace other {
 
     b2Fixture* fixture = nullptr;
 
-    ECS_COMPONENT(Collider2D, kCollider2DIndex);
+    ECS_COMPONENT(Collider2D, COLLIDER2D_COMPONENT_INDEX);
   };
 
   class Collider2DSerializer : public ComponentSerializer {

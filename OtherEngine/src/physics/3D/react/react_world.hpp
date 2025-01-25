@@ -25,7 +25,8 @@ namespace other {
 
     void ResetSimulation(Scene* scene) override;
     void Simulate(float ts) override;
-    Ref<PhysicsBody> CreateBody(Transform& initial_transform) override;
+    void CreateBody(Entity& entity) override;
+    void DestroyBody(Entity& entity) override;
 
     Ref<PhysicsShape> CreateBoxShape(const glm::vec3& half_extents) override;
     Ref<PhysicsShape> CreateSphereShape(float radius) override;

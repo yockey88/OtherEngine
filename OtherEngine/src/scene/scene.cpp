@@ -22,12 +22,11 @@
 #include "asset/asset_manager.hpp"
 
 #include "ecs/components/camera.hpp"
-#include "ecs/components/collider.hpp"
 #include "ecs/components/collider_2d.hpp"
 #include "ecs/components/light_source.hpp"
 #include "ecs/components/mesh.hpp"
+#include "ecs/components/physics_component.hpp"
 #include "ecs/components/relationship.hpp"
-#include "ecs/components/rigid_body.hpp"
 #include "ecs/components/rigid_body_2d.hpp"
 #include "ecs/components/script.hpp"
 #include "ecs/components/tag.hpp"
@@ -55,14 +54,8 @@ namespace other {
 
     registry.on_construct<Camera>().connect<&OnCameraAddition>();
 
-    registry.on_construct<RigidBody2D>().connect<&Scene::OnAddRigidBody2D>(this);
-    registry.on_construct<Collider2D>().connect<&Scene::OnAddCollider2D>(this);
-    registry.on_update<RigidBody2D>().connect<&Scene::OnRigidBody2DUpdate>(this);
-    registry.on_update<Collider2D>().connect<&Scene::OnCollider2DUpdate>(this);
-
-    registry.on_construct<RigidBody>().connect<&Scene::OnAddRigidBody>(this);
-    registry.on_construct<Collider>().connect<&Scene::OnAddCollider>(this);
-    registry.on_destroy<Collider>().connect<&Scene::OnRemoveCollider>(this);
+    registry.on_construct<PhysicsObject>().connect<&Scene::OnAddPhysicsObject>(this);
+    registry.on_destroy<PhysicsObject>().connect<&Scene::OnDestroyPhysicsObject>(this);
 
     registry.on_update<LightSource>().connect<&Scene::RebuildEnvironment>(this);
     registry.on_destroy<LightSource>().connect<&Scene::RebuildEnvironment>(this);
@@ -102,22 +95,10 @@ namespace other {
     registry.on_destroy<LightSource>().disconnect<&Scene::RebuildEnvironment>(this);
     registry.on_update<LightSource>().disconnect<&Scene::RebuildEnvironment>(this);
 
-    registry.on_construct<RigidBody2D>().disconnect<&Scene::OnAddRigidBody2D>(this);
-    registry.on_construct<Collider2D>().disconnect<&Scene::OnAddCollider2D>(this);
-    registry.on_update<RigidBody2D>().disconnect<&Scene::OnRigidBody2DUpdate>(this);
-    registry.on_update<Collider2D>().disconnect<&Scene::OnCollider2DUpdate>(this);
-
-    registry.on_construct<RigidBody>().disconnect<&Scene::OnAddRigidBody>(this);
-    registry.on_construct<Collider>().disconnect<&Scene::OnAddCollider>(this);
-    registry.on_destroy<Collider>().disconnect<&Scene::OnRemoveCollider>(this);
+    registry.on_construct<PhysicsObject>().disconnect<&Scene::OnAddPhysicsObject>(this);
+    registry.on_destroy<PhysicsObject>().disconnect<&Scene::OnDestroyPhysicsObject>(this);
 
     registry.on_construct<Camera>().disconnect<&OnCameraAddition>();
-
-    registry.on_update<Collider>().disconnect();
-    registry.on_construct<Collider>().disconnect();
-
-    registry.on_update<RigidBody>().disconnect();
-    registry.on_construct<RigidBody>().disconnect(this);
 
     registry.on_update<Collider2D>().disconnect();
     registry.on_construct<Collider2D>().disconnect();
@@ -221,20 +202,7 @@ namespace other {
       Initialize2DRigidBody(physics_world_2d, body, tag, transform);
     });
 
-    registry.view<RigidBody, Transform>().each([this](RigidBody& body, Transform& transform) {
-      body.physics_body->SetTransform(transform);
-      /// TODO: replace this with some sort of initial velocity (not sure where to get that yet)
-      body.physics_body->SetVelocity(glm::vec3(0.f));
-      body.physics_body->SetAngularVelocity(glm::vec3(0.f));
-    });
-
-    registry.view<Collider, Transform, Tag>().each([this](Collider& collider, Transform& transform, Tag& tag) {
-      collider.shape->SetTransform(transform);
-    });
-
-    // registry.view<RigidBody, Collider>().each([this](RigidBody& body, Collider& collider) {
-    //   body.physics_body->AddCollider(collider.shape);
-    // });
+    Synchronize();
 
     /// register all entities who dont have a script so they can be accessible to client scripts
     Script& scene_object = scene_entity->GetComponent<Script>();
@@ -269,19 +237,10 @@ namespace other {
       script.ApiCall("NativeStop");
     });
 
-    // registry.view<Collider, Transform, Tag>().each([this](Collider& collider, Transform& transform, Tag& tag) {
-    //   physics_world->UnregisterColliderShape(tag.id, collider.shape);
-    // });
-
-    // registry.view<RigidBody, Collider>().each([this](RigidBody& body, Collider& collider) {
-    //   body.physics_body->RemoveCollider(collider.shape);
-    // });
-
     OnStop();
 
     RestoreLastCapture();
-
-    ResetPhysicsSimulation();
+    Synchronize();
   }
 
   void Scene::Synchronize() {
@@ -292,6 +251,7 @@ namespace other {
     }
 
     registry.view<RigidBody, Transform>().each([this](RigidBody& body, Transform& transform) {
+      OE_ASSERT(body.physics_body != nullptr, "Physics body is null");
       body.physics_body->SetTransform(transform);
       /// TODO: replace this with some sort of initial velocity (not sure where to get that yet)
       body.physics_body->SetVelocity(glm::vec3(0.f));
@@ -299,6 +259,7 @@ namespace other {
     });
 
     registry.view<Collider, Transform>().each([this](Collider& collider, Transform& transform) {
+      OE_ASSERT(collider.shape != nullptr, "Collider shape is null");
       collider.shape->SetTransform(transform);
     });
 
@@ -986,207 +947,23 @@ namespace other {
   //   script.SetHandles();
   // }
 
-  void Scene::OnAddRigidBody(entt::registry& context, entt::entity entt) {
-    OE_ASSERT(physics_world != nullptr, "Somehow added a rigid body component without active 3D physics");
-
-    Entity ent(context, entt);
-    Tag& tag = ent.GetComponent<Tag>();
-    Transform& transform = ent.GetComponent<Transform>();
-    RigidBody& body = ent.GetComponent<RigidBody>();
-
-    body.physics_body = physics_world->CreateBody(transform);
-    body.physics_body->SetEntityID(tag.id);
-  }
-
-  void Scene::OnAddCollider(entt::registry& context, entt::entity entt) {
+  void Scene::OnAddPhysicsObject(entt::registry& context, entt::entity entt) {
     Entity ent(context, entt);
 
-    bool has_rigid_body = ent.HasComponent<RigidBody>();
-    if (!has_rigid_body) {
+    if (!ent.HasComponent<RigidBody>()) {
       ent.AddComponent<RigidBody>();
     }
 
-    auto& tag = ent.GetComponent<Tag>();
-    auto& body = ent.GetComponent<RigidBody>();
-    auto& collider = ent.GetComponent<Collider>();
-    auto& transform = ent.GetComponent<Transform>();
-
-    switch (collider.shape_idx) {
-      case PhysicsShape::Shape::BOX: {
-        glm::vec3 half_extents = transform.scale / 2.f;
-        collider.shape = physics_world->CreateBoxShape(half_extents);
-      } break;
-
-      case PhysicsShape::Shape::SPHERE: {
-        collider.shape = physics_world->CreateSphereShape(transform.scale.x / 2.f);
-      } break;
-
-      case PhysicsShape::Shape::CAPSULE: {
-        collider.shape = physics_world->CreateCapsuleShape(transform.scale.x / 2.f, transform.scale.y);
-      } break;
-
-      case PhysicsShape::Shape::CONVEX_MESH: {
-        if (!ent.HasAnyComponent<StaticMesh, Mesh>()) {
-          OE_ERROR("Can not create physics mesh without mesh!");
-          ent.RemoveComponent<Collider>();
-          if (!has_rigid_body && ent.HasComponent<RigidBody>()) {
-            ent.RemoveComponent<RigidBody>();
-          }
-          return;
-        }
-
-        if (ent.HasComponent<StaticMesh>()) {
-          auto& mesh = ent.GetComponent<StaticMesh>();
-          Ref<Model> model = AssetManager::GetAsset<StaticModel>(mesh.handle);
-          if (model == nullptr) {
-            OE_ERROR("Model asset is null");
-            ent.RemoveComponent<Collider>();
-            if (!has_rigid_body && ent.HasComponent<RigidBody>()) {
-              ent.RemoveComponent<RigidBody>();
-            }
-            return;
-          }
-
-          Ref<ModelSource> source = model->GetModelSource();
-          if (source == nullptr) {
-            OE_ERROR("Model source is null");
-            ent.RemoveComponent<Collider>();
-            if (!has_rigid_body && ent.HasComponent<RigidBody>()) {
-              ent.RemoveComponent<RigidBody>();
-            }
-            return;
-          }
-
-          const std::vector<Vertex>& vertices = source->Vertices();
-          const std::vector<uint32_t>& idxs = source->RawIndices();
-          uint32_t num_faces = idxs.size() / 3;
-
-          std::vector<float> verts;
-          for (const auto& v : vertices) {
-            verts.push_back(v.position.x);
-            verts.push_back(v.position.y);
-            verts.push_back(v.position.z);
-          }
-
-          collider.shape = physics_world->CreateConvexMeshShape(verts, idxs, num_faces);
-
-        } else if (ent.HasComponent<Mesh>()) {
-          auto& mesh = ent.GetComponent<Mesh>();
-          Ref<Model> model = AssetManager::GetAsset<Model>(mesh.handle);
-          if (model == nullptr) {
-            OE_ERROR("Model asset is null");
-            ent.RemoveComponent<Collider>();
-            if (!has_rigid_body && ent.HasComponent<RigidBody>()) {
-              ent.RemoveComponent<RigidBody>();
-            }
-            return;
-          }
-
-          Ref<ModelSource> source = model->GetModelSource();
-          if (source == nullptr) {
-            OE_ERROR("Model source is null");
-            ent.RemoveComponent<Collider>();
-            if (!has_rigid_body && ent.HasComponent<RigidBody>()) {
-              ent.RemoveComponent<RigidBody>();
-            }
-            return;
-          }
-
-          const std::vector<Vertex>& vertices = source->Vertices();
-          const std::vector<uint32_t>& idxs = source->RawIndices();
-          uint32_t num_faces = idxs.size() / 3;
-
-          std::vector<float> verts;
-          for (const auto& v : vertices) {
-            verts.push_back(v.position.x);
-            verts.push_back(v.position.y);
-            verts.push_back(v.position.z);
-          }
-
-          collider.shape = physics_world->CreateConvexMeshShape(verts, idxs, num_faces);
-        } else {
-          OE_ASSERT(false, "Entity does not have mesh component");
-        }
-      } break;
-      case PhysicsShape::Shape::CONCAVE_MESH: {
-        OE_ERROR("Concave mesh collider not implemented yet");
-        ent.RemoveComponent<Collider>();
-        if (!has_rigid_body && ent.HasComponent<RigidBody>()) {
-          ent.RemoveComponent<RigidBody>();
-        }
-        return;
-      } break;
-      default:
-        OE_ERROR("Unimplemented or invalid collider shape type : {}", collider.shape_idx);
-        ent.RemoveComponent<Collider>();
-        if (!has_rigid_body && ent.HasComponent<RigidBody>()) {
-          ent.RemoveComponent<RigidBody>();
-        }
-        return;
+    if (!ent.HasComponent<Collider>()) {
+      ent.AddComponent<Collider>();
     }
-    OE_ASSERT(collider.shape != nullptr, "Failed to create collider shape");
 
-    body.physics_body->AddCollider(collider.shape);
-    physics_world->RegisterColliderShape(tag.id, collider.shape);
+    physics_world->CreateBody(ent);
   }
 
-  void Scene::OnRemoveCollider(entt::registry& context, entt::entity entt) {
+  void Scene::OnDestroyPhysicsObject(entt::registry& context, entt::entity entt) {
     Entity ent(context, entt);
-
-    OE_ASSERT(ent.HasComponent<RigidBody>(), "Entity does not have rigid body component");
-
-    auto& body = ent.GetComponent<RigidBody>();
-    auto& collider = ent.GetComponent<Collider>();
-
-    physics_world->UnregisterColliderShape(body.physics_body, collider.shape);
-  }
-
-  void Scene::OnAddRigidBody2D(entt::registry& context, entt::entity entt) {
-    OE_ASSERT(physics_world_2d != nullptr, "Somehow added a rigid body 2D component without active 2D physics");
-
-    Entity ent(context, entt);
-    auto& body = ent.GetComponent<RigidBody2D>();
-
-    auto& tag = ent.GetComponent<Tag>();
-    auto& transform = ent.GetComponent<Transform>();
-
-    Initialize2DRigidBody(physics_world_2d, body, tag, transform);
-  }
-
-  void Scene::OnRigidBody2DUpdate(entt::registry& context, entt::entity entt) {
-    OE_ASSERT(physics_world_2d != nullptr, "Somehow updated a rigid body 2D component without active 2D physics");
-
-    Entity ent(context, entt);
-    auto& body = ent.GetComponent<RigidBody2D>();
-
-    auto& tag = ent.GetComponent<Tag>();
-    auto& transform = ent.GetComponent<Transform>();
-
-    Initialize2DRigidBody(physics_world_2d, body, tag, transform);
-  }
-
-  void Scene::OnAddCollider2D(entt::registry& context, entt::entity entt) {
-  }
-
-  void Scene::OnCollider2DUpdate(entt::registry& context, entt::entity entt) {
-    OE_ASSERT(physics_world_2d != nullptr, "Somehow updated a collider 2D component without active 2D physics");
-
-    // Ref<Scene> scene = PhysicsEngine::GetSceneContext();
-    // OE_ASSERT(scene != nullptr, "Somehow updated a collider 2D component without an active scene context");
-
-    // auto physics_world = scene->Get2DPhysicsWorld();
-    // OE_ASSERT(physics_world != nullptr, "Somehow updated a collider 2D component without active 2D physics");
-
-    // Entity ent(context, entt);
-    // if (!ent.HasComponent<RigidBody2D>()) {
-    //   ent.AddComponent<RigidBody2D>();
-    // }
-
-    // auto& body = ent.GetComponent<RigidBody2D>();
-    // auto& collider = ent.GetComponent<Collider2D>();
-    // auto& transform = ent.GetComponent<Transform>();
-
-    // Initialize2DCollider(physics_world, body, collider, transform);
+    physics_world->DestroyBody(ent);
   }
 
   void Scene::Initialize2DRigidBody(Ref<PhysicsWorld2D>& world, RigidBody2D& body, const Tag& tag, const Transform& transform) {

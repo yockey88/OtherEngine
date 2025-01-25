@@ -7,8 +7,6 @@
 
 #include <cstdint>
 
-#include <Jolt/Jolt.h>
-#include <Jolt/Physics/Body/BodyInterface.h>
 #include <glm/glm.hpp>
 
 #include "core/logger.hpp"
