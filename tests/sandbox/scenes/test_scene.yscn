@@ -141,7 +141,7 @@ position = { -2.7, 0.52, 0 }
 
 [backpack.static-mesh]
 is-primitive = true
-primitive = 5
+primitive = 4 # sphere
 material.albedo = { 1, 0, 0, 1 }
 material.normal = { 1.0 , 1.0 , 1.0, 1 }
 material.roughness = { 1.0, 1.0, 1.0, 1 }

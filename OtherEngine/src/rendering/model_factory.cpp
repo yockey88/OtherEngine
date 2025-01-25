@@ -280,8 +280,8 @@ namespace other {
         const float cos_phi = glm::cos(phi);
 
         Vertex& vertex = vertices.emplace_back();
-        vertex.position = { radius * vertex.normal.x, radius * vertex.normal.y, radius * vertex.normal.z };
         vertex.normal = { cos_phi * sin_theta, cos_theta, sin_phi * sin_theta };
+        vertex.position = { radius * vertex.normal.x, radius * vertex.normal.y, radius * vertex.normal.z };
       }
     }
 

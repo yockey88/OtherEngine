@@ -4,7 +4,7 @@
  **/
 #include "physics/3D/physics_world.hpp"
 
-// #define OTHER_USE_REACT
+#define OTHER_USE_REACT
 #ifdef OTHER_USE_REACT
   #include "physics/3D/react/react_world.hpp"
 #else
