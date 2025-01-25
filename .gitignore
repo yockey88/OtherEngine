@@ -35,6 +35,7 @@ tests/sandbox_scripts/obj
 tests/scripts/obj
 yockcraft/yockcraft_modules/obj
 cell_automaton/cell_automaton_modules/obj
+game2025/forest_scripts/obj
 
 ## C# stuff
 packages/
