@@ -12,10 +12,14 @@ namespace other {
 
   void ReactBoxShape::SetTransform(const Transform& transform) {
     glm::vec3 scale = transform.scale / 2.f;
+    SetScale(scale);
+  }
+
+  void ReactBoxShape::SetScale(const glm::vec3& scale) {
     rp3d::Vector3 half_extents = {
-      scale.x,
-      scale.y,
-      scale.z,
+      scale.x / 2.f,
+      scale.y / 2.f,
+      scale.z / 2.f,
     };
     shape->setHalfExtents(half_extents);
   }
@@ -29,7 +33,11 @@ namespace other {
   }
 
   void ReactSphereShape::SetTransform(const Transform& transform) {
-    shape->setRadius(transform.scale.x / 2.f);
+    SetScale(transform.scale);
+  }
+
+  void ReactSphereShape::SetScale(const glm::vec3& scale) {
+    shape->setRadius(scale.x / 2.f);
   }
 
   float ReactSphereShape::Radius() const {
@@ -40,8 +48,12 @@ namespace other {
   }
 
   void ReactCapsuleShape::SetTransform(const Transform& transform) {
-    shape->setRadius(transform.scale.x / 2.f);
-    shape->setHeight(transform.scale.y);
+    SetScale(transform.scale);
+  }
+
+  void ReactCapsuleShape::SetScale(const glm::vec3& scale) {
+    shape->setRadius(scale.x / 2.f);
+    shape->setHeight(scale.y);
   }
 
   float ReactCapsuleShape::Radius() const {
@@ -56,6 +68,28 @@ namespace other {
   }
 
   void ReactConvexMeshShape::SetTransform(const Transform& transform) {
+    SetScale(transform.scale);
+  }
+
+  void ReactConvexMeshShape::SetScale(const glm::vec3& scale) {
+    glm::vec3 half_scale = scale / 2.f;
+    glm::vec3 new_min = -half_scale;
+    glm::vec3 new_max = half_scale;
+
+    rp3d::Vector3 min = {
+      new_min.x,
+      new_min.y,
+      new_min.z,
+    };
+
+    rp3d::Vector3 max = {
+      new_max.x,
+      new_max.y,
+      new_max.z,
+    };
+
+    shape->getLocalBounds().setMin(min);
+    shape->getLocalBounds().setMax(max);
   }
 
 }  // namespace other

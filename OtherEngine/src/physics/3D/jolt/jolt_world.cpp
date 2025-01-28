@@ -219,11 +219,11 @@ namespace other {
     return NewRef<JoltCapsuleShape>(shape_settings, rt_shape, this);
   }
 
-  Ref<PhysicsShape> JoltWorld::CreateConvexMeshShape(const std::vector<float>& vertices, const std::vector<uint32_t>& indices, uint32_t num_faces) {
+  Ref<PhysicsShape> JoltWorld::CreateConvexMeshShape(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, uint32_t num_faces) {
     return nullptr;
   }
 
-  Ref<PhysicsShape> JoltWorld::CreateConcaveMeshShape(const std::vector<float>& vertices, const std::vector<uint32_t>& indices, uint32_t num_faces) {
+  Ref<PhysicsShape> JoltWorld::CreateConcaveMeshShape(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, uint32_t num_faces) {
     return nullptr;
   }
 

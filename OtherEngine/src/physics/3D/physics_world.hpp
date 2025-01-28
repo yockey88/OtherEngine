@@ -37,8 +37,10 @@ namespace other {
     virtual Ref<PhysicsShape> CreateBoxShape(const glm::vec3& half_extents) = 0;
     virtual Ref<PhysicsShape> CreateSphereShape(float radius) = 0;
     virtual Ref<PhysicsShape> CreateCapsuleShape(float radius, float height) = 0;
-    virtual Ref<PhysicsShape> CreateConvexMeshShape(const std::vector<float>& vertices, const std::vector<uint32_t>& indices, uint32_t num_faces) = 0;
-    virtual Ref<PhysicsShape> CreateConcaveMeshShape(const std::vector<float>& vertices, const std::vector<uint32_t>& indices, uint32_t num_faces) = 0;
+    virtual Ref<PhysicsShape> CreateConvexMeshShape(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, uint32_t num_faces) = 0;
+    virtual Ref<PhysicsShape> CreateConcaveMeshShape(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, uint32_t num_faces) = 0;
+
+    Ref<PhysicsShape> CreateCompoundShape(const std::vector<Ref<PhysicsShape>>& shapes);
 
     virtual void SetDebugRendering(bool debug) = 0;
     bool IsDebugRenderEnabled() const;

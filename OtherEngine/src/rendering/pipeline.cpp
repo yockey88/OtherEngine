@@ -104,7 +104,7 @@ namespace other {
       OE_ASSERT(material_table->HasMaterial(material_id), "Material not found in table");
       Material gpumat = material_table->GetMaterial(material_id);
 
-      smdc.cpu_model_storage.BufferData(submission.transform);
+      smdc.cpu_model_storage.BufferData(sub_mesh.transform);
       smdc.cpu_material_storage.BufferData(gpumat);
       smdc.instance_count++;
     }

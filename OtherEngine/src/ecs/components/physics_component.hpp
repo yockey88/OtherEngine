@@ -52,6 +52,8 @@ namespace other {
 
   struct Collider : public Component {
     uint32_t shape_idx = PhysicsShape::Shape::BOX;
+    glm::vec3 collider_scale = glm::vec3(1.f);
+
     Ref<PhysicsShape> shape = nullptr;
     ECS_COMPONENT(Collider, COLLIDER_COMPONENT_INDEX);
     Collider(uint32_t shape_idx)
@@ -94,7 +96,9 @@ ECHO_TYPE(
 );
 
 ECHO_TYPE(
-  type(other::Collider, refl::attr::bases<other::Component>)
+  type(other::Collider, refl::attr::bases<other::Component>),
+  field(shape_idx),
+  field(collider_scale)
 );
 
 ECHO_TYPE(

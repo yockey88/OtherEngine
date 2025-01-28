@@ -4,10 +4,13 @@
 #include "physics/3D/react/react_world.hpp"
 
 #include <reactphysics3d/body/RigidBody.h>
+#include <reactphysics3d/collision/VertexArray.h>
 #include <reactphysics3d/mathematics/Vector3.h>
+#include <reactphysics3d/utils/quickhull/QuickHull.h>
 
 #include "core/filesystem.hpp"
 #include "core/formatters.hpp"
+#include "core/logger.hpp"
 
 #include "asset/asset_manager.hpp"
 
@@ -21,6 +24,35 @@
 #include "rendering/shader.hpp"
 
 namespace other {
+
+  class ReactLogger : public rp3d::Logger {
+   public:
+    virtual ~ReactLogger() override = default;
+
+    void log(Level level, const std::string& physicsWorldName, Category category, const std::string& message, const char* filename, int lineNumber) override {
+      switch (level) {
+        case Level::Information:
+          OE_TRACE("ReactPhysics3D: [{} : {}] {}", physicsWorldName, Logger::getCategoryName(category), message);
+          break;
+        case Level::Warning:
+          OE_WARN("ReactPhysics3D: [{} : {}] {}", physicsWorldName, Logger::getCategoryName(category), message);
+          break;
+        case Level::Error:
+          OE_ERROR("ReactPhysics3D: [{} : {}] {}", physicsWorldName, Logger::getCategoryName(category), message);
+          break;
+        default:
+          OE_WARN("Invalid log level");
+          OE_INFO("ReactPhysics3D: [{} : {}] {}", physicsWorldName, Logger::getCategoryName(category), message);
+          break;
+      }
+    }
+  };
+
+  namespace {
+
+    static ReactLogger logger;
+
+  }  // anonymous namespace
 
   ReactWorld::ReactWorld(Scene* scene)
       : PhysicsWorld(scene) {
@@ -52,6 +84,7 @@ namespace other {
     // settings.defaultSleepAngularVelocity = 0.0523599f;
     // settings.cosAngleSimilarContactManifold = 0.95f;
 
+    physics_common.setLogger(&logger);
     physics_world = physics_common.createPhysicsWorld(settings);
 
     collision_listener = NewRef<ReactCollisionListener>(scene);
@@ -179,17 +212,9 @@ namespace other {
           }
 
           const std::vector<Vertex>& vertices = source->Vertices();
-          const std::vector<uint32_t>& idxs = source->RawIndices();
-          uint32_t num_faces = idxs.size() / 3;
-
-          std::vector<float> verts;
-          for (const auto& v : vertices) {
-            verts.push_back(v.position.x);
-            verts.push_back(v.position.y);
-            verts.push_back(v.position.z);
-          }
-
-          collider.shape = CreateConvexMeshShape(verts, idxs, num_faces);
+          const std::vector<Index>& idxs = source->Indices();
+          uint32_t num_faces = idxs.size();
+          collider.shape = CreateConvexMeshShape(vertices, idxs, num_faces);
 
         } else if (ent.HasComponent<Mesh>()) {
           auto& mesh = ent.GetComponent<Mesh>();
@@ -208,17 +233,9 @@ namespace other {
           }
 
           const std::vector<Vertex>& vertices = source->Vertices();
-          const std::vector<uint32_t>& idxs = source->RawIndices();
-          uint32_t num_faces = idxs.size() / 3;
-
-          std::vector<float> verts;
-          for (const auto& v : vertices) {
-            verts.push_back(v.position.x);
-            verts.push_back(v.position.y);
-            verts.push_back(v.position.z);
-          }
-
-          collider.shape = CreateConvexMeshShape(verts, idxs, num_faces);
+          const std::vector<Index>& idxs = source->Indices();
+          uint32_t num_faces = idxs.size();
+          collider.shape = CreateConvexMeshShape(vertices, idxs, num_faces);
         } else {
           OE_ASSERT(false, "Entity does not have mesh component");
         }
@@ -245,9 +262,8 @@ namespace other {
   void ReactWorld::DestroyBody(Entity& ent) {
     OE_ASSERT(physics_world != nullptr, "Physics world is null");
 
-    if (!ent.HasComponent<RigidBody>()) {
-      return;
-    }
+    OE_ASSERT(ent.HasComponent<Collider>(), "Entity does not have collider component");
+    OE_ASSERT(ent.HasComponent<RigidBody>(), "Entity does not have rigid body component");
     {
       RigidBody& body = ent.GetComponent<RigidBody>();
       Collider& collider = ent.GetComponent<Collider>();
@@ -299,22 +315,49 @@ namespace other {
     return NewRef<ReactCapsuleShape>(shape, this);
   }
 
-  Ref<PhysicsShape> ReactWorld::CreateConvexMeshShape(const std::vector<float>& vertices, const std::vector<uint32_t>& indices, uint32_t num_faces) {
+  Ref<PhysicsShape> ReactWorld::CreateConvexMeshShape(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, uint32_t num_faces) {
     OE_ASSERT(physics_world != nullptr, "Physics world is null");
 
-    rp3d::PolygonVertexArray::PolygonFace* faces = new rp3d::PolygonVertexArray::PolygonFace[num_faces];
-    for (uint32_t i = 0; i < num_faces; i++) {
-      faces[i].nbVertices = 3;
-      faces[i].indexBase = i * 3;
+    std::vector<float> verts;
+    verts.reserve(vertices.size() * 3);
+    for (const Vertex& v : vertices) {
+      verts.push_back(v.position.x);
+      verts.push_back(v.position.y);
+      verts.push_back(v.position.z);
     }
 
-    // clang-format off
-    rp3d::PolygonVertexArray polygon_vertex_array(vertices.size(), vertices.data(), sizeof(float) * 3, indices.data(), sizeof(uint32_t), num_faces, faces, 
-                                                  rp3d::PolygonVertexArray::VertexDataType::VERTEX_FLOAT_TYPE, rp3d::PolygonVertexArray::IndexDataType::INDEX_INTEGER_TYPE);
-    // clang-format on
+    auto& mem_allocator = physics_world->getMemoryManager().getHeapAllocator();
 
+    rp3d::VertexArray vert_array = rp3d::VertexArray(verts.data(), sizeof(float) * 3, vertices.size(), rp3d::VertexArray::DataType::VERTEX_FLOAT_TYPE);
+    rp3d::PolygonVertexArray res_vert_array;
+    rp3d::Array<float> res_verts(mem_allocator);
+    rp3d::Array<unsigned int> res_indices(mem_allocator);
+    rp3d::Array<rp3d::PolygonVertexArray::PolygonFace> res_faces(mem_allocator);
     std::vector<rp3d::Message> err_msgs;
-    rp3d::ConvexMesh* mesh = physics_common.createConvexMesh(polygon_vertex_array, err_msgs);
+
+    bool success = rp3d::QuickHull::computeConvexHull(vert_array, res_vert_array, res_verts, res_indices, res_faces, mem_allocator, err_msgs);
+    for (const rp3d::Message& msg : err_msgs) {
+      switch (msg.type) {
+        case rp3d::Message::Type::Error:
+          OE_ERROR("ReactPhysics3D: {0}", msg.text);
+          break;
+        case rp3d::Message::Type::Warning:
+          OE_WARN("ReactPhysics3D: {0}", msg.text);
+          break;
+        case rp3d::Message::Type::Information:
+          OE_INFO("ReactPhysics3D: {0}", msg.text);
+          break;
+        default:
+          break;
+      }
+    }
+    if (!success) {
+      OE_ERROR("Failed to compute convex hull");
+      return nullptr;
+    }
+
+    err_msgs.clear();
+    rp3d::ConvexMesh* mesh = physics_common.createConvexMesh(res_vert_array, err_msgs);
     for (const rp3d::Message& msg : err_msgs) {
       switch (msg.type) {
         case rp3d::Message::Type::Error:
@@ -332,14 +375,20 @@ namespace other {
     }
 
     if (mesh == nullptr) {
+      OE_ERROR("Failed to create convex mesh");
       return nullptr;
     }
 
     rp3d::ConvexMeshShape* shape = physics_common.createConvexMeshShape(mesh);
+    if (shape == nullptr) {
+      OE_ERROR("Failed to create convex mesh shape");
+      return nullptr;
+    }
+
     return NewRef<ReactConvexMeshShape>(shape, this);
   }
 
-  Ref<PhysicsShape> ReactWorld::CreateConcaveMeshShape(const std::vector<float>& vertices, const std::vector<uint32_t>& indices, uint32_t num_faces) {
+  Ref<PhysicsShape> ReactWorld::CreateConcaveMeshShape(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, uint32_t num_faces) {
     OE_ASSERT(false, "Concave mesh shapes are not implemented yet");
     return nullptr;
   }

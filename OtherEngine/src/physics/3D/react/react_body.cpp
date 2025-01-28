@@ -47,6 +47,10 @@ namespace other {
 
     body->setTransform(new_transform);
     inter_transform = new_transform;
+    if (collider != nullptr) {
+      rp3d::Transform local_transform(rp3d::Vector3(0.f, 0.f, 0.f), body->getTransform().getOrientation());
+      collider->setLocalToBodyTransform(local_transform);
+    }
   }
 
   Transform ReactBody::GetTransform() const {
@@ -159,6 +163,7 @@ namespace other {
 
   void ReactBody::OnAddCollider(Ref<PhysicsShape> shape) {
     OE_ASSERT(body != nullptr, "Physics body is null");
+    // OE_ASSERT(collider == nullptr, "Physics collider is not null (only one collider supported currently [React])");
 
     switch (shape->ShapeType()) {
       case PhysicsShape::Shape::BOX: {
@@ -188,14 +193,27 @@ namespace other {
         collider = body->addCollider(capsule_shape->shape, local_transform);
       } break;
 
-        // case PhysicsShape::Shape::CONVEX_MESH: {
-        //   Ref<ReactConvexMeshShape> convex_mesh_shape = Ref<PhysicsShape>::Cast<ReactConvexMeshShape>(shape);
-        //   body->addCollider(convex_mesh_shape->shape, body->getTransform());
-        // } break;
+      case PhysicsShape::Shape::CONVEX_MESH: {
+        Ref<ReactConvexMeshShape> convex_mesh_shape = Ref<PhysicsShape>::Cast<ReactConvexMeshShape>(shape);
+        OE_ASSERT(convex_mesh_shape != nullptr, "Convex mesh shape is null");
+        OE_ASSERT(convex_mesh_shape->shape != nullptr, "Convex mesh shape is null");
+
+        rp3d::Transform local_transform(rp3d::Vector3(0.f, 0.f, 0.f), body->getTransform().getOrientation());
+        body->addCollider(convex_mesh_shape->shape, local_transform);
+      } break;
 
         // case PhysicsShape::Shape::CONCAVE_MESH: {
         //   Ref<ReactConcaveMeshShape> concave_mesh_shape = Ref<PhysicsShape>::Cast<ReactConcaveMeshShape>(shape);
         //   body->addCollider(concave_mesh_shape->shape, body->getTransform());
+        // } break;
+
+        // case PhysicsShape::Shape::COMPOUND_SHAPE: {
+        //   Ref<CompoundShape> shape = Ref<PhysicsShape>::Cast<CompoundShape>(shape);
+        //   OE_ASSERT(shape != nullptr, "Compound shape is null");
+
+        //   for (auto& sub_shape : shape->shapes) {
+        //     OnAddCollider(sub_shape);
+        //   }
         // } break;
 
       default:

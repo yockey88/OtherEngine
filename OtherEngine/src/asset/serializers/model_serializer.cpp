@@ -25,21 +25,21 @@ namespace other {
     Assimp::Importer importer;
 
     uint32_t flags =
-      aiProcess_CalcTangentSpace |          // Create binormals/tangents just in case
-      aiProcess_Triangulate |               // Make sure we're triangles
-      aiProcess_SortByPType |               // Split meshes by primitive type
-      aiProcess_GenNormals |                // Make sure we have legit normals
-      aiProcess_GenUVCoords |               // Convert UVs if required
-                                            //		aiProcess_OptimizeGraph |
+      aiProcess_CalcTangentSpace |  // Create binormals/tangents just in case
+      aiProcess_Triangulate |       // Make sure we're triangles
+      aiProcess_SortByPType |       // Split meshes by primitive type
+      aiProcess_GenNormals |        // Make sure we have legit normals
+      aiProcess_GenUVCoords |       // Convert UVs if required
+      aiProcess_OptimizeGraph |
       aiProcess_RemoveRedundantMaterials |  // remove redundant materials
       aiProcess_FindDegenerates |           // remove degenerated polygons from the import
       aiProcess_FindInvalidData |           // detect invalid model data, such as invalid normal vectors
       aiProcess_TransformUVCoords |         // preprocess UV transformations (scaling, translation ...)
       aiProcess_FindInstances |             // search for instanced meshes and remove them by references to one master
-      aiProcess_SplitByBoneCount |          // split meshes with too many bones. Necessary for our (limited) hardware skinning shader
-      aiProcess_OptimizeMeshes |            // Batch draws where possible
+      // aiProcess_SplitByBoneCount |          // split meshes with too many bones. Necessary for our (limited) hardware skinning shader
+      aiProcess_OptimizeMeshes |  // Batch draws where possible
       aiProcess_JoinIdenticalVertices |
-      aiProcess_LimitBoneWeights |       // If more than N (=4) bone weights, discard least influencing bones and renormalise sum to 1
+      // aiProcess_LimitBoneWeights |       // If more than N (=4) bone weights, discard least influencing bones and renormalise sum to 1
       aiProcess_ValidateDataStructure |  // Validation
       aiProcess_GlobalScale;             // e.g. convert cm to m for fbx import (and other formats where cm is native)
     const aiScene* scene = importer.ReadFile(metadata.path.string(), flags);
@@ -55,12 +55,85 @@ namespace other {
 
     ProcessMaterials(scene);
 
-    if (!ProcessNode(scene->mRootNode, scene)) {
-      OE_ERROR("Failed to process root node : {}", metadata.path);
-      return false;
+    uint32_t vertex_count = 0;
+    uint32_t idx_count = 0;
+
+    submeshes.reserve(scene->mNumMeshes);
+
+    for (uint32_t i = 0; i < scene->mNumMeshes; ++i) {
+      aiMesh* mesh = scene->mMeshes[i];
+      OE_ASSERT(mesh != nullptr, "Failed to get mesh");
+      if (!mesh->HasPositions()) {
+        OE_ERROR("Mesh has no positions");
+        throw std::runtime_error("Mesh has no positions");
+      }
+
+      if (!mesh->HasNormals()) {
+        OE_ERROR("Mesh has no normals");
+        throw std::runtime_error("Mesh has no normals");
+      }
+
+      SubMesh& submesh = submeshes.emplace_back();
+      submesh.sub_mesh_id = i;
+
+      submesh.base_vertex = vertex_count;
+      submesh.base_idx = idx_count;
+
+      submesh.material_id = mesh->mMaterialIndex;
+      submesh.vert_cnt = mesh->mNumVertices;
+      submesh.idx_cnt = mesh->mNumFaces * 3;
+
+      submesh.model_name = mesh->mName.C_Str();
+
+      OE_DEBUG("Submesh [{}] : submesh id = {} \\ num verts = {} (base = {}) ", submesh.model_name, submesh.sub_mesh_id.Get(), submesh.vert_cnt, submesh.base_vertex);
+
+      for (uint32_t i = 0; i < mesh->mNumVertices; ++i) {
+        Vertex& vertex = vertices.emplace_back();
+        vertex.position = { mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
+        vertex.normal = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };
+
+        if (mesh->HasTangentsAndBitangents()) {
+          vertex.tangent = { mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z };
+          vertex.bitangent = { mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z };
+        }
+
+        if (mesh->HasTextureCoords(0)) {
+          vertex.uv_coord = { mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y };
+        } else {
+          vertex.uv_coord = { 0.f, 0.f };
+        }
+      }
+
+      for (uint32_t i = 0; i < mesh->mNumFaces; ++i) {
+        aiFace face = mesh->mFaces[i];
+        OE_ASSERT(face.mNumIndices == 3, "Other Engine does not support untriangulated meshes");
+        Index& idx = indices.emplace_back();
+        idx = { face.mIndices[0], face.mIndices[1], face.mIndices[2] };
+      }
+
+      vertex_count += mesh->mNumVertices;
+      idx_count += submesh.idx_cnt;
+
+      for (auto& sm : submeshes) {
+        OE_DEBUG("  > [SubMesh : {}] {}", sm.sub_mesh_id.Get(), sm.model_name);
+      }
     }
 
-    /// normalize mesh scale to not be so big
+    [[maybe_unused]] MeshNode& rootNode = nodes.emplace_back();
+    TraverseNodes(scene->mRootNode, 0);
+
+    // for (const auto& submesh : meshSource->m_Submeshes) {
+    //   AABB transformedSubmeshAABB = submesh.BoundingBox;
+    //   glm::vec3 min = glm::vec3(submesh.Transform * glm::vec4(transformedSubmeshAABB.Min, 1.0f));
+    //   glm::vec3 max = glm::vec3(submesh.Transform * glm::vec4(transformedSubmeshAABB.Max, 1.0f));
+
+    //   meshSource->m_BoundingBox.Min.x = glm::min(meshSource->m_BoundingBox.Min.x, min.x);
+    //   meshSource->m_BoundingBox.Min.y = glm::min(meshSource->m_BoundingBox.Min.y, min.y);
+    //   meshSource->m_BoundingBox.Min.z = glm::min(meshSource->m_BoundingBox.Min.z, min.z);
+    //   meshSource->m_BoundingBox.Max.x = glm::max(meshSource->m_BoundingBox.Max.x, max.x);
+    //   meshSource->m_BoundingBox.Max.y = glm::max(meshSource->m_BoundingBox.Max.y, max.y);
+    //   meshSource->m_BoundingBox.Max.z = glm::max(meshSource->m_BoundingBox.Max.z, max.z);
+    // }
 
     Ref<ModelSource> source = NewRef<ModelSource>(vertices, indices, submeshes);
     metadata.asset = source;
@@ -105,6 +178,48 @@ namespace other {
       }
 
       material_ids[i] = GetMaterial(i, scene);
+    }
+  }
+
+  void ModelSerializer::TraverseNodes(const aiNode* anode, uint32_t node_idx, const glm::mat4& parent_transform, uint32_t level) {
+    MeshNode& n = nodes[node_idx];
+    n.name = anode->mName.C_Str();
+    // the a,b,c,d in assimp is the row ; the 1,2,3,4 is the column
+    n.local_transform[0][0] = anode->mTransformation.a1;
+    n.local_transform[1][0] = anode->mTransformation.a2;
+    n.local_transform[2][0] = anode->mTransformation.a3;
+    n.local_transform[3][0] = anode->mTransformation.a4;
+    n.local_transform[0][1] = anode->mTransformation.b1;
+    n.local_transform[1][1] = anode->mTransformation.b2;
+    n.local_transform[2][1] = anode->mTransformation.b3;
+    n.local_transform[3][1] = anode->mTransformation.b4;
+    n.local_transform[0][2] = anode->mTransformation.c1;
+    n.local_transform[1][2] = anode->mTransformation.c2;
+    n.local_transform[2][2] = anode->mTransformation.c3;
+    n.local_transform[3][2] = anode->mTransformation.c4;
+    n.local_transform[0][3] = anode->mTransformation.d1;
+    n.local_transform[1][3] = anode->mTransformation.d2;
+    n.local_transform[2][3] = anode->mTransformation.d3;
+    n.local_transform[3][3] = anode->mTransformation.d4;
+
+    glm::mat4 transform = parent_transform * n.local_transform;
+    for (uint32_t i = 0; i < anode->mNumMeshes; i++) {
+      uint32_t idx = anode->mMeshes[i];
+      SubMesh& submesh = submeshes[idx];
+      submesh.model_name = anode->mName.C_Str();
+      submesh.transform = transform;
+      submesh.local_transform = n.local_transform;
+      n.sub_meshes.push_back(idx);
+    }
+
+    uint32_t parent_node_idx = (uint32_t)nodes.size() - 1;
+    n.children.resize(anode->mNumChildren);
+    for (uint32_t i = 0; i < anode->mNumChildren; i++) {
+      MeshNode& child = nodes.emplace_back();
+      size_t child_idx = nodes.size() - 1;
+      child.parent = parent_node_idx;
+      nodes[node_idx].children[i] = child_idx;
+      TraverseNodes(anode->mChildren[i], uint32_t(child_idx), transform, level + 1);
     }
   }
 

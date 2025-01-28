@@ -886,9 +886,15 @@ namespace other {
     static const char* collider_type_strings[] = { "Box", "Sphere", "Capsule", "Convex Mesh", "Concave Mesh" };
 
     ui::BeginPropertyGrid();
+    if (collider.shape == nullptr) {
+      ScopedColor red(ImGuiCol_Text, ui::theme::red);
+      ImGui::Text("Collider shape is null");
+      ui::EndPropertyGrid();
+      return false;
+    }
 
     bool changed = false;
-    if (ui::PropertyDropdown("Collider Type", collider_type_strings, PhysicsShape::Shape::NUM_PHYSICS_SHAPES, collider.shape_idx)) {}
+    if (ui::PropertyDropdown("Collider Type", collider_type_strings, PhysicsShape::Shape::CONCAVE_MESH, collider.shape_idx)) {}
 
     if (collider.shape_idx != collider.shape->ShapeType() && ImGui::Button("Confirm Change")) {
       changed = true;
@@ -937,18 +943,9 @@ namespace other {
             }
 
             const std::vector<Vertex>& vertices = source->Vertices();
-            const std::vector<uint32_t>& idxs = source->RawIndices();
-            uint32_t num_faces = idxs.size() / 3;
-
-            std::vector<float> verts;
-            for (const auto& v : vertices) {
-              verts.push_back(v.position.x);
-              verts.push_back(v.position.y);
-              verts.push_back(v.position.z);
-            }
-
-            collider.shape = world->CreateConvexMeshShape(verts, idxs, num_faces);
-
+            const std::vector<Index>& idxs = source->Indices();
+            uint32_t num_faces = idxs.size();
+            shape = world->CreateConvexMeshShape(vertices, idxs, num_faces);
           } else if (ent->HasComponent<Mesh>()) {
             auto& mesh = ent->GetComponent<Mesh>();
             Ref<Model> model = AssetManager::GetAsset<Model>(mesh.handle);
@@ -963,18 +960,37 @@ namespace other {
               return false;
             }
 
+            const std::vector<SubMesh>& submeshes = source->SubMeshes();
+            const std::vector<uint32_t>& submesh_idxs = model->SubMeshes();
             const std::vector<Vertex>& vertices = source->Vertices();
-            const std::vector<uint32_t>& idxs = source->RawIndices();
-            uint32_t num_faces = idxs.size() / 3;
+            const std::vector<Index>& idxs = source->Indices();
+            uint32_t num_faces = idxs.size();
 
-            std::vector<float> verts;
-            for (const auto& v : vertices) {
-              verts.push_back(v.position.x);
-              verts.push_back(v.position.y);
-              verts.push_back(v.position.z);
-            }
+            // std::vector<Ref<PhysicsShape>> shapes = {};
+            // for (const uint32_t sm_idx : submesh_idxs) {
+            //   OE_ASSERT(sm_idx < submeshes.size(), "Submesh index out of bounds");
+            //   const SubMesh& sm = submeshes[sm_idx];
+            //   std::vector<Vertex> verts;
+            //   std::vector<Index> indices;
 
-            collider.shape = world->CreateConvexMeshShape(verts, idxs, num_faces);
+            //   for (uint32_t i = sm.base_vertex; i < sm.base_vertex + sm.vert_cnt; ++i) {
+            //     verts.push_back(vertices[i]);
+            //   }
+
+            //   for (uint32_t i = sm.base_idx; i < sm.base_idx + sm.idx_cnt; ++i) {
+            //     indices.push_back(idxs[i]);
+            //   }
+
+            // Ref<PhysicsShape> sub_shape = world->CreateConvexMeshShape(verts, indices, num_faces);
+            //   shapes.push_back(sub_shape);
+            // }
+
+            // shape = world->CreateCompoundShape(shapes);
+
+            shape = world->CreateConvexMeshShape(vertices, idxs, num_faces);
+
+            ui::EndPropertyGrid();
+            return changed;
           } else {
             OE_ASSERT(false, "Entity does not have mesh component");
           }
@@ -990,10 +1006,9 @@ namespace other {
 
       if (shape == nullptr) {
         OE_ERROR("Failed to create physics shape");
-        return false;
+      } else {
+        collider.shape = shape;
       }
-
-      collider.shape = shape;
     }
 
     ui::EndPropertyGrid();
@@ -1001,7 +1016,19 @@ namespace other {
   }
 
   bool DrawPhysicsObject(Entity* ent) {
-    return DrawRigidBody(ent) || DrawCollider(ent);
+    bool changed_body = DrawRigidBody(ent);
+    bool changed_collider = DrawCollider(ent);
+
+    if (changed_collider) {
+      auto& collider = ent->GetComponent<Collider>();
+      auto& body = ent->GetComponent<RigidBody>();
+
+      if (body.physics_body != nullptr) {
+        body.physics_body->AddCollider(collider.shape);
+      }
+    }
+
+    return changed_body || changed_collider;
   }
 
   bool DrawLightSource(Entity* ent) {

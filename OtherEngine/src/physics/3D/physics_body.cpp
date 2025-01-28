@@ -25,6 +25,29 @@ namespace other {
     OnSetEntity();
   }
 
+  /**
+
+    void PhysicsBody::AddCollider(Ref<PhysicsShape> shape) {
+      OE_ASSERT(shape != nullptr, "Physics shape is null");
+
+      /// add new collider shape
+      collider_shapes.push_back(shape);
+      OnAddCollider(shape);
+    }
+
+    void PhysicsBody::RemoveCollider(Ref<PhysicsShape> shape) {
+      auto itr = std::ranges::find_if(collider_shapes, [&](const Ref<PhysicsShape>& s) {
+        return s.Raw() == shape.Raw();
+      });
+      if (itr == collider_shapes.end()) {
+        return;
+      }
+      Ref<PhysicsShape> removed = *itr;
+      OnRemoveCollider(removed);
+      collider_shapes.erase(itr);
+    }
+
+  */
   void PhysicsBody::AddCollider(Ref<PhysicsShape> shape) {
     OE_ASSERT(shape != nullptr, "Physics shape is null");
     if (collider_shape != nullptr) {
@@ -39,10 +62,6 @@ namespace other {
 
   void PhysicsBody::RemoveCollider(Ref<PhysicsShape> shape) {
     if (collider_shape == nullptr) {
-      return;
-    }
-
-    if (collider_shape->NativeShape() != shape->NativeShape()) {
       return;
     }
 

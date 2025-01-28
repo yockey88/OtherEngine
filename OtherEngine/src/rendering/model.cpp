@@ -188,14 +188,12 @@ namespace other {
       : model_source(mesh_src) {
     OE_ASSERT(mesh_src != nullptr, "Attempting construct model from null source!");
     SetSubMeshes({});
-    RebuildMesh();
   }
 
   Model::Model(Ref<ModelSource>& model_src, const std::vector<uint32_t>& sub_meshes)
       : model_source(model_src) {
     OE_ASSERT(model_src != nullptr, "Attempting construct model from null source!");
     SetSubMeshes(sub_meshes);
-    RebuildMesh();
   }
 
   Model::Model(const Ref<Model>& other) {
@@ -210,25 +208,18 @@ namespace other {
   }
 
   void Model::SetSubMeshes(const std::vector<uint32_t>& sms) {
-    sub_meshes = sms;
     if (sms.empty()) {
       sub_meshes.resize(model_source->SubMeshes().size());
       for (uint32_t i = 0; i < sub_meshes.size(); ++i) {
         sub_meshes[i] = i;
       }
     } else {
-      for (const uint32_t smidx : sub_meshes) {
+      for (const uint32_t smidx : sms) {
         OE_ASSERT(smidx < model_source->SubMeshes().size(), "Submesh index out of bounds!");
       }
+
+      sub_meshes = sms;
     }
-  }
-
-  void Model::RebuildMesh() {
-    OE_ASSERT(model_source != nullptr, "Static Model has null source!");
-    OE_ASSERT(!sub_meshes.empty(), "Model has no submeshes!");
-
-    /// not sure what to do here, maybe build data structures like the triangle cache
-    /// or something like that
   }
 
   Ref<ModelSource> Model::GetModelSource() const {

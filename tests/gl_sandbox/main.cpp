@@ -66,7 +66,6 @@ using namespace other;
 namespace rp3d = reactphysics3d;
 
 struct Shape {
-  uint32_t vao = 0, vbo = 0, ebo = 0;
   std::vector<SubMesh> submeshes;
   std::vector<MeshNode> nodes;
 
@@ -79,17 +78,22 @@ struct Shape {
   std::vector<uint32_t> raw_indices;
   std::vector<uint32_t> raw_layout;
 
-  Ref<VertexArray> mesh_vao;
+  Ref<ModelSource> source;
 
-  Shape(const Path& path, Ref<MaterialTable>& material_table);
+  Ref<UniformBuffer> model_ubo;
+  Ref<UniformBuffer> material_ubo;
+
+  other::Buffer model_buffer;
+  other::Buffer material_buffer;
+
+  Shape(const Path& path, Ref<MaterialTable>& material_table, Ref<UniformBuffer> model_ubo, Ref<UniformBuffer> material_ubo);
   void Draw(DrawMode mode);
 
  private:
   std::vector<other::UUID> material_ids;
   std::map<uint32_t, other::UUID> submesh_materials;
 
-  void ProcessNode(const aiNode* node, const aiScene* scene);
-  void ProcessMesh(const aiMesh* mesh, const aiScene* scene);
+  void ProcessMesh(const aiMesh* mesh, SubMesh& sm, const aiScene* scene);
   void TraverseNodes(const aiNode* node, int32_t node_idx, const glm::mat4& parent_transform = glm::mat4(1.f), uint32_t level = 0);
   void GetMaterials(const aiScene* scene);
 };
@@ -277,6 +281,7 @@ int main(int argc, char* argv[]) {
 
       Quad quad;
       Cube cube;
+      Shape shape(glsandbox_dir / "assets" / "ball.fbx", material_table, model_uniforms, material_uniforms);
 
       CHECKGL();
 
@@ -345,6 +350,12 @@ int main(int argc, char* argv[]) {
       rp3d::Vector3 half_extents_floor(floor_transform.scale.x / 2.f, floor_transform.scale.y / 2.f, floor_transform.scale.z / 2.f);
       rp3d::BoxShape* box_shape_floor = physics_common.createBoxShape(half_extents_floor);
       floor_body->addCollider(box_shape_floor, rp3d::Transform::identity());
+
+      Transform shape_transform;
+      shape_transform.position = { 0.f, 2.5f, 0.f };
+      shape_transform.scale = { 1.f, 1.f, 1.f };
+
+      shape_transform.CalcMatrix();
 
       physics_world->setIsDebugRenderingEnabled(true);
 
@@ -487,41 +498,58 @@ int main(int argc, char* argv[]) {
         mat_shader->SetUniform("normal_textures", 1);
         mat_shader->SetUniform("roughness_textures", 2);
 
+        // model_buffer.ZeroMem();
+        // // model_buffer.BufferData(transform1.model_transform);
+        // // model_buffer.BufferData(transform2.model_transform);
+        // // model_buffer.BufferData(transform3.model_transform);
+        // model_buffer.BufferData(floor_transform.model_transform);
+
+        // model_uniforms->BindBase();
+        // model_uniforms->LoadFromBuffer(model_buffer);
+
+        // // MaterialTable::Material mat1_data = material_table->GetMaterial(mat1);
+        // // MaterialTable::Material mat2_data = material_table->GetMaterial(mat2);
+        // // MaterialTable::Material mat3_data = material_table->GetMaterial(mat3);
+        // MaterialTable::Material floor_mat_data = material_table->GetMaterial(floor_mat);
+        // // Material gpumat1 = mat1_data;
+        // // Material gpumat2 = mat2_data;
+        // // Material gpumat3 = mat3_data;
+        // Material gpufloor_mat = floor_mat_data;
+
+        // material_buffer.ZeroMem();
+        // // material_buffer.BufferData(gpumat1);
+        // // material_buffer.BufferData(gpumat2);
+        // // material_buffer.BufferData(gpumat3);
+        // material_buffer.BufferData(gpufloor_mat);
+
+        // material_uniforms->BindBase();
+        // material_uniforms->LoadFromBuffer(material_buffer);
+
+        // cube.Draw(other::TRIANGLES, colors.size());
+
         model_buffer.ZeroMem();
-        model_buffer.BufferData(transform1.model_transform);
-        model_buffer.BufferData(transform2.model_transform);
-        model_buffer.BufferData(transform3.model_transform);
-        model_buffer.BufferData(floor_transform.model_transform);
+        model_buffer.BufferData(shape_transform.model_transform);
 
         model_uniforms->BindBase();
         model_uniforms->LoadFromBuffer(model_buffer);
 
-        MaterialTable::Material mat1_data = material_table->GetMaterial(mat1);
-        MaterialTable::Material mat2_data = material_table->GetMaterial(mat2);
-        MaterialTable::Material mat3_data = material_table->GetMaterial(mat3);
-        MaterialTable::Material floor_mat_data = material_table->GetMaterial(floor_mat);
-        Material gpumat1 = mat1_data;
-        Material gpumat2 = mat2_data;
-        Material gpumat3 = mat3_data;
-        Material gpufloor_mat = floor_mat_data;
+        MaterialTable::Material default_mat = material_table->GetMaterial(material_table->DefaultMaterial());
+        Material gpudefault_mat = default_mat;
 
         material_buffer.ZeroMem();
-        material_buffer.BufferData(gpumat1);
-        material_buffer.BufferData(gpumat2);
-        material_buffer.BufferData(gpumat3);
-        material_buffer.BufferData(gpufloor_mat);
+        material_buffer.BufferData(gpudefault_mat);
 
         material_uniforms->BindBase();
         material_uniforms->LoadFromBuffer(material_buffer);
 
-        cube.Draw(other::TRIANGLES, colors.size());
+        shape.Draw(other::TRIANGLES);
 
         material_table->Unbind();
 
-        debug_physics_shader->Bind();
-        debug_physics_lines->Draw(DrawMode::LINES);
-        debug_physics_triangles->Draw(DrawMode::TRIANGLES);
-        debug_physics_shader->Unbind();
+        // debug_physics_shader->Bind();
+        // debug_physics_lines->Draw(DrawMode::LINES);
+        // debug_physics_triangles->Draw(DrawMode::TRIANGLES);
+        // debug_physics_shader->Unbind();
 
         frame->UnbindFrame();
 
@@ -563,30 +591,36 @@ int main(int argc, char* argv[]) {
   return exit;
 }
 
-Shape::Shape(const Path& path, Ref<MaterialTable>& material_table) {
+Shape::Shape(const Path& path, Ref<MaterialTable>& material_table, Ref<UniformBuffer> model_ubo, Ref<UniformBuffer> material_ubo)
+    : model_ubo(model_ubo), material_ubo(material_ubo) {
   OE_DEBUG("Attempting to load model : {}", path);
   Assimp::Importer importer;
 
   /// others
 
+  // clang-format off
   uint32_t flags =
-    aiProcess_CalcTangentSpace |          // Create binormals/tangents just in case
-    aiProcess_Triangulate |               // Make sure we're triangles
-    aiProcess_SortByPType |               // Split meshes by primitive type
-    aiProcess_GenNormals |                // Make sure we have legit normals
-    aiProcess_GenUVCoords |               // Convert UVs if required
-                                          //		aiProcess_OptimizeGraph |
-    aiProcess_RemoveRedundantMaterials |  // remove redundant materials
-    aiProcess_FindDegenerates |           // remove degenerated polygons from the import
-    aiProcess_FindInvalidData |           // detect invalid model data, such as invalid normal vectors
-    aiProcess_TransformUVCoords |         // preprocess UV transformations (scaling, translation ...)
-    aiProcess_FindInstances |             // search for instanced meshes and remove them by references to one master
-    aiProcess_SplitByBoneCount |          // split meshes with too many bones. Necessary for our (limited) hardware skinning shader
-    aiProcess_OptimizeMeshes |            // Batch draws where possible
-    aiProcess_JoinIdenticalVertices |
-    aiProcess_LimitBoneWeights |       // If more than N (=4) bone weights, discard least influencing bones and renormalise sum to 1
-    aiProcess_ValidateDataStructure |  // Validation
-    aiProcess_GlobalScale;             // e.g. convert cm to m for fbx import (and other formats where cm is native)
+    aiProcess_CalcTangentSpace                                      
+    | aiProcess_Triangulate                                         
+    | aiProcess_SortByPType                                         
+    | aiProcess_GenNormals                                          
+    | aiProcess_GenUVCoords                                                                                                         
+    | aiProcess_OptimizeMeshes                                      
+    | aiProcess_JoinIdenticalVertices 
+    | aiProcess_ValidateDataStructure
+    | aiProcess_GlobalScale          
+    | aiProcess_FindDegenerates 
+    | aiProcess_OptimizeMeshes
+    | aiProcess_JoinIdenticalVertices;
+  // clang-format on
+
+  // | aiProcess_LimitBoneWeights
+  // aiProcess_RemoveRedundantMaterials |  // remove redundant materials
+  // aiProcess_FindInvalidData |           // detect invalid model data, such as invalid normal vectors
+  // aiProcess_TransformUVCoords |         // preprocess UV transformations (scaling, translation ...)
+  // aiProcess_FindInstances |             // search for instanced meshes and remove them by references to one master
+  // aiProcess_SplitByBoneCount |          // split meshes with too many bones. Necessary for our (limited) hardware skinning shader
+  // aiProcess_ValidateDataStructure |  // Validation
   const aiScene* scene = importer.ReadFile(path.string(), flags);
   if (scene == nullptr) {
     OE_ERROR("Failed to load model : {}", path);
@@ -597,148 +631,232 @@ Shape::Shape(const Path& path, Ref<MaterialTable>& material_table) {
     OE_ERROR("Failed to load model : {}\n[ASSIMP ERROR : {}]", path, importer.GetErrorString());
     throw std::runtime_error("Failed to load model");
   }
+  {
+    std::stringstream ss;
+    ss << path << " metadata : \n";
 
-  ProcessNode(scene->mRootNode, scene);
+    if (scene->mMetaData) {
+      for (unsigned int i = 0; i < scene->mMetaData->mNumProperties; ++i) {
+        aiString key = scene->mMetaData->mKeys[i];
+        aiMetadataEntry entry = scene->mMetaData->mValues[i];
+
+        ss << fmtstr("Key: {}\n", std::string{ key.C_Str() });
+
+        switch (entry.mType) {
+          case AI_BOOL:
+            ss << fmtstr("Value: {}\n", (*(bool*)entry.mData ? "true" : "false"));
+            break;
+          case AI_INT32:
+            ss << fmtstr("Value: {}\n", *(int32_t*)entry.mData);
+            break;
+          case AI_UINT64:
+            ss << fmtstr("Value: {}\n", *(uint64_t*)entry.mData);
+            break;
+          case AI_FLOAT:
+            ss << fmtstr("Value: {}\n", *(float*)entry.mData);
+            break;
+          case AI_DOUBLE:
+            ss << fmtstr("Value: {}\n", *(double*)entry.mData);
+            break;
+          case AI_AISTRING:
+            ss << fmtstr("Value: {}\n", ((aiString*)entry.mData)->C_Str());
+            break;
+          case AI_AIVECTOR3D: {
+            aiVector3D* vec = (aiVector3D*)entry.mData;
+            ss << fmtstr("Value: ({}, {}, {})\n", vec->x, vec->y, vec->z);
+            break;
+          }
+          default:
+            ss << "Unknown metadata type\n";
+            break;
+        }
+      }
+    }
+
+    ss << "Number of meshes : " << scene->mNumMeshes << "\n";
+    ss << "Number of materials : " << scene->mNumMaterials << "\n";
+    ss << "Number of textures : " << scene->mNumTextures << "\n";
+    ss << "Number of animations : " << scene->mNumAnimations << "\n";
+    ss << "Number of lights : " << scene->mNumLights << "\n";
+    ss << "Number of cameras : " << scene->mNumCameras << "\n";
+    ss << "Number of textures : " << scene->mNumTextures << "\n";
+    OE_DEBUG(ss.str());
+  }
+  if (scene->mNumMeshes == 0) {
+    OE_ERROR("Model has no meshes : {}", path);
+    throw std::runtime_error("Model has no meshes");
+  }
+
+  uint32_t vertex_count = 0;
+  uint32_t idx_count = 0;
+
+  submeshes.reserve(scene->mNumMeshes);
+
+  for (uint32_t i = 0; i < scene->mNumMeshes; ++i) {
+    aiMesh* mesh = scene->mMeshes[i];
+    OE_ASSERT(mesh != nullptr, "Failed to get mesh");
+    if (!mesh->HasPositions()) {
+      OE_ERROR("Mesh has no positions");
+      throw std::runtime_error("Mesh has no positions");
+    }
+
+    if (!mesh->HasNormals()) {
+      OE_ERROR("Mesh has no normals");
+      throw std::runtime_error("Mesh has no normals");
+    }
+
+    SubMesh& submesh = submeshes.emplace_back();
+    submesh.sub_mesh_id = i;
+
+    submesh.base_vertex = vertex_count;
+    submesh.base_idx = idx_count;
+
+    submesh.material_id = mesh->mMaterialIndex;
+    submesh.vert_cnt = mesh->mNumVertices;
+    submesh.idx_cnt = mesh->mNumFaces * 3;
+
+    submesh.model_name = mesh->mName.C_Str();
+
+    OE_DEBUG("Submesh [{}] : submesh id = {} \\ num verts = {} (base = {}) ", submesh.model_name, submesh.sub_mesh_id.Get(), submesh.vert_cnt, submesh.base_vertex);
+
+    for (uint32_t i = 0; i < mesh->mNumVertices; ++i) {
+      Vertex& vertex = vertices.emplace_back();
+      vertex.position = { mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
+      vertex.normal = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };
+
+      if (mesh->HasTangentsAndBitangents()) {
+        vertex.tangent = { mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z };
+        vertex.bitangent = { mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z };
+      }
+
+      if (mesh->HasTextureCoords(0)) {
+        vertex.uv_coord = { mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y };
+      } else {
+        vertex.uv_coord = { 0.f, 0.f };
+      }
+
+      raw_vertices.push_back(vertex.position.x);
+      raw_vertices.push_back(vertex.position.y);
+      raw_vertices.push_back(vertex.position.z);
+      raw_vertices.push_back(vertex.normal.x);
+      raw_vertices.push_back(vertex.normal.y);
+      raw_vertices.push_back(vertex.normal.z);
+      raw_vertices.push_back(vertex.tangent.x);
+      raw_vertices.push_back(vertex.tangent.y);
+      raw_vertices.push_back(vertex.tangent.z);
+      raw_vertices.push_back(vertex.bitangent.x);
+      raw_vertices.push_back(vertex.bitangent.y);
+      raw_vertices.push_back(vertex.bitangent.z);
+      raw_vertices.push_back(vertex.uv_coord.x);
+      raw_vertices.push_back(vertex.uv_coord.y);
+    }
+
+    for (uint32_t i = 0; i < mesh->mNumFaces; ++i) {
+      aiFace face = mesh->mFaces[i];
+      OE_ASSERT(face.mNumIndices == 3, "Other Engine does not support untriangulated meshes");
+      Index& idx = indices.emplace_back();
+      idx = { face.mIndices[0], face.mIndices[1], face.mIndices[2] };
+
+      raw_indices.push_back(face.mIndices[0]);
+      raw_indices.push_back(face.mIndices[1]);
+      raw_indices.push_back(face.mIndices[2]);
+    }
+
+    vertex_count += mesh->mNumVertices;
+    idx_count += submesh.idx_cnt;
+
+    for (auto& sm : submeshes) {
+      OE_DEBUG("  > [SubMesh : {}] {}", sm.sub_mesh_id.Get(), sm.model_name);
+    }
+  }
+
+  [[maybe_unused]] MeshNode& mesh_node = nodes.emplace_back();
+  TraverseNodes(scene->mRootNode, 0);
+
   GetMaterials(scene);
+
+  OE_DEBUG("number of submeshes = {}", submeshes.size());
+
+  for (auto& sm : submeshes) {
+    ProcessMesh(scene->mMeshes[sm.sub_mesh_id.Get()], sm, scene);
+  }
+
+  source = NewRef<ModelSource>(vertices, indices, submeshes);
+  Ref<Model> model = NewRef<Model>(source);
 }
 
 void Shape::Draw(DrawMode mode) {
-  OE_ASSERT(mesh_vao != nullptr, "Mesh VAO is null");
+  // OE_ASSERT(mesh_vao != nullptr, "Mesh VAO is null");
+  OE_ASSERT(model_ubo != nullptr, "Model UBO is null");
+  OE_ASSERT(material_ubo != nullptr, "Material UBO is null");
 
   Ref<MaterialTable> material_table = AssetManager::GetMaterialTable();
   OE_ASSERT(material_table != nullptr, "Material table is null");
 
-  mesh_vao->Bind();
+  source->source_vao->Bind();
   material_table->Bind();
-  for (const SubMesh& sm : submeshes) {
+  for (uint32_t i = 0; i < submeshes.size(); i++) {
+    SubMesh& sm = submeshes[i];
     uint32_t base_vertex = sm.base_vertex;
     uint32_t idx_cnt = sm.idx_cnt;
 
-    // other::UUID material_id = sm.material_id.Get() == 0 ? material_table->DefaultMaterial() : sm.material_id;
-    // OE_ASSERT(material_table->HasMaterial(material_id), "Material not found in table");
-    // Material gpumat = material_table->GetMaterial(material_id);
+    model_buffer.ZeroMem();
+    model_buffer.BufferData(sm.transform);
+
+    model_ubo->BindBase();
+    model_ubo->LoadFromBuffer(model_buffer);
+
+    material_buffer.ZeroMem();
+    material_buffer.BufferData(material_table->GetMaterial(material_table->DefaultMaterial()));
+
+    material_ubo->BindBase();
+    material_ubo->LoadFromBuffer(material_buffer);
 
     glDrawElementsInstancedBaseVertexBaseInstance(mode, idx_cnt, GL_UNSIGNED_INT, (void*)0, 1, base_vertex, 0);
   }
+
   material_table->Unbind();
-  mesh_vao->Unbind();
+  source->source_vao->Unbind();
 }
 
-void Shape::ProcessNode(const aiNode* node, const aiScene* scene) {
-  // process all the node's meshes (if any)
-  for (uint32_t i = 0; i < node->mNumMeshes; i++) {
-    aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-    if (mesh == nullptr) {
-      OE_ERROR("Failed to get mesh : {}", node->mMeshes[i]);
-      throw std::runtime_error("Failed to get mesh");
-    }
-
-    ProcessMesh(mesh, scene);
-  }
-
-  // then do the same for each of its children
-  for (uint32_t i = 0; i < node->mNumChildren; i++) {
-    ProcessNode(node->mChildren[i], scene);
-  }
-
-  /// build mesh nodes
-  // MeshNode& mesh_node = nodes.emplace_back();
-  // TraverseNodes(scene->mRootNode, 0);
-
-  for (const auto& submesh : submeshes) {
-    BBox transformed_submesh_bounds = submesh.bounds;
-
-    glm::vec3 min = glm::vec3(submesh.transform * glm::vec4(transformed_submesh_bounds.min, 1.0f));
-    glm::vec3 max = glm::vec3(submesh.transform * glm::vec4(transformed_submesh_bounds.max, 1.0f));
-
-    mesh_bounds.min.x = glm::min(mesh_bounds.min.x, min.x);
-    mesh_bounds.min.y = glm::min(mesh_bounds.min.y, min.y);
-    mesh_bounds.min.z = glm::min(mesh_bounds.min.z, min.z);
-
-    mesh_bounds.max.x = glm::max(mesh_bounds.max.x, max.x);
-    mesh_bounds.max.y = glm::max(mesh_bounds.max.y, max.y);
-    mesh_bounds.max.z = glm::max(mesh_bounds.max.z, max.z);
-  }
-}
-
-void Shape::ProcessMesh(const aiMesh* mesh, const aiScene* scene) {
+void Shape::ProcessMesh(const aiMesh* mesh, SubMesh& sm, const aiScene* scene) {
   OE_ASSERT(scene != nullptr, "Attempting to process a mesh without a scene");
   OE_ASSERT(mesh != nullptr, "Attempting to process a null mesh");
 
-  SubMesh& submesh = submeshes.emplace_back();
-  submesh.sub_mesh_id = Random::GenerateUUID();
-  submesh.model_name = mesh->mName.C_Str();
-  submesh.base_vertex = vertices.size();
-  submesh.base_idx = indices.size();
-  submesh.material_id = mesh->mMaterialIndex;
-  submesh.idx_cnt = mesh->mNumFaces * 3;
-  submesh.vert_cnt = mesh->mNumVertices;
-
-  BBox& bounds = submesh.bounds;
+  BBox& bounds = sm.bounds;
   bounds = BBox::empty;
-  for (uint32_t i = 0; i < mesh->mNumVertices; i++) {
-    Vertex& v = vertices.emplace_back();
-    v.position = { mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
-    submesh.bounds.min.x = glm::min(v.position.x, submesh.bounds.min.x);
-    submesh.bounds.min.y = glm::min(v.position.y, submesh.bounds.min.y);
-    submesh.bounds.min.z = glm::min(v.position.z, submesh.bounds.min.z);
+  for (uint32_t i = sm.base_vertex; i < sm.base_vertex + sm.vert_cnt; i++) {
+    Vertex& v = vertices[i];
+    bounds.min.x = glm::min(v.position.x, bounds.min.x);
+    bounds.min.y = glm::min(v.position.y, bounds.min.y);
+    bounds.min.z = glm::min(v.position.z, bounds.min.z);
 
-    submesh.bounds.max.x = glm::max(v.position.x, submesh.bounds.max.x);
-    submesh.bounds.max.y = glm::max(v.position.y, submesh.bounds.max.y);
-    submesh.bounds.max.z = glm::max(v.position.z, submesh.bounds.max.z);
-
-    if (mesh->HasNormals()) {
-      v.normal = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };
-    } else {
-      v.normal = { 0.f, 0.f, 0.f };
-    }
-
-    if (mesh->HasTangentsAndBitangents()) {
-      v.tangent = { mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z };
-      v.bitangent = { mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z };
-    } else {
-      v.tangent = { 0.f, 0.f, 0.f };
-      v.bitangent = { 0.f, 0.f, 0.f };
-    }
-
-    if (mesh->HasTextureCoords(0)) {
-      v.uv_coord = { mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y };
-    } else {
-      v.uv_coord = { 0.f, 0.f };
-    }
-
-    raw_vertices.push_back(v.position.x);
-    raw_vertices.push_back(v.position.y);
-    raw_vertices.push_back(v.position.z);
-    raw_vertices.push_back(v.normal.x);
-    raw_vertices.push_back(v.normal.y);
-    raw_vertices.push_back(v.normal.z);
-    raw_vertices.push_back(v.tangent.x);
-    raw_vertices.push_back(v.tangent.y);
-    raw_vertices.push_back(v.tangent.z);
-    raw_vertices.push_back(v.bitangent.x);
-    raw_vertices.push_back(v.bitangent.y);
-    raw_vertices.push_back(v.bitangent.z);
-    raw_vertices.push_back(v.uv_coord.x);
-    raw_vertices.push_back(v.uv_coord.y);
-  }
-
-  for (uint32_t i = 0; i < mesh->mNumFaces; ++i) {
-    aiFace face = mesh->mFaces[i];
-    OE_ASSERT(face.mNumIndices == 3, "Other Engine does not support untriangulated meshes");
-    Index& idx = indices.emplace_back();
-    idx = { face.mIndices[0], face.mIndices[1], face.mIndices[2] };
-
-    raw_indices.push_back(face.mIndices[0]);
-    raw_indices.push_back(face.mIndices[1]);
-    raw_indices.push_back(face.mIndices[2]);
+    bounds.max.x = glm::max(v.position.x, bounds.max.x);
+    bounds.max.y = glm::max(v.position.y, bounds.max.y);
+    bounds.max.z = glm::max(v.position.z, bounds.max.z);
   }
 }
 
 void Shape::TraverseNodes(const aiNode* anode, int32_t node_idx, const glm::mat4& parent_transform, uint32_t level) {
   MeshNode& node = nodes[node_idx];
   node.name = anode->mName.C_Str();
-  node.local_transform = glm::mat4(1.f);  // Utils::Mat4FromAIMatrix4x4(aNode->mTransformation);
+  // the a,b,c,d in assimp is the row ; the 1,2,3,4 is the column
+  node.local_transform[0][0] = anode->mTransformation.a1;
+  node.local_transform[1][0] = anode->mTransformation.a2;
+  node.local_transform[2][0] = anode->mTransformation.a3;
+  node.local_transform[3][0] = anode->mTransformation.a4;
+  node.local_transform[0][1] = anode->mTransformation.b1;
+  node.local_transform[1][1] = anode->mTransformation.b2;
+  node.local_transform[2][1] = anode->mTransformation.b3;
+  node.local_transform[3][1] = anode->mTransformation.b4;
+  node.local_transform[0][2] = anode->mTransformation.c1;
+  node.local_transform[1][2] = anode->mTransformation.c2;
+  node.local_transform[2][2] = anode->mTransformation.c3;
+  node.local_transform[3][2] = anode->mTransformation.c4;
+  node.local_transform[0][3] = anode->mTransformation.d1;
+  node.local_transform[1][3] = anode->mTransformation.d2;
+  node.local_transform[2][3] = anode->mTransformation.d3;
+  node.local_transform[3][3] = anode->mTransformation.d4;
 
   glm::mat4 transform = parent_transform * node.local_transform;
   for (uint32_t i = 0; i < anode->mNumMeshes; i++) {
@@ -747,7 +865,6 @@ void Shape::TraverseNodes(const aiNode* anode, int32_t node_idx, const glm::mat4
     submesh.model_name = anode->mName.C_Str();
     submesh.transform = transform;
     submesh.local_transform = node.local_transform;
-
     node.sub_meshes.push_back(idx);
   }
 

@@ -29,6 +29,7 @@ namespace other {
 
     void OnSetEntity(const UUID& id) override;
     void SetTransform(const Transform& transform) override;
+    void SetScale(const glm::vec3& scale) override;
 
     glm::vec2 HalfExtents() const override;
     void* NativeShape() override { return rotated_translated_shape.GetPtr(); }
@@ -48,6 +49,7 @@ namespace other {
 
     void OnSetEntity(const UUID& id) override;
     void SetTransform(const Transform& transform) override;
+    void SetScale(const glm::vec3& scale) override;
 
     float Radius() const override;
     void* NativeShape() override { return rotated_translated_shape.GetPtr(); }
@@ -67,6 +69,7 @@ namespace other {
 
     void OnSetEntity(const UUID& id) override;
     void SetTransform(const Transform& transform) override;
+    void SetScale(const glm::vec3& scale) override;
 
     float Radius() const override;
     float Height() const override;
@@ -87,6 +90,7 @@ namespace other {
 
     void OnSetEntity(const UUID& id) override;
     void SetTransform(const Transform& transform) override;
+    void SetScale(const glm::vec3& scale) override;
 
     void* NativeShape() override { return rotated_translated_shape.GetPtr(); }
 
@@ -105,6 +109,7 @@ namespace other {
 
     void OnSetEntity(const UUID& id) override;
     void SetTransform(const Transform& transform) override;
+    void SetScale(const glm::vec3& scale) override;
 
     void* NativeShape() override { return shape.GetPtr(); }
 

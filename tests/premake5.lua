@@ -110,11 +110,19 @@ local gl_sandbox = {
       postbuildcommands {
         '{COPY} "%{wks.location}externals/sdl2/lib/Release/SDL2.dll" "%{cfg.targetdir}"',
         '{COPY} "%{wks.location}externals/assimp/lib/Release/assimp-vc143-mt.dll" "%{cfg.targetdir}"',
+        '{COPY} "%{wks.location}externals/steamworks/bin/steam_api64.dll" "%{cfg.targetdir}"',
+      }
+    filter { "configurations:Profile" }
+      postbuildcommands {
+        '{COPY} "%{wks.location}externals/sdl2/lib/Release/SDL2.dll" "%{cfg.targetdir}"',
+        '{COPY} "%{wks.location}externals/assimp/lib/Release/assimp-vc143-mt.dll" "%{cfg.targetdir}"',
+        '{COPY} "%{wks.location}externals/steamworks/bin/steam_api64.dll" "%{cfg.targetdir}"',
       }
     filter { "configurations:Debug" }
       postbuildcommands {
         '{COPY} "%{wks.location}externals/sdl2/lib/Debug/SDL2d.dll" "%{cfg.targetdir}"',
         '{COPY} "%{wks.location}externals/assimp/lib/Debug/assimp-vc143-mtd.dll" "%{cfg.targetdir}"',
+        '{COPY} "%{wks.location}externals/steamworks/bin/steam_api64.dll" "%{cfg.targetdir}"',
       }
   end,
 

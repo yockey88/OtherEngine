@@ -12,7 +12,6 @@
 
 #include "ecs/components/transform.hpp"
 
-
 namespace other {
 
   class PhysicsShape : public RefCounted {
@@ -36,6 +35,7 @@ namespace other {
     virtual void* NativeShape() = 0;
     virtual void OnSetEntity(const UUID& id) = 0;
     virtual void SetTransform(const Transform& transform) = 0;
+    virtual void SetScale(const glm::vec3& scale) = 0;
 
     void SetEntity(const UUID& id);
 
@@ -89,11 +89,19 @@ namespace other {
         : PhysicsShape(PhysicsShape::Shape::CONCAVE_MESH) {}
   };
 
-  // class CompoundShape : public PhysicsShape {
-  //  public:
-  //   CompoundShape()
-  //       : PhysicsShape(PhysicsShape::Shape::COMPOUND_SHAPE) {}
-  // };
+  class CompoundShape : public PhysicsShape {
+   public:
+    CompoundShape(const std::vector<Ref<PhysicsShape>>& shapes)
+        : PhysicsShape(PhysicsShape::Shape::INVALID_PHYSICS_SHAPE), shapes(shapes) {}
+    virtual ~CompoundShape() override {}
+
+    void* NativeShape() override { return nullptr; }
+    void OnSetEntity(const UUID& id) override;
+    void SetTransform(const Transform& transform) override;
+    void SetScale(const glm::vec3& scale) override;
+
+    std::vector<Ref<PhysicsShape>> shapes;
+  };
 
   // class MutableCompoundShape : public PhysicsShape {
   //  public:

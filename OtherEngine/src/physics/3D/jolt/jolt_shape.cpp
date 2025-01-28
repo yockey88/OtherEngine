@@ -16,6 +16,11 @@ namespace other {
     JPH::Quat orientation(transform.qrotation.x, transform.qrotation.y, transform.qrotation.z, transform.qrotation.w);
   }
 
+  void JoltBoxShape::SetScale(const glm::vec3& scale) {
+    // JPH::RVec3 half_extents(scale.x / 2.f, scale.y / 2.f, scale.z / 2.f);
+    // shape->SetHalfExtents(half_extents);
+  }
+
   glm::vec2 JoltBoxShape::HalfExtents() const {
     return glm::vec2();
   }
@@ -26,6 +31,9 @@ namespace other {
   void JoltSphereShape::SetTransform(const Transform& transform) {
   }
 
+  void JoltSphereShape::SetScale(const glm::vec3& scale) {
+  }
+
   float JoltSphereShape::Radius() const {
     return 0.0f;
   }
@@ -34,6 +42,9 @@ namespace other {
   }
 
   void JoltCapsuleShape::SetTransform(const Transform& transform) {
+  }
+
+  void JoltCapsuleShape::SetScale(const glm::vec3& scale) {
   }
 
   float JoltCapsuleShape::Radius() const {
@@ -50,10 +61,16 @@ namespace other {
   void JoltConvexMeshShape::SetTransform(const Transform& transform) {
   }
 
+  void JoltConvexMeshShape::SetScale(const glm::vec3& scale) {
+  }
+
   void JoltConcaveMeshShape::OnSetEntity(const UUID& id) {
   }
 
   void JoltConcaveMeshShape::SetTransform(const Transform& transform) {
+  }
+
+  void JoltConcaveMeshShape::SetScale(const glm::vec3& scale) {
   }
 
 }  // namespace other

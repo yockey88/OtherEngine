@@ -1,8 +1,9 @@
 [metadata]
 name = "forest"
 entities = {
+  "player",
   "terrain",
-  "tree",
+  "tree0",
   "sun"
 }
 
@@ -10,6 +11,24 @@ entities = {
 gravity = { 0 , -9.8 }
 
 [physics.3D]
+
+[player]
+UUID = 14115336166749612914
+components = {
+  static-mesh,
+  physics-object
+}
+
+[player.static-mesh]
+visible = true
+primitive = 5
+material.albedo = { 1, 0, 0, 1 }
+material.normal = { 1.0 , 1.0 , 1.0, 1 },
+material.roughness = { 1.0, 1.0, 1.0, 1 }
+
+[player.physics-object]
+type = dynamic
+shape = capsule
 
 [sun]
 UUID = 4025795962345870502
@@ -27,34 +46,47 @@ type = 0
 direction = { 2.0 , -4.0 , 1.0 , 1.0 }
 color = { 0.22 , 0.22 , 0.11 , 1.0 }
 
-[tree]
-UUID = 3660528912626818915
+[tree0]
+UUID = 
 components = {
-  static-mesh,
+  mesh,
   physics-object
 }
 
-[tree.transform]
-position = { -1.5, 1, 1 }
+[tree0.mesh]
+path = "pillar4.fbx"
 
-[tree.static-mesh]
-visible = true
-is-primitive = true
-primitive = 5
+[tree0.physics-object]
+type = static
+shape = 
 
-[tree.physics-object]
-type = kinematic
-shape = capsule
+[trees]
+UUID = 3660528912626818915
+components = {
+  mesh,
+  physics-object
+}
+
+[trees.transform]
+position = { -1.5, -1, 1 }
+
+[trees.mesh]
+path = "trees.fbx"
+
+[trees.physics-object]
+type = static
+shape = convex-mesh
 
 [terrain]
 UUID = 3252008639071987122
 components = {
-  mesh
+  mesh,
+  physics-object
 }
 
-[terrain.transform]
-rotation = { 1 , 0 , 0 , -1 }
-scale = { 200, 200, 200 }
-
 [terrain.mesh]
-path = "terrain2.fbx"
+path = "terrain.fbx"
+
+[terrain.physics-object]
+type = static
+shape = convex-mesh

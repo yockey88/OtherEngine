@@ -105,8 +105,6 @@ namespace other {
     void SetSubMeshes(const std::vector<uint32_t>& sub_meshes);
     Ref<ModelSource> GetModelSource() const;
 
-    void RebuildMesh();
-
     Ref<VertexArray> source_vao = nullptr;
 
    private:

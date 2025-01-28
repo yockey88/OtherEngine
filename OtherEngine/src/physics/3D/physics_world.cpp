@@ -4,6 +4,9 @@
  **/
 #include "physics/3D/physics_world.hpp"
 
+#include "physics/3D/physics_shape.hpp"
+
+
 #define OTHER_USE_REACT
 #ifdef OTHER_USE_REACT
   #include "physics/3D/react/react_world.hpp"
@@ -30,6 +33,10 @@ namespace other {
     world->RegisterCallbacks();
 
     return world;
+  }
+
+  Ref<PhysicsShape> PhysicsWorld::CreateCompoundShape(const std::vector<Ref<PhysicsShape>>& shapes) {
+    return NewRef<CompoundShape>(shapes);
   }
 
   void PhysicsWorld::RegisterColliderShape(UUID entity_id, Ref<PhysicsShape> shape) {

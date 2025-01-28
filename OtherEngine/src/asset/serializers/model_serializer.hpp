@@ -42,6 +42,7 @@ namespace other {
     std::vector<UUID> material_ids;
 
     virtual void ProcessMaterials(const aiScene* scene);
+    virtual void TraverseNodes(const aiNode* node, uint32_t node_idx, const glm::mat4& parent_transform = glm::mat4(1.f), uint32_t level = 0);
     virtual bool ProcessNode(const aiNode* node, const aiScene* scene, const uint32_t parent = 0xFFFFFFFF, const glm::mat4& parent_transform = glm::mat4(1.f), uint32_t level = 0);
     virtual bool ProcessMesh(const aiMesh* mesh, const aiScene* scene);
 

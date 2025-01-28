@@ -144,6 +144,10 @@ namespace other {
       transform.CalcMatrix();
     });
 
+    registry.view<RigidBody, Transform>().each([](RigidBody& body, Transform& transform) {
+      body.physics_body->SetTransform(transform);
+    });
+
     RefreshCameraTransforms();
 
     OnInit();
@@ -240,6 +244,8 @@ namespace other {
     OnStop();
 
     RestoreLastCapture();
+    /// we have to synchronize here so that scene is same as when it was captured
+    ///   (keeps editor state and client state in sync as well as consistent serialization/deserialization)
     Synchronize();
   }
 
@@ -261,7 +267,14 @@ namespace other {
     registry.view<Collider, Transform>().each([this](Collider& collider, Transform& transform) {
       OE_ASSERT(collider.shape != nullptr, "Collider shape is null");
       collider.shape->SetTransform(transform);
+      collider.shape->SetScale(transform.scale);
     });
+
+    // registry.view<PhysicsObject, RigidBody, Collider>().each([this](PhysicsObject& object, RigidBody& body, Collider& collider) {
+    //   OE_ASSERT(body.physics_body != nullptr, "Physics body is null");
+    //   OE_ASSERT(collider.shape != nullptr, "Collider shape is null");
+    //   body.physics_body->AddCollider(collider.shape);
+    // });
 
     physics_world->Simulate(0.00001f);
   }
@@ -964,6 +977,12 @@ namespace other {
   void Scene::OnDestroyPhysicsObject(entt::registry& context, entt::entity entt) {
     Entity ent(context, entt);
     physics_world->DestroyBody(ent);
+
+    OE_ASSERT(ent.HasComponent<RigidBody>(), "RigidBody component still exists");
+    OE_ASSERT(ent.HasComponent<Collider>(), "Collider component still exists");
+
+    ent.RemoveComponent<RigidBody>();
+    ent.RemoveComponent<Collider>();
   }
 
   void Scene::Initialize2DRigidBody(Ref<PhysicsWorld2D>& world, RigidBody2D& body, const Tag& tag, const Transform& transform) {

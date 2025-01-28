@@ -5,6 +5,7 @@
 
 #include "core/config_keys.hpp"
 
+#include "ecs/components/transform.hpp"
 #include "ecs/entity.hpp"
 #include "scene/scene.hpp"
 
@@ -197,11 +198,12 @@ namespace other {
       case FNV("capsule"):
         entity->AddComponent<Collider>(PhysicsShape::Shape::CAPSULE);
         break;
+      case FNV("convex-mesh"):
+        entity->AddComponent<Collider>(PhysicsShape::Shape::CONVEX_MESH);
+        break;
       case FNV("concave-mesh"):
         entity->AddComponent<Collider>(PhysicsShape::Shape::CONCAVE_MESH);
         break;
-      case FNV("convex-mesh"):
-        entity->AddComponent<Collider>(PhysicsShape::Shape::CONVEX_MESH);
       //   break;
       default:
         OE_ERROR("Collider shape section corrupt, cannot deserialize into entity {}", entity->Name());
@@ -227,6 +229,13 @@ namespace other {
     rb_serializer.Deserialize(entity, scene_table, scene);
 
     [[maybe_unused]] auto& physics_object = entity->AddComponent<PhysicsObject>();
+
+    RigidBody& body = entity->GetComponent<RigidBody>();
+    Collider& collider = entity->GetComponent<Collider>();
+    Transform& transform = entity->GetComponent<Transform>();
+
+    collider.shape->SetTransform(transform);
+    body.physics_body->SetTransform(transform);
   }
 
 }  // namespace other
