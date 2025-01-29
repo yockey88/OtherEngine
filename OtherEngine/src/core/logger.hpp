@@ -16,7 +16,6 @@
 #include "core/config.hpp"
 #include "core/defines.hpp"
 #include "core/formatters.hpp"
-
 #include "memory/arena_allocator.hpp"
 
 #ifdef OE_TESTING_ENVIRONMENT
@@ -208,10 +207,10 @@ struct fmt::formatter<std::stacktrace> : fmt::formatter<std::string_view> {
 #ifdef OTHER_DEBUG_BUILD
   #define ABORT()                                                           \
     OE_ERROR(" STACK TRACE -------------\n{}", std::stacktrace::current()); \
-    OE_BREAK();
+    OE_BREAK()
 #else
   #define ABORT() std::abort()
-#endif  // !OE_DEBUG_BUILD
+#endif  // !OTHER_DEBUG_BUILD
 
 #define OE_TRACE(fmt, ...) OE_LOG(TRACE, fmt, __VA_ARGS__)
 #define OE_DEBUG(fmt, ...) OE_LOG(DEBUG, fmt, __VA_ARGS__)
@@ -252,5 +251,17 @@ struct fmt::formatter<std::stacktrace> : fmt::formatter<std::string_view> {
       OE_REGISTER_THREAD(name);                  \
     }                                            \
   } while (false)
+
+#ifdef OTHER_DEBUG_BUILD
+  #define OE_UNIMPLEMENTED() OE_ASSERT(false, "Unimplemented: " + std::string{ __FUNCTION__ })
+  #define OE_UNIMPLEMENTED_RETURN(x)                                   \
+    OE_ASSERT(false, "Unimplemented: " + std::string{ __FUNCTION__ }); \
+    return x
+#else
+  #define OE_UNIMPLEMENTED() OE_CRITICAL("Unimplemented: " __FUNCTION__)
+  #define OE_UNIMPLEMENTED_RETURN(x)             \
+    OE_CRITICAL("Unimplemented: " __FUNCTION__); \
+    return x
+#endif  // !OTHER_DEBUG_BUILD
 
 #endif  // !OTHER_ENGINE_LOGGER_HPP

@@ -17,25 +17,4 @@ namespace other {
     return type;
   }
 
-  void CompoundShape::OnSetEntity(const UUID& id) {
-    for (auto& shape : shapes) {
-      OE_ASSERT(shape != nullptr, "Physics shape is null");
-      shape->SetEntity(id);
-    }
-  }
-
-  void CompoundShape::SetTransform(const Transform& transform) {
-    for (auto& shape : shapes) {
-      OE_ASSERT(shape != nullptr, "Physics shape is null");
-      shape->SetTransform(transform);
-    }
-  }
-
-  void CompoundShape::SetScale(const glm::vec3& scale) {
-    for (auto& shape : shapes) {
-      OE_ASSERT(shape != nullptr, "Physics shape is null");
-      shape->SetScale(scale);
-    }
-  }
-
 }  // namespace other

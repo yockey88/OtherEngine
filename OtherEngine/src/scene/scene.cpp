@@ -54,6 +54,8 @@ namespace other {
 
     registry.on_construct<Camera>().connect<&OnCameraAddition>();
 
+    registry.on_update<Transform>().connect<&Scene::OnUpdateTransform>(this);
+
     registry.on_construct<PhysicsObject>().connect<&Scene::OnAddPhysicsObject>(this);
     registry.on_destroy<PhysicsObject>().connect<&Scene::OnDestroyPhysicsObject>(this);
 
@@ -82,6 +84,8 @@ namespace other {
   Scene::~Scene() {
     registry.on_destroy<Mesh>().disconnect<&Scene::GeometryChanged>(this);
     registry.on_destroy<StaticMesh>().disconnect<&Scene::GeometryChanged>(this);
+
+    registry.on_update<Transform>().disconnect<&Scene::OnUpdateTransform>(this);
 
     registry.on_update<Mesh>().disconnect<&Scene::GeometryChanged>(this);
     registry.on_update<StaticMesh>().disconnect<&Scene::GeometryChanged>(this);
@@ -144,9 +148,7 @@ namespace other {
       transform.CalcMatrix();
     });
 
-    registry.view<RigidBody, Transform>().each([](RigidBody& body, Transform& transform) {
-      body.physics_body->SetTransform(transform);
-    });
+    Synchronize();
 
     RefreshCameraTransforms();
 
@@ -250,12 +252,6 @@ namespace other {
   }
 
   void Scene::Synchronize() {
-    OE_ASSERT(initialized, "Updating scene without initialization");
-    if (corrupt) {
-      Stop();
-      return;
-    }
-
     registry.view<RigidBody, Transform>().each([this](RigidBody& body, Transform& transform) {
       OE_ASSERT(body.physics_body != nullptr, "Physics body is null");
       body.physics_body->SetTransform(transform);
@@ -959,6 +955,20 @@ namespace other {
 
   //   script.SetHandles();
   // }
+
+  void Scene::OnUpdateTransform(entt::registry& context, entt::entity entt) {
+    Entity ent(context, entt);
+    auto& transform = ent.GetComponent<Transform>();
+
+    if (ent.HasComponent<Mesh>()) {
+      auto& mesh = ent.GetComponent<Mesh>();
+      Ref<Model> model = AssetManager::GetAsset<Model>(mesh.handle);
+      OE_ASSERT(model != nullptr, "Model is null");
+
+      Ref<ModelSource> source = model->GetModelSource();
+      OE_ASSERT(source != nullptr, "Model source is null");
+    }
+  }
 
   void Scene::OnAddPhysicsObject(entt::registry& context, entt::entity entt) {
     Entity ent(context, entt);

@@ -4,6 +4,7 @@
 #include "rendering/pipeline.hpp"
 
 #include <glad/glad.h>
+#include <glm/fwd.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -89,12 +90,10 @@ namespace other {
     auto& [mk, sl] = *itr;
 
     Ref<MaterialTable> material_table = submission.material_table;
-
     OE_ASSERT(material_table != nullptr, "Material table is null");
 
-    sl.submissions.resize(submeshes.size());
-    for (uint32_t i = 0; i < sm_idxs.size(); ++i) {
-      const uint32_t sm_idx = sm_idxs[i];
+    OE_ASSERT(sl.submissions.size() == submeshes.size(), "Submissions size does not match submeshes size");
+    for (auto sm_idx : sm_idxs) {
       OE_ASSERT(sm_idx < submeshes.size(), "Submesh index out of bounds");
 
       const SubMesh& sub_mesh = submeshes[sm_idx];
@@ -104,7 +103,8 @@ namespace other {
       OE_ASSERT(material_table->HasMaterial(material_id), "Material not found in table");
       Material gpumat = material_table->GetMaterial(material_id);
 
-      smdc.cpu_model_storage.BufferData(sub_mesh.transform);
+      glm::mat4 world_space_transform = submission.transform * sub_mesh.transform;
+      smdc.cpu_model_storage.BufferData(world_space_transform);
       smdc.cpu_material_storage.BufferData(gpumat);
       smdc.instance_count++;
     }
@@ -235,6 +235,7 @@ namespace other {
     OE_ASSERT(!submeshes.empty(), "Model source has no submeshes");
 
     Ref<VertexArray> vao = Ref<VertexArray>::Clone(source->source_vao);
+    OE_ASSERT(vao != nullptr, "Failed to clone vertex array");
 
     MeshDrawCall msl = {
       .vao = vao,
@@ -323,6 +324,31 @@ namespace other {
     for (auto& [mk, draw_call] : model_submissions) {
       RenderMeshes(mk, draw_call);
     }
+    // for (auto& [mk, draw_call] : draw_calls) {
+    //   OE_ASSERT(material_storage != nullptr, "Material storage is null");
+    //   OE_ASSERT(model_storage != nullptr, "Model storage is null");
+    //   OE_ASSERT(draw_call.vao != nullptr, "Mesh submission list has null vertex array");
+
+    //   Ref<MaterialTable> material_table = AssetManager::GetMaterialTable();
+    //   OE_ASSERT(material_table != nullptr, "Material table is null");
+
+    //   draw_call.vao->Bind();
+    //   material_table->Bind();
+    //   CHECKGL();
+
+    //   model_storage->BindBase();
+    //   model_storage->LoadFromBuffer(draw_call.cpu_model_storage);
+    //   material_storage->BindBase();
+    //   material_storage->LoadFromBuffer(draw_call.cpu_material_storage);
+
+    //   glLineWidth(draw_call.line_thickness);
+    //   glPolygonMode(GL_FRONT_AND_BACK, mk.render_state);
+    //   glDrawElementsInstancedBaseVertexBaseInstance(mk.draw_mode, draw_call.index_count, GL_UNSIGNED_INT, (void*)0, draw_call.instance_count, draw_call.vertex_offset, 0);
+    //   CHECKGL();
+
+    //   material_table->Unbind();
+    //   draw_call.vao->Unbind();
+    // }
   }
 
   void Pipeline::RenderStaticMeshes(const MeshKey& mesh_key, StaticMeshDrawCall& draw_call) {

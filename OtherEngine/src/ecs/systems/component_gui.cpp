@@ -81,6 +81,11 @@ namespace other {
           auto& body = ent->GetComponent<RigidBody>();
           body.physics_body->SetTransform(component);
         }
+
+        if (ent->HasComponent<Collider>()) {
+          auto& collider = ent->GetComponent<Collider>();
+          collider.shape->SetTransform(component);
+        }
       }
     }
 
@@ -883,7 +888,7 @@ namespace other {
 
     const Transform& transform = ent->GetComponent<Transform>();
 
-    static const char* collider_type_strings[] = { "Box", "Sphere", "Capsule", "Convex Mesh", "Concave Mesh" };
+    static const char* collider_type_strings[] = { "Box", "Sphere", "Capsule", "Convex Mesh", "Concave Mesh", "Compound Shape" };
 
     ui::BeginPropertyGrid();
     if (collider.shape == nullptr) {

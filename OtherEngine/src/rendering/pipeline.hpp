@@ -48,9 +48,9 @@ namespace other {
     PipelineSpec spec{};
 
     std::vector<DebugDrawCommand> debug_draw_commands;
+
     FrameMeshes model_submissions;
     StaticFrameMeshes static_model_submissions;
-
     std::map<MeshKey, DrawCall> draw_calls;
 
     Ref<UniformBuffer> model_storage = nullptr;

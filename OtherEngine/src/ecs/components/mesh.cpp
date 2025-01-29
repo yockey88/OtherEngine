@@ -134,19 +134,15 @@ namespace other {
     /// we dont deserialize the handle because CreateBox below will create a new one,
     ///   because the old would be invalid anyways
     mesh.visible = scene_table.GetVal<bool>(key_value, kVisibleValue, false).value_or(true);
-    mesh.is_primitive = scene_table.GetVal<bool>(key_value, kIsPrimitiveValue, false).value_or(false);
-    if (mesh.is_primitive) {
-      mesh.primitive_id = scene_table.GetVal<uint32_t>(key_value, kPrimitiveValue, false).value_or(0);
-    } else {
+    mesh.primitive_id = scene_table.GetVal<uint32_t>(key_value, kPrimitiveValue, false).value_or(0);
+    mesh.is_primitive = scene_table.GetVal<bool>(key_value, kIsPrimitiveValue, false).value_or(true);
+    mesh.is_primitive == mesh.primitive_id != 0;
+
+    if (!mesh.is_primitive) {
+      OE_DEBUG("Unimplented deserialization of non-primitive static mesh for {} : {} ({})", key_value, mesh.primitive_id, mesh.is_primitive);
       return;
     }
-
-    OE_DEBUG("Deserialized mesh {} {}", key_value, mesh.primitive_id);
-
-    if (mesh.primitive_id == 0) {
-      OE_ERROR("Corrupted primitive id deserializing {}", key_value);
-      return;
-    }
+    OE_DEBUG("Creating {} with primitive : {}", key_value, mesh.primitive_id);
 
     /// will be replaced during scene update
     auto& transform = entity->GetComponent<Transform>();
@@ -171,15 +167,16 @@ namespace other {
         break;
 
       default:
-        OE_ERROR("Corrupted primitive id deserializing {}", key_value);
-        mesh.primitive_id = 0;
+        if (mesh.is_primitive) {
+          OE_WARN("Unimplemented or invalid collider shape type : {}", mesh.primitive_id);
+        } else {
+          OE_ERROR("Corrupted primitive id deserializing {}", key_value);
+        }
         break;
     }
 
     mesh.primitive_selection = mesh.primitive_id;
-
-    /// material data
-    /// paths/other metadata
+    OE_DEBUG("Deserialized static mesh {} : {}", key_value, mesh.primitive_id);
   }
 
 }  // namespace other

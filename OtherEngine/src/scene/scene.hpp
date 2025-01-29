@@ -218,6 +218,8 @@ namespace other {
     // void OnAddCollider2D(entt::registry& context, entt::entity entt);
     // void OnCollider2DUpdate(entt::registry& context, entt::entity entt);
 
+    void OnUpdateTransform(entt::registry& context, entt::entity entt);
+
     void OnAddPhysicsObject(entt::registry& context, entt::entity entt);
     void OnDestroyPhysicsObject(entt::registry& context, entt::entity entt);
 

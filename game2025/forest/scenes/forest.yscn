@@ -2,8 +2,8 @@
 name = "forest"
 entities = {
   "player",
-  "terrain",
   "tree0",
+  "terrain",
   "sun"
 }
 
@@ -19,8 +19,10 @@ components = {
   physics-object
 }
 
+[player.transform]
+position = { 1, 1, 0 }
+
 [player.static-mesh]
-visible = true
 primitive = 5
 material.albedo = { 1, 0, 0, 1 }
 material.normal = { 1.0 , 1.0 , 1.0, 1 },
@@ -47,7 +49,7 @@ direction = { 2.0 , -4.0 , 1.0 , 1.0 }
 color = { 0.22 , 0.22 , 0.11 , 1.0 }
 
 [tree0]
-UUID = 
+UUID = 9036523777973816302
 components = {
   mesh,
   physics-object
@@ -58,24 +60,7 @@ path = "pillar4.fbx"
 
 [tree0.physics-object]
 type = static
-shape = 
-
-[trees]
-UUID = 3660528912626818915
-components = {
-  mesh,
-  physics-object
-}
-
-[trees.transform]
-position = { -1.5, -1, 1 }
-
-[trees.mesh]
-path = "trees.fbx"
-
-[trees.physics-object]
-type = static
-shape = convex-mesh
+shape = capsule
 
 [terrain]
 UUID = 3252008639071987122
@@ -84,8 +69,13 @@ components = {
   physics-object
 }
 
+[terrain.transform]
+position = { 0, 1, 0 }
+rotation = { 0, 0, 1, 1 }
+scale = { 1, 1, 1 }
+
 [terrain.mesh]
-path = "terrain.fbx"
+path = "terrain2.fbx"
 
 [terrain.physics-object]
 type = static

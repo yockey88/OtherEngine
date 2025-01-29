@@ -22,7 +22,7 @@ namespace other {
       CAPSULE,
       CONVEX_MESH,
       CONCAVE_MESH,
-      // COMPOUND_SHAPE,
+      COMPOUND_SHAPE,
       // MUTABLE_COMPOUND_SHAPE,
 
       NUM_PHYSICS_SHAPES,
@@ -91,16 +91,8 @@ namespace other {
 
   class CompoundShape : public PhysicsShape {
    public:
-    CompoundShape(const std::vector<Ref<PhysicsShape>>& shapes)
-        : PhysicsShape(PhysicsShape::Shape::INVALID_PHYSICS_SHAPE), shapes(shapes) {}
-    virtual ~CompoundShape() override {}
-
-    void* NativeShape() override { return nullptr; }
-    void OnSetEntity(const UUID& id) override;
-    void SetTransform(const Transform& transform) override;
-    void SetScale(const glm::vec3& scale) override;
-
-    std::vector<Ref<PhysicsShape>> shapes;
+    CompoundShape()
+        : PhysicsShape(PhysicsShape::Shape::COMPOUND_SHAPE) {}
   };
 
   // class MutableCompoundShape : public PhysicsShape {

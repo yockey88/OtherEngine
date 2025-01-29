@@ -198,7 +198,12 @@ namespace other {
         OE_ASSERT(convex_mesh_shape != nullptr, "Convex mesh shape is null");
         OE_ASSERT(convex_mesh_shape->shape != nullptr, "Convex mesh shape is null");
 
-        rp3d::Transform local_transform(rp3d::Vector3(0.f, 0.f, 0.f), body->getTransform().getOrientation());
+        rp3d::Quaternion orientation = body->getTransform().getOrientation();
+        rp3d::Quaternion inv_orientation = orientation.getInverse();
+
+        rp3d::Quaternion actual_orientation = inv_orientation * orientation;
+
+        rp3d::Transform local_transform(rp3d::Vector3(0.f, 0.f, 0.f), actual_orientation);
         body->addCollider(convex_mesh_shape->shape, local_transform);
       } break;
 

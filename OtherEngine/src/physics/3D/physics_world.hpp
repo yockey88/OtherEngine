@@ -39,8 +39,7 @@ namespace other {
     virtual Ref<PhysicsShape> CreateCapsuleShape(float radius, float height) = 0;
     virtual Ref<PhysicsShape> CreateConvexMeshShape(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, uint32_t num_faces) = 0;
     virtual Ref<PhysicsShape> CreateConcaveMeshShape(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, uint32_t num_faces) = 0;
-
-    Ref<PhysicsShape> CreateCompoundShape(const std::vector<Ref<PhysicsShape>>& shapes);
+    virtual Ref<PhysicsShape> CreateCompoundShape(const std::vector<Ref<PhysicsShape>>& shapes) = 0;
 
     virtual void SetDebugRendering(bool debug) = 0;
     bool IsDebugRenderEnabled() const;
@@ -72,13 +71,14 @@ namespace other {
 
     std::map<UUID, Ref<PhysicsShape>> shapes[PhysicsShape::Shape::NUM_PHYSICS_SHAPES] = { {} };
 
+    std::map<void*, UUID> native_bodies;
+    std::map<UUID, Ref<PhysicsBody>> bodies;
+
     virtual void RegisterCallbacks() {}
 
     Scene* scene_context = nullptr;
 
    private:
-    std::map<void*, UUID> native_bodies;
-    std::map<UUID, Ref<PhysicsBody>> bodies;
   };
 
 }  // namespace other

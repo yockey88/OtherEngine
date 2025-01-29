@@ -8,6 +8,8 @@
 #include <reactphysics3d/mathematics/Vector3.h>
 #include <reactphysics3d/utils/quickhull/QuickHull.h>
 
+#include "profiling/profiling.hpp"
+
 #include "core/filesystem.hpp"
 #include "core/formatters.hpp"
 #include "core/logger.hpp"
@@ -252,11 +254,19 @@ namespace other {
     }
     OE_ASSERT(collider.shape != nullptr, "Failed to create collider shape");
 
+    OE_ASSERT(body.physics_body != nullptr, "Physics body is null");
     body.physics_body->AddCollider(collider.shape);
+    body.physics_body->SetTransform(initial_transform);
     RegisterColliderShape(tag.id, collider.shape);
 
-    OE_ASSERT(body.physics_body != nullptr, "Physics body is null");
     OE_ASSERT(collider.shape != nullptr, "Collider shape is null");
+    collider.shape->SetTransform(initial_transform);
+
+    auto [itr, res] = native_bodies.insert({ body.physics_body->GetNativeBody<void*>(), tag.id });
+    OE_ASSERT(res, "Failed to insert body into native bodies map");
+
+    auto [itr2, res2] = bodies.insert({ tag.id, body.physics_body });
+    OE_ASSERT(res2, "Failed to insert body into bodies map");
   }
 
   void ReactWorld::DestroyBody(Entity& ent) {
@@ -317,16 +327,20 @@ namespace other {
 
   Ref<PhysicsShape> ReactWorld::CreateConvexMeshShape(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, uint32_t num_faces) {
     OE_ASSERT(physics_world != nullptr, "Physics world is null");
+    PROFILE_SECTION("ReactWorld::CreateConvexMeshShape");
 
     std::vector<float> verts;
-    verts.reserve(vertices.size() * 3);
-    for (const Vertex& v : vertices) {
-      verts.push_back(v.position.x);
-      verts.push_back(v.position.y);
-      verts.push_back(v.position.z);
+    {
+      PROFILE_SECTION("ReactWorld::CreateConvexMeshShape--BuildVertexBuffer");
+      verts.reserve(vertices.size() * 3);
+      for (const Vertex& v : vertices) {
+        verts.push_back(v.position.x);
+        verts.push_back(v.position.y);
+        verts.push_back(v.position.z);
+      }
     }
 
-    auto& mem_allocator = physics_world->getMemoryManager().getHeapAllocator();
+    auto& mem_allocator = physics_world->getMemoryManager().getPoolAllocator();
 
     rp3d::VertexArray vert_array = rp3d::VertexArray(verts.data(), sizeof(float) * 3, vertices.size(), rp3d::VertexArray::DataType::VERTEX_FLOAT_TYPE);
     rp3d::PolygonVertexArray res_vert_array;
@@ -334,8 +348,11 @@ namespace other {
     rp3d::Array<unsigned int> res_indices(mem_allocator);
     rp3d::Array<rp3d::PolygonVertexArray::PolygonFace> res_faces(mem_allocator);
     std::vector<rp3d::Message> err_msgs;
-
-    bool success = rp3d::QuickHull::computeConvexHull(vert_array, res_vert_array, res_verts, res_indices, res_faces, mem_allocator, err_msgs);
+    bool success = false;
+    {
+      PROFILE_SECTION("ReactWorld::CreateConvexMeshShape--ComputeConvexHull");
+      success = rp3d::QuickHull::computeConvexHull(vert_array, res_vert_array, res_verts, res_indices, res_faces, mem_allocator, err_msgs);
+    }
     for (const rp3d::Message& msg : err_msgs) {
       switch (msg.type) {
         case rp3d::Message::Type::Error:
@@ -357,7 +374,11 @@ namespace other {
     }
 
     err_msgs.clear();
-    rp3d::ConvexMesh* mesh = physics_common.createConvexMesh(res_vert_array, err_msgs);
+    rp3d::ConvexMesh* mesh = nullptr;
+    {
+      PROFILE_SECTION("ReactWorld::CreateConvexMeshShape--CreateConvexMesh");
+      mesh = physics_common.createConvexMesh(res_vert_array, err_msgs);
+    }
     for (const rp3d::Message& msg : err_msgs) {
       switch (msg.type) {
         case rp3d::Message::Type::Error:
@@ -378,8 +399,11 @@ namespace other {
       OE_ERROR("Failed to create convex mesh");
       return nullptr;
     }
-
-    rp3d::ConvexMeshShape* shape = physics_common.createConvexMeshShape(mesh);
+    rp3d::ConvexMeshShape* shape = nullptr;
+    {
+      PROFILE_SECTION("ReactWorld::CreateConvexMeshShape--CreateConvexMeshShape");
+      shape = physics_common.createConvexMeshShape(mesh);
+    }
     if (shape == nullptr) {
       OE_ERROR("Failed to create convex mesh shape");
       return nullptr;
@@ -391,6 +415,10 @@ namespace other {
   Ref<PhysicsShape> ReactWorld::CreateConcaveMeshShape(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, uint32_t num_faces) {
     OE_ASSERT(false, "Concave mesh shapes are not implemented yet");
     return nullptr;
+  }
+
+  Ref<PhysicsShape> ReactWorld::CreateCompoundShape(const std::vector<Ref<PhysicsShape>>& shapes) {
+    return NewRef<ReactCompoundShape>(this);
   }
 
   void ReactWorld::SetDebugRendering(bool debug) {

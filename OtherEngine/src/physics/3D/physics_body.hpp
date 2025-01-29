@@ -98,7 +98,7 @@ namespace other {
     uint32_t object_layer = 0;
     PhysicsBodyType body_type = STATIC;
 
-    // std::vector<Ref<PhysicsShape>> collider_shapes = {};
+    std::vector<Ref<PhysicsShape>> collider_shapes = {};
     Ref<PhysicsShape> collider_shape = nullptr;
 
     virtual void OnBodyTypeChange(PhysicsBodyType type) {}

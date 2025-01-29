@@ -174,6 +174,12 @@ namespace other {
 
     body->SetUserData(tag.id.Get());
     rigid_body.physics_body = NewRef<JoltBody>(body_interface, body);
+
+    auto [itr, res] = native_bodies.insert({ body, tag.id });
+    OE_ASSERT(res, "Failed to insert body into native bodies map");
+
+    auto [itr2, res2] = bodies.insert({ tag.id, rigid_body.physics_body });
+    OE_ASSERT(res2, "Failed to insert body into bodies map");
   }
 
   void JoltWorld::DestroyBody(Entity& entity) {

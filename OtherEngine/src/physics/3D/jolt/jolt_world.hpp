@@ -11,6 +11,8 @@
 #include <Jolt/Physics/PhysicsSystem.h>
 // clang-format on
 
+#include "core/logger.hpp"
+
 #include "ecs/components/physics_component.hpp"
 
 #include "physics/3D/jolt/activation_listener.hpp"
@@ -39,6 +41,9 @@ namespace other {
     Ref<PhysicsShape> CreateCapsuleShape(float radius, float height) override;
     Ref<PhysicsShape> CreateConvexMeshShape(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, uint32_t num_faces) override;
     Ref<PhysicsShape> CreateConcaveMeshShape(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, uint32_t num_faces) override;
+    Ref<PhysicsShape> CreateCompoundShape(const std::vector<Ref<PhysicsShape>>& shapes) override {
+      OE_UNIMPLEMENTED_RETURN(nullptr);
+    }
 
     void SetDebugRendering(bool debug) override {}
     void SubmitDebugRender(Ref<SceneRenderer> renderer) override {}

@@ -33,6 +33,7 @@ namespace other {
     Ref<PhysicsShape> CreateCapsuleShape(float radius, float height) override;
     Ref<PhysicsShape> CreateConvexMeshShape(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, uint32_t num_faces) override;
     Ref<PhysicsShape> CreateConcaveMeshShape(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, uint32_t num_faces) override;
+    Ref<PhysicsShape> CreateCompoundShape(const std::vector<Ref<PhysicsShape>>& shapes) override;
 
     void SetDebugRendering(bool debug) override;
     void SubmitDebugRender(Ref<SceneRenderer> renderer) override;

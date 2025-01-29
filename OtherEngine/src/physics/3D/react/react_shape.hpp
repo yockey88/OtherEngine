@@ -95,6 +95,23 @@ namespace other {
     rp3d::ConcaveShape* shape = nullptr;
   };
 
+  class ReactCompoundShape : public CompoundShape {
+   public:
+    ReactCompoundShape(ReactWorld* world)
+        : CompoundShape(), world(world) {}
+
+    void OnSetEntity(const UUID& id) override;
+    void SetTransform(const Transform& transform) override;
+    void SetScale(const glm::vec3& scale) override;
+
+    void* NativeShape() override;
+
+    void AddShape(UUID id, rp3d::CollisionShape* shape);
+
+    ReactWorld* world = nullptr;
+    std::map<UUID, rp3d::CollisionShape*> shapes;
+  };
+
 }  // namespace other
 
 #endif  // !OTHER_ENGINE_REACT_SHAPE_HPP
