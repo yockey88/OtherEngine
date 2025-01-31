@@ -44,7 +44,7 @@ namespace other {
       aiProcess_GlobalScale;             // e.g. convert cm to m for fbx import (and other formats where cm is native)
     const aiScene* scene = importer.ReadFile(metadata.path.string(), flags);
     if (scene == nullptr) {
-      OE_ERROR("Failed to load model : {}", metadata.path);
+      OE_ERROR("Failed to load model : {} [{}]", metadata.path, importer.GetErrorString());
       return false;
     }
 
@@ -109,6 +109,8 @@ namespace other {
         OE_ASSERT(face.mNumIndices == 3, "Other Engine does not support untriangulated meshes");
         Index& idx = indices.emplace_back();
         idx = { face.mIndices[0], face.mIndices[1], face.mIndices[2] };
+
+        triangles[i].push_back(Triangle{ vertices[idx.v1], vertices[idx.v2], vertices[idx.v3] });
       }
 
       vertex_count += mesh->mNumVertices;
@@ -136,6 +138,7 @@ namespace other {
     // }
 
     Ref<ModelSource> source = NewRef<ModelSource>(vertices, indices, submeshes);
+    source->triangles = triangles;
     metadata.asset = source;
     return true;
   }

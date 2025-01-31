@@ -65,6 +65,10 @@ namespace other {
     uint32_t v1, v2, v3;
   };
 
+  struct Triangle {
+    Vertex v1, v2, v3;
+  };
+
   struct SubMesh {
     uint32_t base_vertex = 0;
     uint32_t base_idx = 0;

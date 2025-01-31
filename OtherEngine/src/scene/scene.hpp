@@ -223,6 +223,8 @@ namespace other {
     void OnAddPhysicsObject(entt::registry& context, entt::entity entt);
     void OnDestroyPhysicsObject(entt::registry& context, entt::entity entt);
 
+    void OnAddTerrain(entt::registry& context, entt::entity entt);
+
     void Initialize2DRigidBody(Ref<PhysicsWorld2D>& world, RigidBody2D& body, const Tag& tag, const Transform& transform);
     void Initialize2DCollider(Ref<PhysicsWorld2D>& world, RigidBody2D& body, Collider2D& collider, const Transform& transform);
   };

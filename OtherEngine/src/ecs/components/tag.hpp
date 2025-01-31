@@ -28,6 +28,13 @@ namespace other {
     ECS_COMPONENT(Tag, TAG_COMPONENT_INDEX);
   };
 
+  struct TagSnapshotter : public ObjectSerializer<Tag, 2> {
+    TagSnapshotter() {
+      AddField<std::string, 0>(&Tag::name);
+      AddField<UUID, 1>(&Tag::id);
+    }
+  };
+
 }  // namespace other
 
 ECHO_TYPE(

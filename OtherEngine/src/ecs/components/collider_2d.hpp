@@ -10,7 +10,6 @@
 #include "ecs/component.hpp"
 #include "ecs/component_serializer.hpp"
 
-
 namespace other {
 
   struct Collider2D : Component {
@@ -28,6 +27,16 @@ namespace other {
   class Collider2DSerializer : public ComponentSerializer {
    public:
     COMPONENT_SERIALIZERS(Collider2D);
+  };
+
+  class Collider2DSnapshotter : public ObjectSerializer<Collider2D, 4> {
+   public:
+    Collider2DSnapshotter() {
+      AddField<glm::vec2, 0>(&Collider2D::offset);
+      AddField<glm::vec2, 1>(&Collider2D::size);
+      AddField<float, 2>(&Collider2D::density);
+      AddField<float, 3>(&Collider2D::friction);
+    }
   };
 
 }  // namespace other

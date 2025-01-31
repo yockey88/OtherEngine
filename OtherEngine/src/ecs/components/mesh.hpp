@@ -53,9 +53,29 @@ namespace other {
     AssetHandle GetMeshHandle(const std::string& path) const;
   };
 
+  struct MeshSnapshotter : public ObjectSerializer<Mesh, 3> {
+    MeshSnapshotter() {
+      AddField<AssetHandle, 0>(&Mesh::handle);
+      AddField<UUID, 1>(&Mesh::material);
+      // AddField<std::vector<UUID>, 2>(&Mesh::bone_entity_ids);
+      AddField<bool, 2>(&Mesh::visible);
+    }
+  };
+
   class StaticMeshSerializer : public ComponentSerializer {
    public:
     COMPONENT_SERIALIZERS(StaticMesh);
+  };
+
+  struct StaticMeshSnapshotter : public ObjectSerializer<StaticMesh, 6> {
+    StaticMeshSnapshotter() {
+      AddField<AssetHandle, 0>(&StaticMesh::handle);
+      AddField<UUID, 1>(&StaticMesh::material);
+      AddField<bool, 2>(&StaticMesh::visible);
+      AddField<bool, 3>(&StaticMesh::is_primitive);
+      AddField<uint32_t, 4>(&StaticMesh::primitive_id);
+      AddField<uint32_t, 5>(&StaticMesh::primitive_selection);
+    }
   };
 
 }  // namespace other

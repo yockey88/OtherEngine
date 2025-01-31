@@ -30,6 +30,7 @@
 #include "ecs/components/rigid_body_2d.hpp"
 #include "ecs/components/script.hpp"
 #include "ecs/components/tag.hpp"
+#include "ecs/components/terrain.hpp"
 #include "ecs/components/transform.hpp"
 #include "ecs/entity.hpp"
 #include "ecs/systems/core_systems.hpp"
@@ -58,6 +59,8 @@ namespace other {
 
     registry.on_construct<PhysicsObject>().connect<&Scene::OnAddPhysicsObject>(this);
     registry.on_destroy<PhysicsObject>().connect<&Scene::OnDestroyPhysicsObject>(this);
+
+    registry.on_construct<Terrain>().connect<&Scene::OnAddTerrain>(this);
 
     registry.on_update<LightSource>().connect<&Scene::RebuildEnvironment>(this);
     registry.on_destroy<LightSource>().connect<&Scene::RebuildEnvironment>(this);
@@ -101,6 +104,8 @@ namespace other {
 
     registry.on_construct<PhysicsObject>().disconnect<&Scene::OnAddPhysicsObject>(this);
     registry.on_destroy<PhysicsObject>().disconnect<&Scene::OnDestroyPhysicsObject>(this);
+
+    registry.on_construct<Terrain>().disconnect<&Scene::OnAddTerrain>(this);
 
     registry.on_construct<Camera>().disconnect<&OnCameraAddition>();
 
@@ -993,6 +998,19 @@ namespace other {
 
     ent.RemoveComponent<RigidBody>();
     ent.RemoveComponent<Collider>();
+  }
+
+  void Scene::OnAddTerrain(entt::registry& context, entt::entity entt) {
+    Entity ent(context, entt);
+    auto& terrain = ent.GetComponent<Terrain>();
+
+    if (ent.HasComponent<Mesh>()) {
+      /// calculate terrain size from mesh vertices
+
+      Terrain::GenerateHeightMap(&ent.GetComponent<Mesh>(), terrain);
+    } else {
+      /// randomly generate height field
+    }
   }
 
   void Scene::Initialize2DRigidBody(Ref<PhysicsWorld2D>& world, RigidBody2D& body, const Tag& tag, const Transform& transform) {

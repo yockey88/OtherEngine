@@ -66,17 +66,22 @@ shape = capsule
 UUID = 3252008639071987122
 components = {
   mesh,
-  physics-object
+  terrain
 }
+# physics-object
 
 [terrain.transform]
-position = { 0, 1, 0 }
+position = { 0, 0, 0 }
 rotation = { 0, 0, 1, 1 }
 scale = { 1, 1, 1 }
 
 [terrain.mesh]
-path = "terrain2.fbx"
+path = "terrain4.fbx"
 
-[terrain.physics-object]
-type = static
-shape = convex-mesh
+[terrain.terrain]
+size = { 100, 100}
+
+# [terrain.physics-object]
+# type = static
+# shape = convex-mesh
+

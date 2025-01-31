@@ -13,6 +13,11 @@
 
 namespace other {
 
+  Transform::Transform(const glm::vec3& scale, const glm::vec3& position, const glm::vec3& erotation)
+      : Component(TRANSFORM_COMPONENT_INDEX), scale(scale), position(position), erotation(erotation) {
+    bbox = BBox(position);
+  }
+
   Transform::Transform(const glm::vec3& position)
       : Component(TRANSFORM_COMPONENT_INDEX), position(position) {
     bbox = BBox(position);

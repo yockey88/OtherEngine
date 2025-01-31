@@ -53,7 +53,9 @@ namespace other {
   Logger* Logger::instance = nullptr;
 
   Logger* Logger::Open(const ConfigTable& config) {
-    OE_ASSERT(!open, "Attempting to reopen logger");
+    if (open) {
+      return instance;
+    }
 
     if (instance == nullptr) {
       instance = logger_allocator.Allocate(config);

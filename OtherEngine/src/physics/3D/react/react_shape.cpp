@@ -160,4 +160,32 @@ namespace other {
     shapes[id] = shape;
   }
 
+  void ReactTerrainShape::OnSetEntity(const UUID& id) {
+  }
+
+  void ReactTerrainShape::SetTransform(const Transform& transform) {
+    SetScale(transform.scale);
+  }
+
+  void ReactTerrainShape::SetScale(const glm::vec3& scale) {
+    glm::vec3 half_scale = scale / 2.f;
+    glm::vec3 new_min = -half_scale;
+    glm::vec3 new_max = half_scale;
+
+    rp3d::Vector3 min = {
+      new_min.x,
+      new_min.y,
+      new_min.z,
+    };
+
+    rp3d::Vector3 max = {
+      new_max.x,
+      new_max.y,
+      new_max.z,
+    };
+
+    shape->getLocalBounds().setMin(min);
+    shape->getLocalBounds().setMax(max);
+  }
+
 }  // namespace other

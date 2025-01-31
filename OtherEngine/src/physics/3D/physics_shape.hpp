@@ -24,6 +24,7 @@ namespace other {
       CONCAVE_MESH,
       COMPOUND_SHAPE,
       // MUTABLE_COMPOUND_SHAPE,
+      TERRAIN_SHAPE,
 
       NUM_PHYSICS_SHAPES,
       INVALID_PHYSICS_SHAPE = NUM_PHYSICS_SHAPES,
@@ -100,6 +101,12 @@ namespace other {
   //   MutableCompoundShape()
   //       : PhysicsShape(PhysicsShape::Shape::MUTABLE_COMPOUND_SHAPE) {}
   // };
+
+  class TerrainShape : public PhysicsShape {
+   public:
+    TerrainShape()
+        : PhysicsShape(PhysicsShape::Shape::TERRAIN_SHAPE) {}
+  };
 
 }  // namespace other
 

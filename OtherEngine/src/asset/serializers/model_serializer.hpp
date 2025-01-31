@@ -37,6 +37,8 @@ namespace other {
     std::vector<SubMesh> submeshes;
     std::vector<MeshNode> nodes;
 
+    std::unordered_map<uint32_t, std::vector<Triangle>> triangles;
+
     std::vector<uint64_t> loaded_texture_hashes;
 
     std::vector<UUID> material_ids;

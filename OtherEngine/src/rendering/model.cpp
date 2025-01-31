@@ -114,20 +114,29 @@ namespace other {
     index_buffer->Bind();
   }
 
+  const std::vector<Vertex>& ModelSource::Vertices() const {
+    return vertices;
+  }
+
   const std::vector<float>& ModelSource::RawVertices() const {
     return raw_vertices;
+  }
+
+  const std::vector<Index>& ModelSource::Indices() const {
+    return indices;
   }
 
   const std::vector<uint32_t>& ModelSource::RawIndices() const {
     return raw_indices;
   }
 
-  const std::vector<Vertex>& ModelSource::Vertices() const {
-    return vertices;
+  const std::unordered_map<uint32_t, std::vector<Triangle>>& ModelSource::Triangles() const {
+    return triangles;
   }
 
-  const std::vector<Index>& ModelSource::Indices() const {
-    return indices;
+  const std::vector<Triangle>& ModelSource::Triangles(uint32_t sub_mesh_id) const {
+    OE_ASSERT(triangles.find(sub_mesh_id) != triangles.end(), "Submesh not found in triangles map!");
+    return triangles.at(sub_mesh_id);
   }
 
   const std::vector<uint32_t>& ModelSource::RawLayout() const {

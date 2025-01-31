@@ -17,6 +17,7 @@
 #include "asset/asset_manager.hpp"
 
 #include "ecs/components/physics_component.hpp"
+#include "ecs/components/terrain.hpp"
 #include "scene/scene.hpp"
 
 #include "physics/3D/physics_shape.hpp"
@@ -175,6 +176,11 @@ namespace other {
       ent.RemoveComponent<Collider>();
       ent.RemoveComponent<RigidBody>();
     };
+
+    uint32_t shape_idx = collider.shape_idx;
+    if (ent.HasComponent<Terrain>()) {
+      shape_idx = PhysicsShape::Shape::TERRAIN_SHAPE;
+    }
 
     switch (collider.shape_idx) {
       case PhysicsShape::Shape::BOX: {
@@ -399,6 +405,7 @@ namespace other {
       OE_ERROR("Failed to create convex mesh");
       return nullptr;
     }
+
     rp3d::ConvexMeshShape* shape = nullptr;
     {
       PROFILE_SECTION("ReactWorld::CreateConvexMeshShape--CreateConvexMeshShape");
@@ -419,6 +426,57 @@ namespace other {
 
   Ref<PhysicsShape> ReactWorld::CreateCompoundShape(const std::vector<Ref<PhysicsShape>>& shapes) {
     return NewRef<ReactCompoundShape>(this);
+  }
+
+  Ref<PhysicsShape> ReactWorld::CreateTerrainShape(const Terrain& terrain) {
+    OE_ASSERT(physics_world != nullptr, "Physics world is null");
+    OE_ASSERT(terrain.size.x != 0, "Terrain has 0 size!");
+    OE_ASSERT(terrain.size.y != 0, "Terrain has 0 size!");
+
+    PROFILE_SECTION("ReactWorld::CreateTerrainShape");
+
+    std::vector<float> heights = terrain.heights;
+    std::vector<rp3d::Message> err_msgs;
+    rp3d::HeightField* height_field = nullptr;
+    {
+      PROFILE_SECTION("ReactWorld::CreateTerrainShape--CreateHeightField");
+      height_field = physics_common.createHeightField(terrain.size.x, terrain.size.y, heights.data(), rp3d::HeightField::HeightDataType::HEIGHT_FLOAT_TYPE, err_msgs);
+    }
+
+    if (height_field == nullptr) {
+      for (const rp3d::Message& msg : err_msgs) {
+        switch (msg.type) {
+          case rp3d::Message::Type::Error:
+            OE_ERROR("ReactPhysics3D: {0}", msg.text);
+            break;
+          case rp3d::Message::Type::Warning:
+            OE_WARN("ReactPhysics3D: {0}", msg.text);
+            break;
+          case rp3d::Message::Type::Information:
+            OE_INFO("ReactPhysics3D: {0}", msg.text);
+            break;
+          default:
+            break;
+        }
+      }
+      OE_ERROR("Failed to create height field");
+      return nullptr;
+    }
+
+    rp3d::HeightFieldShape* shape = nullptr;
+    {
+      PROFILE_SECTION("ReactWorld::CreateTerrainShape--CreateHeightFieldShape");
+      shape = physics_common.createHeightFieldShape(height_field);
+    }
+
+    if (shape == nullptr) {
+      OE_ERROR("Failed to create height field shape");
+      return nullptr;
+    }
+
+    const rp3d::Vector3& scale = shape->getScale();
+    shape->setScale(rp3d::Vector3(scale.x, 0.01, scale.y));
+    return NewRef<ReactTerrainShape>(height_field, shape, this);
   }
 
   void ReactWorld::SetDebugRendering(bool debug) {

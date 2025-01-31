@@ -20,6 +20,8 @@
 
 #include "core/uuid.hpp"
 
+#include "serialization/object_serializer.hpp"
+
 namespace echo = dotother::echo;
 
 namespace other {
@@ -56,6 +58,7 @@ namespace other {
     COLLIDER_COMPONENT_INDEX,
     PHYSICS_OBJECT_COMPONENT_INDEX,
     LIGHTSOURCE_COMPONENT_INDEX,
+    TERRAIN_COMPONENT_INDEX,
 
     NUM_COMPONENTS,
     INVALID_COMPONENT = NUM_COMPONENTS
@@ -91,6 +94,7 @@ namespace other {
     ComponentTag{ "collider", COLLIDER_COMPONENT_INDEX },
     ComponentTag{ "physics-object", PHYSICS_OBJECT_COMPONENT_INDEX },
     ComponentTag{ "light-source", LIGHTSOURCE_COMPONENT_INDEX },
+    ComponentTag{ "terrain", TERRAIN_COMPONENT_INDEX }
   };
 
   class Entity;

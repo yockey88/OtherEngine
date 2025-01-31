@@ -77,16 +77,18 @@ namespace other {
   }
 
   void Arena::Free(void* ptr, std::size_t size) {
-    /// do nothing for now, allocators handle calling destructors and zeroing memory
-    ///   later we can implement a free list or something or register freed chunks for defragmentation
     if (ptr == nullptr) {
+#ifdef OTHER_MEMORY_DEBUG_BUILD
       OE_CRITICAL("Attempted to free null pointer.");
       println("{}", std::stacktrace::current());
+#endif
       return;
     }
+
 #ifdef OTHER_MEMORY_DEBUG_BUILD
     instance->ReportDeallocation(ptr, size);
 #endif
+    std::memset(ptr, 0, size);
     return;
   }
 

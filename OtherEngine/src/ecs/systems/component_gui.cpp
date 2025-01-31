@@ -21,6 +21,7 @@
 #include "ecs/components/physics_component.hpp"
 #include "ecs/components/rigid_body_2d.hpp"
 #include "ecs/components/script.hpp"
+#include "ecs/components/terrain.hpp"
 #include "ecs/components/transform.hpp"
 #include "scene/scene_manager.hpp"
 
@@ -888,7 +889,7 @@ namespace other {
 
     const Transform& transform = ent->GetComponent<Transform>();
 
-    static const char* collider_type_strings[] = { "Box", "Sphere", "Capsule", "Convex Mesh", "Concave Mesh", "Compound Shape" };
+    static const char* collider_type_strings[] = { "Box", "Sphere", "Capsule", "Convex Mesh", "Concave Mesh", "Compound Shape", "Terrain Shape" };
 
     ui::BeginPropertyGrid();
     if (collider.shape == nullptr) {
@@ -899,7 +900,7 @@ namespace other {
     }
 
     bool changed = false;
-    if (ui::PropertyDropdown("Collider Type", collider_type_strings, PhysicsShape::Shape::CONCAVE_MESH, collider.shape_idx)) {}
+    if (ui::PropertyDropdown("Collider Type", collider_type_strings, PhysicsShape::Shape::NUM_PHYSICS_SHAPES, collider.shape_idx)) {}
 
     if (collider.shape_idx != collider.shape->ShapeType() && ImGui::Button("Confirm Change")) {
       changed = true;
@@ -1002,7 +1003,24 @@ namespace other {
         } break;
         case PhysicsShape::Shape::CONCAVE_MESH: {
           OE_ERROR("Concave mesh collider not implemented yet");
+          ui::EndPropertyGrid();
           return false;
+        } break;
+
+        case PhysicsShape::Shape::COMPOUND_SHAPE: {
+          OE_ERROR("Compound shape collider not implemented yet");
+          ui::EndPropertyGrid();
+          return false;
+        } break;
+
+        case PhysicsShape::Shape::TERRAIN_SHAPE: {
+          if (!ent->HasComponent<Terrain>()) {
+            OE_ERROR("Can not create terrain shape without terrain component");
+            return false;
+          }
+
+          auto& terrain = ent->GetComponent<Terrain>();
+          shape = world->CreateTerrainShape(terrain);
         } break;
         default:
           OE_ERROR("Unimplemented or invalid collider shape type : {}", collider.shape_idx);
@@ -1086,6 +1104,18 @@ namespace other {
       default:
         break;
     }
+    return false;
+  }
+
+  bool DrawTerrain(Entity* ent) {
+    auto& terrain = ent->GetComponent<Terrain>();
+
+    ui::BeginPropertyGrid();
+
+    if (ui::Property("vertical scale factor", &terrain.scale, 0.f, 100.f)) {}
+
+    ui::EndPropertyGrid();
+
     return false;
   }
 

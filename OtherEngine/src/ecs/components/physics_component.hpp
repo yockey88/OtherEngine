@@ -50,6 +50,25 @@ namespace other {
     bool force_deserialize = false;
   };
 
+  class RigidBodySnapshotter : public ObjectSerializer<RigidBody, 13> {
+   public:
+    RigidBodySnapshotter() {
+      AddField<PhysicsBodyType, 0>(&RigidBody::type);
+      AddField<uint32_t, 1>(&RigidBody::layer_id);
+      AddField<bool, 2>(&RigidBody::enable_dynamic_type_change);
+      AddField<float, 3>(&RigidBody::mass);
+      AddField<float, 4>(&RigidBody::linear_drag);
+      AddField<float, 5>(&RigidBody::angular_drag);
+      AddField<bool, 6>(&RigidBody::disable_gravity);
+      AddField<bool, 7>(&RigidBody::is_trigger);
+      AddField<CollisionDetectionType, 8>(&RigidBody::collision_type);
+      AddField<glm::vec3, 9>(&RigidBody::initial_linear_velocity);
+      AddField<glm::vec3, 10>(&RigidBody::initial_angular_velocity);
+      AddField<float, 11>(&RigidBody::max_linear_velocity);
+      AddField<float, 12>(&RigidBody::max_angular_velocity);
+    }
+  };
+
   struct Collider : public Component {
     uint32_t shape_idx = PhysicsShape::Shape::BOX;
     glm::vec3 collider_scale = glm::vec3(1.f);
@@ -65,6 +84,14 @@ namespace other {
     COMPONENT_SERIALIZERS(Collider);
 
     bool force_deserialize = false;
+  };
+
+  class ColliderSnapshotter : public ObjectSerializer<Collider, 2> {
+   public:
+    ColliderSnapshotter() {
+      AddField<uint32_t, 0>(&Collider::shape_idx);
+      AddField<glm::vec3, 1>(&Collider::collider_scale);
+    }
   };
 
   struct PhysicsObject : public Component {

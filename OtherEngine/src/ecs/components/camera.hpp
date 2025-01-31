@@ -29,6 +29,14 @@ namespace other {
     COMPONENT_SERIALIZERS(Camera)
   };
 
+  // struct CameraSnapshotter : public ObjectSerializer<Camera, 3> {
+  //   CameraSnapshotter() {
+  //     AddField<Ref<CameraBase>, 0>(&Camera::camera);
+  //     AddField<bool, 1>(&Camera::pinned_to_entity_position);
+  //     AddField<bool, 2>(&Camera::is_primary);
+  //   }
+  // };
+
 }  // namespace other
 
 ECHO_TYPE(

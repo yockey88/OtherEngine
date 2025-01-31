@@ -19,6 +19,7 @@ namespace other {
     ComponentDataBase::ComponentData{ &kComponentTags[COLLIDER_COMPONENT_INDEX] },
     ComponentDataBase::ComponentData{ &kComponentTags[PHYSICS_OBJECT_COMPONENT_INDEX] },
     ComponentDataBase::ComponentData{ &kComponentTags[LIGHTSOURCE_COMPONENT_INDEX] },
+    ComponentDataBase::ComponentData{ &kComponentTags[TERRAIN_COMPONENT_INDEX] }
   };
 
   std::string ComponentDataBase::GetComponentTagUc(size_t idx) {

@@ -221,6 +221,15 @@ namespace other {
         //   }
         // } break;
 
+      case PhysicsShape::Shape::TERRAIN_SHAPE: {
+        Ref<ReactTerrainShape> terrain_shape = Ref<PhysicsShape>::Cast<ReactTerrainShape>(shape);
+        OE_ASSERT(terrain_shape != nullptr, "Terrain shape is null");
+        OE_ASSERT(terrain_shape->shape != nullptr, "Terrain shape is null");
+
+        rp3d::Transform local_transform(rp3d::Vector3(0.f, 0.f, 0.f), body->getTransform().getOrientation());
+        collider = body->addCollider(terrain_shape->shape, local_transform);
+      } break;
+
       default:
         OE_WARN("Physics Shape unimplemented!");
         break;

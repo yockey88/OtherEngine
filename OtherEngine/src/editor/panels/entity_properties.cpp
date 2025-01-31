@@ -15,6 +15,7 @@
 #include "ecs/components/physics_component.hpp"
 #include "ecs/components/rigid_body_2d.hpp"
 #include "ecs/components/script.hpp"
+#include "ecs/components/terrain.hpp"
 #include "ecs/components/transform.hpp"
 #include "ecs/entity.hpp"
 #include "ecs/systems/component_gui.hpp"
@@ -201,6 +202,7 @@ namespace other {
             // edited = DrawAddComponentButton<Collider>("Collider") || edited;
             edited = DrawAddComponentButton<PhysicsObject>("Physics Object") || edited;
             edited = DrawAddComponentButton<LightSource>("Light Source") || edited;
+            edited = DrawAddComponentButton<Terrain>("Terrain") || edited;
 
             ImGui::EndTable();
           }
@@ -280,6 +282,7 @@ namespace other {
     // edited = DrawComponent<Collider, &DrawCollider>("Collider") || edited;
     edited = DrawComponent<PhysicsObject, &DrawPhysicsObject>("Physics Object") || edited;
     edited = DrawComponent<LightSource, &DrawLightSource>("Light Source") || edited;
+    edited = DrawComponent<Terrain, &DrawTerrain>("Terrain") || edited;
 
     return edited;
   }

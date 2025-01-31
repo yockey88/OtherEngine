@@ -145,8 +145,8 @@ namespace other {
   bool DrawRigidBody(Entity* ent);
   bool DrawCollider(Entity* ent);
   bool DrawPhysicsObject(Entity* ent);
-
   bool DrawLightSource(Entity* ent);
+  bool DrawTerrain(Entity* ent);
 
   template <ComponentType C, ComponentType... ICs>
   bool DrawAddComponentButton(const std::string& name, Ref<Texture2D> icon = nullptr) {

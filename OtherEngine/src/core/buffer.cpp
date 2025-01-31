@@ -89,6 +89,15 @@ namespace other {
     element_sizes.clear();
   }
 
+  void Buffer::ZeroRange(uint64_t offset, uint64_t size) {
+    if (offset + size > capacity) {
+      OE_ERROR("Attempting to zero out of bounds memory! expected min {} > {} real capacity", offset + size, capacity);
+      return;
+    }
+
+    memset(data + offset, 0, size);
+  }
+
   size_t Buffer::ElementSize(size_t index) const {
     if (index >= element_sizes.size()) {
       return 0;

@@ -15,6 +15,7 @@
 #include "ecs/components/relationship.hpp"
 #include "ecs/components/rigid_body_2d.hpp"
 #include "ecs/components/script.hpp"
+#include "ecs/components/terrain.hpp"
 #include "ecs/components/transform.hpp"
 
 namespace other {
@@ -34,6 +35,7 @@ namespace other {
     []() -> Scope<ComponentSerializer> { return NewScope<ColliderSerializer>(); },
     []() -> Scope<ComponentSerializer> { return NewScope<PhysicsObjectSerializer>(); },
     []() -> Scope<ComponentSerializer> { return NewScope<LightSourceSerializer>(); },
+    []() -> Scope<ComponentSerializer> { return NewScope<TerrainSerializer>(); },
   };
 
   Scope<ComponentSerializer> EntitySerialization::GetComponentSerializer(const std::string_view tag) {

@@ -12,6 +12,7 @@
 #include "core/time.hpp"
 #include "core/uuid.hpp"
 
+#include "ecs/components/terrain.hpp"
 #include "ecs/components/transform.hpp"
 
 #include "physics/3D/physics_body.hpp"
@@ -40,6 +41,7 @@ namespace other {
     virtual Ref<PhysicsShape> CreateConvexMeshShape(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, uint32_t num_faces) = 0;
     virtual Ref<PhysicsShape> CreateConcaveMeshShape(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, uint32_t num_faces) = 0;
     virtual Ref<PhysicsShape> CreateCompoundShape(const std::vector<Ref<PhysicsShape>>& shapes) = 0;
+    virtual Ref<PhysicsShape> CreateTerrainShape(const Terrain& terrain) = 0;
 
     virtual void SetDebugRendering(bool debug) = 0;
     bool IsDebugRenderEnabled() const;

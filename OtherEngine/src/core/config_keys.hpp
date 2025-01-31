@@ -432,6 +432,9 @@ namespace other {
   constexpr static std::string_view kLightSourceValue = "LIGHT-SOURCE";
   constexpr static uint64_t kLightSourceHash = FNV(kLightSourceValue);
 
+  constexpr static std::string_view kTerrainValue = "TERRAIN";
+  constexpr static uint64_t kTerrainValueHash = FNV(kTerrainValue);
+
 }  // namespace other
 
 #endif  // !OTHER_ENGINE_CONFIG_KEYS_HPP

@@ -41,6 +41,14 @@ namespace other {
     COMPONENT_SERIALIZERS(LightSource);
   };
 
+  // struct LightSourceSnapshotter : public ObjectSerializer<LightSource, 3> {
+  //   LightSourceSnapshotter() {
+  //     AddField<LightSourceType, 0>(&LightSource::type);
+  //     AddField<DirectionLight, 1>(&LightSource::direction_light);
+  //     AddField<PointLight, 2>(&LightSource::pointlight);
+  //   }
+  // };
+
 }  // namespace other
 
 ECHO_TYPE(

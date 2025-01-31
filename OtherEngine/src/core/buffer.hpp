@@ -32,6 +32,7 @@ namespace other {
     void Extend();
     void Release();
     void ZeroMem();
+    void ZeroRange(uint64_t offset, uint64_t size);
 
     size_t ElementSize(size_t index) const;
 
@@ -113,8 +114,7 @@ namespace other {
         }
 
         size_t sz = sizeof(value);
-        T& obj = *reinterpret_cast<T*>(data + Size());
-        obj = value;
+        *reinterpret_cast<T*>(data + Size()) = value;
 
         element_sizes.push_back(sz);
       }
@@ -140,7 +140,7 @@ namespace other {
       size_t cursor = 0;
       for (size_t i = start_index; i < start_index + num_elts; ++i) {
         U current_item = container[i];
-        *reinterpret_cast<U*>(data + cursor) = current_item;
+        *std::launder(reinterpret_cast<U*>(data + cursor)) = current_item;
         cursor += sizeof(U);
       }
     }
@@ -156,14 +156,14 @@ namespace other {
       requires std::is_trivially_copyable_v<T>
     T* As() {
       OE_ASSERT(sizeof(T) <= capacity, "Attempting to retrieve data is incorrectly sized type");
-      return reinterpret_cast<T*>(&data[0]);
+      return std::launder(reinterpret_cast<T*>(&data[0]));
     }
 
     template <typename T>
       requires std::is_trivially_copyable_v<T>
     const T* As() const {
       OE_ASSERT(sizeof(T) <= capacity, "Attempting to retrieve data is incorrectly sized type");
-      return reinterpret_cast<T*>(&data[0]);
+      return std::launder(reinterpret_cast<T*>(&data[0]));
     }
 
     template <typename T>
@@ -185,21 +185,21 @@ namespace other {
       requires std::is_trivially_copyable_v<T>
     T& At(size_t index) {
       size_t offset = ValidateAtCall<T>(index);
-      return *reinterpret_cast<T*>(data + offset);
+      return *std::launder(reinterpret_cast<T*>(data + offset));
     };
 
     template <typename T>
       requires std::is_trivially_copyable_v<T>
     const T& At(size_t index) const {
       size_t offset = ValidateAtCall<T>(index);
-      return *reinterpret_cast<const T*>(data + offset);
+      return *std::launder(reinterpret_cast<const T*>(data + offset));
     };
 
     template <typename T>
       requires std::is_trivially_copyable_v<T>
     T* PointerAt(size_t index) {
       size_t offset = ValidateAtCall<T>(index);
-      return reinterpret_cast<T*>(data + offset);
+      return std::launder(reinterpret_cast<T*>(data + offset));
     }
 
     std::string DumpBuffer() const;

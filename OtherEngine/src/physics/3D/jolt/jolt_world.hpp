@@ -44,6 +44,9 @@ namespace other {
     Ref<PhysicsShape> CreateCompoundShape(const std::vector<Ref<PhysicsShape>>& shapes) override {
       OE_UNIMPLEMENTED_RETURN(nullptr);
     }
+    Ref<PhysicsShape> CreateTerrainShape(const Terrain& terrain) override {
+      OE_UNIMPLEMENTED_RETURN(nullptr);
+    }
 
     void SetDebugRendering(bool debug) override {}
     void SubmitDebugRender(Ref<SceneRenderer> renderer) override {}

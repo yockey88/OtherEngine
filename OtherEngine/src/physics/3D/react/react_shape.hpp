@@ -112,6 +112,22 @@ namespace other {
     std::map<UUID, rp3d::CollisionShape*> shapes;
   };
 
+  class ReactTerrainShape : public TerrainShape {
+   public:
+    ReactTerrainShape(rp3d::HeightField* height_field, rp3d::HeightFieldShape* shape, ReactWorld* world)
+        : TerrainShape(), height_field(height_field), shape(shape), world(world) {}
+
+    void OnSetEntity(const UUID& id) override;
+    void SetTransform(const Transform& transform) override;
+    void SetScale(const glm::vec3& scale) override;
+
+    void* NativeShape() override { return shape; }
+
+    rp3d::HeightField* height_field = nullptr;
+    rp3d::HeightFieldShape* shape = nullptr;
+    ReactWorld* world = nullptr;
+  };
+
 }  // namespace other
 
 #endif  // !OTHER_ENGINE_REACT_SHAPE_HPP

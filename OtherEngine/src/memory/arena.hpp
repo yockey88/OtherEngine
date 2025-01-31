@@ -14,6 +14,13 @@ namespace other {
 
   class Registers;
 
+  /**
+   * TODO:
+   *       - implement a defragmentation algorithm to run at engine state changes that would reduce fragmentation
+   *       - implemenet smarter paging to reduce fragmentation of memory and group allocated objects that are often accessed together or at similar times
+   *       - implement memory re-use to reduce the number of page allocations
+   **/
+
   class Arena {
    public:
     static inline constexpr size_t kPageSize = 64 * 4096u * 4096u;

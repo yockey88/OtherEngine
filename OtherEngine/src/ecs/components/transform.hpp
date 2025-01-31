@@ -25,6 +25,7 @@ namespace other {
     glm::mat4 model_transform = glm::identity<glm::mat4>();
     BBox bbox = BBox::empty;
 
+    Transform(const glm::vec3& scale, const glm::vec3& position, const glm::vec3& erotation);
     Transform(const glm::vec3& position);
     Transform(float p);
     Transform(float x, float y, float z);
@@ -37,6 +38,16 @@ namespace other {
   class TransformSerializer : public ComponentSerializer {
    public:
     COMPONENT_SERIALIZERS(Transform);
+  };
+
+  struct TransformSnapshotter : public ObjectSerializer<Transform, 5> {
+    TransformSnapshotter() {
+      AddField<glm::vec3, 0>(&Transform::scale);
+      AddField<glm::vec3, 1>(&Transform::position);
+      AddField<glm::vec3, 2>(&Transform::erotation);
+      AddField<glm::quat, 3>(&Transform::qrotation);
+      AddField<glm::mat4, 4>(&Transform::model_transform);
+    }
   };
 
 }  // namespace other

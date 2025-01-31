@@ -96,6 +96,7 @@ namespace other {
     for (auto& comp : components) {
       Scope<ComponentSerializer> comp_serializer = EntitySerialization::GetComponentSerializer(comp);
       OE_ASSERT(comp_serializer != nullptr, "Failed to retrieve serializer for component : [{}.{}]", entity->Name(), comp);
+      OE_TRACE("serializer({}) : [{}.{}]", comp_serializer->GetSerializerName(), entity->Name(), comp);
 
       comp_serializer->Deserialize(entity, scene_table, ctx);
     }
