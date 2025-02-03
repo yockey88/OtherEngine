@@ -53,6 +53,13 @@ namespace other {
     erotation = glm::eulerAngles(qrotation);
   }
 
+  TransformSnapshotter::TransformSnapshotter() {
+    AddField<glm::vec3, 0>(&Transform::scale);
+    AddField<glm::vec3, 1>(&Transform::position);
+    AddField<glm::vec3, 2>(&Transform::erotation);
+    AddField<glm::quat, 3>(&Transform::qrotation);
+  }
+
   void TransformSerializer::Serialize(std::ostream& stream, Entity* entity, const Ref<Scene>& scene) const {
     auto& transform = entity->GetComponent<Transform>();
 

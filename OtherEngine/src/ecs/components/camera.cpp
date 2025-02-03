@@ -16,6 +16,12 @@
 
 namespace other {
 
+  CameraSnapshotter::CameraSnapshotter() {
+    // AddField<Ref<CameraBase>, 0>(&Camera::camera);
+    AddField<bool, 0>(&Camera::pinned_to_entity_position);
+    AddField<bool, 1>(&Camera::is_primary);
+  }
+
   void CameraSerializer::Serialize(std::ostream& stream, Entity* entity, const Ref<Scene>& scene) const {
     const auto& camera = entity->GetComponent<Camera>();
 

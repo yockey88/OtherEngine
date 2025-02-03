@@ -14,6 +14,16 @@
 
 namespace other {
 
+  struct RigidBody2D;
+
+  struct RigidBody2DSnapshotter : public ObjectSerializer<RigidBody2D, 7> {
+    RigidBody2DSnapshotter();
+
+    static size_t Stride() {
+      return sizeof(PhysicsBodyType) + sizeof(float) * 4 + sizeof(bool) * 2;
+    }
+  };
+
   struct RigidBody2D : public Component {
     b2BodyDef body_def;
     b2Body* physics_body = nullptr;
@@ -36,32 +46,16 @@ namespace other {
     COMPONENT_SERIALIZERS(RigidBody2D);
   };
 
-  class RigidBody2DSnapshotter : public ObjectSerializer<RigidBody2D, 10> {
-   public:
-    RigidBody2DSnapshotter() {
-      AddField<b2BodyDef, 0>(&RigidBody2D::body_def);
-      AddField<b2Body*, 1>(&RigidBody2D::physics_body);
-      AddField<b2MassData, 2>(&RigidBody2D::mass_data);
-      AddField<PhysicsBodyType, 3>(&RigidBody2D::type);
-      AddField<float, 4>(&RigidBody2D::mass);
-      AddField<float, 5>(&RigidBody2D::linear_drag);
-      AddField<float, 6>(&RigidBody2D::angular_drag);
-      AddField<float, 7>(&RigidBody2D::gravity_scale);
-      AddField<bool, 8>(&RigidBody2D::fixed_rotation);
-      AddField<bool, 9>(&RigidBody2D::bullet);
-    }
-  };
-
 }  // namespace other
 
 ECHO_TYPE(
   type(other::RigidBody2D, refl::attr::bases<other::Component>),
-  field(mass),
-  field(linear_drag),
-  field(angular_drag),
-  field(gravity_scale),
-  field(fixed_rotation),
-  field(bullet)
+  field(mass, echo::serializable_field()),
+  field(linear_drag, echo::serializable_field()),
+  field(angular_drag, echo::serializable_field()),
+  field(gravity_scale, echo::serializable_field()),
+  field(fixed_rotation, echo::serializable_field()),
+  field(bullet, echo::serializable_field())
 );
 
 #endif  // !OTHER_ENGINE_RIGID_BODY_2D_HPP

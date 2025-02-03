@@ -136,10 +136,6 @@ namespace other {
    protected:
     static ArenaAllocator<Entity> entity_allocator;
 
-    other::AssetHandle model_handle;
-    Ref<StaticModel> model = nullptr;
-    Ref<ModelSource> model_source = nullptr;
-
     Ref<LightEnvironment> environment = nullptr;
 
     CaptureStack capture_stack;

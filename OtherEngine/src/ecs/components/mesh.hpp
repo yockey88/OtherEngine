@@ -14,7 +14,28 @@
 
 #include "rendering/material.hpp"
 
+#include "serialization/scene_file_format_defines.hpp"
+
 namespace other {
+
+  struct Mesh;
+  struct StaticMesh;
+
+  struct MeshSnapshotter : public ObjectSerializer<Mesh, 3> {
+    MeshSnapshotter();
+
+    static size_t Stride() {
+      return kMaxStringLength + sizeof(UUID) + sizeof(bool);
+    }
+  };
+
+  struct StaticMeshSnapshotter : public ObjectSerializer<StaticMesh, 5> {
+    StaticMeshSnapshotter();
+
+    static size_t Stride() {
+      return sizeof(UUID) + sizeof(bool) + sizeof(bool) + sizeof(uint32_t) * 2;
+    }
+  };
 
   struct Mesh : public Component {
     AssetHandle handle;
@@ -48,18 +69,6 @@ namespace other {
   class MeshSerializer : public ComponentSerializer {
    public:
     COMPONENT_SERIALIZERS(Mesh);
-
-   private:
-    AssetHandle GetMeshHandle(const std::string& path) const;
-  };
-
-  struct MeshSnapshotter : public ObjectSerializer<Mesh, 3> {
-    MeshSnapshotter() {
-      AddField<AssetHandle, 0>(&Mesh::handle);
-      AddField<UUID, 1>(&Mesh::material);
-      // AddField<std::vector<UUID>, 2>(&Mesh::bone_entity_ids);
-      AddField<bool, 2>(&Mesh::visible);
-    }
   };
 
   class StaticMeshSerializer : public ComponentSerializer {
@@ -67,34 +76,23 @@ namespace other {
     COMPONENT_SERIALIZERS(StaticMesh);
   };
 
-  struct StaticMeshSnapshotter : public ObjectSerializer<StaticMesh, 6> {
-    StaticMeshSnapshotter() {
-      AddField<AssetHandle, 0>(&StaticMesh::handle);
-      AddField<UUID, 1>(&StaticMesh::material);
-      AddField<bool, 2>(&StaticMesh::visible);
-      AddField<bool, 3>(&StaticMesh::is_primitive);
-      AddField<uint32_t, 4>(&StaticMesh::primitive_id);
-      AddField<uint32_t, 5>(&StaticMesh::primitive_selection);
-    }
-  };
-
 }  // namespace other
 
 ECHO_TYPE(
   type(other::Mesh),
-  field(handle),
-  field(material),
+  field(handle, echo::serializable_field()),
+  field(material, echo::serializable_field()),
   field(bone_entity_ids),
-  field(visible)
+  field(visible, echo::serializable_field())
 );
 
 ECHO_TYPE(
   type(other::StaticMesh),
-  field(handle),
-  field(material),
-  field(visible),
-  field(is_primitive),
-  field(primitive_id),
+  field(handle, echo::serializable_field()),
+  field(material, echo::serializable_field()),
+  field(visible, echo::serializable_field()),
+  field(is_primitive, echo::serializable_field()),
+  field(primitive_id, echo::serializable_field()),
   field(primitive_selection)
 );
 

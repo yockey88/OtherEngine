@@ -44,10 +44,13 @@ namespace other {
 
   /// integers signed because of 'invisible components'
   ///   default components attached to all entities that are for internal engine use
-  enum ComponentIndex {
+  enum ComponentIndex : int32_t {
+    /// implicit components, always present
     TAG_COMPONENT_INDEX = 0,
     TRANSFORM_COMPONENT_INDEX,
     RELATIONSHIP_COMPONENT_INDEX,
+
+    /// explicit components
     MESH_COMPONENT_INDEX,
     STATICMESH_COMPONENT_INDEX,
     SCRIPT_COMPONENT_INDEX,
@@ -66,6 +69,7 @@ namespace other {
   /** invisible components
    *                       kSerializationData = -1
    *                       kSceneComponent = -2
+   *                       kEntityMetaTable = -3
    *                       kNullComponent = -999
    **/
 
@@ -79,7 +83,6 @@ namespace other {
 
     constexpr auto operator<=>(const ComponentTag& other) const = default;
   };
-  //= std::pair<std::string_view, size_t>;
   constexpr static std::array<ComponentTag, NUM_COMPONENTS> kComponentTags = {
     ComponentTag{ "tag", TAG_COMPONENT_INDEX },
     ComponentTag{ "transform", TRANSFORM_COMPONENT_INDEX },
@@ -113,6 +116,7 @@ namespace other {
 
     virtual std::string GetComponentName() const = 0;
     virtual std::string GetRawComponentName() const = 0;
+    virtual void Serialize(ByteBuffer& buffer) = 0;
   };
 
 #define ECS_COMPONENT(n, idx)                                                           \
@@ -125,10 +129,27 @@ namespace other {
       return "anonymous-component";                                                     \
     }                                                                                   \
     return std::string{ kComponentTags[component_idx].name };                           \
+  }                                                                                     \
+  virtual void Serialize(ByteBuffer& buffer) override {                                 \
+    n##Snapshotter serializer;                                                          \
+    serializer.Write(buffer, *this);                                                    \
   }
 
+#define INVISIBLE_ECS_COMPONENT(n, idx)                                                 \
+  ECHO_REFLECT();                                                                       \
+  n() : Component(idx) {}                                                               \
+  virtual ~n() override {}                                                              \
+  virtual std::string GetComponentName() const override { return "Component[" #n "]"; } \
+  virtual std::string GetRawComponentName() const override {                            \
+    if (component_idx < 0) {                                                            \
+      return "anonymous-component";                                                     \
+    }                                                                                   \
+    return std::string{ kComponentTags[component_idx].name };                           \
+  }                                                                                     \
+  virtual void Serialize(ByteBuffer& buffer) override {}
+
   struct NullComponent : public Component {
-    ECS_COMPONENT(NullComponent, -999);
+    INVISIBLE_ECS_COMPONENT(NullComponent, -999);
   };
 
   /// Useful concepts

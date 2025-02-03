@@ -8,7 +8,8 @@
 
 #include "core/filesystem.hpp"
 #include "core/logger.hpp"
-#include "editor/selection_manager.hpp"
+
+#include "asset/serializers/scene_serializer.hpp"
 
 #include "ecs/components/camera.hpp"
 #include "ecs/components/relationship.hpp"
@@ -17,6 +18,8 @@
 
 #include "rendering/ui/ui_colors.hpp"
 #include "rendering/ui/ui_helpers.hpp"
+
+#include "editor/selection_manager.hpp"
 
 namespace other {
 
@@ -45,8 +48,8 @@ namespace other {
 
         if (!Filesystem::FileExists(path)) {
           OE_WARN("Can not find file : {}", path);
-        } else if (path.extension() != ".yscn") {
-          OE_WARN("Scene hierarchy currently only accepts '.yscn' files, loaded file has {} extension", path.extension());
+        } else if (path.extension() != ".yscn" && path.extension() != ".byscn") {
+          OE_WARN("Scene hierarchy currently only accepts '.yscn' or '.byscn' files, loaded file has {} extension", path.extension());
         } else {
           OE_INFO("LOADING SCENE : {}", path);
           // GetEditor().LoadScene(path);

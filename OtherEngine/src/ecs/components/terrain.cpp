@@ -12,25 +12,32 @@
 
 namespace other {
 
+  TerrainSnapshotter::TerrainSnapshotter() {
+    AddField<glm::ivec2, 0>(&Terrain::size);
+    AddField<float, 1>(&Terrain::scale);
+  }
+
   void Terrain::GenerateHeightMap(Mesh* model, Terrain& instance) {
     OE_ASSERT(model != nullptr, "Model is null");
     OE_ASSERT(model->handle != 0, "Model handle is zero");
 
-    // uint32_t dim = size.x * size.y;
     std::vector<float> heights;
 
     Ref<Model> model_asset = AssetManager::GetAsset<Model>(model->handle);
-    OE_ASSERT(model_asset != nullptr, "Model asset is null");
+    OE_ASSERT(model_asset != nullptr, "Model asset is null : {}", model->handle);
 
     Ref<ModelSource> source = model_asset->GetModelSource();
-    OE_ASSERT(source != nullptr, "Model source is null");
+    OE_ASSERT(source != nullptr, "Model source is null for model : {}", model->handle);
 
     const std::vector<Vertex>& vertices = source->Vertices();
 
-    /// not sure if this is the best way to do this
     uint32_t dim = vertices.size();
-    instance.size = glm::ivec2(std::sqrt(dim), std::sqrt(dim));
-    instance.heights.resize(dim);
+
+    /// not sure if this is the best way to do this
+    {
+      instance.size = glm::ivec2(std::sqrt(dim), std::sqrt(dim));
+      instance.heights.resize(dim);
+    }
 
     for (uint32_t i = 0; i < dim; ++i) {
       instance.heights[i] = vertices[i].position.y;

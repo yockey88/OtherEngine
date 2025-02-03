@@ -8,9 +8,10 @@
 #include <new>
 #include <utility>
 
+#include "profiling/profiling.hpp"
+
 #include "memory/allocator.hpp"
 #include "memory/arena.hpp"
-#include "profiling/profiling.hpp"
 
 namespace other {
 
@@ -39,7 +40,6 @@ namespace other {
       if (memory == nullptr) {
         throw std::bad_alloc();
       }
-      PROFILE_ALLOCATION(memory, type_size);
       new (memory) T(std::forward<Args>(args)...);
       return std::launder(static_cast<T*>(memory));
     }
@@ -52,30 +52,26 @@ namespace other {
       PROFILE_SECTION("ArenaAllocator--Free");
 
       if (ptr != nullptr) {
-        PROFILE_DEALLOCATION(ptr);
         ptr->~T();
-        std::memset(ptr, 0, sizeof(T));
       }
       Arena::Free(ptr, type_size);
     }
 
     void Free(void* ptr) {
       if (ptr != nullptr) {
-        PROFILE_DEALLOCATION(ptr);
-        T* t_ptr = static_cast<T*>(ptr);
+        T* t_ptr = std::launder(static_cast<T*>(ptr));
         t_ptr->~T();
-        std::memset(t_ptr, 0, sizeof(T));
       }
       Arena::Free(ptr, type_size);
     }
 
     /// cpp standard allocator interface
     [[nodiscard]] T* allocate(size_t size) {
-      return static_cast<T*>(AllocateBlock(size));
+      return std::launder(static_cast<T*>(AllocateBlock(size)));
     }
 
     void deallocate(void* ptr, size_t) noexcept {
-      Free(static_cast<T*>(ptr));
+      Free(std::launder(static_cast<T*>(ptr)));
     }
 
     static constexpr size_t type_size = sizeof(T);

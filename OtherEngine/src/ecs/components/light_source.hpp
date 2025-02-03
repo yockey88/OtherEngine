@@ -22,6 +22,16 @@ namespace other {
     INVALID_LIGHT_SRC = NUM_LIGHT_SRCS,
   };
 
+  struct LightSource;
+
+  struct LightSourceSnapshotter : public ObjectSerializer<LightSource, 1> {
+    LightSourceSnapshotter();
+
+    static size_t Stride() {
+      return sizeof(LightSourceType);
+    }
+  };
+
   struct LightSource : public Component {
     LightSourceType type = INVALID_LIGHT_SRC;
     union {
@@ -41,19 +51,11 @@ namespace other {
     COMPONENT_SERIALIZERS(LightSource);
   };
 
-  // struct LightSourceSnapshotter : public ObjectSerializer<LightSource, 3> {
-  //   LightSourceSnapshotter() {
-  //     AddField<LightSourceType, 0>(&LightSource::type);
-  //     AddField<DirectionLight, 1>(&LightSource::direction_light);
-  //     AddField<PointLight, 2>(&LightSource::pointlight);
-  //   }
-  // };
-
 }  // namespace other
 
 ECHO_TYPE(
   type(other::LightSource, refl::attr::bases<other::Component>),
-  field(type),
+  field(type, echo::serializable_field()),
   field(direction_light),
   field(pointlight),
   field(debug_model)

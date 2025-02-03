@@ -19,7 +19,6 @@
 
 #include "component.hpp"
 
-
 namespace other {
 
   Entity::Entity(entt::registry& registry, entt::entity handle)
@@ -72,6 +71,25 @@ namespace other {
     /// sanity check
     OE_ASSERT(n == name, "Component name mismatch");
     return std::ranges::find_if(sdata.entity_components, [idx](int32_t i) { return i == idx; }) != sdata.entity_components.end();
+  }
+
+  Component* Entity::GetComponentByName(const std::string_view name) {
+    SerializationData& sdata = GetComponent<SerializationData>();
+    auto comp_itr = std::ranges::find_if(kComponentTags, [name](const auto& pair) { return pair.name == name; });
+    if (comp_itr == kComponentTags.end()) {
+      OE_WARN("Component {} not found", name);
+      return nullptr;
+    }
+    auto& [n, idx] = *comp_itr;
+
+    OE_ASSERT(idx < NUM_COMPONENTS, "Component index out of bounds : {}", idx);
+    return GetComponentByIndex(idx);
+  }
+
+  Component* Entity::GetComponentByIndex(int32_t idx) {
+    OE_ASSERT(idx < NUM_COMPONENTS, "Component index out of bounds : {}", idx);
+    auto& metatable = GetComponent<EntityMetatable>();
+    return metatable.components[idx];
   }
 
   entt::entity Entity::GetEntity() const {

@@ -257,6 +257,8 @@ namespace other {
   }
 
   void Scene::Synchronize() {
+    OE_ASSERT(physics_world != nullptr, "Physics world is null");
+
     registry.view<RigidBody, Transform>().each([this](RigidBody& body, Transform& transform) {
       OE_ASSERT(body.physics_body != nullptr, "Physics body is null");
       body.physics_body->SetTransform(transform);

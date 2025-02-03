@@ -9,7 +9,7 @@
 
 namespace other {
 
-  static std::map<UUID , Ref<Texture2D>> extension_map;    
+  static std::map<UUID, Ref<Texture2D>> extension_map;
 
   void EditorImages::Initialize() {
     folder_icon = LoadTexture("folder.png");
@@ -28,9 +28,10 @@ namespace other {
     extension_map[FNV(".frag")] = shader_file_icon;
     extension_map[FNV(".geom")] = shader_file_icon;
     extension_map[FNV(".oshader")] = shader_file_icon;
-    
+
     scene_file_icon = LoadTexture("scene_file.png");
     extension_map[FNV(".yscn")] = scene_file_icon;
+    extension_map[FNV(".byscn")] = scene_file_icon;
     extension_map[FNV(".yscene")] = scene_file_icon;
 
     hpp_file_icon = LoadTexture("hpp_file.png");
@@ -40,7 +41,7 @@ namespace other {
     cpp_file_icon = LoadTexture("cpp_file.png");
     extension_map[FNV(".cpp")] = cpp_file_icon;
   }
-    
+
   void EditorImages::Shutdown() {
     /// this has to happen otherwise these will be destroyed during static destructor calling which is bad
     extension_map.clear();
@@ -53,7 +54,7 @@ namespace other {
     hpp_file_icon = nullptr;
     cpp_file_icon = nullptr;
   }
-    
+
   Ref<Texture2D> EditorImages::GetIconFromExtension(const std::string_view ext) {
     auto itr = extension_map.find(FNV(ext));
     if (itr == extension_map.end()) {
@@ -66,25 +67,25 @@ namespace other {
   Ref<Texture2D> EditorImages::LoadTexture(const Path& path) {
     auto engine_dir = Filesystem::GetEngineCoreDir();
     auto texture_dir = engine_dir / "OtherEngine" / "assets" / "textures" / "editor";
-    auto real_path =  texture_dir / path;
+    auto real_path = texture_dir / path;
 
-    OE_ASSERT(Filesystem::FileExists(real_path) , "Attempting to load non existent editor icon {}" , path);
+    OE_ASSERT(Filesystem::FileExists(real_path), "Attempting to load non existent editor icon {}", path);
 
-    TextureSpecification spec {
-      .channels = RGBA ,
-      .type = TEX_2D ,
+    TextureSpecification spec{
+      .channels = RGBA,
+      .type = TEX_2D,
       .filters = {
-        .min = NEAREST ,
-        .mag = NEAREST ,
-      } ,
+        .min = NEAREST,
+        .mag = NEAREST,
+      },
       .wrap = {
-        .s_val = REPEAT , 
-        .t_val = REPEAT , 
-      } ,
-      .name = path.filename().string() ,
+        .s_val = REPEAT,
+        .t_val = REPEAT,
+      },
+      .name = path.filename().string(),
     };
 
-    return NewRef<Texture2D>(real_path , spec);
+    return NewRef<Texture2D>(real_path, spec);
   }
 
-} // namespace other
+}  // namespace other

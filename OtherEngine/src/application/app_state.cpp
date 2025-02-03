@@ -157,7 +157,10 @@ namespace other {
     OE_ASSERT(scene_dir != nullptr, "Failed to get scene directory");
     OE_ASSERT(scene_dir->Exists(), "Scene directory does not exist");
 
-    Ref<FileHandle> primary_scene = scene_dir->GetFileHandleByName(*proj_meta.primary_scene);
+    Ref<FileHandle> primary_scene = scene_dir->GetFileHandleByName(*proj_meta.primary_scene, ".oscn");
+    if (primary_scene == nullptr) {
+      primary_scene = scene_dir->GetFileHandleByName(*proj_meta.primary_scene, ".yscn");
+    }
     OE_ASSERT(primary_scene != nullptr, "Failed to get primary scene file handle");
 
     if (!primary_scene->Exists()) {
@@ -225,6 +228,8 @@ namespace other {
     if (data != nullptr) {
       data->frame_delta = dt;
     }
+    /// move this because it does not need to be polled on every tick, only ticks during specific idle states
+    ///   where the user might be creating/deleting assets
     Filesystem::Poll();
     IO::Update();
     EventQueue::Poll();

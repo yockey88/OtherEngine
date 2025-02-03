@@ -6,9 +6,25 @@
 
 #include <functional>
 
+#include <refl/refl.hpp>
+#include <reflection/serializable.hpp>
+
 #include "core/byte_buffer.hpp"
+#include "core/logger.hpp"
+
+#include "serialization/type_meta.hpp"
 
 namespace other {
+
+  template <typename T>
+  void Serialize(ByteBuffer& buffer, T&& value) {
+    refl::util::for_each(refl::reflect(value).members, [&](auto member) {
+      if constexpr (refl::descriptor::is_readable(member) &&
+                    refl::descriptor::has_attribute<dotother::echo::serializable_field>(member)) {
+        buffer.BufferData(member(value));
+      }
+    });
+  }
 
   template <typename T, size_t NFs>
   class ObjectSerializer {
@@ -16,14 +32,14 @@ namespace other {
     ObjectSerializer() = default;
     ~ObjectSerializer() = default;
 
-    void Write(ByteBuffer& stream, const T& object) {
+    virtual void Write(ByteBuffer& stream, const T& object) {
       for (auto& writer : writers) {
         OE_ASSERT(writer != nullptr, "Writer is null");
         writer(stream, object);
       }
     }
 
-    T Read(ByteBuffer& stream, size_t buffer_offset) {
+    virtual T Read(ByteBuffer& stream, size_t buffer_offset) {
       T obj;
 
       size_t offset = buffer_offset;
@@ -47,13 +63,25 @@ namespace other {
       static_assert(FN < NFs, "Field number out of bounds");
       OE_ASSERT(field != nullptr, "Field pointer is null");
 
-      writers[FN] = [=](ByteBuffer& buffer, const T& object) {
-        buffer.BufferData<FT>(object.*field);
-      };
-      readers[FN] = [=](ByteBuffer& buffer, size_t& buffer_offset, T& obj) {
-        obj.*field = buffer.Read<FT>(buffer_offset);
-        buffer_offset += sizeof(FT);
-      };
+      AddReaderWriterForField<FT, FN>(
+        [=](ByteBuffer& buffer, const T& object) {
+          buffer.BufferData<FT>(object.*field);
+        },
+        [=](ByteBuffer& buffer, size_t& buffer_offset, T& obj) {
+          obj.*field = buffer.Read<FT>(buffer_offset);
+          buffer_offset += sizeof(FT);
+        }
+      );
+    }
+
+    template <typename FT, size_t FN>
+    void AddReaderWriterForField(Writer writer, Reader reader) {
+      static_assert(FN < NFs, "Field number out of bounds");
+      OE_ASSERT(writer != nullptr, "Writer is null");
+      OE_ASSERT(reader != nullptr, "Reader is null");
+
+      writers[FN] = writer;
+      readers[FN] = reader;
     }
 
    private:

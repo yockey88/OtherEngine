@@ -9,6 +9,8 @@ bin_obj/
 *.exe
 *.tracy
 
+misc/
+
 # python bindings
 tools/build
 tools/other.egg-info/

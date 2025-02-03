@@ -10,7 +10,6 @@
 
 #include "core/defines.hpp"
 #include "core/logger.hpp"
-#include "core/reflection_attributes.hpp"
 
 namespace other {
 
@@ -32,23 +31,6 @@ namespace other {
     uint64_t Hash() const {
       return FNV(name);
     }
-
-    // void Serialize(std::ostream& stream, const T& obj) {
-    //   stream << "<" << name << ">" << " = {\n";
-    //   refl::util::for_each(desc.members, [&](auto member) {
-    //     if constexpr (refl::descriptor::is_readable(member) && refl::descriptor::has_attribute<Serializable>(member)) {
-    //       stream << "  " << refl::descriptor::get_display_name(member) << " = ";
-    //       auto value = member(obj);
-    //       if constexpr (requires { stream << value; }) {
-    //         stream << value;
-    //       } else {
-    //         OE_ERROR("Failed to serialize member {}", refl::descriptor::get_display_name(member));
-    //       }
-    //       stream << "\n";
-    //     }
-    //   });
-    //   stream << "}\n";
-    // }
 
    private:
     refl::type_descriptor<T> desc;

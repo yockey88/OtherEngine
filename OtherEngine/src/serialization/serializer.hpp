@@ -17,6 +17,8 @@
 
 namespace other {
 
+  /// TODO: add binary serializer functions or rewrite currents to have the option to serialize to binary
+
   class Serializer {
    protected:
     template <typename T>
@@ -75,10 +77,6 @@ namespace other {
       }
       stream << "}\n";
     }
-
-    // template <size_t N , typename... Args>
-    // void SerializeItems(std::ostream& stream , const std::array<std::string_view , N> names , Args&&... items) const {
-    // }
 
     template <>
     void SerializeValue(std::ostream& stream, const std::string_view name, bool val) const {

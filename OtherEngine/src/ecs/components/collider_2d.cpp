@@ -10,6 +10,13 @@
 
 namespace other {
 
+  Collider2DSnapshotter::Collider2DSnapshotter() {
+    AddField<glm::vec2, 0>(&Collider2D::offset);
+    AddField<glm::vec2, 1>(&Collider2D::size);
+    AddField<float, 2>(&Collider2D::density);
+    AddField<float, 3>(&Collider2D::friction);
+  }
+
   void Collider2DSerializer::Serialize(std::ostream& stream, Entity* entity, const Ref<Scene>& scene) const {
     auto& collider = entity->GetComponent<Collider2D>();
 

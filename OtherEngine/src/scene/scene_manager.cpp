@@ -44,7 +44,7 @@ namespace other {
     }
 
     if (scene_file->GetAssetType() != AssetType::SCENE) {
-      OE_ERROR("File is not a .yscn file : {}", Path(*scene_file));
+      OE_ERROR("File is not a scene file : {}", Path(*scene_file));
       return false;
     }
 
@@ -63,7 +63,6 @@ namespace other {
     OE_ASSERT(scene_md != nullptr, "Failed to get scene metadata for scene : {}", scene->scene_handle);
 
     OE_TRACE(" > loaded scene : {}", scene_md->name);
-    EventQueue::PushEvent<SceneLoad>({ scene->scene_handle.Get() });
     return true;
   }
 

@@ -4,6 +4,7 @@
 #ifndef OTHER_ENGINE_COMPONENT_SERIALIZER_HPP
 #define OTHER_ENGINE_COMPONENT_SERIALIZER_HPP
 
+#include "core/byte_buffer.hpp"
 #include "core/config.hpp"
 #include "core/ref.hpp"
 

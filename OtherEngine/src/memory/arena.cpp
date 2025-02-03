@@ -73,6 +73,7 @@ namespace other {
     instance->ReportAllocation(mem, size);
 #endif
 
+    PROFILE_ALLOCATION(mem, size);
     return mem;
   }
 
@@ -88,6 +89,7 @@ namespace other {
 #ifdef OTHER_MEMORY_DEBUG_BUILD
     instance->ReportDeallocation(ptr, size);
 #endif
+    PROFILE_DEALLOCATION(ptr);
     std::memset(ptr, 0, size);
     return;
   }
@@ -138,6 +140,7 @@ namespace other {
 
     pages[page_allocation_cursor] = (uint8_t*)malloc(kPageSize);
     OE_ASSERT(pages[page_allocation_cursor] != nullptr, "Failed to allocate page.");
+    PROFILE_ALLOCATION(pages[page_allocation_cursor], kPageSize);
 
     page_allocation_cursor++;
     page_cursor = 0;

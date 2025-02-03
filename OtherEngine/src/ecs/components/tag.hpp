@@ -25,14 +25,8 @@ namespace other {
     Tag(const std::string& name, UUID id)
         : Component(TAG_COMPONENT_INDEX), name(name), id(id) {}
 
-    ECS_COMPONENT(Tag, TAG_COMPONENT_INDEX);
-  };
-
-  struct TagSnapshotter : public ObjectSerializer<Tag, 2> {
-    TagSnapshotter() {
-      AddField<std::string, 0>(&Tag::name);
-      AddField<UUID, 1>(&Tag::id);
-    }
+    /// not actually invisible, but it doesn not have or need a snapshotter
+    INVISIBLE_ECS_COMPONENT(Tag, TAG_COMPONENT_INDEX);
   };
 
 }  // namespace other

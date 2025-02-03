@@ -25,7 +25,7 @@ namespace other {
     OE_ASSERT(Exists(), "Can not create file handle for non-existent file : {}", project_relative_path.string());
 
     asset_type = AssetManager::AssetTypeFromExtension(project_relative_path.extension().string());
-    OE_TRACE("FileHandle : {} ({}) [{}]", project_relative_path.string(), asset_type, handle);
+    OE_TRACE("FileHandle : {} ({} => {}) [{}]", project_relative_path.string(), project_relative_path.extension().string(), asset_type, handle);
 
     AssetDatabase::RegisterAsset(this);
 
@@ -33,6 +33,7 @@ namespace other {
       watcher = NewRef<FileWatcher>(handle, AbsolutePath());
     } catch (std::exception& e) {
       OE_ERROR("Failed to create file watcher : {}", e.what());
+      watcher = nullptr;
     }
 
     if (!m.has_value()) {

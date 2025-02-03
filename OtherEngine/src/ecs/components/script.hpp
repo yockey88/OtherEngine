@@ -20,6 +20,17 @@
 
 namespace other {
 
+  struct Script;
+
+  struct ScriptSnapshotter : public ObjectSerializer<Script, 0> {
+    ScriptSnapshotter() {
+    }
+
+    static size_t Stride() {
+      return 0;
+    }
+  };
+
   struct ScriptObjectData {
     std::string module;
     std::string obj_name;

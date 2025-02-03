@@ -12,6 +12,16 @@
 
 namespace other {
 
+  RigidBody2DSnapshotter::RigidBody2DSnapshotter() {
+    AddField<PhysicsBodyType, 0>(&RigidBody2D::type);
+    AddField<float, 1>(&RigidBody2D::mass);
+    AddField<float, 2>(&RigidBody2D::linear_drag);
+    AddField<float, 3>(&RigidBody2D::angular_drag);
+    AddField<float, 4>(&RigidBody2D::gravity_scale);
+    AddField<bool, 5>(&RigidBody2D::fixed_rotation);
+    AddField<bool, 6>(&RigidBody2D::bullet);
+  }
+
   void RigidBody2DSerializer::Serialize(std::ostream& stream, Entity* entity, const Ref<Scene>& scene) const {
     auto& rigid_body = entity->GetComponent<RigidBody2D>();
 

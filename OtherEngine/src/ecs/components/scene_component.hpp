@@ -13,7 +13,7 @@ namespace other {
 
   struct SceneComponent : public Component {
     std::set<int32_t> entity_components;
-    ECS_COMPONENT(SceneComponent, -2);
+    INVISIBLE_ECS_COMPONENT(SceneComponent, -2);
   };
 
 }  // namespace other

@@ -12,6 +12,16 @@
 
 namespace other {
 
+  struct Collider2D;
+
+  struct Collider2DSnapshotter : public ObjectSerializer<Collider2D, 4> {
+    Collider2DSnapshotter();
+
+    static size_t Stride() {
+      return sizeof(glm::vec2) * 2 + sizeof(float) * 2;
+    }
+  };
+
   struct Collider2D : Component {
     glm::vec2 offset = { 0.f, 0.f };
     glm::vec2 size = { 0.5f, 0.5f };
@@ -29,24 +39,14 @@ namespace other {
     COMPONENT_SERIALIZERS(Collider2D);
   };
 
-  class Collider2DSnapshotter : public ObjectSerializer<Collider2D, 4> {
-   public:
-    Collider2DSnapshotter() {
-      AddField<glm::vec2, 0>(&Collider2D::offset);
-      AddField<glm::vec2, 1>(&Collider2D::size);
-      AddField<float, 2>(&Collider2D::density);
-      AddField<float, 3>(&Collider2D::friction);
-    }
-  };
-
 }  // namespace other
 
 ECHO_TYPE(
   type(other::Collider2D, refl::attr::bases<other::Component>),
-  field(offset),
-  field(size),
-  field(density),
-  field(friction)
+  field(offset, echo::serializable_field()),
+  field(size, echo::serializable_field()),
+  field(density, echo::serializable_field()),
+  field(friction, echo::serializable_field())
 );
 
 #endif  // !OTHER_ENGINE_COLLIDER_2D_HPP

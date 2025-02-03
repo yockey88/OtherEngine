@@ -7,7 +7,6 @@
 #include <utility>
 
 #include <entt/core/type_info.hpp>
-
 #include <reflection/type_database.hpp>
 
 #include "ecs/component.hpp"
@@ -20,6 +19,8 @@ namespace other {
     static std::string GetComponentTagUc(size_t idx);
     static std::string GetComponentTagLc(size_t idx);
     static int32_t GetComponentIdxFromTag(const std::string_view tag);
+
+    static size_t GetComponentStride(size_t idx);
 
     template <typename T>
       requires ComponentType<T>

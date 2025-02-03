@@ -12,6 +12,12 @@
 namespace other {
 
   // Material LightSource::debug_light_mat = Material({ 1.f, 1.f, 1.f, 1.f }, 32.f);
+  LightSourceSnapshotter::LightSourceSnapshotter() {
+    AddField<LightSourceType, 0>(&LightSource::type);
+    /// TODO: add ability to handle complicated types like unions or containers/user classes
+    // AddField<DirectionLight, 1>(&LightSource::direction_light);
+    // AddField<PointLight, 2>(&LightSource::pointlight);
+  }
 
   void LightSourceSerializer::Serialize(std::ostream& stream, Entity* entity, const Ref<Scene>& scene) const {
     if (!entity->HasComponent<LightSource>()) {

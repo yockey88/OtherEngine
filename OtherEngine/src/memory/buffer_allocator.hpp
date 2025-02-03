@@ -36,7 +36,6 @@ namespace other {
       if (memory == nullptr) {
         throw std::bad_alloc();
       }
-      PROFILE_ALLOCATION(memory, length);
       new (memory) uint8_t[length];
       std::memset(memory, 0, length);
       return std::launder(reinterpret_cast<uint8_t*>(memory));
@@ -48,20 +47,10 @@ namespace other {
 
     void Free(uint8_t* ptr, size_t length) {
       PROFILE_SECTION("BufferAllocator--Free");
-
-      if (ptr != nullptr) {
-        PROFILE_DEALLOCATION(ptr);
-        std::memset(ptr, 0, length);
-      }
       Arena::Free(ptr, length);
     }
 
     void Free(void* ptr, size_t length) {
-      if (ptr != nullptr) {
-        PROFILE_DEALLOCATION(ptr);
-        uint8_t* t_ptr = static_cast<uint8_t*>(ptr);
-        std::memset(t_ptr, 0, length);
-      }
       Arena::Free(ptr, length);
     }
   };

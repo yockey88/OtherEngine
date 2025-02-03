@@ -11,10 +11,10 @@
 
 #include "core/logger.hpp"
 #include "core/ref.hpp"
-#include "core/reflection_attributes.hpp"
 #include "core/uuid.hpp"
 
 #include "ecs/component.hpp"
+#include "ecs/components/entity_metatable.hpp"
 #include "ecs/components/relationship.hpp"
 #include "ecs/components/script.hpp"
 #include "ecs/components/serialization_data.hpp"
@@ -27,8 +27,9 @@ namespace other {
 
   class Scene;
 
-  class Entity {
-    // ECHO_REFLECT();
+  class Entity : public dotother::NObject {
+    ECHO_REFLECT();
+
    public:
     Entity(entt::registry& registry, entt::entity handle);
     Entity(entt::registry& registry, UUID uuid, const std::string& name);
@@ -62,6 +63,8 @@ namespace other {
     }
 
     bool CheckForComponentByName(const std::string_view name);
+    Component* GetComponentByName(const std::string_view name);
+    Component* GetComponentByIndex(int32_t idx);
 
     template <ComponentType T>
     T& GetComponent() {
@@ -85,6 +88,9 @@ namespace other {
       c.parent_handle = this;
       c.parent_uuid = uuid;
       c.parent_id = handle;
+
+      auto& metatable = GetComponent<EntityMetatable>();
+      metatable.components[c.component_idx] = &c;
     }
 
     template <ComponentType T, typename... Args>
@@ -105,13 +111,6 @@ namespace other {
       auto comp_idx = T().component_idx;
       auto& sdata = GetComponent<SerializationData>();
       sdata.entity_components.insert(comp_idx);
-
-      if constexpr (std::same_as<T, Script>) {
-        auto& script = registry.emplace<T>(handle, std::forward<Args>(args)...);
-        OE_DEBUG("Setting NativeHandle to {:p} | EntityHandle to {}:{}", fmt::ptr(this), GetUUID(), (uint32_t)handle);
-        RegisterComponent(script);
-        return script;
-      }
 
       auto& c = registry.emplace<T>(handle, std::forward<Args>(args)...);
       RegisterComponent(c);
@@ -193,8 +192,8 @@ namespace other {
 
 ECHO_TYPE(
   type(other::Entity),
-  func(GetUUID, property("id"), other::Serializable()),
-  func(Name, property("name"), other::Serializable()),
+  func(GetUUID, property("id")),
+  func(Name, property("name")),
   func(HasComponent),
   func(GetComponent),
   func(ReadComponent),

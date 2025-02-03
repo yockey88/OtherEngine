@@ -17,6 +17,16 @@
 
 namespace other {
 
+  struct Transform;
+
+  struct TransformSnapshotter : public ObjectSerializer<Transform, 4> {
+    TransformSnapshotter();
+
+    static size_t Stride() {
+      return sizeof(glm::vec3) * 3 + sizeof(glm::quat);
+    }
+  };
+
   struct Transform : public Component {
     glm::vec3 scale = glm::vec3(1.f);
     glm::vec3 position = glm::vec3(0.0f);
@@ -40,25 +50,15 @@ namespace other {
     COMPONENT_SERIALIZERS(Transform);
   };
 
-  struct TransformSnapshotter : public ObjectSerializer<Transform, 5> {
-    TransformSnapshotter() {
-      AddField<glm::vec3, 0>(&Transform::scale);
-      AddField<glm::vec3, 1>(&Transform::position);
-      AddField<glm::vec3, 2>(&Transform::erotation);
-      AddField<glm::quat, 3>(&Transform::qrotation);
-      AddField<glm::mat4, 4>(&Transform::model_transform);
-    }
-  };
-
 }  // namespace other
 
 ECHO_TYPE(
   type(other::Transform),
-  field(scale),
-  field(position),
-  field(erotation),
-  field(qrotation),
-  field(model_transform)
+  field(scale, echo::serializable_field()),
+  field(position, echo::serializable_field()),
+  field(erotation, echo::serializable_field()),
+  field(qrotation, echo::serializable_field()),
+  field(model_transform, echo::serializable_field())
 );
 
 #endif  // !OTHER_ENGINE_TRANSFORM_HPP

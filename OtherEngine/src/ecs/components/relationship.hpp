@@ -14,6 +14,20 @@
 
 namespace other {
 
+  struct Relationship;
+
+  struct RelationshipSnapshotter : public ObjectSerializer<Relationship, 0> {
+    RelationshipSnapshotter() {
+      // AddField<Opt<UUID>, 0>(&Relationship::parent);
+      // AddField<std::set<UUID>, 1>(&Relationship::children);
+    }
+
+    static size_t Stride() {
+      return 0;
+      // return sizeof(Opt<UUID>) + sizeof(std::set<UUID>);
+    }
+  };
+
   struct Relationship : public Component {
     Opt<UUID> parent;
     std::set<UUID> children;

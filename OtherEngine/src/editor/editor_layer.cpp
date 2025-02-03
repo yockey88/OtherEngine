@@ -277,7 +277,66 @@ namespace other {
     /// do something with the fact that a UI panel was interacted with????
     ///   this may not need to return a bool at all
 
-    if (ImGui::Begin("Inspector")) {
+    bool open = true;
+    if (ImGui::Begin("Inspector", &open, ImGuiWindowFlags_MenuBar)) {
+      ui::MenuBar([&]() {
+        static ByteBuffer buffer;
+        ui::Menu(
+          "File",
+          ui::MenuItem("Save Scene", [&]() {
+            SceneMetadata* active_scene = AppState::Scenes()->ActiveScene();
+            OE_ASSERT(active_scene != nullptr, "No active scene found");
+            OE_ASSERT(active_scene->scene != nullptr, "No active scene found");
+
+            SceneSerializer::Write(buffer, active_scene->scene);
+            OE_TRACE("Scene Buffer : {}", buffer.DumpBuffer());
+            {
+              Ref<Directory> scene_dir = Filesystem::GetDirectory("scenes");
+              Path scene_path = Path(*scene_dir) / "forest2.oscn";
+              std::ofstream scene_file(scene_path.c_str(), std::ios::binary);
+              if (scene_file.is_open()) {
+                scene_file.write((const char*)buffer.RawBytes(), buffer.Size());
+                scene_file.close();
+              } else {
+                OE_ERROR("Failed to open scene file for writing : {}", scene_path);
+              }
+            }
+          }),
+          ui::MenuItem("Load Scene", [&]() {
+            SceneMetadata* active_scene = AppState::Scenes()->ActiveScene();
+            OE_ASSERT(active_scene != nullptr, "No active scene found");
+            OE_ASSERT(active_scene->scene != nullptr, "No active scene found");
+
+            ByteBuffer scene_buffer;
+            {
+              Ref<Directory> scene_dir = Filesystem::GetDirectory("scenes");
+              Path scene_path = Path(*scene_dir) / "forest2.oscn";
+              std::ifstream scene_file(scene_path.c_str(), std::ios::binary);
+
+              if (scene_file.is_open()) {
+                scene_file.seekg(0, std::ios::end);
+                size_t size = scene_file.tellg();
+                scene_file.seekg(0, std::ios::beg);
+
+                std::vector<uint8_t> buffer;
+                buffer.resize(size);
+                scene_file.read((char*)buffer.data(), size);
+
+                scene_buffer.Write(buffer.data(), buffer.size());
+                scene_file.close();
+              } else {
+                OE_ERROR("Failed to open scene file for reading : {}", scene_path);
+              }
+            }
+            if (scene_buffer.Empty()) {
+              return;
+            }
+            OE_TRACE("Scene Buffer : {}", scene_buffer.DumpBuffer());
+            SceneSerializer::Read(scene_buffer, active_scene->scene);
+          })
+        );
+      });
+
       if (scene_active && !render_success) {
         ScopedColor err_color(ImGuiCol_Text, ui::theme::red);
         if (ImGui::BeginChild("[ ERROR ]", { 0, 0 }, false, ImGuiWindowFlags_NoScrollbar)) {
@@ -285,6 +344,8 @@ namespace other {
           ImGui::EndChild();
         }
       } else if (!scene_active) {
+        ImGui::End();
+        return;
       }
 
       switch (EditorState::scene_mode) {
@@ -306,6 +367,7 @@ namespace other {
             /// unlock editor camera to move around simulated scene
             editor.editor_camera->locked = false;
           });
+
           break;
 
         case SceneEditorMode::FREE_CAMERA: {

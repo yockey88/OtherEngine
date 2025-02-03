@@ -121,6 +121,7 @@ namespace other {
   static const std::map<UUID, AssetType> asset_extensions = {
     /// scene extensions
     { FNV(".yscn"), AssetType::SCENE },
+    { FNV(".oscn"), AssetType::SCENE },
 
     /// prefabs
 
@@ -168,7 +169,7 @@ namespace other {
   static std::vector<std::string> GetAssetTypeExtensions(AssetType type) {
     switch (type) {
       case AssetType::SCENE:
-        return { ".yscn" };
+        return { ".yscn", ".byscn" };
       case AssetType::MODEL_SOURCE:
         return { ".fbx", ".obj" };  // ".gltf", ".glb",
       case AssetType::SHADER:

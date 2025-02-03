@@ -15,7 +15,83 @@
 
 #include "rendering/model_factory.hpp"
 
+#include "serialization/scene_file_format_defines.hpp"
+
 namespace other {
+
+  AssetHandle GetMeshHandle(const std::string& path) {
+    Ref<Directory> assets = Filesystem::GetDirectory("assets");
+    if (assets == nullptr) {
+      OE_ERROR("Failed to retrieve assets directory");
+      return 0;
+    }
+
+    Ref<FileHandle> file = assets->OpenFile(path);
+    if (file == nullptr) {
+      OE_ERROR("Failed to open mesh file {}", path);
+      return 0;
+    }
+
+    Ref<ModelSource> asset = AssetManager::GetAsset<ModelSource>(file->handle, AssetType::MODEL_SOURCE);
+    if (asset == nullptr) {
+      OE_ERROR("Failed to retrieve asset handle for mesh {}", path);
+      return 0;
+    }
+
+    Ref<Model> model = ModelSource::CreateModel(asset, {});
+    if (model == nullptr) {
+      OE_ERROR("Failed to create model from asset {}", path);
+      return 0;
+    }
+
+    return model->handle;
+  }
+
+  MeshSnapshotter::MeshSnapshotter() {
+    AddReaderWriterForField<AssetHandle, 0>(
+      [=](ByteBuffer& buffer, const Mesh& mesh) {
+        Ref<Model> model = AssetManager::GetAsset<Model>(mesh.handle);
+        if (model == nullptr) {
+          OE_ERROR("Failed to retrieve model for mesh handle {}", mesh.handle);
+          return;
+        }
+
+        Ref<ModelSource> source = model->GetModelSource();
+        if (source == nullptr) {
+          OE_ERROR("Failed to retrieve model source for model {}", model->handle);
+          return;
+        }
+
+        Path path = Path(*source->GetFileHandle());
+        char raw_str[kMaxStringLength];
+        std::memset(raw_str, 0, kMaxStringLength);
+        std::strncpy(raw_str, path.string().c_str(), path.string().size());
+        buffer.BufferBytes(raw_str, kMaxStringLength);
+      },
+      [=](ByteBuffer& buffer, size_t& offset, Mesh& mesh) {
+        std::string path = buffer.ReadStr(offset);
+        if (path.empty()) {
+          OE_ERROR("Failed to read path from buffer");
+          mesh.handle = 0;
+          return;
+        }
+
+        mesh.handle = GetMeshHandle(path);
+        offset += sizeof(kMaxStringLength);
+      }
+    );
+    AddField<UUID, 1>(&Mesh::material);
+    // AddField<std::vector<UUID>, 2>(&Mesh::bone_entity_ids);
+    AddField<bool, 2>(&Mesh::visible);
+  }
+
+  StaticMeshSnapshotter::StaticMeshSnapshotter() {
+    AddField<UUID, 0>(&StaticMesh::material);
+    AddField<bool, 1>(&StaticMesh::visible);
+    AddField<bool, 2>(&StaticMesh::is_primitive);
+    AddField<uint32_t, 3>(&StaticMesh::primitive_id);
+    AddField<uint32_t, 4>(&StaticMesh::primitive_selection);
+  }
 
   void MeshSerializer::Serialize(std::ostream& stream, Entity* entity, const Ref<Scene>& scene) const {
     SerializeComponentSection(stream, entity, "mesh");
@@ -60,34 +136,6 @@ namespace other {
 
     /// material data
     /// paths/other metadata
-  }
-
-  AssetHandle MeshSerializer::GetMeshHandle(const std::string& path) const {
-    Ref<Directory> assets = Filesystem::GetDirectory("assets");
-    if (assets == nullptr) {
-      OE_ERROR("Failed to retrieve assets directory");
-      return 0;
-    }
-
-    Ref<FileHandle> file = assets->OpenFile(path);
-    if (file == nullptr) {
-      OE_ERROR("Failed to open mesh file {}", path);
-      return 0;
-    }
-
-    Ref<ModelSource> asset = AssetManager::GetAsset<ModelSource>(file->handle, AssetType::MODEL_SOURCE);
-    if (asset == nullptr) {
-      OE_ERROR("Failed to retrieve asset handle for mesh {}", path);
-      return 0;
-    }
-
-    Ref<Model> model = ModelSource::CreateModel(asset, {});
-    if (model == nullptr) {
-      OE_ERROR("Failed to create model from asset {}", path);
-      return 0;
-    }
-
-    return model->handle;
   }
 
   void StaticMeshSerializer::Serialize(std::ostream& stream, Entity* entity, const Ref<Scene>& scene) const {

@@ -5,7 +5,9 @@
 
 #include "application/app_state.hpp"
 
+#include "ecs/component.hpp"
 #include "ecs/components/camera.hpp"
+#include "ecs/components/entity_metatable.hpp"
 #include "ecs/components/mesh.hpp"
 #include "ecs/components/relationship.hpp"
 #include "ecs/components/script.hpp"
@@ -23,18 +25,29 @@
 
 namespace other {
 
+  /// TODO: references/pointers to components are invalidated after removing a component from an entity, this is not a problem right now but
+  ///         has to be fixed in the future
+
   void OnConstructEntity(entt::registry& context, entt::entity entt) {
-    auto& tag = context.emplace<Tag>(entt);
-    tag.id = 0;
-    tag.name = "[ Blank Entity ]";
-    tag.handle = entt;
-
-    auto& transform = context.emplace<Transform>(entt);
-    transform.position = { 0.f, 0.f, 0.f };
-    transform.erotation = { 0.f, 0.f, 0.f };
-    transform.scale = { 1.f, 1.f, 1.f };
-
-    /* auto& relationship = */ context.emplace<Relationship>(entt);
+    auto& metatable = context.emplace<EntityMetatable>(entt);
+    {
+      auto& tag = context.emplace<Tag>(entt);
+      tag.id = 0;
+      tag.name = "[ Blank Entity ]";
+      tag.handle = entt;
+      metatable.components[TAG_COMPONENT_INDEX] = &tag;
+    }
+    {
+      auto& transform = context.emplace<Transform>(entt);
+      transform.position = { 0.f, 0.f, 0.f };
+      transform.erotation = { 0.f, 0.f, 0.f };
+      transform.scale = { 1.f, 1.f, 1.f };
+      metatable.components[TRANSFORM_COMPONENT_INDEX] = &transform;
+    }
+    {
+      auto& relationship = context.emplace<Relationship>(entt);
+      metatable.components[RELATIONSHIP_COMPONENT_INDEX] = &relationship;
+    }
 
     /* auto& serialization_data = */ context.emplace<SerializationData>(entt);
   }

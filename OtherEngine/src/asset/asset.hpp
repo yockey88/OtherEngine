@@ -25,6 +25,8 @@ namespace other {
     static AssetType GetStaticType();
     virtual AssetType GetAssetType() const = 0;
 
+    const Ref<FileHandle> GetFileHandle() const;
+
     virtual bool operator==(const Asset& other) const;
     virtual bool operator!=(const Asset& other) const;
 
@@ -32,6 +34,8 @@ namespace other {
     uint16_t flags = AssetFlag::NO_ASSET_FLAGS;
 
    private:
+    friend class AssetLoader;
+
     bool IsValid() const;
 
     bool CheckFlag(AssetFlag flag) const;

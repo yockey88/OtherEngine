@@ -10,6 +10,15 @@
 namespace other {
 
   struct Mesh;
+  struct Terrain;
+
+  struct TerrainSnapshotter : public ObjectSerializer<Terrain, 2> {
+    TerrainSnapshotter();
+
+    static size_t Stride() {
+      return sizeof(glm::ivec2) + sizeof(float);
+    }
+  };
 
   struct Terrain : public Component {
     glm::ivec2 size = glm::ivec2(64);
@@ -26,21 +35,12 @@ namespace other {
     COMPONENT_SERIALIZERS(Terrain);
   };
 
-  class TerrainSnapshotter : public ObjectSerializer<Terrain, 3> {
-   public:
-    TerrainSnapshotter() {
-      AddField<glm::ivec2, 0>(&Terrain::size);
-      AddField<float, 1>(&Terrain::scale);
-      AddField<std::vector<float>, 2>(&Terrain::heights);
-    }
-  };
-
 }  // namespace other
 
 ECHO_TYPE(
   type(other::Terrain, refl::attr::bases<other::Component>),
-  field(size),
-  field(scale),
+  field(size, echo::serializable_field()),
+  field(scale, echo::serializable_field()),
   field(heights)
 );
 

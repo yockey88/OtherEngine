@@ -16,6 +16,36 @@ namespace other {
 
   class PhysicsWorld;
 
+  struct RigidBody;
+  struct Collider;
+  struct PhysicsObject;
+
+  struct RigidBodySnapshotter : public ObjectSerializer<RigidBody, 13> {
+    RigidBodySnapshotter();
+
+    static size_t Stride() {
+      return sizeof(PhysicsBodyType) + sizeof(uint32_t) + sizeof(bool) * 3 + sizeof(float) * 5 + sizeof(glm::vec3) * 2 + sizeof(CollisionDetectionType);
+    }
+  };
+
+  struct ColliderSnapshotter : public ObjectSerializer<Collider, 2> {
+    ColliderSnapshotter();
+
+    static size_t Stride() {
+      return sizeof(uint32_t) + sizeof(glm::vec3);
+    }
+  };
+
+  struct PhysicsObjectSnapshotter : public ObjectSerializer<PhysicsObject, 0> {
+    PhysicsObjectSnapshotter() {}
+
+    virtual void Write(ByteBuffer& stream, const PhysicsObject& object) override;
+    virtual PhysicsObject Read(ByteBuffer& stream, size_t buffer_offset) override;
+
+    /// this is zero because ColliderSnapshotter and RigidBodySnapshotter will each return their own stride separately
+    static size_t Stride() { return 0; /* RigidBodySnapshotter::Stride() + ColliderSnapshotter::Stride(); */ }
+  };
+
   /// this has a ton in common with the 2D version so it might be worth it
   ///   to merge them into one
   struct RigidBody : public Component {
@@ -50,24 +80,7 @@ namespace other {
     bool force_deserialize = false;
   };
 
-  class RigidBodySnapshotter : public ObjectSerializer<RigidBody, 13> {
-   public:
-    RigidBodySnapshotter() {
-      AddField<PhysicsBodyType, 0>(&RigidBody::type);
-      AddField<uint32_t, 1>(&RigidBody::layer_id);
-      AddField<bool, 2>(&RigidBody::enable_dynamic_type_change);
-      AddField<float, 3>(&RigidBody::mass);
-      AddField<float, 4>(&RigidBody::linear_drag);
-      AddField<float, 5>(&RigidBody::angular_drag);
-      AddField<bool, 6>(&RigidBody::disable_gravity);
-      AddField<bool, 7>(&RigidBody::is_trigger);
-      AddField<CollisionDetectionType, 8>(&RigidBody::collision_type);
-      AddField<glm::vec3, 9>(&RigidBody::initial_linear_velocity);
-      AddField<glm::vec3, 10>(&RigidBody::initial_angular_velocity);
-      AddField<float, 11>(&RigidBody::max_linear_velocity);
-      AddField<float, 12>(&RigidBody::max_angular_velocity);
-    }
-  };
+  struct ColliderSnapshotter;
 
   struct Collider : public Component {
     uint32_t shape_idx = PhysicsShape::Shape::BOX;
@@ -86,14 +99,6 @@ namespace other {
     bool force_deserialize = false;
   };
 
-  class ColliderSnapshotter : public ObjectSerializer<Collider, 2> {
-   public:
-    ColliderSnapshotter() {
-      AddField<uint32_t, 0>(&Collider::shape_idx);
-      AddField<glm::vec3, 1>(&Collider::collider_scale);
-    }
-  };
-
   struct PhysicsObject : public Component {
     ECS_COMPONENT(PhysicsObject, PHYSICS_OBJECT_COMPONENT_INDEX);
   };
@@ -107,19 +112,19 @@ namespace other {
 
 ECHO_TYPE(
   type(other::RigidBody, refl::attr::bases<other::Component>),
-  field(type),
-  field(layer_id),
-  field(enable_dynamic_type_change),
-  field(mass),
-  field(linear_drag),
-  field(angular_drag),
-  field(disable_gravity),
-  field(is_trigger),
-  field(collision_type),
-  field(initial_linear_velocity),
-  field(initial_angular_velocity),
-  field(max_linear_velocity),
-  field(max_angular_velocity)
+  field(type, echo::serializable_field()),
+  field(layer_id, echo::serializable_field()),
+  field(enable_dynamic_type_change, echo::serializable_field()),
+  field(mass, echo::serializable_field()),
+  field(linear_drag, echo::serializable_field()),
+  field(angular_drag, echo::serializable_field()),
+  field(disable_gravity, echo::serializable_field()),
+  field(is_trigger, echo::serializable_field()),
+  field(collision_type, echo::serializable_field()),
+  field(initial_linear_velocity, echo::serializable_field()),
+  field(initial_angular_velocity, echo::serializable_field()),
+  field(max_linear_velocity, echo::serializable_field()),
+  field(max_angular_velocity, echo::serializable_field())
 );
 
 ECHO_TYPE(

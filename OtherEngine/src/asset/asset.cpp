@@ -19,6 +19,11 @@ namespace other {
     return AssetType::BLANK_ASSET;
   }
 
+  const Ref<FileHandle> Asset::GetFileHandle() const {
+    OE_ASSERT(file_handle != nullptr, "File handle is null");
+    return file_handle;
+  }
+
   bool Asset::operator==(const Asset& other) const {
     return handle == other.handle;
   }
