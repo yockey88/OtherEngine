@@ -426,6 +426,7 @@ namespace other {
       stream << "layout (std140 , binding = 0) uniform Camera {\n";
       stream << "  mat4 projection;\n";
       stream << "  mat4 view;\n";
+      stream << "  mat4 inverse_mvp;\n";
       stream << "  vec4 viewpoint;\n";
       stream << "};\n\n";
       stream << "#define MAX_MODELS\n";
@@ -543,6 +544,15 @@ namespace other {
     },
   };
 
+  constexpr static uint64_t kPositionOnlyMeshHash = FNV("position_only");
+  const static MeshLayout kPositionOnlyMesh = {
+    .layout_name = "position_only",
+    .stride = 3,
+    .attrs = {
+      { .attr_name = "voe_position", .idx = 0, .size = 3 },
+    },
+  };
+
   void ShaderGlslTranspiler::SetMeshLayout(const std::string& value) {
     if (context != VERTEX_SHADER) {
       throw Error(INVALID_SHADER_CTX, "Can not change mesh layout from anything but a vertex shader!");
@@ -564,6 +574,9 @@ namespace other {
         break;
       case kTexturedQuadMeshHash:
         mesh_layout = kTexturedQuadMesh;
+        break;
+      case kPositionOnlyMeshHash:
+        mesh_layout = kPositionOnlyMesh;
         break;
       default:
         if (!mesh_layout.has_value()) {

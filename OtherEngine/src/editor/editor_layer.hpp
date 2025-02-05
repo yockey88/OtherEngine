@@ -50,6 +50,9 @@ namespace other {
     Ref<Shader> editor_grid_shader = nullptr;
     Ref<VertexArray> editor_grid_vao = nullptr;
 
+    Ref<Shader> camera_frustum_shader = nullptr;
+    Ref<VertexArray> camera_frustum_vao = nullptr;
+
     void LaunchSettingsWindow();
 
     Ray CastRay(Ref<CameraBase>& camera, const glm::vec2& mouse_pos);

@@ -253,6 +253,14 @@ namespace other {
         error_remove();
         return;
       } break;
+      case PhysicsShape::Shape::TERRAIN_SHAPE: {
+        if (!ent.HasComponent<Terrain>()) {
+          ent.AddComponent<Terrain>();
+        }
+
+        auto& terrain = ent.GetComponent<Terrain>();
+        collider.shape = CreateTerrainShape(terrain);
+      } break;
       default:
         OE_ERROR("Unimplemented or invalid collider shape type : {}", collider.shape_idx);
         error_remove();

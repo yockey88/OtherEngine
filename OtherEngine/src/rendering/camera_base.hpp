@@ -41,6 +41,7 @@ namespace other {
     void UpdateCoordinateFrame();
 
     const glm::mat4& GetMatrix();
+    const glm::mat4& InverseMatrix();
     const glm::mat4& ViewMatrix();
     const glm::mat4& ProjectionMatrix();
 
@@ -143,6 +144,7 @@ namespace other {
    private:
     CameraProjectionType projection_type;
     glm::mat4 mvp = glm::mat4(1.f);
+    glm::mat4 inverse_mvp = glm::mat4(1.f);
 
     void CalculateView();
     virtual void CalculateProjection() = 0;

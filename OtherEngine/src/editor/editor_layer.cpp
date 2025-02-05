@@ -11,6 +11,7 @@
 #include "math/vecmath.hpp"
 
 #include "application/app_state.hpp"
+#include "asset/asset_manager.hpp"
 #include "event/event_queue.hpp"
 #include "event/key_events.hpp"
 #include "event/mouse_events.hpp"
@@ -21,6 +22,7 @@
 #include "scene/scene_manager.hpp"
 
 #include "rendering/camera_base.hpp"
+#include "rendering/model_factory.hpp"
 #include "rendering/perspective_camera.hpp"
 #include "rendering/renderer.hpp"
 #include "rendering/shader.hpp"
@@ -39,27 +41,56 @@
 namespace other {
   namespace {
 
-    std::vector<float> fb_verts = {
+    std::vector<float> grid_vertices = {
       1.f, 1.f, 1.f, 1.f,
       -1.f, 1.f, 0.f, 1.f,
       -1.f, -1.f, 0.f, 0.f,
       1.f, -1.f, 1.f, 0.f
     };
 
-    std::vector<uint32_t> fb_indices{ 0, 1, 3, 1, 2, 3 };
-    std::vector<uint32_t> fb_layout{ 2, 2 };
+    std::vector<uint32_t> grid_indices{ 0, 1, 3, 1, 2, 3 };
+    std::vector<uint32_t> grid_layout{ 2, 2 };
 
-    std::vector<float> editor_grid_mesh = {
-      1.f, 0.f, -1.f, 1.f, 1.f,
-      -1.f, 0.f, -1.f, 0.f, 1.f,
-      -1.f, 0.f, 1.f, 0.f, 0.f,
-      1.f, 0.f, 1.f, 1.f, 0.f
+    std::vector<float> frustum_vertices = {
+      -1.f, -1.f, 1.f,
+      1.f, -1.f, 1.f,
+      1.f, 1.f, 1.f,
+      -1.f, 1.f, 1.f,
+      -1.f, -1.f, -1.f,
+      1.f, -1.f, -1.f,
+      1.f, 1.f, -1.f,
+      -1.f, 1.f, -1.f
     };
 
-    std::vector<uint32_t> editor_grid_indices = { 0, 1, 2, 2, 3, 0 };
-    std::vector<uint32_t> editor_grid_layout = { 3, 2 };
+    std::vector<uint32_t> frustum_indices = {
+      0, 1,  // (top-front)
+      1,     // (top-left.1)
+      5,     // (top-left.2)
+      5, 4,  // (top-back)
+      4,
+      0,  // (top-right)
+      /// bottom face
+      3,     // (bottom-front.1)
+      2,     // (bottom-front.2)
+      2, 6,  // (bottom-left)
+      6,
+      7,  // (bottom-back)
+      7,  // (bottom-right.1)
+      3,  // (bottom-right.2)
+      /// front face
+      0, 3,  // (front-right)
+      1,
+      2,  // (front-left)
+      /// left face
+      5,  // (back-left.1)
+      6,  // (back-left.2)
+      /// back face
+      4, 7  // (back-right)
+    };
+    std::vector<uint32_t> frustum_layout = { 3 };
 
     constexpr std::string_view kEditorGridShader = "editor_grid";
+    constexpr std::string_view kCameraFrustumShader = "camera_frustum";
 
   }  // namespace
 
@@ -100,18 +131,25 @@ namespace other {
     panel_manager = NewScope<PanelManager>();
     panel_manager->Attach(AppState::ProjectContext(), editor_config);
 
-    editor_grid_vao = NewRef<VertexArray>(fb_verts, fb_indices, fb_layout);
+    editor_grid_vao = NewRef<VertexArray>(grid_vertices, grid_indices, grid_layout);
     OE_ASSERT(editor_grid_vao != nullptr, "Failed to create editor grid vao");
+
+    camera_frustum_vao = NewRef<VertexArray>(frustum_vertices, frustum_indices, frustum_layout);
+    OE_ASSERT(camera_frustum_vao != nullptr, "Failed to create camera frustum vao");
 
     {
       Ref<Directory> shaders = Filesystem::GetDirectory("shaders");
       OE_ASSERT(shaders != nullptr, "Failed to retrieve shaders directory");
 
-      Ref<FileHandle> shader_file = shaders->GetFileHandleByName(kEditorGridShader, ".oshader");
-      OE_ASSERT(shader_file != nullptr, "Failed to get shader file : {}", kEditorGridShader);
+      Ref<FileHandle> grid_shader_file = shaders->GetFileHandleByName(kEditorGridShader, ".oshader");
+      OE_ASSERT(grid_shader_file != nullptr, "Failed to get shader file : {}", kCameraFrustumShader);
+      Ref<FileHandle> frustum_shader_file = shaders->GetFileHandleByName(kCameraFrustumShader, ".oshader");
+      OE_ASSERT(frustum_shader_file != nullptr, "Failed to get shader file : {}", kEditorGridShader);
 
-      editor_grid_shader = BuildShader(Path(*shader_file));
+      editor_grid_shader = BuildShader(Path(*grid_shader_file));
       OE_ASSERT(editor_grid_shader != nullptr, "Failed to build editor grid shader");
+      camera_frustum_shader = BuildShader(Path(*frustum_shader_file));
+      OE_ASSERT(camera_frustum_shader != nullptr, "Failed to build camera frustum shader");
     }
 
     editor_grid_transform.qrotation = glm::quat(glm::rotate(glm::mat4(1.f), glm::radians(90.f), glm::vec3(1.f, 0.f, 0.f)));
@@ -177,6 +215,7 @@ namespace other {
 
   void EditorLayer::OnUIRender() {
     using namespace std::string_view_literals;
+    EditorState& editor = EditorState::Get();
 
     bool scene_active = AppState::Scenes()->HasActiveScene();
     bool render_success = scene_active;
@@ -195,10 +234,11 @@ namespace other {
 
       /// render scene for editor
       if (EditorState::scene_mode != SceneEditorMode::PLAYING) {
+        /// editor grid draw command
         scene_renderer->SubmitDebugDrawCommands(
           "Geometry",
           {
-            [this]() {
+            [&]() {
               OE_ASSERT(editor_grid_shader != nullptr, "Editor grid shader is null");
               editor_grid_shader->Bind();
               editor_grid_shader->SetUniform("model", editor_grid_transform.model_transform);
@@ -207,6 +247,28 @@ namespace other {
             },
           }
         );
+
+        /// camera frustum draw command
+        scene_renderer->SubmitDebugDrawCommands(
+          "Geometry",
+          {
+            [&]() {
+              OE_ASSERT(camera_frustum_shader != nullptr, "Camera frustum shader is null");
+              if (!editor.camera_selected) {
+                return;
+              }
+              OE_ASSERT(editor.selected_camera != nullptr, "Selected camera is null");
+              editor.camera_frustum_transform.position = editor.selected_camera->Position();
+              editor.camera_frustum_transform.CalcMatrix();
+
+              camera_frustum_shader->Bind();
+              camera_frustum_shader->SetUniform("model", editor.camera_frustum_transform.model_transform);
+              camera_frustum_vao->Draw(DrawMode::LINES);
+              camera_frustum_shader->Unbind();
+            },
+          }
+        );
+
         // active_scene->bvh->RenderBounds(scene_renderer);
 
         // if (SelectionManager::HasSelection()) {
@@ -222,10 +284,9 @@ namespace other {
       if (rendering_physics_colliders) {
         active_scene->scene->RenderPhysicsDebug(scene_renderer);
       }
+
       render_success = scene_renderer->Render();
     }
-
-    EditorState& editor = EditorState::Get();
 
     // clang-format off
     ui::MainMenuBar([&]() {

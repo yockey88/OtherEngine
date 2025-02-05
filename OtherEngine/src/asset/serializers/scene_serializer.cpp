@@ -103,6 +103,7 @@ namespace other {
         scene_metadata.scene = NewRef<Scene>();
         scene_metadata.scene->scene_name = scene_metadata.scene_table.GetVal<std::string>(kMetadataSection, kNameValue, false).value_or(scene_path.stem().string());
         OE_ASSERT(!scene_metadata.scene->scene_name.empty(), "Scene name is empty : {}", scene_path);
+        OE_DEBUG("Attempting to load scene : {}", scene_metadata.scene->scene_name);
         scene_metadata.scene->scene_handle = FNV(scene_metadata.name);
         scene_metadata.path = scene_path;
 
@@ -180,6 +181,9 @@ namespace other {
         OE_ERROR("Unknown scene file format : {}", scene_path);
         return false;
     }
+
+    scene_metadata.name = scene_metadata.scene->scene_name;
+    scene_metadata.scene->scene_handle = FNV(scene_metadata.name);
 
     AppState::Scenes()->AddScene(scene_metadata);
     return true;
@@ -417,12 +421,17 @@ namespace other {
       switch (group.group_id) {
         case ENTITY_GROUP: {
           EntityGroupHeader& entity_data = buffer.Read<EntityGroupHeader>(cursor);
-          group_cursor = cursor + sizeof(uint64_t);  /// start of entities
+          const size_t start_of_entities = cursor + sizeof(uint64_t);  /// start of entities
+          group_cursor = start_of_entities;
 
           OE_TRACE("  > {} entities", entity_data.num_entities);
           for (uint64_t j = 0; j < entity_data.num_entities; ++j) {
             EntityDescriptor& descriptor = buffer.Read<EntityDescriptor>(group_cursor);
-            ComponentTable& comp_table = buffer.Read<ComponentTable>(descriptor.component_table_offset);
+            if (std::string{ descriptor.name } == "Scene") {
+              group_cursor += sizeof(EntityDescriptor);
+              continue;
+            }
+            // ComponentTable& comp_table = buffer.Read<ComponentTable>(descriptor.component_table_offset);
 
             Entity* entity = scene->CreateEntity(descriptor.name);
             OE_ASSERT(entity != nullptr, "Failed to create entity : {}", descriptor.name);
@@ -433,6 +442,21 @@ namespace other {
               tag.name = descriptor.name;
             }
 
+            group_cursor += sizeof(EntityDescriptor);
+          }
+          group_cursor = start_of_entities;
+
+          for (uint64_t j = 0; j < entity_data.num_entities; ++j) {
+            EntityDescriptor& descriptor = buffer.Read<EntityDescriptor>(group_cursor);
+            if (std::string{ descriptor.name } == "Scene") {
+              group_cursor += sizeof(EntityDescriptor);
+              continue;
+            }
+            ComponentTable& comp_table = buffer.Read<ComponentTable>(descriptor.component_table_offset);
+
+            Entity* entity = scene->GetEntity(descriptor.entity_id);
+            OE_ASSERT(entity != nullptr, "Failed to get entity : {}", descriptor.name);
+
             size_t beginning_of_components = descriptor.component_list_offset;
             size_t end_of_components = descriptor.component_list_offset + descriptor.component_list_len;
             size_t comp_cursor = beginning_of_components;
@@ -441,136 +465,168 @@ namespace other {
             OE_TRACE("    > name len : {}", descriptor.name_len);
             OE_TRACE("    > id : {}", descriptor.entity_id);
             OE_TRACE("    > component table offset : {}", descriptor.component_table_offset);
+            OE_TRACE("    > number of components : {}", comp_table.num_components);
             OE_TRACE("    > component list offset : {}", descriptor.component_list_offset);
             OE_TRACE("    > component list len : {}", descriptor.component_list_len);
-            OE_TRACE("    > end of components : {}", descriptor.component_list_offset + descriptor.component_list_len);
 
-            OE_TRACE("    > Component table ({} components) :", comp_table.num_components);
-            for (int32_t k = 0; k < NUM_COMPONENTS; ++k) {
-              if (comp_table.components[k].flag == 1) {
-                OE_TRACE("      > Component : {}", k);
-              }
-            }
-
-            OE_TRACE("COMPONENT CURSOR START = {} \\ end of components = {}", comp_cursor, end_of_components);
-
-            // have to have transform and relationship
+            OE_TRACE("  > reading transform");
             {
               TransformSnapshotter transform_reader{};
               Transform& transform = entity->GetComponent<Transform>();
               transform = transform_reader.Read(buffer, comp_cursor);
               comp_cursor += transform_reader.Stride();
             }
-            OE_ASSERT(comp_cursor == beginning_of_components + TransformSnapshotter::Stride(), "Component cursor out of bounds");
-            OE_TRACE("  > COMPONENT CURSOR = {} \\ end of components = {}", comp_cursor, end_of_components);
 
+            OE_TRACE("  > reading relationship");
             {
               RelationshipSnapshotter relationship_reader{};
               Relationship& relationship = entity->GetComponent<Relationship>();
               relationship = relationship_reader.Read(buffer, comp_cursor);
               comp_cursor += relationship_reader.Stride();
             }
-            OE_ASSERT(comp_cursor == beginning_of_components + TransformSnapshotter::Stride() + RelationshipSnapshotter::Stride(), "Component cursor out of bounds");
-            OE_TRACE("  > COMPONENT CURSOR = {} \\ end of components = {}", comp_cursor, end_of_components);
 
-            // read rest of components
-            for (uint32_t c = MESH_COMPONENT_INDEX; c < NUM_COMPONENTS; ++c) {
-              if (comp_cursor >= buffer.Size()) {
-                OE_ASSERT(comp_cursor == end_of_components, "Component data mismatch for entity: {}", descriptor.name);
-                break;
-              }
-              OE_TRACE("  > COMPONENT CURSOR = {} \\ end of components = {}", comp_cursor, end_of_components);
-
-              if (comp_table.components[c].flag == 1) {
-                OE_TRACE("    > Reading component : {}", c);
-                switch (c) {
-                  case MESH_COMPONENT_INDEX: {
-                    MeshSnapshotter mesh_reader{};
-                    entity->AddComponent<Mesh>(mesh_reader.Read(buffer, comp_cursor));
-                    comp_cursor += mesh_reader.Stride();
-                  } break;
-
-                  case STATICMESH_COMPONENT_INDEX: {
-                    StaticMeshSnapshotter static_mesh_reader{};
-                    entity->AddComponent<StaticMesh>(static_mesh_reader.Read(buffer, comp_cursor));
-                    comp_cursor += static_mesh_reader.Stride();
-                  } break;
-
-                  case SCRIPT_COMPONENT_INDEX: {
-                    ScriptSnapshotter script_reader{};
-                    entity->AddComponent<Script>(script_reader.Read(buffer, comp_cursor));
-                    comp_cursor += script_reader.Stride();
-                  } break;
-
-                  case CAMERA_COMPONENT_INDEX: {
-                    CameraSnapshotter camera_reader{};
-                    entity->AddComponent<Camera>(camera_reader.Read(buffer, comp_cursor));
-                    comp_cursor += camera_reader.Stride();
-                  } break;
-
-                  case RIGIDBODY2D_COMPONENT_INDEX: {
-                    RigidBody2DSnapshotter rigidbody2d_reader{};
-                    entity->AddComponent<RigidBody2D>(rigidbody2d_reader.Read(buffer, comp_cursor));
-                    comp_cursor += rigidbody2d_reader.Stride();
-                  } break;
-
-                  case COLLIDER2D_COMPONENT_INDEX: {
-                    Collider2DSnapshotter collider2d_reader{};
-                    entity->AddComponent<Collider2D>(collider2d_reader.Read(buffer, comp_cursor));
-                    comp_cursor += collider2d_reader.Stride();
-                  } break;
-
-                  case RIGIDBODY_COMPONENT_INDEX: {
-                    RigidBodySnapshotter rigidbody_reader{};
-                    entity->AddComponent<RigidBody>(rigidbody_reader.Read(buffer, comp_cursor));
-                    comp_cursor += rigidbody_reader.Stride();
-                  } break;
-
-                  case COLLIDER_COMPONENT_INDEX: {
-                    ColliderSnapshotter collider_reader{};
-                    entity->AddComponent<Collider>(collider_reader.Read(buffer, comp_cursor));
-                    comp_cursor += collider_reader.Stride();
-                  } break;
-
-                  case PHYSICS_OBJECT_COMPONENT_INDEX: {
-                    [[maybe_unused]] PhysicsObject& physics_object = entity->AddComponent<PhysicsObject>();
-                    RigidBody& body = entity->GetComponent<RigidBody>();
-                    Collider& collider = entity->GetComponent<Collider>();
-
-                    OE_ASSERT(body.physics_body != nullptr, "Physics body is null");
-                    OE_ASSERT(collider.shape != nullptr, "Collider shape is null");
-
-                    // RigidBodySnapshotter rigidbody_reader{};
-                    // RigidBody rigidbody = rigidbody_reader.Read(buffer, comp_cursor);
-                    // comp_cursor += rigidbody_reader.Stride();
-
-                    // ColliderSnapshotter collider_reader{};
-                    // Collider collider = collider_reader.Read(buffer, comp_cursor);
-                    // comp_cursor += collider_reader.Stride();
-                  } break;
-
-                  case LIGHTSOURCE_COMPONENT_INDEX: {
-                    LightSourceSnapshotter light_source_reader{};
-                    entity->AddComponent<LightSource>(light_source_reader.Read(buffer, comp_cursor));
-                    comp_cursor += light_source_reader.Stride();
-                  } break;
-
-                  case TERRAIN_COMPONENT_INDEX: {
-                    TerrainSnapshotter terrain_reader{};
-                    entity->AddComponent<Terrain>(terrain_reader.Read(buffer, comp_cursor));
-                    comp_cursor += terrain_reader.Stride();
-                  } break;
-
-                  default:
-                    OE_ERROR("Unknown component index : {}", c);
-                    break;
-                }
-              }
+            OE_TRACE("    > comp_cursor = {}", comp_cursor);
+            for (int32_t c = MESH_COMPONENT_INDEX; c < NUM_COMPONENTS; ++c) {
+              size_t stride = ComponentDataBase::GetComponentStride(c);
             }
-            OE_ASSERT(comp_cursor == end_of_components, "Component data mismatch for entity: {}", descriptor.name);
-            OE_TRACE("  > COMPONENT CURSOR = {} \\ end of components = {}", comp_cursor, end_of_components);
 
             group_cursor += sizeof(EntityDescriptor);
+            //     size_t beginning_of_components = descriptor.component_list_offset;
+            //     size_t end_of_components = descriptor.component_list_offset + descriptor.component_list_len;
+            //     size_t comp_cursor = beginning_of_components;
+
+            //     OE_TRACE("  > Reading entity : {}", descriptor.name);
+            //     OE_TRACE("    > name len : {}", descriptor.name_len);
+            //     OE_TRACE("    > id : {}", descriptor.entity_id);
+            //     OE_TRACE("    > component table offset : {}", descriptor.component_table_offset);
+            //     OE_TRACE("    > component list offset : {}", descriptor.component_list_offset);
+            //     OE_TRACE("    > component list len : {}", descriptor.component_list_len);
+            //     OE_TRACE("    > end of components : {}", descriptor.component_list_offset + descriptor.component_list_len);
+
+            //     OE_TRACE("    > Component table ({} components) :", comp_table.num_components);
+            //     for (int32_t k = 0; k < NUM_COMPONENTS; ++k) {
+            //       if (comp_table.components[k].flag == 1) {
+            //         OE_TRACE("      > Component : {}", k);
+            //       }
+            //     }
+
+            //     OE_TRACE("COMPONENT CURSOR START = {} \\ end of components = {}", comp_cursor, end_of_components);
+
+            //     // have to have transform and relationship
+            //     {
+            //       TransformSnapshotter transform_reader{};
+            //       Transform& transform = entity->GetComponent<Transform>();
+            //       transform = transform_reader.Read(buffer, comp_cursor);
+            //       comp_cursor += transform_reader.Stride();
+            //     }
+            //     OE_ASSERT(comp_cursor == beginning_of_components + TransformSnapshotter::Stride(), "Component cursor out of bounds");
+            //     OE_TRACE("  > COMPONENT CURSOR = {} \\ end of components = {}", comp_cursor, end_of_components);
+
+            //     {
+            //       RelationshipSnapshotter relationship_reader{};
+            //       Relationship& relationship = entity->GetComponent<Relationship>();
+            //       relationship = relationship_reader.Read(buffer, comp_cursor);
+            //       comp_cursor += relationship_reader.Stride();
+            //     }
+            //     OE_ASSERT(comp_cursor == beginning_of_components + TransformSnapshotter::Stride() + RelationshipSnapshotter::Stride(), "Component cursor out of bounds");
+            //     OE_TRACE("  > COMPONENT CURSOR = {} \\ end of components = {}", comp_cursor, end_of_components);
+
+            //     // read rest of components
+            //     for (uint32_t c = MESH_COMPONENT_INDEX; c < NUM_COMPONENTS; ++c) {
+            //       if (comp_cursor >= buffer.Size()) {
+            //         OE_ASSERT(comp_cursor == end_of_components, "Component data mismatch for entity: {}", descriptor.name);
+            //         break;
+            //       }
+            //       OE_TRACE("  > COMPONENT CURSOR = {} \\ end of components = {}", comp_cursor, end_of_components);
+
+            //       if (comp_table.components[c].flag == 1) {
+            //         OE_TRACE("    > Reading component : {}", c);
+            //         switch (c) {
+            //           case MESH_COMPONENT_INDEX: {
+            //             MeshSnapshotter mesh_reader{};
+            //             entity->AddComponent<Mesh>(mesh_reader.Read(buffer, comp_cursor));
+            //             comp_cursor += mesh_reader.Stride();
+            //           } break;
+
+            //           case STATICMESH_COMPONENT_INDEX: {
+            //             StaticMeshSnapshotter static_mesh_reader{};
+            //             entity->AddComponent<StaticMesh>(static_mesh_reader.Read(buffer, comp_cursor));
+            //             comp_cursor += static_mesh_reader.Stride();
+            //           } break;
+
+            //           case SCRIPT_COMPONENT_INDEX: {
+            //             ScriptSnapshotter script_reader{};
+            //             entity->AddComponent<Script>(script_reader.Read(buffer, comp_cursor));
+            //             comp_cursor += script_reader.Stride();
+            //           } break;
+
+            //           case CAMERA_COMPONENT_INDEX: {
+            //             CameraSnapshotter camera_reader{};
+            //             entity->AddComponent<Camera>(camera_reader.Read(buffer, comp_cursor));
+            //             comp_cursor += camera_reader.Stride();
+            //           } break;
+
+            //           case RIGIDBODY2D_COMPONENT_INDEX: {
+            //             RigidBody2DSnapshotter rigidbody2d_reader{};
+            //             entity->AddComponent<RigidBody2D>(rigidbody2d_reader.Read(buffer, comp_cursor));
+            //             comp_cursor += rigidbody2d_reader.Stride();
+            //           } break;
+
+            //           case COLLIDER2D_COMPONENT_INDEX: {
+            //             Collider2DSnapshotter collider2d_reader{};
+            //             entity->AddComponent<Collider2D>(collider2d_reader.Read(buffer, comp_cursor));
+            //             comp_cursor += collider2d_reader.Stride();
+            //           } break;
+
+            //           case RIGIDBODY_COMPONENT_INDEX: {
+            //             RigidBodySnapshotter rigidbody_reader{};
+            //             entity->AddComponent<RigidBody>(rigidbody_reader.Read(buffer, comp_cursor));
+            //             comp_cursor += rigidbody_reader.Stride();
+            //           } break;
+
+            //           case COLLIDER_COMPONENT_INDEX: {
+            //             ColliderSnapshotter collider_reader{};
+            //             entity->AddComponent<Collider>(collider_reader.Read(buffer, comp_cursor));
+            //             comp_cursor += collider_reader.Stride();
+            //           } break;
+
+            //           case PHYSICS_OBJECT_COMPONENT_INDEX: {
+            //             [[maybe_unused]] PhysicsObject& physics_object = entity->AddComponent<PhysicsObject>();
+            //             RigidBody& body = entity->GetComponent<RigidBody>();
+            //             Collider& collider = entity->GetComponent<Collider>();
+
+            //             OE_ASSERT(body.physics_body != nullptr, "Physics body is null");
+            //             OE_ASSERT(collider.shape != nullptr, "Collider shape is null");
+
+            //             // RigidBodySnapshotter rigidbody_reader{};
+            //             // RigidBody rigidbody = rigidbody_reader.Read(buffer, comp_cursor);
+            //             // comp_cursor += rigidbody_reader.Stride();
+
+            //             // ColliderSnapshotter collider_reader{};
+            //             // Collider collider = collider_reader.Read(buffer, comp_cursor);
+            //             // comp_cursor += collider_reader.Stride();
+            //           } break;
+
+            //           case LIGHTSOURCE_COMPONENT_INDEX: {
+            //             LightSourceSnapshotter light_source_reader{};
+            //             entity->AddComponent<LightSource>(light_source_reader.Read(buffer, comp_cursor));
+            //             comp_cursor += light_source_reader.Stride();
+            //           } break;
+
+            //           case TERRAIN_COMPONENT_INDEX: {
+            //             TerrainSnapshotter terrain_reader{};
+            //             entity->AddComponent<Terrain>(terrain_reader.Read(buffer, comp_cursor));
+            //             comp_cursor += terrain_reader.Stride();
+            //           } break;
+
+            //           default:
+            //             OE_ERROR("Unknown component index : {}", c);
+            //             break;
+            //         }
+            //       }
+            //     }
+            //     OE_ASSERT(comp_cursor == end_of_components, "Component data mismatch for entity: {}", descriptor.name);
+            //     OE_TRACE("  > COMPONENT CURSOR = {} \\ end of components = {}", comp_cursor, end_of_components);
           }
         } break;
         default:

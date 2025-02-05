@@ -43,7 +43,7 @@ namespace other {
     model_transform = glm::translate(glm::mat4(1.f), position) *
       glm::toMat4(qrotation) *
       glm::scale(glm::mat4(1.f), scale);
-
+    /// normalize matrix to avoid scaling issues
     return model_transform;
   }
 

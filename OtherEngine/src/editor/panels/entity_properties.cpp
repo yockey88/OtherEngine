@@ -23,6 +23,7 @@
 #include "rendering/ui/ui_colors.hpp"
 #include "rendering/ui/ui_helpers.hpp"
 
+#include "editor/editor_state.hpp"
 #include "editor/selection_manager.hpp"
 
 namespace other {
@@ -275,7 +276,27 @@ namespace other {
     edited = DrawComponent<Script, &DrawScript>("Script") || edited;
     edited = DrawComponent<Mesh, &DrawMesh>("Mesh") || edited;
     edited = DrawComponent<StaticMesh, &DrawStaticMesh>("Static Mesh") || edited;
-    edited = DrawComponent<Camera, &DrawCamera>("Camera") || edited;
+    edited = DrawComponentAndThen<Camera, &DrawCamera>(
+               "Camera",
+               [&](Entity* ent, bool edited, bool open) {
+                 EditorState& editor = EditorState::Get();
+                 if (editor.camera_selected && !open) {
+                   editor.camera_selected = false;
+                 } else if (!editor.camera_selected && open) {
+                   editor.camera_selected = true;
+                 }
+
+                 if (editor.camera_selected) {
+                   auto& camera = ent->GetComponent<Camera>();
+                   editor.selected_camera = camera.camera;
+                   editor.camera_frustum_transform.position = camera.camera->Position();
+                   editor.camera_frustum_transform.qrotation = glm::identity<glm::quat>();
+                   editor.camera_frustum_transform.erotation = glm::vec3(0.f);
+                   editor.camera_frustum_transform.scale = glm::vec3(0.5f);
+                 }
+               }
+             ) ||
+      edited;
     edited = DrawComponent<RigidBody2D, &DrawRigidBody2D>("Rigid Body 2D") || edited;
     edited = DrawComponent<Collider2D, &DrawCollider2D>("Collider 2D") || edited;
     // edited = DrawComponent<RigidBody, &DrawRigidBody>("Rigid Body") || edited;

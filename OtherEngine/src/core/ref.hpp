@@ -7,12 +7,12 @@
 #include <concepts>
 #include <type_traits>
 
+#include "profiling/profiling.hpp"
+
 #include "core/errors.hpp"
 #include "core/ref_counted.hpp"
 #include "core/view.hpp"
-
 #include "memory/arena_allocator.hpp"
-#include "profiling/profiling.hpp"
 
 namespace other {
   namespace detail {
@@ -25,7 +25,7 @@ namespace other {
   }  // namespace detail
 
   template <typename T, typename U>
-  concept RefCastable = std::convertible_to<T, U> || std::derived_from<T, U> || std::derived_from<U, T>;
+  concept RefCastable = std::derived_from<U, T>;
   template <typename T>
   concept RefType = std::derived_from<T, RefCounted>;
 

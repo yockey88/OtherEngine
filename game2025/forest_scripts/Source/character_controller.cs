@@ -1,10 +1,9 @@
 using System;
-
 using Other;
 
 namespace Forest {
 
-  class Terrain : OtherObject {
+  class CharacterController : OtherObject {
     public override void Update(float dt) {
     }
 

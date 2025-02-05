@@ -66,7 +66,7 @@ namespace other {
     return true;
   }
 
-  void SceneManager::AddScene(const DeserializedScene& scene) {
+  void SceneManager::AddScene(DeserializedScene& scene) {
     OE_ASSERT(scene.scene != nullptr, "Attempting to add null scene");
 
     UUID id = scene.scene->scene_handle;
@@ -75,7 +75,7 @@ namespace other {
       return;
     }
 
-    loaded_scenes[id] = SceneMetadata{
+    auto& metadata = loaded_scenes[id] = SceneMetadata{
       .name = scene.name,
       .path = scene.path,
       .scene_table = scene.scene_table,
@@ -83,7 +83,7 @@ namespace other {
       .corrupted = false
     };
 
-    loaded_scenes[id].scene->Initialize();
+    metadata.scene->Initialize();
     scene_paths.push_back(scene.path.string());
   }
 

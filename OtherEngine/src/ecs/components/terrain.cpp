@@ -21,8 +21,6 @@ namespace other {
     OE_ASSERT(model != nullptr, "Model is null");
     OE_ASSERT(model->handle != 0, "Model handle is zero");
 
-    std::vector<float> heights;
-
     Ref<Model> model_asset = AssetManager::GetAsset<Model>(model->handle);
     OE_ASSERT(model_asset != nullptr, "Model asset is null : {}", model->handle);
 
@@ -40,10 +38,10 @@ namespace other {
     }
 
     for (uint32_t i = 0; i < dim; ++i) {
-      instance.heights[i] = vertices[i].position.y;
+      instance.heights[i] = 0.f;  // vertices[i].position.y;
     }
 
-    OE_TRACE("Generated Height Map from model [{}] : \n{}\n", model->handle, fmt::join(heights, ", "));
+    OE_TRACE("Generated Height Map from model [{}] : \n{}\n", model->handle, fmt::join(instance.heights, ", "));
   }
 
   void TerrainSerializer::Serialize(std::ostream& stream, Entity* entity, const Ref<Scene>& scene) const {

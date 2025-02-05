@@ -48,6 +48,7 @@ namespace other {
     CalculateView();
     CalculateProjection();
     mvp = projection * view;
+    inverse_mvp = glm::inverse(mvp);
   }
 
   void CameraBase::UpdateCoordinateFrame() {
@@ -65,6 +66,11 @@ namespace other {
   const glm::mat4& CameraBase::GetMatrix() {
     CalculateMatrix();
     return mvp;
+  }
+
+  const glm::mat4& CameraBase::InverseMatrix() {
+    CalculateMatrix();
+    return inverse_mvp;
   }
 
   const glm::mat4& CameraBase::ViewMatrix() {

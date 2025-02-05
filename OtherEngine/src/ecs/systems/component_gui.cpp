@@ -36,6 +36,8 @@
 #include "rendering/ui/ui_widgets.hpp"
 #include "scripting/script_engine.hpp"
 
+#include "editor/editor_state.hpp"
+
 namespace other {
 
   bool DrawTransform(Entity* ent) {
@@ -67,6 +69,10 @@ namespace other {
       if (ui::widgets::DrawVec3Control("Rotation", component.erotation, rotation_manually_edited, 0.f,  /// replace this value from redo/undo stack
                                        100.f, ui::VectorAxis::ZERO, glm::zero<glm::vec3>(), glm::zero<glm::vec3>(), 0.1f)) {
         component.qrotation = glm::quat(component.erotation);
+      }
+      {
+        ScopedColor color(ImGuiCol_WindowBg, ui::theme::muted);
+        ImGui::Text("   > quaternion : [%.2f, %.2f, %.2f, %.2f]", component.qrotation.x, component.qrotation.y, component.qrotation.z, component.qrotation.w);
       }
 
       ImGui::TableNextRow();
@@ -757,21 +763,6 @@ namespace other {
     }
 
     ImGui::NextColumn();
-
-    switch (camera.camera->GetCameraProjectionType()) {
-      case CameraProjectionType::PERSPECTIVE: {
-        ui::DrawTodoReminder("PERSPECTIVE CAMERA OPTIONS");
-      } break;
-
-      case CameraProjectionType::ORTHOGRAPHIC: {
-        ui::DrawTodoReminder("ORTHOGRAPHIC CAMERA OPTIONS");
-      } break;
-
-      default:
-        ScopedColor col(ImGuiCol_Text, ui::theme::red);
-        ImGui::Text("Invalid Camera Projection Type! Camera Corrupt");
-        break;
-    }
 
     ui::EndPropertyGrid();
 

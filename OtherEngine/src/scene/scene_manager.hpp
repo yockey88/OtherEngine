@@ -38,7 +38,7 @@ namespace other {
     void Unload();
 
     bool LoadScene(const Ref<FileHandle>& scenepath);
-    void AddScene(const DeserializedScene& scene);
+    void AddScene(DeserializedScene& scene);
     void SetAsActive(const Ref<FileHandle>& scenefile);
 
     void Activate(Ref<Scene>& scene);

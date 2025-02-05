@@ -46,10 +46,12 @@ namespace other {
 
     const glm::mat4& proj = camera->ProjectionMatrix();
     const glm::mat4& view = camera->ViewMatrix();
+    const glm::mat4& inverse_mvp = glm::inverse(proj * view);
     glm::vec4 cam_pos = glm::vec4(camera->Position(), 1.f);
 
     frame_data.camera_uniforms->SetUniform("projection", proj);
     frame_data.camera_uniforms->SetUniform("view", view);
+    frame_data.camera_uniforms->SetUniform("inverse_mvp", inverse_mvp);
     frame_data.camera_uniforms->SetUniform("viewpoint", cam_pos);
     frame_data.viewpoint = camera;
   }
@@ -399,6 +401,7 @@ namespace other {
       std::vector<Uniform>{
         { "projection", ValueType::MAT4 },
         { "view", ValueType::MAT4 },
+        { "inverse_mvp", ValueType::MAT4 },
         { "viewpoint", ValueType::VEC4 },
       };
 

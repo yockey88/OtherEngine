@@ -5,12 +5,12 @@ bin-dir = "C:/Yock/code/OtherEngine/bin/Debug"
 script-bin-dir = "Game2025Scripts/net8.0"
 author = "Y"
 version = 0.0.1
-primary-scene = forest2
+primary-scene = forest
 scenes = {
   "forest",
-  "forest2",
   "dev"
 }
+# "forest2",
 
 [debug]
 editor = true

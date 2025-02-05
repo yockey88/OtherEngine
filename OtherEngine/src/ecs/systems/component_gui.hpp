@@ -23,8 +23,9 @@
 
 namespace other {
 
-  template <ComponentType C, bool (*Func)(Entity*)>
-  bool DrawComponent(const std::string& name) {  // }, Func ui_function) {
+  template <ComponentType C, bool (*Fn)(Entity*), typename ThenFn>
+    requires(requires(ThenFn fn, Entity* ent) { { fn(ent, std::declval<bool>(), std::declval<bool>()) } -> std::same_as<void>; } || std::same_as<ThenFn, std::nullptr_t>)
+  bool DrawComponentImpl(const std::string& name, ThenFn then_function = nullptr) {
     // bool should_draw = true;
 
     Entity* selection = SelectionManager::ActiveSelection();
@@ -107,7 +108,7 @@ namespace other {
     }
 
     if (open) {
-      edited = edited || Func(selection);  // ui_function(selection);
+      edited = edited || Fn(selection);
       ImGui::TreePop();
     }
 
@@ -130,9 +131,24 @@ namespace other {
       ui::ShiftCursorY(-(ImGui::GetStyle().ItemSpacing.y + 1.f));
     }
 
+    if constexpr (!std::same_as<ThenFn, std::nullptr_t>) {
+      then_function(selection, edited, open);
+    }
+
     ImGui::PopID();
 
     return edited;
+  }
+
+  template <typename C, bool (*Fn)(Entity*)>
+  bool DrawComponent(const std::string& name) {
+    return DrawComponentImpl<C, Fn, std::nullptr_t>(name, nullptr);
+  }
+
+  template <typename C, bool (*Fn)(Entity*), typename ThenFn>
+    requires requires(ThenFn fn, Entity* ent) { { fn(ent, std::declval<bool>(), std::declval<bool>()) } -> std::same_as<void>; }
+  bool DrawComponentAndThen(const std::string& name, ThenFn then_function) {
+    return DrawComponentImpl<C, Fn, ThenFn>(name, then_function);
   }
 
   bool DrawTransform(Entity* ent);

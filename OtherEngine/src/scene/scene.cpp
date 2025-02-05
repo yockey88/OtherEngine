@@ -910,7 +910,9 @@ namespace other {
 
   void Scene::RefreshCameraTransforms() {
     registry.view<Camera, Transform>().each([](Camera& camera, Transform& transform) {
-      camera.camera->SetPosition(transform.position);
+      if (camera.pinned_to_entity_position) {
+        camera.camera->SetPosition(transform.position);
+      }
       camera.camera->CalculateMatrix();
     });
   }

@@ -26,7 +26,7 @@ namespace other {
   struct Camera : public Component {
     Ref<CameraBase> camera = nullptr;
     bool is_primary = false;
-    bool pinned_to_entity_position = true;
+    bool pinned_to_entity_position = false;
 
     Camera(const Ref<CameraBase>& camera)
         : Component(CAMERA_COMPONENT_INDEX), camera(camera) {}

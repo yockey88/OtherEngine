@@ -232,7 +232,9 @@ namespace other {
       case FNV("concave-mesh"):
         entity->AddComponent<Collider>(PhysicsShape::Shape::CONCAVE_MESH);
         break;
-      //   break;
+      case FNV("terrain"):
+        entity->AddComponent<Collider>(PhysicsShape::Shape::TERRAIN_SHAPE);
+        break;
       default:
         OE_ERROR("Collider shape section corrupt, cannot deserialize into entity {}", entity->Name());
         entity->RemoveComponent<Collider>();
