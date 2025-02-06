@@ -50,7 +50,8 @@ namespace other {
   }
 
   void Pipeline::SetViewportSize(const glm::ivec2& size) {
-    target->Resize(size);
+    glm::vec2 sz = size;
+    target->Resize(sz);
   }
 
   void Pipeline::SubmitRenderPass(const Ref<RenderPass>& render_pass) {
@@ -153,6 +154,7 @@ namespace other {
   }
 
   void Pipeline::Render() {
+    PROFILE_SECTION("Pipeline--Render");
     material_storage->Clear();
     model_storage->Clear();
 
@@ -168,10 +170,13 @@ namespace other {
     }
 
     /// HACK:
-    for (const DebugDrawCommand& cmd : debug_draw_commands) {
-      cmd();
+    {
+      PROFILE_SECTION("Pipeline--PerformPass:DebugDraw");
+      for (const DebugDrawCommand& cmd : debug_draw_commands) {
+        cmd();
+      }
+      debug_draw_commands.clear();
     }
-
     target->UnbindFrame();
     CHECKGL();
   }
@@ -181,6 +186,7 @@ namespace other {
   }
 
   void Pipeline::Clear() {
+    PROFILE_SECTION("Pipeline--Clear");
     /// dont clear the mesh key for a tiny optimization on future submissions
     for (auto& [mk, sl] : static_model_submissions) {
       sl.cpu_model_storage.ZeroMem();
@@ -199,6 +205,7 @@ namespace other {
   }
 
   void Pipeline::PerformPass(Ref<RenderPass>& pass) {
+    PROFILE_SECTION("Pipeline--PerformPass");
     CHECKGL();
 
     pass->Bind();
@@ -379,7 +386,7 @@ namespace other {
   }
 
   /**
-   * @note this is slooooow, (also broken at the moment....)
+   * @note this is slooooow
    *        Goals:
    *         - bindless textures to avoid filling the material storage for each submesh
    *         - Giant global vertex buffer with offsets for each model and offsets for each model's submesh

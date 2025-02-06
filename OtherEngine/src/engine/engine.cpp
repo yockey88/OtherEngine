@@ -11,6 +11,7 @@
 #include "core/logger.hpp"
 #include "core/ref.hpp"
 #include "engine/engine_state_machine.hpp"
+#include "memory/arena.hpp"
 
 #include "application/app_state.hpp"
 #include "asset/asset_database.hpp"
@@ -18,8 +19,6 @@
 #include "event/event_queue.hpp"
 #include "input/io.hpp"
 #include "parsing/ini_parser.hpp"
-
-#include "memory/arena.hpp"
 
 namespace other {
 
@@ -111,18 +110,20 @@ namespace other {
     AppState::OnEngineTick(dt);
 
     if (!event_queue.empty()) {
-      PROFILE_SECTION("Engine--state:HandleEvent");
+      PROFILE_SECTION("Engine--Step:HandleEvent");
       state->HandleEvent(event_queue.front());
       event_queue.pop();
     }
-
-    if (state->IsFinished()) {
-      OE_ASSERT(AppState::exit_code.has_value(), "No exit code set for engine shutdown");
-      exit_code = AppState::exit_code.value();
-    } else if (state->IsError()) {
-      /// TODO: handle error state
-    } else {
-      state->Step();
+    {
+      PROFILE_SECTION("Engine--Step:StateStep");
+      if (state->IsFinished()) {
+        OE_ASSERT(AppState::exit_code.has_value(), "No exit code set for engine shutdown");
+        exit_code = AppState::exit_code.value();
+      } else if (state->IsError()) {
+        /// TODO: handle error state
+      } else {
+        state->Step();
+      }
     }
   }
 

@@ -213,6 +213,10 @@ namespace other {
       editor.last_mouse_viewport_click = std::nullopt;
     }
 
+    // if (EditorState::scene_mode == SceneEditorMode::PLAYING) {
+    //   return;
+    // }
+
     if (viewport == nullptr) {
       ScopedColor red_text(ImGuiCol_Text, ui::theme::red);
       ImGui::Text("Failed to find viewport frame, settings may be corrupt");

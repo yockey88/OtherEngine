@@ -23,7 +23,7 @@ namespace other {
     return fb_complete;
   }
 
-  void Framebuffer::Resize(const glm::vec2& sz) {
+  void Framebuffer::Resize(glm::vec2& sz) {
     spec.size = sz;
     if (spec.depth) {
       glBindTexture(GL_TEXTURE_2D, depth_attachment);
@@ -43,6 +43,10 @@ namespace other {
     }
 
     CHECKGL();
+  }
+
+  glm::vec2 Framebuffer::Size() const {
+    return spec.size;
   }
 
   void Framebuffer::BindFrame() {

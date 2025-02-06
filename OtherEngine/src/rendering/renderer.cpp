@@ -99,8 +99,12 @@ namespace other {
     window->SetClearColor(color);
   }
 
-  void Renderer::DrawFramebufferToWindow(const Ref<Framebuffer>& framebuffer) {
+  void Renderer::DrawFramebufferToWindow(Ref<Framebuffer>& framebuffer) {
     OE_ASSERT(framebuffer != nullptr, "Cannot render null framebuffer to window!");
+    glm::vec2 old_size = framebuffer->Size();
+    glm::vec2 new_size = window->Size();
+    framebuffer->Resize(new_size);
+
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, framebuffer->texture);
     window_shader->Bind();
@@ -108,6 +112,8 @@ namespace other {
     window_shader->SetUniform("exposure", 1.f);
     window_mesh->Draw(TRIANGLES);
     window_shader->Unbind();
+
+    framebuffer->Resize(old_size);
   }
 
   Ref<SceneRenderer> Renderer::DefaultSceneRenderer() {

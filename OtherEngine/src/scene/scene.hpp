@@ -79,6 +79,7 @@ namespace other {
     bool IsDebugPhysicsRendering() const;
 
     void RenderPhysicsDebug(Ref<SceneRenderer>& scene_renderer);
+    void RenderCameraFrustums(Ref<SceneRenderer>& scene_renderer);
 
     void RenderUI();
 

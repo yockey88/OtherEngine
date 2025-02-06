@@ -3,6 +3,7 @@
  **/
 #include "editor/editor_states.hpp"
 
+#include "core/filesystem.hpp"
 #include "engine/engine.hpp"
 #include "engine/engine_states.hpp"
 #include "environment/environment.hpp"
@@ -56,6 +57,7 @@ namespace other {
       }
     }
 
+    Filesystem::Poll();
     AppState::FlushUpdateLoop();
 
     if (!AppState::exit_code.has_value()) {

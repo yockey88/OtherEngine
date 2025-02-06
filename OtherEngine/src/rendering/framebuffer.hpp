@@ -22,7 +22,8 @@ namespace other {
 
     bool Valid() const;
 
-    void Resize(const glm::vec2& size);
+    void Resize(glm::vec2& size);
+    glm::vec2 Size() const;
 
     void BindFrame();
     void UnbindFrame();

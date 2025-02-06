@@ -5,6 +5,7 @@
 
 #include <imgui/imgui.h>
 
+#include "core/defines.hpp"
 #include "core/filesystem.hpp"
 #include "core/logger.hpp"
 #include "engine/engine.hpp"
@@ -18,6 +19,8 @@
 #include "rendering/renderer.hpp"
 #include "rendering/ui/ui.hpp"
 #include "scripting/script_engine.hpp"
+
+#include "editor/editor_state.hpp"
 
 namespace other {
 
@@ -228,11 +231,7 @@ namespace other {
     if (data != nullptr) {
       data->frame_delta = dt;
     }
-    /// move this because it does not need to be polled on every tick, only ticks during specific idle states
-    ///   where the user might be creating/deleting assets
-    Filesystem::Poll();
     IO::Update();
-    EventQueue::Poll();
   }
 
   void AppState::FlushUpdateLoop() {
@@ -281,35 +280,45 @@ namespace other {
   void AppState::HandleRender() {
     PROFILE_SECTION("AppState--HandleRender");
 
-    Renderer::GetWindow()->Clear();
-    data->scenes->GetRenderer()->Clear();
+    {
+      PROFILE_SECTION("AppState--HandleRender:MainRender");
+      Renderer::GetWindow()->Clear();
+      data->scenes->GetRenderer()->Clear();
 
-    data->app_handle->OnRender();
-    data->layers->InvokeControlledLoop(&Layer::Render);
-    ScriptEngine::RenderAttachments();
+      data->app_handle->OnRender();
+      data->layers->InvokeControlledLoop(&Layer::Render);
+      ScriptEngine::RenderAttachments();
 
-    bool render_success = data->scenes->RenderScene();
-    if (!render_success && AppState::mode == EngineMode::EDITOR
+      bool render_success = data->scenes->RenderScene();
+      if (!render_success && AppState::mode == EngineMode::EDITOR
 #ifdef OE_TESTING_ENVIRONMENT
-        || AppState::mode == EngineMode::TESTING
+          || AppState::mode == EngineMode::TESTING
 #endif  // !OE_TESTING_ENVIRONMENT
-    ) {
-      /// render default view
-    } else if (!render_success) {
-    }
-
-    if (AppState::mode == EngineMode::RUNTIME) {
-      Ref<SceneRenderer> scene_renderer = data->scenes->GetRenderer();
-      OE_ASSERT(scene_renderer != nullptr, "No scene renderer found");
-
-      Ref<Framebuffer> render = scene_renderer->GetRender(FNV("Geometry"));
-      if (render != nullptr) {
-        Renderer::DrawFramebufferToWindow(render);
+      ) {
+        /// render default view
+      } else if (!render_success) {
       }
-    } else if (AppState::mode == EngineMode::EDITOR) {
+
+      if (AppState::mode == EngineMode::RUNTIME) {
+        Ref<SceneRenderer> scene_renderer = data->scenes->GetRenderer();
+        OE_ASSERT(scene_renderer != nullptr, "No scene renderer found");
+
+        Ref<Framebuffer> render = scene_renderer->GetRender(FNV("Geometry"));
+        if (render != nullptr) {
+          Renderer::DrawFramebufferToWindow(render);
+        }
+      } else if (AppState::mode == EngineMode::EDITOR) {
+      }
     }
 
-    if (UI::Enabled()) {
+    bool should_render_ui = UI::Enabled();
+    /// TODO: once screen rendering is fixed
+    // if (AppState::mode == EngineMode::EDITOR) {
+    //   should_render_ui = EditorState::scene_mode != SceneEditorMode::PLAYING;
+    // }
+
+    if (should_render_ui) {
+      PROFILE_SECTION("AppState--HandleRender:UIRender");
       UI::BeginFrame();
       ScriptEngine::RenderUIAttachments();
 
@@ -318,11 +327,15 @@ namespace other {
       data->app_handle->OnRenderUI();
       data->layers->InvokeControlledLoop(&Layer::UIRender);
       /// may also want to changed these ui windows as well
-      for (auto& [id, window] : data->ui_windows) {
-        window->Render();
+      {
+        PROFILE_SECTION("AppState--HandleRender:UIRender:Windows");
+        for (auto& [id, window] : data->ui_windows) {
+          window->Render();
+        }
       }
 
       if (Environment::Get().terminal_open) {
+        PROFILE_SECTION("AppState--HandleRender:UIRender:Terminal");
         Environment::RenderTerminal();
       }
 

@@ -227,8 +227,8 @@ namespace other {
       OE_ASSERT(active_scene != nullptr, "No active scene found");
       OE_ASSERT(active_scene->scene != nullptr, "No active scene found");
 
-      /// render scene as it is for runtime, this clears the pipelines
       /// TODO: finalize scene and then draw editor information on top
+      /// render scene as it is for runtime, this clears the pipelines
       // bool runtime_frame_success = scene_renderer->Render();
       // scene_renderer->ClearLightEnvironment();
 
@@ -247,7 +247,9 @@ namespace other {
             },
           }
         );
+        // }
 
+        // if (EditorState::scene_mode == SceneEditorMode::STOPPED) {
         /// camera frustum draw command
         scene_renderer->SubmitDebugDrawCommands(
           "Geometry",
@@ -258,27 +260,14 @@ namespace other {
                 return;
               }
               OE_ASSERT(editor.selected_camera != nullptr, "Selected camera is null");
-              editor.camera_frustum_transform.position = editor.selected_camera->Position();
-              editor.camera_frustum_transform.CalcMatrix();
 
               camera_frustum_shader->Bind();
-              camera_frustum_shader->SetUniform("model", editor.camera_frustum_transform.model_transform);
+              camera_frustum_shader->SetUniform("selected_camera_inv_mvp", editor.selected_camera->InverseMatrix());
               camera_frustum_vao->Draw(DrawMode::LINES);
               camera_frustum_shader->Unbind();
             },
           }
         );
-
-        // active_scene->bvh->RenderBounds(scene_renderer);
-
-        // if (SelectionManager::HasSelection()) {
-        // Entity* selected = SelectionManager::ActiveSelection();
-        // OE_ASSERT(selected != nullptr, "Selected entity is null!");
-
-        // RenderStaticSubmission sub = selected->WireframeSubmission();
-        // OE_ASSERT(sub.model != nullptr, "Wireframe model is null!");
-        // scene_renderer->SubmitStaticModel(sub);
-        // }
       }
 
       if (rendering_physics_colliders) {
@@ -334,7 +323,10 @@ namespace other {
     });
     // clang-format on
 
-    bool ui_signal = panel_manager->RenderUI();
+    bool ui_signal = false;
+    ui_signal = panel_manager->RenderUI();
+    // if (EditorState::scene_mode != SceneEditorMode::PLAYING) {
+    // }
     /// do something with the fact that a UI panel was interacted with????
     ///   this may not need to return a bool at all
 
@@ -351,6 +343,7 @@ namespace other {
 
             SceneSerializer::Write(buffer, active_scene->scene);
             OE_TRACE("Scene Buffer : {}", buffer.DumpBuffer());
+            /// FIXME: make this work
             {
               Ref<Directory> scene_dir = Filesystem::GetDirectory("scenes");
               Path scene_path = Path(*scene_dir) / "forest2.oscn";
@@ -369,6 +362,7 @@ namespace other {
             OE_ASSERT(active_scene->scene != nullptr, "No active scene found");
 
             ByteBuffer scene_buffer;
+            /// FIXME: make this work too
             {
               Ref<Directory> scene_dir = Filesystem::GetDirectory("scenes");
               Path scene_path = Path(*scene_dir) / "forest2.oscn";
@@ -408,6 +402,17 @@ namespace other {
         ImGui::End();
         return;
       }
+
+      /// TODO: fix screen rendering!!!!!
+      // if (EditorState::scene_mode == SceneEditorMode::PLAYING) {
+      //   /// draw scene to screen
+      //   Ref<SceneRenderer> renderer = AppState::Scenes()->GetRenderer();
+      //   OE_ASSERT(renderer != nullptr, "No renderer found in scene");
+
+      //   Ref<Framebuffer> viewport = renderer->GetRender(editor.current_viewport_name);
+      //   OE_ASSERT(viewport != nullptr, "Failed to find viewport frame, settings may be corrupt");
+      //   Renderer::DrawFramebufferToWindow(viewport);
+      // }
 
       switch (EditorState::scene_mode) {
         case SceneEditorMode::STOPPED:

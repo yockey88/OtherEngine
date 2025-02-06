@@ -36,6 +36,7 @@ namespace other {
   }
 
   void SceneRenderer::SubmitCamera(Ref<CameraBase>& camera) {
+    PROFILE_SECTION("SceneRenderer--SubmitCamera");
     /// FIXME: different pipelines should be able to have different camera bindings
     if (frame_data.viewpoint != nullptr) {
       /// only one viewpoint per frame
@@ -46,17 +47,21 @@ namespace other {
 
     const glm::mat4& proj = camera->ProjectionMatrix();
     const glm::mat4& view = camera->ViewMatrix();
-    const glm::mat4& inverse_mvp = glm::inverse(proj * view);
+    const glm::mat4& inverse_mvp = camera->InverseMatrix();
     glm::vec4 cam_pos = glm::vec4(camera->Position(), 1.f);
+    {
+      PROFILE_SECTION("SceneRenderer--SubmitCamera:CameraUniforms");
+      frame_data.camera_uniforms->SetUniform("projection", proj);
+      frame_data.camera_uniforms->SetUniform("view", view);
+      frame_data.camera_uniforms->SetUniform("inverse_mvp", inverse_mvp);
+      frame_data.camera_uniforms->SetUniform("viewpoint", cam_pos);
+    }
 
-    frame_data.camera_uniforms->SetUniform("projection", proj);
-    frame_data.camera_uniforms->SetUniform("view", view);
-    frame_data.camera_uniforms->SetUniform("inverse_mvp", inverse_mvp);
-    frame_data.camera_uniforms->SetUniform("viewpoint", cam_pos);
     frame_data.viewpoint = camera;
   }
 
   void SceneRenderer::SubmitEnvironment(Ref<LightEnvironment>& environment) {
+    PROFILE_SECTION("SceneRenderer--SubmitEnvironment");
     if (frame_data.environment != nullptr) {
       /// only one environment per frame
       return;
@@ -266,6 +271,7 @@ namespace other {
   // }
 
   bool SceneRenderer::Render() {
+    PROFILE_SECTION("SceneRenderer--Render");
     if (!FrameComplete()) {
       return false;
     }
@@ -335,6 +341,7 @@ namespace other {
   }
 
   void SceneRenderer::Clear() {
+    PROFILE_SECTION("SceneRenderer--Clear");
     /// dont clear the mesh key for a tiny optimization on future submissions
     for (auto& [mk, pl] : pipelines) {
       pl->Clear();
@@ -403,6 +410,9 @@ namespace other {
         { "view", ValueType::MAT4 },
         { "inverse_mvp", ValueType::MAT4 },
         { "viewpoint", ValueType::VEC4 },
+        { "camera_forward", ValueType::VEC3 },
+        { "camera_up", ValueType::VEC3 },
+        { "camera_right", ValueType::VEC3 },
       };
 
     uint32_t light_binding_pnt = spec.light_binding_pnt;

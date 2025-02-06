@@ -133,6 +133,7 @@ namespace other {
   };
 
   static void CheckGlError(const char* file, int line) {
+    PROFILE_SECTION("Other--CheckGLError");
     GLenum err = glGetError();
     while (err != GL_NO_ERROR) {
       switch (err) {
@@ -269,9 +270,13 @@ namespace other {
 
 }  // namespace other
 
-#define CHECKGL()                            \
-  do {                                       \
-    other::CheckGlError(__FILE__, __LINE__); \
-  } while (false)
+#ifdef OTHER_DEBUG_BUILD
+  #define CHECKGL()                            \
+    do {                                       \
+      other::CheckGlError(__FILE__, __LINE__); \
+    } while (false)
+#else
+  #define CHECKGL()
+#endif
 
 #endif  // !OTHER_ENGINE_RENDERING_DEFINES_HPP

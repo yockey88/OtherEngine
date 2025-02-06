@@ -289,10 +289,6 @@ namespace other {
                  if (editor.camera_selected) {
                    auto& camera = ent->GetComponent<Camera>();
                    editor.selected_camera = camera.camera;
-                   editor.camera_frustum_transform.position = camera.camera->Position();
-                   editor.camera_frustum_transform.qrotation = glm::identity<glm::quat>();
-                   editor.camera_frustum_transform.erotation = glm::vec3(0.f);
-                   editor.camera_frustum_transform.scale = glm::vec3(0.5f);
                  }
                }
              ) ||

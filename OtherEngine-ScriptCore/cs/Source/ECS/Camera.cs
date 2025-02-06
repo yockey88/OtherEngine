@@ -10,14 +10,24 @@ namespace Other {
 
     public Camera(OtherObject obj) : base(obj) {
     }
+      
+    internal static unsafe delegate*<IntPtr , Vec3* , void> GetPosition;
+    internal static unsafe delegate*<IntPtr , Vec3* , void> SetPosition;
 
-    // public Vec3 Position {
-    //   get {
-    //   //   Scene.GetPosition(Object.ObjectID , out Vec3 position);
-    //   //   return position;
-    //   // }
-    //   // set => Scene.SetPosition(Object.ObjectID , ref value);
-    // }
+    public Vec3 Position {
+      get {
+        unsafe {
+          Vec3 pos = Vec3.zero;
+          GetPosition(Object.NativeHandle , &pos);
+          return pos;
+        }
+      }
+      set {
+        unsafe {
+          SetPosition(Object.NativeHandle , &value);
+        }
+      }
+    }
 
     // public Vec3 Direction {
     //   get {

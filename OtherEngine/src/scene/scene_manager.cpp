@@ -445,6 +445,7 @@ namespace other {
   }
 
   bool SceneManager::RenderScene() {
+    PROFILE_SECTION("SceneManager--RenderScene");
     if (!HasActiveScene()) {
       return true;
     }

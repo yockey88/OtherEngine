@@ -497,6 +497,7 @@ int main(int argc, char* argv[]) {
         mat_shader->SetUniform("albedo_textures", 0);
         mat_shader->SetUniform("normal_textures", 1);
         mat_shader->SetUniform("roughness_textures", 2);
+        mat_shader->Unbind();
 
         // model_buffer.ZeroMem();
         // // model_buffer.BufferData(transform1.model_transform);

@@ -156,11 +156,13 @@ namespace other {
   }
 
   void Window::Clear() const {
+    PROFILE_SECTION("Window--Clear");
     glClearColor(config.color.r, config.color.g, config.color.b, config.color.a);
     glClear(config.clear_flags);
   }
 
   void Window::SwapBuffers() const {
+    PROFILE_SECTION("Window--SwapBuffers");
     SDL_GL_MakeCurrent(context.window, context.context);
     SDL_GL_SwapWindow(context.window);
   }

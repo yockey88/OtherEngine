@@ -10,6 +10,7 @@ namespace other {
   }
 
   void State::Step() {
+    PROFILE_SECTION("State--Step");
     OnStep();
   }
 

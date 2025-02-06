@@ -428,6 +428,9 @@ namespace other {
       stream << "  mat4 view;\n";
       stream << "  mat4 inverse_mvp;\n";
       stream << "  vec4 viewpoint;\n";
+      stream << "  vec3 camera_forward;\n";
+      stream << "  vec3 camera_up;\n";
+      stream << "  vec3 camera_right;\n";
       stream << "};\n\n";
       stream << "#define MAX_MODELS\n";
       stream << "layout (std430 , binding = 1) readonly buffer ModelData {\n";

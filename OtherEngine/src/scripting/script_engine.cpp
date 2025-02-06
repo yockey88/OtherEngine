@@ -170,12 +170,14 @@ namespace other {
   }
 
   void ScriptEngine::RenderAttachments() {
+    PROFILE_SECTION("ScriptEngine--RenderAttachments");
     for (auto& [id, obj] : attachments) {
       obj->Render();
     }
   }
 
   void ScriptEngine::RenderUIAttachments() {
+    PROFILE_SECTION("ScriptEngine--RenderUIAttachments");
     for (auto& [id, obj] : attachments) {
       obj->RenderUI();
     }

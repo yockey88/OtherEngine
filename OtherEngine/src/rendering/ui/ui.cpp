@@ -235,6 +235,7 @@ namespace other {
   }
 
   void UI::BeginFrame() {
+    PROFILE_SECTION("UI--BeginFrame");
     OE_ASSERT(ui_context != nullptr, "UI context not initialized");
     OE_ASSERT(windowref != nullptr, "Window reference not initialized");
     OE_ASSERT(windowref->main_window != nullptr, "Main window not initialized");
@@ -250,6 +251,7 @@ namespace other {
   }
 
   void UI::EndFrame() {
+    PROFILE_SECTION("UI--EndFrame");
     OE_ASSERT(ui_context != nullptr, "UI context not initialized");
     OE_ASSERT(windowref != nullptr, "Window reference not initialized");
     OE_ASSERT(windowref->main_window != nullptr, "Main window not initialized");
@@ -257,17 +259,23 @@ namespace other {
     for (auto& [id, window] : ui_windows) {
       window->Render();
     }
-
-    ImGui::Render();
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-    ImGui::UpdatePlatformWindows();
-    ImGui::RenderPlatformWindowsDefault();
-
-    const auto window_ctx = windowref->main_window->Context();
-    auto win_handle = window_ctx.window;
-    auto win_context = window_ctx.context;
-    SDL_GL_MakeCurrent(win_handle, win_context);
+    {
+      PROFILE_SECTION("UI--EndFrame:ImGui");
+      ImGui::Render();
+      ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    }
+    {
+      PROFILE_SECTION("UI--EndFrame:ImGuiPlatform");
+      ImGui::UpdatePlatformWindows();
+      ImGui::RenderPlatformWindowsDefault();
+    }
+    {
+      PROFILE_SECTION("UI--EndFrame:SetContext");
+      const auto window_ctx = windowref->main_window->Context();
+      auto win_handle = window_ctx.window;
+      auto win_context = window_ctx.context;
+      SDL_GL_MakeCurrent(win_handle, win_context);
+    }
   }
 
   void UI::Shutdown() {

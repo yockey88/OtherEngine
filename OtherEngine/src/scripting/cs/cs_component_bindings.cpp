@@ -16,9 +16,14 @@
 #include "core/type_data.hpp"
 
 #include "ecs/component.hpp"
+#include "ecs/components/camera.hpp"
+#include "ecs/components/collider_2d.hpp"
 #include "ecs/components/light_source.hpp"
 #include "ecs/components/mesh.hpp"
+#include "ecs/components/physics_component.hpp"
 #include "ecs/components/relationship.hpp"
+#include "ecs/components/rigid_body_2d.hpp"
+#include "ecs/components/terrain.hpp"
 #include "ecs/components/transform.hpp"
 #include "ecs/entity.hpp"
 
@@ -213,12 +218,15 @@ namespace other {
       RegisterComponent<Mesh>(assembly);
       RegisterComponent<StaticMesh>(assembly);
       RegisterComponent<LightSource>(assembly);
-      // RegisterComponent<Collider>(assembly);
-      // RegisterComponent<RigidBody>(assembly);
-      // RegisterComponent<Collider2D>(assembly);
-      // RegisterComponent<RigidBody2D>(assembly);
-      // RegisterComponent<Camera>(assembly);
+      RegisterComponent<Camera>(assembly);
       RegisterComponent<Script>(assembly);
+      RegisterComponent<RigidBody2D>(assembly);
+      RegisterComponent<Collider2D>(assembly);
+      /// TODO: make the C# counterpart for these
+      // RegisterComponent<RigidBody>(assembly);
+      // RegisterComponent<Collider>(assembly);
+      // RegisterComponent<PhysicsObject>(assembly);
+      // RegisterComponent<Terrain>(assembly);
 
       RegisterInternalCallAs(assembly, "OtherObject", "NativeHasComponent", (void*)&NativeHasComponent);
       RegisterInternalCallAs(assembly, "OtherObject", "NativeCreateComponent", (void*)&NativeCreateComponent);
@@ -319,6 +327,23 @@ namespace other {
           auto& transform = entity->GetComponent<Transform>();
           transform.qrotation = glm::rotate(transform.qrotation, radians, *axis);
           transform.erotation = glm::eulerAngles(transform.qrotation);
+        }
+      );
+
+      RegisterFunction(
+        "Camera", "GetPosition", assembly,
+        [](Entity* entity, glm::vec3* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          *value = entity->GetComponent<Camera>().camera->Position();
+        }
+      );
+      RegisterFunction(
+        "Camera", "SetPosition", assembly,
+        [](Entity* entity, glm::vec3* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          entity->GetComponent<Camera>().camera->SetPosition(*value);
         }
       );
 

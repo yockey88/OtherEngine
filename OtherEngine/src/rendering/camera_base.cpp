@@ -44,6 +44,7 @@ namespace other {
   }
 
   void CameraBase::CalculateMatrix() {
+    PROFILE_SECTION("CameraBase--CalculateMatrix");
     UpdateCoordinateFrame();
     CalculateView();
     CalculateProjection();

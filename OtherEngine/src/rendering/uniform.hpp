@@ -85,6 +85,7 @@ namespace other {
 
     template <typename T>
     void SetUniform(const std::string_view name, const T& value, uint32_t index = 0) {
+      PROFILE_SECTION("UniformBuffer--SetUniform");
       auto [u_data, success, offset] = TryFind(name, index);
       if (!success) {
         return;
@@ -92,16 +93,18 @@ namespace other {
       OE_ASSERT(offset >= 0, "Uniform buffer not initialized");
       OE_ASSERT(u_data.size > 0, "Uniform buffer not initialized");
       OE_ASSERT((offset + u_data.size) <= size, "Uniform buffer overflow");
-
-      Bind();
-      if constexpr (glm_t<T>) {
-        glBufferSubData(type, offset, u_data.size, glm::value_ptr(value));
-      } else {
-        glBufferSubData(type, offset, u_data.size, &value);
+      {
+        PROFILE_SECTION("UniformBuffer--SetUniform:UploadGPU");
+        Bind();
+        if constexpr (glm_t<T>) {
+          PROFILE_SECTION("UniformBuffer--SetUniform:UploadGPU:BufferData");
+          glBufferSubData(type, offset, u_data.size, glm::value_ptr(value));
+        } else {
+          PROFILE_SECTION("UniformBuffer--SetUniform:UploadGPU:BufferData");
+          glBufferSubData(type, offset, u_data.size, &value);
+        }
+        Unbind();
       }
-      CHECKGL();
-      Unbind();
-
       CHECKGL();
     }
 

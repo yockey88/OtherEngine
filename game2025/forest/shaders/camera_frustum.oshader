@@ -1,12 +1,11 @@
 vertex [mesh : position_only] {
 
-  uniform mat4 model;
+  uniform mat4 selected_camera_inv_mvp;
 
   void main() {
-    vec4 world_pos = projection * view * model * vec4(voe_position, 1);
-    world_pos = world_pos * (1.0 / world_pos.w);
-
-    gl_Position = world_pos;
+    vec4 frustum_world = selected_camera_inv_mvp * vec4(voe_position, 1);
+    frustum_world = frustum_world * (1.0 / frustum_world.w);
+    gl_Position = projection * view * frustum_world;
   }
 
 }

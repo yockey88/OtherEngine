@@ -41,7 +41,6 @@ namespace other {
 
     bool camera_selected = false;
     Ref<CameraBase> selected_camera = nullptr;
-    Transform camera_frustum_transform = Transform(0.f);
 
     ImGuizmo::OPERATION guizmo_op = ImGuizmo::TRANSLATE;
     ImGuizmo::MODE guizmo_mode = ImGuizmo::LOCAL;

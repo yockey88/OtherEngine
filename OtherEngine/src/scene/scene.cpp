@@ -37,6 +37,7 @@
 
 #include "rendering/camera_base.hpp"
 #include "rendering/model.hpp"
+#include "rendering/renderer.hpp"
 #include "rendering/vertex.hpp"
 #include "scripting/cs/cs_object.hpp"
 #include "scripting/script_engine.hpp"
@@ -155,8 +156,6 @@ namespace other {
 
     Synchronize();
 
-    RefreshCameraTransforms();
-
     OnInit();
     initialized = true;
 
@@ -226,8 +225,6 @@ namespace other {
       script.ApiCall("OnStart");
     });
 
-    RefreshCameraTransforms();
-
     OnStart();
 
     /// do this after client in case they modify environment
@@ -258,28 +255,31 @@ namespace other {
 
   void Scene::Synchronize() {
     OE_ASSERT(physics_world != nullptr, "Physics world is null");
+    {
+      registry.view<RigidBody, Transform>().each([this](RigidBody& body, Transform& transform) {
+        OE_ASSERT(body.physics_body != nullptr, "Physics body is null");
+        body.physics_body->SetTransform(transform);
+        /// TODO: replace this with some sort of initial velocity (not sure where to get that yet)
+        body.physics_body->SetVelocity(glm::vec3(0.f));
+        body.physics_body->SetAngularVelocity(glm::vec3(0.f));
+      });
 
-    registry.view<RigidBody, Transform>().each([this](RigidBody& body, Transform& transform) {
-      OE_ASSERT(body.physics_body != nullptr, "Physics body is null");
-      body.physics_body->SetTransform(transform);
-      /// TODO: replace this with some sort of initial velocity (not sure where to get that yet)
-      body.physics_body->SetVelocity(glm::vec3(0.f));
-      body.physics_body->SetAngularVelocity(glm::vec3(0.f));
-    });
+      registry.view<Collider, Transform>().each([this](Collider& collider, Transform& transform) {
+        OE_ASSERT(collider.shape != nullptr, "Collider shape is null");
+        collider.shape->SetTransform(transform);
+        collider.shape->SetScale(transform.scale);
+      });
 
-    registry.view<Collider, Transform>().each([this](Collider& collider, Transform& transform) {
-      OE_ASSERT(collider.shape != nullptr, "Collider shape is null");
-      collider.shape->SetTransform(transform);
-      collider.shape->SetScale(transform.scale);
-    });
+      // registry.view<PhysicsObject, RigidBody, Collider>().each([this](PhysicsObject& object, RigidBody& body, Collider& collider) {
+      //   OE_ASSERT(body.physics_body != nullptr, "Physics body is null");
+      //   OE_ASSERT(collider.shape != nullptr, "Collider shape is null");
+      //   body.physics_body->AddCollider(collider.shape);
+      // });
 
-    // registry.view<PhysicsObject, RigidBody, Collider>().each([this](PhysicsObject& object, RigidBody& body, Collider& collider) {
-    //   OE_ASSERT(body.physics_body != nullptr, "Physics body is null");
-    //   OE_ASSERT(collider.shape != nullptr, "Collider shape is null");
-    //   body.physics_body->AddCollider(collider.shape);
-    // });
+      physics_world->Simulate(0.00001f);
+    }
 
-    physics_world->Simulate(0.00001f);
+    RefreshCameraTransforms();
   }
 
   void Scene::EarlyUpdate(float dt) {
@@ -521,7 +521,11 @@ namespace other {
   }
 
   void Scene::Render(Ref<SceneRenderer>& renderer) {
-    OnRender();
+    PROFILE_SECTION("SceneManager--RenderScene");
+    {
+      PROFILE_SECTION("SceneManager--RenderScene:ClientRender");
+      OnRender();
+    }
 
     if (auto primary_cam = GetPrimaryCamera(); primary_cam != nullptr) {
       renderer->SubmitCamera(primary_cam);
@@ -592,6 +596,23 @@ namespace other {
       return;
     }
     physics_world->SubmitDebugRender(scene_renderer);
+  }
+
+  void Scene::RenderCameraFrustums(Ref<SceneRenderer>& scene_renderer) {
+    if (!initialized) {
+      return;
+    }
+
+    // registry.view<Camera, Transform>().each([&scene_renderer](const Camera& camera, const Transform& transform) {
+    //   if (camera.camera == nullptr) {
+    //     return;
+    //   }
+
+    //   scene_renderer->SubmitDebugDrawCommands(
+    //     "Geometry",
+    //     {}
+    //   );
+    // });
   }
 
   void Scene::RenderUI() {
@@ -909,11 +930,13 @@ namespace other {
   }
 
   void Scene::RefreshCameraTransforms() {
-    registry.view<Camera, Transform>().each([](Camera& camera, Transform& transform) {
+    auto current_viewport_size = Renderer::WindowSize();
+    registry.view<Camera, Transform>().each([&](Camera& camera, Transform& transform) {
       if (camera.pinned_to_entity_position) {
         camera.camera->SetPosition(transform.position);
       }
       camera.camera->CalculateMatrix();
+      camera.camera->SetViewport(current_viewport_size);
     });
   }
 

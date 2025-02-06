@@ -36,7 +36,7 @@ namespace other {
     static void SetWindowClearColor(const std::vector<std::string>& color);
     static void SetWindowClearColor(const glm::vec4& color);
 
-    static void DrawFramebufferToWindow(const Ref<Framebuffer>& framebuffer);
+    static void DrawFramebufferToWindow(Ref<Framebuffer>& framebuffer);
 
     static Ref<SceneRenderer> DefaultSceneRenderer();
     static Ref<SceneRenderer> ConstructSceneRenderer(App::RenderSpec* spec);

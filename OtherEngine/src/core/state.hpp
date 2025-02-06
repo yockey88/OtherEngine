@@ -103,6 +103,7 @@ namespace other {
     }
 
     void Step() {
+      PROFILE_SECTION("StateMachine--Step");
       OE_ASSERT(current_state != nullptr, "Invalid state");
       current_state->Step();
     }
