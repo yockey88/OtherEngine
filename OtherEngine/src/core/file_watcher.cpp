@@ -14,19 +14,23 @@ namespace other {
 
   FileWatcher::FileWatcher(UUID hash, const Path& path) {
     file_path = path;
-    last_write = std::filesystem::last_write_time(Path{ file_path });
-    exists = true;
+    if (!std::filesystem::exists(file_path)) {
+      exists = false;
+    } else {
+      exists = true;
+      last_write = std::filesystem::last_write_time(Path{ file_path });
+    }
     handle = hash;
   }
 
   bool FileWatcher::Poll() {
-    if (exists && !std::filesystem::exists(file_path)) {
-      exists = false;
-      EventQueue::PushEvent<DeleteFileEvent>({ handle.Get() });
+    if (!exists) {
       return false;
     }
 
-    if (!exists) {
+    if (exists && !std::filesystem::exists(file_path)) {
+      exists = false;
+      EventQueue::PushEvent<DeleteFileEvent>({ handle.Get() });
       return false;
     }
 
@@ -34,7 +38,6 @@ namespace other {
     auto new_write_time = std::filesystem::last_write_time(file_path);
     if (last_write != new_write_time) {
       changed = true;
-      EventQueue::PushEvent<ModifyFileEvent>({ handle.Get() });
     }
 
     last_write = new_write_time;

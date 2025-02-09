@@ -35,8 +35,10 @@
 #include "ecs/entity.hpp"
 #include "ecs/systems/core_systems.hpp"
 
+#include "physics/physics_defines.hpp"
 #include "rendering/camera_base.hpp"
 #include "rendering/model.hpp"
+#include "rendering/model_factory.hpp"
 #include "rendering/renderer.hpp"
 #include "rendering/vertex.hpp"
 #include "scripting/cs/cs_object.hpp"
@@ -135,37 +137,42 @@ namespace other {
   }
 
   void Scene::Initialize() {
-    FixRoots();
-
-    OE_DEBUG("Entities in scene [{}]", entities.size());
-
     Script& scene_object = scene_entity->AddComponent<Script>();
     scene_object.parent_handle = scene_entity;
     scene_object.parent_uuid = scene_handle;
     scene_object.parent_id = scene_entity->Handle();
     scene_object.AddScript("Scene", "Other", "OtherEngine.CsCore");
 
+    FixRoots();
+    Synchronize();
+    BuildGroups();
+
+    OE_DEBUG("Entities in scene [{}]", entities.size());
+
     registry.view<Script, Tag>().each([this](Script& script, Tag& tag) {
       script.ApiCall("NativeInitialize");
       script.ApiCall("OnInitialize");
     });
 
-    registry.view<Transform>().each([](Transform& transform) {
-      transform.CalcMatrix();
-    });
-
-    Synchronize();
-
     OnInit();
     initialized = true;
 
-    BuildGroups();
     RebuildEnvironment();
+  }
 
-    /// update so all transforms are calculate and all cross depenedent components are updated accordingly
-    EarlyUpdate(0.f);
-    Update(0.f);
-    LateUpdate(0.f);
+  void Scene::Activate() {
+    OE_ASSERT(initialized, "Activating scene without initialization");
+    OE_TRACE("Activating Scene : {}", scene_name);
+
+    /// Do this here and in Start because in the editor we should have all loaded entities set here
+    ///   and then if user adds more entities before starting scene we add them in Start
+    Script& scene_object = scene_entity->GetComponent<Script>();
+    for (auto& [id, entity] : entities) {
+      scene_object.ApiCall<uint64_t>("RegisterSceneObject", id.Get());
+    }
+
+    OnActivate();
+    active = true;
   }
 
   bool Scene::IsHandleValid(Entity* ent) const {
@@ -204,15 +211,13 @@ namespace other {
     OE_ASSERT(initialized, "Starting scene without initialization");
     OE_TRACE("Starting Scene : {}", scene_name);
 
-    CaptureScene();
-
+    /// fix roots first so that scene tree is up to date
     FixRoots();
-
-    registry.view<RigidBody2D, Tag, Transform>().each([this](RigidBody2D& body, const Tag& tag, const Transform& transform) {
-      Initialize2DRigidBody(physics_world_2d, body, tag, transform);
-    });
-
+    /// synchronize before saving state so that captured state is up to date
     Synchronize();
+
+    /// TODO: should the scene be in charge of capturing state like this?
+    CaptureScene();
 
     /// register all entities who dont have a script so they can be accessible to client scripts
     Script& scene_object = scene_entity->GetComponent<Script>();
@@ -227,7 +232,8 @@ namespace other {
 
     OnStart();
 
-    /// do this after client in case they modify environment
+    /// rebuild environment after client OnStart/scripts so that
+    ///   any modifications get picked up
     RebuildEnvironment();
 
     running = true;
@@ -253,6 +259,16 @@ namespace other {
     Synchronize();
   }
 
+  void Scene::Deactivate() {
+    OE_ASSERT(initialized, "Deactivating scene without initialization");
+    if (!active) {
+      return;
+    }
+
+    OnDeactivate();
+    active = false;
+  }
+
   void Scene::Synchronize() {
     OE_ASSERT(physics_world != nullptr, "Physics world is null");
     {
@@ -269,12 +285,6 @@ namespace other {
         collider.shape->SetTransform(transform);
         collider.shape->SetScale(transform.scale);
       });
-
-      // registry.view<PhysicsObject, RigidBody, Collider>().each([this](PhysicsObject& object, RigidBody& body, Collider& collider) {
-      //   OE_ASSERT(body.physics_body != nullptr, "Physics body is null");
-      //   OE_ASSERT(collider.shape != nullptr, "Collider shape is null");
-      //   body.physics_body->AddCollider(collider.shape);
-      // });
 
       physics_world->Simulate(0.00001f);
     }
@@ -320,23 +330,52 @@ namespace other {
       return;
     }
 
-    /// TODO: check if simulating or just playing
+    /// physics simulations
+    if (physics_world != nullptr) {
+      physics_world->Simulate(dt * 0.001f);  /// convert ms dt to seconds
+    }
+    if (physics_world_2d != nullptr) {
+      physics_world_2d->Step(dt, 32, 2);
+    }
 
-    /**
-     * order of updates
-     *  - update transforms
-     *  - physics
-     *      2d
-     *      3d
-     *  - scripts, to pick up all other made changes
-     *
-     * use late update to react to other entity's changes
-     **/
+    /// update rigidbody/transform for dynamic bodies
+    registry.view<RigidBody, Transform>().each([&](RigidBody& body, Transform& transform) {
+      if (physics_world == nullptr) {
+        return;
+      }
+      OE_ASSERT(body.physics_body != nullptr, "Physics body is null");
 
-    /// TODO: rigid body 3d here
+      if (body.physics_body->GetType() != PhysicsBodyType::DYNAMIC) {
+        return;
+      }
 
-    /// update transforms after other updates, dont overwrite physics changes
-    registry.view<Transform>(entt::exclude<RigidBody2D, Collider2D, RigidBody, Collider>).each([](Transform& transform) {
+      if (physics_world->ShouldInterpolateTransform()) {
+        Transform new_transform = body.physics_body->InterpolateTransform(physics_world->InterpolationAlpha());
+        new_transform.scale = transform.scale;
+        transform = new_transform;
+      } else {
+        Transform new_transform = body.physics_body->GetTransform();
+        new_transform.scale = transform.scale;
+        transform = new_transform;
+      }
+    });
+
+    if (physics_world_2d != nullptr) {
+      /// apply physics simulation to transforms, before using transforms for anything else
+      registry.view<RigidBody2D, Transform>().each([](RigidBody2D& body, Transform& transform) {
+        if (body.physics_body == nullptr) {
+          return;
+        }
+
+        auto& position = body.physics_body->GetPosition();
+        transform.position.x = position.x;
+        transform.position.y = position.y;
+        transform.erotation.z = body.physics_body->GetAngle();
+      });
+    }
+
+    /// dynamic physics transform already updated so calculating matrix should be fine
+    registry.view<Transform>().each([](Transform& transform) {
       transform.CalcMatrix();
 
       /// update quaternion
@@ -351,46 +390,6 @@ namespace other {
 
       BBox bounding_box = BBox(rotated_min, rotated_max);
       transform.bbox = bounding_box;
-    });
-
-    if (physics_world_2d != nullptr) {
-      physics_world_2d->Step(dt, 32, 2);
-
-      /// apply physics simulation to transforms, before using transforms for anything else
-      registry.view<RigidBody2D, Transform>().each([](RigidBody2D& body, Transform& transform) {
-        if (body.physics_body == nullptr) {
-          return;
-        }
-
-        auto& position = body.physics_body->GetPosition();
-        transform.position.x = position.x;
-        transform.position.y = position.y;
-        transform.erotation.z = body.physics_body->GetAngle();
-      });
-    }
-
-    if (physics_world != nullptr) {
-      physics_world->Simulate(dt * 0.001f);  /// convert ms dt to seconds
-    }
-
-    registry.view<RigidBody, Transform, Tag>().each([&](RigidBody& body, Transform& transform, Tag& tag) {
-      if (physics_world == nullptr) {
-        return;
-      }
-
-      OE_ASSERT(body.physics_body != nullptr, "Physics body is null");
-
-      if (physics_world->ShouldInterpolateTransform()) {
-        Transform new_transform = body.physics_body->InterpolateTransform(physics_world->InterpolationAlpha());
-        new_transform.scale = transform.scale;
-        new_transform.CalcMatrix();
-        transform = new_transform;
-      } else {
-        Transform new_transform = body.physics_body->GetTransform();
-        new_transform.scale = transform.scale;
-        new_transform.CalcMatrix();
-        transform = new_transform;
-      }
     });
 
     /// scripts updated last to give most accurate view of updated state
@@ -418,9 +417,7 @@ namespace other {
       environment->direction_light = std::nullopt;
       environment->point_lights.clear();
 
-      // glm::mat4 eye = glm::mat4(1.f);
       if (light.type == DIRECTION_LIGHT_SRC) {
-        /// sync direction light transforms to light data
         transform.erotation = glm::vec3(light.direction_light.direction);
         transform.position = -glm::normalize(glm::vec3(light.direction_light.direction)) * 10.f;
         light.direction_light.position = glm::vec4(transform.position, 1.0);
@@ -430,9 +427,7 @@ namespace other {
         glm::mat4 light_view = glm::lookAt(transform.position, glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f));
         light.direction_light.light_space_matrix = light_projection * light_view;
 
-      }
-      /// sync pointlight transforms to pointlight data
-      else if (light.type == POINT_LIGHT_SRC) {
+      } else if (light.type == POINT_LIGHT_SRC) {
         transform.position = light.pointlight.position;
         transform.scale = glm::vec3(0.2f);
 
@@ -446,30 +441,6 @@ namespace other {
       }
     });
 
-    registry.view<Mesh, Transform>().each([](Mesh& mesh, Transform& transform) {
-      // if (!AppState::Assets()->IsValid(mesh.handle)) {
-      //   return;
-      // }
-
-      // Ref<Model> model = AssetManager::GetAsset<Model>(mesh.handle);
-      // if (model == nullptr) {
-      //   return;
-      // }
-
-      // Ref<ModelSource> source = model->GetModelSource();
-      // OE_ASSERT(source != nullptr, "Model source is null");
-
-      // std::vector<SubMesh>& submeshes = source->SubMeshes();
-      // const std::vector<uint32_t>& sm_idxs = model->SubMeshes();
-
-      // for (const uint32_t sm_idx : sm_idxs) {
-      //   OE_ASSERT(sm_idx < submeshes.size(), "Submesh index out of bounds");
-
-      //   SubMesh& submesh = submeshes[sm_idx];
-      //   submesh.transform = transform.model_transform * submesh.transform;
-      // }
-    });
-
     if (!running) {
       return;
     }
@@ -479,13 +450,6 @@ namespace other {
       Stop();
       return;
     }
-
-    registry.view<Camera, Transform>().each([](Camera& camera, Transform& transform) {
-      OE_ASSERT(camera.camera != nullptr, "Camera is null");
-      if (camera.pinned_to_entity_position) {
-        camera.camera->SetPosition(transform.position);
-      }
-    });
 
     registry.view<Script>().each([&dt](Script& script) {
       script.ApiCall<float>("LateUpdate", std::forward<float>(dt));
@@ -520,6 +484,24 @@ namespace other {
     return GetEntity(handle)->GetComponent<Camera>().camera;
   }
 
+  // namespace {
+
+  //   template <typename T>
+  //     requires requires(const T& t) {
+  //       { t.handle } -> std::same_as<AssetHandle>;
+  //       { t.material } -> std::same_as<UUID>;
+  //     }
+  //   void SubmitModel(Ref<SceneRenderer>& renderer, const T& model_comp, const Transform& transform) {
+  //     if (!AppState::Assets()->IsValid(model_comp.handle)) {
+  //       return;
+  //     }
+
+  //     auto model = AssetManager::GetAsset<Model>(model_comp.handle);
+  //     renderer->SubmitModel(model, AssetManager::GetMaterialTable(), transform.model_transform, model_comp.material);
+  //   }
+
+  // }  // anonymous namespace
+
   void Scene::Render(Ref<SceneRenderer>& renderer) {
     PROFILE_SECTION("SceneManager--RenderScene");
     {
@@ -534,7 +516,6 @@ namespace other {
     // if (scene_geometry_changed) {
     //   RebuildEnvironment();
     //   scene_geometry_changed = false;
-    //   renderer->SubmitEnvironment(environment);
     // }
     renderer->SubmitEnvironment(environment);
 
@@ -555,23 +536,6 @@ namespace other {
       auto model = AssetManager::GetAsset<StaticModel>(mesh.handle);
       renderer->SubmitStaticModel(model, AssetManager::GetMaterialTable(), transform.model_transform, mesh.material);
     });
-
-    // AssetHandle cube_handle = ModelFactory::CreateBox();
-
-    // light_group.each([&renderer, cube_handle, plname](const LightSource& light, const Transform& transform) {
-    //   if (light.type == DIRECTION_LIGHT_SRC) {
-    //     return;
-    //   }
-
-    //   if (!AppState::Assets()->IsValid(cube_handle)) {
-    //     return;
-    //   }
-
-    //   Material light_material = Material(light.pointlight.color, 32.f);
-
-    //   auto model = AssetManager::GetAsset<StaticModel>(cube_handle);
-    //   renderer->SubmitStaticModel(plname, model, transform.model_transform, light_material);
-    // });
   }
 
   void Scene::SetDebugPhysicsRendering(bool debug) {
@@ -615,6 +579,52 @@ namespace other {
     // });
   }
 
+  void Scene::RenderLightDebug(Ref<SceneRenderer>& scene_renderer) {
+    if (!initialized) {
+      return;
+    }
+
+    scene_renderer->SubmitDebugDrawCommands(
+      "Geometry",
+      {
+        [&]() {
+          AssetHandle cube_handle = ModelFactory::CreateBox();
+          Ref<StaticModel> cube_model = AssetManager::GetAsset<StaticModel>(cube_handle);
+          OE_ASSERT(cube_model != nullptr, "Cube model is null");
+          Ref<ModelSource> model = cube_model->GetModelSource();
+          OE_ASSERT(model != nullptr, "Model source is null");
+
+          registry.view<LightSource, Transform>().each([&](const LightSource& light, const Transform& transform) {
+            switch (light.type) {
+              case DIRECTION_LIGHT_SRC:
+                break;
+
+              case POINT_LIGHT_SRC: {
+                glm::vec3 color = glm::vec3(light.pointlight.color);
+                // bind debug light shader
+                model->source_vao->Bind();
+                model->source_vao->Draw(DrawMode::TRIANGLES);
+                model->source_vao->Unbind();
+                break;
+              }
+              default:
+                OE_ASSERT(false, "Unknown light source type!");
+            }
+
+            if (light.type == DIRECTION_LIGHT_SRC) {
+              // return;
+            }
+
+            if (light.type == POINT_LIGHT_SRC) {
+              glm::vec3 color = glm::vec3(light.pointlight.color);
+              auto model = AssetManager::GetAsset<StaticModel>(cube_handle);
+            }
+          });
+        },
+      }
+    );
+  }
+
   void Scene::RenderUI() {
     // registry.view<UI>().each([](const UI& ui) {});
 
@@ -645,6 +655,10 @@ namespace other {
 
   const bool Scene::IsInitialized() const {
     return initialized;
+  }
+
+  const bool Scene::IsActive() const {
+    return active;
   }
 
   const bool Scene::IsRunning() const {
@@ -932,9 +946,6 @@ namespace other {
   void Scene::RefreshCameraTransforms() {
     auto current_viewport_size = Renderer::WindowSize();
     registry.view<Camera, Transform>().each([&](Camera& camera, Transform& transform) {
-      if (camera.pinned_to_entity_position) {
-        camera.camera->SetPosition(transform.position);
-      }
       camera.camera->CalculateMatrix();
       camera.camera->SetViewport(current_viewport_size);
     });

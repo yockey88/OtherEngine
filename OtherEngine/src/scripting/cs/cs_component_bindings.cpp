@@ -223,10 +223,10 @@ namespace other {
       RegisterComponent<RigidBody2D>(assembly);
       RegisterComponent<Collider2D>(assembly);
       /// TODO: make the C# counterpart for these
-      // RegisterComponent<RigidBody>(assembly);
-      // RegisterComponent<Collider>(assembly);
-      // RegisterComponent<PhysicsObject>(assembly);
-      // RegisterComponent<Terrain>(assembly);
+      RegisterComponent<RigidBody>(assembly);
+      RegisterComponent<Collider>(assembly);
+      RegisterComponent<PhysicsObject>(assembly);
+      RegisterComponent<Terrain>(assembly);
 
       RegisterInternalCallAs(assembly, "OtherObject", "NativeHasComponent", (void*)&NativeHasComponent);
       RegisterInternalCallAs(assembly, "OtherObject", "NativeCreateComponent", (void*)&NativeCreateComponent);
@@ -347,6 +347,31 @@ namespace other {
         }
       );
 
+      RegisterFunction(
+        "Camera", "GetForward", assembly,
+        [](Entity* entity, glm::vec3* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          *value = entity->GetComponent<Camera>().camera->Direction();
+        }
+      );
+      RegisterFunction(
+        "Camera", "GetRight", assembly,
+        [](Entity* entity, glm::vec3* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          *value = entity->GetComponent<Camera>().camera->Right();
+        }
+      );
+      RegisterFunction(
+        "Camera", "GetUp", assembly,
+        [](Entity* entity, glm::vec3* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          *value = entity->GetComponent<Camera>().camera->Up();
+        }
+      );
+
       RegisterProperty<glm::vec4>(
         "LightSource", "Vector", assembly,
         [](Entity* entity, glm::vec4* value) {
@@ -453,6 +478,30 @@ namespace other {
             default:
               OE_ASSERT(false, "Unknown light source type!");
           }
+        }
+      );
+
+      RegisterFunction(
+        "RigidBody", "GetPosition", assembly,
+        [](Entity* entity, glm::vec3* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          auto& body = entity->GetComponent<RigidBody>();
+          OE_ASSERT(body.physics_body != nullptr, "Physics body is null");
+          *value = body.physics_body->GetPosition();
+        }
+      );
+
+      RegisterFunction(
+        "RigidBody", "SetPosition", assembly,
+        [](Entity* entity, glm::vec3* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          auto& body = entity->GetComponent<RigidBody>();
+          OE_ASSERT(body.physics_body != nullptr, "Physics body is null");
+          Transform phys_transform = body.physics_body->GetTransform();
+          phys_transform.position = *value;
+          body.physics_body->SetTransform(phys_transform);
         }
       );
     }

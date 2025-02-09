@@ -15,18 +15,22 @@ namespace other {
 
   struct Camera;
 
-  struct CameraSnapshotter : public ObjectSerializer<Camera, 2> {
+  struct CameraSnapshotter : public ObjectSerializer<Camera, 4> {
     CameraSnapshotter();
 
     static size_t Stride() {
-      return sizeof(bool) * 2;
+      return sizeof(bool) + sizeof(glm::vec3) * 3;
     }
   };
 
   struct Camera : public Component {
     Ref<CameraBase> camera = nullptr;
     bool is_primary = false;
-    bool pinned_to_entity_position = false;
+
+    /// have to store these here too so cameras can be reset correctly from a state capture
+    glm::vec3 camera_position = glm::vec3(0.f);
+    glm::vec3 camera_direction = glm::vec3(0.f);
+    glm::vec3 camera_up = glm::vec3(0.f);
 
     Camera(const Ref<CameraBase>& camera)
         : Component(CAMERA_COMPONENT_INDEX), camera(camera) {}
@@ -43,9 +47,11 @@ namespace other {
 
 ECHO_TYPE(
   type(other::Camera, refl::attr::bases<other::Component>),
-  field(camera, echo::serializable_field()),
-  field(pinned_to_entity_position, echo::serializable_field()),
-  field(is_primary)
+  field(camera),
+  field(is_primary, echo::serializable_field()),
+  field(camera_position, echo::serializable_field()),
+  field(camera_direction, echo::serializable_field()),
+  field(camera_up, echo::serializable_field())
 );
 
 #endif  // !OTHER_ENGINE_CAMERA_HPP

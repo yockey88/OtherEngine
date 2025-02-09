@@ -753,14 +753,10 @@ namespace other {
     bool orientation_modified = false;
 
     ui::ShiftCursorY(4.5f);
-    ImGui::Checkbox("Pinned to Object Position", &camera.pinned_to_entity_position);
 
     ImGui::NextColumn();
-
-    if (!camera.pinned_to_entity_position) {
-      ui::widgets::DrawVec3Control("Position", camera.camera->position, position_modified);
-      ui::widgets::DrawVec3Control("Orientation", camera.camera->euler_angles, orientation_modified);
-    }
+    ui::widgets::DrawVec3Control("Position", camera.camera->position, position_modified);
+    ui::widgets::DrawVec3Control("Orientation", camera.camera->euler_angles, orientation_modified);
 
     ImGui::NextColumn();
 

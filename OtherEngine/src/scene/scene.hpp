@@ -53,6 +53,7 @@ namespace other {
     UUID SceneHandle() const;
 
     template <typename Fn>
+      requires requires(Fn fn) { { fn(std::declval<Entity*>()) } -> std::same_as<void>; }
     void ForEachEntity(Fn&& fn) {
       for (auto& [id, ent] : entities) {
         fn(ent);
@@ -60,6 +61,7 @@ namespace other {
     }
 
     void Initialize();
+    void Activate();
     void Start(EngineMode mode = EngineMode::EDITOR);
 
     /// used to passively update scene (without taking a time step) to allow for behind the scenes
@@ -81,9 +83,13 @@ namespace other {
     void RenderPhysicsDebug(Ref<SceneRenderer>& scene_renderer);
     void RenderCameraFrustums(Ref<SceneRenderer>& scene_renderer);
 
+    void RenderLightDebug(Ref<SceneRenderer>& scene_renderer);
+    // void RenderGizmos(Ref<SceneRenderer>& scene_renderer);
+
     void RenderUI();
 
     void Stop();
+    void Deactivate();
     void Shutdown();
 
     bool IsHandleValid(Entity* ent) const;
@@ -98,6 +104,7 @@ namespace other {
     Ref<LightEnvironment> GetEnvironment() const;
 
     const bool IsInitialized() const;
+    const bool IsActive() const;
     const bool IsRunning() const;
     const bool IsDirty() const;
 
@@ -150,6 +157,7 @@ namespace other {
     void RefreshCameraTransforms();
 
     virtual void OnInit() {}
+    virtual void OnActivate() {}
     virtual void OnStart() {}
 
     virtual void OnSynchronize() {}
@@ -162,6 +170,7 @@ namespace other {
     virtual void OnRenderUI() {}
 
     virtual void OnStop() {}
+    virtual void OnDeactivate() {}
     virtual void OnShutdown() {}
 
    private:
@@ -170,6 +179,7 @@ namespace other {
     friend class SceneManager;
 
     bool initialized = false;
+    bool active = false;
     bool running = false;
     bool corrupt = false;
 

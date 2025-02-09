@@ -341,7 +341,10 @@ namespace other {
 
       UI::EndFrame();
     }
-    Renderer::GetWindow()->SwapBuffers();
+    {
+      PROFILE_SECTION("AppState--HandleRender:BufferSwap");
+      Renderer::GetWindow()->SwapBuffers();
+    }
   }
 
   AppState::Data::Data(App* app_handle, Ref<Project> proj)

@@ -167,6 +167,10 @@ namespace Other {
     }
 
     public void HandleContact(UInt64 other) {
+      if (!Scene.IsActive()) {
+        return;
+      }
+
       OtherObject other_behavior = ObjectRegistry.LookUp(other);
       if (other_behavior == null) {
         other_behavior = Scene.GetObject(other);

@@ -57,7 +57,7 @@ namespace other {
       int32_t double_buffer = config.GetVal<bool>(kRendererSection, kDoubleBufferValue, false).value_or(true) ? 1 : 0;
       int32_t depth_size = config.GetVal<uint32_t>(kRendererSection, kDepthSizeValue, false).value_or(24);
       int32_t stencil_size = config.GetVal<uint32_t>(kRendererSection, kStencilSizeValue, false).value_or(8);
-      int32_t accelerated_visual = config.GetVal<bool>(kRendererSection, kAccelVisualValue, false).value_or(true) ? 1 : 0;
+      int32_t accelerated_visual = config.GetVal<bool>(kRendererSection, kAccelVisualValue, false).value_or(false) ? 1 : 0;
       int32_t multisample_buffers = config.GetVal<uint32_t>(kRendererSection, kMultisampleBuffersValue, false).value_or(1);
       int32_t multisample_samples = config.GetVal<uint32_t>(kRendererSection, kMultisampleSamplesValue, false).value_or(16);
       int32_t srgb_capable = config.GetVal<bool>(kRendererSection, kSrgbCapableValue, false).value_or(true) ? 1 : 0;
@@ -73,8 +73,8 @@ namespace other {
       SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, multisample_samples);
       SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, srgb_capable);
 
-      int32_t vsync = config.GetVal<bool>(kRendererSection, kVsyncValue, false).value_or(true) ? 1 : 0;
-      SDL_GL_SetSwapInterval(vsync);
+      // int32_t vsync = config.GetVal<bool>(kRendererSection, kVsyncValue, false).value_or(false) ? 1 : 0;
+      SDL_GL_SetSwapInterval(0);
     }
 
     uint32_t ProcessFlags(const ConfigTable& config) {
@@ -85,7 +85,7 @@ namespace other {
         bool resize = config.GetVal<bool>(kWindowFlagsSection, kResizableValue, false).value_or(false);
         bool borderless = config.GetVal<bool>(kWindowFlagsSection, kBorderlessValue, false).value_or(false);
         bool maximized = config.GetVal<bool>(kWindowFlagsSection, kMaximizedValue, false).value_or(true);
-        bool minimized = config.GetVal<bool>(kWindowFlagsSection, kMinimizedValue, false).value_or(!maximized);
+        bool minimized = config.GetVal<bool>(kWindowFlagsSection, kMinimizedValue, false).value_or(false);
         bool allow_highdpi = config.GetVal<bool>(kWindowFlagsSection, kAllowHighDpiValue, false).value_or(false);
 
         if (resize) {

@@ -23,6 +23,8 @@ namespace other {
     ReactWorld(Scene* scene_ctx);
     virtual ~ReactWorld() override;
 
+    bool Raycast(PhysicsRaycastHit& hit, Ray& ray, float distance) override;
+
     void ResetSimulation(Scene* scene) override;
     void Simulate(float ts) override;
     void CreateBody(Entity& entity) override;
@@ -37,6 +39,7 @@ namespace other {
     Ref<PhysicsShape> CreateTerrainShape(const Terrain& terrain) override;
 
     void SetDebugRendering(bool debug) override;
+    void SubmitRaycastDrawCommands(Ref<SceneRenderer> renderer) override;
     void SubmitDebugRender(Ref<SceneRenderer> renderer) override;
 
    private:
@@ -46,6 +49,8 @@ namespace other {
     rp3d::PhysicsWorld* physics_world = nullptr;
 
     Ref<ReactCollisionListener> collision_listener = nullptr;
+
+    std::vector<Ray> cast_rays = {};
 
     void RegisterCallbacks() override;
   };

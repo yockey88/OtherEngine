@@ -31,6 +31,10 @@ namespace other {
     JoltWorld(Scene* scene_ctx);
     virtual ~JoltWorld() override;
 
+    virtual bool Raycast(PhysicsRaycastHit& hit, Ray& ray, float distance) override {
+      OE_UNIMPLEMENTED_RETURN(false);
+    }
+
     virtual void ResetSimulation(Scene* scene) override;
     void Simulate(float ts) override;
     void CreateBody(Entity& entity) override;

@@ -132,6 +132,7 @@ namespace other {
       // }
 
       SetEventFlag(event->Type());
+      OE_TRACE("Dispatching event : {}", event->Type());
       for (auto& [hash, dispatcher] : instance->event_handlers) {
         OE_ASSERT(dispatcher.dispatcher != nullptr, "Dispatcher is null");
         if (dispatcher.dispatcher->Dispatch(*event)) {

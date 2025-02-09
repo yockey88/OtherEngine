@@ -68,6 +68,9 @@ namespace other {
     Entity ent(context, entt);
     auto& camera = ent.GetComponent<Camera>();
     camera.camera = NewRef<PerspectiveCamera>(Renderer::WindowSize());
+    camera.camera_position = camera.camera->Position();
+    camera.camera_direction = camera.camera->Direction();
+    camera.camera_up = camera.camera->Up();
   }
 
   void OnAddScript(entt::registry& context, entt::entity entt) {

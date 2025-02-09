@@ -65,13 +65,14 @@ namespace other {
         case ValueType::MAT4:
           return Value{ obj.GetField<glm::mat4>(name) };
 
-        case ValueType::STRING:
-          return Value{ obj.GetField<std::string>(name) };
-
         case ValueType::ENTITY:
         case ValueType::ASSET:
           return Value{ obj.GetField<uint64_t>(name) };
 
+        case ValueType::STRING:
+          /// have to allocate memory for string because the 'native' string allocated by DotOther is freed after retrieving the value from the
+          ///   loaded assembly, for now we'll just return an empty string
+          // return Value{ obj.GetField<std::string>(name) };
         case ValueType::USER_TYPE:
         case ValueType::OPAQUE_HANDLE:
         case ValueType::EMPTY_TYPE:

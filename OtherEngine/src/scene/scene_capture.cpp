@@ -123,7 +123,11 @@ namespace other {
       // CopyInto<RigidBody2D>(registry, capture->registry, ent_map);
       CopyInto<Collider2D>(registry, capture->registry, ent_map);
       CopyInto<LightSource>(registry, capture->registry, ent_map);
-      CopyInto<Camera>(registry, capture->registry, ent_map);
+      CopyIntoAndThen<Camera>(registry, capture->registry, ent_map, [](Camera& comp, entt::registry& reg, entt::entity entt) {
+        comp.camera->SetPosition(comp.camera_position);
+        comp.camera->SetDirection(comp.camera_direction);
+        comp.camera->SetUp(comp.camera_up);
+      });
       // CopyInto<Sprite2D>(registry, capture->registry, ent_map);
     }
     capture_stack.pop();
@@ -139,6 +143,8 @@ namespace other {
 
     auto& registry = scene->Registry();
     const std::map<UUID, Entity*>& entities = scene->SceneEntities();
+
+    /// this provides consistent ordering of entities
     registry.sort<Tag>([&](const Tag& lhs, const Tag& rhs) {
       auto lent = entities.find(lhs.id);
       auto rent = entities.find(rhs.id);

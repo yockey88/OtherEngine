@@ -18,6 +18,9 @@ namespace other {
       : path(dir_path), handle(dir_handle) {
     if (!std::filesystem::exists(dir_path)) {
       dir_open = false;
+    } else {
+      dir_open = true;
+      num_files_last_check = CheckNumFiles();
     }
   }
 

@@ -1,6 +1,6 @@
 /**
  * \file input\keyboard.hpp
-*/
+ */
 #ifndef OTHER_ENGINE_KEYBOARD_HPP
 #define OTHER_ENGINE_KEYBOARD_HPP
 
@@ -9,13 +9,13 @@
 
 namespace other {
 
-class Keyboard {
-  public:
+  class Keyboard {
+   public:
     enum class Key : uint32_t {
-      OE_UNKNOWN = 0 ,
-      OE_UNKNOWN1 = 1 ,
-      OE_UNKNOWN2 = 2 ,
-      OE_UNKNOWN3 = 3 ,
+      OE_UNKNOWN = 0,
+      OE_UNKNOWN1 = 1,
+      OE_UNKNOWN2 = 2,
+      OE_UNKNOWN3 = 3,
 
       OE_A = 4,
       OE_B = 5,
@@ -65,11 +65,11 @@ class Keyboard {
       OE_EQUALS = 46,
       OE_LEFTBRACKET = 47,
       OE_RIGHTBRACKET = 48,
-      OE_BACKSLASH = 49, 
-      OE_NONUSHASH = 50, 
+      OE_BACKSLASH = 49,
+      OE_NONUSHASH = 50,
       OE_SEMICOLON = 51,
       OE_APOSTROPHE = 52,
-      OE_GRAVE = 53, 
+      OE_GRAVE = 53,
       OE_COMMA = 54,
       OE_PERIOD = 55,
       OE_SLASH = 56,
@@ -92,7 +92,7 @@ class Keyboard {
       OE_PRINTSCREEN = 70,
       OE_SCROLLLOCK = 71,
       OE_PAUSE = 72,
-      OE_INSERT = 73, 
+      OE_INSERT = 73,
       OE_HOME = 74,
       OE_PAGEUP = 75,
       OE_DELETE = 76,
@@ -103,7 +103,7 @@ class Keyboard {
       OE_DOWN = 81,
       OE_UP = 82,
 
-      OE_NUMLOCKCLEAR = 83, 
+      OE_NUMLOCKCLEAR = 83,
       OE_KP_DIVIDE = 84,
       OE_KP_MULTIPLY = 85,
       OE_KP_MINUS = 86,
@@ -121,9 +121,9 @@ class Keyboard {
       OE_KP_0 = 98,
       OE_KP_PERIOD = 99,
 
-      OE_NONUSBACKSLASH = 100, 
-      OE_APPLICATION = 101, 
-      OE_POWER = 102, 
+      OE_NONUSBACKSLASH = 100,
+      OE_APPLICATION = 101,
+      OE_POWER = 102,
       OE_KP_EQUALS = 103,
       OE_F13 = 104,
       OE_F14 = 105,
@@ -142,7 +142,7 @@ class Keyboard {
       OE_MENU = 118,
       OE_SELECT = 119,
       OE_STOP = 120,
-      OE_AGAIN = 121,   /**< redo */
+      OE_AGAIN = 121, /**< redo */
       OE_UNDO = 122,
       OE_CUT = 123,
       OE_COPY = 124,
@@ -151,30 +151,30 @@ class Keyboard {
       OE_MUTE = 127,
       OE_VOLUMEUP = 128,
       OE_VOLUMEDOWN = 129,
-    /*     OE_LOCKINGCAPSLOCK = 130,  */
-    /*     OE_LOCKINGNUMLOCK = 131, */
-    /*     OE_LOCKINGSCROLLLOCK = 132, */
+      /*     OE_LOCKINGCAPSLOCK = 130,  */
+      /*     OE_LOCKINGNUMLOCK = 131, */
+      /*     OE_LOCKINGSCROLLLOCK = 132, */
       OE_KP_COMMA = 133,
       OE_KP_EQUALSAS400 = 134,
 
       OE_INTERNATIONAL1 = 135,
       OE_INTERNATIONAL2 = 136,
-      OE_INTERNATIONAL3 = 137, 
+      OE_INTERNATIONAL3 = 137,
       OE_INTERNATIONAL4 = 138,
       OE_INTERNATIONAL5 = 139,
       OE_INTERNATIONAL6 = 140,
       OE_INTERNATIONAL7 = 141,
       OE_INTERNATIONAL8 = 142,
       OE_INTERNATIONAL9 = 143,
-      OE_LANG1 = 144,  
-      OE_LANG2 = 145,  
-      OE_LANG3 = 146, 
-      OE_LANG4 = 147, 
-      OE_LANG5 = 148,  
-      OE_LANG6 = 149, 
-      OE_LANG7 = 150, 
-      OE_LANG8 = 151, 
-      OE_LANG9 = 152, 
+      OE_LANG1 = 144,
+      OE_LANG2 = 145,
+      OE_LANG3 = 146,
+      OE_LANG4 = 147,
+      OE_LANG5 = 148,
+      OE_LANG6 = 149,
+      OE_LANG7 = 150,
+      OE_LANG8 = 151,
+      OE_LANG9 = 152,
 
       OE_ALTERASE = 153,
       OE_SYSREQ = 154,
@@ -238,14 +238,14 @@ class Keyboard {
 
       OE_LCTRL = 224,
       OE_LSHIFT = 225,
-      OE_LALT = 226, 
-      OE_LGUI = 227, 
+      OE_LALT = 226,
+      OE_LGUI = 227,
       OE_RCTRL = 228,
       OE_RSHIFT = 229,
       OE_RALT = 230,
       OE_RGUI = 231,
 
-      OE_MODE = 257, 
+      OE_MODE = 257,
 
       OE_AUDIONEXT = 258,
       OE_AUDIOPREV = 259,
@@ -267,7 +267,7 @@ class Keyboard {
 
       OE_BRIGHTNESSDOWN = 275,
       OE_BRIGHTNESSUP = 276,
-      OE_DISPLAYSWITCH = 277, 
+      OE_DISPLAYSWITCH = 277,
       OE_KBDILLUMTOGGLE = 278,
       OE_KBDILLUMDOWN = 279,
       OE_KBDILLUMUP = 280,
@@ -280,18 +280,18 @@ class Keyboard {
       OE_AUDIOREWIND = 285,
       OE_AUDIOFASTFORWARD = 286,
 
-      OE_SOFTLEFT = 287, 
-      OE_SOFTRIGHT = 288, 
-      OE_CALL = 289, 
-      OE_ENDCALL = 290, 
+      OE_SOFTLEFT = 287,
+      OE_SOFTRIGHT = 288,
+      OE_CALL = 289,
+      OE_ENDCALL = 290,
 
-      OE_NUM_YES = 512 
+      OE_NUM_YES = 512
     };
 
     enum class State : uint8_t {
-      PRESSED = 0 ,
-      BLOCKED ,
-      HELD ,
+      PRESSED = 0,
+      BLOCKED,
+      HELD,
       RELEASED
     };
 
@@ -314,88 +314,95 @@ class Keyboard {
     static bool Down(Key key);
     static bool Released(Key key);
 
-    static inline bool LCtrlLayer() { 
+    static inline bool LCtrlLayer() {
       return Blocked(Key::OE_LCTRL) || Held(Key::OE_LCTRL);
     }
-    static inline bool RCtrlLayer() { 
+    static inline bool RCtrlLayer() {
       return Blocked(Key::OE_RCTRL) || Held(Key::OE_RCTRL);
     }
 
-    static inline bool LAltLayer() { 
+    static inline bool LShiftLayer() {
+      return Blocked(Key::OE_LSHIFT) || Held(Key::OE_LSHIFT);
+    }
+    static inline bool RShiftLayer() {
+      return Blocked(Key::OE_RSHIFT) || Held(Key::OE_RSHIFT);
+    }
+
+    static inline bool LAltLayer() {
       return Blocked(Key::OE_LALT) || Held(Key::OE_LALT);
     }
-    static inline bool RAltLayer() { 
+    static inline bool RAltLayer() {
       return Blocked(Key::OE_RALT) || Held(Key::OE_RALT);
     }
 
-    static inline bool LCtrlShiftLayer() { 
+    static inline bool LCtrlShiftLayer() {
       return LCtrlLayer() && (Blocked(Key::OE_LSHIFT) || Held(Key::OE_LSHIFT));
     }
-    static inline bool RCtrlShiftLayer() { 
+    static inline bool RCtrlShiftLayer() {
       return RCtrlLayer() && (Blocked(Key::OE_RSHIFT) || Held(Key::OE_RSHIFT));
     }
 
-    static inline bool LCtrlAltLayer() { 
+    static inline bool LCtrlAltLayer() {
       return LCtrlLayer() && (Blocked(Key::OE_LALT) || Held(Key::OE_LALT));
     }
-    static inline bool RCtrlAltLayer() { 
+    static inline bool RCtrlAltLayer() {
       return RCtrlLayer() && (Blocked(Key::OE_RALT) || Held(Key::OE_RALT));
     }
 
-    static inline bool LCtrlAltShiftLayer() { 
+    static inline bool LCtrlAltShiftLayer() {
       return LCtrlLayer() && LAltLayer() && (Blocked(Key::OE_LSHIFT) || Held(Key::OE_LSHIFT));
     }
-    static inline bool RCtrlAltShiftLayer() { 
+    static inline bool RCtrlAltShiftLayer() {
       return RCtrlLayer() && RAltLayer() && (Blocked(Key::OE_RSHIFT) || Held(Key::OE_RSHIFT));
     }
 
-    static inline bool LCtrlLayerKey(Key key) { 
+    static inline bool LCtrlLayerKey(Key key) {
       return LCtrlLayer() && Pressed(key);
     }
-    static inline bool RCtrlLayerKey(Key key)  { 
-      return RCtrlLayer() && Pressed(key); 
+    static inline bool RCtrlLayerKey(Key key) {
+      return RCtrlLayer() && Pressed(key);
     }
 
-    static inline bool LAltLayerKey(Key key) { 
+    static inline bool LAltLayerKey(Key key) {
       return LAltLayer() && Pressed(key);
-    }   
-    static inline bool RAltLayerKey(Key key) { 
+    }
+    static inline bool RAltLayerKey(Key key) {
       return RAltLayer() && Pressed(key);
     }
 
-    static inline bool LCtrlShiftLayerKey(Key key) { 
-      return LCtrlShiftLayer() && Pressed(key); 
+    static inline bool LCtrlShiftLayerKey(Key key) {
+      return LCtrlShiftLayer() && Pressed(key);
     }
-    static inline bool RCtrlShiftLayerKey(Key key) { 
+    static inline bool RCtrlShiftLayerKey(Key key) {
       return RCtrlShiftLayer() && Pressed(key);
     }
 
-    static inline bool LCtrlAltLayerKey(Key key) { 
+    static inline bool LCtrlAltLayerKey(Key key) {
       return LCtrlAltLayer() && Pressed(key);
     }
-    static inline bool RCtrlAltLayerKey(Key key) { 
+    static inline bool RCtrlAltLayerKey(Key key) {
       return RCtrlAltLayer() && Pressed(key);
     }
-    
-    static inline bool LCtrlAltShiftLayerKey(Key key) { 
+
+    static inline bool LCtrlAltShiftLayerKey(Key key) {
       return LCtrlAltShiftLayer() && Pressed(key);
     }
 
-    static inline bool RCtrlAltShiftLayerKey(Key key) { 
+    static inline bool RCtrlAltShiftLayerKey(Key key) {
       return RCtrlAltShiftLayer() && Pressed(key);
     }
 
-  private:
+   private:
     constexpr static uint16_t kKeyCount = 287;
     /// TODO: find some way to make this configurable
     constexpr static uint32_t key_block_length = 5000;
     constexpr static uint32_t key_repeat_length = 1000;
-    
+
     static uint8_t* state;
-    static std::map<Key , KeyState> keys;
+    static std::map<Key, KeyState> keys;
   };
 
-} // namespace other
+}  // namespace other
 
 namespace std {
 
@@ -406,6 +413,6 @@ namespace std {
     }
   };
 
-} // namespace std
+}  // namespace std
 
-#endif // !OTHER_ENGINE_KEYBOARD_HPP
+#endif  // !OTHER_ENGINE_KEYBOARD_HPP

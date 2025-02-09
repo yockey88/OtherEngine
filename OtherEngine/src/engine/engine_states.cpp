@@ -15,11 +15,11 @@
 #include "rendering/renderer.hpp"
 #include "rendering/ui/ui.hpp"
 #include "scripting/script_engine.hpp"
+#include "steam/steam_manager.hpp"
 
 #include "editor/editor_sink.hpp"
 #include "editor/editor_states.hpp"
 
-#include "steam/steam_manager.hpp"
 
 #ifdef OE_TESTING_ENVIRONMENT
   #include "testing_core/test_engine_states.hpp"
@@ -43,13 +43,13 @@ namespace other {
     }
 
     bool HandleCreateFile(CreateFileEvent& event) {
-      Ref<Directory> dir = Filesystem::GetDirectory(event.handle);
-      if (dir == nullptr) {
-        OE_ERROR("Failed to get directory to handle file creation : {}", event.handle);
-        return false;
-      }
+      // Ref<Directory> dir = Filesystem::GetDirectory(event.handle);
+      // if (dir == nullptr) {
+      //   OE_ERROR("Failed to get directory to handle file creation : {}", event.handle);
+      //   return false;
+      // }
 
-      dir->Update();
+      // dir->Update();
       return true;
     }
 

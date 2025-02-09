@@ -25,6 +25,8 @@ namespace Other {
     internal static unsafe delegate*<UInt64, UInt32> GetSceneId;
     internal static unsafe delegate*<IntPtr , NBool32> IsHandleValid;
 
+    internal static unsafe delegate*<bool> IsSceneActiveAndValid;
+
     private static SortedSet<UInt64> active_scripts = new SortedSet<UInt64>();
     private static Dictionary<UInt64 , OtherObject> objects = new Dictionary<UInt64 , OtherObject>();
 
@@ -94,6 +96,12 @@ namespace Other {
       if (active_scripts.Contains(id)) {
         Logger.WriteTrace($"Removing Active Script : {id}");
         active_scripts.Add(id);
+      }
+    }
+
+    public static bool IsActive() {
+      unsafe {
+        return IsSceneActiveAndValid();
       }
     }
 

@@ -22,6 +22,7 @@
 
 #include "physics/3D/physics_shape.hpp"
 #include "physics/3D/react/react_body.hpp"
+#include "physics/3D/react/react_raycast_callback.hpp"
 #include "physics/3D/react/react_shape.hpp"
 #include "rendering/model.hpp"
 #include "rendering/shader.hpp"
@@ -96,6 +97,25 @@ namespace other {
   ReactWorld::~ReactWorld() {
     OE_ASSERT(physics_world != nullptr, "Physics world is null");
     physics_common.destroyPhysicsWorld(physics_world);
+  }
+
+  bool ReactWorld::Raycast(PhysicsRaycastHit& hit, Ray& ray, float distance) {
+    rp3d::Vector3 origin(ray.origin.x, ray.origin.y, ray.origin.z);
+    rp3d::Vector3 direction(ray.direction.x, ray.direction.y, ray.direction.z);
+
+    rp3d::Ray physics_ray(origin, direction);
+    ReactRaycastCallback callback(this, scene_context, distance);
+    physics_world->raycast(physics_ray, &callback);
+    OE_TRACE("Raycast hit : {}", callback.hit_occurred);
+    if (!callback.hit_occurred) {
+      return false;
+    }
+
+    OE_ASSERT(callback.hits.size() > 0, "No hit entities found");
+    /// only need the first one for now
+    hit = callback.hits[0];
+
+    return true;
   }
 
   void ReactWorld::ResetSimulation(Scene* scene) {
@@ -515,6 +535,9 @@ namespace other {
     }
   }
 
+  void ReactWorld::SubmitRaycastDrawCommands(Ref<SceneRenderer> renderer) {
+  }
+
   void ReactWorld::SubmitDebugRender(Ref<SceneRenderer> renderer) {
     if (!debug_render_enabled) {
       return;
@@ -640,6 +663,8 @@ namespace other {
         },
       }
     );
+
+    cast_rays.clear();
   }
 
   void ReactWorld::RegisterCallbacks() {

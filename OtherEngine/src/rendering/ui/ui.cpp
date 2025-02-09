@@ -263,19 +263,14 @@ namespace other {
       PROFILE_SECTION("UI--EndFrame:ImGui");
       ImGui::Render();
       ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-    }
-    {
-      PROFILE_SECTION("UI--EndFrame:ImGuiPlatform");
+
       ImGui::UpdatePlatformWindows();
       ImGui::RenderPlatformWindowsDefault();
     }
-    {
-      PROFILE_SECTION("UI--EndFrame:SetContext");
-      const auto window_ctx = windowref->main_window->Context();
-      auto win_handle = window_ctx.window;
-      auto win_context = window_ctx.context;
-      SDL_GL_MakeCurrent(win_handle, win_context);
-    }
+    const auto window_ctx = windowref->main_window->Context();
+    auto win_handle = window_ctx.window;
+    auto win_context = window_ctx.context;
+    SDL_GL_MakeCurrent(win_handle, win_context);
   }
 
   void UI::Shutdown() {

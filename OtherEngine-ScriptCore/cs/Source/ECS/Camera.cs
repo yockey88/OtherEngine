@@ -1,7 +1,4 @@
 using System;
-using System.Runtime.InteropServices;
-using System.Runtime.CompilerServices;
-using System.Security.Policy;
 
 namespace Other {
 
@@ -13,6 +10,18 @@ namespace Other {
       
     internal static unsafe delegate*<IntPtr , Vec3* , void> GetPosition;
     internal static unsafe delegate*<IntPtr , Vec3* , void> SetPosition;
+
+    internal static unsafe delegate*<IntPtr , Vec3* , void> GetForward;
+    ///  TODO: do we need this?
+    // internal static unsafe delegate*<IntPtr , Vec3* , void> SetForward;
+
+    internal static unsafe delegate*<IntPtr , Vec3* , void> GetRight;
+    /// TODO: do we need this?
+    /// internal static unsafe delegate*<IntPtr , Vec3* , void> SetRight;
+    
+    internal static unsafe delegate*<IntPtr , Vec3* , void> GetUp;
+    /// TODO: do we need this?
+    /// internal static unsafe delegate*<IntPtr , Vec3* , void> SetUp;
 
     public Vec3 Position {
       get {
@@ -27,6 +36,41 @@ namespace Other {
           SetPosition(Object.NativeHandle , &value);
         }
       }
+    }
+
+    public Vec3 Forward {
+      get {
+        unsafe {
+          Vec3 forward = Vec3.zero;
+          GetForward(Object.NativeHandle , &forward);
+          return forward;
+        }
+      }
+    }
+
+    public Vec3 Right {
+      get {
+        unsafe {
+          Vec3 right = Vec3.zero;
+          GetRight(Object.NativeHandle , &right);
+          return right;
+        }
+      }
+    }
+
+    public Vec3 Up {
+      get {
+        unsafe {
+          Vec3 up = Vec3.zero;
+          GetUp(Object.NativeHandle , &up);
+          return up;
+        }
+      }
+    }
+
+    public void SetTransform(Transform transform) {
+      Position = transform.Position;
+      /// rotation, etc... 
     }
 
     // public Vec3 Direction {

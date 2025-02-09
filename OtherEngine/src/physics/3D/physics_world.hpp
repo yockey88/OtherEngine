@@ -17,6 +17,7 @@
 
 #include "physics/3D/physics_body.hpp"
 #include "physics/3D/physics_shape.hpp"
+#include "physics/physics_defines.hpp"
 #include "rendering/scene_renderer.hpp"
 
 namespace other {
@@ -29,6 +30,8 @@ namespace other {
     virtual ~PhysicsWorld();
 
     static Ref<PhysicsWorld> Create(Scene* scene_ctx);
+
+    virtual bool Raycast(PhysicsRaycastHit& hit, Ray& ray, float distance) = 0;  // , uint32_t layer_mask, uint32_t group_mask, uint32_t mask) = 0;
 
     virtual void ResetSimulation(Scene* scene) = 0;
     virtual void Simulate(float ts) = 0;
@@ -46,6 +49,7 @@ namespace other {
     virtual void SetDebugRendering(bool debug) = 0;
     bool IsDebugRenderEnabled() const;
 
+    virtual void SubmitRaycastDrawCommands(Ref<SceneRenderer> renderer) {}
     virtual void SubmitDebugRender(Ref<SceneRenderer> renderer) = 0;
 
     void RegisterColliderShape(UUID entity_id, Ref<PhysicsShape> shape);

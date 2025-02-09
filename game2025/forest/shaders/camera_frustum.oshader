@@ -1,10 +1,21 @@
 vertex [mesh : position_only] {
 
+  uniform vec2 selected_clip_bounds;
+  uniform vec3 selected_camera_pos;
   uniform mat4 selected_camera_inv_mvp;
+
+  out vec4 world_space_pos;
+  out vec3 camera_pos;
+  out vec2 frag_clip_bounds;
 
   void main() {
     vec4 frustum_world = selected_camera_inv_mvp * vec4(voe_position, 1);
     frustum_world = frustum_world * (1.0 / frustum_world.w);
+    
+    world_space_pos = frustum_world;
+    camera_pos = selected_camera_pos;
+    frag_clip_bounds = selected_clip_bounds;
+
     gl_Position = projection * view * frustum_world;
   }
 
@@ -12,9 +23,18 @@ vertex [mesh : position_only] {
 
 fragment {
 
+  in vec4 world_space_pos;
+  in vec2 frag_clip_bounds;
+
   out vec4 FragColor;
 
   void main() {
+    float clip_space_len = frag_clip_bounds.y - frag_clip_bounds.x;
+
+    // if (world_space_pos.z <= (frag_clip_bounds.y / clip_space_len)) {
+    //   discard;
+    // }
+
     FragColor = vec4(0, 0, 1, 1);
   }
 

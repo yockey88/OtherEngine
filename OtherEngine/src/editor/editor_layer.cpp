@@ -189,6 +189,11 @@ namespace other {
   void EditorLayer::OnLateUpdate(float dt) {
     EditorState& editor = EditorState::Get();
     panel_manager->LateUpdate(dt);
+
+    if (editor.selected_camera != nullptr) {
+      // editor.se
+    }
+
     if (editor.editor_camera == nullptr) {
       return;
     }
@@ -202,7 +207,6 @@ namespace other {
     EditorState& editor = EditorState::Get();
     panel_manager->Render();
 
-    /// dont trace if no scene or not editing
     if (!AppState::Scenes()->HasActiveScene() ||
         EditorState::scene_mode == SceneEditorMode::PLAYING) {
       return;
@@ -247,10 +251,7 @@ namespace other {
             },
           }
         );
-        // }
 
-        // if (EditorState::scene_mode == SceneEditorMode::STOPPED) {
-        /// camera frustum draw command
         scene_renderer->SubmitDebugDrawCommands(
           "Geometry",
           {
@@ -262,6 +263,8 @@ namespace other {
               OE_ASSERT(editor.selected_camera != nullptr, "Selected camera is null");
 
               camera_frustum_shader->Bind();
+              camera_frustum_shader->SetUniform("selected_clip_bounds", editor.selected_camera->Clip());
+              camera_frustum_shader->SetUniform("selected_camera_pos", editor.selected_camera->Position());
               camera_frustum_shader->SetUniform("selected_camera_inv_mvp", editor.selected_camera->InverseMatrix());
               camera_frustum_vao->Draw(DrawMode::LINES);
               camera_frustum_shader->Unbind();

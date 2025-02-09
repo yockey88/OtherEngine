@@ -4,24 +4,63 @@ namespace Other {
 
   public static class Keyboard {
     private const int NumKeys = 287;
-    
-    // [MethodImpl(MethodImplOptions.InternalCall)]
-    // public static extern int FramesHeld(KeyCode key);
-    
-    // [MethodImpl(MethodImplOptions.InternalCall)]
-    // public static extern bool Pressed(KeyCode key);
-    
-    // [MethodImpl(MethodImplOptions.InternalCall)]
-    // public static extern bool Blocked(KeyCode key);
-    
-    // [MethodImpl(MethodImplOptions.InternalCall)]
-    // public static extern bool Held(KeyCode key);
-    
-    // [MethodImpl(MethodImplOptions.InternalCall)]
-    // public static extern bool Down(KeyCode key);
-    
-    // [MethodImpl(MethodImplOptions.InternalCall)]
-    // public static extern bool Released(KeyCode key);
+
+    internal static unsafe delegate*<KeyCode, bool> IsKeyPressed;
+    internal static unsafe delegate*<KeyCode, bool> IsKeyBlocked;
+    internal static unsafe delegate*<KeyCode, bool> IsKeyHeld;
+    internal static unsafe delegate*<KeyCode, bool> IsKeyDown;
+    internal static unsafe delegate*<KeyCode, bool> IsKeyReleased;
+
+    internal static unsafe delegate*<bool> IsLCtrlLayer;
+    internal static unsafe delegate*<bool> IsRCtrlLayer;
+    internal static unsafe delegate*<bool> IsLShiftLayer;
+    internal static unsafe delegate*<bool> IsRShiftLayer;
+    internal static unsafe delegate*<bool> IsLAltLayer;
+    internal static unsafe delegate*<bool> IsRAltLayer;
+
+    internal static unsafe delegate*<bool> IsLCtrlShiftLayer;
+    internal static unsafe delegate*<bool> IsRCtrlShiftLayer;
+    internal static unsafe delegate*<bool> IsLCtrlAltLayer;
+    internal static unsafe delegate*<bool> IsRCtrlAltLayer;
+    internal static unsafe delegate*<bool> IsLCtrlAltShiftLayer;
+    internal static unsafe delegate*<bool> IsRCtrlAltShiftLayer;
+
+    internal static unsafe delegate*<KeyCode, bool> IsLCtrlLayerKey;
+    internal static unsafe delegate*<KeyCode, bool> IsRCtrlLayerKey;
+    internal static unsafe delegate*<KeyCode, bool> IsLAltLayerKey;
+    internal static unsafe delegate*<KeyCode, bool> IsRAltLayerKey;
+
+
+    public static bool KeyPressed(KeyCode key) {
+      unsafe {
+        return IsKeyPressed(key);
+      }
+    }
+
+    public static bool KeyBlocked(KeyCode key) {
+      unsafe {
+        return IsKeyBlocked(key);
+      }
+    }
+
+
+    public static bool KeyHeld(KeyCode key) {
+      unsafe {
+        return IsKeyHeld(key) || IsKeyBlocked(key);
+      }
+    }
+
+    public static bool KeyDown(KeyCode key) {
+      unsafe {
+        return IsKeyDown(key);
+      }
+    }
+
+    public static bool KeyReleased(KeyCode key) {
+      unsafe {
+        return IsKeyReleased(key);
+      }
+    }
 
     public static int KeyCount {
       get => NumKeys;

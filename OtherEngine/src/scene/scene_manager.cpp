@@ -120,6 +120,7 @@ namespace other {
       DefaultUpdateCamera(primary_cam);
     }
 
+    scene->Activate();
     EventQueue::PushEvent<SceneActivate>({ active_scene->scene->SceneHandle().Get() });
   }
 
@@ -142,6 +143,7 @@ namespace other {
         .corrupted = false
       };
       itr = loaded_scenes.find(id);
+      OE_ASSERT(itr != loaded_scenes.end(), "Failed to add scene to loaded scenes");
       itr->second.bvh->AddScene(scene, glm::zero<glm::vec3>());
     }
 
@@ -156,6 +158,7 @@ namespace other {
       primary_cam->CalculateMatrix();
     }
 
+    active_scene->scene->Activate();
     EventQueue::PushEvent<SceneActivate>({ active_scene->scene->SceneHandle().Get() });
   }
 
@@ -175,6 +178,7 @@ namespace other {
     if (!HasActiveScene()) {
       return;
     }
+    OE_TRACE("Starting scene {}", active_scene->name);
 
     active_scene->scene->Start();
     if (active_scene->scene->GetPrimaryCamera() != nullptr) {
@@ -269,6 +273,7 @@ namespace other {
     if (!active_scene->scene->IsRunning()) {
       return;
     }
+    OE_TRACE("Stopping scene {}", active_scene->name);
 
     active_scene->scene->Stop();
 
