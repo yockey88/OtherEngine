@@ -50,6 +50,7 @@ namespace other {
 
     Ref<ReactCollisionListener> collision_listener = nullptr;
 
+    Ref<Shader> ray_shader = nullptr;
     std::vector<Ray> cast_rays = {};
 
     void RegisterCallbacks() override;

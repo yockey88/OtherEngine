@@ -271,6 +271,9 @@ namespace other {
             },
           }
         );
+
+        Ref<PhysicsWorld> physics_world = active_scene->scene->GetPhysicsWorld();
+        physics_world->SubmitRaycastDrawCommands(scene_renderer);
       }
 
       if (rendering_physics_colliders) {

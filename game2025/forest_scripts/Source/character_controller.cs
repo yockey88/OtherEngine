@@ -160,11 +160,21 @@ namespace Forest {
       /// Initial physics raycast to get ground and ceiling offsets
       PhysicsRaycastHit floor_hit;
       PhysicsRaycastHit ceiling_hit;
-      if (Physics.Raycast(transform.Position, Vec3.down, raycast_length, out floor_hit)) {
+
+      /// because transform position is at center of object (and therefore inside the collider),
+      ///   we need to raycast from the outside of the player
+      /// HACK: shift transform position to just front of player (pos + collider.radius), this only works if the player is a capsule
+      Vec3 modified_pos = transform.Position;
+      float radius = transform.Scale.x / 2f;
+      /// move the way we are facing by the radius of the player with a small offset
+      modified_pos += cam.Forward.Normalized() * (radius + 0.2f);
+      Logger.WriteDebug($"Modified Position : {modified_pos} \\ ray length = {raycast_length}");
+
+      if (Physics.Raycast(modified_pos, Vec3.down, raycast_length, out floor_hit)) {
         Logger.WriteDebug("Floor Hit");
         ground_offset_y = floor_hit.distance;
       }
-      if (Physics.Raycast(transform.Position, Vec3.up, raycast_length, out ceiling_hit)) {
+      if (Physics.Raycast(modified_pos, Vec3.up, raycast_length, out ceiling_hit)) {
         Logger.WriteDebug("Ceiling Hit");
         ceiling_offset_y = ceiling_hit.distance;
       }

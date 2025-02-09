@@ -92,6 +92,18 @@ namespace other {
     physics_world = physics_common.createPhysicsWorld(settings);
 
     collision_listener = NewRef<ReactCollisionListener>(scene);
+
+    // ray_shader
+    {
+      Ref<Directory> shaders = Filesystem::GetDirectory("shaders");
+      OE_ASSERT(shaders != nullptr, "Failed to retrieve shaders directory");
+
+      Ref<FileHandle> geom_shader_file = shaders->GetFileHandleByName("ray", ".oshader");
+      OE_ASSERT(geom_shader_file != nullptr, "Failed to get shader file : {}", "ray");
+
+      ray_shader = BuildShader(Path(*geom_shader_file));
+      OE_ASSERT(ray_shader != nullptr, "Failed to build editor grid shader");
+    }
   }
 
   ReactWorld::~ReactWorld() {
@@ -100,6 +112,8 @@ namespace other {
   }
 
   bool ReactWorld::Raycast(PhysicsRaycastHit& hit, Ray& ray, float distance) {
+    OE_TRACE("Physics Raycast : Ray({} -> {}) \\ distance = {}", ray.origin, ray.direction, distance);
+    cast_rays.push_back(ray);
     rp3d::Vector3 origin(ray.origin.x, ray.origin.y, ray.origin.z);
     rp3d::Vector3 direction(ray.direction.x, ray.direction.y, ray.direction.z);
 
@@ -295,6 +309,11 @@ namespace other {
 
     OE_ASSERT(collider.shape != nullptr, "Collider shape is null");
     collider.shape->SetTransform(initial_transform);
+
+    for (uint32_t i = 0; i < rp3d_body->getNbColliders(); ++i) {
+      rp3d::Collider* rp3d_collider = rp3d_body->getCollider(i);
+      rp3d_collider->setIsWorldQueryCollider(true);
+    }
 
     auto [itr, res] = native_bodies.insert({ body.physics_body->GetNativeBody<void*>(), tag.id });
     OE_ASSERT(res, "Failed to insert body into native bodies map");
@@ -536,6 +555,34 @@ namespace other {
   }
 
   void ReactWorld::SubmitRaycastDrawCommands(Ref<SceneRenderer> renderer) {
+    std::vector<Ref<VertexArray>> ray_vaos;
+    for (const Ray& ray : cast_rays) {
+      // clang-format off
+      std::vector<float> vertices = {
+        ray.origin.x, ray.origin.y, ray.origin.z,
+        ray.origin.x + ray.direction.x * 10.f,
+        ray.origin.y + ray.direction.y * 10.f,
+        ray.origin.z + ray.direction.z * 10.f,
+      };
+      // clang-format on
+
+      Ref<VertexArray> vao = NewRef<VertexArray>(vertices, std::vector<uint32_t>{}, std::vector<uint32_t>{ 3 });
+      ray_vaos.push_back(vao);
+    }
+    renderer->SubmitDebugDrawCommands(
+      "Geometry",
+      {
+        [&]() {
+          ray_shader->Bind();
+          ray_shader->SetUniform("color", glm::vec4(1.f, 0.f, 0.f, 1.f));
+          ray_shader->SetUniform("model", glm::mat4(1.f));
+          for (const Ref<VertexArray>& ray : ray_vaos) {
+            ray->Draw(DrawMode::LINES);
+          }
+          ray_shader->Unbind();
+        },
+      }
+    );
   }
 
   void ReactWorld::SubmitDebugRender(Ref<SceneRenderer> renderer) {
@@ -663,8 +710,6 @@ namespace other {
         },
       }
     );
-
-    cast_rays.clear();
   }
 
   void ReactWorld::RegisterCallbacks() {
