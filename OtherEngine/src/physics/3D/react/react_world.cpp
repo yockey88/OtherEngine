@@ -555,7 +555,7 @@ namespace other {
   }
 
   void ReactWorld::SubmitRaycastDrawCommands(Ref<SceneRenderer> renderer) {
-    std::vector<Ref<VertexArray>> ray_vaos;
+    std::vector<Ref<VertexArray>> ray_vaos = {};
     for (const Ray& ray : cast_rays) {
       // clang-format off
       std::vector<float> vertices = {
@@ -569,20 +569,27 @@ namespace other {
       Ref<VertexArray> vao = NewRef<VertexArray>(vertices, std::vector<uint32_t>{}, std::vector<uint32_t>{ 3 });
       ray_vaos.push_back(vao);
     }
-    renderer->SubmitDebugDrawCommands(
-      "Geometry",
-      {
-        [&]() {
-          ray_shader->Bind();
-          ray_shader->SetUniform("color", glm::vec4(1.f, 0.f, 0.f, 1.f));
-          ray_shader->SetUniform("model", glm::mat4(1.f));
-          for (const Ref<VertexArray>& ray : ray_vaos) {
-            ray->Draw(DrawMode::LINES);
-          }
-          ray_shader->Unbind();
-        },
-      }
-    );
+
+    if (ray_vaos.empty()) {
+      return;
+    }
+
+    OE_ASSERT(ray_shader != nullptr, "Ray shader is null");
+
+    // renderer->SubmitDebugDrawCommands(
+    //   "Geometry",
+    //   {
+    //     [&]() {
+    //       ray_shader->Bind();
+    //       ray_shader->SetUniform("color", glm::vec4(1.f, 0.f, 0.f, 1.f));
+    //       ray_shader->SetUniform("model", glm::mat4(1.f));
+    //       for (auto& ray_vao : ray_vaos) {
+    //         ray_vao->Draw(DrawMode::LINES);
+    //       }
+    //       ray_shader->Unbind();
+    //     },
+    //   }
+    // );
   }
 
   void ReactWorld::SubmitDebugRender(Ref<SceneRenderer> renderer) {

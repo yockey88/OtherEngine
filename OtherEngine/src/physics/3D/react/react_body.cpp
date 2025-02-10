@@ -234,6 +234,9 @@ namespace other {
         OE_WARN("Physics Shape unimplemented!");
         break;
     }
+
+    OE_ASSERT(collider != nullptr, "Failed to add collider to physics body");
+    collider->setIsWorldQueryCollider(true);
   }
 
   void ReactBody::OnRemoveCollider(Ref<PhysicsShape> shape) {

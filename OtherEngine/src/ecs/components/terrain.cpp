@@ -27,13 +27,17 @@ namespace other {
     Ref<ModelSource> source = model_asset->GetModelSource();
     OE_ASSERT(source != nullptr, "Model source is null for model : {}", model->handle);
 
+    const MeshBounds& bounds = source->bounds;
     const std::vector<Vertex>& vertices = source->Vertices();
 
-    uint32_t dim = vertices.size();
+    float x_range = glm::max(glm::ceil(bounds.x_range), 2.f);
+    float y_range = glm::max(glm::ceil(bounds.y_range), 2.f);
+    uint32_t dim = x_range * y_range;
+    OE_ASSERT(dim >= 1.f, "Invalid terrain dimensions : {}x{}", x_range, y_range);
 
     /// not sure if this is the best way to do this
     {
-      instance.size = glm::ivec2(std::sqrt(dim), std::sqrt(dim));
+      instance.size = glm::ivec2(x_range, y_range);
       instance.heights.resize(dim);
     }
 
@@ -41,7 +45,7 @@ namespace other {
       instance.heights[i] = 0.f;  // vertices[i].position.y;
     }
 
-    OE_TRACE("Generated Height Map from model [{}] : \n{}\n", model->handle, fmt::join(instance.heights, ", "));
+    OE_TRACE("Generated Height Map from model ({}x{}) [{}] : \n{}\n", instance.size.x, instance.size.y, model->handle, fmt::join(instance.heights, ", "));
   }
 
   void TerrainSerializer::Serialize(std::ostream& stream, Entity* entity, const Ref<Scene>& scene) const {

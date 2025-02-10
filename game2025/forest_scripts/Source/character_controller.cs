@@ -62,7 +62,7 @@ namespace Forest {
     public float sphere_cast_radius = 0.25f;           // radius of area to detect for ground
     public float sphere_cast_dist = 0.75f;         // How far spherecast moves down from origin point
     // [Space(5)]
-    public float raycast_length = 0.75f;              // secondary raycasts (match to sphereCastDistance)
+    public float raycast_length = 75f;// 0.75f;              // secondary raycasts (match to sphereCastDistance)
     // public Vec3 ray_origin_offset1 = new Vec3(-0.2f, 0f, 0.16f);
     // public Vec3 ray_origin_offset2 = new Vec3(0.2f, 0f, -0.16f);
    
@@ -148,14 +148,14 @@ namespace Forest {
       cam.Position = cam_start;
 
       StringBuilder sb = new StringBuilder();
-      sb.Append("Character Controller Initialized :\n");
-      sb.Append($"  > Default Height : {default_height}\n");
-      sb.Append($"  > Camera Start Y : {camera_start_y}\n");
-      sb.Append($"  > Ground Check Y : {ground_check_y}\n");
-      sb.Append($"  > Ceiling Check Y : {ceiling_check_y}\n");
-      sb.Append($"  > Sphere Cast Radius : {sphere_cast_radius}\n");
-      sb.Append($"  > Sphere Cast Distance : {sphere_cast_dist}\n");
-      sb.Append($"  > Raycast Length : {raycast_length}\n");
+      sb.Append("Character Controller Initialized :\n")
+        .Append($"  > Default Height : {default_height}\n")
+        .Append($"  > Camera Start Y : {camera_start_y}\n")
+        .Append($"  > Ground Check Y : {ground_check_y}\n")
+        .Append($"  > Ceiling Check Y : {ceiling_check_y}\n")
+        .Append($"  > Sphere Cast Radius : {sphere_cast_radius}\n")
+        .Append($"  > Sphere Cast Distance : {sphere_cast_dist}\n")
+        .Append($"  > Raycast Length : {raycast_length}\n");
 
       /// Initial physics raycast to get ground and ceiling offsets
       PhysicsRaycastHit floor_hit;
@@ -164,10 +164,11 @@ namespace Forest {
       /// because transform position is at center of object (and therefore inside the collider),
       ///   we need to raycast from the outside of the player
       /// HACK: shift transform position to just front of player (pos + collider.radius), this only works if the player is a capsule
-      Vec3 modified_pos = transform.Position;
-      float radius = transform.Scale.x / 2f;
-      /// move the way we are facing by the radius of the player with a small offset
-      modified_pos += cam.Forward.Normalized() * (radius + 0.2f);
+      // Vec3 modified_pos = transform.Position;
+      // float radius = transform.Scale.x / 2f;
+      // /// move the way we are facing by the radius of the player with a small offset
+      // modified_pos += cam.Forward.Normalized() * (radius + 0.2f);
+      Vec3 modified_pos = new Vec3(0f, 10f, 0f);
       Logger.WriteDebug($"Modified Position : {modified_pos} \\ ray length = {raycast_length}");
 
       if (Physics.Raycast(modified_pos, Vec3.down, raycast_length, out floor_hit)) {

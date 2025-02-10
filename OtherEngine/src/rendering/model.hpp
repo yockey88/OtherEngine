@@ -17,11 +17,27 @@
 
 #include "vertex.hpp"
 
-
 namespace other {
 
   class Model;
   class StaticModel;
+
+  struct MeshBounds {
+    float min_x = std::numeric_limits<float>::max();
+    float max_x = std::numeric_limits<float>::min();
+    float x_range = 0.f;
+
+    float min_y = std::numeric_limits<float>::max();
+    float max_y = std::numeric_limits<float>::min();
+    float y_range = 0.f;
+
+    float min_z = std::numeric_limits<float>::max();
+    float max_z = std::numeric_limits<float>::min();
+    float z_range = 0.f;
+
+    glm::vec3 min = glm::vec3(std::numeric_limits<float>::max());
+    glm::vec3 max = glm::vec3(std::numeric_limits<float>::min());
+  };
 
   class ModelSource : public Asset {
    public:
@@ -64,6 +80,7 @@ namespace other {
     const Layout& GetLayout() const;
 
     Ref<VertexArray> source_vao;
+    MeshBounds bounds;
 
    private:
     friend class Model;

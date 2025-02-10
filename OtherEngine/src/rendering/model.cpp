@@ -153,6 +153,27 @@ namespace other {
       raw_vertices.push_back(v.position.y);
       raw_vertices.push_back(v.position.z);
 
+      if (v.position.x < bounds.min_x) {
+        bounds.min_x = v.position.x;
+      }
+      if (v.position.x > bounds.max_x) {
+        bounds.max_x = v.position.x;
+      }
+
+      if (v.position.y < bounds.min_y) {
+        bounds.min_y = v.position.y;
+      }
+      if (v.position.y > bounds.max_y) {
+        bounds.max_y = v.position.y;
+      }
+
+      if (v.position.z < bounds.min_z) {
+        bounds.min_z = v.position.z;
+      }
+      if (v.position.z > bounds.max_z) {
+        bounds.max_z = v.position.z;
+      }
+
       raw_vertices.push_back(v.normal.x);
       raw_vertices.push_back(v.normal.y);
       raw_vertices.push_back(v.normal.z);
@@ -168,6 +189,13 @@ namespace other {
       raw_vertices.push_back(v.uv_coord.x);
       raw_vertices.push_back(v.uv_coord.y);
     }
+
+    bounds.min = { bounds.min_x, bounds.min_y, bounds.min_z };
+    bounds.max = { bounds.max_x, bounds.max_y, bounds.max_z };
+
+    bounds.x_range = bounds.max_x - bounds.min_x;
+    bounds.y_range = bounds.max_y - bounds.min_y;
+    bounds.z_range = bounds.max_z - bounds.min_z;
   }
 
   void ModelSource::BuildIndexBuffer(const std::vector<Index>& vertices) {
