@@ -58,9 +58,10 @@ namespace other {
     std::map<UUID, ScriptField>& GetFields();
 
     template <typename T>
-    void ApiCall(const std::string_view name, T&& dt) {
+      requires(!std::is_pointer_v<T>)
+    void ApiCall(const std::string_view name, T&& arg) {
       OE_ASSERT(script_object != nullptr, "Script object is null");
-      script_object->CallMethod<void, T>(std::string{ name }, std::forward<T>(dt));
+      script_object->CallMethod<void, T>(std::string{ name }, std::forward<T>(arg));
     }
 
     template <typename T>
@@ -102,6 +103,7 @@ namespace other {
 
    private:
     ScriptObjectData object_data = {};
+    /// TODO: replace this with generic script object
     ScriptRef<CsObject> script_object = {};
   };
 

@@ -11,7 +11,6 @@
 #include "core/defines.hpp"
 #include "core/uuid.hpp"
 
-
 namespace other {
 
   enum PhysicsType {
@@ -99,6 +98,11 @@ namespace other {
     glm::vec3 normal;
     glm::vec3 point;
     float distance;
+  };
+
+  struct CollisionPointData {
+    UUID other_entity;
+    glm::vec3 point;
   };
 
 }  // namespace other

@@ -34,11 +34,8 @@ namespace Forest {
     public bool run_key = false;  // Held
     public bool crouch_key = false;  // Held
     public bool jump_key = false;  // Pressed
-    public bool slide_key = false;  // Pressed
     public bool cursor_key = false;  // Pressed
     public bool is_grounded = true;
-    public bool is_slipping = false;
-    public bool is_sliding = false;
     public bool is_ceiling = false;
    
     // [Header("Look Settings")]
@@ -70,8 +67,6 @@ namespace Forest {
     public float crouch_speed = 0.1f;                   // crouching movement speed
     public float walk_speed = 0.25f;                     // regular movement speed
     public float run_speed = 0.4f;                     // run movement speed
-    public float slide_speed = 14f;                   // slide movement speed
-    public float slid_duration = 2.2f;               // duration of slide
     public float gravity = -9.81f;                   // gravity / fall rate
     public float jump_height = 2.5f;                  // jump height
 
@@ -80,23 +75,56 @@ namespace Forest {
 
     // [Header("- reference variables -")]
     public float xrot = 0f;                     // the up/down angle the player is looking
-    private float last_speed = 0;                     // reference for calculating speed
+    
+    
     private float acc_mouse_x = 0;                     // reference for mouse look smoothing
     private float acc_mouse_y = 0;                     // reference for mouse look smoothing
+    public float look_sensitivity = 1f;               // default was 2f; speed factor of look X and Y
+    public float mouse_snappiness = 10f;              // default was 10f; larger values of this cause less filtering, more responsiveness
+    public bool constrain_pitch = true;               // toggle to constrain pitch
+
     public float ground_slope_angle = 0f;              // Angle of the slope in degrees
     private float ground_offset_y = 0;                 // calculated offset relative to height
-    public float slide_timer = 0;                     // current slide duration
     private float ceiling_offset_y = 0;                // calculated offset relative to height
 
-    private Vec3 faux_gravity = Vec3.zero;      // calculated gravity
-    private Vec3 last_pos = Vec3.zero;          // reference for player velocity 
     public Vec3 ground_slope_dir = Vec3.zero;    // The calculated slope as a vector
-    public Vec3 slide_forward = Vec3.zero;      // direction of the slide
+    
+    CharacterMovement character_movement = null;
 
     private void Initialize() {
-      faux_gravity = Vec3.up * gravity;
-      last_speed = 0;
+      rigid_body = GetComponent<RigidBody>();
 
+      cam = GetComponent<Camera>();
+      camera_start_y = cam.Position.y;
+      if (cam != null) {
+        Logger.WriteDebug("Camera found");
+        Logger.WriteDebug($"Camera.Position = {cam.Position}");
+      }
+      
+      transform = GetComponent<Transform>();
+      camera_start_y = cam.Position.y;
+      default_height = camera_start_y;
+
+      StringBuilder sb = new StringBuilder();
+      sb.Append("Character Controller Initialized :\n")
+        .Append($"  > Default Height : {default_height}\n")
+        .Append($"  > Camera Start Y : {camera_start_y}\n")
+        .Append($"  > Ground Check Y : {ground_check_y}\n")
+        .Append($"  > Ceiling Check Y : {ceiling_check_y}\n")
+        .Append($"  > Sphere Cast Radius : {sphere_cast_radius}\n")
+        .Append($"  > Sphere Cast Distance : {sphere_cast_dist}\n")
+        .Append($"  > Raycast Length : {raycast_length}\n");
+
+      /// Initial physics raycast to get ground and ceiling offsets
+      PhysicsRaycastHit floor_hit;
+      PhysicsRaycastHit ceiling_hit;
+
+      /// because transform position is at center of object (and therefore inside the collider),
+      ///   we need to raycast from the outside of the player, this approach only wworks for capsule colliders
+      // Vec3 modified_pos = transform.Position;
+      // float radius = transform.Scale.x / 2f;
+      // /// move the way we are facing by the radius of the player with a small offset
+      // modified_pos += cam.Forward.Normalized() * (radius + 0.2f);
       /*
         // FIRST RAYCAST
         if (Physics.Raycast(origin + rayOriginOffset1, Vector3.down, out slopeHit1, raycastLength)) {
@@ -126,48 +154,6 @@ namespace Forest {
           }
       }
       */
-      
-      rigid_body = GetComponent<RigidBody>();
-
-      cam = GetComponent<Camera>();
-      camera_start_y = cam.Position.y;
-      if (cam != null) {
-        Logger.WriteDebug("Camera found");
-        Logger.WriteDebug($"Camera.Position = {cam.Position}");
-      }
-      
-
-      transform = GetComponent<Transform>();
-      default_height = transform.Scale.y;
-      last_pos = transform.Position;
-
-      camera_start_y = transform.Scale.y;
-
-      Vec3 cam_start = cam.Position;
-      cam_start.y = camera_start_y;
-      cam.Position = cam_start;
-
-      StringBuilder sb = new StringBuilder();
-      sb.Append("Character Controller Initialized :\n")
-        .Append($"  > Default Height : {default_height}\n")
-        .Append($"  > Camera Start Y : {camera_start_y}\n")
-        .Append($"  > Ground Check Y : {ground_check_y}\n")
-        .Append($"  > Ceiling Check Y : {ceiling_check_y}\n")
-        .Append($"  > Sphere Cast Radius : {sphere_cast_radius}\n")
-        .Append($"  > Sphere Cast Distance : {sphere_cast_dist}\n")
-        .Append($"  > Raycast Length : {raycast_length}\n");
-
-      /// Initial physics raycast to get ground and ceiling offsets
-      PhysicsRaycastHit floor_hit;
-      PhysicsRaycastHit ceiling_hit;
-
-      /// because transform position is at center of object (and therefore inside the collider),
-      ///   we need to raycast from the outside of the player
-      /// HACK: shift transform position to just front of player (pos + collider.radius), this only works if the player is a capsule
-      // Vec3 modified_pos = transform.Position;
-      // float radius = transform.Scale.x / 2f;
-      // /// move the way we are facing by the radius of the player with a small offset
-      // modified_pos += cam.Forward.Normalized() * (radius + 0.2f);
       Vec3 modified_pos = new Vec3(0f, 10f, 0f);
       Logger.WriteDebug($"Modified Position : {modified_pos} \\ ray length = {raycast_length}");
 
@@ -179,6 +165,11 @@ namespace Forest {
         Logger.WriteDebug("Ceiling Hit");
         ceiling_offset_y = ceiling_hit.distance;
       }
+
+      character_movement = new CharacterMovement(Vec3.down * gravity, cam.Forward, cam.Right, transform, (e, s, ns) => {
+        Logger.WriteDebug($"State Change : {e} : {s} -> {ns}");
+      });
+      character_movement.Speed = run_speed;
 
       sb.Append($"  > Ground Offset Y : {ground_offset_y}\n");
       sb.Append($"  > Ceiling Offset Y : {ceiling_offset_y}\n");
@@ -194,12 +185,15 @@ namespace Forest {
 
     public override void Update(float dt) {
       ProcessInputs();
-      ProcessLook();
+      ProcessLook(dt);
       ProcessMovement(dt);
     }
 
-    public override void OnContact(OtherObject other) {
-    }
+    protected override void BeginContact(OtherObject other) {}
+
+    protected override void HandleContact(OtherObject other, Vec3 point) {}
+
+    protected override void EndContact(OtherObject other) {}
 
     // lock/hide or show/unlock cursor
     private void SetLockCursor(bool do_lock) {
@@ -238,44 +232,51 @@ namespace Forest {
       crouch_key = Keyboard.KeyHeld(KeyCode.KEY_LCTRL) || Keyboard.KeyPressed(KeyCode.KEY_LCTRL);
 
       jump_key = Keyboard.KeyPressed(KeyCode.KEY_SPACE) || Keyboard.KeyHeld(KeyCode.KEY_SPACE);
-      slide_key = Keyboard.KeyPressed(KeyCode.KEY_F) || Keyboard.KeyHeld(KeyCode.KEY_F);
     }
 
-    private void ProcessLook() {
-      // acc_mouse_x = Mathf.Lerp( accMouseX, inputLookX, mouseSnappiness * Time.deltaTime );
-      // acc_mouse_x = Mathf.Lerp( accMouseY, inputLookY, mouseSnappiness * Time.deltaTime );
+    private void ProcessLook(float dt) {
+      acc_mouse_x = Mathf.Lerp(acc_mouse_x, input_look_x, mouse_snappiness * dt);
+      acc_mouse_x = Mathf.Lerp(acc_mouse_y, input_look_y, mouse_snappiness * dt);
 
-      // float mouseX = accMouseX * mouseSensitivityX * 100f * Time.deltaTime;
-      // float mouseY = accMouseY * mouseSensitivityY * 100f * Time.deltaTime;
+      float mouse_x = acc_mouse_x * look_sensitivity * dt;
+      float mouse_y = acc_mouse_y * look_sensitivity * dt;
 
-      // // rotate camera X
-      // xRotation += ( invertLookY == true ? mouseY : -mouseY );
-      // xRotation = Mathf.Clamp( xRotation, -clampLookY, clampLookY );
-
-      // cameraTx.localRotation = Quaternion.Euler( xRotation, 0f, 0f );
+      // rotate camera X
+      // x_rotation += (invert_look_y == true ? mouse_y : -mouse_y);
+      // x_rotation = Mathf.Clamp(x_rotation, -clamp_look_y, clamp_look_y);
+      // cameraTx.localRotation = Quaternion.Euler(x_rotation, 0f, 0f );
       
-      // // rotate player Y
+      // rotate player Y
       // playerTx.Rotate( Vector3.up * mouseX );
+      
+      Vec2 rel_pos = Mouse.RelativePosition;
+      float new_yaw = cam.Yaw + (rel_pos.x * cam.Sensitivity);
+      float new_pitch = cam.Pitch - (rel_pos.y * cam.Sensitivity);
+
+      cam.Yaw = new_yaw;
+      // cam.Pitch = new_pitch;
+
+      // cam.CalculateMatrix();
+      
+      // character_movement.Forward = cam.Forward;
+      // character_movement.Right = cam.Right;
     }
 
-    private Vec3 GetVelocityUpdate(float speed) {
-      Vec3 move = Vec3.zero;
-      Vec3 forward_velocity = cam.Forward.Normalized() * speed;
-      Vec3 right_velocity = cam.Right.Normalized() * speed;
-
+    private MovementDirection GetMovementUpdate() {
+      MovementDirection move = MovementDirection.None;
       if (forward_key) {
-        move += forward_velocity;
+        move |= MovementDirection.Forward;
       } else if (backward_key) {
-        move -= forward_velocity;
+        move |= MovementDirection.Backward;
       }
 
       if (right_key) {
-        move += right_velocity;
+        move |= MovementDirection.Right;
       } else if (left_key) {
-        move -= right_velocity;
-      }
+        move |= MovementDirection.Left;
+      } 
 
-      return  move * speed;
+      return move;
     }
 
     private void ProcessMovement(float dt) {
@@ -285,75 +286,24 @@ namespace Forest {
       }
 
       // - variables -
-      float vscale = 1f; // for calculating GFX scale (optional)
-      float h = default_height;
       float next_speed = walk_speed;
-      Vec3 calc; // used for calculations
-      Vec3 move; // direction calculation
-      
-      Vec3 curr_position = transform.Position;
-
-      // player current speed
-      float curr_speed = (curr_position - last_pos).Magnitude() / dt;
-      curr_speed = (curr_speed < 0 ? 0 - curr_speed : curr_speed);
 
       // - Check if Grounded -
       GroundCheck();
-      // is_slipping = (ground_slope_angle > controller.slopeLimit ? true : false );
       CeilingCheck();
 
-      /// no input keys being pressed then ramp down velocity
-      if (!forward_key && !backward_key && !left_key && !right_key) {
-        velocity = velocity * 0.7f;
-        if (velocity.Magnitude() < 0.1f) {
-          velocity = Vec3.zero;
-        }
-      }
+      character_movement.Speed = next_speed;
+      MovementDirection dir = GetMovementUpdate();
+      var (new_pos, new_velocity) = character_movement.Move(dt, dir, jump_key, crouch_key);
+      rigid_body.Position = new_pos;
 
-      // if grounded, and not stuck on ceiling
-      if (is_grounded && !is_ceiling && run_key) {
-        next_speed = run_speed; // to run speed
-      }
+      /// update camera seperately because it's world position y-value needs to be shifted to align with player height
+      float cam_y = cam.Position.y;
+      Vec3 cam_pos = cam.Position + new_velocity;
+      cam_pos.y = cam_y;
+      cam.Position = cam_pos;
 
-      if (crouch_key) {
-        vscale = 0.5f;
-        h = 0.5f * default_height;
-        next_speed = crouch_speed; 
-      }   
-
-      // if not sliding, and not stuck on ceiling, and is running
-      if (!is_sliding && !is_ceiling && run_key && slide_key) {
-        // check velocity is faster than walkSpeed
-        if (curr_speed > walk_speed) {
-          slide_timer = 0; // start slide timer
-          is_sliding = true;
-          slide_forward = (curr_position - last_pos).Normalized();
-        }
-      }
-      last_pos = curr_position; // update reference
-
-      // check slider timer and velocity
-      if (is_sliding) {
-        next_speed = curr_speed; // default to current speed
-        move = slide_forward; // set input to direction of slide
-
-        slide_timer += dt; // slide timer
-        
-        // if timer max, or isSliding and not moving, then stop sliding
-        if (slide_timer > slid_duration || curr_speed < crouch_speed) {
-          is_sliding = false;
-        } else  {
-          vscale = 0.5f;            // gfx scale
-          h = 0.5f * default_height; // height is crouch height
-          next_speed = slide_speed;   // to slide speed
-        }
-      } else {
-        move = GetVelocityUpdate(next_speed) * dt;
-        velocity += move;
-        if (velocity.Magnitude() > next_speed) {
-          velocity = velocity.Normalized() * next_speed;
-        }
-      }
+      velocity = new_velocity;
 
       // crouch/stand up smoothly
       // float last_height = curr_position.y; 
@@ -383,45 +333,26 @@ namespace Forest {
       //   // ceiling_offset_y = height_factor + controller.height - (default_height - ceiling_check_y);
       // } 
 
-      float speed = 5f;
        
-      if (is_grounded) {
-        if (is_slipping) {
-          // // movement left/right while slipping down
-          // // player rotation to slope
-          // Vector3 slopeRight = Quaternion.LookRotation( Vector3.right ) * groundSlopeDir;
-          // float dot = Vector3.Dot( slopeRight, playerTx.right );
-          // // move on X axis, with Y rotation relative to slopeDir
-          // move = slopeRight * ( dot > 0 ? inputMoveX : -inputMoveX );
+      // if (is_grounded) {
+      //   faux_gravity.x = 0;
+      //   faux_gravity.z = 0;
 
-          // // speed
-          // nextSpeed = Mathf.Lerp( currSpeed, runSpeed, 5f * Time.deltaTime );
+      //   // constant grounded gravity
+      //   if (faux_gravity.y < 0) {
+      //     //faux_gravity.y = -1f;
+      //     // faux_gravity.y = Mathf.Lerp( faux_gravity.y, -1f, 4f * Time.deltaTime );
+      //   }
 
-          // // increase angular gravity
-          // float mag = fauxGravity.magnitude;
-          // calc = Vector3.Slerp( fauxGravity, groundSlopeDir * runSpeed, 4f * Time.deltaTime );
-          // fauxGravity = calc.normalized * mag;
-        } else {
-          // reset angular fauxGravity movement
-          faux_gravity.x = 0;
-          faux_gravity.z = 0;
+      //   if (!is_ceiling && jump_key) {
+      //     // faux_gravity.y = Mathf.Sqrt( jumpHeight * -2f * gravity );
+      //   }
 
-          // constant grounded gravity
-          if (faux_gravity.y < 0) {
-            //faux_gravity.y = -1f;
-            // faux_gravity.y = Mathf.Lerp( faux_gravity.y, -1f, 4f * Time.deltaTime );
-          }
-        }
-
-        if (!is_sliding && !is_ceiling && jump_key) {
-          // faux_gravity.y = Mathf.Sqrt( jumpHeight * -2f * gravity );
-        }
-
-        float lerpFactor = (last_speed > next_speed ? 4f : 2f);
-        // speed = Mathf.Lerp(last_speed, next_speed, lerpFactor * dt);
-      } else {
-        // speed = Mathf.Lerp(last_speed, next_speed, 0.125f * dt);
-      }
+      //   float lerpFactor = (last_speed > next_speed ? 4f : 2f);
+      //   // speed = Mathf.Lerp(last_speed, next_speed, lerpFactor * dt);
+      // } else {
+      //   // speed = Mathf.Lerp(last_speed, next_speed, 0.125f * dt);
+      // }
 
       // prevent floating if jumping into a ceiling
       // if (is_ceiling) {
@@ -431,33 +362,7 @@ namespace Forest {
       //     faux_gravity.y = -1f; // 0;
       //   }
       // }
-
-      last_speed = speed; // update reference
-
-      faux_gravity.y += gravity * dt;
-
-      calc = move * speed * dt;
-      calc += faux_gravity * dt;
-
-      bool using_calc = false;
-      if (using_calc) {
-        Vec3 new_pos = transform.Position + calc;
-        Vec3 cam_pos = cam.Position + calc;
-        
-        cam.Position = cam_pos;
-        transform.Position = new_pos;
-        rigid_body.Position = transform.Position;
-      } 
-      /// using velocity
-      else {
-        Vec3 new_pos = transform.Position + velocity;
-        Vec3 cam_pos = cam.Position + velocity;
-        
-        cam.Position = cam_pos;
-        transform.Position = new_pos;
-        rigid_body.Position = transform.Position;
-      }
-
+      // faux_gravity.y += gravity * dt;
 
       // controller.Move(calc);
       

@@ -1,6 +1,21 @@
 using System;
+using System.Runtime.InteropServices;
 
 namespace Other {
+
+  [StructLayout(LayoutKind.Sequential)]
+  public struct CollisionPointData {
+    private UInt64 other_entity;
+    private Vec3 point;
+
+    public UInt64 Object {
+      get { return other_entity; }
+    }
+
+    public Vec3 Point {
+      get { return point; }
+    }
+  };
 
   public struct PhysicsRaycastHit {
     public RigidBody body;

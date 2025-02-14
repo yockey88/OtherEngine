@@ -112,23 +112,25 @@ namespace DotOther.Managed {
 				return null;
 			}
 
-			// LogMessage($"Searching for method '{method_name}' with {argc} arguments ({methods.Length} options)", MessageLevel.Trace);
-
+			// LogMessage($"Finding suitable method '{method_name}' with {argc} arguments", MessageLevel.Trace);
 			foreach (var minfo in methods) {
 				// LogMessage($" > Checking method '{minfo}' ({minfo.GetParameters().Length})", MessageLevel.Trace);
-				var parameters = minfo.GetParameters();
+				ParameterInfo[] parameters = minfo.GetParameters();
 				if (parameters.Length != argc) {
 					continue;
 				}
-
+				// LogMessage($"	> Found method '{minfo}' with {parameters.Length} parameters", MessageLevel.Trace);
 				if (method_name == minfo.ToString()) {
+					// LogMessage($"	> Found exact match for method '{minfo}'", MessageLevel.Trace);
 					return minfo;
 				}
 
 				if (minfo.Name != method_name) {
+					// LogMessage($"	!> Method '{minfo}' doesn't match the required name", MessageLevel.Trace);
 					continue;
 				}
 
+				// LogMessage($"	> Checking method '{minfo}' for parameter types", MessageLevel.Trace);
 				Int32 type_match = 0;
 				for (Int32 i = 0; i < parameters.Length; i++) {
 					ManagedType ptype;
@@ -138,12 +140,14 @@ namespace DotOther.Managed {
 						ptype = ManagedType.Unknown;
 					}
 
+					// LogMessage($"		> Checking parameter {i} : {ptype} == {param_types[i]}", MessageLevel.Trace);
 					if (ptype == param_types[i]) {
 						type_match++;
 					}
 				}
 
 				if (type_match == argc) {
+					// LogMessage($"	> Found suitable method '{minfo}'", MessageLevel.Trace);
 					return minfo;
 				} else {
 					LogMessage($"Method '{minfo}' doesn't match the required types", MessageLevel.Trace);

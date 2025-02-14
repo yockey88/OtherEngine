@@ -16,6 +16,7 @@ namespace Other {
     }
   }
 
+
   public class OtherObject : OtherBehavior {
     private Dictionary<Type , Component> components = new Dictionary<Type , Component>();
     private BehaviorFlags flags = new BehaviorFlags(false , false);
@@ -30,6 +31,14 @@ namespace Other {
     internal static unsafe delegate*<IntPtr , ReflectionType , bool> NativeHasComponent;
     internal static unsafe delegate*<IntPtr , ReflectionType , void> NativeCreateComponent;
     internal static unsafe delegate*<IntPtr , ReflectionType , void> NativeRemoveComponent;
+
+    
+    private UInt32 entity_id = 0;
+
+    public UInt32 EntityID {
+      get { return entity_id; }
+      internal set { entity_id = value; }
+    }
 
     public string Name {
       get  {
@@ -166,23 +175,73 @@ namespace Other {
       return;
     }
 
-    public void HandleContact(UInt64 other) {
+    public void BeginContact(UInt64 other) {
       if (!Scene.IsActive()) {
         return;
       }
 
-      OtherObject other_behavior = ObjectRegistry.LookUp(other);
-      if (other_behavior == null) {
-        other_behavior = Scene.GetObject(other);
-        if (other_behavior == null) {
+      OtherObject other_object = ObjectRegistry.LookUp(other);
+      if (other_object == null) {
+        other_object = Scene.GetObject(other);
+        if (other_object == null) {
           return;
         }
       }
       
-      OnContact(other_behavior);
+      BeginContact(other_object);
     }
 
-    public virtual void OnContact(OtherObject other) {}
+    public void HandleCollisionPoint(IntPtr collision_data_native) {
+      if (!Scene.IsActive()) {
+        return;
+      }
+
+
+      CollisionPointData? collision_data_raw = null;
+      try {
+        collision_data_raw = DotOther.Managed.Interop.DotOtherMarshal.MarshalPointer<CollisionPointData>(collision_data_native);
+      } catch (Exception e) {
+        Logger.WriteError($"Failed to marshal collision data: {e.Message}");
+        return;
+      }
+
+      if (collision_data_raw == null) {
+        return;
+      }
+
+      CollisionPointData collision_data = collision_data_raw.Value;
+      OtherObject other_object = ObjectRegistry.LookUp(collision_data.Object);
+      if (other_object == null) {
+        other_object = Scene.GetObject(collision_data.Object);
+        if (other_object == null) {
+          return;
+        }
+      }
+      
+      HandleContact(other_object, collision_data.Point);
+    }
+
+    public void EndContact(UInt64 other) {
+      if (!Scene.IsActive()) {
+        return;
+      }
+
+      OtherObject other_object = ObjectRegistry.LookUp(other);
+      if (other_object == null) {
+        other_object = Scene.GetObject(other);
+        if (other_object == null) {
+          return;
+        }
+      }
+      
+      EndContact(other_object);
+    }
+
+    protected virtual void BeginContact(OtherObject other) {}
+
+    protected virtual void HandleContact(OtherObject other, Vec3 point) {}
+
+    protected virtual void EndContact(OtherObject other) {}
 
   }
 

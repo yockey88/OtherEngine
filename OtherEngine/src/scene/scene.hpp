@@ -139,7 +139,11 @@ namespace other {
     void RestoreLastCapture();
 
     void ResetPhysicsSimulation();
-    std::pair<Entity*, Entity*> HandleContact(UUID entity1, UUID entity2);
+
+    /// this seems insane, need to rethink physics collision listener (and the rest of the physics engine)
+    std::pair<Entity*, Entity*> BeginContact(UUID entity1, UUID entity2);
+    std::pair<Entity*, Entity*> ContactPoint(CollisionPointData* point1, CollisionPointData* point2);
+    std::pair<Entity*, Entity*> EndContact(UUID entity1, UUID entity2);
 
    protected:
     static ArenaAllocator<Entity> entity_allocator;

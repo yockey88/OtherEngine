@@ -53,6 +53,8 @@ namespace Other {
       // Vec3 normalized_axis = axis.Normalized;
       // rotation = normalized_axis * sin_half_angle + rotation * cos_half_angle;
     }
+
+    public static float Lerp(float a, float b, float t) => a + (b - a) * Clamp01(t);
   }
 
 }

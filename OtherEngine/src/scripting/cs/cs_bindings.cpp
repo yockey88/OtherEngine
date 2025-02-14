@@ -8,6 +8,7 @@
 #include "input/keyboard.hpp"
 #include "input/mouse.hpp"
 
+#include "rendering/renderer.hpp"
 #include "scripting/cs/cs_component_bindings.hpp"
 #include "scripting/cs/cs_entity_bindings.hpp"
 #include "scripting/cs/cs_logging_bindings.hpp"
@@ -30,6 +31,7 @@ namespace other {
     }
 
     void RegisterEngineBindings(ref<Assembly> assembly) {
+      /// keyboard/mouse bindings
       RegisterFunction("Keyboard", "IsKeyPressed", assembly, (void*)&Keyboard::Pressed);
       RegisterFunction("Keyboard", "IsKeyBlocked", assembly, (void*)&Keyboard::Blocked);
       RegisterFunction("Keyboard", "IsKeyHeld", assembly, (void*)&Keyboard::Held);
@@ -55,7 +57,32 @@ namespace other {
       RegisterFunction("Keyboard", "IsLAltLayerKey", assembly, (void*)&Keyboard::LAltLayerKey);
       RegisterFunction("Keyboard", "IsRAltLayerKey", assembly, (void*)&Keyboard::RAltLayerKey);
 
-      /// keyboard/mouse bindings
+      RegisterFunction("Mouse", "GetMousePos", assembly, (void*)&Mouse::GetPos);
+      RegisterFunction(
+        "Mouse", "SetMousePos", assembly,
+        [](glm::ivec2* value) {
+          SDL_WarpMouseInWindow(SDL_GetMouseFocus(), value->x, value->y);
+        }
+      );
+      RegisterFunction(
+        "Mouse", "SnapToCenter", assembly,
+        []() {
+          auto win_size = Renderer::WindowSize();
+          SDL_WarpMouseInWindow(SDL_GetMouseFocus(), win_size.x / 2, win_size.y / 2);
+        }
+      );
+      RegisterFunction(
+        "Mouse", "GetMouseDelta", assembly,
+        [](glm::ivec2* value) {
+          *value = { Mouse::GetDX(), Mouse::GetDY() };
+        }
+      );
+      RegisterFunction(
+        "Mouse", "GetRelativeMousePos", assembly,
+        [](glm::ivec2* value) {
+          *value = Mouse::GetRelPos();
+        }
+      );
 
       /// physics bindings
       RegisterFunction("Physics", "NativeRaycast", assembly, (void*)&cs_script_bindings::NativeRaycast);

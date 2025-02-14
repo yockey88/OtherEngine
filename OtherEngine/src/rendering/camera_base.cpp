@@ -139,19 +139,19 @@ namespace other {
   }
 
   void CameraBase::SetOrientation(const glm::vec3& orientation) {
-    this->euler_angles = orientation;
+    euler_angles = orientation;
   }
 
   void CameraBase::SetYaw(float yaw) {
-    this->euler_angles.x = yaw;
+    euler_angles.x = yaw;
   }
 
   void CameraBase::SetPitch(float pitch) {
-    this->euler_angles.y = pitch;
+    euler_angles.y = pitch;
   }
 
   void CameraBase::SetRoll(float roll) {
-    this->euler_angles.z = roll;
+    euler_angles.z = roll;
   }
 
   void CameraBase::SetViewport(const glm::ivec2& viewport) {

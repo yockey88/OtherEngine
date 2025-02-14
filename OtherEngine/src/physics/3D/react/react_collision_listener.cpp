@@ -7,6 +7,8 @@
 
 #include "scene/scene.hpp"
 
+#include "physics/physics_defines.hpp"
+
 namespace other {
 
   void ReactCollisionListener::Listener::onContact(const rp3d::CollisionCallback::CallbackData& data) {
@@ -34,13 +36,19 @@ namespace other {
       UUID& ent1 = *entity1;
       UUID& ent2 = *entity2;
 
-      listener.HandleContact(ent1, ent2);
+      listener.BeginContact(ent1, ent2);
 
       for (rp3d::uint j = 0; j < pair.getNbContactPoints(); ++j) {
-        // rp3d::CollisionCallback::ContactPoint pa = pair.getContactPoint(j);
-        // rp3d::Vector3 world_loc1 = collider1->getLocalToWorldTransform() * pa.getLocalPointOnCollider1();
-        // rp3d::Vector3 world_loc2 = collider2->getLocalToWorldTransform() * pa.getLocalPointOnCollider2();
+        rp3d::CollisionCallback::ContactPoint pa = pair.getContactPoint(j);
+        rp3d::Vector3 world_loc1 = collider1->getLocalToWorldTransform() * pa.getLocalPointOnCollider1();
+        rp3d::Vector3 world_loc2 = collider2->getLocalToWorldTransform() * pa.getLocalPointOnCollider2();
+
+        CollisionPointData point1{ ent1, glm::vec3{ world_loc1.x, world_loc1.y, world_loc1.z } };
+        CollisionPointData point2{ ent2, glm::vec3{ world_loc2.x, world_loc2.y, world_loc2.z } };
+        listener.ContactPoint(&point1, &point2);
       }
+
+      listener.EndContact(ent1, ent2);
     }
   }
 

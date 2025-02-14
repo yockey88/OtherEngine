@@ -22,6 +22,24 @@ namespace Other {
     internal static unsafe delegate*<IntPtr , Vec3* , void> GetUp;
     /// TODO: do we need this?
     /// internal static unsafe delegate*<IntPtr , Vec3* , void> SetUp;
+    
+    internal static unsafe delegate*<IntPtr , Vec3* , void> GetWorldUp;
+
+    internal static unsafe delegate*<IntPtr, float*, void> GetYaw;
+    internal static unsafe delegate*<IntPtr, float*, void> SetYaw;
+
+    internal static unsafe delegate*<IntPtr, float*, void> GetPitch;
+    internal static unsafe delegate*<IntPtr, float*, void> SetPitch;
+    internal static unsafe delegate*<IntPtr, bool*, void> GetIsPitchConstrained;
+    internal static unsafe delegate*<IntPtr, bool*, void> SetIsPitchConstrained;
+    
+    internal static unsafe delegate*<IntPtr, float*, void> GetRoll;
+    internal static unsafe delegate*<IntPtr, float*, void> SetRoll;
+
+    internal static unsafe delegate*<IntPtr, float*, void> GetSensitivity;
+    internal static unsafe delegate*<IntPtr, float*, void> SetSensitivity;
+
+    internal static unsafe delegate*<IntPtr, void> InternalCalculateMatrix;
 
     public Vec3 Position {
       get {
@@ -68,9 +86,100 @@ namespace Other {
       }
     }
 
+    public Vec3 WorldUp {
+      get {
+        unsafe {
+          Vec3 worldUp = Vec3.zero;
+          GetWorldUp(Object.NativeHandle , &worldUp);
+          return worldUp;
+        }
+      }
+    }
+
+    public float Yaw {
+      get {
+        unsafe {
+          float yaw = 0.0f;
+          GetYaw(Object.NativeHandle , &yaw);
+          return yaw;
+        }
+      }
+      set {
+        unsafe {
+          SetYaw(Object.NativeHandle , &value);
+        }
+      }
+    }
+
+    public float Pitch {
+      get {
+        unsafe {
+          float pitch = 0.0f;
+          GetPitch(Object.NativeHandle , &pitch);
+          return pitch;
+        }
+      }
+      set {
+        unsafe {
+          SetPitch(Object.NativeHandle , &value);
+        }
+      }
+    }
+
+    public float Roll {
+      get {
+        unsafe {
+          float roll = 0.0f;
+          GetRoll(Object.NativeHandle , &roll);
+          return roll;
+        }
+      }
+      set {
+        unsafe {
+          SetRoll(Object.NativeHandle , &value);
+        }
+      }
+    }
+
+    public float Sensitivity {
+      get {
+        unsafe {
+          float sensitivity = 0.0f;
+          GetSensitivity(Object.NativeHandle , &sensitivity);
+          return sensitivity;
+        }
+      }
+      set {
+        unsafe {
+          SetSensitivity(Object.NativeHandle , &value);
+        }
+      }
+    }
+
+    public bool PitchConstrained {
+      get {
+        unsafe {
+          bool isPitchConstrained = false;
+          GetIsPitchConstrained(Object.NativeHandle , &isPitchConstrained);
+          return isPitchConstrained;
+        }
+      }
+      set {
+        unsafe {
+          SetIsPitchConstrained(Object.NativeHandle , &value);
+        }
+      }
+    }
+
     public void SetTransform(Transform transform) {
       Position = transform.Position;
       /// rotation, etc... 
+    }
+
+    public void CalculateMatrix() {
+      unsafe {
+        InternalCalculateMatrix(Object.NativeHandle);
+      }
     }
 
     // public Vec3 Direction {

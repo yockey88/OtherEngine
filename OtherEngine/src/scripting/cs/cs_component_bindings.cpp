@@ -371,6 +371,101 @@ namespace other {
           *value = entity->GetComponent<Camera>().camera->Up();
         }
       );
+      RegisterFunction(
+        "Camera", "GetWorldUp", assembly,
+        [](Entity* entity, glm::vec3* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          *value = entity->GetComponent<Camera>().camera->WorldUp();
+        }
+      );
+      RegisterFunction(
+        "Camera", "GetYaw", assembly,
+        [](Entity* entity, float* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          *value = entity->GetComponent<Camera>().camera->Yaw();
+        }
+      );
+      RegisterFunction(
+        "Camera", "SetYaw", assembly,
+        [](Entity* entity, float* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          entity->GetComponent<Camera>().camera->SetYaw(*value);
+        }
+      );
+      RegisterFunction(
+        "Camera", "GetPitch", assembly,
+        [](Entity* entity, float* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          *value = entity->GetComponent<Camera>().camera->Pitch();
+        }
+      );
+      RegisterFunction(
+        "Camera", "SetPitch", assembly,
+        [](Entity* entity, float* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          entity->GetComponent<Camera>().camera->SetPitch(*value);
+        }
+      );
+      RegisterFunction(
+        "Camera", "GetIsPitchConstrained", assembly,
+        [](Entity* entity, bool* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          *value = entity->GetComponent<Camera>().camera->ConstrainPitch();
+        }
+      );
+      RegisterFunction(
+        "Camera", "SetIsPitchConstrained", assembly,
+        [](Entity* entity, bool* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          entity->GetComponent<Camera>().camera->SetConstrainPitch(*value);
+        }
+      );
+      RegisterFunction(
+        "Camera", "GetRoll", assembly,
+        [](Entity* entity, float* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          *value = entity->GetComponent<Camera>().camera->Roll();
+        }
+      );
+      RegisterFunction(
+        "Camera", "SetRoll", assembly,
+        [](Entity* entity, float* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          entity->GetComponent<Camera>().camera->SetRoll(*value);
+        }
+      );
+      RegisterFunction(
+        "Camera", "GetSensitivity", assembly,
+        [](Entity* entity, float* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          *value = entity->GetComponent<Camera>().camera->Sensitivity();
+        }
+      );
+      RegisterFunction(
+        "Camera", "SetSensitivity", assembly,
+        [](Entity* entity, float* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          entity->GetComponent<Camera>().camera->SetSensitivity(*value);
+        }
+      );
+      RegisterFunction(
+        "Camera", "InternalCalculateMatrix", assembly,
+        [](Entity* entity) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          entity->GetComponent<Camera>().camera->CalculateMatrix();
+        }
+      );
 
       RegisterProperty<glm::vec4>(
         "LightSource", "Vector", assembly,

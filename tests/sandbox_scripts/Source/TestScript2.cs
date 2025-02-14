@@ -7,8 +7,6 @@ namespace Other {
 
     public override void Update(float dt) {}
 
-    public override void OnContact(OtherObject other) {}
-
     public void PrintAccum() {
       Console.WriteLine(accum);
     }

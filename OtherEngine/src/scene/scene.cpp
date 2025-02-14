@@ -20,6 +20,7 @@
 
 #include "application/app_state.hpp"
 #include "asset/asset_manager.hpp"
+#include "input/mouse.hpp"
 
 #include "ecs/components/camera.hpp"
 #include "ecs/components/collider_2d.hpp"
@@ -275,7 +276,7 @@ namespace other {
       registry.view<RigidBody, Transform>().each([this](RigidBody& body, Transform& transform) {
         OE_ASSERT(body.physics_body != nullptr, "Physics body is null");
         body.physics_body->SetTransform(transform);
-        /// TODO: replace this with some sort of initial velocity (not sure where to get that yet)
+        /// TODO: replace this with initial velocity
         body.physics_body->SetVelocity(glm::vec3(0.f));
         body.physics_body->SetAngularVelocity(glm::vec3(0.f));
       });
@@ -439,6 +440,21 @@ namespace other {
       } else if (light.type == POINT_LIGHT_SRC) {
         environment->point_lights.push_back(light.pointlight);
       }
+    });
+
+    registry.view<Camera>().each([&](Camera& camera) {
+      if (camera.camera == nullptr) {
+        return;
+      }
+
+      glm::ivec2 mouse_pos = Mouse::GetPos();
+
+      camera.camera->SetLastMouse(camera.camera->Mouse());
+      camera.camera->SetMousePos(mouse_pos);
+      camera.camera->SetDeltaMouse({
+        camera.camera->Mouse().x - camera.camera->LastMouse().x,
+        camera.camera->LastMouse().y - camera.camera->Mouse().y,
+      });
     });
 
     if (!running) {
@@ -921,7 +937,7 @@ namespace other {
     }
   }
 
-  std::pair<Entity*, Entity*> Scene::HandleContact(UUID entity1, UUID entity2) {
+  std::pair<Entity*, Entity*> Scene::BeginContact(UUID entity1, UUID entity2) {
     auto itr1 = entities.find(entity1);
     auto itr2 = entities.find(entity2);
     OE_ASSERT(itr1 != entities.end(), "Entity not found in scene : {}", entity1);
@@ -933,19 +949,67 @@ namespace other {
     OE_ASSERT(ent2 != nullptr, "Entity is null");
 
     if (ent1->HasComponent<Script>()) {
-      ent1->GetComponent<Script>().ApiCall<uint64_t>("HandleContact", ent2->GetUUID().Get());
+      ent1->GetComponent<Script>().ApiCall<uint64_t>("BeginContact", ent2->GetUUID().Get());
     }
 
     if (ent2->HasComponent<Script>()) {
-      ent2->GetComponent<Script>().ApiCall<uint64_t>("HandleContact", ent1->GetUUID().Get());
+      ent2->GetComponent<Script>().ApiCall<uint64_t>("BeginContact", ent1->GetUUID().Get());
+    }
+
+    return { ent1, ent2 };
+  }
+
+  std::pair<Entity*, Entity*> Scene::ContactPoint(CollisionPointData* point1, CollisionPointData* point2) {
+    OE_ASSERT(point1 != nullptr, "Collision point is null");
+    OE_ASSERT(point2 != nullptr, "Collision point is null");
+
+    auto itr1 = entities.find(point2->other_entity);
+    auto itr2 = entities.find(point1->other_entity);
+    OE_ASSERT(itr1 != entities.end(), "Entity not found in scene : {}", point2->other_entity);
+    OE_ASSERT(itr2 != entities.end(), "Entity not found in scene : {}", point1->other_entity);
+
+    auto& ent1 = itr1->second;
+    auto& ent2 = itr2->second;
+    OE_ASSERT(ent1 != nullptr, "Entity is null");
+    OE_ASSERT(ent2 != nullptr, "Entity is null");
+
+    if (ent1->HasComponent<Script>()) {
+      ent1->GetComponent<Script>().ApiCall<CollisionPointData*>("HandleCollisionPoint", point1);
+    }
+
+    if (ent2->HasComponent<Script>()) {
+      ent2->GetComponent<Script>().ApiCall<CollisionPointData*>("HandleCollisionPoint", point2);
+    }
+
+    return { ent1, ent2 };
+  }
+
+  std::pair<Entity*, Entity*> Scene::EndContact(UUID entity1, UUID entity2) {
+    auto itr1 = entities.find(entity1);
+    auto itr2 = entities.find(entity2);
+    OE_ASSERT(itr1 != entities.end(), "Entity not found in scene : {}", entity1);
+    OE_ASSERT(itr2 != entities.end(), "Entity not found in scene : {}", entity2);
+
+    auto& ent1 = itr1->second;
+    auto& ent2 = itr2->second;
+    OE_ASSERT(ent1 != nullptr, "Entity is null");
+    OE_ASSERT(ent2 != nullptr, "Entity is null");
+
+    if (ent1->HasComponent<Script>()) {
+      ent1->GetComponent<Script>().ApiCall<uint64_t>("EndContact", ent2->GetUUID().Get());
+    }
+
+    if (ent2->HasComponent<Script>()) {
+      ent2->GetComponent<Script>().ApiCall<uint64_t>("EndContact", ent1->GetUUID().Get());
     }
 
     return { ent1, ent2 };
   }
 
   void Scene::RefreshCameraTransforms() {
+    /// FIXME: get current viewport size not window size
     auto current_viewport_size = Renderer::WindowSize();
-    registry.view<Camera, Transform>().each([&](Camera& camera, Transform& transform) {
+    registry.view<Camera>().each([&](Camera& camera) {
       camera.camera->CalculateMatrix();
       camera.camera->SetViewport(current_viewport_size);
     });

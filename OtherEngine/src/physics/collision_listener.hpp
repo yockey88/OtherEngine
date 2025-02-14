@@ -4,13 +4,18 @@
 #ifndef OTHER_ENGINE_COLLISION_LISTENER_HPP
 #define OTHER_ENGINE_COLLISION_LISTENER_HPP
 
+#include <glm/fwd.hpp>
+
 #include "core/ref.hpp"
 #include "core/ref_counted.hpp"
 #include "core/uuid.hpp"
 
-#include "scene/scene.hpp"
+#include "physics/physics_defines.hpp"
 
 namespace other {
+
+  class Entity;
+  class Scene;
 
   class CollisionListener : public RefCounted {
    public:
@@ -26,11 +31,16 @@ namespace other {
     CollisionListener(Scene* scene)
         : scene_context(scene) {}
 
-    void HandleContact(UUID entity1, UUID entity2);
-    virtual void OnContact(Entity* entity1, Entity* entity2) {}
+    void BeginContact(UUID entity1, UUID entity2);
+    void ContactPoint(CollisionPointData* point1, CollisionPointData* point2);
+    void EndContact(UUID entity1, UUID entity2);
 
    protected:
-    Ref<Scene> scene_context = nullptr;
+    Scene* scene_context = nullptr;
+
+    virtual void BeginContact(Entity* entity1, Entity* entity2) {}
+    virtual void ContactPoint(Entity* entity1, Entity* entity2) {}
+    virtual void EndContact(Entity* entity1, Entity* entity2) {}
   };
 
 }  // namespace other
