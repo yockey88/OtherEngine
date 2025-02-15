@@ -3,7 +3,7 @@ using Other;
 
 namespace Forest {
 
-  class CharacterController : OtherObject {
+  public sealed class CharacterController : OtherObject {
     Camera cam = null;
     Transform transform = null;
     RigidBody rigid_body = null;
@@ -93,17 +93,14 @@ namespace Forest {
 
     private void Initialize() {
       rigid_body = GetComponent<RigidBody>();
+      transform = GetComponent<Transform>();
 
       cam = GetComponent<Camera>();
       camera_start_y = cam.Position.y;
-      if (cam != null) {
-        Logger.WriteDebug("Camera found");
-        Logger.WriteDebug($"Camera.Position = {cam.Position}");
-      }
-      
-      transform = GetComponent<Transform>();
-      camera_start_y = cam.Position.y;
       default_height = camera_start_y;
+
+      Vec3 real_cam_pos = new Vec3(transform.Position.x, camera_start_y, transform.Position.z);
+      cam.Position = real_cam_pos;
 
       StringBuilder sb = new StringBuilder();
       sb.Append("Character Controller Initialized :\n")
@@ -165,8 +162,8 @@ namespace Forest {
         Logger.WriteDebug("Ceiling Hit");
         ceiling_offset_y = ceiling_hit.distance;
       }
-
-      character_movement = new CharacterMovement(Vec3.down * gravity, cam.Forward, cam.Right, transform, (e, s, ns) => {
+       
+      character_movement = new CharacterMovement(cam, Vec3.down * gravity, cam.Forward, cam.Right, transform, (e, s, ns) => {
         Logger.WriteDebug($"State Change : {e} : {s} -> {ns}");
       });
       character_movement.Speed = run_speed;
@@ -185,7 +182,6 @@ namespace Forest {
 
     public override void Update(float dt) {
       ProcessInputs();
-      ProcessLook(dt);
       ProcessMovement(dt);
     }
 
@@ -234,34 +230,6 @@ namespace Forest {
       jump_key = Keyboard.KeyPressed(KeyCode.KEY_SPACE) || Keyboard.KeyHeld(KeyCode.KEY_SPACE);
     }
 
-    private void ProcessLook(float dt) {
-      acc_mouse_x = Mathf.Lerp(acc_mouse_x, input_look_x, mouse_snappiness * dt);
-      acc_mouse_x = Mathf.Lerp(acc_mouse_y, input_look_y, mouse_snappiness * dt);
-
-      float mouse_x = acc_mouse_x * look_sensitivity * dt;
-      float mouse_y = acc_mouse_y * look_sensitivity * dt;
-
-      // rotate camera X
-      // x_rotation += (invert_look_y == true ? mouse_y : -mouse_y);
-      // x_rotation = Mathf.Clamp(x_rotation, -clamp_look_y, clamp_look_y);
-      // cameraTx.localRotation = Quaternion.Euler(x_rotation, 0f, 0f );
-      
-      // rotate player Y
-      // playerTx.Rotate( Vector3.up * mouseX );
-      
-      // Vec2 rel_pos = Mouse.RelativePosition;
-      // float new_yaw = cam.Yaw + (rel_pos.x * cam.Sensitivity);
-      // float new_pitch = cam.Pitch - (rel_pos.y * cam.Sensitivity);
-
-      // cam.Yaw = new_yaw;
-      // cam.Pitch = new_pitch;
-
-      // cam.CalculateMatrix();
-      
-      // character_movement.Forward = cam.Forward;
-      // character_movement.Right = cam.Right;
-    }
-
     private MovementDirection GetMovementUpdate() {
       MovementDirection move = MovementDirection.None;
       if (forward_key) {
@@ -280,28 +248,17 @@ namespace Forest {
     }
 
     private void ProcessMovement(float dt) {
-      /// sometimes engine uses dt to signal a flush instead of an update
-      if (dt == 0) {
-        return;
-      }
+      /// look first so that camera/orientation is correct before physics calculations
+      character_movement.Look(dt);
 
-      // - variables -
-      float next_speed = walk_speed;
+      // GroundCheck();
+      // CeilingCheck();
 
-      // - Check if Grounded -
-      GroundCheck();
-      CeilingCheck();
-
-      character_movement.Speed = next_speed;
       MovementDirection dir = GetMovementUpdate();
       var (new_pos, new_velocity) = character_movement.Move(dt, dir, jump_key, crouch_key);
+      /// update rigid body cause character_movement only updates player transform but the 
+      //    collider/physics body needs to move as well
       rigid_body.Position = new_pos;
-
-      /// update camera seperately because it's world position y-value needs to be shifted to align with player height
-      float cam_y = cam.Position.y;
-      Vec3 cam_pos = cam.Position + new_velocity;
-      cam_pos.y = cam_y;
-      cam.Position = cam_pos;
 
       velocity = new_velocity;
 

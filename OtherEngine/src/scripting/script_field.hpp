@@ -15,8 +15,9 @@ namespace other {
     Value value;
 
     Opt<glm::vec2> bounds = std::nullopt;
+    bool show_in_inspector = true;
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_SCRIPT_FIELD_HPP
+#endif  // !OTHER_ENGINE_SCRIPT_FIELD_HPP

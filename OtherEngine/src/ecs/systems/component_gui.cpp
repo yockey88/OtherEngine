@@ -540,6 +540,8 @@ namespace other {
 
     /// display exported properties
     for (auto& [field_id, val] : script.GetFields()) {
+      // if (val.b)
+
       ImGui::PushID(("##script-field" + val.name).c_str());
       ImGui::SetCursorPosX(50.f);
 

@@ -47,6 +47,8 @@ namespace Forest {
 
   class CharacterMovement {
     Transform transform;
+    Camera player_viewpoint;
+    Interval pitch_interval;
 
     private Vec3 gravity;
     private Vec3 linear_velocity;
@@ -68,14 +70,19 @@ namespace Forest {
 
     private float current_jump_height;
     private float max_jump_height;
-
+    
     private Dictionary<(MovementState, MovementEvent), MovementState> state_transitions;
     private MovementState state;
 
 #nullable enable
     private StateChangeHandler? on_state_change = null;
 
-    public CharacterMovement(Vec3 gravity, Vec3 forward, Vec3 right, Transform transform, StateChangeHandler? on_state_change = null) {
+    public CharacterMovement(Camera player_viewpoint, Vec3 gravity, Vec3 forward, Vec3 right, Transform transform, StateChangeHandler? on_state_change = null) {
+      this.player_viewpoint = player_viewpoint;
+      /// we do custom pitch constraints
+      this.player_viewpoint.PitchConstrained = false;
+      pitch_interval = new Interval(-28f, 89f);
+
       this.on_state_change = on_state_change;
       this.transform = transform;
       this.forward = forward;
@@ -85,6 +92,13 @@ namespace Forest {
 #nullable disable
 
     public (Vec3,Vec3) Move(float dt, MovementDirection direction, bool jump_key, bool crouch_key) {
+      if (!InControllableState()) {
+        /// if we are not in idle or walking state then we are in a state where we are not moving or should not be moving directly
+        ///   i.e falling, jumping, etc... these should be implicitly updated as time progresses until we land, reach apex, etc...
+        return (transform.Position, LinearVelocity);
+      }
+
+      /// update velocity before transition so that we can use the update velocity to determine if we should transition
       UpdateVelocity(dt, direction, jump_key, crouch_key);
       switch (state) {
         case MovementState.Idle:
@@ -92,6 +106,9 @@ namespace Forest {
             Transition(MovementEvent.BeginWalking);
           }
           break;
+        case MovementState.Running:
+          /// TODO: consider adding extra logic to slow from running to walking if velocity is below a certain threshold
+        case MovementState.Crouching:
         case MovementState.Walking:
           if (linear_velocity.Magnitude() == 0.0f) {
             Transition(MovementEvent.StopWalking);
@@ -99,13 +116,67 @@ namespace Forest {
           break;
       }
 
+
       Vec3 calculated_velocity = linear_velocity;
-      // FIXME: have to fix the falloff on velocity, it doesn't change direction very well
       LinearVelocity = Vec3.zero;
+
+      MoveViewpoint(dt);
       return (transform.Position, calculated_velocity);
     }
 
+    public void Look(float dt) {
+      Vec2 rel_pos = Mouse.RelativePosition;
+      float new_yaw = player_viewpoint.Yaw + (rel_pos.x * player_viewpoint.Sensitivity);
+      float new_pitch = player_viewpoint.Pitch - (rel_pos.y * player_viewpoint.Sensitivity);
+
+      player_viewpoint.Yaw = new_yaw;
+      
+      /// dont change if looking too far down because then player can see through themselves
+      if (!pitch_interval.Contains(new_pitch)) {
+        new_pitch = pitch_interval.ClampToClosestBound(new_pitch);
+      }
+      player_viewpoint.Pitch = new_pitch;
+
+      player_viewpoint.CalculateMatrix();
+      
+      /// we want to project this forward vector down or up onto the plane of the players viewpoint
+      /// so that we can get the right vector otherwise the player will fly away if lookup up
+      
+      Vec3 forward_projection = player_viewpoint.Forward - (Vec3.Dot(player_viewpoint.Forward, Vec3.up)) * Vec3.up; 
+      Forward = forward_projection.Normalized();
+
+      Right = player_viewpoint.Right.Normalized();
+    }
+
+    private void MoveViewpoint(float dt) {
+      // Vec3 move = Vec3.zero;
+      // Vec3 forward_velocity = Forward.Normalized() * Speed;
+      // Vec3 right_velocity = Right.Normalized() * Speed;
+
+      // if (Input.GetKey(KeyCode.W)) {
+      //   move += forward_velocity;
+      // } else if (Input.GetKey(KeyCode.S)) {
+      //   move -= forward_velocity;
+      // }
+
+      // if (Input.GetKey(KeyCode.D)) {
+      //   move += right_velocity;
+      // } else if (Input.GetKey(KeyCode.A)) {
+      //   move -= right_velocity;
+      // }
+
+      // Vec3 movement = move * Speed * dt;
+      // linear_velocity += movement;
+      // if (linear_velocity.Magnitude() > MaxSpeed) {
+      //   linear_velocity = linear_velocity.Normalized() * MaxSpeed;
+      // }
+
+      // transform.Position = transform.Position + linear_velocity;
+    }
+
     private void UpdateVelocity(float dt, MovementDirection direction, bool jump_key, bool crouch_key) {
+      /// FIXME: have to fix the falloff on velocity, it doesn't change direction very well, rn we zero the velocity every frame
+      ///         which is not the best way to do it
       Vec3 move = Vec3.zero;
       Vec3 forward_velocity = Forward.Normalized() * Speed;
       Vec3 right_velocity = Right.Normalized() * Speed;
@@ -122,13 +193,28 @@ namespace Forest {
         move -= right_velocity;
       }
 
+      Vec3 jump_adjustment = Vec3.zero;
+      if (jump_key) {
+        if (current_jump_height < max_jump_height) {
+          jump_adjustment = (new Vec3(0.0f, jump_speed, 0.0f)) * dt;
+          current_jump_height += jump_speed * dt;
+        }
+      } else {
+        current_jump_height = 0.0f;
+      }
+
       Vec3 movement = move * Speed * dt;
-      linear_velocity += move;
+      linear_velocity += movement;
       if (linear_velocity.Magnitude() > MaxSpeed) {
         linear_velocity = linear_velocity.Normalized() * MaxSpeed;
       }
 
       transform.Position = transform.Position + linear_velocity;
+    }
+
+    private bool InControllableState() {
+      return state == MovementState.Idle || state == MovementState.Walking ||
+             state == MovementState.Running || state == MovementState.Crouching;
     }
 
     private bool Transition(MovementEvent e) {
@@ -169,6 +255,10 @@ namespace Forest {
     private void SetTransitions() {
       AddTransition(MovementEvent.BeginWalking, MovementState.Idle, MovementState.Walking);
       AddTransition(MovementEvent.StopWalking, MovementState.Walking, MovementState.Idle);
+
+      AddTransition(MovementEvent.StopRunning, MovementState.Running, MovementState.Idle);
+      AddTransition(MovementEvent.BeginRunningFromIdle, MovementState.Idle, MovementState.Running);
+      AddTransition(MovementEvent.BeginRunningFromWalking, MovementState.Walking, MovementState.Running);
     }
 
     private void AddTransition(MovementEvent e, MovementState from, MovementState to) {
@@ -253,5 +343,4 @@ namespace Forest {
       get { return state; }
     }
   }
-
 }

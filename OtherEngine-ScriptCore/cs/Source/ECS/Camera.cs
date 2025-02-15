@@ -182,6 +182,14 @@ namespace Other {
       }
     }
 
+    public void RotateHorizontal(float angle) {
+      Yaw += angle;
+    }
+
+    public void RotateVertical(float angle) {
+      Pitch += angle;
+    }
+
     // public Vec3 Direction {
     //   get {
     //     GetDirection(Object.ObjectID , out Vec3 direction);

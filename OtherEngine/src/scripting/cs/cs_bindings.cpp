@@ -79,7 +79,7 @@ namespace other {
       );
       RegisterFunction(
         "Mouse", "GetRelativeMousePos", assembly,
-        [](glm::ivec2* value) {
+        [](glm::vec2* value) {
           *value = Mouse::GetRelPos();
         }
       );

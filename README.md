@@ -45,7 +45,7 @@ or for verbose output
     python cli.py -v -gp -b
 ```
 
-For more of the cli toolset commands run 
+For more of the cli toolset commands run
 ```bash
     python cli.py --help
 ```

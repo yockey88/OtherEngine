@@ -10,6 +10,8 @@ namespace Other {
     public const float deg2rad = 0.01745329251994329577f;
     public const float rad2deg = 57.2957795130823208768f;
 
+    private const float infinity = float.PositiveInfinity;
+
     public static float Sin(float angle) => (float)Math.Sin(angle);
     public static float Cos(float angle) => (float)Math.Cos(angle);
     public static float Tan(float angle) => (float)Math.Tan(angle);
@@ -55,6 +57,14 @@ namespace Other {
     }
 
     public static float Lerp(float a, float b, float t) => a + (b - a) * Clamp01(t);
+
+    public static float PositiveInfinity {
+      get { return infinity; }
+    }
+
+    public static float NegativeInfinity {
+      get { return -infinity; }
+    }
   }
 
 }
