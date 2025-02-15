@@ -249,11 +249,11 @@ namespace Forest {
       // rotate player Y
       // playerTx.Rotate( Vector3.up * mouseX );
       
-      Vec2 rel_pos = Mouse.RelativePosition;
-      float new_yaw = cam.Yaw + (rel_pos.x * cam.Sensitivity);
-      float new_pitch = cam.Pitch - (rel_pos.y * cam.Sensitivity);
+      // Vec2 rel_pos = Mouse.RelativePosition;
+      // float new_yaw = cam.Yaw + (rel_pos.x * cam.Sensitivity);
+      // float new_pitch = cam.Pitch - (rel_pos.y * cam.Sensitivity);
 
-      cam.Yaw = new_yaw;
+      // cam.Yaw = new_yaw;
       // cam.Pitch = new_pitch;
 
       // cam.CalculateMatrix();
