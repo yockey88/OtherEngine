@@ -18,6 +18,7 @@ namespace other {
       : projection_type(type) {
     SetPosition(other->position);
     SetDirection(other->direction);
+    SetTarget(other->target);
     SetUp(other->up);
     SetRight(other->right);
     SetWorldUp(other->world_up);
@@ -37,6 +38,8 @@ namespace other {
     SetZoom(other->zoom);
 
     SetConstrainPitch(other->constrain_pitch);
+
+    CalculateMatrix();
   }
 
   CameraProjectionType CameraBase::GetCameraProjectionType() const {
@@ -59,6 +62,7 @@ namespace other {
     new_dir.z = sin(glm::radians(Yaw())) * cos(glm::radians(Pitch()));
 
     SetDirection(glm::normalize(new_dir));
+    /// TODO: this seems incorrect? this might only work when camera up matches world up
     SetRight(glm::normalize(glm::cross(Direction(), WorldUp())));
     SetUp(glm::normalize(glm::cross(Right(), Direction())));
     SetPosition(Position());

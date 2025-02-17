@@ -57,7 +57,7 @@ components = {
 
 [sun.transform]
 position = { -1.0 , 1.0 , -1.0 } 
-rotation = { 0 , 0 , 0 , 0 }
+rotation = { 0.0130018, -0.5846025, -0.6028851, 0.542771  }
 scale = { 0.2 , 0.2 , 0.2 }
 
 [sun.light-source]

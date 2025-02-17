@@ -1012,6 +1012,9 @@ namespace other {
     registry.view<Camera>().each([&](Camera& camera) {
       camera.camera->CalculateMatrix();
       camera.camera->SetViewport(current_viewport_size);
+      camera.camera_position = camera.camera->Position();
+      camera.camera_direction = camera.camera->Direction();
+      camera.camera_up = camera.camera->Up();
     });
   }
 
@@ -1065,8 +1068,6 @@ namespace other {
 
   void Scene::OnUpdateTransform(entt::registry& context, entt::entity entt) {
     Entity ent(context, entt);
-    auto& transform = ent.GetComponent<Transform>();
-
     if (ent.HasComponent<Mesh>()) {
       auto& mesh = ent.GetComponent<Mesh>();
       Ref<Model> model = AssetManager::GetAsset<Model>(mesh.handle);

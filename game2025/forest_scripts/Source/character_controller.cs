@@ -31,11 +31,17 @@ namespace Forest {
     public bool left_key = false;  // Held or Pressed
     public bool right_key = false;  // Held or Pressed
 
+    [HideInEditor] 
     public bool run_key = false;  // Held
+    [HideInEditor] 
     public bool crouch_key = false;  // Held
+    [HideInEditor] 
     public bool jump_key = false;  // Pressed
+    [HideInEditor] 
     public bool cursor_key = false;  // Pressed
+    [HideInEditor] 
     public bool is_grounded = true;
+    [HideInEditor] 
     public bool is_ceiling = false;
    
     // [Header("Look Settings")]
@@ -64,9 +70,9 @@ namespace Forest {
     // public Vec3 ray_origin_offset2 = new Vec3(0.2f, 0f, -0.16f);
    
     // [Header("Move Settings")]
-    public float crouch_speed = 0.1f;                   // crouching movement speed
-    public float walk_speed = 0.25f;                     // regular movement speed
-    public float run_speed = 0.4f;                     // run movement speed
+    public float crouch_speed = 0.01f;                   // crouching movement speed
+    public float walk_speed = 0.1f;                     // regular movement speed
+    public float run_speed = 0.04f;                     // run movement speed
     public float gravity = -9.81f;                   // gravity / fall rate
     public float jump_height = 2.5f;                  // jump height
 
@@ -77,11 +83,8 @@ namespace Forest {
     public float xrot = 0f;                     // the up/down angle the player is looking
     
     
-    private float acc_mouse_x = 0;                     // reference for mouse look smoothing
-    private float acc_mouse_y = 0;                     // reference for mouse look smoothing
     public float look_sensitivity = 1f;               // default was 2f; speed factor of look X and Y
     public float mouse_snappiness = 10f;              // default was 10f; larger values of this cause less filtering, more responsiveness
-    public bool constrain_pitch = true;               // toggle to constrain pitch
 
     public float ground_slope_angle = 0f;              // Angle of the slope in degrees
     private float ground_offset_y = 0;                 // calculated offset relative to height
@@ -96,11 +99,12 @@ namespace Forest {
       transform = GetComponent<Transform>();
 
       cam = GetComponent<Camera>();
-      camera_start_y = cam.Position.y;
-      default_height = camera_start_y;
 
-      Vec3 real_cam_pos = new Vec3(transform.Position.x, camera_start_y, transform.Position.z);
-      cam.Position = real_cam_pos;
+      // cam.ClipPlanes = new Vec2(0.1f, 1000f);
+
+      Vec3 cam_start_position = cam.Position;
+      camera_start_y = cam_start_position.y;
+      default_height = camera_start_y;
 
       StringBuilder sb = new StringBuilder();
       sb.Append("Character Controller Initialized :\n")
@@ -166,7 +170,7 @@ namespace Forest {
       character_movement = new CharacterMovement(cam, Vec3.down * gravity, cam.Forward, cam.Right, transform, (e, s, ns) => {
         Logger.WriteDebug($"State Change : {e} : {s} -> {ns}");
       });
-      character_movement.Speed = run_speed;
+      character_movement.Speed = walk_speed;
 
       sb.Append($"  > Ground Offset Y : {ground_offset_y}\n");
       sb.Append($"  > Ceiling Offset Y : {ceiling_offset_y}\n");

@@ -131,20 +131,8 @@ namespace other {
       std::vector<dotother::Attribute> field_attrs = field.Attributes();
       /// make this more robust, currently the expected attributes are hardcoded here
       for (auto& attr : field_attrs) {
-        int32_t attr_type = 0;
-        dotother::Interop().get_attr_type(attr.handle, &attr_type);
-        if (attr_type == -1) {
-          OE_WARN("Attribute type is null : handle = {}", attr.handle);
-          continue;
-        }
-
-        dotother::Type* attribute_type = dotother::TypeCache::Instance().GetType(attr_type);
-        if (attribute_type == nullptr) {
-          OE_WARN("Attribute type is null : handle = {}", attr_type);
-          continue;
-        }
-
-        OE_DEBUG("Field {} has attribute [{}]", name, attribute_type->FullName());
+        dotother::Type& attr_type = attr.GetType();
+        OE_DEBUG("Field {} has attribute [{}]", name, (std::string)attr_type.FullName());
       }
 
       ValueType type = ValueType::EMPTY_TYPE;

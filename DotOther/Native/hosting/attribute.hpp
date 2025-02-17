@@ -8,11 +8,18 @@
 
 namespace dotother {
 
+  class Type;
+
   class Attribute {
-    public:
-      int32_t handle;
-  }; 
+   public:
+    Attribute(uint32_t handle);
 
-} // namespace dotother
+    Type& GetType();
 
-#endif // !DOTOTHER_ATTRIBUTE_HPP
+   private:
+    int32_t handle;
+  };
+
+}  // namespace dotother
+
+#endif  // !DOTOTHER_ATTRIBUTE_HPP

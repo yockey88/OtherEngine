@@ -22,11 +22,6 @@ namespace dotother {
 
   class Host;
 
-  class Field;
-  class Property;
-  class Attribute;
-  class Method;
-
   class Type {
    public:
     Type() = default;

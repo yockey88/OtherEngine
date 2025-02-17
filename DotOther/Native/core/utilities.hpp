@@ -17,7 +17,7 @@ namespace dotother {
 
       using namespace std::string_view_literals;
 
-      /// clang does not like this function for some reason
+      /// clang does not like this function for some reason but it's necessary for when a user does not provide a log sink
       static void default_log_sink(const std::string_view message, MessageLevel level) {
         std::cout << fmt::format("[DotOther] > {} [{}]"sv, message, level) << std::endl;
       };

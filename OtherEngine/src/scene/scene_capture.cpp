@@ -53,6 +53,20 @@ namespace other {
     }
   }
 
+  template <typename CT, typename Fn>
+    requires requires(CT& comp, Fn fn) {
+      { fn(comp) } -> std::same_as<void>;
+    }
+  static void ProcessComponentsThenCopyInto(entt::registry& dest, entt::registry& src, const std::map<UUID, entt::entity>& new_entts, Fn&& fn) {
+    auto view = src.view<CT>();
+    for (auto new_entt : view) {
+      CT& comp = src.get<CT>(new_entt);
+      std::forward<Fn>(fn)(comp);
+    }
+
+    CopyInto<CT>(dest, src, new_entts);
+  }
+
   // static void CaptureSnapshot(Ref<SceneCapture>& output, entt::registry& input) {
   //   entt::snapshot{ input }
   //     .get<entt::entity>(output->registry)
@@ -172,7 +186,11 @@ namespace other {
     CopyInto<RigidBody2D>(capture->registry, registry, capture->entity_map);
     CopyInto<Collider2D>(capture->registry, registry, capture->entity_map);
     CopyInto<LightSource>(capture->registry, registry, capture->entity_map);
-    CopyInto<Camera>(capture->registry, registry, capture->entity_map);
+    ProcessComponentsThenCopyInto<Camera>(capture->registry, registry, capture->entity_map, [](Camera& comp) {
+      // comp.camera_position = comp.camera->Position();
+      // comp.camera_direction = comp.camera->Direction();
+      // comp.camera_up = comp.camera->Up();
+    });
     // CopyInto<Sprite2D>(capture->registry, registry, capture->entity_map);
 
     capture_stack.push(capture);

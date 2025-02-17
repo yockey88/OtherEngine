@@ -65,7 +65,7 @@ namespace dotother {
       Interop().get_type_attributes(handle, handles.data(), &count);
 
       for (size_t i = 0; i < handles.size(); ++i) {
-        attributes.emplace_back(Attribute(handles[i]));
+        attributes.emplace_back(handles[i]);
       }
     }
 

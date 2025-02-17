@@ -23,11 +23,12 @@ namespace dotother {
   Type* TypeCache::CacheType(Type&& type) {
     Type* t = &types.Insert(std::move(type)).second;
     if (t == nullptr) {
+      DOTOTHER_LOG(DO_STR("TypeCache::CacheType: Failed to cache type"), MessageLevel::ERR);
       return nullptr;
     }
     t->Init();
 
-    DOTOTHER_LOG(DO_STR("TypeCache::CacheType: Caching type"), MessageLevel::TRACE);  // , FormatType(t));
+    DOTOTHER_LOG(DO_STR("TypeCache::CacheType: Caching type {}"), MessageLevel::TRACE, type.FullName());  // , FormatType(t));
 
     std::string name = t->FullName();
     name_cache[name] = t;
@@ -55,6 +56,7 @@ namespace dotother {
       DOTOTHER_LOG(DO_STR("TypeCache::GetType: Found type with ID [{}]"), MessageLevel::TRACE, id);  // , FormatType(t));
       return t;
     }
+    DOTOTHER_LOG(DO_STR("TypeCache::GetType: Type not found with ID [{}]"), MessageLevel::ERR, id);
 
     return nullptr;
   }

@@ -71,7 +71,7 @@ namespace dotother {
 
     std::vector<Attribute> res;
     for (size_t i = 0; i < handles.size(); ++i) {
-      res.push_back({ .handle = handles[i] });
+      res.emplace_back(handles[i]);
     }
 
     return res;

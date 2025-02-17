@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using System.Collections.Generic;
 using Other;
 
@@ -92,14 +93,33 @@ namespace Forest {
 #nullable disable
 
     public (Vec3,Vec3) Move(float dt, MovementDirection direction, bool jump_key, bool crouch_key) {
-      if (!InControllableState()) {
-        /// if we are not in idle or walking state then we are in a state where we are not moving or should not be moving directly
-        ///   i.e falling, jumping, etc... these should be implicitly updated as time progresses until we land, reach apex, etc...
-        return (transform.Position, LinearVelocity);
+      UpdateVelocity(dt, direction, jump_key, crouch_key);
+
+      if (InControllableState()) {
+        return ControllableMove(dt, direction, jump_key, crouch_key);
+      } else {
+        return UncontrollableMovement(dt, direction, jump_key, crouch_key);
+      }
+    }
+
+    public (Vec3, Vec3) UncontrollableMovement(float dt, MovementDirection direction, bool jump_key, bool crouch_key) {
+      if (state == MovementState.Jumping) {
+        Vec3 jump_adjustment = Vec3.zero;
+        if (jump_key) {
+          if (current_jump_height < max_jump_height) {
+            jump_adjustment = (new Vec3(0.0f, jump_speed, 0.0f)) * dt;
+            current_jump_height += jump_speed * dt;
+          }
+        } else {
+          current_jump_height = 0.0f;
+        }
       }
 
-      /// update velocity before transition so that we can use the update velocity to determine if we should transition
-      UpdateVelocity(dt, direction, jump_key, crouch_key);
+      return (transform.Position, LinearVelocity);
+    }
+
+    public (Vec3, Vec3) ControllableMove(float dt, MovementDirection direction, bool jump_key, bool crouch_key) {
+      /// first use update velocity to transition to new controllable state
       switch (state) {
         case MovementState.Idle:
           if (linear_velocity.Magnitude() > 0.0f) {
@@ -116,11 +136,16 @@ namespace Forest {
           break;
       }
 
+      /// after transition to correct controllable state we check other conditions
+      if (jump_key) {
+        Transition(MovementEvent.JumpBegin);
+      } else if (crouch_key) {
+        Transition(MovementEvent.CrouchBegin);
+      }
 
       Vec3 calculated_velocity = linear_velocity;
       LinearVelocity = Vec3.zero;
 
-      MoveViewpoint(dt);
       return (transform.Position, calculated_velocity);
     }
 
@@ -129,49 +154,64 @@ namespace Forest {
       float new_yaw = player_viewpoint.Yaw + (rel_pos.x * player_viewpoint.Sensitivity);
       float new_pitch = player_viewpoint.Pitch - (rel_pos.y * player_viewpoint.Sensitivity);
 
-      player_viewpoint.Yaw = new_yaw;
-      
-      /// dont change if looking too far down because then player can see through themselves
       if (!pitch_interval.Contains(new_pitch)) {
         new_pitch = pitch_interval.ClampToClosestBound(new_pitch);
       }
-      player_viewpoint.Pitch = new_pitch;
 
+      Vec3 old_forward = player_viewpoint.Forward;
+      player_viewpoint.Yaw = new_yaw;
+      player_viewpoint.Pitch = new_pitch;
       player_viewpoint.CalculateMatrix();
+
+      Vec3 new_forward = player_viewpoint.Forward;
+      /// project onto xz plane
+      old_forward.y = new_forward.y = 0.0f;
+      /// and normalize because we care about direction
+      old_forward = old_forward.Normalized();
+      new_forward = new_forward.Normalized();
+
+      float dot = Vec3.Dot(old_forward, new_forward);
+      float angle = Mathf.Acos(Mathf.Clamp(dot, -1.0f, 1.0f));
+
+      Vec3 cross = Vec3.Cross(old_forward, new_forward);
+      if (cross.y < 0.0f) {
+        angle = -angle;
+      }
+
+      /// we also need to rotate the camera around the players head to avoid look directly backwards this is so the 
+      ///   user doesn't see through the player's head when turning arund
+      Vec3 center_of_head = WorldPosition;
+      center_of_head.y = player_viewpoint.Position.y;
+
+      Vec3 camera_to_head = player_viewpoint.Position - center_of_head;
+
+      Mat4 translation1 = new Mat4(1.0f) {
+        a03 = camera_to_head.x,
+        a13 = camera_to_head.y,
+        a23 = camera_to_head.z
+      };
+      Mat4 rotation = new Mat4(1.0f) {
+        a00 = Mathf.Cos(angle),
+        a02 = Mathf.Sin(angle),
+        a20 = -Mathf.Sin(angle),
+        a22 = Mathf.Cos(angle)
+      };
+      Mat4 translation2 = new Mat4(1.0f) {
+        a03 = -camera_to_head.x,
+        a13 = -camera_to_head.y,
+        a23 = -camera_to_head.z
+      };
+      Mat4 transform = translation1 * rotation * translation2;
+      Vec3 new_position = transform * center_of_head;
+
+      new_position += new_forward.Normalized() * 0.7f;
+      player_viewpoint.Position = new_position;
       
       /// we want to project this forward vector down or up onto the plane of the players viewpoint
       /// so that we can get the right vector otherwise the player will fly away if lookup up
-      
       Vec3 forward_projection = player_viewpoint.Forward - (Vec3.Dot(player_viewpoint.Forward, Vec3.up)) * Vec3.up; 
       Forward = forward_projection.Normalized();
-
       Right = player_viewpoint.Right.Normalized();
-    }
-
-    private void MoveViewpoint(float dt) {
-      // Vec3 move = Vec3.zero;
-      // Vec3 forward_velocity = Forward.Normalized() * Speed;
-      // Vec3 right_velocity = Right.Normalized() * Speed;
-
-      // if (Input.GetKey(KeyCode.W)) {
-      //   move += forward_velocity;
-      // } else if (Input.GetKey(KeyCode.S)) {
-      //   move -= forward_velocity;
-      // }
-
-      // if (Input.GetKey(KeyCode.D)) {
-      //   move += right_velocity;
-      // } else if (Input.GetKey(KeyCode.A)) {
-      //   move -= right_velocity;
-      // }
-
-      // Vec3 movement = move * Speed * dt;
-      // linear_velocity += movement;
-      // if (linear_velocity.Magnitude() > MaxSpeed) {
-      //   linear_velocity = linear_velocity.Normalized() * MaxSpeed;
-      // }
-
-      // transform.Position = transform.Position + linear_velocity;
     }
 
     private void UpdateVelocity(float dt, MovementDirection direction, bool jump_key, bool crouch_key) {
@@ -193,28 +233,23 @@ namespace Forest {
         move -= right_velocity;
       }
 
-      Vec3 jump_adjustment = Vec3.zero;
-      if (jump_key) {
-        if (current_jump_height < max_jump_height) {
-          jump_adjustment = (new Vec3(0.0f, jump_speed, 0.0f)) * dt;
-          current_jump_height += jump_speed * dt;
-        }
-      } else {
-        current_jump_height = 0.0f;
-      }
-
       Vec3 movement = move * Speed * dt;
       linear_velocity += movement;
       if (linear_velocity.Magnitude() > MaxSpeed) {
         linear_velocity = linear_velocity.Normalized() * MaxSpeed;
       }
 
-      transform.Position = transform.Position + linear_velocity;
+      transform.Position += linear_velocity;
+      player_viewpoint.Position += linear_velocity;
     }
 
     private bool InControllableState() {
       return state == MovementState.Idle || state == MovementState.Walking ||
              state == MovementState.Running || state == MovementState.Crouching;
+    }
+
+    private bool IsGrounded() {
+      return InControllableState();
     }
 
     private bool Transition(MovementEvent e) {
@@ -259,6 +294,10 @@ namespace Forest {
       AddTransition(MovementEvent.StopRunning, MovementState.Running, MovementState.Idle);
       AddTransition(MovementEvent.BeginRunningFromIdle, MovementState.Idle, MovementState.Running);
       AddTransition(MovementEvent.BeginRunningFromWalking, MovementState.Walking, MovementState.Running);
+
+      AddTransition(MovementEvent.JumpBegin, MovementState.Idle, MovementState.Jumping);
+      AddTransition(MovementEvent.JumpBegin, MovementState.Walking, MovementState.Jumping);
+      AddTransition(MovementEvent.JumpBegin, MovementState.Running, MovementState.Jumping);
     }
 
     private void AddTransition(MovementEvent e, MovementState from, MovementState to) {

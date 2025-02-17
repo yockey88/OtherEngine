@@ -41,6 +41,15 @@ namespace Other {
 
     internal static unsafe delegate*<IntPtr, void> InternalCalculateMatrix;
 
+    internal static unsafe delegate*<IntPtr, Vec2*, void> SetClipPlanes;
+    internal static unsafe delegate*<IntPtr, Vec2*, void> GetClipPlanes;
+
+    internal static unsafe delegate*<IntPtr, float*, void> SetFarClipPlane;
+    internal static unsafe delegate*<IntPtr, float*, void> GetFarClipPlane;
+
+    internal static unsafe delegate*<IntPtr, float*, void> SetNearClipPlane;
+    internal static unsafe delegate*<IntPtr, float*, void> GetNearClipPlane;
+
     public Vec3 Position {
       get {
         unsafe {
@@ -167,6 +176,51 @@ namespace Other {
       set {
         unsafe {
           SetIsPitchConstrained(Object.NativeHandle , &value);
+        }
+      }
+    }
+
+    public Vec2 ClipPlanes {
+      get {
+        unsafe {
+          Vec2 clipPlanes = Vec2.zero;
+          GetClipPlanes(Object.NativeHandle , &clipPlanes);
+          return clipPlanes;
+        }
+      }
+      set {
+        unsafe {
+          SetClipPlanes(Object.NativeHandle , &value);
+        }
+      }
+    }
+
+    public float NearClipPlane {
+      get {
+        unsafe {
+          float nearClipPlane = 0.0f;
+          GetNearClipPlane(Object.NativeHandle , &nearClipPlane);
+          return nearClipPlane;
+        }
+      }
+      set {
+        unsafe {
+          SetNearClipPlane(Object.NativeHandle , &value);
+        }
+      }
+    }
+
+    public float FarClipPlane {
+      get {
+        unsafe {
+          float farClipPlane = 0.0f;
+          GetFarClipPlane(Object.NativeHandle , &farClipPlane);
+          return farClipPlane;
+        }
+      }
+      set {
+        unsafe {
+          SetFarClipPlane(Object.NativeHandle , &value);
         }
       }
     }

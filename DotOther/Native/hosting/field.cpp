@@ -47,7 +47,7 @@ namespace dotother {
 
     std::vector<Attribute> attrs;
     for (auto attr : raw_attrs) {
-      attrs.push_back({ .handle = attr });
+      attrs.emplace_back(attr);
     }
 
     return attrs;

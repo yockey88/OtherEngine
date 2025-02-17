@@ -40,28 +40,28 @@ namespace Other {
       };
     }
 
-    public Mat4 Scale(Vec3 size) {
-      return new Mat4(1f) {
-        a00 = size.x ,
-        a11 = size.y ,
-        a22 = size.z
-      };
-    }
+    // public Mat4 Scale(Vec3 size) {
+    //   return new Mat4(1f) {
+    //     a00 = size.x ,
+    //     a11 = size.y ,
+    //     a22 = size.z
+    //   };
+    // }
 
-    public Mat4 Scale(float scalar) {
-      return new Mat4(1f) {
-        a00 = scalar ,
-        a11 = scalar ,
-        a22 = scalar 
-      };
-    }
+    // public Mat4 Scale(float scalar) {
+    //   return new Mat4(1f) {
+    //     a00 = scalar ,
+    //     a11 = scalar ,
+    //     a22 = scalar 
+    //   };
+    // }
     
-    public Vec3 translation {
+    public Vec3 Translation {
       get => new Vec3(a03 , a13 , a23);
       set { a03 = value.x; a13 = value.y; a23 = value.z; }
     }
 
-    public Vec3 scale {
+    public Vec3 Scale {
       get {
         var sx = new Vec3(a00, a10, a20);
         var sy = new Vec3(a01, a11, a21);
@@ -71,7 +71,7 @@ namespace Other {
       set { a00 = value.x; a11 = value.y; a22 = value.z; }
     }
 
-    public Vec3 rotation {
+    public Vec3 Rotation {
       get {
         if (Mathf.Abs(a00 - 1f) < float.Epsilon || 
             Mathf.Abs(a00 + 1f) < float.Epsilon) {
@@ -90,11 +90,60 @@ namespace Other {
       }
     }
 
+    public Vec4 Column(int index) {
+      switch (index) {
+        case 0: return new Vec4(a00 , a10 , a20, a30);
+        case 1: return new Vec4(a01 , a11 , a21, a31);
+        case 2: return new Vec4(a02 , a12 , a22, a32);
+        case 3: return new Vec4(a03 , a13 , a23, a33);
+        default: throw new IndexOutOfRangeException();
+      }
+    }
+
+    public Vec4 Row(int index) {
+      switch (index) {
+        case 0: return new Vec4(a00 , a01 , a02, a03);
+        case 1: return new Vec4(a10 , a11 , a12, a13);
+        case 2: return new Vec4(a20 , a21 , a22, a23);
+        case 3: return new Vec4(a30 , a31 , a32, a33);
+        default: throw new IndexOutOfRangeException();
+      }
+    }
+
     // public Mat4 LookAt(Vec3 pos, Vec3 front, Vec3 up) {
       // Mat4 result = new Mat4();
       // Engine.Mat4LookAt(ref pos, ref front, ref up, ref result);
     //   return result;
     // }
+
+    public static Mat4 operator *(Mat4 left, Mat4 right) {
+      return new Mat4() {
+        a00 = left.a00 * right.a00 + left.a01 * right.a10 + left.a02 * right.a20 + left.a03 * right.a30,
+        a01 = left.a00 * right.a01 + left.a01 * right.a11 + left.a02 * right.a21 + left.a03 * right.a31,
+        a02 = left.a00 * right.a02 + left.a01 * right.a12 + left.a02 * right.a22 + left.a03 * right.a32,
+        a03 = left.a00 * right.a03 + left.a01 * right.a13 + left.a02 * right.a23 + left.a03 * right.a33,
+
+        a10 = left.a10 * right.a00 + left.a11 * right.a10 + left.a12 * right.a20 + left.a13 * right.a30,
+        a11 = left.a10 * right.a01 + left.a11 * right.a11 + left.a12 * right.a21 + left.a13 * right.a31,
+        a12 = left.a10 * right.a02 + left.a11 * right.a12 + left.a12 * right.a22 + left.a13 * right.a32,
+        a13 = left.a10 * right.a03 + left.a11 * right.a13 + left.a12 * right.a23 + left.a13 * right.a33,
+
+        a20 = left.a20 * right.a00 + left.a21 * right.a10 + left.a22 * right.a20 + left.a23 * right.a30,
+        a21 = left.a20 * right.a01 + left.a21 * right.a11 + left.a22 * right.a21 + left.a23 * right.a31,
+        a22 = left.a20 * right.a02 + left.a21 * right.a12 + left.a22 * right.a22 + left.a23 * right.a32,
+        a23 = left.a20 * right.a03 + left.a21 * right.a13 + left.a22 * right.a23 + left.a23 * right.a33,
+
+        a30 = left.a30 * right.a00 + left.a31 * right.a10 + left.a32 * right.a20 + left.a33 * right.a30,
+        a31 = left.a30 * right.a01 + left.a31 * right.a11 + left.a32 * right.a21 + left.a33 * right.a31,
+        a32 = left.a30 * right.a02 + left.a31 * right.a12 + left.a32 * right.a22 + left.a33 * right.a32,
+        a33 = left.a30 * right.a03 + left.a31 * right.a13 + left.a32 * right.a23 + left.a33 * right.a33
+      };
+    }
+
+    public override string ToString() => $"[{a00} , {a01} , {a02} , {a03}]\n" +
+                                         $"[{a10} , {a11} , {a12} , {a13}]\n" +
+                                         $"[{a20} , {a21} , {a22} , {a23}]\n" +
+                                         $"[{a30} , {a31} , {a32} , {a33}]\n";
   }
     
 }

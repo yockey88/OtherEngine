@@ -411,7 +411,7 @@ namespace DotOther.Managed {
 				ReadOnlySpan<FieldInfo> fields = t.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
 				if (fields == null || fields.Length == 0) {
 					*field_count = 0;
-					return;
+					return;                                                             
 				}
 
 				*field_count = fields.Length;
@@ -423,7 +423,7 @@ namespace DotOther.Managed {
 				for (Int32 i = 0; i < fields.Length; i++) {
 					field_arr[i] = cached_fields.Add(fields[i]);
 				}
-			} catch (Exception ex) {
+			} catch (Exception ex) {          
 				HandleException(ex);
 			}
 		}
@@ -476,7 +476,7 @@ namespace DotOther.Managed {
 					return;
 				}
 
-				var attrs = t.GetCustomAttributes().ToImmutableArray();
+				ImmutableArray<object> attrs = t.GetCustomAttributes(true).ToImmutableArray();
 				if (attrs == null || attrs.Length == 0) {
 					*count = 0;
 					return;
@@ -489,7 +489,8 @@ namespace DotOther.Managed {
 				}
 
 				for (Int32 i = 0; i < attrs.Length; i++) {
-					attributes[i] = cached_attributes.Add(attrs[i]);
+					Attribute attr = (Attribute)attrs[i];
+					attributes[i] = cached_attributes.Add(attr);
 				}
 			} catch (Exception ex) {
 				HandleException(ex);
@@ -660,7 +661,7 @@ namespace DotOther.Managed {
 					return;
 				}
 
-				var attributes = finfo.GetCustomAttributes().ToImmutableArray();
+				var attributes = finfo.GetCustomAttributes(true).ToImmutableArray();
 
 				if (attributes.Length == 0) {
 					*count = 0;
@@ -674,7 +675,7 @@ namespace DotOther.Managed {
 				}
 
 				for (Int32 i = 0; i < attributes.Length; i++) {
-					out_attrs[i] = cached_attributes.Add(attributes[i]);
+					out_attrs[i] = cached_attributes.Add((Attribute)attributes[i]);
 				}
 			} catch (Exception ex) {
 				HandleException(ex);

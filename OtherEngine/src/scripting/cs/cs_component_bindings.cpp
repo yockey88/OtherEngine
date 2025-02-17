@@ -466,6 +466,60 @@ namespace other {
           entity->GetComponent<Camera>().camera->CalculateMatrix();
         }
       );
+      RegisterFunction(
+        "Camera", "SetClipPlanes", assembly,
+        [](Entity* entity, float* near_plane, float* far_plane) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(near_plane != nullptr, "Near plane is null!");
+          OE_ASSERT(far_plane != nullptr, "Far plane is null!");
+          entity->GetComponent<Camera>().camera->SetClip({ *near_plane, *far_plane });
+        }
+      );
+      RegisterFunction(
+        "Camera", "GetClipPlanes", assembly,
+        [](Entity* entity, float* near_plane, float* far_plane) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(near_plane != nullptr, "Near plane is null!");
+          OE_ASSERT(far_plane != nullptr, "Far plane is null!");
+          auto clip = entity->GetComponent<Camera>().camera->Clip();
+          *near_plane = clip.x;
+          *far_plane = clip.y;
+        }
+      );
+      RegisterFunction(
+        "Camera", "SetFarClipPlane", assembly,
+        [](Entity* entity, float* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          glm::vec2 clip = entity->GetComponent<Camera>().camera->Clip();
+          entity->GetComponent<Camera>().camera->SetClip({ clip.x, *value });
+        }
+      );
+      RegisterFunction(
+        "Camera", "GetFarClipPlane", assembly,
+        [](Entity* entity, float* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          *value = entity->GetComponent<Camera>().camera->Clip().y;
+        }
+      );
+      RegisterFunction(
+        "Camera", "SetNearClipPlane", assembly,
+        [](Entity* entity, float* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          glm::vec2 clip = entity->GetComponent<Camera>().camera->Clip();
+          entity->GetComponent<Camera>().camera->SetClip({ *value, clip.y });
+        }
+      );
+      RegisterFunction(
+        "Camera", "GetNearClipPlane", assembly,
+        [](Entity* entity, float* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          *value = entity->GetComponent<Camera>().camera->Clip().x;
+        }
+      );
 
       RegisterProperty<glm::vec4>(
         "LightSource", "Vector", assembly,
