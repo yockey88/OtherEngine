@@ -24,6 +24,18 @@ namespace other {
   std::string StripParens(const std::string_view str);
 
   class ParseContext : public std::streambuf {
+   public:
+    ParseContext(std::streambuf* sbuf) : sbuf(sbuf) {}
+
+   protected:
+    std::streambuf* const sbuf;
+
+    std::streambuf::int_type underflow();
+    std::streambuf::int_type uflow();
+
+    std::streampos seekoff(std::streamoff off, std::ios_base::seekdir way, std::ios_base::openmode which = std::ios_base::in | std::ios_base::out);
+    std::streampos seekpos(std::streampos pos, std::ios_base::openmode which = std::ios_base::in | std::ios_base::out);
+
    private:
     template <size_t TW>
     struct cursor_updater {
@@ -39,8 +51,6 @@ namespace other {
     };
 
    public:
-    ParseContext(std::streambuf* sbuf) : sbuf(sbuf) {}
-
     struct Cursor {
       std::streamoff offset;
       size_t row = 1, column = 1;
@@ -48,18 +58,15 @@ namespace other {
     } curs;
 
     char last_read = 0;
-
-   protected:
-    std::streambuf* const sbuf;
-
-    std::streambuf::int_type underflow();
-    std::streambuf::int_type uflow();
-
-    std::streampos seekoff(std::streamoff off, std::ios_base::seekdir way, std::ios_base::openmode which = std::ios_base::in | std::ios_base::out);
-    std::streampos seekpos(std::streampos pos, std::ios_base::openmode which = std::ios_base::in | std::ios_base::out);
   };
 
-#define MARK_OFFSET(stream) std::streamoff _off(tellg(stream, 0))
+  /// TODO: make this error handling more robust and add information about the error to the exception
+
+#define MARK_OFFSET(stream) std::streamoff _off = stream.tellg()
+
+#define CREATE_MARK(mark, stream) std::streamoff mark = stream.tellg();
+
+#define GOTO_MARK(mark, stream) stream.seekg(mark, std::ios::beg);
 
 #define RETURN_TO_MARK(stream)              \
   do {                                      \
@@ -67,22 +74,22 @@ namespace other {
     stream.seekg(_off, std::ios_base::beg); \
   } while (false)
 
-#define CHECK_STREAM(stream)                  \
-  if (stream.fail() && tellg(stream, _off)) { \
-    throw ParsingError();                     \
+#define CHECK_STREAM(stream)             \
+  if (stream.fail() && stream.tellg()) { \
+    throw ParsingError();                \
   } else
 
-#define RETURN_OR_WEAK_FAILURE(stream, ...)          \
-  do {                                               \
-    if (stream.fail() && tellg(stream, _off) == 0) { \
-      throw ParsingError();                          \
-    }                                                \
-    return __VA_ARGS__;                              \
+#define RETURN_OR_WEAK_FAILURE(stream, ...)     \
+  do {                                          \
+    if (stream.fail() && stream.tellg() == 0) { \
+      throw ParsingError();                     \
+    }                                           \
+    return __VA_ARGS__;                         \
   } while (0)
 
 #define RETURN_IF_FAIL(stream, ...) \
   if (stream.fail()) {              \
-    if (tellg(stream, _off) == 0) { \
+    if (stream.tellg() == 0) {      \
       throw ParsingError();         \
     }                               \
     return __VA_ARGS__;             \
@@ -92,11 +99,6 @@ namespace other {
   inline void update_stream(std::istream& stream) {
     ParseContext* parse_stream = static_cast<ParseContext*>(stream.rdbuf());
     parse_stream->curs.update(parse_stream->last_read);
-  }
-
-  // similar to s.tellg() but also work for istreams that disables it
-  inline std::streamoff tellg(std::istream& s, std::streamoff since) {
-    return static_cast<ParseContext*>(s.rdbuf())->curs.offset - since;
   }
 
   inline ParseContext::Cursor& stream_position(std::istream& s) {
@@ -244,6 +246,7 @@ namespace other {
   Ref<Parser<char>> MatchAlnum();
   Ref<Parser<char>> MatchWhitespace();
   Ref<Parser<std::string>> MatchAnyString();
+  Ref<Parser<std::string>> MatchAnyWord();
   Ref<Parser<std::string>> MatchAnyStringWithout(const std::string_view chars);
   Ref<Parser<std::string>> MatchString(const std::string_view str);
 
@@ -251,7 +254,31 @@ namespace other {
   Ref<Parser<std::string>> MatchAndTrim(const std::string_view str);
   Ref<Parser<std::string>> MatchAndStripParens(const std::string_view str);
   Ref<Parser<std::string>> MatchIdentifier();
+  Ref<Parser<std::string>> MatchIdentifierAndAllow(const std::string_view chars);
   Ref<Parser<std::string>> MatchIdentifierAndStripParens();
+
+  struct ParseStringExact : Parser<std::string> {
+    Ref<Parser<std::string>> parser;
+
+    ParseStringExact(const std::string_view str)
+        : parser(MatchString(str)) {}
+
+    std::string operator()(std::istream& stream) const override;
+  };
+
+  Ref<Parser<std::string>> MatchExact(const std::string_view str);
+
+  struct ParseOneOf : Parser<std::string> {
+    const std::vector<std::string> strings;
+    Ref<Parser<std::string>> parser;
+
+    ParseOneOf(const std::vector<std::string>& strings)
+        : strings(strings), parser(MatchAnyWord()) {}
+
+    std::string operator()(std::istream& stream) const override;
+  };
+
+  Ref<Parser<std::string>> MatchAnyStringFrom(const std::vector<std::string>& strings);
 
   struct ParseEof : Parser<void> {
     void operator()(std::istream& stream) const override;
@@ -383,25 +410,32 @@ namespace other {
   Ref<Parser<std::string>> operator+(const Ref<Parser<char>>& parser1, const Ref<Parser<std::string>>& parser2);
   Ref<Parser<std::string>> operator+(const Ref<Parser<char>>& parser1, const Ref<Parser<char>>& parser2);
 
-  template <typename T>
-    requires is_container<T>
-  struct ParseMany : Parser<T> {
-    /// apply this parser many times
-    const Ref<Parser<typename T::value_type>> p;
+  template <typename CT>
+    requires is_container<CT>
+  struct ParseMany : Parser<CT> {
+    using val_t = typename CT::value_type;
 
-    ParseMany(const Ref<Parser<typename T::value_type>>& parser)
+    /// apply this parser many times
+    const Ref<Parser<val_t>> p;
+
+    ParseMany(const Ref<Parser<val_t>>& parser)
         : p(parser) {}
 
-    T operator()(std::istream& stream) const override {
-      using val_t = typename T::value_type;
+    CT operator()(std::istream& stream) const override {
+      if (stream.fail()) {
+        return CT{};
+      } else if (stream.eof()) {
+        stream.setstate(std::ios::failbit);
+        return CT{};
+      }
 
-      T result;
+      CT result;
       while (!stream.eof() && stream.peek() != '\0') {
         val_t val = (*p)(stream);
         if (stream.fail()) {
           stream.clear();
           /// force copy
-          return T{ result };
+          return CT{ result };
         }
 
         result.insert(result.end(), val);
@@ -434,9 +468,9 @@ namespace other {
     }
   };
 
-  template <typename T>
-  Ref<Parser<T>> Many(const Ref<Parser<typename T::value_type>>& parser) {
-    return NewRef<ParseMany<T>>(parser);
+  template <typename CT>
+  Ref<Parser<CT>> Many(const Ref<Parser<typename CT::value_type>>& parser) {
+    return NewRef<ParseMany<CT>>(parser);
   }
 
   template <typename T>
@@ -704,24 +738,36 @@ namespace other {
         : parser(parser), fallback(fallback) {}
 
     T1 operator()(std::istream& stream) const override {
+      std::streampos pos = stream.tellg();
       if (stream.fail()) {
         return T1{};
       }
-
-      T1 val = (*parser)(stream);
-      if (!stream.fail()) {
-        return val;
-      } else if (stream.eof()) {
-        return T1{};
+      try {
+        T1 val = (*parser)(stream);
+        if (!stream.fail()) {
+          return val;
+        } else if (stream.eof()) {
+          return T1{};
+        }
+      } catch (const ParsingError& e) {
+        // no-op
       }
       stream.clear();
 
-      T2 val2 = (*fallback)(stream);
-      if (!stream.fail()) {
-        return T1{ val2 };
-      } else if (stream.eof()) {
-        return T1{};
+      try {
+        T2 val2 = (*fallback)(stream);
+        if (!stream.fail()) {
+          return T1{ val2 };
+        } else if (stream.eof()) {
+          return T1{};
+        }
+      } catch (const ParsingError& e) {
+        // no-op
       }
+
+      /// we reset in case a parser will catch this above and discard the error
+      stream.clear();
+      stream.seekg(pos, std::ios::beg);
 
       throw ParsingError();
     }
@@ -972,28 +1018,22 @@ namespace other {
         : parser(parser) {}
 
     std::optional<T> operator()(std::istream& stream) const override {
+      std::streampos before_parse = stream.tellg();
       try {
-        std::streamoff start_off = tellg(stream, std::ios::beg);
+        if (stream.eof()) {
+          return std::nullopt;
+        }
 
         T val = (*parser)(stream);
         if (!stream.fail()) {
           return val;
         }
 
-        if (stream.eof()) {
-          return std::nullopt;
-        }
-
-        stream.clear();
-
-        std::streamoff curr_off = tellg(stream, std::ios::beg);
-        update_stream(stream);
-        if (start_off != curr_off) {
-          stream.seekg(start_off);
-        }
-
-        return std::nullopt;
+        throw ParsingError();
       } catch (...) {
+        stream.clear();
+        stream.seekg(before_parse);
+        update_stream(stream);
         return std::nullopt;
       }
     }
@@ -1050,4 +1090,4 @@ namespace other {
 
 }  // namespace other
 
-#endif  // !OTHER_ENGINE_PARSER_HPP
+#endif  // !OTHER_ENGINE_PARSER_COMBINATORS_HPP

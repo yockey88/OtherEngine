@@ -55,6 +55,25 @@ namespace other {
     return AbsolutePath();
   }
 
+  std::vector<std::string> Directory::SplitPath(const std::string_view path) {
+    std::vector<std::string> components;
+    std::string component;
+    for (auto& c : path) {
+      if (c == '/') {
+        components.push_back(component);
+        component.clear();
+      } else {
+        component += c;
+      }
+    }
+
+    if (!component.empty()) {
+      components.push_back(component);
+    }
+
+    return components;
+  }
+
   std::string Directory::Name() const {
     return proj_relative_path.filename().string();
   }
@@ -158,6 +177,26 @@ namespace other {
       return true;
     }
     return false;
+  }
+
+  Ref<Directory> Directory::GetChildDirectory(const std::string_view name) {
+    if (!Exists()) {
+      OE_ERROR("Failed to get child directory, directory does not exist : {}", AbsolutePath().string());
+      return nullptr;
+    }
+
+    Path new_dir = AbsolutePath() / name;
+    UUID hash = FNV(name);
+    if (Contains(hash)) {
+      return children[hash];
+    }
+
+    if (!std::filesystem::exists(new_dir)) {
+      return nullptr;
+    }
+
+    Ref<Directory> dir = children[hash] = NewRef<Directory>(this, new_dir, hash);
+    return dir;
   }
 
   Ref<FileHandle> Directory::GetFile(const Path& path) {

@@ -67,6 +67,30 @@ namespace other {
     allocator.Free(instance);
   }
 
+  std::vector<Path> Filesystem::MountedDirectories() {
+    OE_ASSERT(instance != nullptr, "Filesystem instance is null");
+    OE_ASSERT(sFileTree.dir != nullptr, "Project root is null");
+
+    std::vector<Path> paths;
+    for (auto& [id, dir] : sFileTree.mounted_dirs) {
+      paths.push_back(dir->AbsolutePath());
+    }
+
+    return paths;
+  }
+
+  std::vector<Path> Filesystem::MountedFiles() {
+    OE_ASSERT(instance != nullptr, "Filesystem instance is null");
+    OE_ASSERT(sFileTree.dir != nullptr, "Project root is null");
+
+    std::vector<Path> paths;
+    for (auto& [id, file] : sFileTree.registered_files) {
+      paths.push_back(file->AbsolutePath());
+    }
+
+    return paths;
+  }
+
   Ref<Directory> Filesystem::MountProjectRoot(const std::string_view name, const Path& path) {
     OE_ASSERT(sFileTree.dir == nullptr, "Project root already mounted");
     uint64_t hash = FNV(name);
@@ -328,6 +352,36 @@ namespace other {
     }
 
     OE_ERROR("Failed to find directory with id : {}", id);
+    return nullptr;
+  }
+
+  Ref<FileHandle> Filesystem::FindFileByName(const std::string_view name, Opt<std::string> ext) {
+    OE_ASSERT(instance != nullptr, "Filesystem instance is null");
+    OE_ASSERT(sFileTree.dir != nullptr, "Project root is null");
+
+    Ref<FileHandle> file = sFileTree.dir->GetFileHandleByName(name, ext);
+    if (file != nullptr) {
+      return file;
+    }
+
+    for (auto& [id, dir] : sFileTree.mounted_dirs) {
+      file = dir->GetFileHandleByName(name, ext);
+      if (file != nullptr) {
+        return file;
+      }
+    }
+
+    for (auto& [id, file] : sFileTree.registered_files) {
+      if (file->FileName() == name) {
+        if (!ext.has_value()) {
+          return file;
+        } else if (file->Extension() == ext.value()) {
+          return file;
+        }
+      }
+    }
+
+    OE_ERROR("Failed to find file : {}", name);
     return nullptr;
   }
 

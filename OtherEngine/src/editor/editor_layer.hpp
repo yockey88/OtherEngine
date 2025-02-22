@@ -8,6 +8,7 @@
 #include "core/layer.hpp"
 #include "core/scope.hpp"
 
+#include "event/core_events.hpp"
 #include "event/key_events.hpp"
 #include "event/mouse_events.hpp"
 #include "event/scene_events.hpp"
@@ -62,6 +63,8 @@ namespace other {
     bool HandleMouseHeld(MouseButtonHeld& event);
     bool HandleSceneActivate(SceneActivate& event);
     bool HandleSceneUnload(SceneUnload& event);
+
+    bool HandleFileModified(FileModified& event);
   };
 
 }  // namespace other

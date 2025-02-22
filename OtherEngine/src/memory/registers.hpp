@@ -8,9 +8,7 @@
 
 #include "core/ref.hpp"
 #include "core/value.hpp"
-
 #include "memory/memory_pool.hpp"
-
 
 namespace other {
 
@@ -30,6 +28,19 @@ namespace other {
     }
   };
 #pragma pack(pop)
+
+}  // namespace other
+
+template <>
+struct fmt::formatter<other::address_t> : public fmt::formatter<std::string_view> {
+  auto format(other::address_t address, fmt::format_context& ctx) {
+    using namespace std::string_view_literals;
+    std::string str = fmt::format("{}:{}"sv, address.segment, address.index);
+    return fmt::formatter<std::string_view>::format(str, ctx);
+  }
+};
+
+namespace other {
 
   struct ValueReference {
     ValueReference(Value& value);

@@ -33,20 +33,6 @@
   #define OE_ENGINE
 #endif
 
-#ifdef _WIN32
-  #ifdef OE_ENGINE
-    #define OE_API extern "C" __declspec(dllexport)
-  #else  // OE_ENGINE
-    #define OE_API extern "C" __declspec(dllimport)
-  #endif  // !OE_ENGINE
-#else
-  #ifdef OE_ENGINE
-    #define OE_API __attribute__((visibility("default")))
-  #else
-    #define OE_API
-  #endif  // !OE_ENGINE
-#endif    // _WIN32
-
 #ifdef OTHERENGINE_DLL
   #define CLIENT_SIDE OE_API
 #else  /// OTHERENGINE_DLL

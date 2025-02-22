@@ -73,15 +73,16 @@ namespace other {
   }
 
   char CharacterParser::update(std::istream& stream) const {
-    const char c = stream.peek();
-    if (match(c) && c != '\0') {
-      update_stream(stream);
-      return stream.get();
-    }
-
     if (stream.eof()) {
       stream.setstate(std::ios::failbit);
       return EOF;
+    }
+
+    char c = stream.peek();
+    if (match(c) && c != '\0') {
+      c = stream.get();
+      update_stream(stream);
+      return c;
     }
 
     stream.setstate(std::ios::failbit);
@@ -153,8 +154,8 @@ namespace other {
       return "";
     }
 
-    MARK_OFFSET(stream);
     std::string result;
+    MARK_OFFSET(stream);
     for (const auto& c : str) {
       if (stream.peek() == c) {
         result.push_back(stream.get());
@@ -260,16 +261,21 @@ namespace other {
     return Many<std::string>(AnyMatcher());
   }
 
+  int IsNotWhitespace(int c) {
+    return !std::isspace(c);
+  }
+
+  Ref<Parser<std::string>> MatchAnyWord() {
+    MatchFunction::matcher_fn word = &IsNotWhitespace;
+    return Many<std::string>(NewRef<MatchFunction>(word));
+  }
+
   Ref<Parser<std::string>> MatchAnyStringWithout(const std::string_view chars) {
     return Many<std::string>(ExcludeGroup(chars));
   }
 
   Ref<Parser<std::string>> MatchString(const std::string_view str) {
-    Ref<Parser<std::string>> parser = Str(Char(str[0]));
-    for (size_t i = 1; i < str.size(); ++i) {
-      parser = parser + Char(str[i]);
-    }
-    return parser;
+    return NewRef<ParseString>(str);
   }
 
   namespace {
@@ -290,8 +296,18 @@ namespace other {
     return MatchAndTrim(str) | &StripParens;
   }
 
+  namespace {
+
+    constexpr std::string_view kIdentifierGroup = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-";
+
+  }  // namespace
+
   Ref<Parser<std::string>> MatchIdentifier() {
-    return MatchAlpha() >> Many<std::string>(GroupMatcher("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-"));
+    return MatchAlpha() >> Many<std::string>(GroupMatcher(kIdentifierGroup));
+  }
+
+  Ref<Parser<std::string>> MatchIdentifierAndAllow(const std::string_view chars) {
+    return MatchAlpha() >> Many<std::string>(GroupMatcher(std::string{ kIdentifierGroup } + std::string{ chars }));
   }
 
   Ref<Parser<std::string>> MatchIdentifierAndStripParens() {
@@ -299,19 +315,59 @@ namespace other {
     return (SkipSpaces() >> id_w_parens >> Str(GroupMatcher("]})"))) | &StripParens;
   }
 
-  std::string ConcatParser::operator()(std::istream& stream) const {
+  std::string ParseStringExact::operator()(std::istream& stream) const {
+    std::string result = (*parser)(stream);
+    if (stream.fail()) {
+      throw ParsingError();
+    }
+
+    if (stream.eof() || stream.peek() == EOF) {
+      return result;
+    }
+
+    if (!std::isspace(stream.peek())) {
+      throw ParsingError();
+    }
+    stream.ignore();
+    return result;
+  }
+
+  Ref<Parser<std::string>> MatchExact(const std::string_view str) {
+    return NewRef<ParseStringExact>(str);
+  }
+
+  std::string ParseOneOf::operator()(std::istream& stream) const {
     if (stream.fail()) {
       return "";
     }
 
-    std::string result{ (*parser1)(stream) };
-    if (stream.fail()) {
+    std::string result;
+    result = (*parser)(stream);
+
+    if (std::ranges::find(strings, result) == strings.end()) {
+      throw ParsingError();
+    }
+
+    return result;
+  }
+
+  Ref<Parser<std::string>> MatchAnyStringFrom(const std::vector<std::string>& strings) {
+    return NewRef<ParseOneOf>(strings);
+  }
+
+  std::string ConcatParser::operator()(std::istream& stream) const {
+    if (stream.fail() || stream.eof()) {
       return "";
+    }
+
+    std::string result = (*parser1)(stream);
+    if (stream.fail() || result.empty()) {
+      throw ParsingError();
     }
 
     result.append((*parser2)(stream));
-    if (stream.fail()) {
-      return "";
+    if (stream.fail() || result.empty()) {
+      throw ParsingError();
     }
 
     return result;

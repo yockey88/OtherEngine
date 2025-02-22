@@ -658,4 +658,13 @@ namespace other {
     return false;
   }
 
+  bool EditorLayer::HandleFileModified(FileModified& event) {
+    OE_DEBUG("Modified file : {}", event.handle);
+    Ref<FileHandle> file = Filesystem::GetFile(event.handle);
+    OE_ASSERT(file != nullptr, "Failed to get file handle from event");
+    OE_DEBUG("  > file name : {}", file->FileName());
+
+    return false;
+  }
+
 }  // namespace other

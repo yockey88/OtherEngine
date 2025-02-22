@@ -83,14 +83,13 @@ namespace other {
       return false;
     }
 
-    PushTerminalMessage({ input, TerminalFilters::COMMAND_FILTER });
+    PushTerminalMessage({ TerminalFilter::NO_FILTER, input });
 
     std::ranges::fill(terminal.input_buffer, 0);
     return false;
   }
 
-  Environment::Environment()
-      : memory(), terminal(memory) {
+  Environment::Environment() {
     std::ranges::fill(terminal.input_buffer, '\0');
   }
 

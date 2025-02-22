@@ -33,13 +33,15 @@ local OtherTestEngine = {
 
   windows_configuration = function()
     files {
-      "./platform/windows/**.hpp",
-      "./platform/windows/**.cpp",
+      "../OtherEngine/platform/windows/**.hpp",
+      "../OtherEngine/platform/windows/**.cpp",
     }
     includedirs {
-      "./platform",
+      "../OtherEngine/platform",
     }
-    systemversion "latest"
+    buildoptions {
+      "/Zm10",
+    }
   end,
 
   custom_configurations = function()

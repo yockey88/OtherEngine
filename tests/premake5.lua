@@ -174,6 +174,7 @@ local unit_tests = {
       ".",
     }
     externalincludedirs {
+      "%{wks.location}/OtherEngine/src",
       "%{wks.location}/DotOther/NetCore",
       "%{wks.location}/externals/gtest/googlemock/include"
     }
@@ -223,7 +224,6 @@ local unit_tests = {
   end,
 
   components = {
-    ["OtherEngine"] = "%{wks.location}/OtherEngine/src",
     ["OtherTestEngine"] = "%{wks.location}/OtherTestEngine/src",
     ["gtest"] = "%{wks.location}/externals/gtest/googletest/include",
   }
@@ -242,6 +242,7 @@ local default_sim_testing_table = {
       "."
     }
     externalincludedirs {
+      --- have to include this cause we are linking to the test engine not the main engine
       "%{wks.location}/OtherEngine/src",
       "%{wks.location}/DotOther/NetCore",
       "%{wks.location}/externals/gtest/googlemock/include"

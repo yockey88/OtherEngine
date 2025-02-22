@@ -35,6 +35,8 @@ namespace other {
 
     operator Path() const;
 
+    static std::vector<std::string> SplitPath(const std::string_view path);
+
     std::string Name() const;
 
     void Poll();
@@ -47,6 +49,8 @@ namespace other {
     Ref<FileHandle> AddFile(const std::string_view path);
     bool RemoveFile(UUID handle);
     bool RemoveChildDirectory(UUID handle);
+
+    Ref<Directory> GetChildDirectory(const std::string_view name);
 
     Ref<FileHandle> GetFile(const Path& path);
     Ref<FileHandle> GetFile(UUID handle);

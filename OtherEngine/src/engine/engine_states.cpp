@@ -20,7 +20,6 @@
 #include "editor/editor_sink.hpp"
 #include "editor/editor_states.hpp"
 
-
 #ifdef OE_TESTING_ENVIRONMENT
   #include "testing_core/test_engine_states.hpp"
 #endif  // OE_TESTING_ENVIRONMENT
@@ -32,34 +31,6 @@ namespace other {
       EventQueue::PushEvent<ShutdownEvent>({ ExitCode::SUCCESS });
       return false;
     }
-
-    bool HandleDeleteFile(DeleteFileEvent& event) {
-      OE_DEBUG("Deleting file : {}", event.handle);
-      if (!Filesystem::RemoveFile(event.handle)) {
-        OE_ERROR("Failed to delete file : {}", event.handle);
-        return false;
-      }
-      return true;
-    }
-
-    bool HandleCreateFile(CreateFileEvent& event) {
-      // Ref<Directory> dir = Filesystem::GetDirectory(event.handle);
-      // if (dir == nullptr) {
-      //   OE_ERROR("Failed to get directory to handle file creation : {}", event.handle);
-      //   return false;
-      // }
-
-      // dir->Update();
-      return true;
-    }
-
-    // bool HandleKeyPress(KeyPressed& event) {
-    //   /// TODO: remove this, just for fast development iteration
-    //   return HandleKeyEvent(event, Keyboard::Key::OE_ESCAPE, [&]() -> bool {
-    //     EventQueue::PushEvent<ShutdownEvent>({ ExitCode::SUCCESS });
-    //     return true;
-    //   });
-    // }
 
   }  // anonymous namespace
 
@@ -193,20 +164,7 @@ namespace other {
     return nullptr;
   }
 
-  /// FIXME: dont go right to app attached
-  void EngineIdle::OnAttach() {
-    EventQueue::RegisterEventDispatcher<CreateFileEvent>(
-      "Other-Engine--CreateFile",
-      { &HandleCreateFile }
-    );
-
-    EventQueue::RegisterEventDispatcher<DeleteFileEvent>(
-      "Other-Engine--DeleteFile",
-      { &HandleDeleteFile }
-    );
-    /// TODO:
-    // register event to listen for attached application
-  }
+  void EngineIdle::OnAttach() {}
 
   void EngineIdle::OnStep() {
     PROFILE_SECTION("EngineIdle--OnStep");

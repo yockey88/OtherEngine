@@ -119,7 +119,7 @@ namespace other {
       return;
     }
 
-    EventQueue::PushEvent<ModifyFileEvent>({ handle.Get() });
+    EventQueue::PushEvent<FileModified>({ handle.Get() });
   }
 
   std::string FileHandle::Extension() const {

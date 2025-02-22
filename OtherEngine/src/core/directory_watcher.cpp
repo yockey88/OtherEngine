@@ -39,7 +39,7 @@ namespace other {
     num_files_last_check = new_num;
 
     if (add_file) {
-      EventQueue::PushEvent<CreateFileEvent>({ handle.Get() });
+      EventQueue::PushEvent<FileCreated>({ handle.Get() });
     }
   }
 

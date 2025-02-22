@@ -8,35 +8,35 @@
 #include <optional>
 #include <string_view>
 
+#include <coreclr_delegates.h>
 #include <magic_enum/magic_enum.hpp>
 #include <spdlog/fmt/fmt.h>
 
-#include <coreclr_delegates.h>
 
 #ifdef _WIN32
-#define DOTOTHER_WINDOWS
+  #define DOTOTHER_WINDOWS
 #else
-#define DOTOTHER_LINUX
+  #define DOTOTHER_LINUX
 #endif
 
 #ifdef DOTOTHER_WINDOWS
-#include <ShlObj_core.h>
-#include <Windows.h>
-#define DOTOTHER_CALLTYPE __cdecl
-#define DOTOTHER_HOSTFXR_NAME "hostfxr.dll"
+  #include <ShlObj_core.h>
+  #include <Windows.h>
+  #define DOTOTHER_CALLTYPE __cdecl
+  #define DOTOTHER_HOSTFXR_NAME "hostfxr.dll"
 
-#ifdef _WCHAR_T_DEFINED
-#define DOTOTHER_WIDE_CHARS
-#define DO_STR(s) L##s
-#else
-#define DO_STR(s) s
-#endif  // _WCHAR_T_DEFINED
+  #ifdef _WCHAR_T_DEFINED
+    #define DOTOTHER_WIDE_CHARS
+    #define DO_STR(s) L##s
+  #else
+    #define DO_STR(s) s
+  #endif  // _WCHAR_T_DEFINED
 #endif
 
 #ifdef DOTOTHER_LINUX
-#define DOTOTHER_CALLTYPE
-#define DODOTOTHER_STR(s) s
-#define DO_HOSTFXR_NAME "libhostfxr.so"
+  #define DOTOTHER_CALLTYPE
+  #define DODOTOTHER_STR(s) s
+  #define DO_HOSTFXR_NAME "libhostfxr.so"
 #endif
 
 #define DOTOTHER_DOTNET_TARGET_VERSION_MAJOR 8
@@ -86,17 +86,16 @@ namespace dotother {
 
   }  // namespace literals
 
-  enum class
-    MessageLevel {
-      TRACE = 0,
-      DEBUG = 1,
-      INFO = 2,
-      WARNING = 3,
-      ERR = 4,
-      CRITICAL = 5,
+  enum class MessageLevel {
+    TRACE = 0,
+    DEBUG = 1,
+    INFO = 2,
+    WARNING = 3,
+    ERR = 4,
+    CRITICAL = 5,
 
-      MESSAGE = 6,
-    };
+    MESSAGE = 6,
+  };
 
   enum class ManagedType {
     UNKNOWN,

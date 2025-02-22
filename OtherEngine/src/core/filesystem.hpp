@@ -13,11 +13,9 @@
 #include "core/directory.hpp"
 #include "core/file_handle.hpp"
 #include "core/ref.hpp"
-
-#include "parsing/cmd_line_parser.hpp"
-
 #include "memory/arena_allocator.hpp"
 
+#include "parsing/cmd_line_parser.hpp"
 
 namespace other {
 
@@ -38,6 +36,9 @@ namespace other {
     static bool RemoveFile(UUID handle);
     static bool RemoveDirectory(UUID handle);
 
+    static std::vector<Path> MountedDirectories();
+    static std::vector<Path> MountedFiles();
+
     static Ref<Directory> MountProjectRoot(const std::string_view name, const Path& path);
     static Ref<Directory> MountDirectory(const std::string_view name, const Path& path);
     static Ref<FileHandle> RegisterFile(const Path& path);
@@ -50,6 +51,7 @@ namespace other {
     static Ref<Directory> GetDirectory(const std::string_view name);
     static Ref<Directory> GetDirectory(UUID id);
 
+    static Ref<FileHandle> FindFileByName(const std::string_view name, Opt<std::string> ext = std::nullopt);
     static Ref<FileHandle> GetFile(const Path& path);
     static Ref<FileHandle> GetFile(UUID id);
 

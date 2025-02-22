@@ -8,14 +8,16 @@
 
 #include <imgui/imgui.h>
 
-#include "editor/editor_sink.hpp"
 #include "environment/environment.hpp"
+#include "environment/terminal.hpp"
 
 #include "event/event_queue.hpp"
 #include "input/keyboard.hpp"
 
 #include "rendering/renderer.hpp"
 #include "rendering/ui/ui_helpers.hpp"
+
+#include "editor/editor_sink.hpp"
 
 namespace other {
 
@@ -95,10 +97,10 @@ namespace other {
     {
       const ImVec2 button_sz{ tool_bar_h, tool_bar_h };
 
-      bool debug_filter = active_filters & ValOf(DEBUG_FILTER);
-      bool info_filter = active_filters & ValOf(INFO_FILTER);
-      bool warning_filter = active_filters & ValOf(WARNING_FILTER);
-      bool error_filter = active_filters & ValOf(ERR_FILTER);
+      bool debug_filter = active_filters & ValOf(TerminalFilter::DEBUG_FILTER);
+      bool info_filter = active_filters & ValOf(TerminalFilter::INFO_FILTER);
+      bool warning_filter = active_filters & ValOf(TerminalFilter::WARNING_FILTER);
+      bool error_filter = active_filters & ValOf(TerminalFilter::ERROR_FILTER);
 
       ImGui::SameLine(ImGui::GetContentRegionAvail().x - 100.f, 0.f);
       text_col = debug_filter ?
@@ -106,7 +108,7 @@ namespace other {
         style.Colors[ImGuiCol_TextDisabled];
       /// circle icon in fontawesome-webfont.ttf = u8"\uf05a"
       if (ui::ColoredButton("o", GetToolbarButtonColor(debug_filter), text_col, button_sz)) {
-        active_filters ^= ValOf(DEBUG_FILTER);
+        active_filters ^= ValOf(TerminalFilter::DEBUG_FILTER);
       }
 
       ImGui::SameLine();
@@ -115,7 +117,7 @@ namespace other {
         style.Colors[ImGuiCol_TextDisabled];
       /// exlamation icon in fontawesome-webfont.ttf = ???
       if (ui::ColoredButton("i", GetToolbarButtonColor(info_filter), text_col, button_sz)) {
-        active_filters ^= ValOf(INFO_FILTER);
+        active_filters ^= ValOf(TerminalFilter::INFO_FILTER);
       }
 
       ImGui::SameLine();
@@ -124,7 +126,7 @@ namespace other {
         style.Colors[ImGuiCol_TextDisabled];
       /// triangle exclamation icon in fontawesome-webfont.ttf = u8"\uf071"
       if (ui::ColoredButton("!", GetToolbarButtonColor(warning_filter), text_col, button_sz)) {
-        active_filters ^= ValOf(WARNING_FILTER);
+        active_filters ^= ValOf(TerminalFilter::WARNING_FILTER);
       }
 
       ImGui::SameLine();
@@ -133,7 +135,7 @@ namespace other {
         style.Colors[ImGuiCol_TextDisabled];
       /// circle exclamation icon in fontawesome-webfont.ttf = u8"\uf06a"
       if (ui::ColoredButton("x", GetToolbarButtonColor(error_filter), text_col, button_sz)) {
-        active_filters ^= ValOf(ERR_FILTER);
+        active_filters ^= ValOf(TerminalFilter::ERROR_FILTER);
       }
     }
 
@@ -236,7 +238,7 @@ namespace other {
     if (msg.filters & ValOf(WARNING_FILTER)) {
       return kWarningTint;
     }
-    if (msg.filters & ValOf(ERR_FILTER)) {
+    if (msg.filters & ValOf(ERROR_FILTER)) {
       return kErrorTint;
     }
     return kDebugTint;
@@ -252,7 +254,7 @@ namespace other {
     if (msg.filters & ValOf(WARNING_FILTER)) {
       return "Warning";
     }
-    if (msg.filters & ValOf(ERR_FILTER)) {
+    if (msg.filters & ValOf(ERROR_FILTER)) {
       return "Error";
     }
     return "Unknown Message Type";

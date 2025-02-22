@@ -6,11 +6,13 @@
 
 #include <imgui/imgui.h>
 
-#include "editor/editor_panel.hpp"
-#include "editor/editor_sink.hpp"
 #include "environment/terminal.hpp"
 
 #include "event/key_events.hpp"
+
+#include "editor/editor_panel.hpp"
+#include "editor/editor_sink.hpp"
+
 
 namespace other {
 
@@ -30,7 +32,7 @@ namespace other {
     static void PushMessage(const ConsoleMessage& message);
 
    private:
-    uint32_t active_filters = ValOf(ALL);
+    uint32_t active_filters = ValOf(TerminalFilter::TERMINAL_FILTER_ALL);
 
     bool scroll_to_latest = true;
     float previous_scroll_h = 0.f;

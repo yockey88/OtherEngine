@@ -30,7 +30,7 @@ namespace other {
 
     if (exists && !std::filesystem::exists(file_path)) {
       exists = false;
-      EventQueue::PushEvent<DeleteFileEvent>({ handle.Get() });
+      EventQueue::PushEvent<FileDeleted>({ handle.Get() });
       return false;
     }
 

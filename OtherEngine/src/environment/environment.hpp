@@ -4,8 +4,6 @@
 #ifndef OTHER_ENGINE_ENVIRONMENT_HPP
 #define OTHER_ENGINE_ENVIRONMENT_HPP
 
-#include "environment/env_defines.hpp"
-#include "environment/memory.hpp"
 #include "environment/terminal.hpp"
 
 #include "event/key_events.hpp"
@@ -13,7 +11,6 @@
 namespace other {
 
   struct Environment {
-    Memory memory;
     Terminal terminal;
 
     bool terminal_open = false;
