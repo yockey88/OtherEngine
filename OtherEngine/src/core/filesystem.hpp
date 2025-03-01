@@ -32,9 +32,12 @@ namespace other {
     static bool FileExists(const Path& path);
     static bool PathExists(const Path& path);
     static bool IsDirectory(const Path& path);
+    static bool IsMounted(const Path& path);
     static bool CreateDir(const Path& path);
     static bool RemoveFile(UUID handle);
     static bool RemoveDirectory(UUID handle);
+
+    static UUID GetPathHandle(const Path& path);
 
     static std::vector<Path> MountedDirectories();
     static std::vector<Path> MountedFiles();

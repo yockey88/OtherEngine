@@ -12,6 +12,8 @@
 #include "event/event_queue.hpp"
 #include "event/scene_events.hpp"
 
+#include "rendering/renderer.hpp"
+
 #include "editor/editor_layer.hpp"
 
 namespace other {
@@ -100,6 +102,12 @@ namespace other {
 
   void EditingScene::OnStep() {
     PROFILE_SECTION("EditingScene--OnStep");
+
+    bool should_poll = Renderer::IsWindowFocused();
+    if (should_poll) {
+      Filesystem::Poll();
+    }
+
     AppState::FlushUpdateLoop();
     AppState::HandleRender();
   }

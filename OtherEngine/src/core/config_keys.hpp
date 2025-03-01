@@ -69,7 +69,7 @@ namespace other {
   constexpr static std::string_view kScriptBinDirValue = "SCRIPT-BIN-DIR";
   constexpr static uint64_t kScriptBinDirValueHash = FNV(kScriptBinDirValue);
 
-  constexpr static std::string_view kLuaDirValue = "LUA-DIRECTORY";
+  constexpr static std::string_view kLuaDirValue = "LUA-DIR";
   constexpr static uint64_t kLuaDirValueHash = FNV(kLuaDirValue);
 
   constexpr static std::string_view kDebugValue = "DEBUG";

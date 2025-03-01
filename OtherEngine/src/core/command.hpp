@@ -62,7 +62,8 @@ namespace other {
   enum FileCommands : uint8_t {
     LS_CMD = 0x01,
     PWD_CMD = 0x02,
-    SOURCE_CMD = 0x03
+    SOURCE_CMD = 0x03,
+    MOUNT_CMD = 0x04,
   };
 
   enum ModuleCommands : uint8_t {
@@ -100,6 +101,7 @@ namespace other {
     LS_OP = COMMAND(FILE_CMD, LS_CMD),
     PWD_OP = COMMAND(FILE_CMD, PWD_CMD),
     SOURCE_OP = COMMAND(FILE_CMD, SOURCE_CMD),
+    MOUNT_OP = COMMAND(FILE_CMD, MOUNT_CMD),
 
     /// module commands
     LOAD_OP = COMMAND(MODULE_CMD, LOAD_CMD),
@@ -158,6 +160,7 @@ namespace other {
     OtherCommand{ OpCode::LS_OP, "ls", 0, "Lists the mounted directories", "directory" },
     OtherCommand{ OpCode::PWD_OP, "pwd", 0, "Print the current working directory", "" },
     OtherCommand{ OpCode::SOURCE_OP, "source", 1, "Source a file", "file" },
+    OtherCommand{ OpCode::MOUNT_OP, "mount", 1, "Mount a directory", "directory" },
 
     /// module commands
     OtherCommand{ OpCode::LOAD_OP, "load", 1, "Load a module", "module" },

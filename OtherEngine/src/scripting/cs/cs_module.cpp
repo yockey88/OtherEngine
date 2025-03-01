@@ -11,6 +11,9 @@
 
 #include "core/defines.hpp"
 #include "core/filesystem.hpp"
+#include "core/platform.hpp"
+
+#include "application/app_state.hpp"
 
 #include "scripting/cs/cs_script.hpp"
 
@@ -240,32 +243,32 @@ namespace other {
   }
 
   void CsModule::Reload() {
-    // auto proj = AppState::ProjectContext();
-    // auto script_file = proj->GetMetadata().cs_project_file;
+    auto proj = AppState::ProjectContext();
+    auto script_file = proj->GetMetadata().cs_project_file;
 
-    // for (auto& [id, module] : loaded_modules) {
-    //   module->Shutdown();
-    //   delete module;
-    // }
-    // loaded_modules.clear();
+    for (auto& [id, module] : loaded_modules) {
+      module->Shutdown();
+      module = nullptr;
+    }
+    loaded_modules.clear();
 
-    // OE_DEBUG("Kicking off build for scripts {}" , script_file);
+    OE_DEBUG("Kicking off build for scripts {}", script_file);
 
-    // if (!PlatformLayer::BuildProject(script_file)) {
-    //   OE_ERROR("Failed to rebuild project scripts");
-    // }
+    if (!PlatformLayer::BuildProject(script_file)) {
+      OE_ERROR("Failed to rebuild project scripts");
+    }
 
-    // auto editor_file = proj->GetMetadata().cs_editor_project_file;
+    auto editor_file = proj->GetMetadata().cs_editor_project_file;
 
-    // OE_DEBUG("Kicking off build for scripts {}" , editor_file);
+    OE_DEBUG("Kicking off build for scripts {}", editor_file);
 
-    // if (!PlatformLayer::BuildProject(editor_file)) {
-    //   OE_ERROR("Failed to rebuild editor scripts");
-    // }
+    if (!PlatformLayer::BuildProject(editor_file)) {
+      OE_ERROR("Failed to rebuild editor scripts");
+    }
 
-    // for (const auto& [id , module_info] : loaded_modules_data) {
-    //   LoadScript(module_info);
-    // }
+    for (const auto& [id, module_info] : loaded_modules_data) {
+      LoadScriptModule(module_info);
+    }
   }
 
   Ref<ScriptModule> CsModule::GetScriptModule(const std::string_view name) {

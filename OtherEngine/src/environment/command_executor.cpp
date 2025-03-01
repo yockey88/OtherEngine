@@ -131,6 +131,10 @@ namespace other {
         HandleSource();
         break;
 
+      case MOUNT_CMD:
+        HandleMount();
+        break;
+
       default:
         PushErrorMessage(fmtstr("Invalid file command : {}", value));
         break;
@@ -236,12 +240,21 @@ namespace other {
 
     terminal->PushMessage({ TerminalFilter::INFO_FILTER, "Mounted Directories : " }, false);
     for (const auto& dir : dirs) {
-      terminal->PushMessage({ TerminalFilter::INFO_FILTER, fmtstr("  - {}", dir.string()) }, false);
+      terminal->PushMessage({ TerminalFilter::DEBUG_FILTER, fmtstr("  - {}", dir.string()) }, false);
     }
 
-    terminal->PushMessage({ TerminalFilter::INFO_FILTER, "Mounted Files : " }, false);
-    for (const auto& file : files) {
-      terminal->PushMessage({ TerminalFilter::INFO_FILTER, fmtstr("  - {}", file.string()) }, false);
+    terminal->PushMessage({ TerminalFilter::INFO_FILTER, "cwd :" }, false);
+
+    using namespace std::string_literals;
+    try {
+      for (auto& entry : std::filesystem::directory_iterator(std::filesystem::current_path())) {
+        std::string msg_str = " - "s + (entry.is_directory() ? "./" : "") + entry.path().string();
+        terminal->PushMessage({ TerminalFilter::DEBUG_FILTER, msg_str }, false);
+      }
+    } catch (std::filesystem::filesystem_error& e) {
+      terminal->PushMessage({ TerminalFilter::ERROR_FILTER, fmtstr("Failed to list files in current directory : {}", e.what()) }, false);
+    } catch (...) {
+      terminal->PushMessage({ TerminalFilter::ERROR_FILTER, "Unknown filesystem error" }, false);
     }
   }
 
@@ -262,6 +275,44 @@ namespace other {
     }
 
     terminal->SourceFile(source);
+  }
+
+  void CommandExecutor::HandleMount() {
+    std::string source = GetArgument<std::string>();
+    if (source.empty()) {
+      terminal->PushMessage({ TerminalFilter::ERROR_FILTER, "mount source argument is empty" });
+      return;
+    }
+
+    Path path{ source };
+    if (!std::filesystem::exists(path)) {
+      Ref<Directory> project_root = Filesystem::GetDirectory("project-root");
+      OE_ASSERT(project_root != nullptr, "Failed to get project root directory");
+
+      path = project_root->AbsolutePath() / path;
+      if (!std::filesystem::exists(path)) {
+        terminal->PushMessage({ TerminalFilter::ERROR_FILTER, fmtstr("  > '{}' does not exist!", path) });
+        return;
+      }
+    }
+
+    if (!Filesystem::IsDirectory(path)) {
+      terminal->PushMessage({ TerminalFilter::WARNING_FILTER, fmtstr(" > '{}' is not a directory", path) });
+      return;
+    }
+
+    if (Filesystem::IsMounted(path)) {
+      terminal->PushMessage({ TerminalFilter::WARNING_FILTER, fmtstr(" > '{}' is already mounted", path) });
+      return;
+    }
+
+    Ref<Directory> dir = Filesystem::MountDirectory(path.filename().string(), path);
+    if (dir == nullptr) {
+      terminal->PushMessage({ TerminalFilter::ERROR_FILTER, fmtstr("Failed to mount directory : '{}'", path) });
+      return;
+    }
+
+    terminal->PushMessage({ TerminalFilter::INFO_FILTER, fmtstr("Mounted directory : '{}'", path) });
   }
 
   void CommandExecutor::HandleLoad() {

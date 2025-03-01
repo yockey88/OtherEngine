@@ -85,6 +85,7 @@ namespace other {
     static std::string GetProjectAssemblyDir();
 
     static void ReloadAllScripts();
+    static void ReloadScripts(LanguageModuleType type);
 
     static Ref<LanguageModule> GetModule(LanguageModuleType type);
 
@@ -136,12 +137,19 @@ namespace other {
       return Ref<LanguageModule>::Cast<T>(language_modules[type].module);
     }
 
+    static LanguageModuleType ModuleTypeFromExtension(const std::string_view extension);
+
    private:
     static ConfigTable config;
 
     static Ref<Scene> scene_context;
 
     static std::vector<ScriptObjectTag> object_tags;
+
+    /// currently this seems strange since we could index with the enum, but this is to allow for
+    ///       aribitrary, custom language modules to be loaded, eventually (with OtherEnvironment) the engine
+    ///       will simply be a bunch of api binding points which should be interfaceable with any language with a language
+    ///       module implementation that can be loaded dynamically
     static std::map<UUID, LanguageModuleMetadata> language_modules;
     static std::map<UUID, Ref<ScriptModule>> loaded_modules;
     static std::map<UUID, Ref<ScriptObject>> objects;
@@ -156,7 +164,6 @@ namespace other {
     static void LoadScripts();
     static void LoadScriptFile(ScriptType type, const Ref<FileHandle>& path);
 
-    static LanguageModuleType ModuleTypeFromExtension(const std::string_view extension);
     static void LoadScriptModule(Path& module_path);
 
     static Script CollectObjects(const ConfigTable& table, const std::vector<std::string>& objects, const std::string_view section);

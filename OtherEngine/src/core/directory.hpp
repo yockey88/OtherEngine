@@ -68,8 +68,8 @@ namespace other {
     Ref<DirectoryWatcher> watcher = nullptr;
     Path proj_relative_path;
 
-    void Initialize(bool create_dir_handles);
-    void CollectChildren(bool create_dir_handles);
+    void Initialize();
+    void CollectChildren();
   };
 
 }  // namespace other

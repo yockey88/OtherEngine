@@ -31,6 +31,7 @@ namespace other {
     for (auto& cmd : kAvailableCommands) {
       if (cmd.hash == name_hash) {
         opcode = cmd.opcode;
+        break;
       }
     }
 

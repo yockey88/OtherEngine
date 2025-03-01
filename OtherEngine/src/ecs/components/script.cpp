@@ -182,22 +182,22 @@ namespace other {
     bool handle_match = false;
     handle_match = script_object->GetProperty<void*>("NativeHandle") == (void*)parent_handle;
 
-    bool eid_match = script_object->GetProperty<uint32_t>("EntityID") == (uint32_t)parent_id;
+    // bool eid_match = script_object->GetProperty<uint32_t>("EntityID") == (uint32_t)parent_id;
     bool oid_match = script_object->GetProperty<uint64_t>("ObjectID") == parent_uuid.Get();
 
     if (!handle_match) {
       OE_ERROR("NativeHandle mismatch for script {} [{:p} != {:p}]", script_object->Name(), script_object->GetProperty<void*>("NativeHandle"), (void*)parent_handle);
     }
 
-    if (!eid_match) {
-      OE_ERROR("EntityID mismatch for script {} [{} != {}]", script_object->Name(), script_object->GetProperty<uint32_t>("EntityID"), (uint32_t)parent_id);
-    }
+    // if (!eid_match) {
+    //   OE_ERROR("EntityID mismatch for script {} [{} != {}]", script_object->Name(), script_object->GetProperty<uint32_t>("EntityID"), (uint32_t)parent_id);
+    // }
 
     if (!oid_match) {
       OE_ERROR("ObjectID mismatch for script {} [{} != {}]", script_object->Name(), script_object->GetProperty<uint64_t>("ObjectID"), parent_uuid.Get());
     }
 
-    return handle_match && eid_match && oid_match;
+    return handle_match && oid_match;  // && eid_match
   }
 
   void Script::SetHandles() {

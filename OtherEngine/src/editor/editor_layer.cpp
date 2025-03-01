@@ -27,6 +27,8 @@
 #include "rendering/renderer.hpp"
 #include "rendering/shader.hpp"
 #include "rendering/ui/ui_helpers.hpp"
+#include "scripting/script_defines.hpp"
+#include "scripting/script_engine.hpp"
 
 #include "editor/editor_images.hpp"
 #include "editor/editor_state.hpp"
@@ -114,6 +116,10 @@ namespace other {
     EventQueue::RegisterEventDispatcher<SceneUnload>(
       "EditorLayer--SceneUnload",
       { std::bind_front(&EditorLayer::HandleSceneUnload, this) }
+    );
+    EventQueue::RegisterEventDispatcher<FileModified>(
+      "EditorLayer--FileModified",
+      { std::bind_front(&EditorLayer::HandleFileModified, this) }
     );
 
     // load editor icons and data
@@ -308,7 +314,7 @@ namespace other {
       ui::Menu(
         "Tools",
         ui::MenuItem{ "Pipeline Creator"sv, [&]() { editor.panel_creator_id = panel_manager->AddPanel("Pipeline-Creator", NewRef<PipelineCreator>()); } },
-        ui::MenuItem{ "File Editor"sv, [&]() { editor.panel_creator_id = panel_manager->AddPanel("Shader-Creator", NewRef<FileEditor>()); } },
+        ui::MenuItem{ "File Editor"sv, [&]() { editor.panel_creator_id = panel_manager->AddPanel("File-Editor", NewRef<FileEditor>()); } },
         ui::MenuItem{ "Renderpass Creator"sv, [&]() { editor.panel_creator_id = panel_manager->AddPanel("Renderpass-Creator", NewRef<RenderpassCreator>()); } },
         ui::MenuItem{ "Shader Creator"sv, [&]() { editor.panel_creator_id = panel_manager->AddPanel("Shader-Creator", NewRef<ShaderCreator>()); } },
         ui::MenuItem{ "Framebuffer Creator"sv , [&]() { editor.panel_creator_id = panel_manager->AddPanel("Framebuffer-Creator", NewRef<FramebufferEditor>()); } }
@@ -661,8 +667,25 @@ namespace other {
   bool EditorLayer::HandleFileModified(FileModified& event) {
     OE_DEBUG("Modified file : {}", event.handle);
     Ref<FileHandle> file = Filesystem::GetFile(event.handle);
-    OE_ASSERT(file != nullptr, "Failed to get file handle from event");
-    OE_DEBUG("  > file name : {}", file->FileName());
+    OE_ASSERT(file != nullptr, "Failed to get file handle for modified file");
+
+    if (file->GetAssetType() == AssetType::GENERIC_FILE) {
+      return false;
+    }
+
+    switch (file->GetAssetType()) {
+      case AssetType::SHADER:
+        /// recompile shader
+        break;
+
+      case AssetType::SCRIPT: {
+        LanguageModuleType mod_type = ScriptEngine::ModuleTypeFromExtension(file->Extension());
+        ScriptEngine::ReloadScripts(mod_type);
+      } break;
+
+      default:
+        break;
+    }
 
     return false;
   }

@@ -152,7 +152,7 @@ namespace other {
   }
 
   bool Window::HasFocus() {
-    return (SDL_GetWindowFlags(context.window) & SDL_WINDOW_INPUT_FOCUS) != 0;
+    return (SDL_GetWindowFlags(context.window) & SDL_WINDOW_INPUT_FOCUS);
   }
 
   void Window::Clear() const {

@@ -28,14 +28,7 @@ namespace other {
     std::string scripts_dir = config.GetVal<std::string>(kProjectSection, kScriptsDirValue, false).value_or(std::string{ kScriptsDirName });
     std::string shaders_dir = config.GetVal<std::string>(kProjectSection, kShadersDirValue, false).value_or(std::string{ kShadersDirName });
 
-    metadata.editor_dir = metadata.project_directory / editor_dir;
-    metadata.materials_dir = metadata.project_directory / materials_dir;
-    metadata.scenes_dir = metadata.project_directory / scenes_dir;
-    metadata.scripts_dir = metadata.project_directory / scripts_dir;
-    metadata.shaders_dir = metadata.project_directory / shaders_dir;
-
     OE_DEBUG("Project Name : {}", metadata.name);
-    OE_DEBUG("Bin Dir : {}", metadata.bin_dir);
 
     auto script_bin = config.GetVal<std::string>(kProjectSection, kScriptBinDirValue, false);
     if (script_bin.has_value()) {
@@ -45,6 +38,15 @@ namespace other {
     auto proj_path = cmdline.GetArg("--project").value_or(Arg{});
     if (proj_path.hash != 0 && proj_path.args.size() > 0) {
       metadata.file_path = Path(proj_path.args[0]);
+    }
+
+    auto cs_dir = cmdline.GetArg("--cs").value_or(Arg{});
+    if (cs_dir.hash != 0 && cs_dir.args.size() > 0) {
+      metadata.cs_dir = Path(cs_dir.args[0]);
+    } else {
+      std::string default_csproj_name = metadata.name + "_scripts";
+      std::string cs_dir = config.GetVal<std::string>(kProjectSection, kScriptsDirValue, false).value_or(default_csproj_name);
+      metadata.cs_dir = metadata.project_directory / cs_dir;
     }
 
     auto project_dir = cmdline.GetArg("--cwd").value_or(Arg{});
@@ -68,6 +70,24 @@ namespace other {
       } else if (p.extension() == ".csproj") {
         metadata.cs_project_file = p;
       }
+    }
+
+    metadata.editor_dir = metadata.project_directory / editor_dir;
+    metadata.materials_dir = metadata.project_directory / materials_dir;
+    metadata.scenes_dir = metadata.project_directory / scenes_dir;
+    metadata.shaders_dir = metadata.project_directory / shaders_dir;
+
+    {
+      std::stringstream ss;
+      ss << "\nProject Name : " << metadata.name << "\n"
+         << " > C# Directory : " << metadata.cs_dir << "\n"
+         << "----------------------------------" << "\n"
+         << "  - Bin Dir : " << metadata.bin_dir << "\n"
+         << "  - Assets Dir : " << metadata.assets_dir << "\n"
+         << "  - Materials Dir : " << metadata.materials_dir << "\n"
+         << "  - Scenes Dir : " << metadata.scenes_dir << "\n"
+         << "  - Shaders Dir : " << metadata.shaders_dir << "\n";
+      OE_DEBUG(ss.str());
     }
 
     InitializeVirtualFolders();
@@ -114,6 +134,7 @@ namespace other {
         OE_ERROR("Failed to mount project directory : {}", metadata.project_directory);
       }
     }
+    MountDirectory("scripts", metadata.cs_dir);
 
     MountDirectory("bin", metadata.project_directory / metadata.bin_dir);
     MountDirectory("assets", metadata.assets_dir);
@@ -135,7 +156,6 @@ namespace other {
 
     MountDirectory("materials", metadata.materials_dir);
     MountDirectory("scenes", metadata.scenes_dir);
-    MountDirectory("scripts", metadata.scripts_dir);
     MountDirectory("shaders", metadata.shaders_dir);
   }
 

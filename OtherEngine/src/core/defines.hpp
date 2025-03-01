@@ -169,6 +169,8 @@ namespace other {
       return ValueType::MAT3;
     } else if constexpr (std::is_same_v<T, glm::mat4>) {
       return ValueType::MAT4;
+    } else if constexpr (std::is_same_v<T, std::string> || std::is_same_v<T, std::string_view>) {
+      return ValueType::STRING;
     } else {
       return ValueType::EMPTY_TYPE;
     }

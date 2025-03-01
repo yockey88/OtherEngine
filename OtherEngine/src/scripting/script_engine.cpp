@@ -249,6 +249,21 @@ namespace other {
     }
   }
 
+  void ScriptEngine::ReloadScripts(LanguageModuleType type) {
+    if (type >= LanguageModuleType::INVALID_LANGUAGE_MODULE) {
+      OE_ERROR("ScriptEngine::ReloadScripts({}) -> invalid language module type", type);
+      return;
+    }
+
+    auto itr = language_modules.find(type);
+    if (itr == language_modules.end()) {
+      OE_ERROR("ScriptEngine::ReloadScripts({}) -> language module not found", type);
+      return;
+    }
+
+    itr->second.module->Reload();
+  }
+
   Ref<LanguageModule> ScriptEngine::GetModule(LanguageModuleType type) {
     if (type >= LanguageModuleType::INVALID_LANGUAGE_MODULE) {
       return nullptr;

@@ -40,6 +40,7 @@ namespace other {
     void HandleLs();
     void HandlePwd();
     void HandleSource();
+    void HandleMount();
 
     void HandleLoad();
 

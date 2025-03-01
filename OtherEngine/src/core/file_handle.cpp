@@ -8,6 +8,9 @@
 #include <cstring>
 #include <filesystem>
 
+#include "core/defines.hpp"
+#include "core/filesystem.hpp"
+
 #include "asset/asset_database.hpp"
 #include "asset/asset_manager.hpp"
 #include "event/core_events.hpp"
@@ -17,7 +20,7 @@ namespace other {
 
   FileHandle::FileHandle(const Path& path, Opt<std::ios_base::openmode> m) {
     project_relative_path = path;
-    handle = FNV(AbsolutePath().string());
+    handle = Filesystem::GetPathHandle(path);
 
     if (!Exists() && m.has_value() && (*m & std::ios_base::out)) {
       std::ofstream file(AbsolutePath());

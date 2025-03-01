@@ -150,6 +150,20 @@ namespace other {
     }
   }
 
+  bool Filesystem::IsMounted(const Path& path) {
+    if (!PathExists(path)) {
+      return false;
+    }
+
+    for (auto& [id, dir] : sFileTree.mounted_dirs) {
+      if (dir->AbsolutePath() == path || dir->ProjectRelativePath() == path) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   bool Filesystem::CreateDir(const Path& path) {
     if (PathExists(path)) {
       return true;
@@ -218,6 +232,12 @@ namespace other {
     //   return false;
     // }
     return false;
+  }
+
+  UUID Filesystem::GetPathHandle(const Path& path) {
+    auto abs_path = std::filesystem::absolute(path);
+    OE_TRACE(" > [Filesystem::Hash({})] : {}", abs_path, FNV(abs_path.string()));
+    return FNV(abs_path.string());
   }
 
   Ref<Directory> Filesystem::MountDirectory(const std::string_view name, const Path& path) {
@@ -421,16 +441,17 @@ namespace other {
   }
 
   Ref<FileHandle> Filesystem::GetFile(UUID file_id) {
-    OE_DEBUG("Searching for file with id : {}", file_id);
-    for (auto& [id, dir] : sFileTree.mounted_dirs) {
-      if (dir->Contains(file_id)) {
-        return dir->OpenFile(file_id);
-      }
-    }
-
+    OE_TRACE("Searching for file with id : {}", file_id);
     auto find_file = sFileTree.registered_files.find(file_id);
     if (find_file != sFileTree.registered_files.end()) {
       return find_file->second;
+    }
+
+    for (auto& [id, dir] : sFileTree.mounted_dirs) {
+      if (dir->Contains(file_id)) {
+        OE_TRACE("  > Found file in mounted directory : [{}]", dir->Name());
+        return dir->GetFile(file_id);
+      }
     }
 
     OE_ERROR("Failed to find file with id : {}", file_id);

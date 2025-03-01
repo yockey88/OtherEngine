@@ -81,19 +81,17 @@ namespace other {
 
     template <typename T>
     address_t Write(const T& value) {
-      Value v(value);
       address_t addr = GetNextAddress();
       OE_ASSERT(AddressValid(addr), "Invalid address!");
-      WriteTo(addr, value);
+      WriteTo<T>(addr, value);
       return addr;
     }
 
     template <typename T>
     address_t Write(T&& value) {
-      Value v(value);
       address_t addr = GetNextAddress();
       OE_ASSERT(AddressValid(addr), "Invalid address!");
-      WriteTo(addr, value);
+      WriteTo<T>(addr, value);
       return addr;
     }
 
