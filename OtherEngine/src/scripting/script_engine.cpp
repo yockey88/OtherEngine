@@ -255,12 +255,12 @@ namespace other {
       return;
     }
 
+    OE_DEBUG("Reloading scripts for language module {}", kModuleInfo[type].name);
     auto itr = language_modules.find(type);
     if (itr == language_modules.end()) {
-      OE_ERROR("ScriptEngine::ReloadScripts({}) -> language module not found", type);
+      OE_ERROR("Failed to reload scripts for language module {}", kModuleInfo[type].name);
       return;
     }
-
     itr->second.module->Reload();
   }
 
@@ -570,7 +570,7 @@ namespace other {
   }
 
   LanguageModuleType ScriptEngine::ModuleTypeFromExtension(const std::string_view ext) {
-    if (ext == ".dll") {
+    if (ext == ".dll" || ext == ".cs") {
       return LanguageModuleType::CS_MODULE;
     } else if (ext == ".lua") {
       return LanguageModuleType::LUA_MODULE;

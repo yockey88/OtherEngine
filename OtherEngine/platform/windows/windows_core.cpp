@@ -1,6 +1,8 @@
 /**
  * \file platform/windows/windows_core.cpp
  **/
+#include <string>
+
 #include <ShlObj.h>
 #include <minwinbase.h>
 #include <processthreadsapi.h>
@@ -137,9 +139,14 @@ namespace other {
     std::replace(project_file_str.begin(), project_file_str.end(), '/', '\\');
 
     /// replace configuration in the future
-    std::string cmd = fmt::format(fmt::runtime("\"\"{}\" \"{}\" /p:Configuration=Debug\""), ms_build.string(), project_file_str);
+    std::string cmd = fmt::format(fmt::runtime("\"\"{}\" \"{}\"\""), ms_build.string(), project_file_str);
+    // we on da window
+    std::ranges::replace(cmd.begin(), cmd.end(), '/', '\\');
 
-    return system(cmd.c_str()) == 0;
+    OE_DEBUG("Building project : {}", cmd);
+    int32_t ec = system(cmd.c_str()) == 0;
+    OE_DEBUG("  > exit code = {}", ec);
+    return ec != 0;
   }
 
 }  // namespace other

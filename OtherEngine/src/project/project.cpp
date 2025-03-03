@@ -49,6 +49,13 @@ namespace other {
       metadata.cs_dir = metadata.project_directory / cs_dir;
     }
 
+    for (auto& entry : std::filesystem::directory_iterator(metadata.cs_dir)) {
+      if (entry.path().extension() == ".csproj") {
+        metadata.cs_project_file = entry.path();
+      }
+    }
+    OE_ASSERT(!metadata.cs_project_file.empty(), "Failed to find C# project file in directory : {}", metadata.cs_dir);
+
     auto project_dir = cmdline.GetArg("--cwd").value_or(Arg{});
     if (project_dir.hash != 0 && project_dir.args.size() > 0) {
       metadata.project_directory = Path(project_dir.args[0]);

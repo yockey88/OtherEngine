@@ -66,10 +66,6 @@ namespace other {
     AssetManager::Cleanup();
     Filesystem::Shutdown();
     Logger::Shutdown();
-
-    if (detail::NumberOfLivingReferences() > 0) {
-      println("Engine shutdown with {} living references", detail::NumberOfLivingReferences());
-    }
   }
 
   void Engine::Run() {

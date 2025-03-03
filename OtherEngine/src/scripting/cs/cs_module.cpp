@@ -223,7 +223,13 @@ namespace other {
       return;
     }
 
+    dotother::GarbageCollector::Collect(-1, dotother::GCMode::DEFAULT, true, true);
+    dotother::GarbageCollector::WaitForPendingFinalizers(-1);
+
     OE_DEBUG("Shutting down C# module");
+    for (auto& [id, module] : loaded_modules) {
+      module->Shutdown();
+    }
     loaded_modules.clear();
 
     OE_DEBUG("Unloading loaded C# assemblies");
@@ -232,8 +238,6 @@ namespace other {
       host->UnloadAssemblyContext(ctx);
     }
 
-    dotother::GarbageCollector::Collect(-1, dotother::GCMode::DEFAULT, true, true);
-    dotother::GarbageCollector::WaitForPendingFinalizers(-1);
     assembly_contexts.contexts.clear();
 
     OE_DEBUG("Unloading C# assembly contexts");
@@ -243,8 +247,11 @@ namespace other {
   }
 
   void CsModule::Reload() {
+    Shutdown();
+
     auto proj = AppState::ProjectContext();
     auto script_file = proj->GetMetadata().cs_project_file;
+    OE_DEBUG("Reloading C# module from project {}", script_file);
 
     for (auto& [id, module] : loaded_modules) {
       module->Shutdown();
@@ -256,14 +263,18 @@ namespace other {
 
     if (!PlatformLayer::BuildProject(script_file)) {
       OE_ERROR("Failed to rebuild project scripts");
+      return;
     }
 
-    auto editor_file = proj->GetMetadata().cs_editor_project_file;
+    // auto editor_file = proj->GetMetadata().cs_editor_project_file;
+    // OE_DEBUG("Kicking off build for editor scripts {}", editor_file);
+    // if (!PlatformLayer::BuildProject(editor_file)) {
+    //   OE_ERROR("Failed to rebuild editor scripts");
+    // }
 
-    OE_DEBUG("Kicking off build for scripts {}", editor_file);
-
-    if (!PlatformLayer::BuildProject(editor_file)) {
-      OE_ERROR("Failed to rebuild editor scripts");
+    if (!Initialize()) {
+      OE_ERROR("Failed to reload C# module");
+      return;
     }
 
     for (const auto& [id, module_info] : loaded_modules_data) {

@@ -194,6 +194,9 @@ namespace dotother {
     coreclr.close_host_fxr = nullptr;
     coreclr.set_error_writer = nullptr;
     coreclr.get_managed_function_ptr = nullptr;
+
+    DOTOTHER_LOG(DO_STR("Host unloaded"), MessageLevel::INFO);
+    FreeLibrary((HMODULE)host_fxr);
   }
 
   AssemblyContext Host::CreateAsmContext(const std::string_view name) {
@@ -317,7 +320,12 @@ namespace dotother {
   bool Host::InitializeHost() {
     hostfxr_handle host_fxr = nullptr;
     int32_t rc = coreclr.init_host_config(config->host_config_path.c_str(), nullptr, &host_fxr);
-    if (rc != 0 || host_fxr == nullptr) {
+
+    /// 0 - success
+    /// 1 - success, already initialized
+    /// 2 - success, different runtime properties
+
+    if (rc > 2 || host_fxr == nullptr) {
       DOTOTHER_LOG(DO_STR("Could not initialize host_fxr handle : {:#08x}"), MessageLevel::CRITICAL, rc);
       coreclr.close_host_fxr(host_fxr);
       return false;
