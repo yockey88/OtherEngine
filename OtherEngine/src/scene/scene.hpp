@@ -8,6 +8,7 @@
 
 #include <core/dotother_defines.hpp>
 #include <entt/entt.hpp>
+#include <gtest_prod.h>
 #include <hosting/native_object.hpp>
 #include <reflection/echo_defines.hpp>
 #include <reflection/object_proxy.hpp>
@@ -19,12 +20,15 @@
 #include "asset/asset.hpp"
 
 #include "ecs/component.hpp"
+#include "ecs/components/collider_2d.hpp"
 #include "ecs/components/light_source.hpp"
 #include "ecs/components/mesh.hpp"
 #include "ecs/components/relationship.hpp"
+#include "ecs/components/rigid_body_2d.hpp"
 #include "ecs/components/script.hpp"
 #include "ecs/components/transform.hpp"
 #include "scene/light_environment.hpp"
+#include "scene/scene_capture.hpp"
 
 #include "physics/2D/physics_world_2d.hpp"
 #include "physics/3D/physics_world.hpp"
@@ -36,7 +40,7 @@ namespace other {
 
   class Entity;
 
-  class Scene : public Asset, dotother::NObject {
+  class Scene : public Asset, public dotother::NObject {
    public:
     ECHO_REFLECT();
     OE_ASSET(SCENE);
@@ -49,6 +53,7 @@ namespace other {
     UUID SceneHandle() const;
 
     template <typename Fn>
+      requires requires(Fn fn) { { fn(std::declval<Entity*>()) } -> std::same_as<void>; }
     void ForEachEntity(Fn&& fn) {
       for (auto& [id, ent] : entities) {
         fn(ent);
@@ -56,7 +61,13 @@ namespace other {
     }
 
     void Initialize();
+    void Activate();
     void Start(EngineMode mode = EngineMode::EDITOR);
+
+    /// used to passively update scene (without taking a time step) to allow for behind the scenes
+    ///  updates to occur
+    /// also called in editor (runs always)
+    void Synchronize();
 
     void EarlyUpdate(float dt);
     void Update(float dt);
@@ -66,16 +77,26 @@ namespace other {
 
     void Render(Ref<SceneRenderer>& scene_renderer);
 
+    void SetDebugPhysicsRendering(bool debug);
+    bool IsDebugPhysicsRendering() const;
+
+    void RenderPhysicsDebug(Ref<SceneRenderer>& scene_renderer);
+    void RenderCameraFrustums(Ref<SceneRenderer>& scene_renderer);
+
+    void RenderLightDebug(Ref<SceneRenderer>& scene_renderer);
+    // void RenderGizmos(Ref<SceneRenderer>& scene_renderer);
+
     void RenderUI();
 
     void Stop();
+    void Deactivate();
     void Shutdown();
 
     bool IsHandleValid(Entity* ent) const;
 
     entt::registry& Registry();
 
-    ScriptRef<CsObject> SceneScriptObject();
+    Script& SceneScriptObject();
 
     Ref<PhysicsWorld2D> Get2DPhysicsWorld() const;
     Ref<PhysicsWorld> GetPhysicsWorld() const;
@@ -83,6 +104,7 @@ namespace other {
     Ref<LightEnvironment> GetEnvironment() const;
 
     const bool IsInitialized() const;
+    const bool IsActive() const;
     const bool IsRunning() const;
     const bool IsDirty() const;
 
@@ -113,23 +135,38 @@ namespace other {
     void GeometryChanged();
     void RebuildEnvironment();
 
+    void CaptureScene();
+    void RestoreLastCapture();
+
+    void ResetPhysicsSimulation();
+
+    void RebindScripts();
+
+    /// this seems insane, need to rethink physics collision listener (and the rest of the physics engine)
+    std::pair<Entity*, Entity*> BeginContact(UUID entity1, UUID entity2);
+    std::pair<Entity*, Entity*> ContactPoint(CollisionPointData* point1, CollisionPointData* point2);
+    std::pair<Entity*, Entity*> EndContact(UUID entity1, UUID entity2);
+
    protected:
-    other::AssetHandle model_handle;
-    Ref<StaticModel> model = nullptr;
-    Ref<ModelSource> model_source = nullptr;
+    static ArenaAllocator<Entity> entity_allocator;
 
     Ref<LightEnvironment> environment = nullptr;
 
-    void OnAddRigidBody2D(entt::registry& context, entt::entity ent);
-    void OnAddCollider2D(entt::registry& context, entt::entity ent);
+    CaptureStack capture_stack;
 
-    void OnAddRigidBody(entt::registry& context, entt::entity ent);
-    void OnAddCollider(entt::registry& context, entt::entity ent);
+    // void OnAddRigidBody2D(entt::registry& context, entt::entity ent);
+    // void OnAddCollider2D(entt::registry& context, entt::entity ent);
+
+    // void OnAddRigidBody(entt::registry& context, entt::entity ent);
+    // void OnAddCollider(entt::registry& context, entt::entity ent);
 
     void RefreshCameraTransforms();
 
     virtual void OnInit() {}
+    virtual void OnActivate() {}
     virtual void OnStart() {}
+
+    virtual void OnSynchronize() {}
 
     virtual void OnEarlyUpdate(float dt) {}
     virtual void OnUpdate(float dt) {}
@@ -139,6 +176,7 @@ namespace other {
     virtual void OnRenderUI() {}
 
     virtual void OnStop() {}
+    virtual void OnDeactivate() {}
     virtual void OnShutdown() {}
 
    private:
@@ -147,6 +185,7 @@ namespace other {
     friend class SceneManager;
 
     bool initialized = false;
+    bool active = false;
     bool running = false;
     bool corrupt = false;
 
@@ -154,10 +193,10 @@ namespace other {
     bool scene_geometry_changed = true;
 
     entt::registry registry;
+    Entity* scene_entity = nullptr;
 
     std::string scene_name = "[ Empty Scene ]";
     UUID scene_handle;
-    ScriptRef<CsObject> scene_object = nullptr;
 
     SystemGroup<Relationship> connection_group;
     SystemGroup<LightSource, Transform> light_group;
@@ -182,6 +221,25 @@ namespace other {
 
     void FixRoots();
     void BuildGroups();
+
+    // void OnAddScript(entt::registry& context, entt::entity entt);
+    // void OnAddRigidBody(entt::registry& context, entt::entity entt);
+    // void OnAddCollider(entt::registry& context, entt::entity entt);
+    // void OnRemoveCollider(entt::registry& context, entt::entity entt);
+    // void OnAddRigidBody2D(entt::registry& context, entt::entity entt);
+    // void OnRigidBody2DUpdate(entt::registry& context, entt::entity entt);
+    // void OnAddCollider2D(entt::registry& context, entt::entity entt);
+    // void OnCollider2DUpdate(entt::registry& context, entt::entity entt);
+
+    void OnUpdateTransform(entt::registry& context, entt::entity entt);
+
+    void OnAddPhysicsObject(entt::registry& context, entt::entity entt);
+    void OnDestroyPhysicsObject(entt::registry& context, entt::entity entt);
+
+    void OnAddTerrain(entt::registry& context, entt::entity entt);
+
+    void Initialize2DRigidBody(Ref<PhysicsWorld2D>& world, RigidBody2D& body, const Tag& tag, const Transform& transform);
+    void Initialize2DCollider(Ref<PhysicsWorld2D>& world, RigidBody2D& body, Collider2D& collider, const Transform& transform);
   };
 
 }  // namespace other

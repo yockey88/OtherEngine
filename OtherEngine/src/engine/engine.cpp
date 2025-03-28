@@ -11,8 +11,11 @@
 #include "core/logger.hpp"
 #include "core/ref.hpp"
 #include "engine/engine_state_machine.hpp"
+#include "memory/arena.hpp"
 
 #include "application/app_state.hpp"
+#include "asset/asset_database.hpp"
+#include "asset/asset_manager.hpp"
 #include "event/event_queue.hpp"
 #include "input/io.hpp"
 #include "parsing/ini_parser.hpp"
@@ -28,7 +31,24 @@ namespace other {
     Logger::Open(config);
     Logger::Instance()->RegisterThread(main_thread_name);
 
+    AssetDatabase::Initialize();
     Filesystem::Initialize(cmdline, config);
+    IO::Initialize();
+    EventQueue::Initialize(config);
+
+    state = CreateStateMachine();
+    OE_ASSERT(state != nullptr, "Failed to create Engine State Machine");
+
+    exit_code = std::nullopt;
+  }
+
+  Engine::Engine(const ConfigTable& config, const CmdLine& cmd_line, std::string main_thread_name)
+      : cmd_line(cmd_line), config(config) {
+    Logger::Open(config);
+    Logger::Instance()->RegisterThread(main_thread_name);
+
+    AssetDatabase::Initialize();
+    Filesystem::Initialize(cmd_line, config);
     IO::Initialize();
     EventQueue::Initialize(config);
 
@@ -42,14 +62,15 @@ namespace other {
     state = nullptr;
     EventQueue::Shutdown();
     IO::Shutdown();
+    AssetDatabase::Shutdown();
+    AssetManager::Cleanup();
+    Filesystem::Shutdown();
     Logger::Shutdown();
-
-    if (detail::NumberOfLivingReferences() > 0) {
-      println("Engine shutdown with {} living references", detail::NumberOfLivingReferences());
-    }
   }
 
   void Engine::Run() {
+    PROFILE_SECTION("Engine--Run");
+
     Start();
     OE_INFO("Running");
     do {
@@ -78,21 +99,27 @@ namespace other {
   }
 
   void Engine::Step() {
+    PROFILE_SECTION("Engine--Step");
+    ADD_MARK;
+
     dt = delta.Get();
     AppState::OnEngineTick(dt);
 
     if (!event_queue.empty()) {
+      PROFILE_SECTION("Engine--Step:HandleEvent");
       state->HandleEvent(event_queue.front());
       event_queue.pop();
     }
-
-    if (state->IsFinished()) {
-      OE_ASSERT(AppState::exit_code.has_value(), "No exit code set for engine shutdown");
-      exit_code = AppState::exit_code.value();
-    } else if (state->IsError()) {
-      /// TODO: handle error state
-    } else {
-      state->Step();
+    {
+      PROFILE_SECTION("Engine--Step:StateStep");
+      if (state->IsFinished()) {
+        OE_ASSERT(AppState::exit_code.has_value(), "No exit code set for engine shutdown");
+        exit_code = AppState::exit_code.value();
+      } else if (state->IsError()) {
+        /// TODO: handle error state
+      } else {
+        state->Step();
+      }
     }
   }
 

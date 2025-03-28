@@ -3,6 +3,7 @@
  **/
 #include "editor/editor_states.hpp"
 
+#include "core/filesystem.hpp"
 #include "engine/engine.hpp"
 #include "engine/engine_states.hpp"
 #include "environment/environment.hpp"
@@ -10,6 +11,8 @@
 #include "application/app_state.hpp"
 #include "event/event_queue.hpp"
 #include "event/scene_events.hpp"
+
+#include "rendering/renderer.hpp"
 
 #include "editor/editor_layer.hpp"
 
@@ -41,6 +44,7 @@ namespace other {
   }
 
   void EditorIdle::OnStep() {
+    PROFILE_SECTION("EditorIdle--OnStep");
     if (AppState::IsLoading()) {
       Ref<EditorLayer> layer = AppState::PushLayer<EditorLayer>();
       OE_ASSERT(layer != nullptr, "Failed to push editor layer");
@@ -55,6 +59,7 @@ namespace other {
       }
     }
 
+    Filesystem::Poll();
     AppState::FlushUpdateLoop();
 
     if (!AppState::exit_code.has_value()) {
@@ -96,6 +101,13 @@ namespace other {
   }
 
   void EditingScene::OnStep() {
+    PROFILE_SECTION("EditingScene--OnStep");
+
+    bool should_poll = Renderer::IsWindowFocused();
+    if (should_poll) {
+      Filesystem::Poll();
+    }
+
     AppState::FlushUpdateLoop();
     AppState::HandleRender();
   }

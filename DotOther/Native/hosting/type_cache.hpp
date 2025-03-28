@@ -15,27 +15,29 @@ namespace dotother {
   class Type;
 
   class TypeCache {
-    public:
-      static TypeCache& Instance();
+   public:
+    static TypeCache& Instance();
 
-      Type* CacheType(Type&& type);
-      Type* GetType(const std::string_view name);
-      Type* GetType(int32_t name);
+    void Clear();
 
-    private:
-      TypeCache() = default;
-      ~TypeCache() = default;
+    Type* CacheType(Type&& type);
+    Type* GetType(const std::string_view name);
+    Type* GetType(int32_t name);
 
-      TypeCache(TypeCache&&) = delete;
-      TypeCache(const TypeCache&) = delete;
-      TypeCache& operator=(TypeCache&&) = delete;
-      TypeCache& operator=(const TypeCache&) = delete;
+   private:
+    TypeCache() = default;
+    ~TypeCache() = default;
 
-      StableVector<Type> types;
-      std::unordered_map<std::string, Type*> name_cache;
-      std::unordered_map<int32_t, Type*> id_cache;
+    TypeCache(TypeCache&&) = delete;
+    TypeCache(const TypeCache&) = delete;
+    TypeCache& operator=(TypeCache&&) = delete;
+    TypeCache& operator=(const TypeCache&) = delete;
+
+    StableVector<Type> types;
+    std::unordered_map<std::string, Type*> name_cache;
+    std::unordered_map<int32_t, Type*> id_cache;
   };
 
-} // namespace dotother
+}  // namespace dotother
 
-#endif // !DOTOTHER_TYPE_CACHED_HPP
+#endif  // !DOTOTHER_TYPE_CACHED_HPP

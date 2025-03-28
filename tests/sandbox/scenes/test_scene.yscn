@@ -23,7 +23,8 @@ gravity = { 0 , -9.8 }
 UUID = 12461263173642597452
 components = {
   static-mesh , 
-  script
+  script,
+  physics-object
 }
 
 [cube.transform]
@@ -45,6 +46,10 @@ material.roughness = { 1.0, 1.0, 1.0, 1 }
 [cube.script]
 *SandboxScripts = { "Other::TestScript2" }
 
+[cube.physics-object]
+type = dynamic
+shape = box
+
 [sun]
 UUID = 4025795962345870502
 components = {
@@ -64,13 +69,15 @@ color = { 0.22 , 0.22 , 0.11 , 1.0 }
 [floor]
 UUID = 14382231788964811176
 components = {
-  static-mesh
+  static-mesh,
+  script,
+  physics-object
 }
 
 [floor.transform]
 position = { 0 , -2 , 0 }
 rotation = { 0 , 0 , 0 , 1 }
-scale = { 10 , 0.05 , 10 }
+scale = { 10 , 1 , 10 }
 
 [floor.relationship]
 children = {}
@@ -82,6 +89,13 @@ primitive = 3
 material.albedo = { 1, 0, 0, 1 }
 material.normal = { 1.0 , 1.0 , 1.0, 1 }
 material.roughness = { 1.0, 1.0, 1.0, 1 }
+
+[floor.script]
+*SandboxScripts = { "Other::TestScript2" }
+
+[floor.physics-object]
+type = static
+shape = box
 
 [camera]
 UUID = 4220486183894562136
@@ -118,11 +132,23 @@ pinned = true
 [backpack]
 UUID = 4299032860123401593
 components = {
-  mesh
+  static-mesh,
+  physics-object
 }
 
-[mesh]
-visible = true
+[backpack.transform]
+position = { -2.7, 0.52, 0 }
+
+[backpack.static-mesh]
+is-primitive = true
+primitive = 4 # sphere
+material.albedo = { 1, 0, 0, 1 }
+material.normal = { 1.0 , 1.0 , 1.0, 1 }
+material.roughness = { 1.0, 1.0, 1.0, 1 }
+
+[backpack.physics-object]
+type = dynamic
+shape = capsule
 
 #[
 

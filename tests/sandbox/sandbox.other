@@ -23,7 +23,7 @@ title = "Other Engine Sandbox"
 cull-face = false
 
 [log]
-console-level = "debug" 
+console-level = "debug"
 file-level = "trace"
 path = "./logs/sandbox.log"
 

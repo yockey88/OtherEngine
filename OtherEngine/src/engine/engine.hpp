@@ -25,6 +25,7 @@ namespace other {
    public:
     Engine();
     Engine(const CmdLine& cmd_line, std::string main_thread_name = "OtherEngine--MainThread");
+    Engine(const ConfigTable& config, const CmdLine& cmd_line, std::string main_thread_name = "OtherEngine--MainThread");
     virtual ~Engine();
 
     virtual void Run();

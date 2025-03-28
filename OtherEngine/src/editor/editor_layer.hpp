@@ -6,12 +6,18 @@
 
 #include "core/config.hpp"
 #include "core/layer.hpp"
-#include "editor/panel_manager.hpp"
-#include "editor/saves.hpp"
+#include "core/scope.hpp"
 
+#include "event/app_events.hpp"
+#include "event/core_events.hpp"
 #include "event/key_events.hpp"
 #include "event/mouse_events.hpp"
 #include "event/scene_events.hpp"
+
+#include "scene/scene_capture.hpp"
+
+#include "editor/panel_manager.hpp"
+
 
 namespace other {
 
@@ -34,14 +40,21 @@ namespace other {
     ConfigTable editor_config;
 
     AssetHandle editor_ray_mesh;
-    Opt<StateCapture> initial_state;
 
     /// TODO: find a better way to manage state than this
     bool playing = false;
     bool lost_window_focus = false;
+    bool rendering_physics_colliders = false;
 
     Scope<PanelManager> panel_manager = nullptr;
     Ref<Framebuffer> viewport = nullptr;
+
+    Transform editor_grid_transform = Transform(0.f);
+    Ref<Shader> editor_grid_shader = nullptr;
+    Ref<VertexArray> editor_grid_vao = nullptr;
+
+    Ref<Shader> camera_frustum_shader = nullptr;
+    Ref<VertexArray> camera_frustum_vao = nullptr;
 
     void LaunchSettingsWindow();
 
@@ -49,8 +62,12 @@ namespace other {
 
     bool HandleKeyPressed(KeyPressed& event);
     bool HandleMousePressed(MouseButtonPressed& event);
+    bool HandleMouseHeld(MouseButtonHeld& event);
     bool HandleSceneActivate(SceneActivate& event);
     bool HandleSceneUnload(SceneUnload& event);
+    bool HandleScriptReload(ScriptReload& event);
+
+    bool HandleFileModified(FileModified& event);
   };
 
 }  // namespace other

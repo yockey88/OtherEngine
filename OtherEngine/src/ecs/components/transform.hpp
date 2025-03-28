@@ -17,44 +17,32 @@
 
 namespace other {
 
+  struct Transform;
+
+  struct TransformSnapshotter : public ObjectSerializer<Transform, 4> {
+    TransformSnapshotter();
+
+    static size_t Stride() {
+      return sizeof(glm::vec3) * 3 + sizeof(glm::quat);
+    }
+  };
+
   struct Transform : public Component {
     glm::vec3 scale = glm::vec3(1.f);
     glm::vec3 position = glm::vec3(0.0f);
     glm::vec3 erotation = glm::vec3(0.f);
-    glm::quat qrotation = glm::quat(0.f, 0.f, 0.f, 0.f);
+    glm::quat qrotation = glm::identity<glm::quat>();
     glm::mat4 model_transform = glm::identity<glm::mat4>();
     BBox bbox = BBox::empty;
 
-    Transform(const glm::vec3& position)
-        : Component(kTransformIndex), position(position) {
-      bbox = BBox(position);
-    }
-    Transform(float p)
-        : Component(kTransformIndex), position(glm::vec3(p)) {
-      bbox = BBox(position);
-    }
-    Transform(float x, float y, float z)
-        : Component(kTransformIndex), position(glm::vec3(x, y, z)) {
-      bbox = BBox(position);
-    }
+    Transform(const glm::vec3& scale, const glm::vec3& position, const glm::vec3& erotation);
+    Transform(const glm::vec3& position);
+    Transform(float p);
+    Transform(float x, float y, float z);
+    [[maybe_unused]] const glm::mat4& CalcMatrix();
+    void Rotate(float angle, const glm::vec3& axis);
 
-    [[maybe_unused]] const glm::mat4& CalcMatrix() {
-      glm::vec3 dim = scale * 0.5f;
-      bbox = BBox(position - dim, position + dim);
-
-      erotation = glm::eulerAngles(qrotation);
-      model_transform = glm::translate(glm::mat4(1.f), position) * glm::mat4_cast(qrotation);
-      model_transform = glm::scale(model_transform, scale);
-      return model_transform;
-    }
-
-    void Rotate(float angle, const glm::vec3& axis) {
-      glm::quat q = glm::angleAxis(angle, axis);
-      qrotation = q * qrotation;
-      erotation = glm::eulerAngles(qrotation);
-    }
-
-    ECS_COMPONENT(Transform, kTransformIndex);
+    ECS_COMPONENT(Transform, TRANSFORM_COMPONENT_INDEX);
   };
 
   class TransformSerializer : public ComponentSerializer {
@@ -66,11 +54,11 @@ namespace other {
 
 ECHO_TYPE(
   type(other::Transform),
-  field(scale),
-  field(position),
-  field(erotation),
-  field(qrotation),
-  field(model_transform)
+  field(scale, echo::serializable_field()),
+  field(position, echo::serializable_field()),
+  field(erotation, echo::serializable_field()),
+  field(qrotation, echo::serializable_field()),
+  field(model_transform, echo::serializable_field())
 );
 
 #endif  // !OTHER_ENGINE_TRANSFORM_HPP

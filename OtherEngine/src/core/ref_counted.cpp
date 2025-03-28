@@ -5,6 +5,14 @@
 
 namespace other {
 
+  void RefCounted::ViewIncrement() const {
+    views++;
+  }
+
+  void RefCounted::ViewDecrement() const {
+    views--;
+  }
+
   void RefCounted::Increment() {
     count++;
   }
@@ -13,4 +21,4 @@ namespace other {
     count--;
   }
 
-} // namespace other
+}  // namespace other

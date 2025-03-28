@@ -1,0 +1,31 @@
+[metadata]
+name = "dev-scene"
+entities = {
+  "object1",
+  "sun"
+}
+
+[object1]
+UUID = 1395441891881816322
+components = {
+  mesh
+}
+
+[object1.mesh]
+path = "terrain2.fbx"
+
+[sun]
+UUID = 4025795962345870502
+components = {
+  light-source
+}
+
+[sun.transform]
+position = { -1.0 , 1.0 , -1.0 } 
+rotation = { 0 , 0 , 0 , 0 }
+scale = { 0.2 , 0.2 , 0.2 }
+
+[sun.light-source]
+type = 0
+direction = { 2.0 , -4.0 , 1.0 , 1.0 }
+color = { 0.22 , 0.22 , 0.11 , 1.0 }

@@ -53,6 +53,25 @@ local native = {
       "%{wks.location}/externals/gtest/googletest/include"
     }
   end,
+
+  custom_configurations = function()
+    filter "configurations:Profile"
+      runtime "Release"
+      optimize "Full"
+      symbols "On"
+      
+      defines { 
+        "DOTOTHER_PROFILE_BUILD",
+        "TRACY_ENABLE",
+        "TRACY_ON_DEMAND",
+        "TRACY_CALLSTACK=10", 
+      }
+
+      files { 
+        "%{wks.location}/externals/tracy/TracyClient.cpp",
+      }
+      externalincludedirs { "%{wks.location}/externals/tracy" }
+  end,
 }
 
 AddExternalProject(native)

@@ -15,11 +15,14 @@
 namespace other {
 
   void FileEditor::OnAttach() {
-    shader_directory = Filesystem::GetDirectory("project-root");
-    OE_ASSERT(shader_directory != nullptr, "Failed to retrieve assets directory");
+    project_root = Filesystem::GetDirectory("project-root");
+    OE_ASSERT(project_root != nullptr, "Failed to retrieve assets directory");
+
+    game_root = Filesystem::GetDirectory("scripts");
+    OE_ASSERT(game_root != nullptr, "Failed to retrieve game directory");
 
     EventQueue::RegisterEventDispatcher<KeyPressed>(
-      "ShaderCreator--KeyPress",
+      "FileEditor--KeyPress",
       {
         [&](const KeyPressed& e) -> bool {
           if (e.Key() == Keyboard::Key::OE_ESCAPE && editor != nullptr) {
@@ -33,7 +36,7 @@ namespace other {
   }
 
   void FileEditor::OnDetach() {
-    EventQueue::UnregisterEventDispatcher("ShaderCreator--KeyPress");
+    EventQueue::UnregisterEventDispatcher("FileEditor--KeyPress");
   }
 
   void FileEditor::OnUpdate(float dt) {
@@ -44,7 +47,7 @@ namespace other {
 
   bool FileEditor::OnGuiRender(bool& is_open) {
     // clang-format off
-    if (!ImGui::Begin("Shader Editor", &is_open, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking | 
+    if (!ImGui::Begin("File Editor", &is_open, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking | 
                                                  ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
       // clang-format on
       ImGui::End();
@@ -53,7 +56,7 @@ namespace other {
 
     ui::MenuBar([&]() {});
 
-    RenderDirectory(shader_directory);
+    RenderDirectory(project_root);
 
     if (editor != nullptr) {
       editor->OnRender();
@@ -112,7 +115,7 @@ namespace other {
     ImGui::PushID(file->handle.Get());
 
     ui::Button("Open File", [&]() {
-      editor = NewRef<TextEditor>(file->FileName(), shader_directory->AbsolutePath().string(), file->AbsolutePath().string());
+      editor = NewRef<TextEditor>(file->FileName(), project_root->AbsolutePath().string(), file->AbsolutePath().string());
       editor->OnAttach();
     });
 

@@ -20,4 +20,4 @@ class FuzzingApp : public MockApp {
   }
 };
 
-OTHER_ENTRY_POINT(FuzzingApp, MockEngine);
+OTHER_ENTRY_POINT(FuzzingApp);

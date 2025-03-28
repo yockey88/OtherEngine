@@ -15,10 +15,29 @@
 #include "rendering/rendering_defines.hpp"
 #include "rendering/vertex.hpp"
 
+#include "vertex.hpp"
+
 namespace other {
 
   class Model;
   class StaticModel;
+
+  struct MeshBounds {
+    float min_x = std::numeric_limits<float>::max();
+    float max_x = std::numeric_limits<float>::min();
+    float x_range = 0.f;
+
+    float min_y = std::numeric_limits<float>::max();
+    float max_y = std::numeric_limits<float>::min();
+    float y_range = 0.f;
+
+    float min_z = std::numeric_limits<float>::max();
+    float max_z = std::numeric_limits<float>::min();
+    float z_range = 0.f;
+
+    glm::vec3 min = glm::vec3(std::numeric_limits<float>::max());
+    glm::vec3 max = glm::vec3(std::numeric_limits<float>::min());
+  };
 
   class ModelSource : public Asset {
    public:
@@ -47,19 +66,27 @@ namespace other {
     void UnbindVertexBuffer();
     void UnbindIndexBuffer();
 
-    const std::vector<float>& RawVertices() const;
-    const std::vector<uint32_t>& RawIndices() const;
     const std::vector<Vertex>& Vertices() const;
+    const std::vector<float>& RawVertices() const;
+
     const std::vector<Index>& Indices() const;
+    const std::vector<uint32_t>& RawIndices() const;
+
+    const std::unordered_map<uint32_t, std::vector<Triangle>>& Triangles() const;
+    const std::vector<Triangle>& Triangles(uint32_t sub_mesh_id) const;
+
     const std::vector<uint32_t>& RawLayout() const;
+
     const Layout& GetLayout() const;
 
     Ref<VertexArray> source_vao;
+    MeshBounds bounds;
 
    private:
     friend class Model;
     friend class StaticModel;
     friend class ModelFactory;
+    friend class ModelSerializer;
 
     size_t models_produced = 0;
 
@@ -75,6 +102,8 @@ namespace other {
 
     std::vector<Index> indices;
     std::vector<uint32_t> raw_indices;
+
+    std::unordered_map<uint32_t, std::vector<Triangle>> triangles;
 
     Layout layout;
     std::vector<uint32_t> raw_layout;
@@ -104,8 +133,6 @@ namespace other {
     const std::vector<uint32_t>& SubMeshes() const;
     void SetSubMeshes(const std::vector<uint32_t>& sub_meshes);
     Ref<ModelSource> GetModelSource() const;
-
-    void RebuildMesh();
 
     Ref<VertexArray> source_vao = nullptr;
 

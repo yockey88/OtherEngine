@@ -3,11 +3,12 @@
 namespace Other {
 
   public abstract class Component {
+    private OtherObject obj;
+    
     public Component(OtherObject obj) {
       this.obj = obj;
     }
 
-    private OtherObject obj;
 
     public UUID ObjectID {
       get => obj.ObjectID;

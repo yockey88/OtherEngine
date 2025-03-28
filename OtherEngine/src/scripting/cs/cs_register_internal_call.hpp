@@ -22,15 +22,16 @@ namespace other {
 
     template <typename Fn>
     void RegisterFunction(const std::string_view klass_name, const std::string_view method_name, ref<Assembly> assembly, Fn&& fn) {
+      /// TODO: trim strings
+
       const std::string name = fmtstr("Other.{}", klass_name);
+      // std::ranges::remove_if(name)
       Type& type = assembly->GetType(name);
       if (type.handle == -1) {
         OE_ASSERT(false, "NO C# type found for {}", name);
       }
 
-      static void* method = (void*)fn;
-
-      assembly->SetInternalCall(name, method_name, (void*)method);
+      assembly->SetInternalCall(name, method_name, (void*)fn);
     }
 
   }  // namespace cs_script_bindings

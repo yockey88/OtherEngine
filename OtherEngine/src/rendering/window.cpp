@@ -57,7 +57,7 @@ namespace other {
       int32_t double_buffer = config.GetVal<bool>(kRendererSection, kDoubleBufferValue, false).value_or(true) ? 1 : 0;
       int32_t depth_size = config.GetVal<uint32_t>(kRendererSection, kDepthSizeValue, false).value_or(24);
       int32_t stencil_size = config.GetVal<uint32_t>(kRendererSection, kStencilSizeValue, false).value_or(8);
-      int32_t accelerated_visual = config.GetVal<bool>(kRendererSection, kAccelVisualValue, false).value_or(true) ? 1 : 0;
+      int32_t accelerated_visual = config.GetVal<bool>(kRendererSection, kAccelVisualValue, false).value_or(false) ? 1 : 0;
       int32_t multisample_buffers = config.GetVal<uint32_t>(kRendererSection, kMultisampleBuffersValue, false).value_or(1);
       int32_t multisample_samples = config.GetVal<uint32_t>(kRendererSection, kMultisampleSamplesValue, false).value_or(16);
       int32_t srgb_capable = config.GetVal<bool>(kRendererSection, kSrgbCapableValue, false).value_or(true) ? 1 : 0;
@@ -73,8 +73,8 @@ namespace other {
       SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, multisample_samples);
       SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, srgb_capable);
 
-      int32_t vsync = config.GetVal<bool>(kRendererSection, kVsyncValue, false).value_or(true) ? 1 : 0;
-      SDL_GL_SetSwapInterval(vsync);
+      // int32_t vsync = config.GetVal<bool>(kRendererSection, kVsyncValue, false).value_or(false) ? 1 : 0;
+      SDL_GL_SetSwapInterval(0);
     }
 
     uint32_t ProcessFlags(const ConfigTable& config) {
@@ -97,6 +97,8 @@ namespace other {
         }
 
         if (maximized) {
+          flags &= ~SDL_WINDOW_FULLSCREEN;
+          flags &= ~SDL_WINDOW_MINIMIZED;
           flags |= SDL_WINDOW_MAXIMIZED;
         }
 
@@ -110,15 +112,24 @@ namespace other {
           flags |= SDL_WINDOW_ALLOW_HIGHDPI;
         }
       }
+
+      flags |= SDL_WINDOW_RESIZABLE;
       return flags;
     }
 
   }  // namespace
 
+  Window::Window(WindowContext cxt, WindowConfig cfg)
+      : context(cxt), config(cfg) {
+    glViewport(0, 0, config.size.x, config.size.y);
+    GetWindowDetails();
+  }
+
   Window::Window(Window&& other) noexcept
       : context(other.context), config(other.config) {
     other.context = { nullptr, nullptr };
     other.config = {};
+    GetWindowDetails();
   }
 
   Window& Window::operator=(Window&& other) noexcept {
@@ -142,20 +153,26 @@ namespace other {
   }
 
   bool Window::HasFocus() {
-    return (SDL_GetWindowFlags(context.window) & SDL_WINDOW_INPUT_FOCUS) != 0;
+    return (SDL_GetWindowFlags(context.window) & SDL_WINDOW_INPUT_FOCUS);
   }
 
-  void Window::Clear() {
+  void Window::Clear() const {
+    PROFILE_SECTION("Window--Clear");
     glClearColor(config.color.r, config.color.g, config.color.b, config.color.a);
     glClear(config.clear_flags);
   }
 
-  void Window::SwapBuffers() {
+  void Window::SwapBuffers() const {
+    PROFILE_SECTION("Window--SwapBuffers");
     SDL_GL_MakeCurrent(context.window, context.context);
     SDL_GL_SwapWindow(context.window);
   }
 
   glm::ivec2 Window::Size() {
+    if (maxed) {
+      return config.max_size;
+    }
+
     glm::ivec2 size;
     SDL_GetWindowSize(context.window, &size.x, &size.y);
     config.size = size;
@@ -188,7 +205,21 @@ namespace other {
   }
 
   void Window::ForceResize(const glm::ivec2& size) {
-    config.size = size;
+    glm::ivec2 real_size = size;
+    if (real_size.x >= config.max_size.x) {
+      real_size.x = config.max_size.x;
+    }
+    if (real_size.y >= config.max_size.y) {
+      real_size.y = config.max_size.y;
+    }
+
+    if (real_size.x == config.max_size.x && real_size.y == config.max_size.y) {
+      maxed = true;
+    } else {
+      maxed = false;
+    }
+
+    config.size = real_size;
     SDL_SetWindowSize(context.window, config.size.x, config.size.y);
     SDL_SetWindowPosition(context.window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
     glViewport(0, 0, config.size.x, config.size.y);
@@ -196,12 +227,6 @@ namespace other {
 
   WindowConfig Window::ConfigureWindow(const other::ConfigTable& config) {
     other::WindowConfig cfg;
-
-    const auto wheight = config.GetVal<uint32_t>(kWindowSection, kHeightValue, false);
-    const auto wwidth = config.GetVal<uint32_t>(kWindowSection, kWidthValue, false);
-
-    cfg.size.x = wwidth.value_or(1920);
-    cfg.size.y = wheight.value_or(1080);
 
     const auto title_cfg = config.Get(kWindowSection, kTitleValue);
     if (title_cfg.size() > 0) {
@@ -221,6 +246,14 @@ namespace other {
     }
 
     cfg.flags = ProcessFlags(config);
+    const auto wheight = config.GetVal<uint32_t>(kWindowSection, kHeightValue, false);
+    const auto wwidth = config.GetVal<uint32_t>(kWindowSection, kWidthValue, false);
+    if (!(cfg.flags & SDL_WINDOW_MAXIMIZED)) {
+      cfg.size.x = wwidth.value_or(1920);
+      cfg.size.y = wheight.value_or(1080);
+    } else {
+      cfg.size = { 0, 0 };
+    }
 
     glm::vec4 col = { 0.1f, 0.3f, 0.5f, 1.0f };
     const auto color = config.Get(kWindowSection, kClearColorValue);
@@ -263,6 +296,19 @@ namespace other {
       return { std::nullopt, other::fmtstr("Failed to create window : {}", SDL_GetError()) };
     }
 
+    SDL_SetWindowMinimumSize(context.window, config.min_size.x, config.min_size.y);
+
+    SDL_DisplayMode dm;
+    SDL_GetCurrentDisplayMode(0, &dm);
+    config.max_size = { dm.w, dm.h };
+
+    {
+      using namespace std::string_view_literals;
+      std::cout << fmt::format("Display mode : [{},{}] @ {}Hz\n"sv, dm.w, dm.h, dm.refresh_rate);
+      std::cout << fmt::format("Max size : [{},{}]\n"sv, config.max_size.x, config.max_size.y);
+      std::cout << fmt::format("Min size : [{},{}]\n"sv, config.min_size.x, config.min_size.y);
+    }
+
     EnableSdlGlSettings(cfg_table);
 
     context.context = SDL_GL_CreateContext(context.window);
@@ -281,6 +327,15 @@ namespace other {
     config.clear_flags = EnableGlSettings(cfg_table);
 
     return { NewScope<Window>(context, config), std::nullopt };
+  }
+
+  void Window::GetWindowDetails() {
+    if (config.flags & SDL_WINDOW_MAXIMIZED) {
+      maxed = true;
+      int sz[2];
+      SDL_GetWindowSize(context.window, &sz[0], &sz[1]);
+      config.max_size = { sz[0], sz[1] };
+    }
   }
 
 }  // namespace other

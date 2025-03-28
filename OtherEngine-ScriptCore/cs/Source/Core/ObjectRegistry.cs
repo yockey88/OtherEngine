@@ -25,15 +25,24 @@ namespace Other {
       }
     }
 
-    public static OtherObject GetObject(UInt64 handle, UInt32 entity_id, IntPtr native_handle) {
-      ObjectKey key = new ObjectKey(handle, entity_id, native_handle);
+    public static OtherObject GetObject(UInt64 handle, IntPtr native_handle) {
+      ObjectKey key = new ObjectKey(handle, native_handle);
       if (objects.ContainsKey(key)) {
         return objects[key];
       }
       return null;
     }
 
-#nullable disable
+#nullable enable
+    public static OtherObject? LookUp(UInt64 handle) {
+      foreach (ObjectKey key in objects.Keys) {
+        if (key.handle == handle) {
+          return objects[key];
+        }
+      }
+      return null;
+    }
+
     public static OtherObject? TryGetObject(UInt64? handle, UInt32? entity_id, IntPtr? native_handle) {
       try {
         Int64 native_handle_value = native_handle.HasValue ? native_handle.Value.ToInt64() : 0;
@@ -45,9 +54,8 @@ namespace Other {
           }
 
           bool handle_match = handle == null || key.handle == handle;
-          bool entity_id_match = entity_id == null || key.entity_id == entity_id;
           bool native_handle_match = native_handle == null || key.native_handle == native_handle;
-          if (handle_match || entity_id_match || native_handle_match) {
+          if (handle_match || native_handle_match) {
             keys.Add(key);
           }
         }
@@ -64,7 +72,7 @@ namespace Other {
       } catch (AmbiguousHandleException e) {
         Logger.WriteError(e.Message);
         foreach (ObjectKey key in e.Keys) {
-          Logger.WriteError($"Handle: {key.handle}, Entity ID: {key.entity_id}, Native Handle: 0x{key.native_handle.ToInt64:x}");
+          Logger.WriteError($"Handle: {key.handle}, Native Handle: 0x{key.native_handle.ToInt64:x}");
         }
         return null;
       }
@@ -77,7 +85,7 @@ namespace Other {
           Logger.WriteError("Unregistering object with invalid handle");
           return;
         }
-        objects.Remove(new ObjectKey(behavior.ObjectID, behavior.EntityID, behavior.NativeHandle));
+        objects.Remove(new ObjectKey(behavior.ObjectID, behavior.NativeHandle));
       }
     }
   }
@@ -96,25 +104,22 @@ namespace Other {
 
   public struct ObjectKey : IEquatable<ObjectKey> {
     public readonly UInt64 handle;
-    public readonly UInt32 entity_id;
     public readonly IntPtr native_handle;
-
+    
     public ObjectKey(OtherObject obj) {
       handle = obj.ObjectID;
-      entity_id = obj.EntityID;
       native_handle = obj.NativeHandle;
     }
 
-    public ObjectKey(UInt64 handle, UInt32 entity_id, IntPtr native_handle) {
+    public ObjectKey(UInt64 handle, IntPtr native_handle) {
       this.handle = handle;
-      this.entity_id = entity_id;
       this.native_handle = native_handle;
     }
 
-    public bool Equals(ObjectKey other) => native_handle == other.native_handle && handle == other.handle && entity_id == other.entity_id;
+    public bool Equals(ObjectKey other) => native_handle == other.native_handle && handle == other.handle;
     public override bool Equals(object obj) => obj is ObjectKey other && Equals(other);
 
-    public override int GetHashCode() => HashCode.Combine(handle , entity_id , native_handle);
+    public override int GetHashCode() => HashCode.Combine(handle , native_handle);
 
     public static bool operator==(ObjectKey left, ObjectKey right) => left.Equals(right);
     public static bool operator!=(ObjectKey left, ObjectKey right) => !(left == right);

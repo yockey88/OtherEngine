@@ -4,6 +4,7 @@
 #include "hosting/native_string.hpp"
 
 #include "core/utilities.hpp"
+
 #include "hosting/memory.hpp"
 
 namespace dotother {
@@ -19,7 +20,7 @@ namespace dotother {
     result.Assign(str);
     return result;
   }
-  
+
   void NString::Free(NString& str) {
     if (str.string == nullptr)
       return;
@@ -36,13 +37,17 @@ namespace dotother {
   }
 
   NString::operator std::string() const {
+    if (string == nullptr) {
+      return "";
+    }
+
     dostring_view str(string);
-    return 
+    return
 #ifdef _WIN32
       util::WideToChar(str);
 #else
       std::string(str);
-#endif // _WIN32
+#endif  // _WIN32
   }
 
   bool NString::operator==(const NString& InOther) const {
@@ -61,15 +66,14 @@ namespace dotother {
     return false;
   }
 
-  wchar_t* NString::Data() { 
-    return string; 
+  wchar_t* NString::Data() {
+    return string;
   }
 
-  const wchar_t* NString::Data() const { 
-    return string; 
+  const wchar_t* NString::Data() const {
+    return string;
   }
 
-  
   NScopedString::~NScopedString() {
     NString::Free(string);
   }
@@ -102,4 +106,4 @@ namespace dotother {
     return string == other;
   }
 
-} // namespace dotother
+}  // namespace dotother

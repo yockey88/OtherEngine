@@ -14,7 +14,28 @@
 
 #include "rendering/material.hpp"
 
+#include "serialization/scene_file_format_defines.hpp"
+
 namespace other {
+
+  struct Mesh;
+  struct StaticMesh;
+
+  struct MeshSnapshotter : public ObjectSerializer<Mesh, 3> {
+    MeshSnapshotter();
+
+    static size_t Stride() {
+      return kMaxStringLength + sizeof(UUID) + sizeof(bool);
+    }
+  };
+
+  struct StaticMeshSnapshotter : public ObjectSerializer<StaticMesh, 5> {
+    StaticMeshSnapshotter();
+
+    static size_t Stride() {
+      return sizeof(UUID) + sizeof(bool) + sizeof(bool) + sizeof(uint32_t) * 2;
+    }
+  };
 
   struct Mesh : public Component {
     AssetHandle handle;
@@ -22,7 +43,7 @@ namespace other {
     std::vector<UUID> bone_entity_ids;
     bool visible = true;
 
-    ECS_COMPONENT(Mesh, kMeshIndex);
+    ECS_COMPONENT(Mesh, MESH_COMPONENT_INDEX);
   };
 
   /// primitive mesh types
@@ -42,7 +63,7 @@ namespace other {
     uint32_t primitive_id = 0;
     uint32_t primitive_selection = 0;
 
-    ECS_COMPONENT(StaticMesh, kStaticMeshIndex);
+    ECS_COMPONENT(StaticMesh, STATICMESH_COMPONENT_INDEX);
   };
 
   class MeshSerializer : public ComponentSerializer {
@@ -59,19 +80,19 @@ namespace other {
 
 ECHO_TYPE(
   type(other::Mesh),
-  field(handle),
-  field(material),
+  field(handle, echo::serializable_field()),
+  field(material, echo::serializable_field()),
   field(bone_entity_ids),
-  field(visible)
+  field(visible, echo::serializable_field())
 );
 
 ECHO_TYPE(
   type(other::StaticMesh),
-  field(handle),
-  field(material),
-  field(visible),
-  field(is_primitive),
-  field(primitive_id),
+  field(handle, echo::serializable_field()),
+  field(material, echo::serializable_field()),
+  field(visible, echo::serializable_field()),
+  field(is_primitive, echo::serializable_field()),
+  field(primitive_id, echo::serializable_field()),
   field(primitive_selection)
 );
 

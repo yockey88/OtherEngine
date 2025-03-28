@@ -69,7 +69,7 @@ namespace other {
   constexpr static std::string_view kScriptBinDirValue = "SCRIPT-BIN-DIR";
   constexpr static uint64_t kScriptBinDirValueHash = FNV(kScriptBinDirValue);
 
-  constexpr static std::string_view kLuaDirValue = "LUA-DIRECTORY";
+  constexpr static std::string_view kLuaDirValue = "LUA-DIR";
   constexpr static uint64_t kLuaDirValueHash = FNV(kLuaDirValue);
 
   constexpr static std::string_view kDebugValue = "DEBUG";
@@ -321,6 +321,12 @@ namespace other {
   constexpr static std::string_view kPhysicsValue = "PHYSICS";
   constexpr static uint64_t kPhysicsValueHash = FNV(kPhysicsValue);
 
+  constexpr static std::string_view kRigidBodyValue = "RIGID-BODY";
+  constexpr static uint64_t kRigidBodyValueHash = FNV(kRigidBodyValue);
+
+  constexpr static std::string_view kPhysicsObjectValue = "PHYSICS-OBJECT";
+  constexpr static uint64_t kPhysicsObjectValueHash = FNV(kPhysicsObjectValue);
+
   constexpr static std::string_view kRigidBody2DValue = "RIGID-BODY-2D";
   constexpr static uint64_t kRigidBody2DValueHash = FNV(kRigidBody2DValue);
 
@@ -354,8 +360,14 @@ namespace other {
   constexpr static std::string_view kBulletValue = "BULLET";
   constexpr static uint64_t kBulletValueHash = FNV(kBulletValue);
 
+  constexpr static std::string_view kColliderValue = "COLLIDER";
+  constexpr static uint64_t kColliderValueHash = FNV(kColliderValue);
+
   constexpr static std::string_view kCollider2DValue = "COLLIDER-2D";
   constexpr static uint64_t kCollider2DValueHash = FNV(kCollider2DValue);
+
+  constexpr static std::string_view kShapeValue = "SHAPE";
+  constexpr static uint64_t kShapeValueHash = FNV(kShapeValue);
 
   constexpr static std::string_view kOffsetValue = "OFFSET";
   constexpr static uint64_t kOffsetValueHash = FNV(kOffsetValue);
@@ -390,17 +402,14 @@ namespace other {
   constexpr static std::string_view kMaterialValue = "MATERIAL";
   constexpr static uint64_t kMaterialValueHash = FNV(kMaterialValue);
 
-  constexpr static std::string_view kRigidBodyValue = "RIGID-BODY";
-  constexpr static uint64_t kRigidBodyValueHash = FNV(kRigidBodyValue);
-
   constexpr static std::string_view kDisableGravityValue = "DISABLE-GRAVITY";
   constexpr static uint64_t kDisableGravityValueHash = FNV(kDisableGravityValue);
 
   constexpr static std::string_view kIsTriggerValue = "IS-TRIGGER";
   constexpr static uint64_t kIsTriggerValueHash = FNV(kIsTriggerValue);
 
-  constexpr static std::string_view kCollisionTypeValue = "COLLISION-TYPE";
-  constexpr static uint64_t kCollisionTypeValueHash = FNV(kCollisionTypeValue);
+  constexpr static std::string_view kSimulationTypeValue = "SIMULATION-TYPE";
+  constexpr static uint64_t kSimulationTypeValueHash = FNV(kSimulationTypeValue);
 
   constexpr static std::string_view kDiscreteValue = "DISCRETE";
   constexpr static uint64_t kDiscreteValueHash = FNV(kDiscreteValue);
@@ -420,11 +429,11 @@ namespace other {
   constexpr static std::string_view kMaxAngularVelocityValue = "INITIAL-ANGULAR-VELOCITY";
   constexpr static uint64_t kMaxAngularVelocityValueHash = FNV(kMaxAngularVelocityValue);
 
-  constexpr static std::string_view kColliderValue = "COLLIDER";
-  constexpr static uint64_t kColliderValueHash = FNV(kColliderValue);
-
   constexpr static std::string_view kLightSourceValue = "LIGHT-SOURCE";
   constexpr static uint64_t kLightSourceHash = FNV(kLightSourceValue);
+
+  constexpr static std::string_view kTerrainValue = "TERRAIN";
+  constexpr static uint64_t kTerrainValueHash = FNV(kTerrainValue);
 
 }  // namespace other
 

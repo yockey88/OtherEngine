@@ -5,61 +5,73 @@
 
 namespace other {
 
+  Value::Value() {
+  }
+
+  Value::~Value() {
+    storage = nullptr;
+  }
+
+  Value Value::CreateOpaqueHandle(void* opaque_data) {
+    Value v = Value();
+    v.storage = NewRef<ValueStorageImpl<void*>>();
+    v.storage->data = opaque_data;
+    return v;
+  }
+
   Value::Value(Value&& other) {
-    type = other.type;
-    value = other.value;
-    other.value.Release();
+    storage = other.storage;
+    other.storage = nullptr;
   }
 
   Value::Value(const Value& other) {
-    type = other.type;
-    value = other.value;
+    storage = other.storage;
   }
 
   Value& Value::operator=(Value&& other) {
-    type = other.type;
-    value = other.value;
-    other.value.Release();
+    storage = other.storage;
+    other.storage = nullptr;
     return *this;
   }
 
   Value& Value::operator=(const Value& other) {
-    type = other.type;
-    value = other.value;
+    storage = other.storage;
     return *this;
   }
 
-  Value::~Value() {
-    value.Release();
-  }
+  bool Value::IsEmpty() const {
+    if (storage == nullptr) {
+      return false;
+    }
 
-  void* Value::AsRawMemory() const {
-    return static_cast<void*>(const_cast<uint8_t*>(value.ReadBytes()));
-  }
-
-  bool Value::Empty() const {
-    return Type() == ValueType::EMPTY_TYPE;
+    bool empty = storage->data == nullptr;
+    if (empty) {
+      OE_ASSERT(storage->size == 0, "Size is not zero for empty value!");
+      OE_ASSERT(storage->value_type == ValueType::EMPTY_TYPE, "Value type is not EMPTY_TYPE for empty value!");
+    }
+    return empty;
   }
 
   void Value::Clear() {
-    value.Release();
-    type = ValueType::EMPTY_TYPE;
+    if (IsEmpty() || storage->value_type == ValueType::OPAQUE_HANDLE) {
+      return;
+    }
+    OE_ASSERT(storage != nullptr, "Storage is null!");
+    storage = nullptr;
   }
 
-  ValueType Value::Type() const {
-    return type;
+  size_t Value::GetSize() const {
+    if (storage == nullptr) {
+      return 0;
+    }
+    return storage->size;
   }
 
-  bool Value::IsArray() const {
-    return is_array;
-  }
-
-  size_t Value::Size() const {
-    return value.Size();
-  }
-
-  size_t Value::NumElements() const {
-    return value.NumElements();
+  ValueType Value::GetType() const {
+    if (storage == nullptr) {
+      return ValueType::EMPTY_TYPE;
+    }
+    return storage->value_type;
   }
 
   uint32_t Value::NumElements(ValueType type) {

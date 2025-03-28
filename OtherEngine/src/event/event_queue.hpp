@@ -33,14 +33,16 @@ namespace other {
     template <typename T>
       requires Event<T>
     static void PushEvent(const T& arg) {
-      size_t idx = event_buffer.BufferData(arg);
+      OE_ASSERT(instance != nullptr, "EventQueue not initialized");
+      PROFILE_SECTION("EventQueue--PushEvent");
+      size_t idx = instance->event_buffer.BufferData(arg);
       EventHandle handle{
-        .ptr = event_buffer.PointerAt<T>(idx),
+        .ptr = instance->event_buffer.PointerAt<T>(idx),
         .type = T::GetStaticType(),
       };
-      scratch_buffer.BufferData(handle);
+      instance->scratch_buffer.BufferData(handle);
 
-      ++num_events;
+      ++instance->num_events;
     }
 
     template <typename T>
@@ -54,9 +56,9 @@ namespace other {
     static void RegisterEventDispatcher(const std::string_view name, const std::vector<Handler<E>>& fns) {
       uint64_t h = FNV(name);
 
-      auto itr = event_handlers.find(h);
-      if (itr == event_handlers.end()) {
-        auto& handler = event_handlers[h] = EventDispatcher{};
+      auto itr = instance->event_handlers.find(h);
+      if (itr == instance->event_handlers.end()) {
+        auto& handler = instance->event_handlers[h] = EventDispatcher{};
         handler.hash = h;
         handler.name = name;
         handler.dispatcher = Ref<DispatchInvoker<E>>::Create(fns);
@@ -73,14 +75,26 @@ namespace other {
     static void Shutdown();
 
    private:
-    static constexpr size_t kBufferSize = 1024 * 1024;
-    static inline uint64_t event_flags = 0;
-    static inline bool process_ui_events = true;
+    friend class ArenaAllocator<EventQueue>;
+    static ArenaAllocator<EventQueue> allocator;
+    static EventQueue* instance;
 
-    static inline size_t num_events = 0;
-    static Buffer event_buffer;
-    static Buffer scratch_buffer;
-    static std::map<uint64_t, EventDispatcher> event_handlers;
+    EventQueue() {}
+    ~EventQueue() {}
+
+    EventQueue(EventQueue&&) = delete;
+    EventQueue(const EventQueue&) = delete;
+    EventQueue& operator=(EventQueue&&) = delete;
+    EventQueue& operator=(const EventQueue&) = delete;
+
+    constexpr static size_t kBufferSize = 1024 * 1024;
+    uint64_t event_flags = 0;
+    bool process_ui_events = true;
+
+    size_t num_events = 0;
+    Buffer event_buffer;
+    Buffer scratch_buffer;
+    std::map<uint64_t, EventDispatcher> event_handlers;
 
     static void SetEventFlag(EventType type);
     static void Dispatch();

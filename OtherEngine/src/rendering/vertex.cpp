@@ -40,8 +40,14 @@ namespace other {
       return;
     }
 
-    if (size > dynamic_capacity.value()) {
-      return;
+    if (!dynamic_capacity.has_value()) {
+      glBindBuffer(buffer_type, renderer_id);
+      glBufferData(buffer_type, size + offset, nullptr, buffer_usage);
+      dynamic_capacity = size;
+    } else if (size + offset > dynamic_capacity.value()) {
+      dynamic_capacity = size + offset;
+      glBindBuffer(buffer_type, renderer_id);
+      glBufferData(buffer_type, dynamic_capacity.value(), nullptr, buffer_usage);
     }
 
     Bind();
@@ -61,14 +67,18 @@ namespace other {
     Unbind();
   }
 
-  VertexArray::VertexArray(const std::vector<float>& vertices, const std::vector<uint32_t>& indices, const std::vector<uint32_t>& layout)
-      : vertices(vertices), indices(indices), layout(layout) {
+  BufferUsage VertexBuffer::Usage() const {
+    return buffer_usage;
+  }
+
+  VertexArray::VertexArray(const std::vector<float>& vertices, const std::vector<uint32_t>& indices, const std::vector<uint32_t>& layout, BufferUsage usage)
+      : buffer_usage(usage), vertices(vertices), indices(indices), layout(layout) {
     glGenVertexArrays(1, &renderer_id);
     Bind();
 
-    vertex_buffer = NewRef<VertexBuffer>(vertices.data(), vertices.size() * sizeof(float));
+    vertex_buffer = NewRef<VertexBuffer>(vertices.data(), vertices.size() * sizeof(float), usage);
     if (indices.size() != 0) {
-      index_buffer = NewRef<VertexBuffer>(indices.data(), indices.size() * sizeof(uint32_t), STATIC_DRAW, ELEMENT_ARRAY_BUFFER);
+      index_buffer = NewRef<VertexBuffer>(indices.data(), indices.size() * sizeof(uint32_t), usage, ELEMENT_ARRAY_BUFFER);
     }
 
     SetLayout();
@@ -88,6 +98,22 @@ namespace other {
 
   VertexArray::~VertexArray() {
     glDeleteVertexArrays(1, &renderer_id);
+  }
+
+  void VertexArray::SetVertices(const std::vector<float>& vertices) {
+    OE_ASSERT(vertex_buffer != nullptr, "Vertex buffer is null");
+    OE_ASSERT(buffer_usage == BufferUsage::DYNAMIC_DRAW, "Vertex buffer is not dynamic");
+
+    OE_ASSERT(vertex_buffer->Usage() == BufferUsage::DYNAMIC_DRAW, "Vertex buffer is not dynamic");
+    vertex_buffer->BufferData(vertices.data(), vertices.size() * sizeof(float));
+
+    vertex_count = vertices.size() / layout.size();
+  }
+
+  void VertexArray::SetIndices(const std::vector<uint32_t>& indices) {
+  }
+
+  void VertexArray::SetLayout(const std::vector<uint32_t>& layout) {
   }
 
   void VertexArray::Bind() const {
@@ -116,6 +142,10 @@ namespace other {
     return indices.size();
   }
 
+  BufferUsage VertexArray::Usage() const {
+    return buffer_usage;
+  }
+
   DrawMode VertexArray::DrawModeFromFaceIndexCount(uint32_t num_indices) {
     switch (num_indices) {
       case 1:
@@ -131,8 +161,10 @@ namespace other {
         return DrawMode::TRIANGLE_FAN;
 
       default:
-        OE_ASSERT(false, "Invalid number of indices for face!");
+        break;
     }
+    OE_ASSERT(false, "Invalid number of indices for face!");
+    return DrawMode::TRIANGLES;
   }
 
   void VertexArray::SetLayout() {

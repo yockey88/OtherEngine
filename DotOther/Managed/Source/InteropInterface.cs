@@ -79,6 +79,10 @@ namespace DotOther.Managed {
 				}
 			);
 
+			if (type == null) {
+				type = AssemblyLoader.CheckNetCoreType(name);
+			}
+
 			return type;
 		}
 
@@ -91,15 +95,6 @@ namespace DotOther.Managed {
 		private static string GetNoMethodFoundErrorMsg<T>(string method_name , Int32 argc , ReadOnlySpan<T> methods) where T : MethodBase {
 			StringBuilder sb = new();
 			sb.Append($"Couldn't find suitable method '{method_name}' with {argc} arguments\n");
-			if (argc > 0) {
-				/// <fixme> why doesn't this work to get GetName??? <fixme>
-				// sb.Append("	Parameter types:\n");
-
-				// for (Int32 i = 0; i < argc; i++) {
-				// 	ManagedType mtype = param_types[i];
-				// 	sb.Append($"		> {mtype.GetName}\n");
-				// }
-			}
 			sb.Append("	Available methods:\n");
 			foreach (var minfo in methods) {
 				if (minfo.Name != method_name) {
@@ -117,20 +112,25 @@ namespace DotOther.Managed {
 				return null;
 			}
 
+			// LogMessage($"Finding suitable method '{method_name}' with {argc} arguments", MessageLevel.Trace);
 			foreach (var minfo in methods) {
-				var parameters = minfo.GetParameters();
+				// LogMessage($" > Checking method '{minfo}' ({minfo.GetParameters().Length})", MessageLevel.Trace);
+				ParameterInfo[] parameters = minfo.GetParameters();
 				if (parameters.Length != argc) {
 					continue;
 				}
-
+				// LogMessage($"	> Found method '{minfo}' with {parameters.Length} parameters", MessageLevel.Trace);
 				if (method_name == minfo.ToString()) {
+					// LogMessage($"	> Found exact match for method '{minfo}'", MessageLevel.Trace);
 					return minfo;
 				}
 
 				if (minfo.Name != method_name) {
+					// LogMessage($"	!> Method '{minfo}' doesn't match the required name", MessageLevel.Trace);
 					continue;
 				}
 
+				// LogMessage($"	> Checking method '{minfo}' for parameter types", MessageLevel.Trace);
 				Int32 type_match = 0;
 				for (Int32 i = 0; i < parameters.Length; i++) {
 					ManagedType ptype;
@@ -140,44 +140,26 @@ namespace DotOther.Managed {
 						ptype = ManagedType.Unknown;
 					}
 
+					// LogMessage($"		> Checking parameter {i} : {ptype} == {param_types[i]}", MessageLevel.Trace);
 					if (ptype == param_types[i]) {
 						type_match++;
 					}
 				}
 
 				if (type_match == argc) {
+					// LogMessage($"	> Found suitable method '{minfo}'", MessageLevel.Trace);
 					return minfo;
 				} else {
 					LogMessage($"Method '{minfo}' doesn't match the required types", MessageLevel.Trace);
 				}
 			}
 
-			StringBuilder sb = new();
-			sb.Append($"Couldn't find suitable method '{method_name}' with {argc} arguments\n");
-			if (argc > 0) {
-				/// <fixme> why doesn't this work to get GetName??? <fixme>
-				// sb.Append("	Parameter types:\n");
-
-				// for (Int32 i = 0; i < argc; i++) {
-				// 	ManagedType mtype = param_types[i];
-				// 	sb.Append($"		> {mtype.GetName}\n");
-				// }
-			}
-			sb.Append("	Available methods:\n");
-			foreach (var minfo in methods) {
-				if (minfo.Name != method_name) {
-					continue;
-				}
-
-				sb.Append($"		> {minfo}\n");
-			}
-
 			LogMessage($"{GetNoMethodFoundErrorMsg(method_name , argc , methods)}", MessageLevel.Error);
 
 			return null;
 		}
-#nullable disable
 
+#nullable disable
 		[UnmanagedCallersOnly]
 		private static unsafe void GetAsmTypes(Int32 asm_id, Int32* out_types, Int32* out_type_count) {
 			try {
@@ -199,8 +181,33 @@ namespace DotOther.Managed {
 				}
 
 				if (out_types != null) {
-					for (Int32 i = 0; i < asm_types.Length; i++) {
+					for (Int32 i = 0; i < asm_types.Length; i++) {LogMessage($"  > Adding type {asm_types[i].FullName} to cache", MessageLevel.Trace);
 						out_types[i] = cached_types.Add(asm_types[i]);
+					}
+				}
+			} catch (Exception ex) {
+				HandleException(ex);
+			}
+		}
+
+		[UnmanagedCallersOnly]
+		private static unsafe void GetNetCoreTypes(Int32* out_types, Int32* out_type_count) {
+			try {
+				if (!AssemblyLoader.CoreAsmsLoaded) {
+					LogMessage("Couldn't get types for .NET Core assemblies, no assemblies loaded", MessageLevel.Error);
+					return;
+				}
+
+				ReadOnlySpan<Type> types = AssemblyLoader.CoreTypes;
+				if (out_type_count != null) {
+					*out_type_count = types.Length;
+				} else {
+					LogMessage($"Found {types.Length} types in .NET Core assemblies", MessageLevel.Trace);
+				}
+
+				if (out_types != null) {
+					for (Int32 i = 0; i < types.Length; i++) {
+						out_types[i] = cached_types.Add(types[i]);
 					}
 				}
 			} catch (Exception ex) {
@@ -214,6 +221,7 @@ namespace DotOther.Managed {
 				var type = FindType(name);
 				if (type == null) {
 					LogMessage($"Couldn't get type id for '{name}', type not found", MessageLevel.Error);
+					*out_type = 0;
 					return;
 				}
 
@@ -371,7 +379,7 @@ namespace DotOther.Managed {
 					*count = 0;
 					return;
 				}
-				LogMessage($"Found {methods.Length} methods for type {t.FullName}", MessageLevel.Trace);
+				// LogMessage($" > Found {methods.Length} methods for type {t.FullName}", MessageLevel.Trace);
 
 				*count = methods.Length;
 				if (method_arr == null) {
@@ -379,11 +387,11 @@ namespace DotOther.Managed {
 				}
 
 				for (Int32 i = 0; i < methods.Length; i++) {
-					LogMessage($"  > Adding method {methods[i].Name} to cache", MessageLevel.Trace);
+					// LogMessage($"  > Adding method [class : {t.Name}] {methods[i].Name} to cache", MessageLevel.Trace);
 					method_arr[i] = cached_methods.Add(methods[i]);
 				}
 
-				LogMessage($"  > Added {methods.Length} methods to cache", MessageLevel.Trace);
+				// LogMessage($"  > Added {methods.Length} methods to cache", MessageLevel.Trace);
 			} catch (Exception ex) {
 				HandleException(ex);
 			}
@@ -392,6 +400,10 @@ namespace DotOther.Managed {
 		[UnmanagedCallersOnly]
 		private static unsafe void GetTypeFields(Int32 type, Int32* field_arr, Int32* field_count) {
 			try {
+				if (field_count == null) {
+					throw new ArgumentNullException(nameof(field_count));
+				}
+
 				if (!cached_types.TryGet(type, out var t)) {
 					return;
 				}
@@ -399,7 +411,7 @@ namespace DotOther.Managed {
 				ReadOnlySpan<FieldInfo> fields = t.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
 				if (fields == null || fields.Length == 0) {
 					*field_count = 0;
-					return;
+					return;                                                             
 				}
 
 				*field_count = fields.Length;
@@ -411,7 +423,7 @@ namespace DotOther.Managed {
 				for (Int32 i = 0; i < fields.Length; i++) {
 					field_arr[i] = cached_fields.Add(fields[i]);
 				}
-			} catch (Exception ex) {
+			} catch (Exception ex) {          
 				HandleException(ex);
 			}
 		}
@@ -464,7 +476,7 @@ namespace DotOther.Managed {
 					return;
 				}
 
-				var attrs = t.GetCustomAttributes().ToImmutableArray();
+				ImmutableArray<object> attrs = t.GetCustomAttributes(true).ToImmutableArray();
 				if (attrs == null || attrs.Length == 0) {
 					*count = 0;
 					return;
@@ -477,7 +489,8 @@ namespace DotOther.Managed {
 				}
 
 				for (Int32 i = 0; i < attrs.Length; i++) {
-					attributes[i] = cached_attributes.Add(attrs[i]);
+					Attribute attr = (Attribute)attrs[i];
+					attributes[i] = cached_attributes.Add(attr);
 				}
 			} catch (Exception ex) {
 				HandleException(ex);
@@ -648,7 +661,7 @@ namespace DotOther.Managed {
 					return;
 				}
 
-				var attributes = finfo.GetCustomAttributes().ToImmutableArray();
+				var attributes = finfo.GetCustomAttributes(true).ToImmutableArray();
 
 				if (attributes.Length == 0) {
 					*count = 0;
@@ -662,7 +675,7 @@ namespace DotOther.Managed {
 				}
 
 				for (Int32 i = 0; i < attributes.Length; i++) {
-					out_attrs[i] = cached_attributes.Add(attributes[i]);
+					out_attrs[i] = cached_attributes.Add((Attribute)attributes[i]);
 				}
 			} catch (Exception ex) {
 				HandleException(ex);

@@ -1,7 +1,4 @@
 using System;
-using System.Runtime.InteropServices;
-using System.Runtime.CompilerServices;
-using System.Security.Policy;
 
 namespace Other {
 
@@ -10,14 +7,242 @@ namespace Other {
 
     public Camera(OtherObject obj) : base(obj) {
     }
+      
+    internal static unsafe delegate*<IntPtr , Vec3* , void> GetPosition;
+    internal static unsafe delegate*<IntPtr , Vec3* , void> SetPosition;
 
-    // public Vec3 Position {
-    //   get {
-    //   //   Scene.GetPosition(Object.ObjectID , out Vec3 position);
-    //   //   return position;
-    //   // }
-    //   // set => Scene.SetPosition(Object.ObjectID , ref value);
-    // }
+    internal static unsafe delegate*<IntPtr , Vec3* , void> GetForward;
+    ///  TODO: do we need this?
+    // internal static unsafe delegate*<IntPtr , Vec3* , void> SetForward;
+
+    internal static unsafe delegate*<IntPtr , Vec3* , void> GetRight;
+    /// TODO: do we need this?
+    /// internal static unsafe delegate*<IntPtr , Vec3* , void> SetRight;
+    
+    internal static unsafe delegate*<IntPtr , Vec3* , void> GetUp;
+    /// TODO: do we need this?
+    /// internal static unsafe delegate*<IntPtr , Vec3* , void> SetUp;
+    
+    internal static unsafe delegate*<IntPtr , Vec3* , void> GetWorldUp;
+
+    internal static unsafe delegate*<IntPtr, float*, void> GetYaw;
+    internal static unsafe delegate*<IntPtr, float*, void> SetYaw;
+
+    internal static unsafe delegate*<IntPtr, float*, void> GetPitch;
+    internal static unsafe delegate*<IntPtr, float*, void> SetPitch;
+    internal static unsafe delegate*<IntPtr, bool*, void> GetIsPitchConstrained;
+    internal static unsafe delegate*<IntPtr, bool*, void> SetIsPitchConstrained;
+    
+    internal static unsafe delegate*<IntPtr, float*, void> GetRoll;
+    internal static unsafe delegate*<IntPtr, float*, void> SetRoll;
+
+    internal static unsafe delegate*<IntPtr, float*, void> GetSensitivity;
+    internal static unsafe delegate*<IntPtr, float*, void> SetSensitivity;
+
+    internal static unsafe delegate*<IntPtr, void> InternalCalculateMatrix;
+
+    internal static unsafe delegate*<IntPtr, Vec2*, void> SetClipPlanes;
+    internal static unsafe delegate*<IntPtr, Vec2*, void> GetClipPlanes;
+
+    internal static unsafe delegate*<IntPtr, float*, void> SetFarClipPlane;
+    internal static unsafe delegate*<IntPtr, float*, void> GetFarClipPlane;
+
+    internal static unsafe delegate*<IntPtr, float*, void> SetNearClipPlane;
+    internal static unsafe delegate*<IntPtr, float*, void> GetNearClipPlane;
+
+    public Vec3 Position {
+      get {
+        unsafe {
+          Vec3 pos = Vec3.zero;
+          GetPosition(Object.NativeHandle , &pos);
+          return pos;
+        }
+      }
+      set {
+        unsafe {
+          SetPosition(Object.NativeHandle , &value);
+        }
+      }
+    }
+
+    public Vec3 Forward {
+      get {
+        unsafe {
+          Vec3 forward = Vec3.zero;
+          GetForward(Object.NativeHandle , &forward);
+          return forward;
+        }
+      }
+    }
+
+    public Vec3 Right {
+      get {
+        unsafe {
+          Vec3 right = Vec3.zero;
+          GetRight(Object.NativeHandle , &right);
+          return right;
+        }
+      }
+    }
+
+    public Vec3 Up {
+      get {
+        unsafe {
+          Vec3 up = Vec3.zero;
+          GetUp(Object.NativeHandle , &up);
+          return up;
+        }
+      }
+    }
+
+    public Vec3 WorldUp {
+      get {
+        unsafe {
+          Vec3 worldUp = Vec3.zero;
+          GetWorldUp(Object.NativeHandle , &worldUp);
+          return worldUp;
+        }
+      }
+    }
+
+    public float Yaw {
+      get {
+        unsafe {
+          float yaw = 0.0f;
+          GetYaw(Object.NativeHandle , &yaw);
+          return yaw;
+        }
+      }
+      set {
+        unsafe {
+          SetYaw(Object.NativeHandle , &value);
+        }
+      }
+    }
+
+    public float Pitch {
+      get {
+        unsafe {
+          float pitch = 0.0f;
+          GetPitch(Object.NativeHandle , &pitch);
+          return pitch;
+        }
+      }
+      set {
+        unsafe {
+          SetPitch(Object.NativeHandle , &value);
+        }
+      }
+    }
+
+    public float Roll {
+      get {
+        unsafe {
+          float roll = 0.0f;
+          GetRoll(Object.NativeHandle , &roll);
+          return roll;
+        }
+      }
+      set {
+        unsafe {
+          SetRoll(Object.NativeHandle , &value);
+        }
+      }
+    }
+
+    public float Sensitivity {
+      get {
+        unsafe {
+          float sensitivity = 0.0f;
+          GetSensitivity(Object.NativeHandle , &sensitivity);
+          return sensitivity;
+        }
+      }
+      set {
+        unsafe {
+          SetSensitivity(Object.NativeHandle , &value);
+        }
+      }
+    }
+
+    public bool PitchConstrained {
+      get {
+        unsafe {
+          bool isPitchConstrained = false;
+          GetIsPitchConstrained(Object.NativeHandle , &isPitchConstrained);
+          return isPitchConstrained;
+        }
+      }
+      set {
+        unsafe {
+          SetIsPitchConstrained(Object.NativeHandle , &value);
+        }
+      }
+    }
+
+    public Vec2 ClipPlanes {
+      get {
+        unsafe {
+          Vec2 clipPlanes = Vec2.zero;
+          GetClipPlanes(Object.NativeHandle , &clipPlanes);
+          return clipPlanes;
+        }
+      }
+      set {
+        unsafe {
+          SetClipPlanes(Object.NativeHandle , &value);
+        }
+      }
+    }
+
+    public float NearClipPlane {
+      get {
+        unsafe {
+          float nearClipPlane = 0.0f;
+          GetNearClipPlane(Object.NativeHandle , &nearClipPlane);
+          return nearClipPlane;
+        }
+      }
+      set {
+        unsafe {
+          SetNearClipPlane(Object.NativeHandle , &value);
+        }
+      }
+    }
+
+    public float FarClipPlane {
+      get {
+        unsafe {
+          float farClipPlane = 0.0f;
+          GetFarClipPlane(Object.NativeHandle , &farClipPlane);
+          return farClipPlane;
+        }
+      }
+      set {
+        unsafe {
+          SetFarClipPlane(Object.NativeHandle , &value);
+        }
+      }
+    }
+
+    public void SetTransform(Transform transform) {
+      Position = transform.Position;
+      /// rotation, etc... 
+    }
+
+    public void CalculateMatrix() {
+      unsafe {
+        InternalCalculateMatrix(Object.NativeHandle);
+      }
+    }
+
+    public void RotateHorizontal(float angle) {
+      Yaw += angle;
+    }
+
+    public void RotateVertical(float angle) {
+      Pitch += angle;
+    }
 
     // public Vec3 Direction {
     //   get {

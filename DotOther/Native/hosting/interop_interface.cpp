@@ -22,6 +22,7 @@ namespace dotother {
         get_assembly_name != nullptr &&
 
         /// type functions
+        get_net_core_types != nullptr &&
         get_asm_types != nullptr &&
         get_type_id != nullptr &&
         get_full_type_name != nullptr &&
@@ -105,7 +106,7 @@ namespace dotother {
       instance = nullptr;
     }
 
-    util::print(DO_STR("InteropInterface successfully unbound"sv), MessageLevel::TRACE);
+    DOTOTHER_LOG(DO_STR("InteropInterface successfully unbound"sv), MessageLevel::TRACE);
   }
 
   interface_bindings::FunctionTable& InteropInterface::FunctionTable() {
@@ -118,16 +119,16 @@ namespace dotother {
     }
 
     if (handle == 0 || object == nullptr) {
-      util::print(DO_STR("Invalid object registration!"sv), MessageLevel::ERR);
+      DOTOTHER_LOG(DO_STR("Invalid object registration!"sv), MessageLevel::ERR);
       return;
     }
 
     if (auto itr = registered_objects.find(handle); itr != registered_objects.end()) {
-      util::print(DO_STR("Object {:#8x} already registered!"sv), MessageLevel::WARNING, handle);
+      DOTOTHER_LOG(DO_STR("Object {:#8x} already registered!"sv), MessageLevel::WARNING, handle);
       return;
     }
 
-    util::print(DO_STR("Registering object {:#8x}"sv), MessageLevel::INFO, handle);
+    DOTOTHER_LOG(DO_STR("Registering object {:#8x} ({})"sv), MessageLevel::INFO, handle, object->proxy->GetTypeName());
     registered_objects[handle] = object;
   }
 
@@ -137,18 +138,18 @@ namespace dotother {
     }
 
     if (auto itr = registered_objects.find(handle); itr != registered_objects.end()) {
-      util::print(DO_STR("Unregistering object {:#8x}"sv), MessageLevel::INFO, handle);
+      DOTOTHER_LOG(DO_STR("Unregistering object {:#8x} ({})"sv), MessageLevel::INFO, handle, itr->second->proxy->GetTypeName());
       registered_objects.erase(itr);
       return;
     }
 
-    util::print(DO_STR("Object {:#8x} not found!"sv), MessageLevel::ERR, handle);
+    DOTOTHER_LOG(DO_STR("Object {:#8x} not found!"sv), MessageLevel::ERR, handle);
   }
 
   void InteropInterface::InvokeNativeFunction(uint64_t obj_handle, const std::string_view method_name) {
-    util::print(DO_STR("Invoking {} on {:#8x}"sv), MessageLevel::TRACE, method_name, obj_handle);
+    DOTOTHER_LOG(DO_STR("Invoking {} on {:#8x}"sv), MessageLevel::TRACE, method_name, obj_handle);
     if (auto itr = registered_objects.find(obj_handle); itr == registered_objects.end()) {
-      util::print(DO_STR("Object {:#8x} not found!"sv), MessageLevel::ERR, obj_handle);
+      DOTOTHER_LOG(DO_STR("Object {:#8x} not found!"sv), MessageLevel::ERR, obj_handle);
       return;
     }
 

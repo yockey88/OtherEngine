@@ -4,6 +4,7 @@
 #ifndef OTHER_ENGINE_SCRIPT_HPP
 #define OTHER_ENGINE_SCRIPT_HPP
 
+#include <concepts>
 #include <map>
 #include <type_traits>
 
@@ -17,35 +18,100 @@
 #include "scripting/cs/cs_object.hpp"
 #include "scripting/script_object.hpp"
 
-
 namespace other {
+
+  struct Script;
+
+  struct ScriptSnapshotter : public ObjectSerializer<Script, 0> {
+    ScriptSnapshotter() {
+    }
+
+    static size_t Stride() {
+      return 0;
+    }
+  };
 
   struct ScriptObjectData {
     std::string module;
+    std::string nspace;
     std::string obj_name;
   };
 
   struct Script : Component {
-    ECS_COMPONENT(Script, kScriptIndex);
+    ECS_COMPONENT(Script, SCRIPT_COMPONENT_INDEX);
+
+    Script(Scene* scene) : Component(SCRIPT_COMPONENT_INDEX) {}
+
+    Opt<uint32_t> selected_script = std::nullopt;
+
+    std::string name = "";
+    std::string nspace = "";
+    std::string module = "";
 
     UUID AddScript(const std::string_view name, const std::string_view nspace, const std::string_view module);
-    void RemoveScript(UUID id);
-    void RemoveScript(const std::string_view name);
+    void RemoveScript();
+
+    void Rebind();
 
     void ApiCall(const std::string_view name);
-    void ApiCall(const std::string_view name, float dt);
+
+    bool IsEmpty() const;
+    bool IsCorrupt() const;
+
+    UUID ScriptHandle() const;
+    std::string Name() const;
+    LanguageModuleType LanguageType() const;
+
+    std::map<UUID, ScriptField>& GetFields();
+
+    template <typename T>
+      requires(!std::is_pointer_v<T>)
+    void ApiCall(const std::string_view name, T&& arg) {
+      OE_ASSERT(script_object != nullptr, "Script object is null");
+      script_object->CallMethod<void, T>(std::string{ name }, std::forward<T>(arg));
+    }
+
+    template <typename T>
+      requires std::is_pointer_v<T>
+    void ApiCall(const std::string_view name, T ptr) {
+      OE_ASSERT(ptr != nullptr, "Pointer is null");
+      script_object->CallMethod<void, T>(std::string{ name }, std::forward<T>(ptr));
+    }
+
+    template <typename T>
+    T GetProperty(const std::string_view name) {
+      OE_ASSERT(script_object != nullptr, "Script object is null");
+      return script_object->GetProperty<T>(std::string{ name });
+    }
+
+    template <typename T>
+    void SetProperty(const std::string_view name, T&& arg) {
+      OE_ASSERT(script_object != nullptr, "Script object is null");
+      script_object->SetProperty<T>(std::string{ name }, std::forward<T>(arg));
+    }
+
+    template <typename T>
+    T GetField(const std::string_view name) {
+      OE_ASSERT(script_object != nullptr, "Script object is null");
+      return script_object->GetField<T>(std::string{ name });
+    }
+
+    template <typename T>
+    void SetField(const std::string_view name, T&& arg) {
+      OE_ASSERT(script_object != nullptr, "Script object is null");
+      script_object->SetField<T>(std::string{ name }, std::forward<T>(arg));
+    }
+
+    void SetField(const std::string_view name, Value& value);
 
     bool ValidateScripts();
 
     void SetHandles();
 
-    void Clear();
-
-    const auto& GetScripts() const { return scripts; }
-
    private:
-    std::map<UUID, ScriptObjectData> data = {};
-    std::map<UUID, ScriptRef<CsObject>> scripts = {};
+    ScriptObjectData object_data = {};
+    /// TODO: replace this with generic script object
+    ScriptRef<CsObject> script_object = {};
   };
 
   template <typename T>

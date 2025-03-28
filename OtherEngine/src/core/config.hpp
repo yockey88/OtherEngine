@@ -39,9 +39,9 @@ namespace other {
 
     void AddScriptSection(const std::string_view key, const UnparsedScriptSection& value);
 
-    const std::map<uint64_t, std::vector<std::string>> Get(const std::string_view section) const;
-    const std::vector<std::string> Get(const std::string_view section, const std::string_view key, bool case_sensitive_key = false) const;
-    const std::vector<std::string> GetKeys(const std::string_view section) const;
+    const std::map<uint64_t, std::vector<std::string>>& Get(const std::string_view section) const;
+    const std::vector<std::string>& Get(const std::string_view section, const std::string_view key, bool case_sensitive_key = false) const;
+    const std::vector<std::string>& GetKeys(const std::string_view section) const;
 
     const std::map<uint64_t, std::string>& GetFramebufferSpecs() const;
     const std::map<uint64_t, std::string>& GetVertexLayouts() const;

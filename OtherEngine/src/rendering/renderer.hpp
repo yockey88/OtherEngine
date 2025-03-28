@@ -5,6 +5,7 @@
 #define OTHER_ENGINE_RENDERER_HPP
 
 #include "core/ref.hpp"
+#include "core/scope.hpp"
 
 #include "application/app.hpp"
 
@@ -30,12 +31,14 @@ namespace other {
 
     static void Shutdown();
 
+    static void Fullscreen(bool fullscreen);
+
     static const Scope<Window>& GetWindow();
 
     static void SetWindowClearColor(const std::vector<std::string>& color);
     static void SetWindowClearColor(const glm::vec4& color);
 
-    static void DrawFramebufferToWindow(const Ref<Framebuffer>& framebuffer);
+    static void DrawFramebufferToWindow(Ref<Framebuffer>& framebuffer);
 
     static Ref<SceneRenderer> DefaultSceneRenderer();
     static Ref<SceneRenderer> ConstructSceneRenderer(App::RenderSpec* spec);
@@ -43,6 +46,7 @@ namespace other {
     static SceneRenderSpec GetDefaultSceneSpec();
 
    private:
+    static bool is_fullscreen;
     static Scope<Window> window;
     static Ref<Scene> scene_ctx;
     static Ref<VertexArray> window_mesh;

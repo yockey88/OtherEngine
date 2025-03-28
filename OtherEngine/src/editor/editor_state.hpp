@@ -10,6 +10,8 @@
 #include "core/defines.hpp"
 #include "core/uuid.hpp"
 
+#include "ecs/components/transform.hpp"
+
 #include "rendering/camera_base.hpp"
 
 namespace other {
@@ -37,6 +39,9 @@ namespace other {
     glm::vec3 stored_camera_position = { 0.f, 0.f, 0.f };
     glm::vec3 stored_camera_direction = { 0.f, 0.f, 0.f };
 
+    bool camera_selected = false;
+    Ref<CameraBase> selected_camera = nullptr;
+
     ImGuizmo::OPERATION guizmo_op = ImGuizmo::TRANSLATE;
     ImGuizmo::MODE guizmo_mode = ImGuizmo::LOCAL;
 
@@ -44,6 +49,7 @@ namespace other {
     Opt<UUID> panel_creator_id = std::nullopt;
 
     static EditorState& Get();
+    static void Shutdown();
   };
 
 }  // namespace other

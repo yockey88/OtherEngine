@@ -14,19 +14,37 @@ namespace other {
 
   FileWatcher::FileWatcher(UUID hash, const Path& path) {
     file_path = path;
-    last_write = std::filesystem::last_write_time(Path{ file_path });
-    exists = true;
+    exists = std::filesystem::exists(file_path);
+    if (exists) {
+      last_write = std::filesystem::last_write_time(file_path);
+    }
+
     handle = hash;
   }
 
   bool FileWatcher::Poll() {
-    if (exists && !std::filesystem::exists(file_path)) {
-      exists = false;
-      EventQueue::PushEvent<DeleteFileEvent>({ handle.Get() });
+    if (!exists) {
       return false;
     }
 
-    if (!exists) {
+    static constexpr std::array kInvisibleExtensions = {
+      FNV(".tmp"),
+      FNV(".swp"),
+      FNV(".swo"),
+      FNV(".swn"),
+      FNV(".swx"),
+      FNV(".swn"),
+      FNV(".log"),
+      FNV(".ini"),
+      FNV(".db"),
+    };
+    if (std::ranges::find(kInvisibleExtensions, FNV(file_path.extension().string())) != kInvisibleExtensions.end()) {
+      return false;
+    }
+
+    if (exists && !std::filesystem::exists(file_path)) {
+      exists = false;
+      EventQueue::PushEvent<FileDeleted>({ handle.Get() });
       return false;
     }
 
@@ -34,7 +52,6 @@ namespace other {
     auto new_write_time = std::filesystem::last_write_time(file_path);
     if (last_write != new_write_time) {
       changed = true;
-      EventQueue::PushEvent<ModifyFileEvent>({ handle.Get() });
     }
 
     last_write = new_write_time;

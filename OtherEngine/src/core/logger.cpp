@@ -49,13 +49,16 @@ namespace other {
 
   constexpr static std::string_view kDefaultLogFilePath = "other.log";
 
+  static ArenaAllocator<Logger> logger_allocator;
   Logger* Logger::instance = nullptr;
 
   Logger* Logger::Open(const ConfigTable& config) {
-    OE_ASSERT(!open, "Attempting to reopen logger");
+    if (open) {
+      return instance;
+    }
 
     if (instance == nullptr) {
-      instance = new Logger(config);
+      instance = logger_allocator.Allocate(config);
     }
     /// TODO: create Reopen function to reset all log settings
     // else {
@@ -216,7 +219,7 @@ namespace other {
 
   void Logger::Shutdown() {
     spdlog::drop_all();
-    delete instance;
+    logger_allocator.Free(instance);
     instance = nullptr;
     open = false;
   }

@@ -17,15 +17,16 @@
 #include "rendering/model.hpp"
 #include "rendering/model_factory.hpp"
 
+#include "component.hpp"
+
 namespace other {
 
   Entity::Entity(entt::registry& registry, entt::entity handle)
-      : dotother::NObject(registry.get<Tag>(handle).id.Get()),
-        registry(registry), handle(handle) {
+      : registry(registry), handle(handle) {
   }
 
   Entity::Entity(entt::registry& registry, UUID uuid, const std::string& name)
-      : dotother::NObject(uuid.Get()), registry(registry), uuid(uuid), name(name) {
+      : registry(registry), uuid(uuid), name(name) {
     handle = registry.create();
 
     auto& tag = GetComponent<Tag>();
@@ -33,15 +34,15 @@ namespace other {
     tag.name = name;
   }
 
-  const entt::entity& Entity::Handle() const {
+  entt::entity Entity::Handle() const {
     return handle;
   }
 
-  const UUID& Entity::GetUUID() const {
+  UUID Entity::GetUUID() const {
     return uuid;
   }
 
-  const std::string Entity::Name() const {
+  const std::string& Entity::Name() const {
     return ReadComponent<Tag>().name;
   }
 
@@ -63,13 +64,32 @@ namespace other {
     auto& [n, idx] = *comp_itr;
 
     // special case for these components
-    if (idx == kTagIndex || idx == kTransformIndex || idx == kRelationshipIndex) {
+    if (idx == TAG_COMPONENT_INDEX || idx == TRANSFORM_COMPONENT_INDEX || idx == RELATIONSHIP_COMPONENT_INDEX) {
       return true;
     }
 
     /// sanity check
     OE_ASSERT(n == name, "Component name mismatch");
     return std::ranges::find_if(sdata.entity_components, [idx](int32_t i) { return i == idx; }) != sdata.entity_components.end();
+  }
+
+  Component* Entity::GetComponentByName(const std::string_view name) {
+    SerializationData& sdata = GetComponent<SerializationData>();
+    auto comp_itr = std::ranges::find_if(kComponentTags, [name](const auto& pair) { return pair.name == name; });
+    if (comp_itr == kComponentTags.end()) {
+      OE_WARN("Component {} not found", name);
+      return nullptr;
+    }
+    auto& [n, idx] = *comp_itr;
+
+    OE_ASSERT(idx < NUM_COMPONENTS, "Component index out of bounds : {}", idx);
+    return GetComponentByIndex(idx);
+  }
+
+  Component* Entity::GetComponentByIndex(int32_t idx) {
+    OE_ASSERT(idx < NUM_COMPONENTS, "Component index out of bounds : {}", idx);
+    auto& metatable = GetComponent<EntityMetatable>();
+    return metatable.components[idx];
   }
 
   entt::entity Entity::GetEntity() const {
@@ -109,23 +129,17 @@ namespace other {
     Ref<StaticModel> model = AssetManager::GetAsset<StaticModel>(wireframe);
     OE_ASSERT(model != nullptr, "Failed to get wireframe model");
 
-    // Material mat(glm::vec4(235.f / 255.f, 132.f / 255.f, 9.f / 255.f, 1.f), 1.f);
+    Ref<MaterialTable> material_table = AssetManager::GetMaterialTable();
 
     RenderStaticSubmission submission = {
       .model = model,
       .transform = glm::scale(ReadComponent<Transform>().model_transform, glm::vec3(1.03f)),
-      // .material = mat,
-      .render_state = RenderState::FILL,
+      .material_table = material_table,
+      .material = material_table->SelectionWireframeMaterial(),
       .draw_mode = DrawMode::LINES,
+      .line_thickness = 3.f,
     };
     OE_ASSERT(submission.model != nullptr, "Wireframe model is null!");
-
-    /// TODO: rewrite this to take into account the entities mesh if it has one
-    ///       - if it has one render a wireframe of the mesh in highlight color
-    ///       - if it does not have a mesh render a wireframe of the bounding box in highlight color
-    // if (HasVisibleComponent()) {
-    // } else {
-    // }
     return submission;
   }
 

@@ -14,6 +14,16 @@
 
 namespace other {
 
+  struct RigidBody2D;
+
+  struct RigidBody2DSnapshotter : public ObjectSerializer<RigidBody2D, 7> {
+    RigidBody2DSnapshotter();
+
+    static size_t Stride() {
+      return sizeof(PhysicsBodyType) + sizeof(float) * 4 + sizeof(bool) * 2;
+    }
+  };
+
   struct RigidBody2D : public Component {
     b2BodyDef body_def;
     b2Body* physics_body = nullptr;
@@ -28,7 +38,7 @@ namespace other {
     bool fixed_rotation = false;
     bool bullet = false;
 
-    ECS_COMPONENT(RigidBody2D, kRigidBody2DIndex);
+    ECS_COMPONENT(RigidBody2D, RIGIDBODY2D_COMPONENT_INDEX);
   };
 
   class RigidBody2DSerializer : public ComponentSerializer {
@@ -40,12 +50,12 @@ namespace other {
 
 ECHO_TYPE(
   type(other::RigidBody2D, refl::attr::bases<other::Component>),
-  field(mass),
-  field(linear_drag),
-  field(angular_drag),
-  field(gravity_scale),
-  field(fixed_rotation),
-  field(bullet)
+  field(mass, echo::serializable_field()),
+  field(linear_drag, echo::serializable_field()),
+  field(angular_drag, echo::serializable_field()),
+  field(gravity_scale, echo::serializable_field()),
+  field(fixed_rotation, echo::serializable_field()),
+  field(bullet, echo::serializable_field())
 );
 
 #endif  // !OTHER_ENGINE_RIGID_BODY_2D_HPP

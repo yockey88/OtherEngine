@@ -147,6 +147,125 @@ namespace DotOther.Managed {
       contexts.Remove(context_id);
       alc.Unload();
     }
+
+    static Assembly? dotother_assembly = null;
+
+    private enum CoreAssembly {
+      SystemPrivateCoreLib,
+      // SystemRuntime,
+      // SystemConsole,
+      // SystemLinq,
+      // SystemCollections,
+      // SystemNetHttp,
+      // SystemIO,
+      // SystemThreading,
+      NumCoreAssemblies
+    }
+
+    
+    private static string[] core_assembly_names = new string[] {
+        "System.Private.CoreLib",
+        // "System.Runtime",
+        // "System.Console",
+        // "System.Linq",
+        // "System.Collections",
+        // "System.Net.Http",
+        // "System.IO",
+        // "System.Threading"
+    };
+
+    private static Assembly[] core_assemblies = new Assembly[(int)CoreAssembly.NumCoreAssemblies];
+
+    private static List<Type> core_types = new List<Type>();
+
+    public static ReadOnlySpan<Type> CoreTypes {
+      get => core_types.ToArray();
+    }
+
+    private static bool core_assemblies_loaded = false;
+
+    public static bool CoreAsmsLoaded {
+      get => core_assemblies_loaded;
+    }
+
+    private static Assembly? LoadNetCoreAssembly(CoreAssembly assembly_type, string assembly_name) {
+      try {
+        Assembly? assembly = null;
+        if (core_assemblies[(int)assembly_type] == null) {
+          assembly = Assembly.Load(assembly_name);
+          if (assembly == null) {
+            LogMessage($"Failed to load core assembly '{assembly_name}', assembly is null", MessageLevel.Error);
+            return null;
+          }
+
+          ReadOnlySpan<Type> types = assembly.GetTypes();
+          core_assemblies[(int)assembly_type] = assembly;
+
+          LogMessage($"Loaded core assembly : {core_assemblies[(int)assembly_type].FullName}", MessageLevel.Trace);
+          LogMessage($" > Number of types in core assembly : {types.Length}", MessageLevel.Trace);
+          foreach (var type in types) {
+            core_types.Add(type);
+          }
+        } else {
+          LogMessage($"Core assembly already loaded : {core_assemblies[(int)assembly_type].FullName}", MessageLevel.Trace);
+          assembly = core_assemblies[(int)assembly_type];
+        }
+
+        return assembly;
+      } catch (Exception e) {
+        LogMessage($"Failed to load core assembly '{assembly_name}' | \n\t{e.StackTrace}", MessageLevel.Error);
+        return null;
+      }
+    }
+
+
+    public static Type? CheckNetCoreType(NString name) {
+      Type? type = null;
+
+      for (int i = 0; i < (int)CoreAssembly.NumCoreAssemblies; i++) {
+        if (core_assemblies[i] == null) {
+          continue;
+        }
+
+        type = core_assemblies[i].GetType(name!);
+        if (type != null) {
+          break;
+        }
+      }
+
+      return type;
+    }
+
+    public static void LoadNetCoreAssemblies() {      
+      LogMessage("Loading .NET Core assemblies", MessageLevel.Info);
+      for (int i = 0; i < (int)CoreAssembly.NumCoreAssemblies; i++) {
+        Assembly? core_asm = LoadNetCoreAssembly((CoreAssembly)i, core_assembly_names[i]);
+        if (core_asm == null) {
+          break;
+        }
+
+        core_assemblies[i] = core_asm;
+      }
+
+      core_assemblies_loaded = true;
+
+      try {
+        if (dotother_assembly == null) {
+          dotother_assembly = Assembly.GetExecutingAssembly();
+          if (dotother_assembly == null) {
+            LogMessage($"Failed to load system assembly, assembly is null", MessageLevel.Error);
+            return;
+          }
+          
+          ReadOnlySpan<Type> types = dotother_assembly.GetTypes();
+          foreach (var type in types) {
+            LogMessage($"> System Type : {type.FullName}", MessageLevel.Trace);
+          }
+        }
+      } catch (Exception e) {
+        LogMessage($"Failed to load system system assembly | \n\t{e.StackTrace}", MessageLevel.Error);
+      }
+    }
     
     [UnmanagedCallersOnly]
     private static int LoadAssembly(int context_id, NString file_path) {

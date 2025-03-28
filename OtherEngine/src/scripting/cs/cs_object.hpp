@@ -1,63 +1,69 @@
 /**
  * \file scripting/cs/cs_object.hpp
-*/
+ */
 #ifndef OTHER_ENGINE_CS_OBJECT_HPP
 #define OTHER_ENGINE_CS_OBJECT_HPP
 
-#include "hosting/type.hpp"
-#include "hosting/hosted_object.hpp"
-
 #include "scripting/script_object.hpp"
 
-using dotother::Type;
+#include "hosting/hosted_object.hpp"
+#include "hosting/type.hpp"
+
+using dotother::Assembly;
 using dotother::HostedObject;
+using dotother::ref;
+using dotother::Type;
 
 namespace other {
 
+  class CsModule;
+
   class CsObject : public ScriptObjectHandle<CsObject> {
-    public:
-      CsObject(ScriptModule* module , Type& type , UUID handle);
-      virtual ~CsObject() override {}
-      
-      template <typename R , typename... Args>
-      R CallMethod(const std::string_view name , Args&&... args) {
-        if constexpr (std::same_as<R , void>) {
-          hosted_object.Invoke<void>(name , std::forward<Args>(args)...);
-          return;
-        }
+   public:
+    CsObject(CsModule* host, ScriptModule* module, ref<Assembly>& assembly, Type& type, const std::string_view name, std::string_view nspace, UUID handle);
+    virtual ~CsObject() override {}
 
-        return hosted_object.Invoke<R>(name , std::forward<Args>(args)...);
+    template <typename R, typename... Args>
+    R CallMethod(const std::string_view name, Args&&... args) {
+      if constexpr (std::same_as<R, void>) {
+        hosted_object.Invoke<void>(name, std::forward<Args>(args)...);
+        return;
       }
 
-      template <typename T>
-      void SetField(const std::string_view name , T&& value) {
-        hosted_object.SetField(name , std::forward<T>(value));
-      }
+      return hosted_object.Invoke<R>(name, std::forward<Args>(args)...);
+    }
 
-      template <typename R>
-      R GetField(const std::string_view name) {
-        return hosted_object.GetField<R>(name);
-      }
-      
-      template <typename T>
-      void SetProperty(const std::string_view name , T&& value) {
-        hosted_object.SetProperty(name , std::forward<T>(value));
-      }
+    template <typename T>
+    void SetField(const std::string_view name, T&& value) {
+      hosted_object.SetField(name, std::forward<T>(value));
+    }
 
-      template <typename R>
-      R GetProperty(const std::string_view name) {
-        return hosted_object.GetProperty<R>(name);
-      }
+    template <typename R>
+    R GetField(const std::string_view name) {
+      return hosted_object.GetField<R>(name);
+    }
 
-      virtual void InitializeScriptMethods() override;
-      virtual void InitializeScriptFields() override;
-      virtual void UpdateNativeFields() override;
+    template <typename T>
+    void SetProperty(const std::string_view name, T&& value) {
+      hosted_object.SetProperty(name, std::forward<T>(value));
+    }
 
-    private:
-      Type& type;
-      HostedObject hosted_object;
+    template <typename R>
+    R GetProperty(const std::string_view name) {
+      return hosted_object.GetProperty<R>(name);
+    }
+
+    virtual void InitializeScriptMethods() override;
+    virtual void InitializeScriptFields() override;
+    virtual void UpdateNativeFields() override;
+
+   private:
+    CsModule* host = nullptr;
+    ref<Assembly> assembly = nullptr;
+    Type& type;
+    HostedObject hosted_object;
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_SCRIPT_OBJECT_HPP
+#endif  // !OTHER_ENGINE_SCRIPT_OBJECT_HPP

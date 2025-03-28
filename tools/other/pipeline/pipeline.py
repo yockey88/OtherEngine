@@ -107,7 +107,7 @@ class Pipeline(Singleton):
 
     proj_data = oe_env.get_project_path(project)
     if proj_data is None:
-      print("project {} not found in environment configuration, did you remember to add it to the project list?".format(project))
+      print("[ ERROR ] : Project {} not found in environment configuration, did you remember to add it to the project list?".format(project))
       return 1
     
     [real_name,proj_path,config_file] = proj_data
@@ -173,10 +173,12 @@ class Pipeline(Singleton):
     if oe_env.get_settings().test is None:
       return 0
     
+    config = oe_env.project_configuration()
+    
     test_list = oe_env.test_list()
     ignore_list = oe_env.test_ignore_list()
     print("> running tests w/ filters : tests = {} , ignore = {}".format("all" if len(test_list) == 0 else test_list, ignore_list))
-    return run_test(test_list , ignore_list if len(test_list) == 0 else [] , [])
+    return run_test(config, test_list , ignore_list if len(test_list) == 0 else [] , [])
     
   @classmethod
   def _try_create_project(self):

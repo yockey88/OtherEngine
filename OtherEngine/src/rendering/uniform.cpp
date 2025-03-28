@@ -100,6 +100,7 @@ namespace other {
   }
 
   std::tuple<UniformBuffer::UniformData, bool, uint32_t> UniformBuffer::TryFind(const std::string_view name, uint32_t index) {
+    PROFILE_SECTION("UniformBuffer--TryFind");
     auto [id, u_data] = GetUniform(name);
     if (id.Get() == 0) {
       return { {}, false, 0 };
@@ -110,6 +111,7 @@ namespace other {
   }
 
   std::pair<UUID, UniformBuffer::UniformData> UniformBuffer::GetUniform(const std::string_view name) {
+    PROFILE_SECTION("UniformBuffer--GetUniform");
     static const auto null_uniform = std::pair<UUID, UniformBuffer::UniformData>{ 0, {} };
 
     UUID hash = FNV(name);

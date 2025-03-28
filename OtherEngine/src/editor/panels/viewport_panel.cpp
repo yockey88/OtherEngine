@@ -173,28 +173,6 @@ namespace other {
 
     EditorState& editor = EditorState::Get();
 
-    /// menu bar for guizmo tools
-    ui::MenuBar([&]() {
-      ui::Menu(
-        "Tools",
-        ui::MenuItem(
-          "Translate",
-          [&]() { editor.guizmo_op = ImGuizmo::OPERATION::TRANSLATE; }
-        ),
-        ui::MenuItem("Rotate", [&]() { editor.guizmo_op = ImGuizmo::OPERATION::ROTATE; }),
-        ui::MenuItem("Scale", [&]() { editor.guizmo_op = ImGuizmo::OPERATION::SCALE; })
-      );
-
-      ui::Menu(
-        "Modes",
-        ui::MenuItem("Local", [&]() { editor.guizmo_mode = ImGuizmo::MODE::LOCAL; }),
-        ui::MenuItem(
-          "World",
-          [&]() { /* editor.guizmo_mode = ImGuizmo::MODE::WORLD; */ }
-        )
-      );
-    });
-
     ImVec2 min_bound = ImGui::GetWindowPos();
     ImVec2 window_size = ImGui::GetWindowSize();
     last_viewport_size = { window_size.x, window_size.y };
@@ -235,6 +213,10 @@ namespace other {
       editor.last_mouse_viewport_click = std::nullopt;
     }
 
+    // if (EditorState::scene_mode == SceneEditorMode::PLAYING) {
+    //   return;
+    // }
+
     if (viewport == nullptr) {
       ScopedColor red_text(ImGuiCol_Text, ui::theme::red);
       ImGui::Text("Failed to find viewport frame, settings may be corrupt");
@@ -269,70 +251,80 @@ namespace other {
       window_pos.y - viewport_padding.y
     };
 
-    ImGuizmo::SetOrthographic(false);
-    ImGuizmo::SetDrawlist();
-    ImGuizmo::SetRect(real_pos.x, real_pos.y, last_viewport_size.x, last_viewport_size.y);
+    if (EditorState::scene_mode == SceneEditorMode::STOPPED) {
+      ImGuizmo::SetOrthographic(false);
+      ImGuizmo::SetDrawlist();
+      ImGuizmo::SetRect(real_pos.x, real_pos.y, last_viewport_size.x, last_viewport_size.y);
 
-    if (ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(projection), editor.guizmo_op, editor.guizmo_mode, glm::value_ptr(model)) &&
-        ImGuizmo::IsUsing()) {
-      glm::vec3 translation;
-      glm::quat rotation;
-      glm::vec3 scale;
-      DecomposeTransformMatrix(model, translation, rotation, scale);
+      if (ImGuizmo::Manipulate(glm::value_ptr(view), glm::value_ptr(projection), editor.guizmo_op, editor.guizmo_mode, glm::value_ptr(model)) &&
+          ImGuizmo::IsUsing()) {
+        glm::vec3 translation;
+        glm::quat rotation;
+        glm::vec3 scale;
+        DecomposeTransformMatrix(model, translation, rotation, scale);
 
-      switch (editor.guizmo_op) {
-        // case ImGuizmo::TRANSLATE_X:
-        // case ImGuizmo::TRANSLATE_Y:
-        // case ImGuizmo::TRANSLATE_Z:
-        case ImGuizmo::TRANSLATE:
-          transform.position = translation;
-          break;
+        switch (editor.guizmo_op) {
+          // case ImGuizmo::TRANSLATE_X:
+          // case ImGuizmo::TRANSLATE_Y:
+          // case ImGuizmo::TRANSLATE_Z:
+          case ImGuizmo::TRANSLATE:
+            transform.position = translation;
+            break;
 
-        // case ImGuizmo::ROTATE_X:
-        // case ImGuizmo::ROTATE_Y:
-        // case ImGuizmo::ROTATE_Z:
-        case ImGuizmo::ROTATE: {
-          glm::vec3 original_erot = transform.erotation;
+          // case ImGuizmo::ROTATE_X:
+          // case ImGuizmo::ROTATE_Y:
+          // case ImGuizmo::ROTATE_Z:
+          case ImGuizmo::ROTATE: {
+            glm::vec3 original_erot = transform.erotation;
 
-          // Map original rotation to range [-180, 180] which is what ImGuizmo gives us
-          original_erot.x = fmodf(original_erot.x + glm::pi<float>(), glm::two_pi<float>()) - glm::pi<float>();
-          original_erot.y = fmodf(original_erot.y + glm::pi<float>(), glm::two_pi<float>()) - glm::pi<float>();
-          original_erot.z = fmodf(original_erot.z + glm::pi<float>(), glm::two_pi<float>()) - glm::pi<float>();
+            // Map original rotation to range [-180, 180] which is what ImGuizmo gives us
+            original_erot.x = fmodf(original_erot.x + glm::pi<float>(), glm::two_pi<float>()) - glm::pi<float>();
+            original_erot.y = fmodf(original_erot.y + glm::pi<float>(), glm::two_pi<float>()) - glm::pi<float>();
+            original_erot.z = fmodf(original_erot.z + glm::pi<float>(), glm::two_pi<float>()) - glm::pi<float>();
 
-          glm::vec3 delta_erot = glm::eulerAngles(rotation) - original_erot;
+            glm::vec3 delta_erot = glm::eulerAngles(rotation) - original_erot;
 
-          // Try to avoid drift due numeric precision
-          if (fabs(delta_erot.x) < 0.001) delta_erot.x = 0.0f;
-          if (fabs(delta_erot.y) < 0.001) delta_erot.y = 0.0f;
-          if (fabs(delta_erot.z) < 0.001) delta_erot.z = 0.0f;
+            // Try to avoid drift due numeric precision
+            if (fabs(delta_erot.x) < 0.001) delta_erot.x = 0.0f;
+            if (fabs(delta_erot.y) < 0.001) delta_erot.y = 0.0f;
+            if (fabs(delta_erot.z) < 0.001) delta_erot.z = 0.0f;
 
-          glm::vec3 new_rotation = transform.erotation + delta_erot;
-          transform.erotation = new_rotation;
-          transform.qrotation = glm::quat(new_rotation);
-        } break;
+            glm::vec3 new_rotation = transform.erotation + delta_erot;
+            transform.erotation = new_rotation;
+            transform.qrotation = glm::quat(transform.erotation);
+          } break;
 
-        // case ImGuizmo::SCALE_X:
-        // case ImGuizmo::SCALE_Y:
-        // case ImGuizmo::SCALE_Z:
-        // case ImGuizmo::SCALE_XU:
-        // case ImGuizmo::SCALE_YU:
-        // case ImGuizmo::SCALE_ZU:
-        // case ImGuizmo::SCALEU:
-        case ImGuizmo::SCALE:
-          transform.scale = scale;
-          break;
+          // case ImGuizmo::SCALE_X:
+          // case ImGuizmo::SCALE_Y:
+          // case ImGuizmo::SCALE_Z:
+          // case ImGuizmo::SCALE_XU:
+          // case ImGuizmo::SCALE_YU:
+          // case ImGuizmo::SCALE_ZU:
+          // case ImGuizmo::SCALEU:
+          case ImGuizmo::SCALE:
+            transform.scale = scale;
+            break;
 
-        case ImGuizmo::UNIVERSAL:
-        case ImGuizmo::BOUNDS:
-        case ImGuizmo::ROTATE_SCREEN:
-          /// no-op
-          break;
+          case ImGuizmo::UNIVERSAL:
+          case ImGuizmo::BOUNDS:
+          case ImGuizmo::ROTATE_SCREEN:
+            /// no-op
+            break;
 
-        default:
-          break;
+          default:
+            break;
+        }
+        transform.CalcMatrix();
+
+        {
+          SceneMetadata* active_scene = AppState::Scenes()->ActiveScene();
+          if (active_scene != nullptr) {
+            active_scene->scene->Synchronize();
+          }
+          OE_ASSERT(active_scene->scene != nullptr, "No active scene found");
+          active_scene->scene->Synchronize();
+        }
       }
-
-      transform.CalcMatrix();
     }
   }
 

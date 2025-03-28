@@ -1,6 +1,6 @@
 /**
  * \file scripting/cs/cs_module.hpp
-*/
+ */
 #ifndef OTHER_ENGINE_CS_MODULE_HPP
 #define OTHER_ENGINE_CS_MODULE_HPP
 
@@ -11,40 +11,47 @@
 
 #include "scripting/language_module.hpp"
 
-using dotother::ref;
 using dotother::Assembly;
+using dotother::ref;
 
 namespace other {
 
   class Engine;
 
   class CsModule : public LanguageModule {
-    public:
-      CsModule() 
+   public:
+    CsModule()
         : LanguageModule(LanguageModuleType::CS_MODULE) {}
-      virtual ~CsModule() override {}
+    virtual ~CsModule() override {}
 
-      virtual bool Initialize() override;
-      virtual void Shutdown() override;
-      virtual void Reload() override;
-      virtual Ref<ScriptModule> GetScriptModule(const std::string_view name) override;
-      virtual Ref<ScriptModule> GetScriptModule(const UUID& id) override;
-      virtual Ref<ScriptModule> LoadScriptModule(const ScriptMetadata& module_info) override;
-      virtual void UnloadScript(const std::string& name) override; 
-      virtual void UnloadAll() override;
+    virtual bool Initialize() override;
+    virtual void Shutdown() override;
+    virtual void Reload() override;
+    virtual Ref<ScriptModule> GetScriptModule(const std::string_view name) override;
+    virtual Ref<ScriptModule> GetScriptModule(const UUID& id) override;
+    virtual Ref<ScriptModule> LoadScriptModule(const ScriptMetadata& module_info) override;
+    virtual void UnloadScript(const std::string& name) override;
+    virtual void UnloadAll() override;
 
-      virtual std::string_view GetModuleName() const override { return kModuleName; }
-      virtual std::string_view GetModuleVersion() const override { return kModuleVersion; }
+    virtual std::string_view GetModuleName() const override { return kModuleName; }
+    virtual std::string_view GetModuleVersion() const override { return kModuleVersion; }
 
-    private:
-      constexpr static std::string_view kModuleName = "C#";
-      constexpr static std::string_view kModuleVersion = "0.0.1";
+    int32_t GetTypeHandle(ValueType type) const { return core_type_map[type]; }
 
-      bool load_success = false;
+    const std::map<int32_t, ValueType>& GetTypeMap() const { return value_type_map; }
 
-      UUID IdFromName(const std::string_view name) const;
+   private:
+    constexpr static std::string_view kModuleName = "C#";
+    constexpr static std::string_view kModuleVersion = "0.0.1";
+
+    int32_t core_type_map[ValueType::NUM_VALUE_TYPES] = { -1 };
+    std::map<int32_t, ValueType> value_type_map;
+
+    bool load_success = false;
+
+    UUID IdFromName(const std::string_view name) const;
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_CS_MODULE_HPP
+#endif  // !OTHER_ENGINE_CS_MODULE_HPP

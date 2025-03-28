@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace DotOther.Managed {
 
@@ -69,7 +70,7 @@ namespace DotOther.Managed {
 		private static unsafe MethodInfo? TryGetMethodInfo(Type type, string? name, ManagedType* types, Int32 count, BindingFlags flags) {
 			MethodInfo? minfo = null;
 
-			var param_types = new ManagedType[count];
+			ManagedType[]? param_types = new ManagedType[count];
 
 			unsafe {
 				fixed (ManagedType* param_types_ptr = param_types) {
@@ -78,30 +79,32 @@ namespace DotOther.Managed {
 				}
 			}
 
-			var mkey = new MethodKey(type.FullName!, name!, param_types, count);
-			if (!methods.TryGetValue(mkey, out minfo)) {
-				List<MethodInfo> ms = new(type.GetMethods(flags));
+			MethodKey mkey = new MethodKey(type.FullName!, name!, param_types, count);
 
-				Type? baseType = type.BaseType;
-				while (baseType != null) {
-					ms.AddRange(baseType.GetMethods(flags));
-					baseType = baseType.BaseType;
+			if (methods.TryGetValue(mkey, out minfo)) {
+				if (minfo != null) {
+					return minfo;
 				}
-
-				minfo = InteropInterface.FindSuitableMethod<MethodInfo>(name, types, count, CollectionsMarshal.AsSpan(ms));
-				if (minfo == null) {
-					return null;
-				}
-
-				/// <fixme> 
-				/// 	for some reason caching this method like this causes C# exception: 'Object does not match target type.'
-				/// 		on future calls. For some reason this causes methods to get 'locked onto' the first instance of that type to call it.
-				/// 	not really sure why this happens... super slow to not cache methods 
-				/// </fixme>
-				// methods.Add(mkey, minfo);
+				LogMessage($"Cached method '{type.FullName}.{name}[{count}]' was null!.", MessageLevel.Error);
+			}
+			
+			List<MethodInfo> method_info_list = new List<MethodInfo>();
+			method_info_list.AddRange(type.GetMethods(flags));
+			
+			Type? base_type = type.BaseType;
+			while (base_type != null) {
+				method_info_list.AddRange(base_type.GetMethods(flags));
+				base_type = base_type.BaseType;
 			}
 
-			return minfo;
+			minfo = InteropInterface.FindSuitableMethod<MethodInfo>(name, types, count, CollectionsMarshal.AsSpan(method_info_list));
+			if (minfo != null) {
+				methods.Add(mkey, minfo!);
+				return minfo;
+			} else {
+				LogMessage($"Method '{type.FullName}.{name}[{count}]' not found.", MessageLevel.Error);
+				return null;
+			}
 		}
 
 		[UnmanagedCallersOnly]
@@ -116,33 +119,32 @@ namespace DotOther.Managed {
 					return IntPtr.Zero;
 				}
 
-				ConstructorInfo? ctor = null;
-				var curr_type = type;
-				while (curr_type != null) {
-					ReadOnlySpan<ConstructorInfo> ctors = curr_type.GetConstructors(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
-					ctor = InteropInterface.FindSuitableMethod(".ctor", param_types, count, ctors);
-					if (ctor != null) {
-						break;
-					}
-
-					curr_type = curr_type.BaseType;
-				}
-
+				ReadOnlySpan<ConstructorInfo> ctors = type.GetConstructors(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+				ConstructorInfo? ctor = InteropInterface.FindSuitableMethod(".ctor", param_types, count, ctors);
 				if (ctor == null) {
 					LogMessage($"No suitable constructor found for type '{type.FullName}'.", MessageLevel.Error);
 					return IntPtr.Zero;
 				}
 
-				var marshalled_parameters = Interop.DotOtherMarshal.MarshalParameterArray(parameters, count, ctor);
+				List<MethodInfo> method_info_list = new List<MethodInfo>();
+				method_info_list.AddRange(type.GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance));
+				StringBuilder sb = new StringBuilder();
+				sb.Append($"Creating Object of Type '{type.FullName}'\n");
+				sb.Append($"	> Methods for type '{type.FullName}':\n");
+				for (Int32 i = 0; i < method_info_list.Count; i++) {
+					sb.Append($"  ----  Method '{type.FullName}.{method_info_list[i].Name}[{method_info_list[i].GetParameters().Length}]'\n");
+				}
+				LogMessage(sb.ToString(), MessageLevel.Trace);
+
+				/// this will be null of count == 0, which is fine (parameters will be null as well)
+				object?[]? marshalled_parameters = Interop.DotOtherMarshal.MarshalParameterArray(parameters, count, ctor);
 				object? result = null;
 
-				if (curr_type != type || marshalled_parameters == null) {
+				if (marshalled_parameters == null) {
 					result = InteropInterface.CreateInstance(type);
-					if (curr_type != type) {
-						ctor.Invoke(result, marshalled_parameters);
-					}
 				} else {
 					result = InteropInterface.CreateInstance(type, marshalled_parameters);
+					ctor.Invoke(result, marshalled_parameters);
 				}
 
 				if (result == null) {
@@ -171,31 +173,25 @@ namespace DotOther.Managed {
 		[UnmanagedCallersOnly]
 		private static unsafe void InvokeMethod(IntPtr handle, NString method_name, IntPtr parameters, ManagedType* param_types, int count) {
 			try {
-				var target = GCHandle.FromIntPtr(handle).Target;
-
 				if (method_name == null) {
-					LogMessage("Method name is null.", MessageLevel.Error);
-					return;
+					throw new ArgumentNullException($"{nameof(method_name)} cannot be null.");
 				}
 
+				var target = GCHandle.FromIntPtr(handle).Target;
 				if (target == null) {
-					LogMessage($"Cannot invoke method {method_name} on a null type.", MessageLevel.Error);
-					return;
+					throw new NullReferenceException($"Target object for invoking method [{method_name}]({count}) is null.");
 				}
 
-				var target_type = target.GetType();
-
-				var minfo = TryGetMethodInfo(target_type, method_name, param_types, count, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+				Type target_type = target.GetType();
+				MethodInfo? minfo = TryGetMethodInfo(target_type, method_name, param_types, count, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
 				if (minfo == null) {
-					LogMessage($"Method  ['{target_type.Name}.{method_name}'] was not found", MessageLevel.Error);
-					return;
+					throw new MissingMethodException($"Method '{target_type.FullName}.{method_name}[{count}]' not found.");
 				}
 					
 				var marshalled_parameters = Interop.DotOtherMarshal.MarshalParameterArray(parameters, count, minfo);
-
+				Console.WriteLine($"	> invoking {method_name}[{count}]", MessageLevel.Trace);
 				minfo.Invoke(target, marshalled_parameters);
 			} catch (Exception ex) {
-				LogMessage($"InvokeMethod({method_name}[{count}]) failed", MessageLevel.Error);
 				HandleException(ex);
 			}
 		}

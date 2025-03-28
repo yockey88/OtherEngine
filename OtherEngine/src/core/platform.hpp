@@ -7,7 +7,8 @@
 #include <array>
 
 #include "core/defines.hpp"
-#include "core/directory_watcher.hpp"
+#include "core/scope.hpp"
+
 #include "plugin/plugin_loader.hpp"
 
 #ifdef _WIN32
@@ -31,68 +32,69 @@
   #endif
 #else
   #ifdef OE_CLIENT
-    #define OE_API __attribute__((visibility("default"))) 
+    #define OE_API __attribute__((visibility("default")))
   #else
     #define OE_API
-  #endif 
+  #endif
 #endif
 
 namespace other {
 
   enum PlatformType {
-    WINDOWS , 
-    LINUX ,
-    MAC ,
+    WINDOWS,
+    LINUX,
+    MAC,
 
-    NUM_PLATFORMS ,
+    NUM_PLATFORMS,
     INVALID_PLATFORM = NUM_PLATFORMS
   };
 
   constexpr static uint64_t kNumPlatforms = PlatformType::NUM_PLATFORMS + 1;
   constexpr std::array<std::string_view, kNumPlatforms> kPlatforms = {
-    "Windows" ,
-    "Linux" ,
-    "Mac" ,
+    "Windows",
+    "Linux",
+    "Mac",
 
     "Invalid"
   };
 
   enum LaunchType {
-    EDITOR = 0 , 
-    RUNTIME ,
+    EDITOR = 0,
+    RUNTIME,
 
-    NUM_LAUNCH_TYPES ,
+    NUM_LAUNCH_TYPES,
     INVALID_LAUNCH_TYPE = NUM_LAUNCH_TYPES
   };
 
   enum LaunchConfig {
-    DEBUG = 0 ,
-    RELEASE ,
+    DEBUG = 0,
+    RELEASE,
 
-    NUM_LAUNCH_CONFIGS ,
+    NUM_LAUNCH_CONFIGS,
     INVALID_LAUNCH_CONFIG = NUM_LAUNCH_CONFIGS
   };
 
   constexpr static size_t kNumLaunchTypes = LaunchType::NUM_LAUNCH_TYPES + 1;
-  constexpr static std::array<std::string_view , kNumLaunchTypes> kLaunchTypeNames = {
-    "Editor" ,
-    "Runtime" ,
+  constexpr static std::array<std::string_view, kNumLaunchTypes> kLaunchTypeNames = {
+    "Editor",
+    "Runtime",
 
     "Invalid"
   };
 
   class PlatformLayer {
-    public:
-      static Scope<PluginLoader> GetPluginLoader(const std::string_view path);
+   public:
+    static Scope<PluginLoader> GetPluginLoader(const std::string_view path);
 
-      static PlatformType CurrentPlatform();
+    static PlatformType CurrentPlatform();
 
-      static bool LaunchProject(const Path& path , LaunchType type);
-      static bool LaunchProcess(const Path& path , const Path& working_dir , 
-                                const std::string& args_str = "");
-      static bool BuildProject(const Path& project_file);
+    static std::string ModuleExtension();
+
+    static bool LaunchProject(const Path& path, LaunchType type);
+    static bool LaunchProcess(const Path& path, const Path& working_dir, const std::string& args_str = "");
+    static bool BuildProject(const Path& project_file);
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_PLATFORM_HPP
+#endif  // !OTHER_ENGINE_PLATFORM_HPP

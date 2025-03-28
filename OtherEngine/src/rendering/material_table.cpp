@@ -38,6 +38,7 @@ namespace other {
       : size(size) {
     handle = GenerateUUID();
     default_material = RegisterMaterial(glm::vec4(1.f), glm::vec4(1.f), glm::vec4(1.f));
+    selection_wireframe_material = RegisterMaterial(glm::vec4(235.f / 255.f, 132.f / 255.f, 9.f / 255.f, 1.f), glm::vec4(1.f), glm::vec4(1.f));
   }
 
   MaterialTable::~MaterialTable() {
@@ -48,6 +49,10 @@ namespace other {
 
   UUID MaterialTable::DefaultMaterial() const {
     return default_material;
+  }
+
+  UUID MaterialTable::SelectionWireframeMaterial() const {
+    return selection_wireframe_material;
   }
 
   MaterialTable::Texture MaterialTable::CreateTexture(const glm::vec4& color, const glm::vec2& size) {

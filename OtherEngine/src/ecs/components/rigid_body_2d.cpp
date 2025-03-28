@@ -6,10 +6,21 @@
 #include "core/config_keys.hpp"
 
 #include "ecs/entity.hpp"
+#include "scene/scene.hpp"
 
 #include "physics/physics_defines.hpp"
 
 namespace other {
+
+  RigidBody2DSnapshotter::RigidBody2DSnapshotter() {
+    AddField<PhysicsBodyType, 0>(&RigidBody2D::type);
+    AddField<float, 1>(&RigidBody2D::mass);
+    AddField<float, 2>(&RigidBody2D::linear_drag);
+    AddField<float, 3>(&RigidBody2D::angular_drag);
+    AddField<float, 4>(&RigidBody2D::gravity_scale);
+    AddField<bool, 5>(&RigidBody2D::fixed_rotation);
+    AddField<bool, 6>(&RigidBody2D::bullet);
+  }
 
   void RigidBody2DSerializer::Serialize(std::ostream& stream, Entity* entity, const Ref<Scene>& scene) const {
     auto& rigid_body = entity->GetComponent<RigidBody2D>();
@@ -45,7 +56,7 @@ namespace other {
 
     auto& rigid_body = entity->AddComponent<RigidBody2D>();
 
-    auto body_type = scene_table.Get(key_value, kTypeValue);
+    const auto& body_type = scene_table.Get(key_value, kTypeValue);
     if (body_type.size() != 1) {
       OE_ERROR("Failed to deserialize rigidy body 2D into entity {}", entity->Name());
       return;

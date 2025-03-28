@@ -5,45 +5,88 @@
 #ifndef OTHER_ENGINE_PHYSICS_WORLD_HPP
 #define OTHER_ENGINE_PHYSICS_WORLD_HPP
 
-#include <Jolt/Jolt.h>
-#include <Jolt/Core/TempAllocator.h>
-#include <Jolt/Core/JobSystemThreadPool.h>
-#include <Jolt/Physics/PhysicsSystem.h>
+#include <map>
 
-#include "core/defines.hpp"
+#include "core/ref.hpp"
 #include "core/ref_counted.hpp"
+#include "core/time.hpp"
+#include "core/uuid.hpp"
 
-#include "physics/3D/broad_phase_layer_handler.hpp"
-#include "physics/3D/broad_phase_filter.hpp"
-#include "physics/3D/object_layer_filter.hpp"
-#include "physics/3D/activation_listener.hpp"
-#include "physics/3D/contact_listener.hpp"
+#include "ecs/components/terrain.hpp"
+#include "ecs/components/transform.hpp"
+
+#include "physics/3D/physics_body.hpp"
+#include "physics/3D/physics_shape.hpp"
+#include "physics/physics_defines.hpp"
+#include "rendering/scene_renderer.hpp"
 
 namespace other {
 
+  class Scene;
+
   class PhysicsWorld : public RefCounted {
-    public:
-      PhysicsWorld();
-      ~PhysicsWorld();
+   public:
+    PhysicsWorld(Scene* scene_ctx);
+    virtual ~PhysicsWorld();
 
-      void Simulate(float ts);
+    static Ref<PhysicsWorld> Create(Scene* scene_ctx);
 
-      JPH::BodyInterface& GetPhysicsBodies();
+    virtual bool Raycast(PhysicsRaycastHit& hit, Ray& ray, float distance) = 0;  // , uint32_t layer_mask, uint32_t group_mask, uint32_t mask) = 0;
 
-    private:
-      Scope<JPH::TempAllocatorImpl> temp_alloc = nullptr;
-      Scope<JPH::JobSystemThreadPool> thread_pool = nullptr;
+    virtual void ResetSimulation(Scene* scene) = 0;
+    virtual void Simulate(float ts) = 0;
+    virtual void CreateBody(Entity& entity) = 0;
+    virtual void DestroyBody(Entity& entity) = 0;
 
-      Scope<ActivationListener> activation_listener = nullptr;
-      Scope<ContactListener> contact_listener = nullptr;
+    virtual Ref<PhysicsShape> CreateBoxShape(const glm::vec3& half_extents) = 0;
+    virtual Ref<PhysicsShape> CreateSphereShape(float radius) = 0;
+    virtual Ref<PhysicsShape> CreateCapsuleShape(float radius, float height) = 0;
+    virtual Ref<PhysicsShape> CreateConvexMeshShape(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, uint32_t num_faces) = 0;
+    virtual Ref<PhysicsShape> CreateConcaveMeshShape(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, uint32_t num_faces) = 0;
+    virtual Ref<PhysicsShape> CreateCompoundShape(const std::vector<Ref<PhysicsShape>>& shapes) = 0;
+    virtual Ref<PhysicsShape> CreateTerrainShape(const Terrain& terrain) = 0;
 
-      BroadPhaseLayerHandler broad_phase_layer_handler;
-      BroadPhaseLayerFilter broad_phase_layer_filter;
-      ObjectLayerFilter obj_layer_filter;
+    virtual void SetDebugRendering(bool debug) = 0;
+    bool IsDebugRenderEnabled() const;
 
-      Scope<JPH::PhysicsSystem> system = nullptr;
+    virtual void SubmitRaycastDrawCommands(Ref<SceneRenderer> renderer) {}
+    virtual void SubmitDebugRender(Ref<SceneRenderer> renderer) = 0;
+
+    void RegisterColliderShape(UUID entity_id, Ref<PhysicsShape> shape);
+    void UnregisterColliderShape(Ref<PhysicsBody> body, Ref<PhysicsShape> shape);
+
+    bool ShouldInterpolateTransform() const;
+    float InterpolationAlpha() const;
+
+   protected:
+    bool debug_render_enabled = false;
+
+    Opt<time::TimePoint> prev_time = std::nullopt;
+    time::TimePoint current_time;
+    time::FloatDuration delta_time;
+
+    bool interpolate_physics = false;
+    float accumulator = 0.f;
+    float alpha = 0.f;
+
+    struct DebugFrameData {
+      Ref<Shader> shader = nullptr;
+      Ref<VertexArray> physics_triangles_vao = nullptr;
+      Ref<VertexArray> physics_lines_vao = nullptr;
+    } debug_data;
+
+    std::map<UUID, Ref<PhysicsShape>> shapes[PhysicsShape::Shape::NUM_PHYSICS_SHAPES] = { {} };
+
+    std::map<void*, UUID> native_bodies;
+    std::map<UUID, Ref<PhysicsBody>> bodies;
+
+    virtual void RegisterCallbacks() {}
+
+    Scene* scene_context = nullptr;
+
+   private:
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_PHYSICS_WORLD_HPP
+#endif  // !OTHER_ENGINE_PHYSICS_WORLD_HPP

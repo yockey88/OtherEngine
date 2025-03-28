@@ -4,6 +4,7 @@
 #ifndef OTHER_ENGINE_COMPONENT_SERIALIZER_HPP
 #define OTHER_ENGINE_COMPONENT_SERIALIZER_HPP
 
+#include "core/byte_buffer.hpp"
 #include "core/config.hpp"
 #include "core/ref.hpp"
 
@@ -18,6 +19,7 @@ namespace other {
    public:
     virtual ~ComponentSerializer() {}
 
+    virtual const std::string GetSerializerName() const = 0;
     virtual void Serialize(std::ostream& stream, Entity* owner, const Ref<Scene>& scene) const = 0;
     virtual void Deserialize(Entity* entity, const ConfigTable& scn_table, Ref<Scene>& scene) const = 0;
 
@@ -26,10 +28,10 @@ namespace other {
     void SerializeComponentSection(std::ostream& stream, Entity* owner, const std::string_view tag) const;
   };
 
-#define COMPONENT_SERIALIZERS(name)                                                                     \
-  virtual ~name##Serializer() override {}                                                               \
-  const std::string GetSerializerName() const { return "ComponentSerializer[" #name "]"; }              \
-  virtual void Serialize(std::ostream& stream, Entity* entity, const Ref<Scene>& scene) const override; \
+#define COMPONENT_SERIALIZERS(name)                                                                         \
+  virtual ~name##Serializer() override {}                                                                   \
+  virtual const std::string GetSerializerName() const override { return "ComponentSerializer[" #name "]"; } \
+  virtual void Serialize(std::ostream& stream, Entity* entity, const Ref<Scene>& scene) const override;     \
   virtual void Deserialize(Entity* entity, const ConfigTable& scene_table, Ref<Scene>& scene) const override;
 
 }  // namespace other

@@ -25,6 +25,7 @@ namespace other {
 
     template <typename... Args>
     void InvokeControlledLoop(LayerFunc<Args...> fn, Args... args) {
+      PROFILE_SECTION("LayerStack--InvokeControlledLoop");
       for (auto& l : layers) {
         auto sza = layers.size();
 

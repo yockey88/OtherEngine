@@ -62,8 +62,8 @@ namespace other {
 
     static ButtonState GetButtonState(Button button);
 
-    static glm::ivec2 GetPos();
-    static glm::ivec2 GetRelPos();
+    static glm::vec2 GetPos();
+    static glm::vec2 GetRelPos();
 
     static uint32_t GetX();
     static uint32_t GetY();

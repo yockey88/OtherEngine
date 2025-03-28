@@ -9,7 +9,6 @@
 
 #include <glm/ext/quaternion_transform.hpp>
 #include <glm/fwd.hpp>
-
 #include <hosting/native_string.hpp>
 #include <hosting/type.hpp>
 
@@ -17,9 +16,14 @@
 #include "core/type_data.hpp"
 
 #include "ecs/component.hpp"
+#include "ecs/components/camera.hpp"
+#include "ecs/components/collider_2d.hpp"
 #include "ecs/components/light_source.hpp"
 #include "ecs/components/mesh.hpp"
+#include "ecs/components/physics_component.hpp"
 #include "ecs/components/relationship.hpp"
+#include "ecs/components/rigid_body_2d.hpp"
+#include "ecs/components/terrain.hpp"
 #include "ecs/components/transform.hpp"
 #include "ecs/entity.hpp"
 
@@ -98,7 +102,6 @@ namespace other {
       OE_ASSERT(entity != nullptr, "Entity is null!");
       auto itr = has_component_funcs.find(type);
       if (itr == has_component_funcs.end()) {
-        OE_WARN("No component found for type : {}", type);
         return false;
       }
 
@@ -109,7 +112,6 @@ namespace other {
       OE_ASSERT(entity != nullptr, "Entity is null!");
       auto itr = create_component_funcs.find(type);
       if (itr == create_component_funcs.end()) {
-        OE_WARN("No component found for type : {}", type);
         return;
       }
 
@@ -120,7 +122,6 @@ namespace other {
       OE_ASSERT(entity != nullptr, "Entity is null!");
       auto itr = remove_component_funcs.find(type);
       if (itr == remove_component_funcs.end()) {
-        OE_WARN("No component found for type : {}", type);
         return;
       }
 
@@ -160,11 +161,11 @@ namespace other {
       }
 
       if (getter != nullptr) {
-        assembly->SetInternalCall(name, "Get" + std::string{ prop_name }, &getter);
+        assembly->SetInternalCall(name, "Get" + std::string{ prop_name }, (void*)&getter);
       }
 
       if (setter != nullptr) {
-        assembly->SetInternalCall(name, "Set" + std::string{ prop_name }, &setter);
+        assembly->SetInternalCall(name, "Set" + std::string{ prop_name }, (void*)&setter);
       }
     }
 
@@ -217,12 +218,15 @@ namespace other {
       RegisterComponent<Mesh>(assembly);
       RegisterComponent<StaticMesh>(assembly);
       RegisterComponent<LightSource>(assembly);
-      // RegisterComponent<Collider>(assembly);
-      // RegisterComponent<RigidBody>(assembly);
-      // RegisterComponent<Collider2D>(assembly);
-      // RegisterComponent<RigidBody2D>(assembly);
-      // RegisterComponent<Camera>(assembly);
-      // RegisterComponent<Script>(assembly);
+      RegisterComponent<Camera>(assembly);
+      RegisterComponent<Script>(assembly);
+      RegisterComponent<RigidBody2D>(assembly);
+      RegisterComponent<Collider2D>(assembly);
+      /// TODO: make the C# counterpart for these
+      RegisterComponent<RigidBody>(assembly);
+      RegisterComponent<Collider>(assembly);
+      RegisterComponent<PhysicsObject>(assembly);
+      RegisterComponent<Terrain>(assembly);
 
       RegisterInternalCallAs(assembly, "OtherObject", "NativeHasComponent", (void*)&NativeHasComponent);
       RegisterInternalCallAs(assembly, "OtherObject", "NativeCreateComponent", (void*)&NativeCreateComponent);
@@ -241,26 +245,48 @@ namespace other {
         }
       );
 
-      RegisterCompatibleProperty<dotother::NString>(
-        "OtherObject", "Name", assembly,
+      RegisterFunction(
+        "Scene", "GetSceneId", assembly,
+        [](uint64_t id) -> uint32_t {
+          Ref<Scene> scene = ScriptEngine::GetSceneContext();
+          if (scene == nullptr) {
+            OE_ERROR("Attempting to retrieve native entity handle from invalid scene context!");
+            return 0u;
+          }
+
+          Entity* entity = scene->GetEntity(id);
+          if (entity == nullptr) {
+            OE_ERROR("Entity with id [{}] does not exist in scene", id);
+            return 0u;
+          }
+
+          return static_cast<uint32_t>(entity->Handle());
+        }
+      );
+
+      RegisterFunction(
+        "OtherObject", "GetName", assembly,
         [](Entity* entity) -> dotother::NString {
           OE_ASSERT(entity != nullptr, "Entity is null!");
           return dotother::NString::New(entity->ReadComponent<Tag>().name);
-        },
+        }
+      );
+
+      RegisterFunction(
+        "OtherObject", "SetName", assembly,
         [](Entity* entity, dotother::NString value) {
           OE_ASSERT(entity != nullptr, "Entity is null!");
           entity->GetComponent<Tag>().name = (std::string)value;
         }
       );
 
-      RegisterCompatibleProperty<uint64_t>(
-        "Relationship", "Parent", assembly,
+      RegisterFunction(
+        "Relationship", "GetParent", assembly,
         [](Entity* entity) -> uint64_t {
           OE_ASSERT(entity != nullptr, "Entity is null!");
           auto& relationship = entity->GetComponent<Relationship>();
           return relationship.parent.value_or(0u).Get();
-        },
-        nullptr
+        }
       );
 
       RegisterFunction(
@@ -301,6 +327,197 @@ namespace other {
           auto& transform = entity->GetComponent<Transform>();
           transform.qrotation = glm::rotate(transform.qrotation, radians, *axis);
           transform.erotation = glm::eulerAngles(transform.qrotation);
+        }
+      );
+
+      RegisterFunction(
+        "Camera", "GetPosition", assembly,
+        [](Entity* entity, glm::vec3* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          *value = entity->GetComponent<Camera>().camera->Position();
+        }
+      );
+      RegisterFunction(
+        "Camera", "SetPosition", assembly,
+        [](Entity* entity, glm::vec3* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          entity->GetComponent<Camera>().camera->SetPosition(*value);
+        }
+      );
+
+      RegisterFunction(
+        "Camera", "GetForward", assembly,
+        [](Entity* entity, glm::vec3* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          *value = entity->GetComponent<Camera>().camera->Direction();
+        }
+      );
+      RegisterFunction(
+        "Camera", "GetRight", assembly,
+        [](Entity* entity, glm::vec3* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          *value = entity->GetComponent<Camera>().camera->Right();
+        }
+      );
+      RegisterFunction(
+        "Camera", "GetUp", assembly,
+        [](Entity* entity, glm::vec3* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          *value = entity->GetComponent<Camera>().camera->Up();
+        }
+      );
+      RegisterFunction(
+        "Camera", "GetWorldUp", assembly,
+        [](Entity* entity, glm::vec3* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          *value = entity->GetComponent<Camera>().camera->WorldUp();
+        }
+      );
+      RegisterFunction(
+        "Camera", "GetYaw", assembly,
+        [](Entity* entity, float* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          *value = entity->GetComponent<Camera>().camera->Yaw();
+        }
+      );
+      RegisterFunction(
+        "Camera", "SetYaw", assembly,
+        [](Entity* entity, float* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          entity->GetComponent<Camera>().camera->SetYaw(*value);
+        }
+      );
+      RegisterFunction(
+        "Camera", "GetPitch", assembly,
+        [](Entity* entity, float* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          *value = entity->GetComponent<Camera>().camera->Pitch();
+        }
+      );
+      RegisterFunction(
+        "Camera", "SetPitch", assembly,
+        [](Entity* entity, float* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          entity->GetComponent<Camera>().camera->SetPitch(*value);
+        }
+      );
+      RegisterFunction(
+        "Camera", "GetIsPitchConstrained", assembly,
+        [](Entity* entity, bool* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          *value = entity->GetComponent<Camera>().camera->ConstrainPitch();
+        }
+      );
+      RegisterFunction(
+        "Camera", "SetIsPitchConstrained", assembly,
+        [](Entity* entity, bool* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          entity->GetComponent<Camera>().camera->SetConstrainPitch(*value);
+        }
+      );
+      RegisterFunction(
+        "Camera", "GetRoll", assembly,
+        [](Entity* entity, float* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          *value = entity->GetComponent<Camera>().camera->Roll();
+        }
+      );
+      RegisterFunction(
+        "Camera", "SetRoll", assembly,
+        [](Entity* entity, float* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          entity->GetComponent<Camera>().camera->SetRoll(*value);
+        }
+      );
+      RegisterFunction(
+        "Camera", "GetSensitivity", assembly,
+        [](Entity* entity, float* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          *value = entity->GetComponent<Camera>().camera->Sensitivity();
+        }
+      );
+      RegisterFunction(
+        "Camera", "SetSensitivity", assembly,
+        [](Entity* entity, float* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          entity->GetComponent<Camera>().camera->SetSensitivity(*value);
+        }
+      );
+      RegisterFunction(
+        "Camera", "InternalCalculateMatrix", assembly,
+        [](Entity* entity) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          entity->GetComponent<Camera>().camera->CalculateMatrix();
+        }
+      );
+      RegisterFunction(
+        "Camera", "SetClipPlanes", assembly,
+        [](Entity* entity, float* near_plane, float* far_plane) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(near_plane != nullptr, "Near plane is null!");
+          OE_ASSERT(far_plane != nullptr, "Far plane is null!");
+          entity->GetComponent<Camera>().camera->SetClip({ *near_plane, *far_plane });
+        }
+      );
+      RegisterFunction(
+        "Camera", "GetClipPlanes", assembly,
+        [](Entity* entity, float* near_plane, float* far_plane) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(near_plane != nullptr, "Near plane is null!");
+          OE_ASSERT(far_plane != nullptr, "Far plane is null!");
+          auto clip = entity->GetComponent<Camera>().camera->Clip();
+          *near_plane = clip.x;
+          *far_plane = clip.y;
+        }
+      );
+      RegisterFunction(
+        "Camera", "SetFarClipPlane", assembly,
+        [](Entity* entity, float* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          glm::vec2 clip = entity->GetComponent<Camera>().camera->Clip();
+          entity->GetComponent<Camera>().camera->SetClip({ clip.x, *value });
+        }
+      );
+      RegisterFunction(
+        "Camera", "GetFarClipPlane", assembly,
+        [](Entity* entity, float* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          *value = entity->GetComponent<Camera>().camera->Clip().y;
+        }
+      );
+      RegisterFunction(
+        "Camera", "SetNearClipPlane", assembly,
+        [](Entity* entity, float* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          glm::vec2 clip = entity->GetComponent<Camera>().camera->Clip();
+          entity->GetComponent<Camera>().camera->SetClip({ *value, clip.y });
+        }
+      );
+      RegisterFunction(
+        "Camera", "GetNearClipPlane", assembly,
+        [](Entity* entity, float* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          *value = entity->GetComponent<Camera>().camera->Clip().x;
         }
       );
 
@@ -410,6 +627,30 @@ namespace other {
             default:
               OE_ASSERT(false, "Unknown light source type!");
           }
+        }
+      );
+
+      RegisterFunction(
+        "RigidBody", "GetPosition", assembly,
+        [](Entity* entity, glm::vec3* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          auto& body = entity->GetComponent<RigidBody>();
+          OE_ASSERT(body.physics_body != nullptr, "Physics body is null");
+          *value = body.physics_body->GetPosition();
+        }
+      );
+
+      RegisterFunction(
+        "RigidBody", "SetPosition", assembly,
+        [](Entity* entity, glm::vec3* value) {
+          OE_ASSERT(entity != nullptr, "Entity is null!");
+          OE_ASSERT(value != nullptr, "Value is null!");
+          auto& body = entity->GetComponent<RigidBody>();
+          OE_ASSERT(body.physics_body != nullptr, "Physics body is null");
+          Transform phys_transform = body.physics_body->GetTransform();
+          phys_transform.position = *value;
+          body.physics_body->SetTransform(phys_transform);
         }
       );
     }

@@ -9,30 +9,37 @@
 #include <gtest/gtest.h>
 
 #include "core/config.hpp"
+#include "memory/arena.hpp"
+
+#include "application/app_state.hpp"
+#include "asset/asset_database.hpp"
+#include "asset/asset_manager.hpp"
+#include "event/event_queue.hpp"
 #include "parsing/cmd_line_parser.hpp"
 
 namespace other {
 
-class OtherTest : public ::testing::Test {
-  public:
-    static void SetUpTestSuite(); 
+  class OtherTest : public ::testing::Test {
+   public:
+    static void SetUpTestSuite();
     static void TearDownTestSuite();
 
-    virtual void SetUp() override; 
+    virtual void SetUp() override;
     virtual void TearDown() override;
-    
-    static void OpenLog(); 
+
+    static void OpenLog();
     static void CloseLog();
 
-  protected:
+   protected:
     static ConfigTable config;
     static ConfigTable stashed_config;
 
     static CmdLine cmdline;
-};
+    static Scope<Engine> mock_engine;
+  };
 
-bool CheckNumScripts(uint32_t cs , uint32_t lua , uint32_t python);
+  bool CheckNumScripts(uint32_t cs, uint32_t lua, uint32_t python);
 
-} // namespace other
+}  // namespace other
 
-#endif// !OETEST_HPP
+#endif  // !OETEST_HPP

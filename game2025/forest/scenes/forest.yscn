@@ -1,0 +1,106 @@
+[metadata]
+name = "forest"
+entities = {
+  "player",
+  "tree0",
+  "terrain",
+  "sun"
+}
+
+[physics.2D]
+gravity = { 0 , -9.8 }
+
+[physics.3D]
+
+[player]
+UUID = 14115336166749612914
+components = {
+  static-mesh,
+  physics-object,
+  script,
+  camera
+}
+
+[player.transform]
+position = { 1.3, 1.3, 2.17 }
+
+[player.static-mesh]
+primitive = 5
+material.albedo = { 1, 0, 0, 1 }
+material.normal = { 1.0 , 1.0 , 1.0, 1 },
+material.roughness = { 1.0, 1.0, 1.0, 1 }
+
+[player.physics-object]
+type = kinematic
+shape = capsule
+
+[player.script]
+*Game2025Scripts = { "Forest::CharacterController" }
+
+[player.camera]
+position = { 1.3, 2, 1.8 }
+type = perspective
+direction = { 0 , 0 , -1 } 
+clip = { 0.5 , 1000 }
+speed = 0.1
+sensitivity = 0.2
+fov = 90
+zoom = 45
+constrain-pitch = true
+primary = true
+
+[sun]
+UUID = 4025795962345870502
+components = {
+  light-source
+}
+
+[sun.transform]
+position = { -1.0 , 1.0 , -1.0 } 
+rotation = { 0.0130018, -0.5846025, -0.6028851, 0.542771  }
+scale = { 0.2 , 0.2 , 0.2 }
+
+[sun.light-source]
+type = 0
+direction = { 2.0 , -4.0 , 1.0 , 1.0 }
+color = { 0.22 , 0.22 , 0.11 , 1.0 }
+
+[tree0]
+UUID = 9036523777973816302
+components = {
+  mesh,
+  physics-object
+}
+
+[tree0.transform]
+position = { -3.07, 0.6, -2.6 }
+
+[tree0.mesh]
+path = "pillar4.fbx"
+
+[tree0.physics-object]
+type = static
+shape = capsule
+
+[terrain]
+UUID = 3252008639071987122
+components = {
+  mesh,
+  terrain,
+  physics-object
+}
+
+[terrain.transform]
+position = { -0.14, 0.07, 0.79 }
+rotation = { -0.01, 0.01, 0.71, 0.71 }
+scale = { 1, 1, 1 }
+
+[terrain.mesh]
+path = "terrain4.fbx"
+
+[terrain.terrain]
+size = { 10, 10 }
+
+[terrain.physics-object]
+type = static
+shape = terrain

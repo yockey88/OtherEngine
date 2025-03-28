@@ -23,6 +23,7 @@ namespace dotother {
     ECHO_REFLECT();
 
    public:
+    NObject() = default;
     NObject(uint64_t handle);
     virtual ~NObject();
 

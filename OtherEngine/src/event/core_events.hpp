@@ -62,7 +62,7 @@ namespace other {
 #define FILESYSTEM_EVENT() \
   EVENT_CATEGORY(FILESYSTEM_EVENT | CORE_EVENT);
 
-  struct CreateDirectoryEvent {
+  struct DirectoryCreated {
     FILESYSTEM_EVENT();
     EVENT_TYPE(CREATE_DIR);
 
@@ -74,9 +74,9 @@ namespace other {
       return ss.str();
     }
   };
-  static_assert(Event<CreateDirectoryEvent>, "CreateDirectoryEvent does not meet the Event concept");
+  static_assert(Event<DirectoryCreated>, "DirectoryCreated event does not meet the Event concept");
 
-  struct DeleteDirectoryEvent {
+  struct DirectoryDeleted {
     FILESYSTEM_EVENT();
     EVENT_TYPE(DELETE_DIR);
 
@@ -88,9 +88,9 @@ namespace other {
       return ss.str();
     }
   };
-  static_assert(Event<DeleteDirectoryEvent>, "DeleteDirectoryEvent does not meet the Event concept");
+  static_assert(Event<DirectoryDeleted>, "DirectoryDeleted event does not meet the Event concept");
 
-  struct CreateFileEvent {
+  struct FileCreated {
     FILESYSTEM_EVENT();
     EVENT_TYPE(CREATE_FILE);
 
@@ -102,9 +102,9 @@ namespace other {
       return ss.str();
     }
   };
-  static_assert(Event<CreateFileEvent>, "CreateFileEvent does not meet the Event concept");
+  static_assert(Event<FileCreated>, "FileCreated event does not meet the Event concept");
 
-  struct DeleteFileEvent {
+  struct FileDeleted {
     FILESYSTEM_EVENT();
     EVENT_TYPE(DELETE_FILE);
 
@@ -116,9 +116,9 @@ namespace other {
       return ss.str();
     }
   };
-  static_assert(Event<DeleteFileEvent>, "DeleteFileEvent does not meet the Event concept");
+  static_assert(Event<FileDeleted>, "FileDeleted event does not meet the Event concept");
 
-  struct ModifyFileEvent {
+  struct FileModified {
     FILESYSTEM_EVENT();
     EVENT_TYPE(MODIFY_FILE);
 
@@ -130,7 +130,7 @@ namespace other {
       return ss.str();
     }
   };
-  static_assert(Event<ModifyFileEvent>, "ModifyFileEvent does not meet the Event concept");
+  static_assert(Event<FileModified>, "FileModified event does not meet the Event concept");
 
 }  // namespace other
 

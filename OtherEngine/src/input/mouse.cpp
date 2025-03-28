@@ -31,6 +31,7 @@ namespace other {
   }
 
   void Mouse::Update() {
+    PROFILE_SECTION("Mouse--Update");
     state.previous_position = state.position;
 
     uint32_t curr_state = SDL_GetMouseState(&state.position.x, &state.position.y);
@@ -115,7 +116,7 @@ namespace other {
     return buttons[button];
   }
 
-  glm::ivec2 Mouse::GetPos() {
+  glm::vec2 Mouse::GetPos() {
     int x, y;
     SDL_GetGlobalMouseState(&x, &y);
 
@@ -123,18 +124,17 @@ namespace other {
       x, y
     };
 
-    return state.position;
+    return glm::vec2{ x, y };
   }
 
-  glm::ivec2 Mouse::GetRelPos() {
+  glm::vec2 Mouse::GetRelPos() {
     int rel_x, rel_y;
     SDL_GetRelativeMouseState(&rel_x, &rel_y);
 
     state.rel_position = {
       rel_x, rel_y
     };
-
-    return state.rel_position;
+    return glm::vec2{ rel_x, rel_y };
   }
 
   uint32_t Mouse::GetX() {

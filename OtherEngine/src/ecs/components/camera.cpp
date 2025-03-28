@@ -16,6 +16,14 @@
 
 namespace other {
 
+  CameraSnapshotter::CameraSnapshotter() {
+    // AddField<Ref<CameraBase>, 0>(&Camera::camera);
+    AddField<bool, 0>(&Camera::is_primary);
+    AddField<glm::vec3, 1>(&Camera::camera_position);
+    AddField<glm::vec3, 2>(&Camera::camera_direction);
+    AddField<glm::vec3, 3>(&Camera::camera_up);
+  }
+
   void CameraSerializer::Serialize(std::ostream& stream, Entity* entity, const Ref<Scene>& scene) const {
     const auto& camera = entity->GetComponent<Camera>();
 
@@ -35,7 +43,6 @@ namespace other {
     SerializeValue(stream, "zoom", camera.camera->Zoom());
     SerializeValue(stream, "constrain-pitch", camera.camera->ConstrainPitch());
     SerializeValue(stream, "is-primary", camera.is_primary);
-    SerializeValue(stream, "pinned", camera.pinned_to_entity_position);
     stream << "\n";
   }
 
@@ -70,15 +77,14 @@ namespace other {
         return;
     }
 
-    auto pos_value = scene_table.Get(key_value, kPositionValue);
-    auto dir_value = scene_table.Get(key_value, kDirectionValue);
-    auto up_value = scene_table.Get(key_value, kUpValue);
-    auto right_value = scene_table.Get(key_value, kRightValue);
-    auto wup_value = scene_table.Get(key_value, kWorldUpValue);
+    const auto& pos_value = scene_table.Get(key_value, kPositionValue);
+    const auto& dir_value = scene_table.Get(key_value, kDirectionValue);
+    const auto& up_value = scene_table.Get(key_value, kUpValue);
+    const auto& right_value = scene_table.Get(key_value, kRightValue);
+    const auto& wup_value = scene_table.Get(key_value, kWorldUpValue);
 
-    auto ea_value = scene_table.Get(key_value, kRotationValue);
-    auto vp_value = scene_table.Get(key_value, kViewportValue);
-    auto clip_value = scene_table.Get(key_value, kClipValue);
+    const auto& ea_value = scene_table.Get(key_value, kRotationValue);
+    const auto& clip_value = scene_table.Get(key_value, kClipValue);
 
     auto speed_value = scene_table.GetVal<float>(key_value, kSpeedValue, false);
     auto sens_value = scene_table.GetVal<float>(key_value, kSensitivityValue, false);
@@ -87,57 +93,48 @@ namespace other {
 
     auto cpitch_value = scene_table.GetVal<bool>(key_value, kConstrainPitchValue, false);
     auto primary_value = scene_table.GetVal<bool>(key_value, kPrimaryValue, false);
-    bool pinned = scene_table.GetVal<bool>(key_value, kPinnedValue, false).value_or(true);
 
-    auto& transform = entity->ReadComponent<Transform>();
-    if (!pinned && pos_value.size() > 0) {
-      glm::vec3 position = glm::vec3(0.0f, 0.0f, 3.0f);
-      DeserializeVec3(pos_value, position);
-      camera.camera->SetPosition(position);
-    } else {
-      camera.camera->SetPosition(transform.position);
+    camera.camera_position = glm::vec3(0.0f, 0.0f, 3.0f);
+    if (pos_value.size() > 0) {
+      DeserializeVec3(pos_value, camera.camera_position);
     }
+    camera.camera->SetPosition(camera.camera_position);
 
+    camera.camera_direction = glm::vec3(0.0f, 0.0f, -1.0f);
     if (dir_value.size() > 0) {
-      glm::vec3 direction = glm::vec3(0.0f, 0.0f, -1.0f);
-      DeserializeVec3(dir_value, direction);
-      camera.camera->SetPosition(direction);
+      DeserializeVec3(dir_value, camera.camera_direction);
     }
+    camera.camera->SetDirection(camera.camera_direction);
 
+    glm::vec3 right = glm::vec3(1.0f, 0.0f, 0.0f);
     if (right_value.size() > 0) {
-      glm::vec3 right = glm::vec3(1.0f, 0.0f, 0.0f);
       DeserializeVec3(right_value, right);
-      camera.camera->SetPosition(right);
     }
+    camera.camera->SetRight(right);
 
+    camera.camera_up = glm::vec3(0.0f, 1.0f, 0.0f);
     if (up_value.size() > 0) {
-      glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-      DeserializeVec3(up_value, up);
-      camera.camera->SetUp(up);
+      DeserializeVec3(up_value, camera.camera_up);
     }
+    camera.camera->SetUp(camera.camera_up);
 
+    glm::vec3 wup = glm::vec3(0.0f, 1.0f, 0.0f);
     if (wup_value.size() > 0) {
-      glm::vec3 wup = glm::vec3(0.0f, 1.0f, 0.0f);
       DeserializeVec3(wup_value, wup);
-      camera.camera->SetWorldUp(wup);
     }
+    camera.camera->SetWorldUp(wup);
 
+    glm::vec3 euler_angles = glm::vec3(-90.0f, 0.0f, 0.0f);
     if (ea_value.size() > 0) {
-      glm::vec3 euler_angles = glm::vec3(-90.0f, 0.0f, 0.0f);
       DeserializeVec3(ea_value, euler_angles);
-      camera.camera->SetOrientation(euler_angles);
     }
+    camera.camera->SetOrientation(euler_angles);
 
-    if (vp_value.size() > 0) {
-      glm::ivec2 viewport = glm::ivec2(800, 600);
-      DeserializeVec2(vp_value, viewport);
-    }
-
+    glm::vec2 clip = glm::vec2(0.1f, 100.0f);
     if (clip_value.size() > 0) {
-      glm::vec2 clip = glm::vec2(0.1f, 100.0f);
       DeserializeVec2(clip_value, clip);
-      camera.camera->SetClip(clip);
     }
+    camera.camera->SetClip(clip);
 
     if (speed_value.has_value()) {
       camera.camera->SetSpeed(speed_value.value());

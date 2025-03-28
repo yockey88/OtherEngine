@@ -9,90 +9,99 @@
 #include <vector>
 
 #include "core/dotother_defines.hpp"
-#include "hosting/native_string.hpp"
-#include "hosting/hosted_object.hpp"
 #include "core/utilities.hpp"
+
+#include "hosting/attribute.hpp"
+#include "hosting/field.hpp"
+#include "hosting/hosted_object.hpp"
+#include "hosting/method.hpp"
+#include "hosting/native_string.hpp"
+#include "hosting/property.hpp"
 
 namespace dotother {
 
   class Host;
 
-  class Field;
-  class Property;
-  class Attribute;
-  class Method;
-
   class Type {
-    public:
-      Type() 
-        : handle(-1) {}
-      Type(int32_t handle)
-          : handle(handle) {}
-      ~Type() = default;
+   public:
+    Type() = default;
+    Type(int32_t handle)
+        : handle(handle) {}
+    ~Type() = default;
 
-      Type& BaseObject();
+    void Init();
 
-      int32_t TypeSize();
+    Type& BaseObject();
 
-      bool DerivedFrom(const Type& type);
-      bool AssignableTo(const Type& type);
-      bool AssignableFrom(const Type& type);
+    int32_t TypeSize();
 
-      std::vector<Field> Fields();
-      std::vector<Property> Properties();
-      std::vector<Method> Methods();
-      std::vector<Attribute> Attributes();
+    bool DerivedFrom(const Type& type);
+    bool AssignableTo(const Type& type);
+    bool AssignableFrom(const Type& type);
 
-      bool HasAttribute(const Type& type);
+    std::vector<Field>& Fields();
+    std::vector<Property>& Properties();
+    std::vector<Method>& Methods();
+    std::vector<Attribute>& Attributes();
 
-      ManagedType GetManagedType();
+    bool HasAttribute(const Type& type);
 
-      bool IsArray();
-      Type& GetEltType();
+    ManagedType GetManagedType();
 
-      bool operator==(const Type& other);
-      operator bool();
+    bool IsArray();
+    Type& GetEltType();
 
-      NString FullName();
+    bool operator==(const Type& other);
+    operator bool();
 
-      template <typename... Args>
-      HostedObject NewInstance(Args&&... args) {
-        constexpr size_t argc = sizeof...(args);
+    NString FullName();
 
-        HostedObject res;
-        if constexpr (argc > 0) {
-          const void* argv[argc] = {};
-          ManagedType arg_ts[argc] = {};
-          util::AddToArray<Args...>(argv, arg_ts, std::forward<Args>(args)..., std::make_index_sequence<argc>{});
-          res = New(argv, arg_ts, argc);
-        } else {
-          res = New(nullptr, nullptr, 0);
-        }
+    template <typename... Args>
+    HostedObject NewInstance(Args&&... args) {
+      constexpr size_t argc = sizeof...(args);
 
-        return res;
+      HostedObject res;
+      if constexpr (argc > 0) {
+        const void* argv[argc] = {};
+        ManagedType arg_ts[argc] = {};
+        util::AddToArray<Args...>(argv, arg_ts, std::forward<Args>(args)..., std::make_index_sequence<argc>{});
+        res = New(argv, arg_ts, argc);
+      } else {
+        res = New(nullptr, nullptr, 0);
       }
 
-      HostedObject New(const void** argv, const ManagedType* arg_ts, size_t argc);
+      return res;
+    }
 
-      int32_t handle = -1;
+    HostedObject New(const void** argv, const ManagedType* arg_ts, size_t argc);
 
-    private:
-      Type* base_type = nullptr;
-      Type* elt_type = nullptr;
+    int32_t handle = -1;
 
-      void CheckHost();
-      void LoadTag();
+   private:
+    bool initialized = false;
+    Type* base_type = nullptr;
+    Type* elt_type = nullptr;
 
-      friend class Host;
-      friend class AssemblyContext;
-      friend class Assembly;
+    std::vector<Field> fields;
+    std::vector<Property> properties;
+    std::vector<Method> methods;
+    std::vector<Attribute> attributes;
 
-      friend class Field;
-      friend class Property;
-      friend class Attribute;
-      friend class Method;
+    void CheckHost();
+    void LoadTag();
+
+    friend class Host;
+    friend class AssemblyContext;
+    friend class Assembly;
+
+    friend class Field;
+    friend class Property;
+    friend class Attribute;
+    friend class Method;
   };
 
-} // namespace dotother
+  std::string FormatType(Type* t);
 
-#endif // !DOTOTHER_TYPE_HPP
+}  // namespace dotother
+
+#endif  // !DOTOTHER_TYPE_HPP

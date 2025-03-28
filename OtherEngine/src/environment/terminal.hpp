@@ -1,69 +1,90 @@
 /**
- * \file environment/terminal.hpp
+ * \file terminal/terminal.hpp
  **/
-#ifndef OTHER_ENGINE_TERMINAL_HPP
-#define OTHER_ENGINE_TERMINAL_HPP
+#ifndef OTHER_ENGINE_TERMINAL_TERMINAL_HPP
+#define OTHER_ENGINE_TERMINAL_TERMINAL_HPP
 
+#include <array>
 #include <queue>
 #include <string>
+#include <vector>
 
-#include "core/defines.hpp"
-#include "environment/command.hpp"
+#include <glm/glm.hpp>
+#include <sol/sol.hpp>
+
+#include "environment/command_compiler.hpp"
 #include "environment/command_executor.hpp"
-#include "environment/command_parser.hpp"
-#include "environment/memory.hpp"
+
+#include "event/key_events.hpp"
+#include "parsing/command_parser.hpp"
 
 namespace other {
 
-  enum class TerminalFilters : uint32_t {
-    NO_FILTERS = 0,
-    DEBUG_FILTER = bit(2),
-    INFO_FILTER = bit(3),
-    WARNING_FILTER = bit(4),
-    ERR_FILTER = bit(5),
+  enum TerminalFilter : uint16_t {
+    NO_FILTER = 0,
 
-    COMMAND_FILTER = bit(6),
-    INVALID_COMMAND_FILTER = COMMAND_FILTER | ERR_FILTER,
+    ERROR_FILTER = bit(0),
+    WARNING_FILTER = bit(1),
+    INFO_FILTER = bit(2),
+    DEBUG_FILTER = bit(3),
+    TRACE_FILTER = bit(4),
 
-    DEFAULT_FILTER = INFO_FILTER | WARNING_FILTER | ERR_FILTER,
+    BAD_FILTER = ERROR_FILTER | WARNING_FILTER,
+    GOOD_FILTER = INFO_FILTER | DEBUG_FILTER | TRACE_FILTER,
+    TERMINAL_FILTER_ALL = ERROR_FILTER | WARNING_FILTER | INFO_FILTER | DEBUG_FILTER | TRACE_FILTER,
+
+    NUM_TERMINAL_FILTERS,
+    INVALID_TERMINAL_FILTER = NUM_TERMINAL_FILTERS
   };
 
   struct TerminalMessage {
+    TerminalFilter filters;
     std::string message;
-    TerminalFilters filters = TerminalFilters::NO_FILTERS;
   };
 
   class Terminal {
    public:
-    Terminal(Memory& memory)
-        : memory(memory), parser(memory), executor(memory) {}
-    ~Terminal() = default;
+    Terminal();
+    ~Terminal();
 
-    void PushMessage(const TerminalMessage& message);
-    void PushCommand(const Command& command);
+    void PushMessage(const TerminalMessage& message, bool save = true);
+    void PushCommand(const TerminalMessage& command);
 
-    void ClearMessages();
-    void ClearCommands();
+    void SourceFile(const Path& file_path);
+
+    void Clear();
 
     void Dispatch();
 
-   private:
-    static constexpr size_t kInputBufferSize = 1024;
-    static std::array<char, kInputBufferSize> input_buffer;
+    glm::vec4 GetColorForFilter(TerminalFilter filter) const;
 
+   private:
+    friend struct Environment;
+    friend class CommandExecutor;
+
+    static constexpr size_t kInputBufferSize = 1024;
+    std::array<char, kInputBufferSize> input_buffer;
+
+    Opt<uint32_t> history_cursor = std::nullopt;
     std::vector<TerminalMessage> terminal_history;
+    std::vector<TerminalMessage> stored_history;
     std::queue<TerminalMessage> message_buffer;
 
-    Memory& memory;
+    sol::state lua_state;
     CommandParser parser;
+    CommandCompiler compiler;
+    CommandExecutor executor;
 
-    CommandBlock command_block{ .name = "<terminal-command>" };
-    Executor executor;
+    CommandBlock command_block;
 
-    friend struct Environment;
-    friend class Executor;
+    void SourceCmdFile(const Path& file_path);
+    void SourceLuaFile(const Path& file_path);
+    void SourcePythonFile(const Path& file_path);
+
+    bool HandleEnterKey(KeyPressed& event);
+    bool HandleUpDownKey(KeyPressed& event);
   };
 
 }  // namespace other
 
-#endif  // !OTHER_ENGINE_TERMINAL_HPP
+#endif  // !OTHER_ENGINE_TERMINAL_TERMINAL_HPP

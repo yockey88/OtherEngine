@@ -7,8 +7,12 @@
 #include <concepts>
 #include <type_traits>
 
+#include "profiling/profiling.hpp"
+
 #include "core/errors.hpp"
 #include "core/ref_counted.hpp"
+#include "core/view.hpp"
+#include "memory/arena_allocator.hpp"
 
 namespace other {
   namespace detail {
@@ -21,7 +25,9 @@ namespace other {
   }  // namespace detail
 
   template <typename T, typename U>
-  concept RefCastable = std::convertible_to<T, U> || std::derived_from<T, U> || std::derived_from<U, T>;
+  concept RefCastable = std::derived_from<U, T>;
+  template <typename T>
+  concept RefType = std::derived_from<T, RefCounted>;
 
   template <typename T>
   class Ref {
@@ -42,6 +48,11 @@ namespace other {
     Ref(Ref<T>&& other) noexcept {
       object = other.object;
       other.object = nullptr;
+    }
+
+    Ref(View<T> view) {
+      object = view.object;
+      IncRef();
     }
 
     Ref& operator=(const Ref<T>& other) {
@@ -115,11 +126,11 @@ namespace other {
     T* Raw() { return object; }
     const T* Raw() const { return object; }
 
-    void Reset(T* object = nullptr) {
-      this->object = object;
-      if (this->object == nullptr) {
+    void Reset(T* obj = nullptr) {
+      if (obj == nullptr) {
         DecRef();
       }
+      object = obj;
     }
 
     template <typename U>
@@ -130,7 +141,7 @@ namespace other {
 
     template <typename U>
       requires RefCastable<T, U>
-    static Ref<U> Cast(Ref<T>& old_ref) {
+    static Ref<U> Cast(const Ref<T>& old_ref) {
       return Ref<U>(reinterpret_cast<U*>(old_ref.object));
     }
 
@@ -148,19 +159,8 @@ namespace other {
     }
 
     template <typename... Args>
-      requires requires(Args&&... args) {
-        requires std::is_base_of_v<RefCounted, T>;
-        requires std::is_constructible_v<T, Args...>;
-      }
     static Ref<T> Create(Args&&... args) {
-      return Ref<T>(new T(std::forward<Args>(args)...));
-    }
-
-    template <typename U>
-      requires RefCastable<T, U>
-    static Ref<U> DirectReference(Ref<T> ptr) {
-      /// call private constructor to avoid incrementing the reference count
-      return Ref<U>(reinterpret_cast<U*>(ptr.object), false);
+      return Ref<T>(allocator.Allocate(std::forward<Args>(args)...));
     }
 
     bool operator==(const Ref<T>& other) const {
@@ -176,6 +176,8 @@ namespace other {
     }
 
    private:
+    static inline ArenaAllocator<T> allocator;
+    /// requires mutable to call IncRef and DecRef in const contexts
     mutable T* object;
 
     /// for direct referncing in cases where we don't want to increment the reference count
@@ -196,7 +198,8 @@ namespace other {
 
         if (object->Count() == 0) {
           detail::RemoveReference(object);
-          delete object;
+          allocator.Free(object);
+
           object = nullptr;
         }
       }
@@ -205,9 +208,6 @@ namespace other {
     template <typename U>
     friend class Ref;
   };
-
-  template <typename T>
-  concept RefType = std::derived_from<T, RefCounted>;
 
   template <typename T, typename... Args>
     requires RefType<T> && std::constructible_from<T, Args...>

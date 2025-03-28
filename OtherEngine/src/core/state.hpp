@@ -71,6 +71,7 @@ namespace other {
     virtual ~StateMachine() {}
 
     void HandleEvent(const ET event) {
+      PROFILE_SECTION("StateMachine--HandleEvent");
       OE_ASSERT(current_state != nullptr, "Invalid state");
 
       Ref<ST> new_state = current_state->ProcessEvent(event);
@@ -102,6 +103,7 @@ namespace other {
     }
 
     void Step() {
+      PROFILE_SECTION("StateMachine--Step");
       OE_ASSERT(current_state != nullptr, "Invalid state");
       current_state->Step();
     }

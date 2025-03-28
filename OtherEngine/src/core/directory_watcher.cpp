@@ -18,6 +18,9 @@ namespace other {
       : path(dir_path), handle(dir_handle) {
     if (!std::filesystem::exists(dir_path)) {
       dir_open = false;
+    } else {
+      dir_open = true;
+      num_files_last_check = CheckNumFiles();
     }
   }
 
@@ -36,7 +39,7 @@ namespace other {
     num_files_last_check = new_num;
 
     if (add_file) {
-      EventQueue::PushEvent<CreateFileEvent>({ handle.Get() });
+      EventQueue::PushEvent<FileCreated>({ handle.Get() });
     }
   }
 

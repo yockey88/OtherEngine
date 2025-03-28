@@ -40,6 +40,8 @@ namespace DotOther.Managed {
       NativeMethodInvoker = args.NativeMethodInvoker;
       RetrieveNativeObject = args.RetrieveNativeObject;
       LogCallback("DotOtherHost: Initialized", MessageLevel.Info);
+
+      AssemblyLoader.LoadNetCoreAssemblies();
     }
 
     internal static void LogMessage(string message, MessageLevel level) {

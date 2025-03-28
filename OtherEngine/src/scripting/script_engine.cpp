@@ -13,6 +13,9 @@
 #include "core/logger.hpp"
 
 #include "application/app_state.hpp"
+#include "event/app_events.hpp"
+#include "event/core_events.hpp"
+#include "event/event_queue.hpp"
 
 #include "ecs/components/script.hpp"
 
@@ -59,7 +62,7 @@ namespace other {
 
   void ScriptEngine::LoadProjectModules() {
     LoadCoreModules();
-    // LoadScripts();
+    LoadScripts();
   }
 
   void ScriptEngine::LoadAttachments(const std::string_view section) {
@@ -170,18 +173,21 @@ namespace other {
   }
 
   void ScriptEngine::RenderAttachments() {
+    PROFILE_SECTION("ScriptEngine--RenderAttachments");
     for (auto& [id, obj] : attachments) {
       obj->Render();
     }
   }
 
   void ScriptEngine::RenderUIAttachments() {
+    PROFILE_SECTION("ScriptEngine--RenderUIAttachments");
     for (auto& [id, obj] : attachments) {
       obj->RenderUI();
     }
   }
 
   void ScriptEngine::Shutdown() {
+    UnloadProjectModules();
     for (auto& [id, mod] : language_modules) {
       mod.module->Shutdown();
       mod.module = nullptr;
@@ -195,6 +201,8 @@ namespace other {
     lua_language_module->UnloadAll();
     cs_language_module->UnloadAll();
     loaded_modules.clear();
+
+    language_modules.clear();
   }
 
   void ScriptEngine::UnloadAttachments() {
@@ -247,6 +255,28 @@ namespace other {
     }
   }
 
+  void ScriptEngine::ReloadScripts(LanguageModuleType type) {
+    if (type >= LanguageModuleType::INVALID_LANGUAGE_MODULE) {
+      OE_ERROR("ScriptEngine::ReloadScripts({}) -> invalid language module type", type);
+      return;
+    }
+
+    OE_DEBUG("Reloading scripts for language module {}", kModuleInfo[type].name);
+    auto itr = language_modules.find(type);
+    if (itr == language_modules.end()) {
+      OE_ERROR("Failed to reload scripts for language module {}", kModuleInfo[type].name);
+      return;
+    }
+    itr->second.module->Reload();
+
+    if (itr->second.module->GetLanguageType() == LanguageModuleType::CS_MODULE) {
+      /// load c# core module
+      constexpr std::string_view core_cs_name = "OtherEngine.CsCore";
+      auto& core_mod = loaded_modules[FNV(core_cs_name)] = itr->second.module->GetScriptModule(std::string{ core_cs_name });
+      OE_ASSERT(core_mod != nullptr, "Failed to load C# core module");
+    }
+  }
+
   Ref<LanguageModule> ScriptEngine::GetModule(LanguageModuleType type) {
     if (type >= LanguageModuleType::INVALID_LANGUAGE_MODULE) {
       return nullptr;
@@ -256,6 +286,15 @@ namespace other {
   }
 
   const std::vector<ScriptObjectTag>& ScriptEngine::GetLoadedObjects() {
+    object_tags.clear();
+    for (auto& [id, lang] : language_modules) {
+      for (auto& [lid, mod] : lang.module->GetModules()) {
+        auto objs = mod->GetObjectTags();
+        for (auto& o : objs) {
+          object_tags.push_back(o);
+        }
+      }
+    }
     return object_tags;
   }
 
@@ -271,12 +310,18 @@ namespace other {
 
     OE_DEBUG("Searching for script module {}", name);
     for (auto& [lid, lang] : language_modules) {
-      OE_DEBUG(" > Searching in loaded language module {}", lang.module->GetModuleName());
+      OE_TRACE(" > Searching in loaded language module {}", lang.module->GetModuleName());
       if (!lang.module->HasScript(name)) {
+        OE_TRACE("  > Script module {} not found in language module {}", name, lang.module->GetModuleName());
         continue;
       }
 
       mod = lang.module->GetScriptModule(std::string{ name });
+      if (mod == nullptr) {
+        OE_ERROR("Failed to retrieve script module {} from language module {}", name, lang.module->GetModuleName());
+        return nullptr;
+      }
+
       loaded_modules[FNV(mod->ModuleName())] = mod;
       OE_DEBUG("  > Found script module {} in language module {}", mod->ModuleName(), lang.module->GetModuleName());
       return mod;
@@ -287,6 +332,7 @@ namespace other {
   }
 
   Ref<ScriptModule> ScriptEngine::GetScriptModule(UUID id) {
+    OE_TRACE("Searching for script module {}", id);
     auto itr = std::find_if(loaded_modules.begin(), loaded_modules.end(), [&](const auto& module) -> bool {
       return module.first == id;
     });
@@ -465,31 +511,34 @@ namespace other {
 
   void ScriptEngine::LoadScripts() {
     Ref<Directory> editor_dir = Filesystem::GetDirectory("editor");
-    OE_ASSERT(editor_dir != nullptr, "Failed to load editor directory");
-
     Ref<Directory> script_dir = Filesystem::GetDirectory("scripts");
-    OE_ASSERT(script_dir != nullptr, "Failed to load scripts directory");
 
-    std::vector<Path> editor_scripts = editor_dir->GetFilePaths();
-    std::vector<Path> script_scripts = script_dir->GetFilePaths();
+    if (editor_dir != nullptr) {
+      std::vector<Path> editor_scripts = editor_dir->GetFilePaths();
+      for (const auto& script : editor_scripts) {
+        Ref<FileHandle> file = Filesystem::GetFile(script);
+        if (file == nullptr || !file->Exists()) {
+          continue;
+        }
 
-    for (const auto& script : editor_scripts) {
-      Ref<FileHandle> file = Filesystem::GetFile(script);
-      OE_ASSERT(file != nullptr, "Failed to load script file, file handle was null : {}", script.string());
-      OE_ASSERT(file->Exists(), "Failed to load script file, file does not exist : {}", script.string());
-
-      if (file->GetAssetType() == AssetType::DYNAMIC_LIBRARY) {
-        LoadScriptFile(ScriptType::EDITOR_SCRIPT, file);
+        if (file->GetAssetType() == AssetType::DYNAMIC_LIBRARY) {
+          LoadScriptFile(ScriptType::EDITOR_SCRIPT, file);
+        }
       }
     }
 
-    for (const auto& script : script_scripts) {
-      Ref<FileHandle> file = Filesystem::GetFile(script);
-      OE_ASSERT(file != nullptr, "Failed to load script file, file handle was null : {}", script.string());
-      OE_ASSERT(file->Exists(), "Failed to load script file, file does not exist : {}", script.string());
+    if (script_dir != nullptr) {
+      std::vector<Path> script_scripts = script_dir->GetFilePaths();
 
-      if (file->GetAssetType() == AssetType::DYNAMIC_LIBRARY) {
-        LoadScriptFile(ScriptType::SCENE_SCRIPT, file);
+      for (const auto& script : script_scripts) {
+        Ref<FileHandle> file = Filesystem::GetFile(script);
+        if (file == nullptr || !file->Exists()) {
+          continue;
+        }
+
+        if (file->GetAssetType() == AssetType::DYNAMIC_LIBRARY) {
+          LoadScriptFile(ScriptType::SCENE_SCRIPT, file);
+        }
       }
     }
   }
@@ -534,7 +583,7 @@ namespace other {
   }
 
   LanguageModuleType ScriptEngine::ModuleTypeFromExtension(const std::string_view ext) {
-    if (ext == ".dll") {
+    if (ext == ".dll" || ext == ".cs") {
       return LanguageModuleType::CS_MODULE;
     } else if (ext == ".lua") {
       return LanguageModuleType::LUA_MODULE;

@@ -4,18 +4,14 @@ require("workspace")
 local function ProjectHeader(project_data)
   project (project_data.name)
     kind (project_data.kind)
-    if project_data.kind == "ConsoleApp" then
-      debuggertype "NativeWithManagedCore"
-    end
-
     language (project_data.language)
 
     if project_data.architecture ~= nil then
       architecture (project_data.architecture)
-    else 
+    else
       architecture "x86_64"
     end
-    
+
     if project_data.language == "C#" then
       project_data.dotnetframework = project_data.dotnetframework or "4.7.2"
       project_data.clr = project_data.clr or "Unsafe"
@@ -28,12 +24,8 @@ local function ProjectHeader(project_data)
     else
       cppdialect "C++latest"
     end
-    
-    if project_data.kind == "StaticLib" then
-      staticruntime "On"
-    elseif project_data.staticruntime ~= nil then
-      staticruntime (project_data.staticruntime)
-    end
+
+    staticruntime "on"
 
     if project_data.tdir == nil then
       assert(Tdir ~= nil, "Tdir is nil")
@@ -53,38 +45,21 @@ local function ProjectHeader(project_data)
     end
 end
 
-local function ProcessWindowsFilters()
-  -- windows requires dlls to be copied to the output directory
-  filter { "configurations:Release" }
-    postbuildcommands {
-      '{COPY} "%{wks.location}externals/sdl2/lib/Release/SDL2.dll" "%{cfg.targetdir}"',
-      '{COPY} "%{wks.location}externals/assimp/lib/Release/assimp-vc143-mt.dll" "%{cfg.targetdir}"',
-    }
-  filter { "configurations:Debug" }
-    postbuildcommands {
-      '{COPY} "%{wks.location}externals/sdl2/lib/Debug/SDL2d.dll" "%{cfg.targetdir}"',
-      '{COPY} "%{wks.location}externals/assimp/lib/Debug/assimp-vc143-mtd.dll" "%{cfg.targetdir}"',
-    }
-end
-
-local function ProcessLinuxFilters()
-end
-
 local function ProcessFilters(project)
   filter { "system:windows" }
-    ProcessWindowsFilters()
+    if project.windows_filters ~= nil then
+      project.windows_filters()
+    end
 
   filter { "system:linux" }
-    ProcessLinuxFilters()
+    if project.linux_filters ~= nil then
+      project.linux_filters()
+    end
 end
 
 function ProcessModuleComponents(module)
-  if module == nil then
-    return
-  end
-
   for lib, comp in pairs(module.components) do
-    if string.len(lib) > 0 then 
+    if string.len(lib) > 0 then
       links { lib }
     end
     if module.language == "C++" and string.len(comp) > 0 then
@@ -96,6 +71,7 @@ function ProcessModuleComponents(module)
     if module.windows_configuration ~= nil then
       module.windows_configuration()
     end
+    
     if module.language == "C#" then
       clr "Unsafe"
       propertytags {
@@ -107,7 +83,7 @@ end
 
 function ProcessProjectComponents(project)
   for lib, comp in pairs(project.components) do
-    if string.len(lib) > 0 then 
+    if string.len(lib) > 0 then
       links { lib }
     end
     if project.language == "C++" and string.len(comp) > 0 then
@@ -117,10 +93,20 @@ function ProcessProjectComponents(project)
 end
 
 local function ProcessConfigurations(project , external)
-    project.cross_platform_main = project.cross_platform_main or false  
+    project.cross_platform_main = project.cross_platform_main or false
+    project.windows_configuration = project.windows_configuration or function() end
+    project.windows_debug_configuration = project.windows_debug_configuration or function() end
+    project.windows_release_configuration = project.windows_release_configuration or function() end
+    project.linux_configuration = project.linux_configuration or function() end
+    project.linux_debug_configuration = project.linux_debug_configuration or function() end
+    project.linux_release_configuration = project.linux_release_configuration or function() end
+
+    project.debug_configuration = project.debug_configuration or function() end
+    project.extra_dependencies = project.extra_dependencies or function(str)end
+    project.release_configuration = project.release_configuration or function() end
 
     filter "system:windows"
-      systemversion "latest"  
+      systemversion "latest"
       if project.kind == "ConsoleApp" and project.cross_platform_main then
         entrypoint "mainCRTStartup"
       elseif project.kind == "ConsoleApp" then
@@ -128,43 +114,37 @@ local function ProcessConfigurations(project , external)
       end
 
       defines { "OE_WINDOWS" }
-      if project.windows_configuration ~= nil then
-          project.windows_configuration()
-      end  
+      project.windows_configuration()
 
     filter { "system:windows", "configurations:Debug" }
       editandcontinue "Off"
       flags { "NoRuntimeChecks" }
       defines { "NOMINMAX" }
-      if project.windows_debug_configuration ~= nil then
-        project.windows_debug_configuration()
-      end
+      project.windows_debug_configuration()
 
     filter { "system:windows", "configurations:Release" }
-      if project.windows_release_configuration ~= nil then
-        project.windows_release_configuration()
-      end
+      project.windows_release_configuration()
 
     filter "system:linux"
       defines { "OE_LINUX" }
-      if project.linux_configuration ~= nil then
-        project.linux_configuration()
-      end
+      project.linux_configuration()
+
+    filter { "system:linux", "configurations:Debug" }
+      project.linux_debug_configuration()
+
+    filter { "system:linux", "configurations:Release" }
+      project.linux_release_configuration()
 
     filter "configurations:Debug"
       runtime "Debug"
       debugdir "."
       optimize "Off"
       symbols "On"
-      if project.debug_configuration ~= nil then
-        project.debug_configuration()
-      end
+      project.debug_configuration()
 
       if not external and project.language == "C++" then
         ProcessDependencies("Debug")
-        if project.extra_dependencies ~= nil then
-          project.extra_dependencies("Debug")
-        end
+        project.extra_dependencies("Debug")
       end
 
     filter "configurations:Release"
@@ -172,17 +152,16 @@ local function ProcessConfigurations(project , external)
       optimize "Full"
       symbols "Off"
       defines { "OE_RELEASE" }
-      if project.release_configuration ~= nil then
-        project.release_configuration()
-
-      end
+      project.release_configuration()
 
       if not external and project.language == "C++" then
         ProcessDependencies("Release")
-        if project.extra_dependencies ~= nil then
-          project.extra_dependencies("Release")
-        end
+        project.extra_dependencies("Release")
       end
+
+    if project.custom_configurations ~= nil then
+      project.custom_configurations()
+    end
 end
 
 local function VerifyProject(project)
@@ -251,7 +230,6 @@ function _AddProjectOrModule(project , component_func)
 
   print(" -- Adding project : " .. project.name)
   ProjectHeader(project)
-    debuggertype "NativeWithManagedCore"
     project.files()
     project.include_dirs()
 
@@ -259,11 +237,10 @@ function _AddProjectOrModule(project , component_func)
 
     project.links()
     project.defines()
-    
+
     if project.post_build_commands ~= nil then
       project.post_build_commands()
-    elseif (project.language == "C#" and project.needs_dlls) or
-       (project.language == "C++") then
+    elseif (project.language == "C#" and project.needs_dlls) or (project.language == "C++") then
       ProcessFilters(project)
     end
 

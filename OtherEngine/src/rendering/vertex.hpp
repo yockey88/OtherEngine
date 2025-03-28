@@ -65,6 +65,10 @@ namespace other {
     uint32_t v1, v2, v3;
   };
 
+  struct Triangle {
+    Vertex v1, v2, v3;
+  };
+
   struct SubMesh {
     uint32_t base_vertex = 0;
     uint32_t base_idx = 0;
@@ -114,6 +118,8 @@ namespace other {
     void BufferData(const void* data, uint32_t size, uint32_t offset = 0);
     void ClearBuffer();
 
+    BufferUsage Usage() const;
+
    private:
     BufferType buffer_type;
     BufferUsage buffer_usage;
@@ -127,10 +133,14 @@ namespace other {
   class VertexArray : public RefCounted {
    public:
     VertexArray();
-    VertexArray(const std::vector<float>& vertices, const std::vector<uint32_t>& indices = {}, const std::vector<uint32_t>& layout = {});
+    VertexArray(const std::vector<float>& vertices, const std::vector<uint32_t>& indices = {}, const std::vector<uint32_t>& layout = {}, BufferUsage usage = STATIC_DRAW);
     VertexArray(const Ref<VertexArray>& other);
 
     ~VertexArray();
+
+    void SetVertices(const std::vector<float>& vertices);
+    void SetIndices(const std::vector<uint32_t>& indices);
+    void SetLayout(const std::vector<uint32_t>& layout);
 
     void Bind() const;
     void Draw(DrawMode mode) const;
@@ -140,9 +150,13 @@ namespace other {
 
     uint32_t NumElements() const;
 
+    BufferUsage Usage() const;
+
     static DrawMode DrawModeFromFaceIndexCount(uint32_t);
 
    private:
+    BufferUsage buffer_usage;
+
     uint32_t renderer_id;
     uint32_t vertex_count;
 

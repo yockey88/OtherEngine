@@ -19,6 +19,7 @@ namespace other {
   }
 
   void Keyboard::Update() {
+    PROFILE_SECTION("Keyboard--Update");
     const uint8_t* state = SDL_GetKeyboardState(nullptr);
 
     for (uint16_t k = 0; k < kKeyCount; ++k) {

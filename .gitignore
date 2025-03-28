@@ -2,11 +2,15 @@
 bin/
 bin_obj/
 .cache/
+code_analysis/
 *.sln
 *.vcxproj*
 *csproj
 *csproj.user
 *.exe
+*.tracy
+
+misc/
 
 # python bindings
 tools/build
@@ -14,6 +18,7 @@ tools/other.egg-info/
 
 ## Project tools
 tool_dev/
+steamworks_tools/
 
 ## test projects
 tests/test_data/
@@ -33,6 +38,7 @@ tests/sandbox_scripts/obj
 tests/scripts/obj
 yockcraft/yockcraft_modules/obj
 cell_automaton/cell_automaton_modules/obj
+game2025/forest_scripts/obj
 
 ## C# stuff
 packages/
@@ -42,8 +48,7 @@ packages/
 *.xml
 
 ## Pycache
-*__pycache__*
-**/__pycache__/**
+__pycache__/
 
 ## Editor directories and files
 .idea/

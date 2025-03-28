@@ -55,13 +55,13 @@ namespace other {
     std::string name = "";
     Path main_project_file = "";
     Path project_directory = "";
+    Path cs_dir = "";
     Path file_path = "";
 
     Path bin_dir = "";
     Path assets_dir = "";
     Path materials_dir;
     Path scenes_dir;
-    Path scripts_dir;
     Path shaders_dir;
     Path editor_dir = "";
 

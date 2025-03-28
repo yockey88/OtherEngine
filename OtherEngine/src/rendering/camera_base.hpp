@@ -41,6 +41,7 @@ namespace other {
     void UpdateCoordinateFrame();
 
     const glm::mat4& GetMatrix();
+    const glm::mat4& InverseMatrix();
     const glm::mat4& ViewMatrix();
     const glm::mat4& ProjectionMatrix();
 
@@ -54,6 +55,7 @@ namespace other {
 
     void SetPosition(const glm::vec3& position);
     void SetDirection(const glm::vec3& direction);
+    void SetTarget(const glm::vec3& target);
     void SetUp(const glm::vec3& up);
     void SetRight(const glm::vec3& right);
     void SetWorldUp(const glm::vec3& world_up);
@@ -78,6 +80,7 @@ namespace other {
 
     const glm::vec3& Position() const;
     const glm::vec3& Direction() const;
+    const glm::vec3& Target() const;
     const glm::vec3& Up() const;
     const glm::vec3& Right() const;
     const glm::vec3& WorldUp() const;
@@ -114,6 +117,7 @@ namespace other {
 
     glm::vec3 position{ 0.f };
     glm::vec3 direction{ 0.0f, 0.0f, -1.0f };
+    glm::vec3 target{ 0.0f, 0.0f, 0.0f };
     glm::vec3 up{ 0.0f, 1.0f, 0.0f };
     glm::vec3 right{ 1.0f, 0.0f, 0.0f };
     glm::vec3 world_up{ 0.0f, 1.0f, 0.0f };
@@ -140,6 +144,7 @@ namespace other {
    private:
     CameraProjectionType projection_type;
     glm::mat4 mvp = glm::mat4(1.f);
+    glm::mat4 inverse_mvp = glm::mat4(1.f);
 
     void CalculateView();
     virtual void CalculateProjection() = 0;

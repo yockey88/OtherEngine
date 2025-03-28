@@ -9,24 +9,27 @@
 
 namespace other {
 
+  static ArenaAllocator<Environment> env_allocator;
   Environment* Environment::instance = nullptr;
 
   void Environment::Initialize() {
-    Shutdown();
-    instance = new Environment();
+    OE_ASSERT(instance == nullptr, "Environment already initialized");
+    instance = env_allocator.Allocate();
   }
 
   void Environment::Shutdown() {
-    delete instance;
+    env_allocator.Free(instance);
     instance = nullptr;
   }
 
   void Environment::RenderTerminal() {
     auto& terminal = Get().terminal;
 
-    ScopedColor window_bg(ImGuiCol_WindowBg, ImVec4(0.1f, 0.1f, 0.1f, 1.f));
+    PROFILE_SECTION("OtherEnvironment--RenderTerminal");
+
     bool open = true;
-    if (ImGui::Begin("Console", &open, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
+    ScopedColor window_bg(ImGuiCol_WindowBg, ImVec4(0.1f, 0.1f, 0.1f, 1.f));
+    if (ImGui::Begin("OtherEnvironment:Terminal", &open)) {
       const ImVec2 avail = ImGui::GetContentRegionAvail();
       const ImVec2 original_cursor_pos = ImGui::GetCursorPos();
 
@@ -42,7 +45,18 @@ namespace other {
         ScopedColor text_bg_color(ImGuiCol_FrameBg, ImVec4(0.1f, 0.1f, 0.1f, 1.f));
         ImVec2 size = { avail.x, static_cast<float>(line_h + 8.f) };
 
-        if (ImGui::InputTextEx("##console:input", "[ enter command ]", terminal.input_buffer.data(), terminal.input_buffer.size(), size, 0, nullptr, nullptr)) {}
+        if (terminal.history_cursor.has_value()) {
+          OE_ASSERT(*terminal.history_cursor < terminal.stored_history.size(), "History cursor out of bounds!");
+          const TerminalMessage& message = terminal.stored_history[*terminal.history_cursor];
+          std::ranges::fill(terminal.input_buffer, '\0');
+          std::ranges::copy(message.message, terminal.input_buffer.begin());
+        }
+
+        // clang-format off
+        if (ImGui::InputTextEx("##console:input", "[ enter command ]",
+                            terminal.input_buffer.data(), terminal.input_buffer.size(),
+                            size, 0, nullptr, nullptr)) {}
+        // clang-format on
       }
 
       text_input_pos.x += 1.f;
@@ -53,7 +67,12 @@ namespace other {
         }
 
         ImGui::SetCursorPos(text_input_pos);
-        ImGui::Text("%s", itr->message.c_str());
+        {
+          glm::vec4 color = terminal.GetColorForFilter(itr->filters);
+          ImVec4 text_color = ImVec4(color.r, color.g, color.b, color.a);
+          ScopedColor text_color_scope(ImGuiCol_Text, text_color);
+          ImGui::Text("%s", itr->message.c_str());
+        }
       }
     }
     ImGui::End();
@@ -82,14 +101,13 @@ namespace other {
       return false;
     }
 
-    PushTerminalMessage({ input, TerminalFilters::COMMAND_FILTER });
+    PushTerminalMessage({ TerminalFilter::NO_FILTER, input });
 
     std::ranges::fill(terminal.input_buffer, 0);
     return false;
   }
 
-  Environment::Environment()
-      : memory(), terminal(memory) {
+  Environment::Environment() {
     std::ranges::fill(terminal.input_buffer, '\0');
   }
 

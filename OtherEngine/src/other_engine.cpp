@@ -7,9 +7,12 @@
 
 #include "core/defines.hpp"
 #include "engine/engine.hpp"
+#include "memory/arena.hpp"
 
 #include "event/event_queue.hpp"
 #include "parsing/cmd_line_parser.hpp"
+
+#include "steam/steam_manager.hpp"
 
 namespace other {
   namespace {
@@ -21,6 +24,8 @@ namespace other {
   }  // anonymous namespace
 
   ExitCode Main(int argc, char* argv[]) {
+    PROFILE_SECTION("OtherEngine--Main");
+
     CmdLine cmd_line(argc, argv);
     ExitCode ec = ProcessArgs(cmd_line);
 #ifdef OE_DEBUG_BUILD
@@ -30,7 +35,18 @@ namespace other {
       return ec;
     }
 
+    Arena::Initialize();
     Engine* driver = LoadDriver(cmd_line);
+    OE_ASSERT(driver != nullptr, "Failed to load driver");
+    if (driver->config.KeyExists("steam", "app-id")) {
+      int32_t app_id = driver->config.GetVal<int32_t>("steam", "app-id").value_or(0);
+      if (app_id != 0 && SteamManager::CheckForRestart(app_id)) {
+        UnloadDriver(driver);
+        Arena::Shutdown();
+        return ExitCode::SUCCESS;
+      }
+    }
+
     try {
       OE_ASSERT(driver != nullptr, "Failed to load driver");
       driver->Run();
@@ -44,6 +60,11 @@ namespace other {
     }
 
     UnloadDriver(driver);
+    Arena::Shutdown();
+
+    if (detail::NumberOfLivingReferences() > 0) {
+      println("Engine shutdown with {} living references", detail::NumberOfLivingReferences());
+    }
     return ec;
   }
 

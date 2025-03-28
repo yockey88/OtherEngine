@@ -426,7 +426,11 @@ namespace other {
       stream << "layout (std140 , binding = 0) uniform Camera {\n";
       stream << "  mat4 projection;\n";
       stream << "  mat4 view;\n";
+      stream << "  mat4 inverse_mvp;\n";
       stream << "  vec4 viewpoint;\n";
+      stream << "  vec3 camera_forward;\n";
+      stream << "  vec3 camera_up;\n";
+      stream << "  vec3 camera_right;\n";
       stream << "};\n\n";
       stream << "#define MAX_MODELS\n";
       stream << "layout (std430 , binding = 1) readonly buffer ModelData {\n";
@@ -538,8 +542,17 @@ namespace other {
     .layout_name = "textured_quad",
     .stride = 5,
     .attrs = {
-      { .attr_name = "voe_position", .idx = 0, .size = 3 },
+      { .attr_name = "voe_position", .idx = 0, .size = 2 },
       { .attr_name = "voe_uvs", .idx = 1, .size = 2 },
+    },
+  };
+
+  constexpr static uint64_t kPositionOnlyMeshHash = FNV("position_only");
+  const static MeshLayout kPositionOnlyMesh = {
+    .layout_name = "position_only",
+    .stride = 3,
+    .attrs = {
+      { .attr_name = "voe_position", .idx = 0, .size = 3 },
     },
   };
 
@@ -564,6 +577,9 @@ namespace other {
         break;
       case kTexturedQuadMeshHash:
         mesh_layout = kTexturedQuadMesh;
+        break;
+      case kPositionOnlyMeshHash:
+        mesh_layout = kPositionOnlyMesh;
         break;
       default:
         if (!mesh_layout.has_value()) {

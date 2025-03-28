@@ -10,13 +10,12 @@
 #include "application/app_state.hpp"
 #include "event/core_events.hpp"
 #include "event/event_queue.hpp"
-#include "event/key_events.hpp"
 #include "event/window_events.hpp"
 
-#include "physics/phyics_engine.hpp"
 #include "rendering/renderer.hpp"
 #include "rendering/ui/ui.hpp"
 #include "scripting/script_engine.hpp"
+#include "steam/steam_manager.hpp"
 
 #include "editor/editor_sink.hpp"
 #include "editor/editor_states.hpp"
@@ -32,34 +31,6 @@ namespace other {
       EventQueue::PushEvent<ShutdownEvent>({ ExitCode::SUCCESS });
       return false;
     }
-
-    bool HandleDeleteFile(DeleteFileEvent& event) {
-      OE_DEBUG("Deleting file : {}", event.handle);
-      if (!Filesystem::RemoveFile(event.handle)) {
-        OE_ERROR("Failed to delete file : {}", event.handle);
-        return false;
-      }
-      return true;
-    }
-
-    bool HandleCreateFile(CreateFileEvent& event) {
-      Ref<Directory> dir = Filesystem::GetDirectory(event.handle);
-      if (dir == nullptr) {
-        OE_ERROR("Failed to get directory to handle file creation : {}", event.handle);
-        return false;
-      }
-
-      dir->Update();
-      return true;
-    }
-
-    // bool HandleKeyPress(KeyPressed& event) {
-    //   /// TODO: remove this, just for fast development iteration
-    //   return HandleKeyEvent(event, Keyboard::Key::OE_ESCAPE, [&]() -> bool {
-    //     EventQueue::PushEvent<ShutdownEvent>({ ExitCode::SUCCESS });
-    //     return true;
-    //   });
-    // }
 
   }  // anonymous namespace
 
@@ -114,6 +85,7 @@ namespace other {
   }
 
   void EngineLaunching::OnStep() {
+    PROFILE_SECTION("EngineLaunching--OnStep");
     /// TODO: implement actual engine launch logic,
     ///       - check if headless mode
     ///       - check configuration settings (server, client, editor, runtime, etc....)
@@ -125,7 +97,12 @@ namespace other {
     Renderer::Initialize(engine->config);
     UI::Initialize(engine->config, Renderer::GetWindow());
     ScriptEngine::Initialize(engine->config);
-    PhysicsEngine::Initialize(engine->config);
+
+    SteamManager::Initialize();
+    int32_t app_id = engine->config.GetVal<int32_t>("steam", "app-id").value_or(0);
+    if (app_id != 0) {
+      OE_ASSERT(SteamManager::SteamInitialize(), "Failed to initialize SteamAPI connection!");
+    }
 
     /// MAYBE: indicate what mode the engine is running using this event (headless_load_finished, server_load_finished, etc...)
     engine->EngineEvent(EngineStateEvent::ENGINE_LOAD_FINISHED);
@@ -161,6 +138,7 @@ namespace other {
       if (in_editor) {
         OE_DEBUG("Loading Editor");
         AppState::mode = EngineMode::EDITOR;
+        Renderer::Fullscreen(true);
         main_idle = NewRef<EditorIdle>(engine);
 
         LoggerTargetData console_sink_data = {
@@ -187,22 +165,10 @@ namespace other {
     return nullptr;
   }
 
-  /// FIXME: dont go right to app attached
-  void EngineIdle::OnAttach() {
-    EventQueue::RegisterEventDispatcher<CreateFileEvent>(
-      "Other-Engine--CreateFile",
-      { &HandleCreateFile }
-    );
-
-    EventQueue::RegisterEventDispatcher<DeleteFileEvent>(
-      "Other-Engine--DeleteFile",
-      { &HandleDeleteFile }
-    );
-    /// TODO:
-    // register event to listen for attached application
-  }
+  void EngineIdle::OnAttach() {}
 
   void EngineIdle::OnStep() {
+    PROFILE_SECTION("EngineIdle--OnStep");
     ScriptEngine::UpdateAttachments(engine->dt);
     engine->EngineEvent(EngineStateEvent::APP_ATTACHED);
   }
@@ -235,12 +201,14 @@ namespace other {
 
   void EngineShutdown::OnStep() {
     OE_ASSERT(AppState::exit_code.has_value(), "No exit code set for engine shutdown");
+    PROFILE_SECTION("EngineShutdown--OnStep");
+
+    SteamManager::Shutdown();
 
     /// clear event queue from any remaining events and flush one more event loop with no scene
     ///   to ensure we are in a stable state before shutting down
     EventQueue::Poll();
 
-    PhysicsEngine::Shutdown();
     ScriptEngine::Shutdown();
     UI::Shutdown();
     Renderer::Shutdown();

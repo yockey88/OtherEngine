@@ -1,5 +1,6 @@
 include "./sandbox_scripts/premake5.lua"
 include "./scripts/premake5.lua"
+include "./misc/premake5.lua"
 
 local sandbox = {
   name = "sandbox",
@@ -25,6 +26,48 @@ local sandbox = {
     defines { "OE_MODULE" }
   end,
 
+  windows_filters = function()
+    filter { "configurations:Release" }
+      postbuildcommands {
+        '{COPY} "%{wks.location}externals/sdl2/lib/Release/SDL2.dll" "%{cfg.targetdir}"',
+        '{COPY} "%{wks.location}externals/assimp/lib/Release/assimp-vc143-mt.dll" "%{cfg.targetdir}"',
+        '{COPY} "%{wks.location}externals/steamworks/bin/steam_api64.dll" "%{cfg.targetdir}"',
+      }
+    filter { "configurations:Profile" }
+      postbuildcommands {
+        '{COPY} "%{wks.location}externals/sdl2/lib/Release/SDL2.dll" "%{cfg.targetdir}"',
+        '{COPY} "%{wks.location}externals/assimp/lib/Release/assimp-vc143-mt.dll" "%{cfg.targetdir}"',
+        '{COPY} "%{wks.location}externals/steamworks/bin/steam_api64.dll" "%{cfg.targetdir}"',
+      }
+    filter { "configurations:Debug" }
+      postbuildcommands {
+        '{COPY} "%{wks.location}externals/sdl2/lib/Debug/SDL2d.dll" "%{cfg.targetdir}"',
+        '{COPY} "%{wks.location}externals/assimp/lib/Debug/assimp-vc143-mtd.dll" "%{cfg.targetdir}"',
+        '{COPY} "%{wks.location}externals/steamworks/bin/steam_api64.dll" "%{cfg.targetdir}"',
+      }
+  end,
+
+  custom_configurations = function()
+    filter "configurations:Profile"
+      runtime "Release"
+      optimize "Full"
+      symbols "On"
+      
+      defines { 
+        "OTHER_PROFILE_BUILD",
+        "TRACY_ENABLE",
+        "TRACY_ON_DEMAND",
+        "TRACY_CALLSTACK=10", 
+      }
+
+      files { 
+        "%{wks.location}/externals/tracy/TracyClient.cpp",
+      }
+      includedirs { "%{wks.location}/externals/tracy" }
+      
+      ProcessDependencies("Release")
+  end,
+
   components = {
     ["OtherEngine"] = "%{wks.location}/OtherEngine/src"
   }
@@ -43,8 +86,6 @@ local gl_sandbox = {
     files {
       "./gl_sandbox/**.cpp",
       "./gl_sandbox/**.hpp",
-      "./sandbox_ui.cpp" ,
-      "./sandbox_ui.hpp" ,
       "./mock_app.cpp"
     }
   end,
@@ -52,7 +93,7 @@ local gl_sandbox = {
   include_dirs = function()
     includedirs {
       "./gl_sandbox",
-      "." ,
+      ".",
     }
     externalincludedirs {
       "%{wks.location}/DotOther/NetCore",
@@ -61,9 +102,49 @@ local gl_sandbox = {
   end,
 
   defines = function()
-    defines {
-      "OE_MODULE" ,
-    }
+    defines { "OE_MODULE" }
+  end,
+
+  windows_filters = function()
+    filter { "configurations:Release" }
+      postbuildcommands {
+        '{COPY} "%{wks.location}externals/sdl2/lib/Release/SDL2.dll" "%{cfg.targetdir}"',
+        '{COPY} "%{wks.location}externals/assimp/lib/Release/assimp-vc143-mt.dll" "%{cfg.targetdir}"',
+        '{COPY} "%{wks.location}externals/steamworks/bin/steam_api64.dll" "%{cfg.targetdir}"',
+      }
+    filter { "configurations:Profile" }
+      postbuildcommands {
+        '{COPY} "%{wks.location}externals/sdl2/lib/Release/SDL2.dll" "%{cfg.targetdir}"',
+        '{COPY} "%{wks.location}externals/assimp/lib/Release/assimp-vc143-mt.dll" "%{cfg.targetdir}"',
+        '{COPY} "%{wks.location}externals/steamworks/bin/steam_api64.dll" "%{cfg.targetdir}"',
+      }
+    filter { "configurations:Debug" }
+      postbuildcommands {
+        '{COPY} "%{wks.location}externals/sdl2/lib/Debug/SDL2d.dll" "%{cfg.targetdir}"',
+        '{COPY} "%{wks.location}externals/assimp/lib/Debug/assimp-vc143-mtd.dll" "%{cfg.targetdir}"',
+        '{COPY} "%{wks.location}externals/steamworks/bin/steam_api64.dll" "%{cfg.targetdir}"',
+      }
+  end,
+
+  custom_configurations = function()
+    filter "configurations:Profile"
+      runtime "Release"
+      optimize "Full"
+      symbols "On"
+      
+      defines { 
+        "OTHER_PROFILE_BUILD",
+        "TRACY_ENABLE",
+        "TRACY_ON_DEMAND",
+        "TRACY_CALLSTACK=10", 
+      }
+
+      files { 
+        "%{wks.location}/externals/tracy/TracyClient.cpp",
+      }
+      includedirs { "%{wks.location}/externals/tracy" }
+      
+      ProcessDependencies("Release")
   end,
 
   components = {
@@ -83,16 +164,17 @@ local unit_tests = {
 
   files = function()
     files {
-      "./unit_tests/**.cpp" ,
-      "./mock_app.cpp" ,
+      "./unit_tests/**.cpp",
+      "./mock_app.cpp",
     }
   end,
 
   include_dirs = function()
     includedirs {
-      "." ,
+      ".",
     }
     externalincludedirs {
+      "%{wks.location}/OtherEngine/src",
       "%{wks.location}/DotOther/NetCore",
       "%{wks.location}/externals/gtest/googlemock/include"
     }
@@ -100,13 +182,48 @@ local unit_tests = {
 
   defines = function()
     defines {
-      "OE_MODULE" ,
+      "OE_MODULE",
       "OE_TESTING_ENVIRONMENT"
     }
   end,
 
+  windows_filters = function()
+    filter { "configurations:Release" }
+      postbuildcommands {
+        '{COPY} "%{wks.location}externals/sdl2/lib/Release/SDL2.dll" "%{cfg.targetdir}"',
+        '{COPY} "%{wks.location}externals/assimp/lib/Release/assimp-vc143-mt.dll" "%{cfg.targetdir}"',
+        '{COPY} "%{wks.location}externals/steamworks/bin/steam_api64.dll" "%{cfg.targetdir}"',
+      }
+    filter { "configurations:Debug" }
+      postbuildcommands {
+        '{COPY} "%{wks.location}externals/sdl2/lib/Debug/SDL2d.dll" "%{cfg.targetdir}"',
+        '{COPY} "%{wks.location}externals/assimp/lib/Debug/assimp-vc143-mtd.dll" "%{cfg.targetdir}"',
+        '{COPY} "%{wks.location}externals/steamworks/bin/steam_api64.dll" "%{cfg.targetdir}"',
+      }
+  end,
+
+  custom_configurations = function()
+    filter "configurations:Profile"
+      runtime "Release"
+      optimize "Full"
+      symbols "On"
+      
+      defines { 
+        "OTHER_PROFILE_BUILD",
+        "TRACY_ENABLE",
+        "TRACY_ON_DEMAND",
+        "TRACY_CALLSTACK=10", 
+      }
+
+      files { 
+        "%{wks.location}/externals/tracy/TracyClient.cpp",
+      }
+      includedirs { "%{wks.location}/externals/tracy" }
+      
+      ProcessDependencies("Release")
+  end,
+
   components = {
-    ["OtherEngine"] = "%{wks.location}/OtherEngine/src",
     ["OtherTestEngine"] = "%{wks.location}/OtherTestEngine/src",
     ["gtest"] = "%{wks.location}/externals/gtest/googletest/include",
   }
@@ -125,6 +242,7 @@ local default_sim_testing_table = {
       "."
     }
     externalincludedirs {
+      --- have to include this cause we are linking to the test engine not the main engine
       "%{wks.location}/OtherEngine/src",
       "%{wks.location}/DotOther/NetCore",
       "%{wks.location}/externals/gtest/googlemock/include"
@@ -136,6 +254,27 @@ local default_sim_testing_table = {
       "OE_MODULE",
       "OE_TESTING_ENVIRONMENT"
     }
+  end,
+
+  custom_configurations = function()
+    filter "configurations:Profile"
+      runtime "Release"
+      optimize "Full"
+      symbols "On"
+      
+      defines { 
+        "OTHER_PROFILE_BUILD",
+        "TRACY_ENABLE",
+        "TRACY_ON_DEMAND",
+        "TRACY_CALLSTACK=10", 
+      }
+
+      files { 
+        "%{wks.location}/externals/tracy/TracyClient.cpp",
+      }
+      includedirs { "%{wks.location}/externals/tracy" }
+      
+      ProcessDependencies("Release")
   end,
 
   components = {

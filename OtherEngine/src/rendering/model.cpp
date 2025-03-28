@@ -114,20 +114,29 @@ namespace other {
     index_buffer->Bind();
   }
 
+  const std::vector<Vertex>& ModelSource::Vertices() const {
+    return vertices;
+  }
+
   const std::vector<float>& ModelSource::RawVertices() const {
     return raw_vertices;
+  }
+
+  const std::vector<Index>& ModelSource::Indices() const {
+    return indices;
   }
 
   const std::vector<uint32_t>& ModelSource::RawIndices() const {
     return raw_indices;
   }
 
-  const std::vector<Vertex>& ModelSource::Vertices() const {
-    return vertices;
+  const std::unordered_map<uint32_t, std::vector<Triangle>>& ModelSource::Triangles() const {
+    return triangles;
   }
 
-  const std::vector<Index>& ModelSource::Indices() const {
-    return indices;
+  const std::vector<Triangle>& ModelSource::Triangles(uint32_t sub_mesh_id) const {
+    OE_ASSERT(triangles.find(sub_mesh_id) != triangles.end(), "Submesh not found in triangles map!");
+    return triangles.at(sub_mesh_id);
   }
 
   const std::vector<uint32_t>& ModelSource::RawLayout() const {
@@ -144,6 +153,27 @@ namespace other {
       raw_vertices.push_back(v.position.y);
       raw_vertices.push_back(v.position.z);
 
+      if (v.position.x < bounds.min_x) {
+        bounds.min_x = v.position.x;
+      }
+      if (v.position.x > bounds.max_x) {
+        bounds.max_x = v.position.x;
+      }
+
+      if (v.position.y < bounds.min_y) {
+        bounds.min_y = v.position.y;
+      }
+      if (v.position.y > bounds.max_y) {
+        bounds.max_y = v.position.y;
+      }
+
+      if (v.position.z < bounds.min_z) {
+        bounds.min_z = v.position.z;
+      }
+      if (v.position.z > bounds.max_z) {
+        bounds.max_z = v.position.z;
+      }
+
       raw_vertices.push_back(v.normal.x);
       raw_vertices.push_back(v.normal.y);
       raw_vertices.push_back(v.normal.z);
@@ -159,6 +189,13 @@ namespace other {
       raw_vertices.push_back(v.uv_coord.x);
       raw_vertices.push_back(v.uv_coord.y);
     }
+
+    bounds.min = { bounds.min_x, bounds.min_y, bounds.min_z };
+    bounds.max = { bounds.max_x, bounds.max_y, bounds.max_z };
+
+    bounds.x_range = bounds.max_x - bounds.min_x;
+    bounds.y_range = bounds.max_y - bounds.min_y;
+    bounds.z_range = bounds.max_z - bounds.min_z;
   }
 
   void ModelSource::BuildIndexBuffer(const std::vector<Index>& vertices) {
@@ -188,14 +225,12 @@ namespace other {
       : model_source(mesh_src) {
     OE_ASSERT(mesh_src != nullptr, "Attempting construct model from null source!");
     SetSubMeshes({});
-    RebuildMesh();
   }
 
   Model::Model(Ref<ModelSource>& model_src, const std::vector<uint32_t>& sub_meshes)
       : model_source(model_src) {
     OE_ASSERT(model_src != nullptr, "Attempting construct model from null source!");
     SetSubMeshes(sub_meshes);
-    RebuildMesh();
   }
 
   Model::Model(const Ref<Model>& other) {
@@ -210,25 +245,18 @@ namespace other {
   }
 
   void Model::SetSubMeshes(const std::vector<uint32_t>& sms) {
-    sub_meshes = sms;
     if (sms.empty()) {
       sub_meshes.resize(model_source->SubMeshes().size());
       for (uint32_t i = 0; i < sub_meshes.size(); ++i) {
         sub_meshes[i] = i;
       }
     } else {
-      for (const uint32_t smidx : sub_meshes) {
+      for (const uint32_t smidx : sms) {
         OE_ASSERT(smidx < model_source->SubMeshes().size(), "Submesh index out of bounds!");
       }
+
+      sub_meshes = sms;
     }
-  }
-
-  void Model::RebuildMesh() {
-    OE_ASSERT(model_source != nullptr, "Static Model has null source!");
-    OE_ASSERT(!sub_meshes.empty(), "Model has no submeshes!");
-
-    /// not sure what to do here, maybe build data structures like the triangle cache
-    /// or something like that
   }
 
   Ref<ModelSource> Model::GetModelSource() const {

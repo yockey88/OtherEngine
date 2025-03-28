@@ -5,18 +5,22 @@
 
 #include <imgui/imgui.h>
 
+#include "core/defines.hpp"
 #include "core/filesystem.hpp"
 #include "core/logger.hpp"
 #include "engine/engine.hpp"
 #include "environment/environment.hpp"
 
 #include "application/app.hpp"
+#include "asset/asset_database.hpp"
 #include "event/event_queue.hpp"
 #include "input/io.hpp"
 
 #include "rendering/renderer.hpp"
 #include "rendering/ui/ui.hpp"
 #include "scripting/script_engine.hpp"
+
+#include "editor/editor_state.hpp"
 
 namespace other {
 
@@ -55,6 +59,11 @@ namespace other {
   void AppState::MarkLoaded() {
     OE_ASSERT(data != nullptr, "Can not access app data until app is loaded");
     data->loading = false;
+  }
+
+  void AppState::RebindScripts() {
+    /// rebind core scripts
+    data->scenes->RebindScripts();
   }
 
   CmdLine& AppState::GetProcessArguments() {
@@ -122,6 +131,11 @@ namespace other {
     }
   }
 
+  float AppState::TargetTimeStep() {
+    OE_ASSERT(data != nullptr, "Can not access app data until app is loaded");
+    return data->frame_delta;
+  }
+
   App& AppState::AppHandle() {
     return *data->app_handle;
   }
@@ -151,7 +165,10 @@ namespace other {
     OE_ASSERT(scene_dir != nullptr, "Failed to get scene directory");
     OE_ASSERT(scene_dir->Exists(), "Scene directory does not exist");
 
-    Ref<FileHandle> primary_scene = scene_dir->GetFileHandleByName(*proj_meta.primary_scene);
+    Ref<FileHandle> primary_scene = scene_dir->GetFileHandleByName(*proj_meta.primary_scene, ".oscn");
+    if (primary_scene == nullptr) {
+      primary_scene = scene_dir->GetFileHandleByName(*proj_meta.primary_scene, ".yscn");
+    }
     OE_ASSERT(primary_scene != nullptr, "Failed to get primary scene file handle");
 
     if (!primary_scene->Exists()) {
@@ -214,15 +231,16 @@ namespace other {
   }
 
   void AppState::OnEngineTick(float dt) {
+    PROFILE_SECTION("AppState--OnEngineTick");
+
     if (data != nullptr) {
       data->frame_delta = dt;
     }
-    Filesystem::Poll();
     IO::Update();
-    EventQueue::Poll();
   }
 
   void AppState::FlushUpdateLoop() {
+    PROFILE_SECTION("AppState--FlushUpdateLoop");
     if (Environment::Get().terminal_open) {
       Environment::Get().terminal.Dispatch();
     }
@@ -234,18 +252,24 @@ namespace other {
   }
 
   void AppState::RunEarlyUpdate() {
+    PROFILE_SECTION("AppState--RunEarlyUpdate");
+
     data->app_handle->DoEarlyUpdate(data->frame_delta);
     data->layers->InvokeControlledLoop(&Layer::EarlyUpdate, data->frame_delta);
     data->scenes->EarlyUpdateScene(data->frame_delta);
   }
 
   void AppState::RunUpdate() {
+    PROFILE_SECTION("AppState--RunUpdate");
+
     data->app_handle->DoUpdate(data->frame_delta);
     data->layers->InvokeControlledLoop(&Layer::Update, data->frame_delta);
     data->scenes->UpdateScene(data->frame_delta);
   }
 
   void AppState::RunLateUpdate() {
+    PROFILE_SECTION("AppState--RunLateUpdate");
+
     data->app_handle->DoLateUpdate(data->frame_delta);
     data->layers->InvokeControlledLoop(&Layer::LateUpdate, data->frame_delta);
     data->scenes->LateUpdateScene(data->frame_delta);
@@ -259,24 +283,47 @@ namespace other {
   }
 
   void AppState::HandleRender() {
-    Renderer::GetWindow()->Clear();
-    data->scenes->GetRenderer()->Clear();
+    PROFILE_SECTION("AppState--HandleRender");
 
-    data->app_handle->OnRender();
-    data->layers->InvokeControlledLoop(&Layer::Render);
-    ScriptEngine::RenderAttachments();
+    {
+      PROFILE_SECTION("AppState--HandleRender:MainRender");
+      Renderer::GetWindow()->Clear();
+      data->scenes->GetRenderer()->Clear();
 
-    bool render_success = data->scenes->RenderScene();
-    if (!render_success && AppState::mode == EngineMode::EDITOR
+      data->app_handle->OnRender();
+      data->layers->InvokeControlledLoop(&Layer::Render);
+      ScriptEngine::RenderAttachments();
+
+      bool render_success = data->scenes->RenderScene();
+      if (!render_success && AppState::mode == EngineMode::EDITOR
 #ifdef OE_TESTING_ENVIRONMENT
-        || AppState::mode == EngineMode::TESTING
+          || AppState::mode == EngineMode::TESTING
 #endif  // !OE_TESTING_ENVIRONMENT
-    ) {
-      /// render default view
-    } else if (!render_success) {
+      ) {
+        /// render default view
+      } else if (!render_success) {
+      }
+
+      if (AppState::mode == EngineMode::RUNTIME) {
+        Ref<SceneRenderer> scene_renderer = data->scenes->GetRenderer();
+        OE_ASSERT(scene_renderer != nullptr, "No scene renderer found");
+
+        Ref<Framebuffer> render = scene_renderer->GetRender(FNV("Geometry"));
+        if (render != nullptr) {
+          Renderer::DrawFramebufferToWindow(render);
+        }
+      } else if (AppState::mode == EngineMode::EDITOR) {
+      }
     }
 
-    if (UI::Enabled()) {
+    bool should_render_ui = UI::Enabled();
+    /// TODO: once screen rendering is fixed
+    // if (AppState::mode == EngineMode::EDITOR) {
+    //   should_render_ui = EditorState::scene_mode != SceneEditorMode::PLAYING;
+    // }
+
+    if (should_render_ui) {
+      PROFILE_SECTION("AppState--HandleRender:UIRender");
       UI::BeginFrame();
       ScriptEngine::RenderUIAttachments();
 
@@ -285,17 +332,24 @@ namespace other {
       data->app_handle->OnRenderUI();
       data->layers->InvokeControlledLoop(&Layer::UIRender);
       /// may also want to changed these ui windows as well
-      for (auto& [id, window] : data->ui_windows) {
-        window->Render();
+      {
+        PROFILE_SECTION("AppState--HandleRender:UIRender:Windows");
+        for (auto& [id, window] : data->ui_windows) {
+          window->Render();
+        }
       }
 
       if (Environment::Get().terminal_open) {
+        PROFILE_SECTION("AppState--HandleRender:UIRender:Terminal");
         Environment::RenderTerminal();
       }
 
       UI::EndFrame();
     }
-    Renderer::GetWindow()->SwapBuffers();
+    {
+      PROFILE_SECTION("AppState--HandleRender:BufferSwap");
+      Renderer::GetWindow()->SwapBuffers();
+    }
   }
 
   AppState::Data::Data(App* app_handle, Ref<Project> proj)

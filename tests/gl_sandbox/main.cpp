@@ -1,6 +1,8 @@
 /**
  * \file gl_sandbox/main.cpp
  **/
+#include <cmath>
+#include <csetjmp>
 #include <iostream>
 
 #include <SDL_events.h>
@@ -14,10 +16,15 @@
 #include <glad/glad.h>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
+#include <glm/fwd.hpp>
+#include <glm/gtc/constants.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <imgui/backends/imgui_impl_sdl2.h>
 #include <imgui/imgui.h>
+#include <reactphysics3d/mathematics/Quaternion.h>
+#include <reactphysics3d/mathematics/Vector3.h>
+#include <reactphysics3d/reactphysics3d.h>
 #include <rendering/gbuffer.hpp>
 
 #include "core/defines.hpp"
@@ -25,14 +32,15 @@
 #include "core/filesystem.hpp"
 #include "core/logger.hpp"
 #include "core/ref.hpp"
+#include "core/time.hpp"
 #include "engine/engine.hpp"
+#include "math/matrix_math.hpp"
 
 #include "application/app_state.hpp"
 #include "asset/asset_manager.hpp"
 #include "event/event_queue.hpp"
 #include "input/io.hpp"
 
-#include "physics/phyics_engine.hpp"
 #include "rendering/camera_base.hpp"
 #include "rendering/direction_light.hpp"
 #include "rendering/framebuffer.hpp"
@@ -51,13 +59,13 @@
 #include "scripting/script_engine.hpp"
 
 #include "gl_helpers.hpp"
-#include "sandbox_ui.hpp"
 #include "shader_embed.hpp"
 
 using namespace other;
 
+namespace rp3d = reactphysics3d;
+
 struct Shape {
-  uint32_t vao = 0, vbo = 0, ebo = 0;
   std::vector<SubMesh> submeshes;
   std::vector<MeshNode> nodes;
 
@@ -70,17 +78,22 @@ struct Shape {
   std::vector<uint32_t> raw_indices;
   std::vector<uint32_t> raw_layout;
 
-  Ref<VertexArray> mesh_vao;
+  Ref<ModelSource> source;
 
-  Shape(const Path& path, Ref<MaterialTable>& material_table);
+  Ref<UniformBuffer> model_ubo;
+  Ref<UniformBuffer> material_ubo;
+
+  other::Buffer model_buffer;
+  other::Buffer material_buffer;
+
+  Shape(const Path& path, Ref<MaterialTable>& material_table, Ref<UniformBuffer> model_ubo, Ref<UniformBuffer> material_ubo);
   void Draw(DrawMode mode);
 
  private:
   std::vector<other::UUID> material_ids;
   std::map<uint32_t, other::UUID> submesh_materials;
 
-  void ProcessNode(const aiNode* node, const aiScene* scene);
-  void ProcessMesh(const aiMesh* mesh, const aiScene* scene);
+  void ProcessMesh(const aiMesh* mesh, SubMesh& sm, const aiScene* scene);
   void TraverseNodes(const aiNode* node, int32_t node_idx, const glm::mat4& parent_transform = glm::mat4(1.f), uint32_t level = 0);
   void GetMaterials(const aiScene* scene);
 };
@@ -93,13 +106,13 @@ struct Quad {
     0, 1, 2,
     1, 2, 3,
   };
+  // clang-format on
 
   Quad();
   ~Quad();
 
   void Draw();
 };
-// clang-format on
 
 struct Cube {
   uint32_t vao = 0, vbo = 0, ebo = 0;
@@ -127,10 +140,11 @@ struct Cube {
   void Draw(other::DrawMode mode, uint32_t instances = 1);
 };
 
-constexpr static uint32_t win_w = 800;
-constexpr static uint32_t win_h = 600;
-
 void UpdateCamera(other::Ref<CameraBase>& camera);
+
+void DoDebugRendering(Ref<VertexArray>& triangles, Ref<VertexArray>& lines, rp3d::PhysicsWorld* world);
+
+Transform GetTransformFromPhysicsTransform(const rp3d::Transform& phys_transform);
 
 #ifdef _WIN32
   #define WIN32_LEAN_AND_MEAN
@@ -143,355 +157,427 @@ int main(int argc, char* argv[]) {
 #endif
   int exit = 0;
   try {
-    const other::Path glsandbox_dir = "C:/Yock/code/OtherEngine/tests/gl_sandbox";
-    const other::Path config_path = glsandbox_dir / "gl_sandbox.other";
+    Arena::Initialize();
+    {
+      const other::Path glsandbox_dir = "C:/Yock/code/OtherEngine/tests/gl_sandbox";
+      const other::Path config_path = glsandbox_dir / "gl_sandbox.other";
 
-    cmd_line.SetFlag("--project", { config_path.string() });
+      cmd_line.SetFlag("--project", { config_path.string() });
 
-    other::Engine mock_engine(cmd_line, "Sandbox--Thread");
+      other::Engine mock_engine(cmd_line, "Sandbox--Thread");
 
-    AppState::Initialize(&mock_engine);
-    Renderer::Initialize(mock_engine.config);
-    UI::Initialize(mock_engine.config, Renderer::GetWindow());
-    ScriptEngine::Initialize(mock_engine.config);
-    PhysicsEngine::Initialize(mock_engine.config);
-    AppState::AttachApplication();
-    AppState::mode = EngineMode::EDITOR;
+      AppState::Initialize(&mock_engine);
+      Renderer::Initialize(mock_engine.config);
+      UI::Initialize(mock_engine.config, Renderer::GetWindow());
+      ScriptEngine::Initialize(mock_engine.config);
+      AppState::AttachApplication();
+      AppState::mode = EngineMode::EDITOR;
 
-    uint32_t shader1 = other::GetShader(vert1, frag1);
-    uint32_t shader2 = other::GetShader(vert2, frag2);
+      uint32_t shader1 = other::GetShader(vert1, frag1);
+      uint32_t shader2 = other::GetShader(vert2, frag2);
 
-    Ref<Framebuffer> frame = NewRef<Framebuffer>(other::FramebufferSpec{});
+      Ref<Framebuffer> frame = NewRef<Framebuffer>(other::FramebufferSpec{
+        .size = Renderer::WindowSize(),
+      });
 
-    std::vector<float> fb_verts = {
-      1.f, 1.f, 1.f, 1.f,
-      -1.f, 1.f, 0.f, 1.f,
-      -1.f, -1.f, 0.f, 0.f,
-      1.f, -1.f, 1.f, 0.f
-    };
+      std::vector<float> fb_verts = {
+        1.f, 1.f, 1.f, 1.f,
+        -1.f, 1.f, 0.f, 1.f,
+        -1.f, -1.f, 0.f, 0.f,
+        1.f, -1.f, 1.f, 0.f
+      };
 
-    std::vector<uint32_t> fb_indices = {
-      0, 1, 3,
-      1, 2, 3
-    };
-    std::vector<uint32_t> fb_layout = {
-      2, 2
-    };
+      std::vector<uint32_t> fb_indices = {
+        0, 1, 3,
+        1, 2, 3
+      };
+      std::vector<uint32_t> fb_layout = {
+        2, 2
+      };
 
-    Scope<VertexArray> fb_mesh = NewScope<VertexArray>(fb_verts, fb_indices, fb_layout);
+      Scope<VertexArray> fb_mesh = NewScope<VertexArray>(fb_verts, fb_indices, fb_layout);
 
-    const other::Path shader_dir = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders";
-    const other::Path fbshader_path = shader_dir / "fbshader.oshader";
-    const other::Path default_shader_path = shader_dir / "default.oshader";
-    const other::Path gbuffer_shader_path = shader_dir / "gbuffer.oshader";
-    Ref<Shader> fb_shader = other::BuildShader(fbshader_path);
-    Ref<Shader> default_shader = other::BuildShader(default_shader_path);
-    Ref<Shader> gbuffer_shader = other::BuildShader(gbuffer_shader_path);
+      const other::Path shader_dir = other::Filesystem::GetEngineCoreDir() / "OtherEngine" / "assets" / "shaders";
+      const other::Path debug_physics_shader_path = shader_dir / "physics_debug.oshader";
+      Ref<Shader> debug_physics_shader = other::BuildShader(debug_physics_shader_path);
 
-    // const other::Path deferred_shader_path = shader_dir / "deferred_shading.oshader";
-    // Ref<Shader> deferred_shader = other::BuildShader(deferred_shader_path);
-    // deferred_shader->Bind();
-    // deferred_shader->SetUniform("goe_position", 0);
-    // deferred_shader->SetUniform("goe_normal", 1);
-    // deferred_shader->SetUniform("goe_albedo", 2);
-    // deferred_shader->Unbind();
+      const other::Path gl_sb_material_dir = other::Filesystem::GetEngineCoreDir() / "tests" / "gl_sandbox" / "shaders";
+      const other::Path mat_path = gl_sb_material_dir / "mat.oshader";
+      Ref<Shader> mat_shader = other::BuildShader(mat_path);
 
-    const other::Path gl_sb_material_dir = other::Filesystem::GetEngineCoreDir() / "tests" / "gl_sandbox" / "shaders";
-    const other::Path mat_path = gl_sb_material_dir / "mat.oshader";
+      glm::ivec2 win_size = Renderer::WindowSize();
+      println("Window size : {0}x{1}", win_size.x, win_size.y);
+      other::Ref<CameraBase> camera = other::NewRef<PerspectiveCamera>(win_size);
+      camera->SetPosition({ 0.f, 3.f, 3.f });
+      camera->SetDirection({ 0.f, -3.f, -3.f });
 
-    Ref<Shader> mat_shader = other::BuildShader(mat_path);
-    // Ref<Shader> mat2_shader = other::BuildShader(mat2_path);
+      other::PointLight point_light{
+        .position = { 1.2f, 1.0f, 2.0f, 1.f },
+        .color = { 0.2f, 0.2f, 0.2f, 1.f },
+      };
+      other::DirectionLight dir_light{
+        .direction = { -0.2f, 1.0f, -0.3f, 1.f },
+        .color = { 1.0f, 1.0f, 1.0f, 1.f },
+      };
 
-    other::Ref<CameraBase> camera = other::NewRef<PerspectiveCamera>(glm::ivec2{ win_w, win_h });
-    camera->SetPosition({ 0.f, 0.f, 3.f });
-    glm::mat4 proj = camera->ProjectionMatrix();
-    glm::mat4 view = camera->ViewMatrix();
+      CHECKGL();
 
-    glm::mat4 model1 = glm::mat4(1.0f);
-    float m1_rotation = 0.f;
+      uint32_t camera_binding_pnt = 0;
+      std::vector<other::Uniform> camera_unis = {
+        { "projection", other::ValueType::MAT4 },
+        { "view", other::ValueType::MAT4 },
+        { "viewpoint", other::ValueType::VEC4 },
+      };
 
-    glm::mat4 model2 = glm::mat4(1.0f);
-    model2 = glm::translate(model2, glm::vec3(2.f, 0.f, 0.f));
+      uint32_t model_binding_pnt = 1;
+      std::vector<other::Uniform> model_unis = {
+        { "models", other::ValueType::MAT4, 100 },
+      };
 
-    glm::mat4 model3 = glm::mat4(1.0f);
-    model3 = glm::translate(model3, glm::vec3(-2.f, 0.f, 0.f));
+      uint32_t material_binding_pnt = 2;
+      std::vector<other::Uniform> material_unis = {
+        { "materials", other::ValueType::USER_TYPE, 100, sizeof(other::Material) },
+      };
 
-    other::PointLight point_light{
-      .position = { 1.2f, 1.0f, 2.0f, 1.f },
-      .color = { 0.2f, 0.2f, 0.2f, 1.f },
-    };
-    other::DirectionLight dir_light{
-      .direction = { -0.2f, 1.0f, -0.3f, 1.f },
-      .color = { 1.0f, 1.0f, 1.0f, 1.f },
-    };
+      uint32_t light_binding_pnt = 3;
+      std::vector<other::Uniform> light_unis = {
+        { "num_lights", other::ValueType::VEC4 },
+        { "point_lights", other::ValueType::USER_TYPE, 100, sizeof(other::PointLight) },
+        { "direction_lights", other::ValueType::USER_TYPE, 100, sizeof(other::DirectionLight) },
+      };
 
-    CHECKGL();
+      Ref<other::UniformBuffer> camera_uniforms = NewRef<other::UniformBuffer>("Camera", camera_unis, camera_binding_pnt);
+      camera_uniforms->BindBase();
 
-    uint32_t camera_binding_pnt = 0;
-    std::vector<other::Uniform> camera_unis = {
-      { "projection", other::ValueType::MAT4 },
-      { "view", other::ValueType::MAT4 },
-      { "viewpoint", other::ValueType::VEC4 },
-    };
+      camera_uniforms->SetUniform("projection", camera->ProjectionMatrix());
+      camera_uniforms->SetUniform("view", camera->ViewMatrix());
+      camera_uniforms->SetUniform("viewpoint", camera->Position());
 
-    uint32_t model_binding_pnt = 1;
-    std::vector<other::Uniform> model_unis = {
-      { "models", other::ValueType::MAT4, 100 },
-    };
+      Ref<other::UniformBuffer> light_uniforms = NewRef<other::UniformBuffer>("Lights", light_unis, light_binding_pnt, other::SHADER_STORAGE);
+      light_uniforms->BindBase();
 
-    uint32_t material_binding_pnt = 2;
-    std::vector<other::Uniform> material_unis = {
-      { "materials", other::ValueType::USER_TYPE, 100, sizeof(other::Material) },
-    };
+      Ref<other::UniformBuffer> material_uniforms = NewRef<other::UniformBuffer>("MaterialData", material_unis, material_binding_pnt, other::SHADER_STORAGE);
+      material_uniforms->BindBase();
+      Ref<other::UniformBuffer> model_uniforms = NewRef<other::UniformBuffer>("ModelData", model_unis, model_binding_pnt, other::SHADER_STORAGE);
+      model_uniforms->BindBase();
 
-    uint32_t light_binding_pnt = 3;
-    std::vector<other::Uniform> light_unis = {
-      { "num_lights", other::ValueType::VEC4 },
-      { "point_lights", other::ValueType::USER_TYPE, 100, sizeof(other::PointLight) },
-      { "direction_lights", other::ValueType::USER_TYPE, 100, sizeof(other::DirectionLight) },
-    };
+      other::Buffer model_buffer;
+      other::Buffer material_buffer;
 
-    Ref<other::UniformBuffer> camera_uniforms = NewRef<other::UniformBuffer>("Camera", camera_unis, camera_binding_pnt);
-    camera_uniforms->BindBase();
-    Ref<other::UniformBuffer> light_uniforms = NewRef<other::UniformBuffer>("Lights", light_unis, light_binding_pnt, other::SHADER_STORAGE);
-    light_uniforms->BindBase();
+      std::vector<glm::vec4> colors = {
+        { 1.f, 0.f, 0.f, 1.f },
+        { 0.f, 1.f, 0.f, 1.f },
+        { 0.f, 0.f, 1.f, 1.f },
+        { 0.5f, 0.5f, 0.5f, 1.f },
+      };
 
-    Ref<other::UniformBuffer> material_uniforms = NewRef<other::UniformBuffer>("MaterialData", material_unis, material_binding_pnt, other::SHADER_STORAGE);
-    material_uniforms->BindBase();
-    Ref<other::UniformBuffer> model_uniforms = NewRef<other::UniformBuffer>("ModelData", model_unis, model_binding_pnt, other::SHADER_STORAGE);
-    model_uniforms->BindBase();
+      Ref<MaterialTable> material_table = AssetManager::GetMaterialTable();
+      OE_ASSERT(material_table != nullptr, "Material table is null");
 
-    other::Buffer model_buffer;
-    other::Buffer material_buffer;
+      other::UUID mat1 = material_table->RegisterMaterial(colors[0], glm::vec4(1.f), glm::vec4(1.f));
+      other::UUID mat2 = material_table->RegisterMaterial(colors[1], glm::vec4(1.f), glm::vec4(1.f));
+      other::UUID mat3 = material_table->RegisterMaterial(colors[2], glm::vec4(1.f), glm::vec4(1.f));
+      other::UUID floor_mat = material_table->RegisterMaterial(colors[3], glm::vec4(1.f), glm::vec4(1.f));
 
-    glUseProgram(shader2);
-    glUniform1i(glGetUniformLocation(shader2, "g_position"), 0);
-    glUniform1i(glGetUniformLocation(shader2, "g_normal"), 1);
-    glUniform1i(glGetUniformLocation(shader2, "g_albedo_spec"), 2);
-    glUseProgram(0);
+      Quad quad;
+      Cube cube;
+      Shape shape(glsandbox_dir / "assets" / "ball.fbx", material_table, model_uniforms, material_uniforms);
 
-    /// generate sampler2DArray
-    std::vector<glm::vec4> colors = {
-      { 1.f, 0.f, 0.f, 1.f },
-      { 0.f, 1.f, 0.f, 1.f },
-    };
+      CHECKGL();
 
-    Ref<MaterialTable> material_table = AssetManager::GetMaterialTable();
-    OE_ASSERT(material_table != nullptr, "Material table is null");
+      rp3d::PhysicsCommon physics_common;
+      rp3d::PhysicsWorld* physics_world = physics_common.createPhysicsWorld();
 
-    other::UUID mat1 = material_table->RegisterMaterial(colors[0], glm::vec4(1.f), glm::vec4(1.f));
-    other::UUID mat2 = material_table->RegisterMaterial(colors[1], glm::vec4(1.f), glm::vec4(1.f));
+      Transform transform1;
+      transform1.position = { 0.f, 15.f, 0.f };
+      transform1.scale = { 1.f, 1.f, 1.f };
 
-    OE_DEBUG("Uniforms Set");
+      transform1.CalcMatrix();
+      rp3d::Vector3 pos1(transform1.position.x, transform1.position.y, transform1.position.z);
+      rp3d::Transform phys_transform1(pos1, rp3d::Quaternion::identity());
+      rp3d::RigidBody* body1 = physics_world->createRigidBody(phys_transform1);
+      body1->setIsActive(true);
 
-    other::GBuffer gbuffer({ win_w, win_h });
+      rp3d::Transform i_transform1 = body1->getTransform();
+      rp3d::Vector3 half_extents1(transform1.scale.x / 2.f, transform1.scale.y / 2.f, transform1.scale.z / 2.f);
+      rp3d::BoxShape* box_shape1 = physics_common.createBoxShape(half_extents1);
+      body1->addCollider(box_shape1, rp3d::Transform::identity());
+      body1->setIsDebugEnabled(true);
 
-    OE_INFO("Running");
+      Transform transform2;
+      transform2.position = { 0.f, 10.f, 0.f };
+      transform2.scale = { 1.f, 1.f, 1.f };
 
-    Quad quad;
-    Cube cube;
+      transform2.CalcMatrix();
+      rp3d::Vector3 pos2(transform2.position.x, transform2.position.y, transform2.position.z);
+      rp3d::Transform phys_transform2(pos2, rp3d::Quaternion::identity());
+      rp3d::RigidBody* body2 = physics_world->createRigidBody(phys_transform2);
+      body2->setIsActive(true);
 
-    Shape shape(glsandbox_dir / "assets" / "backpack.fbx", material_table);
+      rp3d::Transform i_transform2 = body2->getTransform();
+      rp3d::Vector3 half_extents2(transform2.scale.x / 2.f, transform2.scale.y / 2.f, transform2.scale.z / 2.f);
+      rp3d::BoxShape* box_shape2 = physics_common.createBoxShape(half_extents2);
+      body2->addCollider(box_shape2, rp3d::Transform::identity());
+      body2->setIsDebugEnabled(true);
 
-    Ref<Directory> dir = Filesystem::GetDirectory("assets");
-    if (dir == nullptr) {
-      OE_ERROR("Failed to get directory");
-      throw std::runtime_error("Failed to get directory");
-    }
-    Ref<FileHandle> file = dir->GetFile("backpack.fbx");
-    if (file == nullptr) {
-      OE_ERROR("Failed to get file");
-      throw std::runtime_error("Failed to get file");
-    }
+      Transform transform3;
+      transform3.position = { 0.1f, 20.f, 0.f };
+      transform3.scale = { 1.f, 1.f, 1.f };
 
-    Ref<ModelSource> source = AssetManager::GetAsset<ModelSource>(file->handle, file->GetAssetType());
-    if (source == nullptr) {
-      OE_ERROR("Failed to get model source");
-      throw std::runtime_error("Failed to get model source");
-    }
+      transform3.CalcMatrix();
+      rp3d::Vector3 pos3(transform3.position.x, transform3.position.y, transform3.position.z);
+      rp3d::Transform phys_transform3(pos3, rp3d::Quaternion::identity());
+      rp3d::RigidBody* body3 = physics_world->createRigidBody(phys_transform3);
+      body3->setIsActive(true);
 
-    CHECKGL();
+      rp3d::Transform i_transform3 = body3->getTransform();
+      rp3d::Vector3 half_extents3(transform3.scale.x / 2.f, transform3.scale.y / 2.f, transform3.scale.z / 2.f);
+      // rp3d::BoxShape* box_shape3 = physics_common.createBoxShape(half_extents3);
+      rp3d::CapsuleShape* capsule_shape = physics_common.createCapsuleShape(transform3.scale.x / 2.f, transform3.scale.y);
+      // body3->addCollider(box_shape3, rp3d::Transform::identity());
+      body3->addCollider(capsule_shape, rp3d::Transform::identity());
+      body3->setIsDebugEnabled(true);
 
-    bool running = true;
+      Transform floor_transform;
+      floor_transform.position = { 0.f, -2.f, 0.f };
+      floor_transform.scale = { 10.f, 1.f, 10.f };
 
-    bool camera_lock = true;
-    bool force_update = true;
-    other::Mouse::FreeCursor();
+      floor_transform.CalcMatrix();
+      rp3d::Vector3 pos_floor(floor_transform.position.x, floor_transform.position.y, floor_transform.position.z);
+      rp3d::Transform phys_transform_floor(pos_floor, rp3d::Quaternion::identity());
+      rp3d::RigidBody* floor_body = physics_world->createRigidBody(phys_transform_floor);
+      floor_body->setType(rp3d::BodyType::STATIC);
+      rp3d::Vector3 half_extents_floor(floor_transform.scale.x / 2.f, floor_transform.scale.y / 2.f, floor_transform.scale.z / 2.f);
+      rp3d::BoxShape* box_shape_floor = physics_common.createBoxShape(half_extents_floor);
+      floor_body->addCollider(box_shape_floor, rp3d::Transform::identity());
 
-    while (running) {
-      other::IO::Update();
+      Transform shape_transform;
+      shape_transform.position = { 0.f, 2.5f, 0.f };
+      shape_transform.scale = { 1.f, 1.f, 1.f };
 
-      SDL_Event event;
-      while (SDL_PollEvent(&event)) {
-        switch (event.type) {
-          case SDL_QUIT: running = false; break;
-          case SDL_WINDOWEVENT:
-            switch (event.window.event) {
-              case SDL_WINDOWEVENT_CLOSE: running = false; break;
-              default:
-                break;
-            }
-            break;
-          case SDL_KEYDOWN:
-            switch (event.key.keysym.sym) {
-              case SDLK_ESCAPE:
-                running = false;
-                break;
-                break;
-              case SDLK_c:
-                camera_lock = !camera_lock;
-                if (camera_lock) {
-                  other::Mouse::FreeCursor();
-                } else {
-                  other::Mouse::LockCursor();
-                }
-                break;
-              default:
-                break;
-            }
-            break;
-          default:
-            break;
+      shape_transform.CalcMatrix();
+
+      physics_world->setIsDebugRenderingEnabled(true);
+
+      rp3d::DebugRenderer& debug_renderer = physics_world->getDebugRenderer();
+
+      debug_renderer.setContactNormalLength(3.f);
+      debug_renderer.setContactPointSphereRadius(0.1f);
+
+      debug_renderer.setIsDebugItemDisplayed(rp3d::DebugRenderer::DebugItem::COLLIDER_AABB, true);
+      debug_renderer.setIsDebugItemDisplayed(rp3d::DebugRenderer::DebugItem::COLLISION_SHAPE, true);
+      debug_renderer.setIsDebugItemDisplayed(rp3d::DebugRenderer::DebugItem::CONTACT_NORMAL, true);
+      debug_renderer.setIsDebugItemDisplayed(rp3d::DebugRenderer::DebugItem::CONTACT_POINT, true);
+      debug_renderer.setIsDebugItemDisplayed(rp3d::DebugRenderer::DebugItem::COLLISION_SHAPE_NORMAL, true);
+
+      other::time::FrameRateEnforcer<60> enforcer;
+
+      Ref<VertexArray> debug_physics_triangles = nullptr;
+      Ref<VertexArray> debug_physics_lines = nullptr;
+
+      bool interpolate_physics = false;
+      Opt<time::TimePoint> previous_time = std::nullopt;
+      rp3d::decimal accumulator = 0.f;
+      rp3d::decimal alpha = 0.f;
+
+      bool running = true;
+
+      bool camera_lock = true;
+      bool force_update = true;
+      other::Mouse::FreeCursor();
+
+      OE_INFO("Running");
+      while (running) {
+        other::IO::Update();
+
+        time::TimePoint current_time;
+        time::FloatDuration delta_time;
+        if (!previous_time.has_value()) {
+          previous_time = time::SteadyClock::now();
+        } else {
+          current_time = time::SteadyClock::now();
+          delta_time = current_time - *previous_time;
+          previous_time = current_time;
+          interpolate_physics = true;
         }
 
-        ImGui_ImplSDL2_ProcessEvent(&event);
-      }
-      if (!running) {
-        break;
-      }
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+          switch (event.type) {
+            case SDL_QUIT: running = false; break;
+            case SDL_WINDOWEVENT:
+              switch (event.window.event) {
+                case SDL_WINDOWEVENT_CLOSE: running = false; break;
+                default: break;
+              }
+              break;
+            case SDL_KEYDOWN:
+              switch (event.key.keysym.sym) {
+                case SDLK_ESCAPE: running = false; break;
+                case SDLK_c:
+                  camera_lock = !camera_lock;
+                  if (camera_lock) {
+                    other::Mouse::FreeCursor();
+                  } else {
+                    other::Mouse::LockCursor();
+                  }
+                  break;
+                default: break;
+              }
+              break;
+            default: break;
+          }
 
-      other::EventQueue::Clear();
+          ImGui_ImplSDL2_ProcessEvent(&event);
+        }
+        if (!running) {
+          break;
+        }
 
-      other::Renderer::GetWindow()->Clear();
+        other::EventQueue::Clear();
 
-      /// update camera uniforms
-      if (!camera_lock || force_update) {
-        force_update = !force_update;
-        UpdateCamera(camera);
-        proj = camera->ProjectionMatrix();
-        view = camera->ViewMatrix();
-        glm::vec4 cam_pos = glm::vec4(camera->Position(), 1.f);
+        float ts = enforcer.TimeStep();
 
-        camera_uniforms->SetUniform("projection", camera->ProjectionMatrix());
-        camera_uniforms->SetUniform("view", camera->ViewMatrix());
-        camera_uniforms->SetUniform("viewpoint", cam_pos);
-      }
+        if (interpolate_physics) {
+          accumulator += delta_time.count();  /// add fixed physics time step
+          while (accumulator >= ts) {
+            physics_world->update(ts);
+            accumulator -= ts;
+          }
+          alpha = accumulator / ts;
 
-      light_uniforms->SetUniform("num_lights", glm::vec4{ 0, 1, 0, 0 });
-      light_uniforms->SetUniform("point_lights", point_light);
-      light_uniforms->SetUniform("direction_lights", dir_light);
+          const rp3d::Transform& transf1 = body1->getTransform();
+          const rp3d::Transform& inter_transform1 = rp3d::Transform::interpolateTransforms(i_transform1, transf1, alpha);
+          i_transform1 = inter_transform1;
+          transform1 = GetTransformFromPhysicsTransform(i_transform1);
 
-      model1 = glm::mat4(1.f);
-      model1 = glm::rotate(model1, m1_rotation, { 1.f, 1.f, 1.f });
-      m1_rotation += 0.1f;
+          const rp3d::Transform& transf2 = body2->getTransform();
+          const rp3d::Transform& inter_transform2 = rp3d::Transform::interpolateTransforms(i_transform2, transf2, alpha);
+          i_transform2 = inter_transform2;
+          transform2 = GetTransformFromPhysicsTransform(i_transform2);
 
-      ///> GBUFFER RENDER
-      /// start material textures at the the end of gbuffer textures
-      // material_table->Bind(GBuffer::NUM_TEX_IDXS);
-      // gbuffer.SetInput("albedo_textures", GBuffer::NUM_TEX_IDXS);
-      // gbuffer.Bind();
-      // cube.Draw(other::TRIANGLES, 2);
-      // gbuffer.Unbind();
-      // material_table->Unbind();
-      /// > GBUFFER RENDER
+          const rp3d::Transform& transf3 = body3->getTransform();
+          const rp3d::Transform& inter_transform3 = rp3d::Transform::interpolateTransforms(i_transform3, transf3, alpha);
+          i_transform3 = inter_transform3;
+          transform3 = GetTransformFromPhysicsTransform(i_transform3);
+        } else {
+          physics_world->update(ts);
+          const rp3d::Transform& transf1 = body1->getTransform();
+          transform1 = GetTransformFromPhysicsTransform(transf1);
 
-      /// > LIGHTING PASS
-      // frame->BindFrame();
-      // deferred_shader->Bind();
-      // fb_mesh->Draw(other::TRIANGLES);
-      // deferred_shader->Unbind();
-      // frame->UnbindFrame();
-      /// > LIGHTING PASS
+          const rp3d::Transform& transf2 = body2->getTransform();
+          transform2 = GetTransformFromPhysicsTransform(transf2);
 
-      // /// > GEOMETRY PASS
-      frame->BindFrame();
-      material_table->Bind();
-      mat_shader->Bind();
-      mat_shader->SetUniform("albedo_textures", 0);
-      mat_shader->SetUniform("normal_textures", 1);
-      mat_shader->SetUniform("roughness_textures", 2);
+          const rp3d::Transform& transf3 = body3->getTransform();
+          transform3 = GetTransformFromPhysicsTransform(transf3);
+        }
 
-      // default_shader->Bind();
-      // default_shader->SetUniform("albedo_textures", 0);
-      // default_shader->SetUniform("normal_textures", 1);
-      // default_shader->SetUniform("roughness_textures", 2);
+        DoDebugRendering(debug_physics_triangles, debug_physics_lines, physics_world);
 
-      model_buffer.ZeroMem();
-      model_buffer.BufferData(model1);
-      model_buffer.BufferData(model2);
+        other::Renderer::GetWindow()->Clear();
 
-      model_uniforms->BindBase();
-      model_uniforms->LoadFromBuffer(model_buffer);
+        /// update camera uniforms
+        if (!camera_lock || force_update) {
+          force_update = !force_update;
+          UpdateCamera(camera);
+          glm::vec4 cam_pos = glm::vec4(camera->Position(), 1.f);
 
-      MaterialTable::Material mat1_data = material_table->GetMaterial(mat1);
-      MaterialTable::Material mat2_data = material_table->GetMaterial(mat2);
-      Material gpumat1 = mat1_data;
-      Material gpumat2 = mat2_data;
+          camera_uniforms->SetUniform("projection", camera->ProjectionMatrix());
+          camera_uniforms->SetUniform("view", camera->ViewMatrix());
+          camera_uniforms->SetUniform("viewpoint", cam_pos);
+        }
 
-      material_buffer.ZeroMem();
-      material_buffer.BufferData(gpumat1);
-      material_buffer.BufferData(gpumat2);
+        light_uniforms->SetUniform("num_lights", glm::vec4{ 0, 1, 0, 0 });
+        light_uniforms->SetUniform("point_lights", point_light);
+        light_uniforms->SetUniform("direction_lights", dir_light);
 
-      material_uniforms->BindBase();
-      material_uniforms->LoadFromBuffer(material_buffer);
+        frame->BindFrame();
+        material_table->Bind();
+        mat_shader->Bind();
+        mat_shader->SetUniform("albedo_textures", 0);
+        mat_shader->SetUniform("normal_textures", 1);
+        mat_shader->SetUniform("roughness_textures", 2);
+        mat_shader->Unbind();
 
-      cube.Draw(other::TRIANGLES, colors.size());
+        // model_buffer.ZeroMem();
+        // // model_buffer.BufferData(transform1.model_transform);
+        // // model_buffer.BufferData(transform2.model_transform);
+        // // model_buffer.BufferData(transform3.model_transform);
+        // model_buffer.BufferData(floor_transform.model_transform);
 
-      model_buffer.ZeroMem();
-      model_buffer.BufferData(model3);
+        // model_uniforms->BindBase();
+        // model_uniforms->LoadFromBuffer(model_buffer);
 
-      model_uniforms->BindBase();
-      model_uniforms->LoadFromBuffer(model_buffer);
+        // // MaterialTable::Material mat1_data = material_table->GetMaterial(mat1);
+        // // MaterialTable::Material mat2_data = material_table->GetMaterial(mat2);
+        // // MaterialTable::Material mat3_data = material_table->GetMaterial(mat3);
+        // MaterialTable::Material floor_mat_data = material_table->GetMaterial(floor_mat);
+        // // Material gpumat1 = mat1_data;
+        // // Material gpumat2 = mat2_data;
+        // // Material gpumat3 = mat3_data;
+        // Material gpufloor_mat = floor_mat_data;
 
-      // MaterialTable::Material mat1_data = material_table->GetMaterial(mat1);
-      // MaterialTable::Material mat2_data = material_table->GetMaterial(mat2);
-      // Material gpumat1 = mat1_data;
-      // Material gpumat2 = mat2_data;
+        // material_buffer.ZeroMem();
+        // // material_buffer.BufferData(gpumat1);
+        // // material_buffer.BufferData(gpumat2);
+        // // material_buffer.BufferData(gpumat3);
+        // material_buffer.BufferData(gpufloor_mat);
 
-      // material_buffer.ZeroMem();
-      // material_buffer.BufferData(gpumat1);
-      // material_buffer.BufferData(gpumat2);
+        // material_uniforms->BindBase();
+        // material_uniforms->LoadFromBuffer(material_buffer);
 
-      // material_uniforms->BindBase();
-      // material_uniforms->LoadFromBuffer(material_buffer);
+        // cube.Draw(other::TRIANGLES, colors.size());
 
-      shape.Draw(other::TRIANGLES);
+        model_buffer.ZeroMem();
+        model_buffer.BufferData(shape_transform.model_transform);
 
-      mat_shader->Bind();
-      // default_shader->Bind();
+        model_uniforms->BindBase();
+        model_uniforms->LoadFromBuffer(model_buffer);
 
-      material_table->Unbind();
-      frame->UnbindFrame();
-      /// > GEOMETRY PASS
+        MaterialTable::Material default_mat = material_table->GetMaterial(material_table->DefaultMaterial());
+        Material gpudefault_mat = default_mat;
 
-      /// > DRAW TO SCREEN
-      other::Renderer::DrawFramebufferToWindow(frame);
-      /// > DRAW TO SCREEN
+        material_buffer.ZeroMem();
+        material_buffer.BufferData(gpudefault_mat);
+
+        material_uniforms->BindBase();
+        material_uniforms->LoadFromBuffer(material_buffer);
+
+        shape.Draw(other::TRIANGLES);
+
+        material_table->Unbind();
+
+        // debug_physics_shader->Bind();
+        // debug_physics_lines->Draw(DrawMode::LINES);
+        // debug_physics_triangles->Draw(DrawMode::TRIANGLES);
+        // debug_physics_shader->Unbind();
+
+        frame->UnbindFrame();
+
+        other::Renderer::DrawFramebufferToWindow(frame);
 
 #define UI_ENABLED 0
 #if UI_ENABLED
-      other::UI::BeginFrame();
+        other::UI::BeginFrame();
 
-      if (ImGui::Begin("GBuffer")) {
-        RenderItem(gbuffer.textures[0], "Position", ImVec2((float)win_w / 2, (float)win_h / 2));
-        RenderItem(gbuffer.textures[1], "Normals", ImVec2((float)win_w / 2, (float)win_h / 2));
-        RenderItem(gbuffer.textures[2], "Albedo", ImVec2((float)win_w / 2, (float)win_h / 2));
-      }
-      ImGui::End();
-      other::UI::EndFrame();
+        if (ImGui::Begin("GBuffer")) {
+          RenderItem(gbuffer.textures[0], "Position", ImVec2((float)win_w / 2, (float)win_h / 2));
+          RenderItem(gbuffer.textures[1], "Normals", ImVec2((float)win_w / 2, (float)win_h / 2));
+          RenderItem(gbuffer.textures[2], "Albedo", ImVec2((float)win_w / 2, (float)win_h / 2));
+        }
+        ImGui::End();
+        other::UI::EndFrame();
 #endif
-      other::Renderer::GetWindow()->SwapBuffers();
+        other::Renderer::GetWindow()->SwapBuffers();
+      }
+
+      AppState::DetachApplication();
+      ScriptEngine::Shutdown();
+      UI::Shutdown();
+      Renderer::Shutdown();
+      AppState::Shutdown();
     }
-
-    glDeleteProgram(shader1);
-    glDeleteProgram(shader2);
-
-    AppState::DetachApplication();
-    PhysicsEngine::Shutdown();
-    ScriptEngine::Shutdown();
-    UI::Shutdown();
-    Renderer::Shutdown();
-    AppState::Shutdown();
+    Arena::Shutdown();
   } catch (const other::IniException& e) {
     std::cout << "caught ini error : " << e.what() << "\n";
     exit = 1;
@@ -506,30 +592,36 @@ int main(int argc, char* argv[]) {
   return exit;
 }
 
-Shape::Shape(const Path& path, Ref<MaterialTable>& material_table) {
+Shape::Shape(const Path& path, Ref<MaterialTable>& material_table, Ref<UniformBuffer> model_ubo, Ref<UniformBuffer> material_ubo)
+    : model_ubo(model_ubo), material_ubo(material_ubo) {
   OE_DEBUG("Attempting to load model : {}", path);
   Assimp::Importer importer;
 
   /// others
 
+  // clang-format off
   uint32_t flags =
-    aiProcess_CalcTangentSpace |          // Create binormals/tangents just in case
-    aiProcess_Triangulate |               // Make sure we're triangles
-    aiProcess_SortByPType |               // Split meshes by primitive type
-    aiProcess_GenNormals |                // Make sure we have legit normals
-    aiProcess_GenUVCoords |               // Convert UVs if required
-                                          //		aiProcess_OptimizeGraph |
-    aiProcess_RemoveRedundantMaterials |  // remove redundant materials
-    aiProcess_FindDegenerates |           // remove degenerated polygons from the import
-    aiProcess_FindInvalidData |           // detect invalid model data, such as invalid normal vectors
-    aiProcess_TransformUVCoords |         // preprocess UV transformations (scaling, translation ...)
-    aiProcess_FindInstances |             // search for instanced meshes and remove them by references to one master
-    aiProcess_SplitByBoneCount |          // split meshes with too many bones. Necessary for our (limited) hardware skinning shader
-    aiProcess_OptimizeMeshes |            // Batch draws where possible
-    aiProcess_JoinIdenticalVertices |
-    aiProcess_LimitBoneWeights |       // If more than N (=4) bone weights, discard least influencing bones and renormalise sum to 1
-    aiProcess_ValidateDataStructure |  // Validation
-    aiProcess_GlobalScale;             // e.g. convert cm to m for fbx import (and other formats where cm is native)
+    aiProcess_CalcTangentSpace                                      
+    | aiProcess_Triangulate                                         
+    | aiProcess_SortByPType                                         
+    | aiProcess_GenNormals                                          
+    | aiProcess_GenUVCoords                                                                                                         
+    | aiProcess_OptimizeMeshes                                      
+    | aiProcess_JoinIdenticalVertices 
+    | aiProcess_ValidateDataStructure
+    | aiProcess_GlobalScale          
+    | aiProcess_FindDegenerates 
+    | aiProcess_OptimizeMeshes
+    | aiProcess_JoinIdenticalVertices;
+  // clang-format on
+
+  // | aiProcess_LimitBoneWeights
+  // aiProcess_RemoveRedundantMaterials |  // remove redundant materials
+  // aiProcess_FindInvalidData |           // detect invalid model data, such as invalid normal vectors
+  // aiProcess_TransformUVCoords |         // preprocess UV transformations (scaling, translation ...)
+  // aiProcess_FindInstances |             // search for instanced meshes and remove them by references to one master
+  // aiProcess_SplitByBoneCount |          // split meshes with too many bones. Necessary for our (limited) hardware skinning shader
+  // aiProcess_ValidateDataStructure |  // Validation
   const aiScene* scene = importer.ReadFile(path.string(), flags);
   if (scene == nullptr) {
     OE_ERROR("Failed to load model : {}", path);
@@ -540,148 +632,232 @@ Shape::Shape(const Path& path, Ref<MaterialTable>& material_table) {
     OE_ERROR("Failed to load model : {}\n[ASSIMP ERROR : {}]", path, importer.GetErrorString());
     throw std::runtime_error("Failed to load model");
   }
+  {
+    std::stringstream ss;
+    ss << path << " metadata : \n";
 
-  ProcessNode(scene->mRootNode, scene);
+    if (scene->mMetaData) {
+      for (unsigned int i = 0; i < scene->mMetaData->mNumProperties; ++i) {
+        aiString key = scene->mMetaData->mKeys[i];
+        aiMetadataEntry entry = scene->mMetaData->mValues[i];
+
+        ss << fmtstr("Key: {}\n", std::string{ key.C_Str() });
+
+        switch (entry.mType) {
+          case AI_BOOL:
+            ss << fmtstr("Value: {}\n", (*(bool*)entry.mData ? "true" : "false"));
+            break;
+          case AI_INT32:
+            ss << fmtstr("Value: {}\n", *(int32_t*)entry.mData);
+            break;
+          case AI_UINT64:
+            ss << fmtstr("Value: {}\n", *(uint64_t*)entry.mData);
+            break;
+          case AI_FLOAT:
+            ss << fmtstr("Value: {}\n", *(float*)entry.mData);
+            break;
+          case AI_DOUBLE:
+            ss << fmtstr("Value: {}\n", *(double*)entry.mData);
+            break;
+          case AI_AISTRING:
+            ss << fmtstr("Value: {}\n", ((aiString*)entry.mData)->C_Str());
+            break;
+          case AI_AIVECTOR3D: {
+            aiVector3D* vec = (aiVector3D*)entry.mData;
+            ss << fmtstr("Value: ({}, {}, {})\n", vec->x, vec->y, vec->z);
+            break;
+          }
+          default:
+            ss << "Unknown metadata type\n";
+            break;
+        }
+      }
+    }
+
+    ss << "Number of meshes : " << scene->mNumMeshes << "\n";
+    ss << "Number of materials : " << scene->mNumMaterials << "\n";
+    ss << "Number of textures : " << scene->mNumTextures << "\n";
+    ss << "Number of animations : " << scene->mNumAnimations << "\n";
+    ss << "Number of lights : " << scene->mNumLights << "\n";
+    ss << "Number of cameras : " << scene->mNumCameras << "\n";
+    ss << "Number of textures : " << scene->mNumTextures << "\n";
+    OE_DEBUG(ss.str());
+  }
+  if (scene->mNumMeshes == 0) {
+    OE_ERROR("Model has no meshes : {}", path);
+    throw std::runtime_error("Model has no meshes");
+  }
+
+  uint32_t vertex_count = 0;
+  uint32_t idx_count = 0;
+
+  submeshes.reserve(scene->mNumMeshes);
+
+  for (uint32_t i = 0; i < scene->mNumMeshes; ++i) {
+    aiMesh* mesh = scene->mMeshes[i];
+    OE_ASSERT(mesh != nullptr, "Failed to get mesh");
+    if (!mesh->HasPositions()) {
+      OE_ERROR("Mesh has no positions");
+      throw std::runtime_error("Mesh has no positions");
+    }
+
+    if (!mesh->HasNormals()) {
+      OE_ERROR("Mesh has no normals");
+      throw std::runtime_error("Mesh has no normals");
+    }
+
+    SubMesh& submesh = submeshes.emplace_back();
+    submesh.sub_mesh_id = i;
+
+    submesh.base_vertex = vertex_count;
+    submesh.base_idx = idx_count;
+
+    submesh.material_id = mesh->mMaterialIndex;
+    submesh.vert_cnt = mesh->mNumVertices;
+    submesh.idx_cnt = mesh->mNumFaces * 3;
+
+    submesh.model_name = mesh->mName.C_Str();
+
+    OE_DEBUG("Submesh [{}] : submesh id = {} \\ num verts = {} (base = {}) ", submesh.model_name, submesh.sub_mesh_id.Get(), submesh.vert_cnt, submesh.base_vertex);
+
+    for (uint32_t i = 0; i < mesh->mNumVertices; ++i) {
+      Vertex& vertex = vertices.emplace_back();
+      vertex.position = { mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
+      vertex.normal = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };
+
+      if (mesh->HasTangentsAndBitangents()) {
+        vertex.tangent = { mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z };
+        vertex.bitangent = { mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z };
+      }
+
+      if (mesh->HasTextureCoords(0)) {
+        vertex.uv_coord = { mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y };
+      } else {
+        vertex.uv_coord = { 0.f, 0.f };
+      }
+
+      raw_vertices.push_back(vertex.position.x);
+      raw_vertices.push_back(vertex.position.y);
+      raw_vertices.push_back(vertex.position.z);
+      raw_vertices.push_back(vertex.normal.x);
+      raw_vertices.push_back(vertex.normal.y);
+      raw_vertices.push_back(vertex.normal.z);
+      raw_vertices.push_back(vertex.tangent.x);
+      raw_vertices.push_back(vertex.tangent.y);
+      raw_vertices.push_back(vertex.tangent.z);
+      raw_vertices.push_back(vertex.bitangent.x);
+      raw_vertices.push_back(vertex.bitangent.y);
+      raw_vertices.push_back(vertex.bitangent.z);
+      raw_vertices.push_back(vertex.uv_coord.x);
+      raw_vertices.push_back(vertex.uv_coord.y);
+    }
+
+    for (uint32_t i = 0; i < mesh->mNumFaces; ++i) {
+      aiFace face = mesh->mFaces[i];
+      OE_ASSERT(face.mNumIndices == 3, "Other Engine does not support untriangulated meshes");
+      Index& idx = indices.emplace_back();
+      idx = { face.mIndices[0], face.mIndices[1], face.mIndices[2] };
+
+      raw_indices.push_back(face.mIndices[0]);
+      raw_indices.push_back(face.mIndices[1]);
+      raw_indices.push_back(face.mIndices[2]);
+    }
+
+    vertex_count += mesh->mNumVertices;
+    idx_count += submesh.idx_cnt;
+
+    for (auto& sm : submeshes) {
+      OE_DEBUG("  > [SubMesh : {}] {}", sm.sub_mesh_id.Get(), sm.model_name);
+    }
+  }
+
+  [[maybe_unused]] MeshNode& mesh_node = nodes.emplace_back();
+  TraverseNodes(scene->mRootNode, 0);
+
   GetMaterials(scene);
+
+  OE_DEBUG("number of submeshes = {}", submeshes.size());
+
+  for (auto& sm : submeshes) {
+    ProcessMesh(scene->mMeshes[sm.sub_mesh_id.Get()], sm, scene);
+  }
+
+  source = NewRef<ModelSource>(vertices, indices, submeshes);
+  Ref<Model> model = NewRef<Model>(source);
 }
 
 void Shape::Draw(DrawMode mode) {
-  OE_ASSERT(mesh_vao != nullptr, "Mesh VAO is null");
+  // OE_ASSERT(mesh_vao != nullptr, "Mesh VAO is null");
+  OE_ASSERT(model_ubo != nullptr, "Model UBO is null");
+  OE_ASSERT(material_ubo != nullptr, "Material UBO is null");
 
   Ref<MaterialTable> material_table = AssetManager::GetMaterialTable();
   OE_ASSERT(material_table != nullptr, "Material table is null");
 
-  mesh_vao->Bind();
+  source->source_vao->Bind();
   material_table->Bind();
-  for (const SubMesh& sm : submeshes) {
+  for (uint32_t i = 0; i < submeshes.size(); i++) {
+    SubMesh& sm = submeshes[i];
     uint32_t base_vertex = sm.base_vertex;
     uint32_t idx_cnt = sm.idx_cnt;
 
-    // other::UUID material_id = sm.material_id.Get() == 0 ? material_table->DefaultMaterial() : sm.material_id;
-    // OE_ASSERT(material_table->HasMaterial(material_id), "Material not found in table");
-    // Material gpumat = material_table->GetMaterial(material_id);
+    model_buffer.ZeroMem();
+    model_buffer.BufferData(sm.transform);
+
+    model_ubo->BindBase();
+    model_ubo->LoadFromBuffer(model_buffer);
+
+    material_buffer.ZeroMem();
+    material_buffer.BufferData(material_table->GetMaterial(material_table->DefaultMaterial()));
+
+    material_ubo->BindBase();
+    material_ubo->LoadFromBuffer(material_buffer);
 
     glDrawElementsInstancedBaseVertexBaseInstance(mode, idx_cnt, GL_UNSIGNED_INT, (void*)0, 1, base_vertex, 0);
   }
+
   material_table->Unbind();
-  mesh_vao->Unbind();
+  source->source_vao->Unbind();
 }
 
-void Shape::ProcessNode(const aiNode* node, const aiScene* scene) {
-  // process all the node's meshes (if any)
-  for (uint32_t i = 0; i < node->mNumMeshes; i++) {
-    aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-    if (mesh == nullptr) {
-      OE_ERROR("Failed to get mesh : {}", node->mMeshes[i]);
-      throw std::runtime_error("Failed to get mesh");
-    }
-
-    ProcessMesh(mesh, scene);
-  }
-
-  // then do the same for each of its children
-  for (uint32_t i = 0; i < node->mNumChildren; i++) {
-    ProcessNode(node->mChildren[i], scene);
-  }
-
-  /// build mesh nodes
-  // MeshNode& mesh_node = nodes.emplace_back();
-  // TraverseNodes(scene->mRootNode, 0);
-
-  for (const auto& submesh : submeshes) {
-    BBox transformed_submesh_bounds = submesh.bounds;
-
-    glm::vec3 min = glm::vec3(submesh.transform * glm::vec4(transformed_submesh_bounds.min, 1.0f));
-    glm::vec3 max = glm::vec3(submesh.transform * glm::vec4(transformed_submesh_bounds.max, 1.0f));
-
-    mesh_bounds.min.x = glm::min(mesh_bounds.min.x, min.x);
-    mesh_bounds.min.y = glm::min(mesh_bounds.min.y, min.y);
-    mesh_bounds.min.z = glm::min(mesh_bounds.min.z, min.z);
-
-    mesh_bounds.max.x = glm::max(mesh_bounds.max.x, max.x);
-    mesh_bounds.max.y = glm::max(mesh_bounds.max.y, max.y);
-    mesh_bounds.max.z = glm::max(mesh_bounds.max.z, max.z);
-  }
-}
-
-void Shape::ProcessMesh(const aiMesh* mesh, const aiScene* scene) {
+void Shape::ProcessMesh(const aiMesh* mesh, SubMesh& sm, const aiScene* scene) {
   OE_ASSERT(scene != nullptr, "Attempting to process a mesh without a scene");
   OE_ASSERT(mesh != nullptr, "Attempting to process a null mesh");
 
-  SubMesh& submesh = submeshes.emplace_back();
-  submesh.sub_mesh_id = Random::GenerateUUID();
-  submesh.model_name = mesh->mName.C_Str();
-  submesh.base_vertex = vertices.size();
-  submesh.base_idx = indices.size();
-  submesh.material_id = mesh->mMaterialIndex;
-  submesh.idx_cnt = mesh->mNumFaces * 3;
-  submesh.vert_cnt = mesh->mNumVertices;
-
-  BBox& bounds = submesh.bounds;
+  BBox& bounds = sm.bounds;
   bounds = BBox::empty;
-  for (uint32_t i = 0; i < mesh->mNumVertices; i++) {
-    Vertex& v = vertices.emplace_back();
-    v.position = { mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
-    submesh.bounds.min.x = glm::min(v.position.x, submesh.bounds.min.x);
-    submesh.bounds.min.y = glm::min(v.position.y, submesh.bounds.min.y);
-    submesh.bounds.min.z = glm::min(v.position.z, submesh.bounds.min.z);
+  for (uint32_t i = sm.base_vertex; i < sm.base_vertex + sm.vert_cnt; i++) {
+    Vertex& v = vertices[i];
+    bounds.min.x = glm::min(v.position.x, bounds.min.x);
+    bounds.min.y = glm::min(v.position.y, bounds.min.y);
+    bounds.min.z = glm::min(v.position.z, bounds.min.z);
 
-    submesh.bounds.max.x = glm::max(v.position.x, submesh.bounds.max.x);
-    submesh.bounds.max.y = glm::max(v.position.y, submesh.bounds.max.y);
-    submesh.bounds.max.z = glm::max(v.position.z, submesh.bounds.max.z);
-
-    if (mesh->HasNormals()) {
-      v.normal = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };
-    } else {
-      v.normal = { 0.f, 0.f, 0.f };
-    }
-
-    if (mesh->HasTangentsAndBitangents()) {
-      v.tangent = { mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z };
-      v.bitangent = { mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z };
-    } else {
-      v.tangent = { 0.f, 0.f, 0.f };
-      v.bitangent = { 0.f, 0.f, 0.f };
-    }
-
-    if (mesh->HasTextureCoords(0)) {
-      v.uv_coord = { mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y };
-    } else {
-      v.uv_coord = { 0.f, 0.f };
-    }
-
-    raw_vertices.push_back(v.position.x);
-    raw_vertices.push_back(v.position.y);
-    raw_vertices.push_back(v.position.z);
-    raw_vertices.push_back(v.normal.x);
-    raw_vertices.push_back(v.normal.y);
-    raw_vertices.push_back(v.normal.z);
-    raw_vertices.push_back(v.tangent.x);
-    raw_vertices.push_back(v.tangent.y);
-    raw_vertices.push_back(v.tangent.z);
-    raw_vertices.push_back(v.bitangent.x);
-    raw_vertices.push_back(v.bitangent.y);
-    raw_vertices.push_back(v.bitangent.z);
-    raw_vertices.push_back(v.uv_coord.x);
-    raw_vertices.push_back(v.uv_coord.y);
-  }
-
-  for (uint32_t i = 0; i < mesh->mNumFaces; ++i) {
-    aiFace face = mesh->mFaces[i];
-    OE_ASSERT(face.mNumIndices == 3, "Other Engine does not support untriangulated meshes");
-    Index& idx = indices.emplace_back();
-    idx = { face.mIndices[0], face.mIndices[1], face.mIndices[2] };
-
-    raw_indices.push_back(face.mIndices[0]);
-    raw_indices.push_back(face.mIndices[1]);
-    raw_indices.push_back(face.mIndices[2]);
+    bounds.max.x = glm::max(v.position.x, bounds.max.x);
+    bounds.max.y = glm::max(v.position.y, bounds.max.y);
+    bounds.max.z = glm::max(v.position.z, bounds.max.z);
   }
 }
 
 void Shape::TraverseNodes(const aiNode* anode, int32_t node_idx, const glm::mat4& parent_transform, uint32_t level) {
   MeshNode& node = nodes[node_idx];
   node.name = anode->mName.C_Str();
-  node.local_transform = glm::mat4(1.f);  // Utils::Mat4FromAIMatrix4x4(aNode->mTransformation);
+  // the a,b,c,d in assimp is the row ; the 1,2,3,4 is the column
+  node.local_transform[0][0] = anode->mTransformation.a1;
+  node.local_transform[1][0] = anode->mTransformation.a2;
+  node.local_transform[2][0] = anode->mTransformation.a3;
+  node.local_transform[3][0] = anode->mTransformation.a4;
+  node.local_transform[0][1] = anode->mTransformation.b1;
+  node.local_transform[1][1] = anode->mTransformation.b2;
+  node.local_transform[2][1] = anode->mTransformation.b3;
+  node.local_transform[3][1] = anode->mTransformation.b4;
+  node.local_transform[0][2] = anode->mTransformation.c1;
+  node.local_transform[1][2] = anode->mTransformation.c2;
+  node.local_transform[2][2] = anode->mTransformation.c3;
+  node.local_transform[3][2] = anode->mTransformation.c4;
+  node.local_transform[0][3] = anode->mTransformation.d1;
+  node.local_transform[1][3] = anode->mTransformation.d2;
+  node.local_transform[2][3] = anode->mTransformation.d3;
+  node.local_transform[3][3] = anode->mTransformation.d4;
 
   glm::mat4 transform = parent_transform * node.local_transform;
   for (uint32_t i = 0; i < anode->mNumMeshes; i++) {
@@ -690,7 +866,6 @@ void Shape::TraverseNodes(const aiNode* anode, int32_t node_idx, const glm::mat4
     submesh.model_name = anode->mName.C_Str();
     submesh.transform = transform;
     submesh.local_transform = node.local_transform;
-
     node.sub_meshes.push_back(idx);
   }
 
@@ -1032,7 +1207,7 @@ void UpdateCamera(other::Ref<CameraBase>& camera) {
     camera->MoveDown();
   }
 
-  glm::vec2 win_size = { win_w, win_h };
+  glm::vec2 win_size = Renderer::WindowSize();
   glm::ivec2 mouse_pos = other::Mouse::GetPos();
 
   SDL_WarpMouseInWindow(SDL_GetMouseFocus(), win_size.x / 2, win_size.y / 2);
@@ -1059,4 +1234,132 @@ void UpdateCamera(other::Ref<CameraBase>& camera) {
 
   camera->UpdateCoordinateFrame();
   camera->CalculateMatrix();
+}
+
+void DoDebugRendering(Ref<VertexArray>& triangles, Ref<VertexArray>& lines, rp3d::PhysicsWorld* world) {
+  rp3d::DebugRenderer& debug_renderer = world->getDebugRenderer();
+
+  uint32_t nb_lines = debug_renderer.getNbLines();
+  uint32_t nb_triangles = debug_renderer.getNbTriangles();
+
+  const rp3d::Array<rp3d::DebugRenderer::DebugLine>& ls = debug_renderer.getLines();
+  const rp3d::Array<rp3d::DebugRenderer::DebugTriangle>& trs = debug_renderer.getTriangles();
+
+  std::vector<float> line_vertices;
+  std::vector<float> triangle_vertices;
+
+  for (uint32_t i = 0; i < nb_lines; i++) {
+    const rp3d::DebugRenderer::DebugLine& line = ls[i];
+
+    glm::vec4 color = {
+      (line.color1 >> 16) & 0xFF,
+      (line.color1 >> 8) & 0xFF,
+      (line.color1) & 0xFF,
+      1.f
+    };
+
+    glm::vec4 color2 = {
+      (line.color2 >> 16) & 0xFF,
+      (line.color2 >> 8) & 0xFF,
+      (line.color2) & 0xFF,
+      1.f
+    };
+
+    line_vertices.push_back(line.point1.x);
+    line_vertices.push_back(line.point1.y);
+    line_vertices.push_back(line.point1.z);
+
+    line_vertices.push_back(color.r);
+    line_vertices.push_back(color.g);
+    line_vertices.push_back(color.b);
+
+    line_vertices.push_back(line.point2.x);
+    line_vertices.push_back(line.point2.y);
+    line_vertices.push_back(line.point2.z);
+
+    line_vertices.push_back(color2.r);
+    line_vertices.push_back(color2.g);
+    line_vertices.push_back(color2.b);
+  }
+
+  for (uint32_t i = 0; i < nb_triangles; ++i) {
+    const rp3d::DebugRenderer::DebugTriangle& triangle = trs[i];
+
+    glm::vec4 color = {
+      (triangle.color1 >> 16) & 0xFF,
+      (triangle.color1 >> 8) & 0xFF,
+      (triangle.color1) & 0xFF,
+      1.f
+    };
+
+    glm::vec4 color2 = {
+      (triangle.color2 >> 16) & 0xFF,
+      (triangle.color2 >> 8) & 0xFF,
+      (triangle.color2) & 0xFF,
+      1.f
+    };
+
+    glm::vec4 color3 = {
+      (triangle.color3 >> 16) & 0xFF,
+      (triangle.color3 >> 8) & 0xFF,
+      (triangle.color3) & 0xFF,
+      1.f
+    };
+
+    triangle_vertices.push_back(triangle.point1.x);
+    triangle_vertices.push_back(triangle.point1.y);
+    triangle_vertices.push_back(triangle.point1.z);
+
+    triangle_vertices.push_back(color.r);
+    triangle_vertices.push_back(color.g);
+    triangle_vertices.push_back(color.b);
+
+    triangle_vertices.push_back(triangle.point2.x);
+    triangle_vertices.push_back(triangle.point2.y);
+    triangle_vertices.push_back(triangle.point2.z);
+
+    triangle_vertices.push_back(color2.r);
+    triangle_vertices.push_back(color2.g);
+    triangle_vertices.push_back(color2.b);
+
+    triangle_vertices.push_back(triangle.point3.x);
+    triangle_vertices.push_back(triangle.point3.y);
+    triangle_vertices.push_back(triangle.point3.z);
+
+    triangle_vertices.push_back(color3.r);
+    triangle_vertices.push_back(color3.g);
+    triangle_vertices.push_back(color3.b);
+  }
+
+  if (lines == nullptr) {
+    lines = NewRef<VertexArray>(line_vertices, std::vector<uint32_t>{}, std::vector<uint32_t>{ 3, 3 }, BufferUsage::DYNAMIC_DRAW);
+  } else {
+    lines->SetVertices(line_vertices);
+  }
+
+  if (triangles == nullptr) {
+    triangles = NewRef<VertexArray>(triangle_vertices, std::vector<uint32_t>{}, std::vector<uint32_t>{ 3, 3 }, BufferUsage::DYNAMIC_DRAW);
+  } else {
+    triangles->SetVertices(triangle_vertices);
+  }
+}
+
+Transform GetTransformFromPhysicsTransform(const rp3d::Transform& phys_transform) {
+  float fmatrix[16];
+  phys_transform.getOpenGLMatrix(fmatrix);
+
+  glm::mat4 matrix = glm::make_mat4(fmatrix);
+
+  glm::vec3 position;
+  glm::quat rotation;
+  glm::vec3 scale;
+
+  DecomposeTransformMatrix(matrix, position, rotation, scale);
+
+  Transform transform;
+  transform.position = position;
+  transform.qrotation = rotation;
+  transform.scale = scale;
+  transform.CalcMatrix();
+  return transform;
 }

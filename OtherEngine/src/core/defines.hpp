@@ -23,6 +23,8 @@
 #include <magic_enum/magic_enum.hpp>
 #include <spdlog/fmt/fmt.h>
 
+#include "profiling/profiling.hpp"
+
 #define bit(x) (1ll << x)
 
 #ifdef OE_MODULE
@@ -30,20 +32,6 @@
 #else
   #define OE_ENGINE
 #endif
-
-#ifdef _WIN32
-  #ifdef OE_ENGINE
-    #define OE_API extern "C" __declspec(dllexport)
-  #else  // OE_ENGINE
-    #define OE_API extern "C" __declspec(dllimport)
-  #endif  // !OE_ENGINE
-#else
-  #ifdef OE_ENGINE
-    #define OE_API __attribute__((visibility("default")))
-  #else
-    #define OE_API
-  #endif  // !OE_ENGINE
-#endif    // _WIN32
 
 #ifdef OTHERENGINE_DLL
   #define CLIENT_SIDE OE_API
@@ -103,7 +91,7 @@ namespace other {
   };
 
   enum ValueType {
-    EMPTY_TYPE,  // Void , null , nil ,etc...
+    EMPTY_TYPE = 0,  // Void , null , nil ,etc...
 
     /// primitive types
     BOOL,
@@ -137,6 +125,10 @@ namespace other {
 
     /// user types
     USER_TYPE,
+    OPAQUE_HANDLE,
+
+    NUM_VALUE_TYPES,
+    INVALID_VALUE_TYPE = NUM_VALUE_TYPES,
   };
 
   template <typename T>
@@ -177,6 +169,8 @@ namespace other {
       return ValueType::MAT3;
     } else if constexpr (std::is_same_v<T, glm::mat4>) {
       return ValueType::MAT4;
+    } else if constexpr (std::is_same_v<T, std::string> || std::is_same_v<T, std::string_view>) {
+      return ValueType::STRING;
     } else {
       return ValueType::EMPTY_TYPE;
     }
@@ -241,8 +235,21 @@ namespace other {
     }
   }
 
+#if 0
+  template <typename T>
+  using StdScope = std::unique_ptr<T>;
+  template <typename T, typename... Args>
+  StdScope<T> NewStdScope(Args&&... args) {
+    return std::make_unique<T>(std::forward<Args>(args)...);
+  }
+#else
   template <typename T>
   using Scope = std::unique_ptr<T>;
+  template <typename T, typename... Args>
+  Scope<T> NewScope(Args&&... args) {
+    return std::make_unique<T>(std::forward<Args>(args)...);
+  }
+#endif
 
   template <typename T>
   using StdRef = std::shared_ptr<T>;
@@ -251,11 +258,6 @@ namespace other {
   using Opt = std::optional<T>;
 
   using Path = std::filesystem::path;
-
-  template <typename T, typename... Args>
-  Scope<T> NewScope(Args&&... args) {
-    return std::make_unique<T>(std::forward<Args>(args)...);
-  }
 
   template <typename T, typename... Args>
   StdRef<T> NewStdRef(Args&&... args) {
@@ -290,23 +292,6 @@ namespace other {
 
     return hash;
   }
-
-#ifdef OTHER_DEBUG_BUILD
-
-  class StackTracer {
-   public:
-    StackTracer() = default;
-    ~StackTracer() = default;
-
-    void PrintStack() const;
-
-    // void Push
-
-   private:
-    std::stack<std::stacktrace_entry> traces;
-  };
-
-#endif  // !OE_DEBUG_BUILD
 
 }  // namespace other
 

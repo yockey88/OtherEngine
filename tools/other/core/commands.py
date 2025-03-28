@@ -72,15 +72,6 @@ class Command:
 
 
 engine_cmds: list[Command] = [
-    # use legacy commands
-    Command(
-        "-lc", "--legacy-cmd",
-        """runs all commands in 'legacy-command' list using legacy tools.
-            This will disable all new tools and features and will only run the
-            commands in the 'command' list""",
-        nargs='*', metavar="command"
-    ),
-
     # verbosity commands
     Command(
         "-v", "--verbose",
@@ -151,12 +142,12 @@ engine_cmds: list[Command] = [
     ),
 
     # configuration
-    Command(
-        "-c", "--config",
-        "sets the configuration for the passed in commands",
-        action='store_const', choices=["debug", "release"], 
-        default="debug"
-    ),
+    # Command(
+    #     "-c", "--config",
+    #     "sets the configuration for the passed in commands",
+    #     action='store_const', choices=["debug", "release", "profiling"], 
+    #     default="debug"
+    # ),
 
     # generate engine files
     Command(

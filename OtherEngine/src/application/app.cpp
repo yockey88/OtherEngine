@@ -8,6 +8,7 @@
 #include "core/logger.hpp"
 
 #include "application/app_state.hpp"
+#include "asset/asset_database.hpp"
 #include "event/event_queue.hpp"
 #include "parsing/cmd_line_parser.hpp"
 
@@ -37,7 +38,10 @@ namespace other {
     if (mode == EngineMode::EDITOR) {
       return NewRef<EditorAssetHandler>();
     } else {
-      OE_ASSERT(false, "NO RUNTIME ASSET HANDLER IMPLEMENTED");
+      OE_CRITICAL("NO RUNTIME ASSET HANDLER IMPLEMENTED");
+      return NewRef<EditorAssetHandler>();
+
+      // OE_ASSERT(false, "NO RUNTIME ASSET HANDLER IMPLEMENTED");
       // return NewRef<RuntimeAssetHandler>();
     }
   }

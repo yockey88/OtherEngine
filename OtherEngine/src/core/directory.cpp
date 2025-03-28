@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <ranges>
 
+#include "core/filesystem.hpp"
 #include "core/logger.hpp"
 #include "core/rand.hpp"
 
@@ -14,25 +15,26 @@
 namespace other {
 
   Directory::Directory() : handle(0) {
-    Initialize(false);
+    Initialize();
   }
 
   Directory::Directory(const Path& path, UUID hash)
       : handle(hash), proj_relative_path(path) {
-    Initialize(true);
+    Initialize();
   }
 
   Directory::Directory(Directory* parent, const Path& path, UUID hash)
       : handle(hash), parent_dir(parent), proj_relative_path(path) {
-    Initialize(false);
+    Initialize();
   }
 
-  Directory::Directory(const Ref<Directory>& parent, const Path& path, UUID hash)
+  Directory::Directory(Ref<Directory>& parent, const Path& path, UUID hash)
       : handle(hash), parent_dir(parent), proj_relative_path(path) {
-    Initialize(false);
+    Initialize();
   }
 
   void Directory::Poll() {
+    PROFILE_SECTION("Directory--Poll");
     if (watcher != nullptr) {
       watcher->Poll();
     }
@@ -47,11 +49,30 @@ namespace other {
   }
 
   void Directory::Update() {
-    CollectChildren(false);
+    CollectChildren();
   }
 
   Directory::operator Path() const {
     return AbsolutePath();
+  }
+
+  std::vector<std::string> Directory::SplitPath(const std::string_view path) {
+    std::vector<std::string> components;
+    std::string component;
+    for (auto& c : path) {
+      if (c == '/') {
+        components.push_back(component);
+        component.clear();
+      } else {
+        component += c;
+      }
+    }
+
+    if (!component.empty()) {
+      components.push_back(component);
+    }
+
+    return components;
   }
 
   std::string Directory::Name() const {
@@ -87,7 +108,18 @@ namespace other {
   }
 
   bool Directory::Contains(UUID handle) const {
-    return file_handles.find(handle) != file_handles.end();
+    bool directly = file_handles.find(handle) != file_handles.end();
+    if (directly) {
+      return true;
+    }
+
+    for (auto& [id, dir] : children) {
+      if (dir->Contains(handle)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   Ref<Directory> Directory::AddFolder(const std::string_view name) {
@@ -159,6 +191,26 @@ namespace other {
     return false;
   }
 
+  Ref<Directory> Directory::GetChildDirectory(const std::string_view name) {
+    if (!Exists()) {
+      OE_ERROR("Failed to get child directory, directory does not exist : {}", AbsolutePath().string());
+      return nullptr;
+    }
+
+    Path new_dir = AbsolutePath() / name;
+    UUID hash = FNV(name);
+    if (Contains(hash)) {
+      return children[hash];
+    }
+
+    if (!std::filesystem::exists(new_dir)) {
+      return nullptr;
+    }
+
+    Ref<Directory> dir = children[hash] = NewRef<Directory>(this, new_dir, hash);
+    return dir;
+  }
+
   Ref<FileHandle> Directory::GetFile(const Path& path) {
     if (!Exists()) {
       OE_ERROR("Failed to get file, directory does not exist : {}", proj_relative_path.string());
@@ -166,8 +218,8 @@ namespace other {
     }
 
     {
-      Path test_path = proj_relative_path / path;
-      UUID id = FNV(test_path.filename().string());
+      Path test_path = AbsolutePath() / path;
+      UUID id = FNV(test_path.string());
       if (Contains(id)) {
         return file_handles[id];
       }
@@ -191,22 +243,22 @@ namespace other {
 
     OE_ASSERT(!files.empty(), "Failed to get file, file not found : {}", path.string());
     OE_ASSERT(files[0] == path, "Failed to get file, file not found : {}", path.string());
+    OE_ASSERT(false, "Failed to get file, file not found : {}", path.string());
+    // UUID hash = FNV(path.string());
+    // OE_DEBUG("Getting file : {} ({})", path.filename().string(), hash);
+    // if (Contains(hash)) {
+    //   return file_handles[hash];
+    // }
 
-    UUID hash = FNV(path.filename().string());
-    OE_DEBUG("Getting file : {} ({})", path.filename().string(), hash);
-    if (Contains(hash)) {
-      return file_handles[hash];
-    }
+    // OE_DEBUG("File Handle Created : {} ({})", path.string(), hash);
 
-    OE_DEBUG("File Handle Created : {} ({})", path.string(), hash);
+    // Path real_path = proj_relative_path / path;
+    // auto handle = NewRef<FileHandle>(real_path);
+    // handle->handle = hash;
+    // file_handles[hash] = handle;
+    // OE_ASSERT(Contains(handle->handle), "Failed to get file : {}", path.string());
 
-    Path real_path = proj_relative_path / path;
-    auto handle = NewRef<FileHandle>(real_path);
-    handle->handle = hash;
-    file_handles[hash] = handle;
-    OE_ASSERT(Contains(handle->handle), "Failed to get file : {}", path.string());
-
-    return Ref<FileHandle>::Clone(file_handles[hash]);
+    // return Ref<FileHandle>::Clone(file_handles[hash]);
   }
 
   Ref<FileHandle> Directory::GetFile(UUID handle) {
@@ -217,7 +269,19 @@ namespace other {
       return nullptr;
     }
 
-    return file_handles[handle];
+    auto itr = file_handles.find(handle);
+    if (itr != file_handles.end()) {
+      return itr->second;
+    }
+
+    for (auto& [id, dir] : children) {
+      auto file = dir->GetFile(handle);
+      if (file != nullptr) {
+        return file;
+      }
+    }
+
+    return nullptr;
   }
 
   Ref<FileHandle> Directory::OpenFile(const Path& path, std::ios_base::openmode mode) {
@@ -245,21 +309,35 @@ namespace other {
     return file;
   }
 
-  Ref<FileHandle> Directory::GetFileHandleByName(const std::string_view name) {
+  Ref<FileHandle> Directory::GetFileHandleByName(const std::string_view name, Opt<std::string> ext) {
     if (!Exists()) {
       OE_ERROR("Failed to get file handle, directory does not exist : {}", proj_relative_path.string());
       return nullptr;
     }
 
     for (auto& [id, file] : file_handles) {
-      OE_DEBUG("CHECKING FILE : {} == {}", file->FileName(), name);
+      if (ext.has_value()) {
+        OE_DEBUG("CHECKING FILE : {} == {} (ext : {})", file->FileName(), name, *ext);
+      } else {
+        OE_DEBUG("CHECKING FILE : {} == {}", file->FileName(), name);
+      }
+
       if (file->FileName() == name) {
-        return file;
+        if (!ext.has_value()) {
+          OE_DEBUG("  > found : {}", file->FileName());
+          return file;
+        }
+
+        OE_DEBUG("  > checking extension : {} == {}", file->Extension(), ext.value());
+        if (ext.value() == file->Extension()) {
+          OE_DEBUG("  > matched : {}", file->FileName());
+          return file;
+        }
       }
     }
 
     for (auto& [id, dir] : children) {
-      auto file = dir->GetFileHandleByName(name);
+      auto file = dir->GetFileHandleByName(name, ext);
       if (file != nullptr) {
         return file;
       }
@@ -328,7 +406,7 @@ namespace other {
     return proj_relative_path;
   }
 
-  void Directory::Initialize(bool create_dir_handles) {
+  void Directory::Initialize() {
     if (proj_relative_path.empty()) {
       return;
     }
@@ -342,10 +420,10 @@ namespace other {
     }
 
     watcher = NewRef<DirectoryWatcher>(handle, proj_relative_path);
-    CollectChildren(create_dir_handles);
+    CollectChildren();
   }
 
-  void Directory::CollectChildren(bool create_dir_handles) {
+  void Directory::CollectChildren() {
     if (!Exists()) {
       return;
     }
@@ -354,18 +432,19 @@ namespace other {
     for (auto& entry : std::filesystem::directory_iterator(proj_relative_path)) {
       Path p = entry.path();
 
-      if (entry.is_directory() && create_dir_handles) {
-        uint64_t hash = FNV(p.stem().string());
+      if (entry.is_directory()) {
+        UUID hash = Filesystem::GetPathHandle(p);
         if (auto itr = children.find(hash); itr != children.end()) {
           continue;
         }
         children[hash] = NewRef<Directory>(this, entry.path(), hash);
       } else if (entry.is_regular_file()) {
-        uint64_t hash = FNV(p.filename().string());
+        Ref<FileHandle> handle = NewRef<FileHandle>(entry.path());
+        uint64_t hash = handle->handle.Get();
         if (auto itr = file_handles.find(hash); itr != file_handles.end()) {
           continue;
         }
-        file_handles[hash] = NewRef<FileHandle>(entry.path());
+        file_handles[hash] = handle;
       }
     }
   }

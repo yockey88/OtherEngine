@@ -4,52 +4,80 @@
  **/
 #include "physics/3D/physics_world.hpp"
 
-#include <Jolt/Physics/PhysicsSystem.h>
-#include <Jolt/Physics/PhysicsSettings.h>
-#include <Jolt/Physics/Body/BodyInterface.h>
+#include "physics/3D/physics_shape.hpp"
 
+#define OTHER_USE_REACT
+#ifdef OTHER_USE_REACT
+  #include "physics/3D/react/react_world.hpp"
+#else
+  #include "physics/3D/jolt/jolt_world.hpp"
+#endif
 
 namespace other {
 
-  constexpr static JPH::uint kMaxBodies = 1024;
-  constexpr static JPH::uint kNumMutexes = 0;
-  constexpr static JPH::uint kMaxPairs = 1024;
-  constexpr static JPH::uint kMaxContactConstraints = 1024;
+  PhysicsWorld::PhysicsWorld(Scene* scene_ctx)
+      : scene_context(scene_ctx) {}
 
-  PhysicsWorld::PhysicsWorld() {
-    /// TODO: somehow choose the best amount of pre-allocated memory for the scene this world
-    ///       is owned by
-    temp_alloc = NewScope<JPH::TempAllocatorImpl>(10 * 1024 * 1024);
-    thread_pool = NewScope<JPH::JobSystemThreadPool>(JPH::cMaxPhysicsJobs , JPH::cMaxPhysicsBarriers , 
-                                                     std::thread::hardware_concurrency() - 1);
+  PhysicsWorld::~PhysicsWorld() {}
 
-    system = NewScope<JPH::PhysicsSystem>();
-    system->Init(kMaxBodies , kNumMutexes , kMaxPairs , kMaxContactConstraints ,
-                 broad_phase_layer_handler , broad_phase_layer_filter , obj_layer_filter);
+  Ref<PhysicsWorld> PhysicsWorld::Create(Scene* scene_ctx) {
+    Ref<PhysicsWorld> world = nullptr;
 
-    activation_listener = NewScope<ActivationListener>();
-    system->SetBodyActivationListener(activation_listener.get());
-    
-    contact_listener = NewScope<ContactListener>();
-    system->SetContactListener(contact_listener.get());
+#ifdef OTHER_USE_REACT
+    world = NewRef<ReactWorld>(scene_ctx);
+#else
+    world = NewRef<JoltWorld>(scene_ctx);
+#endif
+
+    world->RegisterCallbacks();
+
+    return world;
   }
 
-  PhysicsWorld::~PhysicsWorld() {
-    system = nullptr;
-    thread_pool = nullptr;
-    temp_alloc = nullptr;
+  void PhysicsWorld::RegisterColliderShape(UUID entity_id, Ref<PhysicsShape> shape) {
+    OE_ASSERT(shape != nullptr, "Physics shape is null");
+    shape->SetEntity(entity_id);
+
+    PhysicsShape::Shape type = shape->ShapeType();
+    OE_ASSERT(type < PhysicsShape::Shape::INVALID_PHYSICS_SHAPE, "Invalid physics shape type");
+
+    auto& shape_map = shapes[type];
+    auto [it, inserted] = shape_map.insert({ entity_id, shape });
+    if (!inserted) {
+      /// already registered, no-op
+      return;
+    }
+
+    OE_INFO("Registered collider shape for entity: {0}", entity_id);
   }
 
-  void PhysicsWorld::Simulate(float ts) {
-    /// FIXME: do we do this each simulation frame
-    system->OptimizeBroadPhase(); 
+  void PhysicsWorld::UnregisterColliderShape(Ref<PhysicsBody> body, Ref<PhysicsShape> shape) {
+    OE_ASSERT(body != nullptr, "Physics body is null");
+    OE_ASSERT(shape != nullptr, "Physics shape is null");
 
-    const int32_t collision_steps = 16;
-    system->Update(ts , collision_steps , temp_alloc.get() , thread_pool.get());
+    UUID entity_id = body->GetEntityID();
+    auto& shape_map = shapes[shape->ShapeType()];
+    auto it = shape_map.find(entity_id);
+    if (it == shape_map.end()) {
+      return;
+    }
+
+    auto [id, shape_ref] = *it;
+    OE_INFO("Unregistering collider shape for entity: {0}", id);
+    body->RemoveCollider(shape_ref);
+    shape_map.erase(it);
   }
 
-  JPH::BodyInterface& PhysicsWorld::GetPhysicsBodies() {
-    return system->GetBodyInterface();
+  bool PhysicsWorld::IsDebugRenderEnabled() const {
+    return debug_render_enabled;
   }
 
-} // namespace other
+  bool PhysicsWorld::ShouldInterpolateTransform() const {
+    return interpolate_physics;
+  }
+
+  float PhysicsWorld::InterpolationAlpha() const {
+    return alpha;
+  }
+
+}  // namespace other

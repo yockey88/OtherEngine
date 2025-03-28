@@ -24,4 +24,9 @@ namespace Other {
     }
   }
 
+  [AttributeUsage(AttributeTargets.Field , AllowMultiple = false)]
+  public class HideInEditorAttribute : OtherAttribute {
+    public HideInEditorAttribute() {}
+  }
+
 }

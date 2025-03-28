@@ -4,6 +4,8 @@
 #include "editor/editor_sink.hpp"
 
 #include "core/defines.hpp"
+#include "environment/terminal.hpp"
+
 #include "editor/panels/log_panel.hpp"
 
 namespace other {
@@ -52,22 +54,22 @@ namespace other {
   }
 
   uint32_t EditorSink::GetFilters(const spdlog::level::level_enum level) const {
-    uint32_t filter = NO_FILTERS;
+    uint32_t filter = TerminalFilter::NO_FILTER;
     switch (level) {
       case spdlog::level::level_enum::trace:
         [[fallthrough]];
       case spdlog::level::level_enum::debug:
-        filter |= ValOf(DEBUG_FILTER);
+        filter |= ValOf(TerminalFilter::DEBUG_FILTER);
         break;
       case spdlog::level::level_enum::info:
-        filter |= ValOf(INFO_FILTER);
+        filter |= ValOf(TerminalFilter::INFO_FILTER);
         break;
       case spdlog::level::level_enum::warn:
-        filter |= ValOf(WARNING_FILTER);
+        filter |= ValOf(TerminalFilter::WARNING_FILTER);
         break;
       case spdlog::level::level_enum::err:
       case spdlog::level::level_enum::critical:
-        filter |= ValOf(ERR_FILTER);
+        filter |= ValOf(TerminalFilter::ERROR_FILTER);
         break;
       default:
         break;

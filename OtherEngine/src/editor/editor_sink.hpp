@@ -8,29 +8,17 @@
 #include <spdlog/sinks/base_sink.h>
 
 #include "core/defines.hpp"
+#include "environment/terminal.hpp"
 
 namespace other {
 
   std::string GetDisplayMsgFromMessage(const std::string& message);
 
-  enum ConsoleMessageFilters : uint32_t {
-    NO_FILTERS = 0,
-    DEBUG_FILTER = bit(2),
-    INFO_FILTER = bit(3),
-    WARNING_FILTER = bit(4),
-    ERR_FILTER = bit(5),
-
-    DEFAULT_FILTER = INFO_FILTER | WARNING_FILTER | ERR_FILTER,
-
-    /// dont filter errors
-    ALL = DEBUG_FILTER | INFO_FILTER | WARNING_FILTER | ERR_FILTER,
-  };
-
   struct ConsoleMessage {
     std::string message;
     std::string display_msg;
 
-    uint32_t filters = NO_FILTERS;
+    uint32_t filters = TerminalFilter::NO_FILTER;
     time_t time;
   };
 

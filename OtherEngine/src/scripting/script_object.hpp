@@ -9,7 +9,6 @@
 #include <type_traits>
 
 #include <entt/entity/fwd.hpp>
-
 #include <hosting/native_string.hpp>
 
 #include "core/ref.hpp"
@@ -19,6 +18,7 @@
 
 #include "scripting/script_defines.hpp"
 #include "scripting/script_field.hpp"
+#include "scripting/script_method.hpp"
 
 namespace other {
 
@@ -33,6 +33,7 @@ namespace other {
     virtual ~ScriptObject() {}
 
     UUID GetEntityId() const;
+    UUID GetScriptHandle() const;
 
     const std::string_view ScriptInstanceName() const;
     const Opt<std::string> NameSpace() const;
@@ -86,6 +87,7 @@ namespace other {
     std::string script_name;
 
     std::map<UUID, ScriptField> fields;
+    std::map<UUID, ScriptMethod> methods;
   };
 
   template <typename SO>
@@ -105,14 +107,9 @@ namespace other {
       return static_cast<SO*>(this)->template CallMethod<R, Args...>(method, std::forward<Args>(args)...);
     }
 
-    template <typename T>
-    constexpr auto SetField(const std::string& name, T&& arg) -> void {
-      static_cast<SO*>(this)->SetField(name, std::forward<T>(arg));
-    }
-
     template <typename R>
-    constexpr auto GetField(const std::string& name) -> R {
-      return static_cast<SO*>(this)->template GetField<R>(name);
+    constexpr auto GetProperty(const std::string_view name) -> R {
+      return static_cast<SO*>(this)->template GetProperty<R>(name);
     }
 
     template <typename T>
@@ -121,8 +118,13 @@ namespace other {
     }
 
     template <typename R>
-    constexpr auto GetProperty(const std::string_view name) -> R {
-      return static_cast<SO*>(this)->template GetProperty<R>(name);
+    constexpr auto GetField(const std::string& name) -> R {
+      return static_cast<SO*>(this)->template GetField<R>(name);
+    }
+
+    template <typename T>
+    constexpr auto SetField(const std::string& name, T&& arg) -> void {
+      static_cast<SO*>(this)->SetField(name, std::forward<T>(arg));
     }
 
     void SetHandles(UUID id, entt::entity handle, void* native_handle) {

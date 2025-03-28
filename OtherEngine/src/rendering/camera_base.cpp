@@ -18,6 +18,7 @@ namespace other {
       : projection_type(type) {
     SetPosition(other->position);
     SetDirection(other->direction);
+    SetTarget(other->target);
     SetUp(other->up);
     SetRight(other->right);
     SetWorldUp(other->world_up);
@@ -37,6 +38,8 @@ namespace other {
     SetZoom(other->zoom);
 
     SetConstrainPitch(other->constrain_pitch);
+
+    CalculateMatrix();
   }
 
   CameraProjectionType CameraBase::GetCameraProjectionType() const {
@@ -44,10 +47,12 @@ namespace other {
   }
 
   void CameraBase::CalculateMatrix() {
+    PROFILE_SECTION("CameraBase--CalculateMatrix");
     UpdateCoordinateFrame();
     CalculateView();
     CalculateProjection();
     mvp = projection * view;
+    inverse_mvp = glm::inverse(mvp);
   }
 
   void CameraBase::UpdateCoordinateFrame() {
@@ -57,6 +62,7 @@ namespace other {
     new_dir.z = sin(glm::radians(Yaw())) * cos(glm::radians(Pitch()));
 
     SetDirection(glm::normalize(new_dir));
+    /// TODO: this seems incorrect? this might only work when camera up matches world up
     SetRight(glm::normalize(glm::cross(Direction(), WorldUp())));
     SetUp(glm::normalize(glm::cross(Right(), Direction())));
     SetPosition(Position());
@@ -65,6 +71,11 @@ namespace other {
   const glm::mat4& CameraBase::GetMatrix() {
     CalculateMatrix();
     return mvp;
+  }
+
+  const glm::mat4& CameraBase::InverseMatrix() {
+    CalculateMatrix();
+    return inverse_mvp;
   }
 
   const glm::mat4& CameraBase::ViewMatrix() {
@@ -111,6 +122,12 @@ namespace other {
 
   void CameraBase::SetDirection(const glm::vec3& direction) {
     this->direction = direction;
+    target = position + direction;
+  }
+
+  void CameraBase::SetTarget(const glm::vec3& target) {
+    direction = glm::normalize(target - position);
+    this->target = target;
   }
 
   void CameraBase::SetUp(const glm::vec3& up) {
@@ -126,19 +143,19 @@ namespace other {
   }
 
   void CameraBase::SetOrientation(const glm::vec3& orientation) {
-    this->euler_angles = orientation;
+    euler_angles = orientation;
   }
 
   void CameraBase::SetYaw(float yaw) {
-    this->euler_angles.x = yaw;
+    euler_angles.x = yaw;
   }
 
   void CameraBase::SetPitch(float pitch) {
-    this->euler_angles.y = pitch;
+    euler_angles.y = pitch;
   }
 
   void CameraBase::SetRoll(float roll) {
-    this->euler_angles.z = roll;
+    euler_angles.z = roll;
   }
 
   void CameraBase::SetViewport(const glm::ivec2& viewport) {
@@ -182,7 +199,8 @@ namespace other {
   }
 
   void CameraBase::CalculateView() {
-    view = glm::lookAt(position, position + direction, up);
+    SetTarget(target);
+    view = glm::lookAt(position, target, up);
   }
 
   const glm::vec3& CameraBase::Position() const {

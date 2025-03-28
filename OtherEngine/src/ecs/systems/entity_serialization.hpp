@@ -4,19 +4,21 @@
 #ifndef OTHER_ENGINE_ENTITY_SERIALIZATION_HPP
 #define OTHER_ENGINE_ENTITY_SERIALIZATION_HPP
 
+#include "core/scope.hpp"
+
 #include "ecs/component_serializer.hpp"
 
 namespace other {
 
   class EntitySerialization {
-    public:
-      EntitySerialization() = default;
-      ~EntitySerialization() {}
+   public:
+    EntitySerialization() = default;
+    ~EntitySerialization() {}
 
-      static Scope<ComponentSerializer> GetComponentSerializer(const std::string_view tag);
-      static Scope<ComponentSerializer> GetComponentSerializer(uint32_t idx);
+    static Scope<ComponentSerializer> GetComponentSerializer(const std::string_view tag);
+    static Scope<ComponentSerializer> GetComponentSerializer(uint32_t idx);
   };
 
-} // namespace other
+}  // namespace other
 
-#endif // !OTHER_ENGINE_ENTITY_SERIALIZATION_HPP
+#endif  // !OTHER_ENGINE_ENTITY_SERIALIZATION_HPP

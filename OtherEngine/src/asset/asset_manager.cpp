@@ -18,8 +18,14 @@ namespace other {
     return material_table;
   }
 
+  void AssetManager::Cleanup() {
+    material_table = nullptr;
+  }
+
   AssetType AssetManager::AssetTypeFromExtension(const std::string_view extension) {
-    auto it = asset_extensions.find(FNV(extension));
+    UUID hash = FNV(extension);
+    OE_TRACE("  > Searching for asset type from extension : {} [{}]", extension, hash);
+    auto it = asset_extensions.find(hash);
     if (it == asset_extensions.end()) {
       return AssetType::GENERIC_FILE;
     }

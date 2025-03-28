@@ -61,6 +61,7 @@ namespace other {
     virtual ~MaterialTable() override;
 
     UUID DefaultMaterial() const;
+    UUID SelectionWireframeMaterial() const;
 
     static Texture CreateTexture(const glm::vec4& color, const glm::vec2& size);
     static Texture CreateTexture(const Ref<other::Texture>& texture, const glm::vec2& size);
@@ -158,6 +159,7 @@ namespace other {
    private:
     uint32_t mip_levels = 1;
     UUID default_material = 0;
+    UUID selection_wireframe_material = 0;
 
     uint32_t largest_table_size = 0;
     glm::vec2 size = { 0.f, 0.f };

@@ -8,6 +8,9 @@
 #include <cstring>
 #include <filesystem>
 
+#include "core/defines.hpp"
+#include "core/filesystem.hpp"
+
 #include "asset/asset_database.hpp"
 #include "asset/asset_manager.hpp"
 #include "event/core_events.hpp"
@@ -17,7 +20,7 @@ namespace other {
 
   FileHandle::FileHandle(const Path& path, Opt<std::ios_base::openmode> m) {
     project_relative_path = path;
-    handle = FNV(AbsolutePath().string());
+    handle = Filesystem::GetPathHandle(path);
 
     if (!Exists() && m.has_value() && (*m & std::ios_base::out)) {
       std::ofstream file(AbsolutePath());
@@ -25,7 +28,7 @@ namespace other {
     OE_ASSERT(Exists(), "Can not create file handle for non-existent file : {}", project_relative_path.string());
 
     asset_type = AssetManager::AssetTypeFromExtension(project_relative_path.extension().string());
-    OE_TRACE("FileHandle : {} ({}) [{}]", project_relative_path.string(), asset_type, handle);
+    OE_TRACE("FileHandle : {} ({} => {}) [{}]", project_relative_path.string(), project_relative_path.extension().string(), asset_type, handle);
 
     AssetDatabase::RegisterAsset(this);
 
@@ -33,6 +36,7 @@ namespace other {
       watcher = NewRef<FileWatcher>(handle, AbsolutePath());
     } catch (std::exception& e) {
       OE_ERROR("Failed to create file watcher : {}", e.what());
+      watcher = nullptr;
     }
 
     if (!m.has_value()) {
@@ -109,6 +113,7 @@ namespace other {
   }
 
   void FileHandle::Poll() {
+    PROFILE_SECTION("FileHandle--Poll");
     if (watcher == nullptr) {
       return;
     }
@@ -117,7 +122,7 @@ namespace other {
       return;
     }
 
-    EventQueue::PushEvent<ModifyFileEvent>({ handle.Get() });
+    EventQueue::PushEvent<FileModified>({ handle.Get() });
   }
 
   std::string FileHandle::Extension() const {

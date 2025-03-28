@@ -6,7 +6,17 @@ namespace Other {
 
   public class TestScript : OtherObject {
     public void Method() {
-      Console.WriteLine("Hello from TestScript!");
+      Logger.WriteInfo("Hello from TestScript!");
+    }
+
+    public void TestFunction() {
+      Logger.WriteInfo("TestScript.TestFunction");
+
+      Logger.WriteInfo($" > My name is {Name}");
+    }
+
+    public void TestFunction1(UInt64 a) {
+      Logger.WriteInfo($"TestScript.TestFunction({a})");
     }
 
     public override void OnBehaviorLoad() {

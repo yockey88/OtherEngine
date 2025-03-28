@@ -11,25 +11,21 @@
 
 #include "input/mouse.hpp"
 
-#include "ecs/components/collider.hpp"
-#include "ecs/components/collider_2d.hpp"
 #include "ecs/components/mesh.hpp"
 #include "ecs/components/relationship.hpp"
-#include "ecs/components/rigid_body.hpp"
-#include "ecs/components/rigid_body_2d.hpp"
 #include "ecs/components/transform.hpp"
 #include "ecs/entity.hpp"
 
 #include "rendering/texture.hpp"
 #include "rendering/ui/ui_helpers.hpp"
-#include "rendering/ui/ui_widgets.hpp"
 
 #include "editor/selection_manager.hpp"
 
 namespace other {
 
-  template <ComponentType C, bool (*Func)(Entity*)>
-  bool DrawComponent(const std::string& name) {  // }, Func ui_function) {
+  template <ComponentType C, bool (*Fn)(Entity*), typename ThenFn>
+    requires(requires(ThenFn fn, Entity* ent) { { fn(ent, std::declval<bool>(), std::declval<bool>()) } -> std::same_as<void>; } || std::same_as<ThenFn, std::nullptr_t>)
+  bool DrawComponentImpl(const std::string& name, ThenFn then_function = nullptr) {
     // bool should_draw = true;
 
     Entity* selection = SelectionManager::ActiveSelection();
@@ -112,7 +108,7 @@ namespace other {
     }
 
     if (open) {
-      edited = edited || Func(selection);  // ui_function(selection);
+      edited = edited || Fn(selection);
       ImGui::TreePop();
     }
 
@@ -135,9 +131,24 @@ namespace other {
       ui::ShiftCursorY(-(ImGui::GetStyle().ItemSpacing.y + 1.f));
     }
 
+    if constexpr (!std::same_as<ThenFn, std::nullptr_t>) {
+      then_function(selection, edited, open);
+    }
+
     ImGui::PopID();
 
     return edited;
+  }
+
+  template <typename C, bool (*Fn)(Entity*)>
+  bool DrawComponent(const std::string& name) {
+    return DrawComponentImpl<C, Fn, std::nullptr_t>(name, nullptr);
+  }
+
+  template <typename C, bool (*Fn)(Entity*), typename ThenFn>
+    requires requires(ThenFn fn, Entity* ent) { { fn(ent, std::declval<bool>(), std::declval<bool>()) } -> std::same_as<void>; }
+  bool DrawComponentAndThen(const std::string& name, ThenFn then_function) {
+    return DrawComponentImpl<C, Fn, ThenFn>(name, then_function);
   }
 
   bool DrawTransform(Entity* ent);
@@ -145,76 +156,13 @@ namespace other {
   bool DrawMesh(Entity* ent);
   bool DrawStaticMesh(Entity* ent);
   bool DrawCamera(Entity* ent);
-
-  template <typename T>
-    requires std::same_as<T, RigidBody2D> || std::same_as<T, RigidBody>
-  bool DrawRigidBody(Entity* ent) {
-    ui::BeginPropertyGrid();
-
-    auto& body = ent->GetComponent<T>();
-
-    const char* body_type_strings[] = {
-      "Static", "Kinematic", "Dynamic"
-    };
-
-    const char* collision_detection_type_strings[] = {
-      "Discrete", "Continuous"
-    };
-
-    uint32_t selected = body.type;
-    if (selected >= INVALID_PHYSICS_BODY) {
-      ScopedColor red(ImGuiCol_Text, ui::theme::red);
-      ImGui::Text("Invalid valid for Rigid Body 2D body type : %d", body.type);
-    } else {
-      if (ui::PropertyDropdown("Type", body_type_strings, 3, selected)) {
-        body.type = static_cast<PhysicsBodyType>(selected);
-        ent->UpdateComponent<T>(body);
-      }
-
-      if (body.type == PhysicsBodyType::DYNAMIC) {
-        ui::BeginPropertyGrid();
-
-        ui::Property("Mass", &body.mass);
-        ui::Property("Linear Drag", &body.linear_drag);
-        ui::Property("Angular Drag", &body.angular_drag);
-
-        if constexpr (std::same_as<T, RigidBody2D>) {
-          ui::Property("Gravity Scale", &body.gravity_scale);
-          ui::Property("Fixed Rotation", &body.fixed_rotation);
-          ui::Property("Bullet", &body.bullet);
-        } else if constexpr (std::same_as<T, RigidBody>) {
-          ui::Property("Gravity Disabled", &body.disable_gravity);
-          ui::Property("Is Trigger", &body.is_trigger);
-
-          selected = body.collision_type;
-          if (ui::PropertyDropdown("Collision Detection", collision_detection_type_strings, 2, selected)) {
-            body.collision_type = static_cast<CollisionDetectionType>(selected);
-            ent->UpdateComponent<T>(body);
-          }
-
-          ui::Property("Max Linear Velocity", &body.max_linear_velocity);
-          ui::Property("Max Angular Velocity", &body.max_angular_velocity);
-        }
-
-        ui::EndPropertyGrid();
-      }
-    }
-
-    ui::EndPropertyGrid();
-
-    return false;
-  }
-
-  template <typename T>
-    requires std::same_as<T, Collider2D> || std::same_as<T, Collider>
-  bool DrawCollider(Entity* ent) {
-    ui::BeginPropertyGrid();
-
-    ui::EndPropertyGrid();
-    return false;
-  }
-
+  bool DrawRigidBody2D(Entity* ent);
+  bool DrawCollider2D(Entity* ent);
+  bool DrawRigidBody(Entity* ent);
+  bool DrawCollider(Entity* ent);
+  bool DrawPhysicsObject(Entity* ent);
   bool DrawLightSource(Entity* ent);
+  bool DrawTerrain(Entity* ent);
 
   template <ComponentType C, ComponentType... ICs>
   bool DrawAddComponentButton(const std::string& name, Ref<Texture2D> icon = nullptr) {

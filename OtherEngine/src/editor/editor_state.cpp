@@ -5,9 +5,21 @@
 
 namespace other {
 
+  static ArenaAllocator<EditorState> editor_state_allocator;
+  static EditorState* editor_state = nullptr;
+
   EditorState& EditorState::Get() {
-    static EditorState instance;
-    return instance;
+    if (editor_state == nullptr) {
+      editor_state = editor_state_allocator.Allocate();
+    }
+    return *editor_state;
+  }
+
+  void EditorState::Shutdown() {
+    if (editor_state != nullptr) {
+      editor_state_allocator.Free(editor_state);
+    }
+    editor_state = nullptr;
   }
 
 }  // namespace other

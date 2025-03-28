@@ -1,0 +1,58 @@
+vertex [mesh : textured_quad] {
+
+  uniform mat4 model;
+
+  void main() {
+    gl_Position = projection * view * model * vec4(voe_position.x, voe_position.y, 0.f, 1.f);
+    foe_position = (model * vec4(voe_position.x, voe_position.y, 0.f, 1.f)).xyz;
+    foe_uvs = voe_uvs;
+  }
+
+}
+
+fragment {
+
+  out vec4 FragColor;
+
+  float grid(vec2 st, float res) {
+    vec2 grid = fract(st);
+    return step(res, grid.x) * step(res, grid.y);
+  }
+
+  const float N = 10.0; // grid ratio
+  float grid_tex_grad_box(vec2 p, vec2 ddx, vec2 ddy) {
+    // filter kernel
+    vec2 w = max(abs(ddx), abs(ddy)) + 0.01;
+
+    // analytic (box) filtering
+    vec2 a = p + 0.5*w;                        
+    vec2 b = p - 0.5*w;           
+    vec2 i = (floor(a)+min(fract(a)*N,1.0)-
+              floor(b)-min(fract(b)*N,1.0))/(N*w);
+    //pattern
+    return (1.0-i.x)*(1.0-i.y);
+  }
+
+  float grid_tex(vec2 p) {
+    // coordinates
+    vec2 i = step(fract(p), vec2(1.0/N));
+    //pattern
+    return (1.0-i.x)*(1.0-i.y);   // grid (N=10)
+  }
+
+
+  void main() {
+    float x = grid_tex(vec2(foe_position.x, foe_position.z));
+    vec4 grid_col = vec4(vec3(0.2), 0.5) * (1.0 - x);
+    float alpha = grid_col.a;
+
+    vec4 color = grid_col; 
+
+    if (alpha == 0.0) {
+      discard;
+    } else {
+      FragColor = color;
+    }
+  }
+
+}

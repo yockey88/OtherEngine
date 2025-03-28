@@ -3,6 +3,7 @@
  */
 #include "rendering\renderer.hpp"
 
+#include <SDL_video.h>
 #include <glad/glad.h>
 #include <imgui/imgui.h>
 
@@ -14,9 +15,9 @@
 #include "rendering/scene_renderer.hpp"
 #include "rendering/shader.hpp"
 
-
 namespace other {
 
+  bool Renderer::is_fullscreen = false;
   Scope<Window> Renderer::window = nullptr;
   Ref<Scene> Renderer::scene_ctx = nullptr;
   Ref<VertexArray> Renderer::window_mesh = nullptr;
@@ -24,6 +25,10 @@ namespace other {
 
   void Renderer::Initialize(const ConfigTable& config) {
     auto win_cfg = Window::ConfigureWindow(config);
+    if ((win_cfg.flags & SDL_WINDOW_FULLSCREEN) || (win_cfg.flags & SDL_WINDOW_MAXIMIZED)) {
+      is_fullscreen = true;
+    }
+
     auto win_res = Window::GetWindow(win_cfg, config);
 
     CHECKGL();
@@ -78,8 +83,24 @@ namespace other {
   }
 
   void Renderer::Shutdown() {
+    window_shader = nullptr;
+    window_mesh = nullptr;
     scene_ctx = nullptr;
     window = nullptr;
+  }
+
+  void Renderer::Fullscreen(bool fullscreen) {
+    if (is_fullscreen == fullscreen) {
+      return;
+    }
+
+    if (fullscreen) {
+      SDL_MaximizeWindow(window->Context().window);
+    } else {
+      SDL_SetWindowSize(window->Context().window, window->Size().x, window->Size().y);
+    }
+
+    is_fullscreen = fullscreen;
   }
 
   const Scope<Window>& Renderer::GetWindow() {
@@ -98,10 +119,14 @@ namespace other {
     window->SetClearColor(color);
   }
 
-  void Renderer::DrawFramebufferToWindow(const Ref<Framebuffer>& framebuffer) {
+  void Renderer::DrawFramebufferToWindow(Ref<Framebuffer>& framebuffer) {
     OE_ASSERT(framebuffer != nullptr, "Cannot render null framebuffer to window!");
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, framebuffer->texture);
+
     window_shader->Bind();
     window_shader->SetUniform("oe_screen_tex", 0);
     window_shader->SetUniform("exposure", 1.f);
@@ -156,8 +181,27 @@ namespace other {
           },
           .pipeline_name = "Geometry",
         },
+        {
+          .framebuffer_spec = {
+            .depth_func = LESS,
+            .clear_color = { 0.1f, 0.1f, 0.1f, 0.5f },
+            .size = { 1920, 1080 },
+          },
+          .pipeline_name = "ShadowMap",
+        },
+        {
+          .framebuffer_spec = {
+            .depth_func = LESS,
+            .clear_color = { 0.f, 0.f, 0.f, 1.f },
+            .size = { 1920, 1080 },
+          },
+          .pipeline_name = "Depth",
+        },
       },
     };
+
+    spec.pipeline_passes[FNV("ShadowMap")].passes.push_back(SceneRenderer::SHADOW_MAP);
+    spec.pipeline_passes[FNV("Depth")].passes.push_back(SceneRenderer::DEPTH_PASS);
     spec.pipeline_passes[FNV("Geometry")].passes.push_back(SceneRenderer::GEOMETRY_PASS);
 
     return spec;

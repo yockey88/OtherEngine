@@ -3,7 +3,9 @@
  */
 #include "asset/asset_loader.hpp"
 
+#include "core/filesystem.hpp"
 #include "core/logger.hpp"
+#include "core/scope.hpp"
 
 #include "asset/serializers/model_serializer.hpp"
 #include "asset/serializers/scene_serializer.hpp"
@@ -20,13 +22,18 @@ namespace other {
       []() -> Scope<AssetSerializer> { OE_ASSERT(false, "unimplemented (load a FileHandle and mount in filesystem)");return nullptr; },
       // AssetType::MEMORY_ONLY
       []() -> Scope<AssetSerializer> { OE_ASSERT(false, "Asset is loaded in memory!"); return nullptr; },
-      []() -> Scope<AssetSerializer> { return NewScope<SceneSerializer>(); },  // AssetType::SCENE
-      // []() -> Scope<AssetSerializer> { return nullptr; },  // AssetType::PREFAB
+      // AssetType::SCENE
+      []() -> Scope<AssetSerializer> { return NewScope<SceneSerializer>(); },
+      // AssetType::PREFAB
+      // []() -> Scope<AssetSerializer> { return nullptr; },
       // /// FIXME: decide whether we only ever use model serializer or if we should
       //            actually have a model source serializer seperate from a model serializer
-      []() -> Scope<AssetSerializer> { return NewScope<ModelSerializer>(); },   // AssetType::MODEL_SOURCE
-      []() -> Scope<AssetSerializer> { return NewScope<ModelSerializer>(); },   // AssetType::MODEL
-      []() -> Scope<AssetSerializer> { return NewScope<ShaderSerializer>(); },  // AssetType::SHADER
+      // AssetType::MODEL_SOURCE
+      []() -> Scope<AssetSerializer> { return NewScope<ModelSerializer>(); },
+      // AssetType::MODEL
+      []() -> Scope<AssetSerializer> { return NewScope<ModelSerializer>(); },
+      // AssetType::SHADER
+      []() -> Scope<AssetSerializer> { return NewScope<ShaderSerializer>(); },
       // []() -> Scope<AssetSerializer> { return nullptr; },  // AssetType::MATERIAL
       []() -> Scope<AssetSerializer> { return NewScope<TextureSerializer>(); },  // AssetType::TEXTURE
       // []() -> Scope<AssetSerializer> { return nullptr; },  // AssetType::ENVMAP
@@ -34,14 +41,14 @@ namespace other {
       // []() -> Scope<AssetSerializer> { return nullptr; },  // AssetType::SOUNDCONFIG
       // []() -> Scope<AssetSerializer> { return nullptr; },  // AssetType::SPATIALIZATIONCONFIG
       // []() -> Scope<AssetSerializer> { return nullptr; },  // AssetType::FONT
-      []() -> Scope<AssetSerializer> { return nullptr; },  // AssetType::SCRIPT
-      []() -> Scope<AssetSerializer> { return nullptr; },  // AssetType::DYNAMIC_LIBRARY
+      []() -> Scope<AssetSerializer> { OE_UNIMPLEMENTED_RETURN(nullptr); },  // AssetType::SCRIPT
+      []() -> Scope<AssetSerializer> { OE_UNIMPLEMENTED_RETURN(nullptr); },  // AssetType::DYNAMIC_LIBRARY
       // []() -> Scope<AssetSerializer> { return nullptr; },  // AssetType::MESHCOLLIDER
       // []() -> Scope<AssetSerializer> { return nullptr; },  // AssetType::SOUNDGRAPHSOUND
       // []() -> Scope<AssetSerializer> { return nullptr; },  // AssetType::SKELETON
       // []() -> Scope<AssetSerializer> { return nullptr; },  // AssetType::ANIMATION
       // []() -> Scope<AssetSerializer> { return nullptr; },  // AssetType::ANIMATIONGRAPH
-      []() -> Scope<AssetSerializer> { return nullptr; },  // AssetType::SOURCEFILE
+      []() -> Scope<AssetSerializer> { OE_UNIMPLEMENTED_RETURN(nullptr); },  // AssetType::SOURCEFILE
     };
 
   }  // namespace
@@ -68,6 +75,10 @@ namespace other {
       OE_ASSERT(metadata.asset != nullptr, "Asset loader failed to load asset : {}", metadata.handle);
       metadata.handle = metadata.asset->handle;
       metadata.loaded = true;
+
+      Ref<FileHandle> file = Filesystem::GetFile(metadata.path);
+      OE_ASSERT(file != nullptr, "Failed to get file handle for asset : {}", metadata.handle);
+      metadata.asset->file_handle = file;
 
       OE_INFO("Loaded [{}] asset : {} [{}]", metadata.type, metadata.path, metadata.handle);
       return metadata.asset;

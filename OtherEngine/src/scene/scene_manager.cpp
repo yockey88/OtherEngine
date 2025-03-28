@@ -44,7 +44,7 @@ namespace other {
     }
 
     if (scene_file->GetAssetType() != AssetType::SCENE) {
-      OE_ERROR("File is not a .yscn file : {}", Path(*scene_file));
+      OE_ERROR("File is not a scene file : {}", Path(*scene_file));
       return false;
     }
 
@@ -63,11 +63,10 @@ namespace other {
     OE_ASSERT(scene_md != nullptr, "Failed to get scene metadata for scene : {}", scene->scene_handle);
 
     OE_TRACE(" > loaded scene : {}", scene_md->name);
-    EventQueue::PushEvent<SceneLoad>({ scene->scene_handle.Get() });
     return true;
   }
 
-  void SceneManager::AddScene(const DeserializedScene& scene) {
+  void SceneManager::AddScene(DeserializedScene& scene) {
     OE_ASSERT(scene.scene != nullptr, "Attempting to add null scene");
 
     UUID id = scene.scene->scene_handle;
@@ -76,7 +75,7 @@ namespace other {
       return;
     }
 
-    loaded_scenes[id] = SceneMetadata{
+    auto& metadata = loaded_scenes[id] = SceneMetadata{
       .name = scene.name,
       .path = scene.path,
       .scene_table = scene.scene_table,
@@ -84,7 +83,7 @@ namespace other {
       .corrupted = false
     };
 
-    loaded_scenes[id].scene->Initialize();
+    metadata.scene->Initialize();
     scene_paths.push_back(scene.path.string());
   }
 
@@ -121,6 +120,7 @@ namespace other {
       DefaultUpdateCamera(primary_cam);
     }
 
+    scene->Activate();
     EventQueue::PushEvent<SceneActivate>({ active_scene->scene->SceneHandle().Get() });
   }
 
@@ -143,6 +143,7 @@ namespace other {
         .corrupted = false
       };
       itr = loaded_scenes.find(id);
+      OE_ASSERT(itr != loaded_scenes.end(), "Failed to add scene to loaded scenes");
       itr->second.bvh->AddScene(scene, glm::zero<glm::vec3>());
     }
 
@@ -153,16 +154,31 @@ namespace other {
 
     auto primary_cam = active_scene->scene->GetPrimaryCamera();
     if (primary_cam != nullptr) {
-      DefaultUpdateCamera(primary_cam);
+      primary_cam->UpdateCoordinateFrame();
+      primary_cam->CalculateMatrix();
     }
 
+    active_scene->scene->Activate();
     EventQueue::PushEvent<SceneActivate>({ active_scene->scene->SceneHandle().Get() });
+  }
+
+  void SceneManager::Deactivate() {
+    if (!HasActiveScene()) {
+      return;
+    }
+
+    active_scene = nullptr;
+    ScriptEngine::SetSceneContext(nullptr);
+    Renderer::SetSceneContext(nullptr);
+
+    // EventQueue::PushEvent<SceneDeactivate>({ active_scene->scene->SceneHandle().Get() });
   }
 
   void SceneManager::StartScene() {
     if (!HasActiveScene()) {
       return;
     }
+    OE_TRACE("Starting scene {}", active_scene->name);
 
     active_scene->scene->Start();
     if (active_scene->scene->GetPrimaryCamera() != nullptr) {
@@ -229,6 +245,22 @@ namespace other {
     return scene_renderer;
   }
 
+  void SceneManager::SetDebugPhysicsRendering(bool debug) {
+    if (!HasActiveScene()) {
+      return;
+    }
+
+    active_scene->scene->SetDebugPhysicsRendering(debug);
+  }
+
+  bool SceneManager::IsDebugPhysicsRendering() const {
+    if (!HasActiveScene()) {
+      return false;
+    }
+
+    return active_scene->scene->IsDebugPhysicsRendering();
+  }
+
   /// TODO: create state-capture system so we don't have to reload the scene each time we stop it to reset
   ///         it to how it was.
   ///       this should also be the same system to handle undoing changes and stuff like that
@@ -241,6 +273,7 @@ namespace other {
     if (!active_scene->scene->IsRunning()) {
       return;
     }
+    OE_TRACE("Stopping scene {}", active_scene->name);
 
     active_scene->scene->Stop();
 
@@ -335,15 +368,15 @@ namespace other {
     active_scene = nullptr;
   }
 
-  StateCapture SceneManager::CaptureScene() {
+  void SceneManager::CaptureScene() {
     if (!HasActiveScene()) {
-      return {};
+      return;
     }
 
-    return SaveStack::RecordState(ActiveScene()->scene);
+    ActiveScene()->scene->CaptureScene();
   }
 
-  void SceneManager::LoadCapture(StateCapture& capture) {
+  void SceneManager::RestoreLastCapture() {
     if (!HasActiveScene()) {
       return;
     }
@@ -354,7 +387,8 @@ namespace other {
       scene_playing = true;
     }
 
-    SaveStack::RestoreState(ActiveScene()->scene, capture);
+    ActiveScene()->scene->RestoreLastCapture();
+    // ActiveScene()->scene->ResetPhysicsSimulation();
 
     if (scene_playing) {
       active_scene->scene->Start(AppState::mode);
@@ -390,6 +424,12 @@ namespace other {
     return loaded_scenes;
   }
 
+  void SceneManager::RebindScripts() {
+    for (auto& [id, scene] : loaded_scenes) {
+      scene.scene->RebindScripts();
+    }
+  }
+
   void SceneManager::EarlyUpdateScene(float dt) {
     if (!HasActiveScene()) {
       return;
@@ -416,6 +456,7 @@ namespace other {
   }
 
   bool SceneManager::RenderScene() {
+    PROFILE_SECTION("SceneManager--RenderScene");
     if (!HasActiveScene()) {
       return true;
     }

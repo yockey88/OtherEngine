@@ -1,5 +1,7 @@
 require("ymake")
 
+OtherBuildTools = require("OtherEngine-ScriptCore.lua.app")
+
 local configuration = {}
 configuration.wks_name = "OtherEngine"
 configuration.architecture = "x64"
@@ -9,7 +11,7 @@ configuration.static_runtime = "on"
 configuration.target_dir = "%{wks.location}/bin/%{cfg.buildcfg}/%{prj.name}"
 configuration.obj_dir = "%{wks.location}/bin_obj/%{cfg.buildcfg}/%{prj.name}"
 
-configuration.build_configurations = { "Debug", "Release" }
+configuration.config_table = { "Debug", "Release", "Profile" }
 configuration.platforms = { "Windows" }
 
 configuration.groups = {
@@ -25,10 +27,10 @@ configuration.groups = {
   },
 
   ["Tools"] = { "./tools" } ,
-  -- ["Games"] = {
-  --   "./yockcraft",
+  ["Games"] = {
+    "./game2025",
   --   "./cell_automaton",
-  -- },
+  },
 }
 
 local choc = {}
@@ -96,7 +98,7 @@ sdl2.include_dir = "%{wks.location}/externals/sdl2/SDL2"
 sdl2.lib_dir = "%{wks.location}/externals/sdl2/lib/%{cfg.buildcfg}"
 sdl2.lib_name = "SDL2"
 sdl2.debug_lib_name = "SDL2d"
-sdl2.configurations = { "Debug", "Release" }
+sdl2.configurations = { "Debug", "Release", "Profile" }
 
 local spdlog = {}
 spdlog.name = "spdlog"
@@ -132,6 +134,12 @@ jolt.name = "jolt"
 jolt.path = "./externals/jolt"
 jolt.include_dir = "%{wks.location}/externals/jolt"
 jolt.lib_name = "jolt"
+
+local reactphysics = {} 
+reactphysics.name = "reactphysics"
+reactphysics.path = "./externals/reactphysics3d"
+reactphysics.include_dir = "%{wks.location}/externals/reactphysics3d/include"
+reactphysics.lib_name = "reactphysics3d"
 
 local tracy = {}
 tracy.name = "tracy"
@@ -217,6 +225,13 @@ assimp.lib_name = "assimp-vc143-mt"
 assimp.debug_lib_name = "assimp-vc143-mtd"
 assimp.configurations = { "Debug", "Release" }
 
+local steamworks = {
+  name = "steamworks",
+  include_dir = "%{wks.location}/externals/steamworks",
+  lib_name = "steam_api64",
+  lib_dir = "%{wks.location}/externals/steamworks/bin",
+}
+
 AddDependency(choc)
 AddDependency(entt)
 AddDependency(refl)
@@ -235,9 +250,10 @@ AddDependency(sol2)
 AddDependency(box2d)
 AddDependency(stb)
 AddDependency(jolt)
+AddDependency(reactphysics)
 AddDependency(pybind)
--- AddDependency(tracy)
 AddDependency(assimp)
+AddDependency(steamworks)
 
 AddDependency(dotother)
 

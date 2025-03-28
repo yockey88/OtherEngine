@@ -9,6 +9,10 @@
 
 #include "core/logger.hpp"
 
+/**
+ * \todo replace the 'new'/'delete' calls in this file with allocations into the arena
+ **/
+
 namespace other {
 
   Buffer::Buffer(void* d, uint64_t sz) {
@@ -83,6 +87,15 @@ namespace other {
       memset(data, 0, capacity);
     }
     element_sizes.clear();
+  }
+
+  void Buffer::ZeroRange(uint64_t offset, uint64_t size) {
+    if (offset + size > capacity) {
+      OE_ERROR("Attempting to zero out of bounds memory! expected min {} > {} real capacity", offset + size, capacity);
+      return;
+    }
+
+    memset(data + offset, 0, size);
   }
 
   size_t Buffer::ElementSize(size_t index) const {

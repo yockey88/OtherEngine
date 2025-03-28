@@ -6,8 +6,16 @@
 #include "core/config_keys.hpp"
 
 #include "ecs/entity.hpp"
+#include "scene/scene.hpp"
 
 namespace other {
+
+  Collider2DSnapshotter::Collider2DSnapshotter() {
+    AddField<glm::vec2, 0>(&Collider2D::offset);
+    AddField<glm::vec2, 1>(&Collider2D::size);
+    AddField<float, 2>(&Collider2D::density);
+    AddField<float, 3>(&Collider2D::friction);
+  }
 
   void Collider2DSerializer::Serialize(std::ostream& stream, Entity* entity, const Ref<Scene>& scene) const {
     auto& collider = entity->GetComponent<Collider2D>();
@@ -24,13 +32,13 @@ namespace other {
     OE_ASSERT(entity != nullptr && scene != nullptr, "Attempting to deserialize a rigid-body 2D into null entity or scene!");
     std::string key_value = GetComponentSectionKey(entity->Name(), std::string{ kCollider2DValue });
 
-    auto offset_value = scene_table.Get(key_value, kOffsetValue);
+    const auto& offset_value = scene_table.Get(key_value, kOffsetValue);
     if (offset_value.size() != 2) {
       OE_ERROR("Failed to deserialize collider 2D into entity {}", entity->Name());
       return;
     }
 
-    auto size_value = scene_table.Get(key_value, kSizeValue);
+    const auto& size_value = scene_table.Get(key_value, kSizeValue);
     if (size_value.size() != 2) {
       OE_ERROR("Failed to deserialize collider 2D into entity {}", entity->Name());
       return;

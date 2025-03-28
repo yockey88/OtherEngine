@@ -13,7 +13,7 @@ namespace other {
 
   struct SerializationData : public Component {
     std::set<int32_t> entity_components;
-    ECS_COMPONENT(SerializationData, -1);
+    INVISIBLE_ECS_COMPONENT(SerializationData, -1);
   };
 
 }  // namespace other

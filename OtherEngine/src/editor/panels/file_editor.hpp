@@ -25,7 +25,8 @@ namespace other {
     virtual bool OnGuiRender(bool& is_open) override;
 
    private:
-    Ref<Directory> shader_directory = nullptr;
+    Ref<Directory> project_root = nullptr;
+    Ref<Directory> game_root = nullptr;
 
     Opt<std::array<char, 256>> new_file_name = std::nullopt;
 
