@@ -9,10 +9,13 @@
 #include <gtest/gtest.h>
 
 #include "core/config.hpp"
+#include "memory/arena.hpp"
 
 #include "application/app_state.hpp"
+#include "asset/asset_database.hpp"
+#include "asset/asset_manager.hpp"
+#include "event/event_queue.hpp"
 #include "parsing/cmd_line_parser.hpp"
-
 
 namespace other {
 
@@ -32,6 +35,7 @@ namespace other {
     static ConfigTable stashed_config;
 
     static CmdLine cmdline;
+    static Scope<Engine> mock_engine;
   };
 
   bool CheckNumScripts(uint32_t cs, uint32_t lua, uint32_t python);

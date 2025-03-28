@@ -43,18 +43,28 @@ namespace other {
     auto cs_dir = cmdline.GetArg("--cs").value_or(Arg{});
     if (cs_dir.hash != 0 && cs_dir.args.size() > 0) {
       metadata.cs_dir = Path(cs_dir.args[0]);
+    } else if (config.KeyExists(kProjectSection, kScriptsDirValue)) {
+      metadata.cs_dir = metadata.project_directory / *config.GetVal<std::string>(kProjectSection, kScriptsDirValue, false);
     } else {
       std::string default_csproj_name = metadata.name + "_scripts";
       std::string cs_dir = config.GetVal<std::string>(kProjectSection, kScriptsDirValue, false).value_or(default_csproj_name);
       metadata.cs_dir = metadata.project_directory / cs_dir;
     }
 
-    for (auto& entry : std::filesystem::directory_iterator(metadata.cs_dir)) {
-      if (entry.path().extension() == ".csproj") {
-        metadata.cs_project_file = entry.path();
+    try {
+      for (auto& entry : std::filesystem::directory_iterator(metadata.cs_dir)) {
+        if (entry.path().extension() == ".csproj") {
+          metadata.cs_project_file = entry.path();
+        }
       }
+    } catch (std::filesystem::filesystem_error& e) {
+      OE_ERROR("Filesystem error : {}", e.what());
+    } catch (...) {
+      OE_ERROR("Unknown Filesystem error");
     }
-    OE_ASSERT(!metadata.cs_project_file.empty(), "Failed to find C# project file in directory : {}", metadata.cs_dir);
+    if (metadata.cs_project_file.empty()) {
+      OE_ERROR("Failed to find C# project file in directory : {}", metadata.cs_dir);
+    }
 
     auto project_dir = cmdline.GetArg("--cwd").value_or(Arg{});
     if (project_dir.hash != 0 && project_dir.args.size() > 0) {
@@ -87,13 +97,18 @@ namespace other {
     {
       std::stringstream ss;
       ss << "\nProject Name : " << metadata.name << "\n"
+         << " > Main Project Directory : " << metadata.project_directory << "\n"
+         << " > Main Project File : " << metadata.main_project_file << "\n"
          << " > C# Directory : " << metadata.cs_dir << "\n"
+         << " > C# Project File : " << metadata.cs_project_file << "\n"
+         << " > C# Script Bin : " << metadata.script_bin_dir.value_or("None") << "\n"
          << "----------------------------------" << "\n"
          << "  - Bin Dir : " << metadata.bin_dir << "\n"
          << "  - Assets Dir : " << metadata.assets_dir << "\n"
          << "  - Materials Dir : " << metadata.materials_dir << "\n"
          << "  - Scenes Dir : " << metadata.scenes_dir << "\n"
-         << "  - Shaders Dir : " << metadata.shaders_dir << "\n";
+         << "  - Shaders Dir : " << metadata.shaders_dir << "\n"
+         << "  - Scripts Dir : " << metadata.cs_dir << "\n";
       OE_DEBUG(ss.str());
     }
 

@@ -121,6 +121,10 @@ namespace other {
       "EditorLayer--FileModified",
       { std::bind_front(&EditorLayer::HandleFileModified, this) }
     );
+    EventQueue::RegisterEventDispatcher<ScriptReload>(
+      "EditorLayer--ScriptReload",
+      { std::bind_front(&EditorLayer::HandleScriptReload, this) }
+    );
 
     // load editor icons and data
     EditorImages::Initialize();
@@ -175,6 +179,8 @@ namespace other {
     EventQueue::UnregisterEventDispatcher("EditorLayer--MouseHeld");
     EventQueue::UnregisterEventDispatcher("EditorLayer--SceneActivate");
     EventQueue::UnregisterEventDispatcher("EditorLayer--SceneUnload");
+    EventQueue::UnregisterEventDispatcher("EditorLayer--FileModified");
+    EventQueue::UnregisterEventDispatcher("EditorLayer--ScriptReload");
   }
 
   void EditorLayer::OnEarlyUpdate(float dt) {
@@ -664,10 +670,16 @@ namespace other {
     return false;
   }
 
+  bool EditorLayer::HandleScriptReload(ScriptReload& event) {
+    AppState::RebindScripts();
+    return false;
+  }
+
   bool EditorLayer::HandleFileModified(FileModified& event) {
     OE_DEBUG("Modified file : {}", event.handle);
     Ref<FileHandle> file = Filesystem::GetFile(event.handle);
     OE_ASSERT(file != nullptr, "Failed to get file handle for modified file");
+    OE_DEBUG("  > filename = {} [{}]", file->ProjectRelativePath(), file->GetAssetType());
 
     if (file->GetAssetType() == AssetType::GENERIC_FILE) {
       return false;
@@ -680,7 +692,9 @@ namespace other {
 
       case AssetType::SCRIPT: {
         LanguageModuleType mod_type = ScriptEngine::ModuleTypeFromExtension(file->Extension());
+
         ScriptEngine::ReloadScripts(mod_type);
+        EventQueue::PushEvent<ScriptReload>();
       } break;
 
       default:

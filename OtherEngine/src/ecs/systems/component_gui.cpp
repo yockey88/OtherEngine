@@ -473,7 +473,7 @@ namespace other {
       ImGui::Text("%s corrupt, recompile or reload", name.data());
 
       if (ImGui::Button("Rebuild Scripts")) {
-        // EventQueue::PushEvent<ScriptReloadEvent>();
+        // EventQueue::PushEvent<ScriptReload>();
       }
       return false;
     }

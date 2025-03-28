@@ -13,6 +13,9 @@
 #include "core/logger.hpp"
 
 #include "application/app_state.hpp"
+#include "event/app_events.hpp"
+#include "event/core_events.hpp"
+#include "event/event_queue.hpp"
 
 #include "ecs/components/script.hpp"
 
@@ -184,6 +187,7 @@ namespace other {
   }
 
   void ScriptEngine::Shutdown() {
+    UnloadProjectModules();
     for (auto& [id, mod] : language_modules) {
       mod.module->Shutdown();
       mod.module = nullptr;
@@ -197,6 +201,8 @@ namespace other {
     lua_language_module->UnloadAll();
     cs_language_module->UnloadAll();
     loaded_modules.clear();
+
+    language_modules.clear();
   }
 
   void ScriptEngine::UnloadAttachments() {
@@ -262,6 +268,13 @@ namespace other {
       return;
     }
     itr->second.module->Reload();
+
+    if (itr->second.module->GetLanguageType() == LanguageModuleType::CS_MODULE) {
+      /// load c# core module
+      constexpr std::string_view core_cs_name = "OtherEngine.CsCore";
+      auto& core_mod = loaded_modules[FNV(core_cs_name)] = itr->second.module->GetScriptModule(std::string{ core_cs_name });
+      OE_ASSERT(core_mod != nullptr, "Failed to load C# core module");
+    }
   }
 
   Ref<LanguageModule> ScriptEngine::GetModule(LanguageModuleType type) {

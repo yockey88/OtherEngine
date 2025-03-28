@@ -177,7 +177,6 @@ namespace other {
         OE_DEBUG("Loaded C# Host");
       }
 
-      /// TODO: should clients be responsible for this????
       host->CallEntryPoint();
 
       int32_t type_counter = 0;
@@ -229,8 +228,11 @@ namespace other {
     OE_DEBUG("Shutting down C# module");
     for (auto& [id, module] : loaded_modules) {
       module->Shutdown();
+      module = nullptr;
     }
     loaded_modules.clear();
+
+    dotother::TypeCache::Instance().Clear();
 
     OE_DEBUG("Unloading loaded C# assemblies");
     for (auto& [id, ctx] : assembly_contexts.contexts) {
@@ -251,15 +253,7 @@ namespace other {
 
     auto proj = AppState::ProjectContext();
     auto script_file = proj->GetMetadata().cs_project_file;
-    OE_DEBUG("Reloading C# module from project {}", script_file);
-
-    for (auto& [id, module] : loaded_modules) {
-      module->Shutdown();
-      module = nullptr;
-    }
-    loaded_modules.clear();
-
-    OE_DEBUG("Kicking off build for scripts {}", script_file);
+    OE_DEBUG("Kicking off build for C# scripts [{}]", script_file);
 
     if (!PlatformLayer::BuildProject(script_file)) {
       OE_ERROR("Failed to rebuild project scripts");
@@ -277,8 +271,23 @@ namespace other {
       return;
     }
 
-    for (const auto& [id, module_info] : loaded_modules_data) {
-      LoadScriptModule(module_info);
+    const Path engine_core_dir = Filesystem::GetEngineCoreDir();
+    const Path engine_bin = engine_core_dir / "bin" / "Debug";
+    const Path cs_core = engine_bin / "OtherEngine-CsCore" / "net8.0" / "OtherEngine-CsCore.dll";
+
+    Ref<FileHandle> cs_core_dll = Filesystem::GetFile(cs_core);
+    OE_ASSERT(cs_core_dll != nullptr, "Failed to find C# core DLL : {}", cs_core.string());
+    OE_ASSERT(cs_core_dll->Exists(), "Failed to find C# core DLL : {}", cs_core.string());
+
+    LoadScriptModule({
+      .name = "OtherEngine.CsCore",
+      .handle = cs_core_dll,
+    });
+
+    for (auto& [id, module] : loaded_modules_data) {
+      if (module.name != "OtherEngine.CsCore") {
+        LoadScriptModule(module);
+      }
     }
   }
 

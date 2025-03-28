@@ -424,6 +424,12 @@ namespace other {
     return loaded_scenes;
   }
 
+  void SceneManager::RebindScripts() {
+    for (auto& [id, scene] : loaded_scenes) {
+      scene.scene->RebindScripts();
+    }
+  }
+
   void SceneManager::EarlyUpdateScene(float dt) {
     if (!HasActiveScene()) {
       return;

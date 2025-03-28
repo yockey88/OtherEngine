@@ -542,7 +542,7 @@ namespace other {
     .layout_name = "textured_quad",
     .stride = 5,
     .attrs = {
-      { .attr_name = "voe_position", .idx = 0, .size = 3 },
+      { .attr_name = "voe_position", .idx = 0, .size = 2 },
       { .attr_name = "voe_uvs", .idx = 1, .size = 2 },
     },
   };

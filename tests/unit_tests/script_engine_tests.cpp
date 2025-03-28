@@ -7,6 +7,7 @@
 
 #include "core/defines.hpp"
 #include "core/filesystem.hpp"
+#include "engine/engine.hpp"
 
 #include "application/app_state.hpp"
 
@@ -27,8 +28,12 @@ class ScriptEngineTests : public OtherTest {
   static void TearDownTestSuite();
 
   //// no default behavior for now
-  virtual void SetUp() override {}
-  virtual void TearDown() override {}
+  virtual void SetUp() override {
+    ASSERT_NO_FATAL_FAILURE(ScriptEngine::Initialize(config));
+  }
+  virtual void TearDown() override {
+    ASSERT_NO_FATAL_FAILURE(ScriptEngine::Shutdown());
+  }
 };
 
 TEST_F(ScriptEngineTests, load_project_modules) {
@@ -36,8 +41,8 @@ TEST_F(ScriptEngineTests, load_project_modules) {
   GTEST_SKIP();
 #endif
 
-  /// no python module
-  ASSERT_EQ(ScriptEngine::GetModules().size(), 2);
+  /// no modules to start
+  ASSERT_EQ(ScriptEngine::GetModules().size(), 2);  // lua and cs
   ASSERT_TRUE(CheckNumScripts(0, 0, 0));
 
   ASSERT_NO_FATAL_FAILURE(ScriptEngine::LoadProjectModules());
@@ -54,6 +59,23 @@ TEST_F(ScriptEngineTests, load_project_modules) {
   ASSERT_TRUE(CheckNumScripts(0, 0, 0));
 }
 
+TEST_F(ScriptEngineTests, load_unload_load_again) {
+  ASSERT_NO_FATAL_FAILURE(ScriptEngine::LoadProjectModules());
+
+  Ref<ScriptObject> scene_obj = nullptr;
+  ASSERT_NO_FATAL_FAILURE(scene_obj = ScriptEngine::GetScriptObject("Scene", "Other", "OtherEngine.CsCore"));
+  ASSERT_NE(scene_obj, nullptr);
+  scene_obj = nullptr;
+
+  ASSERT_NO_FATAL_FAILURE(ScriptEngine::Shutdown());
+  ASSERT_NO_FATAL_FAILURE(ScriptEngine::Initialize(config));
+  ASSERT_NO_FATAL_FAILURE(ScriptEngine::LoadProjectModules());
+
+  ASSERT_NO_FATAL_FAILURE(scene_obj = ScriptEngine::GetScriptObject("Scene", "Other", "OtherEngine.CsCore"));
+  ASSERT_NE(scene_obj, nullptr);
+  scene_obj = nullptr;
+}
+
 TEST_F(ScriptEngineTests, dynamic_add_project_modules) {
 #if 0  // toggle to disable test
   GTEST_SKIP();
@@ -61,29 +83,30 @@ TEST_F(ScriptEngineTests, dynamic_add_project_modules) {
 
   /// CsCore and no lua scripts
   ASSERT_TRUE(CheckNumScripts(0, 0, 0));
+  ASSERT_NO_FATAL_FAILURE(ScriptEngine::LoadProjectModules());
+  ASSERT_TRUE(CheckNumScripts(1, 0, 0));
 
   Ref<FileHandle> core_handle = nullptr;
   Ref<FileHandle> dll_handle = nullptr;
   Ref<FileHandle> lua_handle = nullptr;
   {
     Ref<Directory> bin_dir = Filesystem::GetDirectory("bin");
+    ASSERT_NE(bin_dir, nullptr);
     core_handle = bin_dir->GetFileHandleByName("OtherEngine-CsCore");
 
     Ref<Directory> dir = Filesystem::GetDirectory("script-bin");
+    ASSERT_NE(dir, nullptr);
     dll_handle = dir->GetFileHandleByName("SandboxScripts");
 
     Ref<Directory> lua_dir = Filesystem::GetDirectory("scripts");
-    lua_handle = lua_dir->GetFileHandleByName("engine_script1");
+    ASSERT_NE(lua_dir, nullptr);
+    Ref<Directory> real_lua_dir = lua_dir->GetChildDirectory("lua");
+    ASSERT_NE(real_lua_dir, nullptr);
+    lua_handle = real_lua_dir->GetFileHandleByName("engine_script1");
   }
   ASSERT_NE(core_handle, nullptr);
   ASSERT_NE(dll_handle, nullptr);
   ASSERT_NE(lua_handle, nullptr);
-
-  ScriptEngine::GetModule(CS_MODULE)->LoadScriptModule({
-    .name = "OtherEngine.CsCore",
-    .handle = core_handle,
-  });
-  ASSERT_TRUE(CheckNumScripts(1, 0, 0));
 
   ScriptEngine::GetModule(CS_MODULE)->LoadScriptModule({
     .name = "SandboxScripts",
@@ -100,11 +123,22 @@ TEST_F(ScriptEngineTests, dynamic_add_project_modules) {
   });
   ASSERT_TRUE(CheckNumScripts(1, 1, 0));
 
-  ScriptEngine::GetModule(CS_MODULE)->UnloadScript("OtherEngine.CsCore");
-  ASSERT_TRUE(CheckNumScripts(0, 1, 0));
-
   ScriptEngine::GetModule(LUA_MODULE)->UnloadScript("SandboxLua");
-  ASSERT_TRUE(CheckNumScripts(0, 0, 0));
+  ASSERT_TRUE(CheckNumScripts(1, 0, 0));
+
+  ScriptEngine::GetModule(CS_MODULE)->LoadScriptModule({
+    .name = "SandboxScripts",
+    .handle = dll_handle,
+  });
+  ScriptEngine::GetModule(LUA_MODULE)->LoadScriptModule({
+    .name = "SandboxLua",
+    .handle = lua_handle,
+  });
+  ASSERT_TRUE(CheckNumScripts(2, 1, 0));
+
+  ScriptEngine::GetModule(CS_MODULE)->UnloadScript("SandboxScripts");
+  ScriptEngine::GetModule(LUA_MODULE)->UnloadScript("SandboxLua");
+  ASSERT_TRUE(CheckNumScripts(1, 0, 0));
 }
 
 TEST_F(ScriptEngineTests, script_object) {
@@ -112,7 +146,10 @@ TEST_F(ScriptEngineTests, script_object) {
   GTEST_SKIP();
 #endif
 
+  ASSERT_TRUE(CheckNumScripts(0, 0, 0));
   ASSERT_NO_FATAL_FAILURE(ScriptEngine::LoadProjectModules());
+  ASSERT_TRUE(CheckNumScripts(1, 0, 0));
+
   Ref<FileHandle> dll_handle = nullptr;
   {
     Ref<Directory> dir = Filesystem::GetDirectory("script-bin");
@@ -171,7 +208,10 @@ TEST_F(ScriptEngineTests, retrieve_core_objects) {
   GTEST_SKIP();
 #endif
 
+  ASSERT_TRUE(CheckNumScripts(0, 0, 0));
   ASSERT_NO_FATAL_FAILURE(ScriptEngine::LoadProjectModules());
+  ASSERT_TRUE(CheckNumScripts(1, 0, 0));
+
   Ref<FileHandle> dll_handle = nullptr;
   {
     Ref<Directory> dir = Filesystem::GetDirectory("script-bin");
@@ -200,7 +240,10 @@ TEST_F(ScriptEngineTests, get_object_method) {
   GTEST_SKIP();
 #endif
 
+  ASSERT_TRUE(CheckNumScripts(0, 0, 0));
   ASSERT_NO_FATAL_FAILURE(ScriptEngine::LoadProjectModules());
+  ASSERT_TRUE(CheckNumScripts(1, 0, 0));
+
   Ref<FileHandle> lua_handle = nullptr;
   {
     Ref<Directory> lua_dir = Filesystem::GetDirectory("scripts");
@@ -265,26 +308,27 @@ TEST_F(ScriptEngineTests, get_object_method) {
 }
 
 void ScriptEngineTests::SetUpTestSuite() {
-  // ConfigTable test_config;
-  // test_config.Add("project", "working-directory", "./tests/");
-  // test_config.Add("project", "bin-dir", "C:/Yock/code/OtherEngine/bin/Debug");
-  // test_config.Add("project", "script-bin-dir", "SandboxScripts/net8.0", true);
-  // test_config.Add("log", "console-level", "debug", true);
-  // test_config.Add("log", "file-level", "trace", true);
-  // test_config.Add("log", "path", "logs/script-engine-test.log", true);
-  // test_config.Add("script-engine.C#", "modules", std::vector{ "SandboxScripts.dll"s }, true);
-  // Logger::Open(test_config);
-  // Logger::Instance()->RegisterThread("Script Engine Test Main Thread");
+  config = ConfigTable();
+  config.Add("project", "name", "OtherEngine-ScriptEngine-Test");
+  config.Add("project", "working-directory", "./tests/");
+  config.Add("project", "bin-dir", "C:/Yock/code/OtherEngine/bin/Debug");
+  config.Add("project", "script-bin-dir", "SandboxScripts/net8.0", true);
+  config.Add("project", "scripts-dir", "sandbox_scripts", true);
+  config.Add("log", "console-level", "debug", true);
+  config.Add("log", "file-level", "trace", true);
+  config.Add("log", "path", "logs/script-engine-test.log", true);
+  config.Add("script-engine.C#", "modules", std::vector{ "SandboxScripts.dll"s }, true);
 
-  // Filesystem::Initialize(cmdline, test_config);
-  // AppState::mode = EngineMode::RUNTIME;
-  // AppState::Initialize(cmdline, test_config);
-
-  // ScriptEngine::Initialize(test_config);
+  Arena::Initialize();
+  mock_engine = NewScope<Engine>(config, cmdline, "Script Engine Test Main Thread");
+  AppState::mode = EngineMode::RUNTIME;
+  AppState::Initialize(mock_engine.get());
 }
 
 void ScriptEngineTests::TearDownTestSuite() {
-  //   ASSERT_NO_FATAL_FAILURE(ScriptEngine::Shutdown());
-  //   ASSERT_NO_FATAL_FAILURE(AppState::Shutdown());
-  //   ASSERT_NO_FATAL_FAILURE(CloseLog());
+  ASSERT_NO_FATAL_FAILURE(AppState::Shutdown());
+
+  mock_engine = nullptr;
+
+  Arena::Shutdown();
 }

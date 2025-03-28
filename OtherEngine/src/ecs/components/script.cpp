@@ -20,6 +20,10 @@ namespace other {
   UUID Script::AddScript(const std::string_view name, const std::string_view nspace, const std::string_view module) {
     OE_ASSERT(parent_handle != nullptr, "Parent handle is null");
 
+    if (script_object != nullptr) {
+      RemoveScript();
+    }
+
     std::string case_ins_name;
     std::ranges::transform(name, std::back_inserter(case_ins_name), ::toupper);
     UUID id = FNV(case_ins_name);
@@ -38,6 +42,7 @@ namespace other {
 
     object_data = ScriptObjectData{
       .module = std::string{ module },
+      .nspace = std::string{ nspace },
       .obj_name = std::string{ name },
     };
     script_object = inst;
@@ -54,7 +59,11 @@ namespace other {
 
   void Script::RemoveScript() {
     script_object = nullptr;
-    object_data = {};
+  }
+
+  void Script::Rebind() {
+    RemoveScript();
+    AddScript(object_data.obj_name, object_data.nspace, object_data.module);
   }
 
   void Script::ApiCall(const std::string_view name) {
@@ -244,6 +253,9 @@ namespace other {
       std::string s = scene_table.GetVal<std::string>(key_value, mod, true).value();  // true because keys are case-sensitive
       OE_DEBUG("Attaching {} to {}", s, entity->Name());
 
+      script.name = s;
+      script.nspace = "";
+      script.module = mod;
       UUID sid = script.AddScript(s, "", mod);
       OE_DEBUG("Attached {} [{}]", s, sid);
 

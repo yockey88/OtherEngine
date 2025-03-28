@@ -937,6 +937,12 @@ namespace other {
     }
   }
 
+  void Scene::RebindScripts() {
+    registry.view<Script>().each([](Script& script) {
+      script.Rebind();
+    });
+  }
+
   std::pair<Entity*, Entity*> Scene::BeginContact(UUID entity1, UUID entity2) {
     auto itr1 = entities.find(entity1);
     auto itr2 = entities.find(entity2);

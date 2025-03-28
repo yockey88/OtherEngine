@@ -20,6 +20,12 @@ namespace dotother {
     return instance;
   }
 
+  void TypeCache::Clear() {
+    types.Clear();
+    name_cache.clear();
+    id_cache.clear();
+  }
+
   Type* TypeCache::CacheType(Type&& type) {
     Type* t = &types.Insert(std::move(type)).second;
     if (t == nullptr) {

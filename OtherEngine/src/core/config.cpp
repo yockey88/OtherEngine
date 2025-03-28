@@ -107,7 +107,7 @@ namespace other {
   void ConfigTable::AddFramebufferSpec(const std::string_view key, const std::string_view value) {
     uint64_t key_hash = FNV(key);
     if (unparsed_framebuffer_specs.find(key_hash) != unparsed_framebuffer_specs.end()) {
-      OE_WARN("Duplicate ramebuffer spec! {} already exists", key);
+      std::cout << fmtstr("Duplicate ramebuffer spec! {} already exists\n", key);
       return;
     }
     unparsed_framebuffer_specs[key_hash] = value;
@@ -116,7 +116,7 @@ namespace other {
   void ConfigTable::AddVertexLayout(const std::string_view key, const std::string_view value) {
     uint64_t key_hash = FNV(key);
     if (unparsed_vertex_layouts.find(key_hash) != unparsed_vertex_layouts.end()) {
-      OE_WARN("Duplicate vertex layout! {} already exists", key);
+      std::cout << fmtstr("Duplicate vertex layout! {} already exists\n", key);
       return;
     }
     unparsed_vertex_layouts[key_hash] = value;
@@ -125,7 +125,7 @@ namespace other {
   void ConfigTable::AddUniform(const std::string_view key, const std::string_view value) {
     uint64_t key_hash = FNV(key);
     if (unparsed_uniforms.find(key_hash) != unparsed_uniforms.end()) {
-      OE_WARN("Duplicate uniform! {} already exists", key);
+      std::cout << fmtstr("Duplicate uniform! {} already exists", key);
       return;
     }
     unparsed_uniforms[key_hash] = value;
@@ -134,7 +134,7 @@ namespace other {
   void ConfigTable::AddRenderPass(const std::string_view key, const std::string_view value) {
     uint64_t key_hash = FNV(key);
     if (unparsed_render_passes.find(key_hash) != unparsed_render_passes.end()) {
-      OE_WARN("Duplicate render pass! {} already exists", key);
+      std::cout << fmtstr("Duplicate render pass! {} already exists", key);
       return;
     }
     unparsed_render_passes[key_hash] = value;
@@ -143,7 +143,7 @@ namespace other {
   void ConfigTable::AddPipeline(const std::string_view key, const std::string_view value) {
     uint64_t key_hash = FNV(key);
     if (unparsed_pipelines.find(key_hash) != unparsed_pipelines.end()) {
-      OE_WARN("Duplicate pipeline! {} already exists", key);
+      std::cout << fmtstr("Duplicate pipeline! {} already exists", key);
       return;
     }
     unparsed_pipelines[key_hash] = value;
@@ -152,7 +152,7 @@ namespace other {
   void ConfigTable::AddScriptSection(const std::string_view key, const UnparsedScriptSection& value) {
     uint64_t key_hash = FNV(key);
     if (unparsed_script_sections.find(key_hash) != unparsed_script_sections.end()) {
-      OE_WARN("Duplicate script section! {} already exists", key);
+      std::cout << fmtstr("Duplicate script section! {} already exists", key);
       return;
     }
     unparsed_script_sections[key_hash] = value;
@@ -174,19 +174,15 @@ namespace other {
 
   static std::vector<std::string> empty;
   const std::vector<std::string>& ConfigTable::GetKeys(const std::string_view section) const {
-    OE_TRACE("Getting keys for section : {}", section);
-
     std::string sec = section.data();
     std::transform(sec.begin(), sec.end(), sec.begin(), ::toupper);
 
     uint64_t sec_hash = FNV(sec);
     if (key_names.find(sec_hash) != key_names.end()) {
       auto& keys = key_names.at(sec_hash);
-      OE_TRACE(" > Found {} key{}", keys.size(), keys.empty() ? "" : "s");
       return keys;
     }
 
-    OE_TRACE(" > Section not found : {}", section);
     return empty;
   }
 
@@ -228,11 +224,11 @@ namespace other {
         return itr->second.at(key_hash);
       }
 
-      OE_WARN("Key {} not found in section {}", k, sec);
+      std::cout << fmtstr("Key {} not found in section {}\n", k, sec);
       return empty;
     }
 
-    OE_WARN("Section {} not found", sec);
+    std::cout << fmtstr("Section {} not found\n", sec);
     return empty;
   }
 
@@ -244,7 +240,7 @@ namespace other {
     }
 
     if (ret_str.size() > 4) {
-      OE_ERROR("Too many values found for key : {}.{}", section, key);
+      std::cout << fmtstr("Too many values found for key : {}.{}\n", section, key);
       return std::nullopt;
     }
 
@@ -253,12 +249,12 @@ namespace other {
       try {
         vals.push_back(std::stof(val));
       } catch (std::exception& e) {
-        OE_ERROR("Invalid value for key : {}", key);
+        std::cout << fmtstr("Invalid value for key : {}\n", key);
         return std::nullopt;
       }
     }
 
-    OE_ASSERT(vals.size() <= 4, "Too many values found for key : {}", key);
+    assert(vals.size() <= 4 && "Too many values for vec4");
 
     if (vals.size() == 4) {
       return glm::vec4(vals.at(0), vals.at(1), vals.at(2), vals.at(3));
@@ -268,7 +264,7 @@ namespace other {
       return glm::vec4(vals.at(0), 0.f, 0.f, 1.f);
     }
 
-    OE_ERROR("Invalid value for key : {}", key);
+    std::cout << fmtstr("Invalid value for key : {}\n", key);
     return std::nullopt;
   }
 
@@ -280,7 +276,7 @@ namespace other {
     }
 
     if (ret_str.size() > 1) {
-      OE_ERROR("More than one value found for key : {}", key);
+      std::cout << fmtstr("More than one value found for key : {}\n", key);
       return std::nullopt;
     }
 
@@ -290,7 +286,7 @@ namespace other {
       return false;
     }
 
-    OE_ERROR("Invalid value for key : {}", key);
+    std::cout << fmtstr("Invalid value for key : {}\n", key);
     return std::nullopt;
   }
 
@@ -302,14 +298,14 @@ namespace other {
     }
 
     if (ret_str.size() > 1) {
-      OE_ERROR("More than one value found for key : {}", key);
+      std::cout << fmtstr("More than one value found for key : {}\n", key);
       return std::nullopt;
     }
 
     try {
       return std::stoul(ret_str.at(0));
     } catch (std::exception& e) {
-      OE_ERROR("Invalid value for key : {}", key);
+      std::cout << fmtstr("Invalid value for key : {}\n", key);
       return std::nullopt;
     }
   }
@@ -322,14 +318,14 @@ namespace other {
     }
 
     if (ret_str.size() > 1) {
-      OE_ERROR("More than one value found for key : {}", key);
+      std::cout << fmtstr("More than one value found for key : {}\n", key);
       return std::nullopt;
     }
 
     try {
       return std::stoul(ret_str.at(0));
     } catch (std::exception& e) {
-      OE_ERROR("Invalid value for key : {}", key);
+      std::cout << fmtstr("Invalid value for key : {}\n", key);
       return std::nullopt;
     }
   }
@@ -342,14 +338,14 @@ namespace other {
     }
 
     if (ret_str.size() > 1) {
-      OE_ERROR("More than one value found for key : {}", key);
+      std::cout << fmtstr("More than one value found for key : {}\n", key);
       return std::nullopt;
     }
 
     try {
       return std::stoul(ret_str.at(0));
     } catch (std::exception& e) {
-      OE_ERROR("Invalid value for key : {}", key);
+      std::cout << fmtstr("Invalid value for key : {}\n", key);
       return std::nullopt;
     }
   }
@@ -362,14 +358,14 @@ namespace other {
     }
 
     if (ret_str.size() > 1) {
-      OE_ERROR("More than one value found for key : {}", key);
+      std::cout << fmtstr("More than one value found for key : {}\n", key);
       return std::nullopt;
     }
 
     try {
       return std::stoul(ret_str.at(0));
     } catch (std::exception& e) {
-      OE_ERROR("Invalid value for key {} : {}", key, ret_str.at(0));
+      std::cout << fmtstr("Invalid value for key {} : {}\n", key, ret_str.at(0));
       return std::nullopt;
     }
   }
@@ -387,14 +383,14 @@ namespace other {
     }
 
     if (ret_str.size() > 1) {
-      OE_ERROR("More than one value found for key : {}", key);
+      std::cout << fmtstr("More than one value found for key : {}\n", key);
       return std::nullopt;
     }
 
     try {
       return std::stoi(ret_str.at(0));
     } catch (std::exception& e) {
-      OE_ERROR("Invalid value for key : {}", key);
+      std::cout << fmtstr("Invalid value for key : {}\n", key);
       return std::nullopt;
     }
   }
@@ -407,14 +403,14 @@ namespace other {
     }
 
     if (ret_str.size() > 1) {
-      OE_ERROR("More than one value found for key : {}", key);
+      std::cout << fmtstr("More than one value found for key : {}\n", key);
       return std::nullopt;
     }
 
     try {
       return std::stoi(ret_str.at(0));
     } catch (std::exception& e) {
-      OE_ERROR("Invalid value for key : {}", key);
+      std::cout << fmtstr("Invalid value for key : {}\n", key);
       return std::nullopt;
     }
   }
@@ -427,14 +423,14 @@ namespace other {
     }
 
     if (ret_str.size() > 1) {
-      OE_ERROR("More than one value found for key : {}", key);
+      std::cout << fmtstr("More than one value found for key : {}\n", key);
       return std::nullopt;
     }
 
     try {
       return std::stoi(ret_str.at(0));
     } catch (std::exception& e) {
-      OE_ERROR("Invalid value for key : {}", key);
+      std::cout << fmtstr("Invalid value for key : {}\n", key);
       return std::nullopt;
     }
   }
@@ -447,7 +443,7 @@ namespace other {
     }
 
     if (ret_str.size() > 1) {
-      OE_ERROR("More than one value found for key : {}", key);
+      std::cout << fmtstr("More than one value found for key : {}\n", key);
       return std::nullopt;
     }
 
@@ -455,10 +451,10 @@ namespace other {
     try {
       ret = std::stoll(ret_str[0]);
     } catch (std::invalid_argument& e) {
-      OE_ERROR("Invalid argument : {}", e.what());
+      std::cout << fmtstr("Invalid argument : {}\n", e.what());
       return std::nullopt;
     } catch (std::out_of_range& e) {
-      OE_ERROR("Out of range : {}", e.what());
+      std::cout << fmtstr("Out of range : {}\n", e.what());
       return std::nullopt;
     }
 
@@ -473,7 +469,7 @@ namespace other {
     }
 
     if (ret_str.size() > 1) {
-      OE_ERROR("More than one value found for key : {}", key);
+      std::cout << fmtstr("More than one value found for key : {}\n", key);
       return std::nullopt;
     }
 
@@ -481,10 +477,10 @@ namespace other {
     try {
       ret = std::stof(ret_str[0]);
     } catch (std::invalid_argument& e) {
-      OE_ERROR("Invalid argument : {}", e.what());
+      std::cout << fmtstr("Invalid argument : {}\n", e.what());
       return std::nullopt;
     } catch (std::out_of_range& e) {
-      OE_ERROR("Out of range : {}", e.what());
+      std::cout << fmtstr("Out of range : {}\n", e.what());
       return std::nullopt;
     }
 
@@ -499,7 +495,7 @@ namespace other {
     }
 
     if (ret_str.size() > 1) {
-      OE_ERROR("More than one value found for key : {}", key);
+      std::cout << fmtstr("More than one value found for key : {}\n", key);
       return std::nullopt;
     }
 
@@ -507,10 +503,10 @@ namespace other {
     try {
       ret = std::stod(ret_str[0]);
     } catch (std::invalid_argument& e) {
-      OE_ERROR("Invalid argument : {}", e.what());
+      std::cout << fmtstr("Invalid argument : {}\n", e.what());
       return std::nullopt;
     } catch (std::out_of_range& e) {
-      OE_ERROR("Out of range : {}", e.what());
+      std::cout << fmtstr("Out of range : {}\n", e.what());
       return std::nullopt;
     }
 
@@ -525,7 +521,7 @@ namespace other {
     }
 
     if (ret_str.size() > 1) {
-      OE_ERROR("More than one value found for key : {}", key);
+      std::cout << fmtstr("More than one value found for key : {}\n", key);
       return std::nullopt;
     }
 
@@ -566,7 +562,7 @@ namespace other {
             ret.push_back(std::stod(val));
           }
         } catch (std::exception& e) {
-          OE_ERROR("Invalid value for key : {}", key);
+          std::cout << fmtstr("Invalid value for key : {}", key);
           return std::nullopt;
         }
       }

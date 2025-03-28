@@ -1,7 +1,7 @@
 vertex [mesh : textured_quad] {
 
   void main() {
-    gl_Position = vec4(voe_position , 1.0);
+    gl_Position = vec4(voe_position.x, voe_position.y, 0.0 , 1.0);
     foe_uvs = voe_uvs;
   }
 
@@ -17,8 +17,8 @@ fragment {
   void main() {
     const float gamma = 2.2;
     vec3 hdr_color = texture(oe_screen_tex , foe_uvs).rgb;
-
     vec3 result = vec3(1.0) - exp(-1 * hdr_color * exposure);
+    
     /// why does this look so weird ?? 
     // vec3 col = pow(result , vec3(1.0 / gamma));
 

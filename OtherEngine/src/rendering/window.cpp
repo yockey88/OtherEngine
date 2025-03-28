@@ -84,7 +84,7 @@ namespace other {
       if (cfg.size() > 0) {
         bool resize = config.GetVal<bool>(kWindowFlagsSection, kResizableValue, false).value_or(false);
         bool borderless = config.GetVal<bool>(kWindowFlagsSection, kBorderlessValue, false).value_or(false);
-        bool maximized = config.GetVal<bool>(kWindowFlagsSection, kMaximizedValue, false).value_or(true);
+        bool maximized = config.GetVal<bool>(kWindowFlagsSection, kMaximizedValue, false).value_or(false);
         bool minimized = config.GetVal<bool>(kWindowFlagsSection, kMinimizedValue, false).value_or(false);
         bool allow_highdpi = config.GetVal<bool>(kWindowFlagsSection, kAllowHighDpiValue, false).value_or(false);
 
@@ -111,10 +111,9 @@ namespace other {
         if (allow_highdpi) {
           flags |= SDL_WINDOW_ALLOW_HIGHDPI;
         }
-      } else {
-        flags |= SDL_WINDOW_RESIZABLE;
-        flags |= SDL_WINDOW_MAXIMIZED;
       }
+
+      flags |= SDL_WINDOW_RESIZABLE;
       return flags;
     }
 
@@ -123,12 +122,14 @@ namespace other {
   Window::Window(WindowContext cxt, WindowConfig cfg)
       : context(cxt), config(cfg) {
     glViewport(0, 0, config.size.x, config.size.y);
+    GetWindowDetails();
   }
 
   Window::Window(Window&& other) noexcept
       : context(other.context), config(other.config) {
     other.context = { nullptr, nullptr };
     other.config = {};
+    GetWindowDetails();
   }
 
   Window& Window::operator=(Window&& other) noexcept {
@@ -168,6 +169,10 @@ namespace other {
   }
 
   glm::ivec2 Window::Size() {
+    if (maxed) {
+      return config.max_size;
+    }
+
     glm::ivec2 size;
     SDL_GetWindowSize(context.window, &size.x, &size.y);
     config.size = size;
@@ -200,7 +205,21 @@ namespace other {
   }
 
   void Window::ForceResize(const glm::ivec2& size) {
-    config.size = size;
+    glm::ivec2 real_size = size;
+    if (real_size.x >= config.max_size.x) {
+      real_size.x = config.max_size.x;
+    }
+    if (real_size.y >= config.max_size.y) {
+      real_size.y = config.max_size.y;
+    }
+
+    if (real_size.x == config.max_size.x && real_size.y == config.max_size.y) {
+      maxed = true;
+    } else {
+      maxed = false;
+    }
+
+    config.size = real_size;
     SDL_SetWindowSize(context.window, config.size.x, config.size.y);
     SDL_SetWindowPosition(context.window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
     glViewport(0, 0, config.size.x, config.size.y);
@@ -277,6 +296,19 @@ namespace other {
       return { std::nullopt, other::fmtstr("Failed to create window : {}", SDL_GetError()) };
     }
 
+    SDL_SetWindowMinimumSize(context.window, config.min_size.x, config.min_size.y);
+
+    SDL_DisplayMode dm;
+    SDL_GetCurrentDisplayMode(0, &dm);
+    config.max_size = { dm.w, dm.h };
+
+    {
+      using namespace std::string_view_literals;
+      std::cout << fmt::format("Display mode : [{},{}] @ {}Hz\n"sv, dm.w, dm.h, dm.refresh_rate);
+      std::cout << fmt::format("Max size : [{},{}]\n"sv, config.max_size.x, config.max_size.y);
+      std::cout << fmt::format("Min size : [{},{}]\n"sv, config.min_size.x, config.min_size.y);
+    }
+
     EnableSdlGlSettings(cfg_table);
 
     context.context = SDL_GL_CreateContext(context.window);
@@ -295,6 +327,15 @@ namespace other {
     config.clear_flags = EnableGlSettings(cfg_table);
 
     return { NewScope<Window>(context, config), std::nullopt };
+  }
+
+  void Window::GetWindowDetails() {
+    if (config.flags & SDL_WINDOW_MAXIMIZED) {
+      maxed = true;
+      int sz[2];
+      SDL_GetWindowSize(context.window, &sz[0], &sz[1]);
+      config.max_size = { sz[0], sz[1] };
+    }
   }
 
 }  // namespace other

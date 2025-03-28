@@ -138,6 +138,7 @@ namespace other {
       if (in_editor) {
         OE_DEBUG("Loading Editor");
         AppState::mode = EngineMode::EDITOR;
+        Renderer::Fullscreen(true);
         main_idle = NewRef<EditorIdle>(engine);
 
         LoggerTargetData console_sink_data = {

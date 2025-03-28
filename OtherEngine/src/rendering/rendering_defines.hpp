@@ -108,7 +108,7 @@ namespace other {
     DepthFunction depth_func = DepthFunction::LESS;
 
     glm::vec4 clear_color = { 0.f, 0.f, 0.f, 1.f };
-    glm::ivec2 size = { 800.f, 600.f };
+    glm::ivec2 size = { 800, 600 };
 
     bool depth = true;
     bool color = true;

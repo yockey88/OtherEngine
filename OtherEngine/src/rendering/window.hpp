@@ -7,6 +7,7 @@
 #include <string>
 
 #include <SDL.h>
+#include <glm/fwd.hpp>
 #undef main
 #include <glad/glad.h>
 #include <glm/glm.hpp>
@@ -25,6 +26,8 @@ namespace other {
   struct WindowConfig {
     std::string title = "OTHER";
     glm::ivec2 size{ 1920, 1080 };
+    glm::ivec2 min_size{ 200, 200 };
+    glm::ivec2 max_size{ 0, 0 };
     glm::ivec2 pos{ SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED };
     glm::vec4 color{ 0.0f, 0.0f, 0.0f, 1.0f };
     bool centered = true;
@@ -66,8 +69,12 @@ namespace other {
     void SetClearColor(const glm::vec4& color) { config.color = color; }
 
    private:
+    bool maxed = false;
+
     WindowContext context;
     WindowConfig config;
+
+    void GetWindowDetails();
   };
 
 }  // namespace other

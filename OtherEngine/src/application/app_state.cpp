@@ -61,6 +61,11 @@ namespace other {
     data->loading = false;
   }
 
+  void AppState::RebindScripts() {
+    /// rebind core scripts
+    data->scenes->RebindScripts();
+  }
+
   CmdLine& AppState::GetProcessArguments() {
     OE_ASSERT(data != nullptr, "Can not access apps data until app is loaded");
     return data->cmd_line;

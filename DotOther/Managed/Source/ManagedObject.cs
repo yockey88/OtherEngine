@@ -91,10 +91,10 @@ namespace DotOther.Managed {
 			List<MethodInfo> method_info_list = new List<MethodInfo>();
 			method_info_list.AddRange(type.GetMethods(flags));
 			
-			Type? baseType = type.BaseType;
-			while (baseType != null) {
-				method_info_list.AddRange(baseType.GetMethods(flags));
-				baseType = baseType.BaseType;
+			Type? base_type = type.BaseType;
+			while (base_type != null) {
+				method_info_list.AddRange(base_type.GetMethods(flags));
+				base_type = base_type.BaseType;
 			}
 
 			minfo = InteropInterface.FindSuitableMethod<MethodInfo>(name, types, count, CollectionsMarshal.AsSpan(method_info_list));
@@ -173,29 +173,25 @@ namespace DotOther.Managed {
 		[UnmanagedCallersOnly]
 		private static unsafe void InvokeMethod(IntPtr handle, NString method_name, IntPtr parameters, ManagedType* param_types, int count) {
 			try {
-				// LogMessage($"Attempting to invoke method '{method_name}' on object with handle '{handle}'.", MessageLevel.Trace);
 				if (method_name == null) {
 					throw new ArgumentNullException($"{nameof(method_name)} cannot be null.");
 				}
 
-				object? target = GCHandle.FromIntPtr(handle).Target;
+				var target = GCHandle.FromIntPtr(handle).Target;
 				if (target == null) {
 					throw new NullReferenceException($"Target object for invoking method [{method_name}]({count}) is null.");
 				}
 
 				Type target_type = target.GetType();
-				// LogMessage($"	> InvokeMethod target object found, type : [{target_type.FullName}]", MessageLevel.Trace);
-
 				MethodInfo? minfo = TryGetMethodInfo(target_type, method_name, param_types, count, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
 				if (minfo == null) {
 					throw new MissingMethodException($"Method '{target_type.FullName}.{method_name}[{count}]' not found.");
 				}
-				// LogMessage($"	> Method info [{target_type.FullName}.{method_name}] found", MessageLevel.Trace);
 					
-				object?[]? marshalled_parameters = Interop.DotOtherMarshal.MarshalParameterArray(parameters, count, minfo);
+				var marshalled_parameters = Interop.DotOtherMarshal.MarshalParameterArray(parameters, count, minfo);
+				Console.WriteLine($"	> invoking {method_name}[{count}]", MessageLevel.Trace);
 				minfo.Invoke(target, marshalled_parameters);
 			} catch (Exception ex) {
-				LogMessage($"InvokeMethod({method_name}[{count}]) failed", MessageLevel.Error);
 				HandleException(ex);
 			}
 		}

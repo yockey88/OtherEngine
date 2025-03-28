@@ -140,6 +140,8 @@ namespace other {
 
     void ResetPhysicsSimulation();
 
+    void RebindScripts();
+
     /// this seems insane, need to rethink physics collision listener (and the rest of the physics engine)
     std::pair<Entity*, Entity*> BeginContact(UUID entity1, UUID entity2);
     std::pair<Entity*, Entity*> ContactPoint(CollisionPointData* point1, CollisionPointData* point2);

@@ -31,6 +31,8 @@ namespace other {
 
     static void Shutdown();
 
+    static void Fullscreen(bool fullscreen);
+
     static const Scope<Window>& GetWindow();
 
     static void SetWindowClearColor(const std::vector<std::string>& color);
@@ -44,6 +46,7 @@ namespace other {
     static SceneRenderSpec GetDefaultSceneSpec();
 
    private:
+    static bool is_fullscreen;
     static Scope<Window> window;
     static Ref<Scene> scene_ctx;
     static Ref<VertexArray> window_mesh;

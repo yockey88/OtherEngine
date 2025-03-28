@@ -33,6 +33,7 @@ namespace other {
 
   struct ScriptObjectData {
     std::string module;
+    std::string nspace;
     std::string obj_name;
   };
 
@@ -43,8 +44,14 @@ namespace other {
 
     Opt<uint32_t> selected_script = std::nullopt;
 
+    std::string name = "";
+    std::string nspace = "";
+    std::string module = "";
+
     UUID AddScript(const std::string_view name, const std::string_view nspace, const std::string_view module);
     void RemoveScript();
+
+    void Rebind();
 
     void ApiCall(const std::string_view name);
 

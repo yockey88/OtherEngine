@@ -3,6 +3,7 @@
  */
 #include "rendering\renderer.hpp"
 
+#include <SDL_video.h>
 #include <glad/glad.h>
 #include <imgui/imgui.h>
 
@@ -16,6 +17,7 @@
 
 namespace other {
 
+  bool Renderer::is_fullscreen = false;
   Scope<Window> Renderer::window = nullptr;
   Ref<Scene> Renderer::scene_ctx = nullptr;
   Ref<VertexArray> Renderer::window_mesh = nullptr;
@@ -23,6 +25,10 @@ namespace other {
 
   void Renderer::Initialize(const ConfigTable& config) {
     auto win_cfg = Window::ConfigureWindow(config);
+    if ((win_cfg.flags & SDL_WINDOW_FULLSCREEN) || (win_cfg.flags & SDL_WINDOW_MAXIMIZED)) {
+      is_fullscreen = true;
+    }
+
     auto win_res = Window::GetWindow(win_cfg, config);
 
     CHECKGL();
@@ -83,6 +89,20 @@ namespace other {
     window = nullptr;
   }
 
+  void Renderer::Fullscreen(bool fullscreen) {
+    if (is_fullscreen == fullscreen) {
+      return;
+    }
+
+    if (fullscreen) {
+      SDL_MaximizeWindow(window->Context().window);
+    } else {
+      SDL_SetWindowSize(window->Context().window, window->Size().x, window->Size().y);
+    }
+
+    is_fullscreen = fullscreen;
+  }
+
   const Scope<Window>& Renderer::GetWindow() {
     return window;
   }
@@ -101,19 +121,17 @@ namespace other {
 
   void Renderer::DrawFramebufferToWindow(Ref<Framebuffer>& framebuffer) {
     OE_ASSERT(framebuffer != nullptr, "Cannot render null framebuffer to window!");
-    glm::vec2 old_size = framebuffer->Size();
-    glm::vec2 new_size = window->Size();
-    framebuffer->Resize(new_size);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, framebuffer->texture);
+
     window_shader->Bind();
     window_shader->SetUniform("oe_screen_tex", 0);
     window_shader->SetUniform("exposure", 1.f);
     window_mesh->Draw(TRIANGLES);
     window_shader->Unbind();
-
-    framebuffer->Resize(old_size);
   }
 
   Ref<SceneRenderer> Renderer::DefaultSceneRenderer() {

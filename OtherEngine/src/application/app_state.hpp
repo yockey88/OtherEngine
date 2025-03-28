@@ -31,6 +31,8 @@ namespace other {
     static bool IsLoading();
     static void MarkLoaded();
 
+    static void RebindScripts();
+
     static CmdLine& GetProcessArguments();
     static ConfigTable& GetLoadedConfig();
 
