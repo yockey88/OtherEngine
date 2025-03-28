@@ -2,6 +2,7 @@
 bin/
 bin_obj/
 .cache/
+code_analysis/
 *.sln
 *.vcxproj*
 *csproj
