@@ -1,5 +1,9 @@
 # Other Engine
 
+# Important Note
+
+This project has been broken up and refactored into the [otherlib](https://github.com/yockey88/otherlib) game development framework.
+
 ## Building
 
 Only supports Windows at the moment
